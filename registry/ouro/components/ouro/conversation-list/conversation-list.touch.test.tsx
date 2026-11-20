@@ -78,3 +78,26 @@ it("opens a row's menu on a long press, where the finger rests, and the press se
   await commands.tap('[data-ouro-part="row"][tabindex="0"]');
   await expect.poll(() => selected).toEqual(["ana"]);
 });
+
+it("shows the more button on every row with a menu, a 44px target beside the time, and leaves the row's box as it was", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  const items = [
+    { id: "trail", title: "Trail crew", time: "9:41", menu: [{ label: "Pin", onClick: () => {} }] },
+    { id: "plain", title: "No menu", time: "Mon" },
+  ];
+  await act(async () => root!.render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />));
+  const row = host.querySelector<HTMLElement>('[data-ouro-part="row"]')!;
+  const more = host.querySelector<HTMLElement>('[data-ouro-part="more"]')!;
+  expect(host.querySelectorAll('[data-ouro-part="more"]')).toHaveLength(1);
+  expect(getComputedStyle(more).opacity).toBe("1");
+  const target = more.querySelector<HTMLElement>("[data-ouro-touch-target]")!.getBoundingClientRect();
+  expect(target.width).toBeGreaterThanOrEqual(44);
+  expect(target.height).toBeGreaterThanOrEqual(44);
+  const time = row.querySelector<HTMLElement>("[data-ouro-conversation-time]")!.getBoundingClientRect();
+  const slot = more.getBoundingClientRect();
+  expect(slot.left).toBeGreaterThanOrEqual(time.right - 1);
+  expect(slot.right).toBeLessThanOrEqual(row.getBoundingClientRect().right);
+});

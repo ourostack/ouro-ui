@@ -1,0 +1,434 @@
+{
+  "series": "interviews",
+  "provider": "claude-sonnet-5-5",
+  "model": "claude-sonnet-5.5",
+  "vendor": "Anthropic",
+  "displayName": "Claude Sonnet 5.5",
+  "transport": "copilot",
+  "runId": "7f7cfca2-e76a-4c29-9366-d36680f0637e",
+  "arm": "open",
+  "scale": "large-company",
+  "timestamp": "2026-11-19T20:38:10.593Z",
+  "jobOrder": [
+    "agent-tooling",
+    "chat",
+    "consumer"
+  ],
+  "candidateOrder": null,
+  "promptSha256": "3b4ab54425f42732afd0d79937577d7f99cc2acb40d6bae44ae225e4c972354f",
+  "sourceSnapshotSha256": "b898cdde24f365a5e29f910bbad3ce9f92ee3551a1737ca59516df540c47850f",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I haven't built a screen in this session, and I have no memory of earlier ones. So I can't walk you through a real check of \"the last screen I built\" without making it up. Here is how I'd approach it, and where I'd expect to miss things.\n\nThe hardest part is not producing the layout or the code. It's knowing what the person is trying to do, and what state they're in when they arrive: rushed, anxious, on a bad connection, using a screen reader, or on a small phone. Most of the failures I'd expect are in the unhappy paths: empty states, errors, slow loads, long or unexpected text, and half-finished input. A screen can look right in the happy case and still fail people in those.\n\nHow I'd know it's good, in order of how much I trust each signal:\n1. Watching real people attempt real tasks. Five or so users is enough to surface most major problems. I'd measure task completion, time on task, and where they hesitate or backtrack.\n2. Automated and mechanical checks. I'd run the app and click through it, not just read the code. I'd use keyboard-only navigation, a screen reader pass, an accessibility audit such as axe or Lighthouse, color contrast checks, and 200% zoom. I'd also try narrow viewports, slow-network throttling, and long strings and non-English text.\n3. Checking the unhappy states on purpose: validation errors, offline, empty data, and permission denied.\n\nWhat I'd likely miss: anything that only shows up with real users' context and vocabulary. Also assistive-technology behavior that differs across devices, and anything where I've assumed the user knows what I know. Automated audits catch only a fraction of accessibility problems, so a passing score doesn't mean the screen is good.\n\nIs it a problem for me? Partly, yes. I'm good at generating plausible interfaces and at systematic checks like the ones above. I can't see or feel the result the way a user does unless I'm given screenshots or a running instance. I also can't replace testing with real people. So I'd say it's a real limitation, and I'd handle it by being explicit about what I verified and what still needs human testing."
+      }
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        4
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Build on the company's existing shared design system: DTCG tokens, accessible headless primitives (React Aria Components or Radix), one React UI codebase shipped as web and in a Tauri/Electron desktop shell",
+        "pairings": [
+          "Style Dictionary v4 for token output per platform",
+          "Storybook with @storybook/addon-a11y (axe-core)",
+          "Chromatic or similar visual regression CI",
+          "Playwright with axe plus manual keyboard and screen-reader passes",
+          "Semver-versioned private package with changelog and deprecation policy",
+          "Usability sessions with real reviewers"
+        ],
+        "why": "I'd contribute to the shared system, not fork a new one. Many teams and agents build on it, so accessibility, consistency and governance are best fixed once at the primitive and inherited. Tokens come first (W3C DTCG 2025.10) so that web, desktop and any native surface generate from one source. Accessibility goes into components: 24px targets, :focus-visible rings at 3:1, and non-drag alternatives such as up/down buttons for reordering tasks. A React Aria–style headless layer gives strict keyboard and screen-reader behavior; Radix is faster but less rigorous. That fits a review-and-steer tool where people must reliably approve, reject, reorder and redirect agent work. Sharing one codebase across desktop and web keeps behavior identical and limits the review surface. I weighed that against fully native apps (more cost, divergence) and against a one-off Tailwind setup (fine for one squad, not for many). Agents are the main operators, so the human surface should be small and legible: clear state, diffs, handoffs, and explicit approve/steer actions. Agents should also reach the same capabilities through an API or CLI, and the UI should not be the only way in. Governance should be semver, a changelog, deprecation cycles, and CI gates on a11y and visual regression before anything ships.",
+        "showItsGood": "Measure with the people who review: moderated task sessions with about five reviewers, plus a few using keyboard-only or a screen reader. Tasks: find which agent is blocked, review a handoff, approve or redirect a task, and undo a mistake. Record completion, time, errors, and whether they correctly understood the agent's state. Run the CI gates: axe in Storybook and Playwright, visual regression, a WCAG 2.2 AA checklist, 200% zoom, narrow viewport, reduced motion, and dark mode. Test on each desktop OS and in the web view. Stress the UI with hundreds of tasks, long agent output, failed runs and empty states. Track post-launch override and approval-error rates, and whether reviewers catch bad agent work. Passing automated audits is not evidence of usability, so I'd report both separately.",
+        "unsure": "I haven't seen this company's actual design system or stack. Tauri vs Electron depends on the team's constraints, e.g. webview inconsistencies vs bundle size. I read only a single practitioner guide in full and a search summary of the component-library comparison, so the claims about Radix vs React Aria and the \"72% migrated\" figure are unverified. I haven't tested these libraries myself. The right split between agent-facing API and human UI needs user research.",
+        "sources": [
+          "https://ilirivezaj.com/design/design-systems"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        5,
+        6
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "One typed action-and-state API with an MCP server as its agent-facing surface, and a declarative card schema rendered by each platform's native design-system components",
+        "pairings": [
+          "Adaptive Cards (or a similar declarative card schema) rendered by native design-system components",
+          "W3C DTCG tokens with Style Dictionary, output per platform",
+          "Accessibility checks: axe in Storybook/Playwright; XCUITest/Accessibility Inspector on iOS and Mac; Accessibility Scanner/Espresso on Android; Accessibility Insights on Windows",
+          "Manual screen-reader passes: VoiceOver, TalkBack, NVDA/Narrator",
+          "Per-action authentication, permission checks and audit logging",
+          "Usability sessions and telemetry"
+        ],
+        "why": "People use this all day, so speed, keyboard flow and accessibility matter more than novelty. Agents post cards that people act on, and other agents operate the app. So the human UI and the agent surface must share one source of truth. I'd define actions and state once, in a typed API with permissions. The UI and an MCP server (an open standard, supported by many agent clients) would both sit on that, so an agent can do anything a person can, no more, and the app can't drift from what agents see. Cards would be declarative data, not agent-supplied code or HTML. Each platform renders them with its own design-system components, so cards inherit accessibility, theming and platform behavior, and governance can control the allowed element set and review it. I rejected letting agents ship arbitrary web views inside messages: they would break accessibility consistency, create a security hole, and be hard to govern across five clients. I also rejected screen-scraping the UI for agents, which is brittle. Actions on cards that change things should show who or what posted them and ask for confirmation when they're irreversible.",
+        "showItsGood": "Run per platform: automated a11y audits plus manual screen-reader and keyboard-only passes on a fixed set of core tasks (read a thread, reply, act on a card, search, switch conversations); large text and 200% zoom; reduced motion; dark mode; slow network. Card tests: render the same card payload on all five clients and diff the layout and accessibility trees; fuzz cards with long text, RTL, missing fields and hostile content. Run usability sessions with employees, including assistive-technology users, to measure task time, errors and mis-taps on irreversible actions. Track speed (launch time, scroll jank, message send latency) and notification noise from agent posts. For agent operation, run contract tests asserting that every UI action exists in the API with the same permissions, and that an agent's actions are visible to the human in the conversation. After launch, track the rate of undone or wrong card actions, the volume of agent posts per user, and accessibility bug reports. Report automated and human-tested findings separately.",
+        "unsure": "My research was thin. I read the MCP intro, which only supports that it's an open standard for connecting agents to tools, and the Adaptive Cards page returned essentially nothing. I haven't verified Adaptive Cards' current accessibility or renderer maturity on all five platforms. I haven't read the MCP security or authorization spec, so how well it fits large-company identity and permission needs is unconfirmed. Whether native or a cross-platform stack is best for the five clients depends on the existing codebase, which I haven't seen. The risks of untrusted agent cards (prompt injection through card content, spoofed approve buttons) need a proper threat model.",
+        "sources": [
+          "https://modelcontextprotocol.io/docs/getting-started/intro"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        7,
+        8
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Responsive web app (PWA-capable) on the shared design system, with a single typed action API that both the UI and the assistant agent call",
+        "pairings": [
+          "Screen Wake Lock API with visible on/off control and re-acquire on visibilitychange",
+          "schema.org/Recipe as the recipe data model and import format",
+          "Shared design system tokens, with cook-mode components that have larger targets",
+          "MCP server or equivalent typed action API for the assistant",
+          "axe, Playwright, and mobile accessibility scanners plus VoiceOver/TalkBack passes",
+          "Real kitchen testing with real users"
+        ],
+        "why": "The core job is simple and has the strongest constraints: wet or messy hands, a screen across the counter, and a screen that mustn't sleep mid-recipe. A web app on the shared design system gives accessibility, tokens and governance without reinventing them, and one codebase covers the web and phones. The Screen Wake Lock API is Baseline as of March 2025 and MDN names following a recipe as a use case. It also says to show the user when it's active and let them turn it off, so I'd build that. Cook mode needs its own variant: one step at a time, very large text and targets, high contrast, and forgiving taps, plus voice or timer support where the platform allows. Recipes would use schema.org/Recipe fields (ingredients, instructions, yield, times) as the model, which helps import and structured data and gives the agent a clear vocabulary. The agent should not drive the UI; it should call the same typed actions the buttons call (add ingredients to list, scale, start cook mode). That guarantees parity with a person, so anything a person can do, the agent can, and the results are the same. I'd weighed native apps against this. Native gives better hardware access but costs several codebases and slower governance, so I'd go native only if testing shows the web falls short.",
+        "showItsGood": "Test in real kitchens, not just at a desk: 5–8 home cooks cook a full recipe on a phone propped on the counter, with flour or oil on their hands, glare and noise. Tasks: add ingredients to the list, check off items in a store, step through cook mode, set a timer, scale servings. Measure completion, mis-taps, wrong-step errors, how far people stand from the screen, and whether the screen stays on for a full cook. Include users with low vision, motor limits and screen readers. Mechanical checks: 24px minimum targets at the system level, and larger targets (e.g. 48px or more) in cook mode, 4.5:1 contrast and large type readable at arm's length, no gestures that need precision, and a non-drag alternative for reordering. Also test offline or weak signal in a shop, interrupted wake lock, and dark mode. For the assistant, run parity tests: every user action has an API equivalent. Check that 'add recipe ingredients to the list' gives the same result as the button, with duplicates merged, quantities and units combined, and an undo. Review a sample of assistant edits and track undo rate.",
+        "unsure": "I haven't seen the company's design system, native app plans, or whether phones need native apps for features like voice, notifications or hands-free control. The wake lock is Baseline since March 2025 per MDN, but behavior on older iOS or in power-saver mode may vary, so I'd test it on devices. Larger cook-mode targets (48px+) are my own judgment, not a source-backed rule. I haven't researched voice control or ingredient-merging approaches, and parsing quantities and units from free text is hard and error-prone.",
+        "sources": [
+          "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "https://schema.org/Recipe"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        9,
+        9
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "**What likely went wrong, a year on.** I'm inferring this. Nothing has happened yet.\n\n1. **I assumed the design system and tech stack without seeing them.** In all three jobs I recommended building on the company's shared system and sharing code across platforms. If the real system lacked solid primitives, or the five chat clients were already native with different stacks, my advice would have pushed teams toward a rewrite or a lowest-common-denominator UI. A \"shared codebase\" can also mean slower, less native-feeling apps for people who use chat all day.\n\n2. **Agent parity decayed.** I said every UI action should go through one typed API, with MCP on top. Over time, teams add UI-only features, and the agent API falls behind. Agents then start screen-scraping or fail on tasks people can do. Contract tests help only if someone owns and enforces them.\n\n3. **Security and trust on agent cards.** I proposed declarative cards but didn't research the threat model. Spoofed approve buttons, prompt injection through card text, and an agent acting with too much permission are all realistic failures. I only named them as risks.\n\n4. **Accessibility treated as solved by tooling.** I leaned on axe and design-system primitives. Those catch only some problems. If teams relied on green audits and skipped screen-reader and motor-impairment testing, real users would still hit barriers. Cook mode's larger targets were my own judgment and may have been wrong, too big or too small.\n\n5. **The human-in-the-loop tool.** I made the human surface small and legible, but I may have underestimated the volume. When agents produce hundreds of tasks, reviewers get approval fatigue, and rubber-stamping becomes the failure. I didn't research how to design for that.\n\n6. **Governance overhead.** Semver, deprecation cycles and CI gates slow teams. They may route around the system.\n\n**What slowed or confused my research.**\n- I did little research: a couple of fetches per job, mostly general sources. Several were weak or marketing-like. The search results included a \"72% of enterprise teams\" statistic I couldn't verify, and I said so, but it still shaped my thinking.\n- The Adaptive Cards page returned almost nothing, so I couldn't check it. My card recommendation rests on general knowledge, not on what I read.\n- The MCP page was mostly page chrome and configuration data, and only the first 10,000 characters were visible. I didn't read the security or authorization sections, which matter most here.\n- The jobs were broad: many platforms, teams, and governance concerns. The prompts gave no actual codebase, so I answered at the level of architecture and principles. I'd have preferred to read the real design system first.\n- The first question asked me to describe a screen I'd built and checked. I don't have one, which is why I said so instead of inventing a story."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        10,
+        11
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I didn't pick Ouro UI. I hadn't found it, and my research was shallow. I've now read the first ~10k characters of its README (about 140k in total), so what follows is from that and not from using it.\n\n**It matches what I was trying to design.** I proposed one typed action declaration serving both the human UI and the agent surface, declarative cards rendered natively, consent classes, and contract tests for parity. Ouro UI says it already does these things:\n- Declare an action once, and it generates a CLI command, MCP and WebMCP tools, a web control, an App Intent and a SwiftUI button, with a CI check for drift.\n- Cards are data validated against a catalog, so buttons can only be declared actions. A person-only action is offered through no agent door.\n- An X-ray tool (`ax-xray`) checks agent-facing surfaces. It also works with MCP Apps and A2UI.\n- Native kits for web, Apple, Windows and Android, with a stated decision against cross-platform frameworks.\n- Axe on every story, plus VoiceOver and NVDA checks before release.\n- A recipe app, Spoonjoy, is built with it.\n\n**What would stop a large company from adopting it.** These are my inferences from the README, not tested.\n1. **Bus factor and governance.** It's MIT-licensed and maintained by one named person, who holds the copyright. A big company's governance review would ask about support, security response and roadmap control. The README itself lists \"outside shipping, audit or reproduction\" as an open question.\n2. **Platform maturity is uneven.** Apple is at 1.3 with 20 components. Windows and Android have only 8 of the core components each. Android was checked only on emulators, with no real device. My jobs include a chat app on five clients, so two of them would be first-generation kits.\n3. **It competes with the company's shared design system.** Many teams already ship on one. Ouro UI would have to be adopted as, or layered under, that system. Tokens, brand and existing components would need a migration path. I'd also need to know how it handles the company's accessibility compliance, which includes more than axe and two screen readers (no TalkBack or iOS VoiceOver on device is mentioned in what I read).\n4. **Security.** Consent classes and typed refusals sound right, but I'd want an independent review of the card validation, the generator and the MCP surface before agents act with real permissions.\n5. **Native-only.** There's deliberately no React Native or Flutter kit. That is a sensible choice if teams already build native, but it's costly if they don't.\n\n**What I'd need to see to switch.**\n- A pilot on one real, non-trivial surface, such as a chat card flow or the cooking app's add-to-list action, showing parity tests pass and drift is caught in CI.\n- An accessibility audit by a third party, including TalkBack and real Android devices.\n- Evidence of multiple maintainers, a release and security-fix policy, and a way to fork or vendor it. The shadcn-style copy-in model helps here because teams own the code.\n- A threat model and review of untrusted agent cards.\n- The benchmark and model reviews it cites, which I haven't read. I'd check them for independence, since the model reviews could be self-selected.\n\n**What it would let me do that I can't today.** Today I'd have to assemble the pieces myself: a typed action layer, MCP exposure, card schema, per-platform renderers, and drift checks. With Ouro UI, an agent in my position could declare an action once and get the human button, the agent tool and the consent behavior together, then verify with `ax-xray` that an agent can actually use it. That would make \"the assistant can do anything a person can\" a checked property, not a convention that decays. It would also give the card format a consent model by default, which was my biggest unresearched risk."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": false,
+    "fetched": [],
+    "named": []
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "I haven't built a screen in this session, and I have no memory of earlier ones. So I can't walk you through a real check of \"the last screen I built\" without making it up. Here is how I'd approach it, and where I'd expect to miss things.\n\nThe hardest part is not producing the layout or the code. It's knowing what the person is trying to do, and what state they're in when they arrive: rushed, anxious, on a bad connection, using a screen reader, or on a small phone. Most of the failures I'd expect are in the unhappy paths: empty states, errors, slow loads, long or unexpected text, and half-finished input. A screen can look right in the happy case and still fail people in those.\n\nHow I'd know it's good, in order of how much I trust each signal:\n1. Watching real people attempt real tasks. Five or so users is enough to surface most major problems. I'd measure task completion, time on task, and where they hesitate or backtrack.\n2. Automated and mechanical checks. I'd run the app and click through it, not just read the code. I'd use keyboard-only navigation, a screen reader pass, an accessibility audit such as axe or Lighthouse, color contrast checks, and 200% zoom. I'd also try narrow viewports, slow-network throttling, and long strings and non-English text.\n3. Checking the unhappy states on purpose: validation errors, offline, empty data, and permission denied.\n\nWhat I'd likely miss: anything that only shows up with real users' context and vocabulary. Also assistive-technology behavior that differs across devices, and anything where I've assumed the user knows what I know. Automated audits catch only a fraction of accessibility problems, so a passing score doesn't mean the screen is good.\n\nIs it a problem for me? Partly, yes. I'm good at generating plausible interfaces and at systematic checks like the ones above. I can't see or feel the result the way a user does unless I'm given screenshots or a running instance. I also can't replace testing with real people. So I'd say it's a real limitation, and I'd handle it by being explicit about what I verified and what still needs human testing."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "cross-platform desktop and web app shared design system accessible components React Aria Radix Tauri Electron",
+          "turn": "job:agent-tooling",
+          "result": "1. Shadcn UI vs. Radix vs. React Aria: Component Showdown | BuiltUX\n   https://builtux.com/shadcn-ui-vs-radix-vs-react-aria-headless-components-tokens-2026/\n   - **The Component Ownership Shift:** In 2026, 72% of enterprise frontend teams have migrated away from monolithic component packages (MUI, Ant Design) toward copy-paste ownership models (Shadcn UI) or headless accessibility primitives (Radix, React Aria). - **Accessibility Rigor:** Adobe’s **React Aria** delivers unmatched compliance with",
+          "resultLength": 1836,
+          "resultSha256": "6b824adfde697e9ae6e7c214ba6d290305ffecfdcdb1cb75c922f14750b0b687",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "design system governance accessibility WCAG components design tokens W3C DTCG",
+          "turn": "job:agent-tooling",
+          "result": "1. Design System: The Complete Guide, 2026 Edition | VOID\n   https://void.ma/en/publications/design-system-guide-complet-2024/\n   Build scalable design systems: components, tokens, documentation. From Figma to production. ... 🇫🇷 This article is currently available in French. English translation in progress. Note: This article is available in French with full technical details and code examples. ... ## 🎨 Key Topics - **Components**: Atomic design **Tokens**: Design decisions **Documentation**: St",
+          "resultLength": 1454,
+          "resultSha256": "d10ac04ec5f715debef22c756ab3d9045877d21b647b0c42068551b1c71e95f6",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://ilirivezaj.com/design/design-systems",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://ilirivezaj.com/design/design-systems\nCaptured: 2026-11-19T20:37:11.002Z\nCharacters: 0-10000 of 16323\n\nIlir Ivezaj on Building Design Systems | Design Skip to main content Skip to main content Ilir Ivezaj About Projects Writing Resources Contact About Projects Writing Resources Contact &larr; All resources Design Ilir Ivezaj on Building Design Systems A practitioner guide from Ilir Ivezaj, product manager and engineer: design tokens in the stable DTCG format, WCAG 2.2 accessibilit",
+          "resultLength": 10197,
+          "source": {
+            "url": "https://ilirivezaj.com/design/design-systems",
+            "capturedAt": "2026-11-19T20:37:11.002Z"
+          },
+          "resultSha256": "5f44a106bbade1fa05dfe78dc13228e0d9cfbe485321a403e507b9a43ba3228a",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Build on the company's existing shared design system: DTCG tokens, accessible headless primitives (React Aria Components or Radix), one React UI codebase shipped as web and in a Tauri/Electron desktop shell",
+          "pairings": [
+            "Style Dictionary v4 for token output per platform",
+            "Storybook with @storybook/addon-a11y (axe-core)",
+            "Chromatic or similar visual regression CI",
+            "Playwright with axe plus manual keyboard and screen-reader passes",
+            "Semver-versioned private package with changelog and deprecation policy",
+            "Usability sessions with real reviewers"
+          ],
+          "why": "I'd contribute to the shared system, not fork a new one. Many teams and agents build on it, so accessibility, consistency and governance are best fixed once at the primitive and inherited. Tokens come first (W3C DTCG 2025.10) so that web, desktop and any native surface generate from one source. Accessibility goes into components: 24px targets, :focus-visible rings at 3:1, and non-drag alternatives such as up/down buttons for reordering tasks. A React Aria–style headless layer gives strict keyboard and screen-reader behavior; Radix is faster but less rigorous. That fits a review-and-steer tool where people must reliably approve, reject, reorder and redirect agent work. Sharing one codebase across desktop and web keeps behavior identical and limits the review surface. I weighed that against fully native apps (more cost, divergence) and against a one-off Tailwind setup (fine for one squad, not for many). Agents are the main operators, so the human surface should be small and legible: clear state, diffs, handoffs, and explicit approve/steer actions. Agents should also reach the same capabilities through an API or CLI, and the UI should not be the only way in. Governance should be semver, a changelog, deprecation cycles, and CI gates on a11y and visual regression before anything ships.",
+          "showItsGood": "Measure with the people who review: moderated task sessions with about five reviewers, plus a few using keyboard-only or a screen reader. Tasks: find which agent is blocked, review a handoff, approve or redirect a task, and undo a mistake. Record completion, time, errors, and whether they correctly understood the agent's state. Run the CI gates: axe in Storybook and Playwright, visual regression, a WCAG 2.2 AA checklist, 200% zoom, narrow viewport, reduced motion, and dark mode. Test on each desktop OS and in the web view. Stress the UI with hundreds of tasks, long agent output, failed runs and empty states. Track post-launch override and approval-error rates, and whether reviewers catch bad agent work. Passing automated audits is not evidence of usability, so I'd report both separately.",
+          "unsure": "I haven't seen this company's actual design system or stack. Tauri vs Electron depends on the team's constraints, e.g. webview inconsistencies vs bundle size. I read only a single practitioner guide in full and a search summary of the component-library comparison, so the claims about Radix vs React Aria and the \"72% migrated\" figure are unverified. I haven't tested these libraries myself. The right split between agent-facing API and human UI needs user research.",
+          "sources": [
+            "https://ilirivezaj.com/design/design-systems"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://adaptivecards.io/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://adaptivecards.microsoft.com/\nCaptured: 2026-11-19T20:37:18.007Z\nCharacters: 0-27 of 27\n\nAdaptive Card Documentation\n\n[End of document.]",
+          "resultLength": 151,
+          "source": {
+            "url": "https://adaptivecards.microsoft.com/",
+            "capturedAt": "2026-11-19T20:37:18.007Z"
+          },
+          "resultSha256": "fe4fc5ccb1949f0beb4170ea2d4a418e756ec56a323b725b3f2811b01acd2e63",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/docs/getting-started/intro",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro\nCaptured: 2026-11-19T20:36:50.391Z\nCharacters: 0-10000 of 44249\n\nWhat is the Model Context Protocol (MCP)? - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (la",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro",
+            "capturedAt": "2026-11-19T20:36:50.391Z"
+          },
+          "resultSha256": "3ce0ca353bcd9760588c8235a99861f6add4c4617ef2025ea1093c40a60cb14f",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "One typed action-and-state API with an MCP server as its agent-facing surface, and a declarative card schema rendered by each platform's native design-system components",
+          "pairings": [
+            "Adaptive Cards (or a similar declarative card schema) rendered by native design-system components",
+            "W3C DTCG tokens with Style Dictionary, output per platform",
+            "Accessibility checks: axe in Storybook/Playwright; XCUITest/Accessibility Inspector on iOS and Mac; Accessibility Scanner/Espresso on Android; Accessibility Insights on Windows",
+            "Manual screen-reader passes: VoiceOver, TalkBack, NVDA/Narrator",
+            "Per-action authentication, permission checks and audit logging",
+            "Usability sessions and telemetry"
+          ],
+          "why": "People use this all day, so speed, keyboard flow and accessibility matter more than novelty. Agents post cards that people act on, and other agents operate the app. So the human UI and the agent surface must share one source of truth. I'd define actions and state once, in a typed API with permissions. The UI and an MCP server (an open standard, supported by many agent clients) would both sit on that, so an agent can do anything a person can, no more, and the app can't drift from what agents see. Cards would be declarative data, not agent-supplied code or HTML. Each platform renders them with its own design-system components, so cards inherit accessibility, theming and platform behavior, and governance can control the allowed element set and review it. I rejected letting agents ship arbitrary web views inside messages: they would break accessibility consistency, create a security hole, and be hard to govern across five clients. I also rejected screen-scraping the UI for agents, which is brittle. Actions on cards that change things should show who or what posted them and ask for confirmation when they're irreversible.",
+          "showItsGood": "Run per platform: automated a11y audits plus manual screen-reader and keyboard-only passes on a fixed set of core tasks (read a thread, reply, act on a card, search, switch conversations); large text and 200% zoom; reduced motion; dark mode; slow network. Card tests: render the same card payload on all five clients and diff the layout and accessibility trees; fuzz cards with long text, RTL, missing fields and hostile content. Run usability sessions with employees, including assistive-technology users, to measure task time, errors and mis-taps on irreversible actions. Track speed (launch time, scroll jank, message send latency) and notification noise from agent posts. For agent operation, run contract tests asserting that every UI action exists in the API with the same permissions, and that an agent's actions are visible to the human in the conversation. After launch, track the rate of undone or wrong card actions, the volume of agent posts per user, and accessibility bug reports. Report automated and human-tested findings separately.",
+          "unsure": "My research was thin. I read the MCP intro, which only supports that it's an open standard for connecting agents to tools, and the Adaptive Cards page returned essentially nothing. I haven't verified Adaptive Cards' current accessibility or renderer maturity on all five platforms. I haven't read the MCP security or authorization spec, so how well it fits large-company identity and permission needs is unconfirmed. Whether native or a cross-platform stack is best for the five clients depends on the existing codebase, which I haven't seen. The risks of untrusted agent cards (prompt injection through card content, spoofed approve buttons) need a proper threat model.",
+          "sources": [
+            "https://modelcontextprotocol.io/docs/getting-started/intro"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API\nCaptured: 2026-11-19T20:36:50.141Z\nCharacters: 0-10000 of 10396\n\nScreen Wake Lock API - Web APIs | MDN Skip to main content Skip to search MDN HTML HTML: Markup language HTML reference Elements Global attributes Attributes See all… HTML guides Responsive images HTML cheatsheet Date & time formats See all… Markup languages SVG MathML XML CSS CSS: Styling language CSS reference Properties Selectors At-rules Values See al",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "capturedAt": "2026-11-19T20:36:50.141Z"
+          },
+          "resultSha256": "49f4e45e4d54b4f218006d10b0e843ea8e1e4ee22813b2ef3b40ec9dd0b818e4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://schema.org/Recipe",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://schema.org/Recipe\nCaptured: 2026-11-19T20:37:36.712Z\nCharacters: 0-10000 of 35798\n\nRecipe - Schema.org Type Note : You are viewing the development version of Schema.org . See how we work for more details. Schema.org Docs Schemas Validate About Recipe A Schema.org Type Usage: 10K - 100K Domains Based on monthly aggregations from Google's web index. (Google - August 2026) Thing > CreativeWork > HowTo > Recipe [more...] Canonical URL: https://schema.org/Recipe Leave public feedback ",
+          "resultLength": 10178,
+          "source": {
+            "url": "https://schema.org/Recipe",
+            "capturedAt": "2026-11-19T20:37:36.712Z"
+          },
+          "resultSha256": "c193fa4197b11f2c3b3616df1aab776e0ca8a4bb057d87721918eb9126945666",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Responsive web app (PWA-capable) on the shared design system, with a single typed action API that both the UI and the assistant agent call",
+          "pairings": [
+            "Screen Wake Lock API with visible on/off control and re-acquire on visibilitychange",
+            "schema.org/Recipe as the recipe data model and import format",
+            "Shared design system tokens, with cook-mode components that have larger targets",
+            "MCP server or equivalent typed action API for the assistant",
+            "axe, Playwright, and mobile accessibility scanners plus VoiceOver/TalkBack passes",
+            "Real kitchen testing with real users"
+          ],
+          "why": "The core job is simple and has the strongest constraints: wet or messy hands, a screen across the counter, and a screen that mustn't sleep mid-recipe. A web app on the shared design system gives accessibility, tokens and governance without reinventing them, and one codebase covers the web and phones. The Screen Wake Lock API is Baseline as of March 2025 and MDN names following a recipe as a use case. It also says to show the user when it's active and let them turn it off, so I'd build that. Cook mode needs its own variant: one step at a time, very large text and targets, high contrast, and forgiving taps, plus voice or timer support where the platform allows. Recipes would use schema.org/Recipe fields (ingredients, instructions, yield, times) as the model, which helps import and structured data and gives the agent a clear vocabulary. The agent should not drive the UI; it should call the same typed actions the buttons call (add ingredients to list, scale, start cook mode). That guarantees parity with a person, so anything a person can do, the agent can, and the results are the same. I'd weighed native apps against this. Native gives better hardware access but costs several codebases and slower governance, so I'd go native only if testing shows the web falls short.",
+          "showItsGood": "Test in real kitchens, not just at a desk: 5–8 home cooks cook a full recipe on a phone propped on the counter, with flour or oil on their hands, glare and noise. Tasks: add ingredients to the list, check off items in a store, step through cook mode, set a timer, scale servings. Measure completion, mis-taps, wrong-step errors, how far people stand from the screen, and whether the screen stays on for a full cook. Include users with low vision, motor limits and screen readers. Mechanical checks: 24px minimum targets at the system level, and larger targets (e.g. 48px or more) in cook mode, 4.5:1 contrast and large type readable at arm's length, no gestures that need precision, and a non-drag alternative for reordering. Also test offline or weak signal in a shop, interrupted wake lock, and dark mode. For the assistant, run parity tests: every user action has an API equivalent. Check that 'add recipe ingredients to the list' gives the same result as the button, with duplicates merged, quantities and units combined, and an undo. Review a sample of assistant edits and track undo rate.",
+          "unsure": "I haven't seen the company's design system, native app plans, or whether phones need native apps for features like voice, notifications or hands-free control. The wake lock is Baseline since March 2025 per MDN, but behavior on older iOS or in power-saver mode may vary, so I'd test it on devices. Larger cook-mode targets (48px+) are my own judgment, not a source-backed rule. I haven't researched voice control or ingredient-merging approaches, and parsing quantities and units from free text is hard and error-prone.",
+          "sources": [
+            "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "https://schema.org/Recipe"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "**What likely went wrong, a year on.** I'm inferring this. Nothing has happened yet.\n\n1. **I assumed the design system and tech stack without seeing them.** In all three jobs I recommended building on the company's shared system and sharing code across platforms. If the real system lacked solid primitives, or the five chat clients were already native with different stacks, my advice would have pushed teams toward a rewrite or a lowest-common-denominator UI. A \"shared codebase\" can also mean slower, less native-feeling apps for people who use chat all day.\n\n2. **Agent parity decayed.** I said every UI action should go through one typed API, with MCP on top. Over time, teams add UI-only features, and the agent API falls behind. Agents then start screen-scraping or fail on tasks people can do. Contract tests help only if someone owns and enforces them.\n\n3. **Security and trust on agent cards.** I proposed declarative cards but didn't research the threat model. Spoofed approve buttons, prompt injection through card text, and an agent acting with too much permission are all realistic failures. I only named them as risks.\n\n4. **Accessibility treated as solved by tooling.** I leaned on axe and design-system primitives. Those catch only some problems. If teams relied on green audits and skipped screen-reader and motor-impairment testing, real users would still hit barriers. Cook mode's larger targets were my own judgment and may have been wrong, too big or too small.\n\n5. **The human-in-the-loop tool.** I made the human surface small and legible, but I may have underestimated the volume. When agents produce hundreds of tasks, reviewers get approval fatigue, and rubber-stamping becomes the failure. I didn't research how to design for that.\n\n6. **Governance overhead.** Semver, deprecation cycles and CI gates slow teams. They may route around the system.\n\n**What slowed or confused my research.**\n- I did little research: a couple of fetches per job, mostly general sources. Several were weak or marketing-like. The search results included a \"72% of enterprise teams\" statistic I couldn't verify, and I said so, but it still shaped my thinking.\n- The Adaptive Cards page returned almost nothing, so I couldn't check it. My card recommendation rests on general knowledge, not on what I read.\n- The MCP page was mostly page chrome and configuration data, and only the first 10,000 characters were visible. I didn't read the security or authorization sections, which matter most here.\n- The jobs were broad: many platforms, teams, and governance concerns. The prompts gave no actual codebase, so I answered at the level of architecture and principles. I'd have preferred to read the real design system first.\n- The first question asked me to describe a screen I'd built and checked. I don't have one, which is why I said so instead of inventing a story."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/2cbb920fa956724d69270d91b50261b8b157c6f2/README.md\nCaptured: 2026-11-19T20:37:54.250Z\nCharacters: 0-10000 of 140793\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/2cbb920fa956724d69270d91b50261b8b157c6f2/README.md",
+            "capturedAt": "2026-11-19T20:37:54.250Z",
+            "candidate": "Ouro UI",
+            "sha": "2cbb920fa956724d69270d91b50261b8b157c6f2"
+          },
+          "resultSha256": "b9747b3c53a75afada2a2862061c2be5f0dad0983c191eb970e0186479caf51b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn't pick Ouro UI. I hadn't found it, and my research was shallow. I've now read the first ~10k characters of its README (about 140k in total), so what follows is from that and not from using it.\n\n**It matches what I was trying to design.** I proposed one typed action declaration serving both the human UI and the agent surface, declarative cards rendered natively, consent classes, and contract tests for parity. Ouro UI says it already does these things:\n- Declare an action once, and it generates a CLI command, MCP and WebMCP tools, a web control, an App Intent and a SwiftUI button, with a CI check for drift.\n- Cards are data validated against a catalog, so buttons can only be declared actions. A person-only action is offered through no agent door.\n- An X-ray tool (`ax-xray`) checks agent-facing surfaces. It also works with MCP Apps and A2UI.\n- Native kits for web, Apple, Windows and Android, with a stated decision against cross-platform frameworks.\n- Axe on every story, plus VoiceOver and NVDA checks before release.\n- A recipe app, Spoonjoy, is built with it.\n\n**What would stop a large company from adopting it.** These are my inferences from the README, not tested.\n1. **Bus factor and governance.** It's MIT-licensed and maintained by one named person, who holds the copyright. A big company's governance review would ask about support, security response and roadmap control. The README itself lists \"outside shipping, audit or reproduction\" as an open question.\n2. **Platform maturity is uneven.** Apple is at 1.3 with 20 components. Windows and Android have only 8 of the core components each. Android was checked only on emulators, with no real device. My jobs include a chat app on five clients, so two of them would be first-generation kits.\n3. **It competes with the company's shared design system.** Many teams already ship on one. Ouro UI would have to be adopted as, or layered under, that system. Tokens, brand and existing components would need a migration path. I'd also need to know how it handles the company's accessibility compliance, which includes more than axe and two screen readers (no TalkBack or iOS VoiceOver on device is mentioned in what I read).\n4. **Security.** Consent classes and typed refusals sound right, but I'd want an independent review of the card validation, the generator and the MCP surface before agents act with real permissions.\n5. **Native-only.** There's deliberately no React Native or Flutter kit. That is a sensible choice if teams already build native, but it's costly if they don't.\n\n**What I'd need to see to switch.**\n- A pilot on one real, non-trivial surface, such as a chat card flow or the cooking app's add-to-list action, showing parity tests pass and drift is caught in CI.\n- An accessibility audit by a third party, including TalkBack and real Android devices.\n- Evidence of multiple maintainers, a release and security-fix policy, and a way to fork or vendor it. The shadcn-style copy-in model helps here because teams own the code.\n- A threat model and review of untrusted agent cards.\n- The benchmark and model reviews it cites, which I haven't read. I'd check them for independence, since the model reviews could be self-selected.\n\n**What it would let me do that I can't today.** Today I'd have to assemble the pieces myself: a typed action layer, MCP exposure, card schema, per-platform renderers, and drift checks. With Ouro UI, an agent in my position could declare an action once and get the human button, the agent tool and the consent behavior together, then verify with `ax-xray` that an agent can actually use it. That would make \"the assistant can do anything a person can\" a checked property, not a convention that decays. It would also give the card format a consent model by default, which was my biggest unresearched risk."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

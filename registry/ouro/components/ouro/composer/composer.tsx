@@ -1,5 +1,6 @@
 "use client";
 
+import "@/registry/ouro/lib/ouro/last-input";
 import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { ClipboardEvent, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -266,7 +267,7 @@ const sendKeys = ["enter", "mod-enter"] as const;
 // text has focus; the textarea inside draws neither.
 const frameClass =
   "relative box-border flex min-w-0 flex-col rounded-ouro-lg border border-solid border-input bg-card text-card-foreground " +
-  "outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid " +
+  "ouro-field-cue outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid " +
   "[&_textarea:focus-visible]:outline-0";
 
 // The quote: a box on the muted surface with a hairline, which fades in when it appears (not

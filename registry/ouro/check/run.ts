@@ -1,4 +1,4 @@
-export { blank, BUDGETS, inSweepOrder, goTo, caption, check, dprAt, EXIT, group, HINTS, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, runScript, SIZES, summary, transportIssues };
+export { blank, BUDGETS, inSweepOrder, goTo, caption, check, dprAt, EXIT, group, handoff, HINTS, imagesReport, LABELS, main, merge, needsAPerson, parseArgs, placeOf, RULES, runScript, SIZES, summary, transportIssues };
 export type { Budgets, CheckOptions, CheckResult, Finding, Gate, ImageEntry, MergeOptions, Report };
 
 import { spawn } from "node:child_process";
@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import type { Browser, BrowserType, Page, Request } from "playwright";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
-import { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
+import { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, type MotionReading } from "./motion-check.ts";
 import { findOverlaps } from "./overlap-check.ts";
@@ -32,8 +32,8 @@ import { findWrapIssues, readHeroArt, type HeroArt } from "./wrap-check.ts";
 //
 //   node scripts/ouro/check/check.ts <url | built folder>… [--pages <glob>] [--out <folder>] [--sizes WxH,…]
 //        [--themes light,dark] [--before <old report.json>] [--config ouro-check.json] [--no-axe]
-//        [--no-measured] [--ready-event <name>] [--shard k/n] [--images-report <file.json>]
-//   node scripts/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config ouro-check.json] [--images-report <file.json>]
+//        [--no-measured] [--ready-event <name>] [--shard k/n] [--images-report <file.json>] [--handoff]
+//   node scripts/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config ouro-check.json] [--images-report <file.json>] [--handoff]
 //
 // Exits as every Ouro tool does (EXIT): 0 ok, 1 error (the check could not run), 2 usage, 3 findings. Playwright comes
 // from the app's playwright (or PLAYWRIGHT_MODULE), Chromium from Playwright or BROWSER_EXECUTABLE, axe-core from the app or AXE_CORE.
@@ -104,6 +104,8 @@ interface PageRef {
   site: string;
   page: string;
   name: string;
+  // What the page holds that only a person can judge (destructive, form, sends), read once from its components.
+  asks?: string[];
 }
 
 interface Report {
@@ -153,6 +155,16 @@ interface Gate {
   // The app's own words for the first-run rules, as regular expressions' sources read without case: a control that signs
   // in, words that say there is nothing, and words that name progress. Each replaces Ouro's default.
   firstRun?: Pick<FirstRunOptions, "signIn" | "empty" | "progress">;
+  // The sessions a person runs after the check: each a task to give them, the question that tells whether they got
+  // there, and what to watch for. handoff.md lists them beside what the check measured.
+  usability?: UsabilitySession[];
+}
+
+interface UsabilitySession {
+  task: string;
+  outcome: string;
+  observe: string;
+  page?: string;
 }
 
 interface CheckOptions {
@@ -925,6 +937,10 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       const cornersBehind = new Set(await page.evaluate(behindModal, [...new Set(corners.map((issue) => issue.ref))]));
       issues.push(...corners.filter((issue) => !cornersBehind.has(issue.ref)));
       issues.push(...runtime());
+      if (inpAt === `${width}x${height} ${theme}`) {
+        const ref = report.pages.find((p) => p.site === target.site && p.page === target.page);
+        if (ref) ref.asks = await page.evaluate(listPersonSignals);
+      }
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
         const key = JSON.stringify([target.site, target.page, a.rules, a.element, a.reason]);
         if (allowed.has(key)) continue;
@@ -1207,7 +1223,8 @@ function summary({ findings, fixed, pages, sizes, themes, shard, allowances }: R
     const count = (rule: string) => mine.filter((r) => r.rule === rule).length || "";
     lines.push(`| ${!mine.length ? "✓" : mine.some((r) => r.gated) ? "✗" : "·"} | \`${pageOf(ref)}\` | ${RULES.map(count).join(" | ")} |`);
   }
-  lines.push("", "✗ fails; · is waived, or known, in ouro-check.json. Each finding has a captioned close-up in `findings/`, and each page a contact sheet in `sheets/`.", "");
+  lines.push("", "This check proves the floor: states, focus, names, contrast, targets and motion work as measured. It can't tell you the screen is good for a person.", "");
+  lines.push("✗ fails; · is waived, or known, in ouro-check.json. Each finding has a captioned close-up in `findings/`, and each page a contact sheet in `sheets/`.", "");
   if (fixed.length) lines.push(`Fixed since the earlier report: ${fixed.length}, each with a before and after in \`pairs/\`.`, "");
   if (allowances.length) lines.push(`Opted out on purpose: ${allowances.length}, each with its reason in \`report.json\` (\`allowances\`).`, "");
   if (rows.length) {
@@ -1219,6 +1236,53 @@ function summary({ findings, fixed, pages, sizes, themes, shard, allowances }: R
     }
     lines.push("", "</details>");
   }
+  lines.push("", "#### Needs a person", "");
+  for (const ref of pages) for (const ask of needsAPerson(ref.asks ?? [])) lines.push(`- \`${pageOf(ref)}\`: ${ask}`);
+  lines.push(...NEEDS_A_PERSON.map((line) => `- ${line}`));
+  return `${lines.join("\n")}\n`;
+}
+
+const NEEDS_A_PERSON = [
+  "Whether a person finishes the task without help, and how long it takes them.",
+  "Whether the words on labels and buttons mean to them what they mean to you.",
+  "Whether they trust what the screen tells them, and notice what it hides.",
+  "Whether it works with the device, the assistive technology and the network they actually use.",
+];
+
+// The questions a page's components raise that a check can't answer, by what the page was found to hold.
+const ASKS: Record<string, string> = {
+  destructive: "Do they know what will be lost before they confirm?",
+  form: "Do they know it saved?",
+  sends: "Does the confirmation say who will see it?",
+};
+
+function needsAPerson(signals: string[]): string[] {
+  return signals.flatMap((signal) => (Object.hasOwn(ASKS, signal) ? [ASKS[signal]!] : []));
+}
+
+// What the check measured, and what it leaves to a person: the page for a session someone runs next.
+function handoff({ findings, pages, sizes, themes }: Report, usability: UsabilitySession[] = []): string {
+  const gated = group(findings).filter((r) => r.gated).length;
+  const lines = [
+    "### Handoff: the floor Ouro check proves, and what a person still has to judge",
+    "",
+    "#### The floor Ouro check proves",
+    "",
+    `- ${pages.length} page${pages.length === 1 ? "" : "s"} at ${sizes.length} size${sizes.length === 1 ? "" : "s"}, ${themes.join(" and ")}.`,
+    `- The rules: ${RULES.map((rule) => LABELS[rule]).join(", ")}.`,
+    gated ? `- Failing findings: ${gated}. Fix them before a person looks, so the session is spent on the task and not on a broken screen.` : "- No finding fails.",
+    "",
+    "#### Left to a person",
+    "",
+    ...NEEDS_A_PERSON.map((line) => `- ${line}`),
+    "",
+    "#### Sessions to run",
+    "",
+  ];
+  if (!usability.length) lines.push('The config declares none. Add `"usability": [{ "task": "…", "outcome": "…", "observe": "…" }]` to `ouro-check.json`.', "");
+  usability.forEach((u, i) => {
+    lines.push(`${i + 1}. **${u.task}**${u.page ? ` (on \`${u.page}\`)` : ""}`, `   - Ask afterwards: ${u.outcome}`, `   - Watch for: ${u.observe}`);
+  });
   return `${lines.join("\n")}\n`;
 }
 
@@ -1236,16 +1300,18 @@ interface Args {
   measured: boolean;
   readyEvents: string[];
   imagesReport?: string | undefined;
+  handoff: boolean;
 }
 
 const ABOUT = [
   "ouro-check: checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems, and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own corner inside its frame, too many text sizes, weights or shadows, running text drawn too large to read, grey text on colour and a heading larger than the one above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to the page's own server that fail; content the screen cuts off, the same control twice in view and a region that scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason given; a linked card that a click on some spot of opens nothing, and a card whose revealed part moves the page; a first run's dead ends: a blank screen with no progress, a dialog that can be put away onto a blank or signed-out page, and an empty state shown while signed out; text that wraps by accident (a lone last word, a tall h1, a one-word line in big text, a heading broken by hand or held narrow) and hero art with no night twin; long lines only where ouro-check.json declares a measure; and narrow text, prose held by a max-width to under three quarters of a column at least 900px wide.",
-  "A site on the web must move http:// to https:// and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page (hovering cards, opening popups, scrolling and panning) against their budgets, and finds a control the first frames draw that a later frame swaps for another, with no input. It writes report.json, summary.md, a contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.",
+  "A site on the web must move http:// to https:// and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page (hovering cards, opening popups, scrolling and panning) against their budgets, and finds a control the first frames draw that a later frame swaps for another, with no input. It writes report.json, summary.md (with --handoff, handoff.md too), a contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.",
 ];
 
 const REPORT_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
   out: { type: "string", placeholder: "<folder>", description: "Where the report goes (default ouro-check)." },
   config: { type: "string", placeholder: "<file>", description: "The waivers and budgets (default ouro-check.json, when it exists)." },
+  handoff: { type: "boolean", description: "Also write handoff.md: what the check measured, what it leaves to a person, and the usability sessions the config lists for a person to run." },
   "images-report": {
     type: "string",
     placeholder: "<file>",
@@ -1321,6 +1387,7 @@ function argsOf(cli: Cli, cmd: CommandDef, input: Input): Args {
     measured: input["no-measured"] !== true,
     readyEvents: [...((input["ready-event"] as readonly string[] | undefined) ?? [])],
     imagesReport: text("images-report"),
+    handoff: input.handoff === true,
   };
 }
 
@@ -1405,7 +1472,7 @@ async function readJson<T>(file: string): Promise<T> {
 }
 
 // What is wrong with a config's press and state settings, which JSON leaves unchecked: a string would read as its letters.
-function configProblem({ press, pressRepeat, states, waive, firstRun }: Gate): string | null {
+function configProblem({ press, pressRepeat, states, waive, firstRun, usability }: Gate): string | null {
   const waived = Object.entries(waive ?? {}).find(([, rules]) => Object.hasOwn(Object(rules), "blurry-image"));
   if (waived)
     return `"waive" > "${waived[0]}" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source, or a srcset whose largest file covers its drawn width at 2x.`;
@@ -1424,6 +1491,9 @@ function configProblem({ press, pressRepeat, states, waive, firstRun }: Gate): s
   };
   if (firstRun !== undefined && !(named(firstRun) && Object.entries(firstRun).every(([key, source]) => ["signIn", "empty", "progress"].includes(key) && pattern(source))))
     return '"firstRun" takes signIn, empty and progress, each a regular expression\'s source, such as {"signIn": "^(sign in|log in)\\\\b", "empty": "nothing new|all caught up"}.';
+  const text = (value: unknown) => typeof value === "string" && value.trim() !== "";
+  if (usability !== undefined && !(Array.isArray(usability) && usability.every((u) => named(u) && text(u.task) && text(u.outcome) && text(u.observe) && (u.page === undefined || text(u.page)))))
+    return '"usability" takes sessions, each with a task, the outcome question to ask afterwards and what to observe, such as [{"task": "Book an appointment", "outcome": "What appointment do you have now?", "observe": "Where they hesitate before the confirm button"}].';
   return null;
 }
 
@@ -1490,6 +1560,10 @@ async function runCheck(context: Env, cli: Cli, cmd: CommandDef, input: Input, j
     }
     if (env.GITHUB_STEP_SUMMARY) await appendFile(env.GITHUB_STEP_SUMMARY, summary(result));
     const lines: string[] = [];
+    if (args.handoff) {
+      await writeFile(join(out, "handoff.md"), handoff(result, config.usability));
+      lines.push(`Handoff: ${relative(cwd, join(out, "handoff.md"))}`);
+    }
     if (args.imagesReport !== undefined) {
       const file = resolve(cwd, args.imagesReport);
       await mkdir(dirname(file), { recursive: true });

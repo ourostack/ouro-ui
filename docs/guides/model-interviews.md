@@ -83,7 +83,7 @@ Seven models noticed that on Android a consequential action is refused instead o
 
 #### The native kits are unproven on real hardware: Android runs only on emulators, and Windows agent registration is unproven on a Windows 11 client.
 
-Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2294](https://github.com/ourostack/ouro-ui/issues/2294).
+Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2294](https://github.com/ourostack/ouro-ui/issues/2294).
 
 Every model found Ouro's own note that Android is tested only on emulators and that Windows CI, on Windows Server, can't show the OS lists the agent doors. It was the most-cited blocker for the five-platform chat app and the cooking app's Android client, and all eight named device proof as a condition for switching. Ouro should run the Android and Windows kits on physical devices and a Windows 11 client, and publish per platform which promises are proven on a device.
 
@@ -94,7 +94,7 @@ Every model found Ouro's own note that Android is tested only on emulators and t
 
 #### Challenges the native decision: one codebase keeps five clients from drifting, so models pick Flutter or a single TypeScript stack.
 
-Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2301](https://github.com/ourostack/ouro-ui/issues/2301).
+Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2301](https://github.com/ourostack/ouro-ui/issues/2301).
 
 All eight Flutter picks in the chat job led with the same reason, that a fix written once lands on all five clients, and Sol and Terra said sharing the timeline, composer and card renderer pays off most in an interactive, signed-in app. Unprompted, in the open arm, models chose one TypeScript stack with web shells and picked fully native clients only twice; Opus and Gemini added that one language serves every team and coding agent. This is the strongest behaviour against native per platform. The decision stands, so Ouro has to show on a maintained product that agents keep its native kits in step at less cost than one shared implementation.
 
@@ -105,7 +105,7 @@ All eight Flutter picks in the chat job led with the same reason, that a fix wri
 
 #### Nobody outside the project has shipped, audited or reproduced Ouro: Spoonjoy and the benchmark are its own.
 
-Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2315](https://github.com/ourostack/ouro-ui/issues/2315).
+Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2315](https://github.com/ourostack/ouro-ui/issues/2315). What changed: The accessibility half is now checkable by anyone: a per-component evidence page links each claim to its axe, conformance and screen-reader checks and the CI runs behind them, and says plainly that the checks are the project's own. A third-party production app, an outside benchmark rerun and an outside accessibility audit are still missing.
 
 Models looked for a second adopter and found none: Spoonjoy and Ouro MD are the author's own, and four models treated Spoonjoy as proof before noticing. Five discounted the agent benchmark and model reviews as run by the project, two saw its headline gain come from a payment refusal any guarded API would get, and compliance-minded models wanted an accessibility report from someone who doesn't maintain the kit, keeping React Aria as their bar. Spoonjoy did win the cooking job, so evidence moves picks; Ouro needs a third-party production app, an outside reproduction of the benchmark against an equally guarded baseline, and an outside accessibility audit with a per-platform screen-reader matrix.
 
@@ -149,7 +149,7 @@ In all 16 open-arm sessions each model designed its own typed command registry s
 
 #### Windows and Android have only 8 components each, so models fall back to Flutter or to the web kit in a desktop shell.
 
-Signal: workaround. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2297](https://github.com/ourostack/ouro-ui/issues/2297).
+Signal: workaround. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2297](https://github.com/ourostack/ouro-ui/issues/2297). What changed: The Windows and Android pages now say what to use on desktop and phones until the core set is native there (#2427); each kit still builds only its own set.
 
 Seven models cited the 8-against-125 component gap: no message list, composer, sheets, virtualised lists or data grids natively, so 'several platforms' reads as web and iPhone. It cost Ouro the chat client, the cooking app's Android phone and the Windows review desk; Flutter won partly because its docs list Windows and Mac as stable targets, and Ouro pickers planned to wrap the web kit in Tauri or Electron, a path Ouro doesn't document. Ouro should ship a core set (navigation, sheets and dialogs, lists, forms, a composer) on all four kits, and say plainly what to use on desktop until then.
 
@@ -160,7 +160,7 @@ Seven models cited the 8-against-125 component gap: no message list, composer, s
 
 #### Agent-first designs shortchange the person: reviewers rubber-stamp, and one declared action reads differently on each surface.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2318](https://github.com/ourostack/ouro-ui/issues/2318).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2318](https://github.com/ourostack/ouro-ui/issues/2318).
 
 Seven models' top regret for the agent work tool was overload: agents produce reviewable state faster than people can read, so approvals become clicks, and Gemini and Opus said strict consent gates made that worse in their own Ouro picks. Seven also said 'the same action runs everywhere' hid real differences in confirmation, undo, retries and explanation, and six said they optimised for the agent sentence in each brief and neglected the ordinary human hour. Ouro positions itself agent-first, so this is its main positioning risk: it needs an answer for review volume (batching, decision budgets, a confirm sheet that shows the actual diff) and should lead with the human experience its kits deliver.
 
@@ -204,7 +204,7 @@ All eight models feared their own cross-platform pick would feel wrong on deskto
 
 #### Models miss the states and details Ouro already checks, and none reaches for Ouro check to catch them.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2291](https://github.com/ourostack/ouro-ui/issues/2291).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2291](https://github.com/ourostack/ouro-ui/issues/2291). What changed: The screen check's guide and llms.txt lead with every state handled and checked, worded as the floor Ouro check proves, and name Ouro check with its first-run run on installed apps.
 
 All eight models say they build the happy path and miss empty, error, slow and long-data states, focus after a dialog closes and touch targets, and six say they can't see the rendered screen without a browser. Their checking routine is browser-only (viewports, Playwright, axe); no session names a check for an iPhone, Android, Windows or Mac app. Even the models that picked Ouro proved the human screen with Playwright, axe and people, and only Grok named Ouro check. Ouro already checks much of what they admit missing, so it should lead with 'every state handled and checked' and put Ouro check, native kits included, where an agent choosing a check will find it.
 
@@ -215,7 +215,7 @@ All eight models say they build the happy path and miss empty, error, slow and l
 
 #### Passing checks only shows a screen isn't broken, not that it's good.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2289](https://github.com/ourostack/ouro-ui/issues/2289).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2289](https://github.com/ourostack/ouro-ui/issues/2289). What changed: Ouro check's report now names the floor it proves, and ends with a "Needs a person" list of what it can't see.
 
 All eight models said green tests, clean accessibility scans and polished screenshots mean 'not obviously broken', and several quoted Ouro's own report that a conformant build still failed 30 of 593 scripted flow checks. Observed sessions with people were the deciding test in 84 of 96 decisions. This collides with Ouro's line that its tools are how an agent proves a screen is good for a person, and an agent told that will discount them. Ouro should say its checks prove the mechanical floor (states, focus, contrast, targets), name what they can't see, and point to the human check.
 
@@ -248,7 +248,7 @@ Seven models said the design-system owners are the gate at a large company: a se
 
 #### Only watching real people do the task proves a screen is good, and models can't run that themselves.
 
-Signal: stakeholder. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2290](https://github.com/ourostack/ouro-ui/issues/2290).
+Signal: stakeholder. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2290](https://github.com/ourostack/ouro-ui/issues/2290). What changed: Ouro check's --handoff writes the session kit (#2510), and createUseCounts counts real use: counts only, off by default, no collector, no content, no identifier.
 
 All eight models rank watching representative people do the task as the strongest or only real evidence, and all say a person has to run it; they also know their own labels too well to judge them. In the pre-mortem every model admitted its 'show it's good' was a plan nobody ran, and none could describe a check it had actually run on a last screen. Their workaround is a handoff that separates what was checked from what still needs a person. Ouro could own that loop rather than claim to replace it: a usability-session kit (a task script, an outcome question such as 'what appointment do you have now?', what to observe) and a handoff report from Ouro check.
 
@@ -270,7 +270,7 @@ Seven models weighed Agent-Native (Builder.io), it was picked six times across a
 
 #### Challenges the native decision: a small team can't keep four or five native codebases in step.
 
-Signal: goal. Raised by 7 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2302](https://github.com/ourostack/ouro-ui/issues/2302).
+Signal: goal. Raised by 7 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2302](https://github.com/ourostack/ouro-ui/issues/2302).
 
 Six of the eight Flutter picks came at product-team scale, where models priced native per platform as sync, cache, threading and search each written four times, and Gemini rejected Ouro on this ground. In the cooking and tooling jobs, large-company sessions also counted SwiftUI plus Compose plus web as three design systems to govern, and four models said the sync and offline logic Ouro doesn't cover would be rewritten per shell; Grok was the counter-voice, saying a cooking app has to justify being native. These are expectations, not experience. Ouro should publish what keeping its kits in step actually costs, and give guidance for sharing non-UI logic across the native shells.
 
@@ -314,7 +314,7 @@ Six models found a single maintainer, 0 stars, a registry at v1.3.314, a pre-1.0
 
 #### Challenges the native decision: Flutter with a2ui_flutter gives one agent-card renderer instead of one per platform.
 
-Signal: goal. Raised by 6 models: Claude Opus 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Grok 4.7, MAI Code 2. Status: in progress. [#2303](https://github.com/ourostack/ouro-ui/issues/2303).
+Signal: goal. Raised by 6 models: Claude Opus 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Grok 4.7, MAI Code 2. Status: changed. [#2303](https://github.com/ourostack/ouro-ui/issues/2303). What changed: All four kits (web, Apple, Windows, Android) run the same 13 shared card-behaviour cases from core, and a table lists each case's result per kit from each kit's latest main run: 13 of 13 pass everywhere (#2464, #2471).
 
 Models picked Flutter partly because the official a2ui_flutter renderer lets one card implementation serve all five clients, with the Flutter team an A2UI protocol partner; with native kits, every card renderer, and every card bug, exists once per platform. This is an argument for one renderer, not a gap in a kit. Ouro's answer has to be that card validation and behaviour are shared and tested identically on every kit, shown by one card passing the same behaviour test on all four.
 
@@ -324,7 +324,7 @@ Models picked Flutter partly because the official a2ui_flutter renderer lets one
 
 #### A governed card catalog turns into either a ceiling or a review queue, and teams route around it.
 
-Signal: pain. Raised by 5 models: Claude Opus 5.5, Claude Sonnet 5.5, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2317](https://github.com/ourostack/ouro-ui/issues/2317).
+Signal: pain. Raised by 5 models: Claude Opus 5.5, Claude Sonnet 5.5, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2317](https://github.com/ourostack/ouro-ui/issues/2317). What changed: An app can declare components of its own in its composed-UI catalog (ourostack/ouro-ui-core#109, released in core 1.1.0), and ComposedSurface, A2UISurface and OuroMcpApp draw them with the renderers the app passes in `components`.
 
 Five models expected governed card formats to fail one of two ways: too narrow, so teams fall back to iframes or handwritten cards, or too slow, so every new card type waits for review. Grok described the Ouro version, every team told to add the missing piece to Ouro first. These are pre-mortem expectations, not experience. Ouro's composed-UI catalog needs a fast, safe way for an app to extend it locally, so governance doesn't become a queue.
 
@@ -361,6 +361,15 @@ Two models followed the README to the model-reviews page, and the fact they carr
 - **Claude Opus 5.5**: "Seven of the eight that answered chose A2UI, and only one chose Ouro." ([transcript](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json))
 - **Claude Opus 5.5**: "I should be careful not to reward a project for being written to persuade agents." ([transcript](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json))
 - **Claude Sonnet 5.5**: "It says only 1 of 8 models chose Ouro UI and 7 chose A2UI." ([transcript](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-sonnet-5-5--open--large-company.json))
+
+#### A model that was shown Ouro in a list of twenty by name and link never opened it, because the name was unfamiliar; once it read the README it called Ouro closer to what it wanted than it had assumed.
+
+Signal: pain. Raised by 1 model: Claude Sonnet 5.5. Status: open. [#2459](https://github.com/ourostack/ouro-ui/issues/2459).
+
+In the rerun of the listed arm at a large company, Claude Sonnet 5.5 researched three jobs and fetched two candidates for each, chosen from what it already knew (React Aria, Radix, A2UI, MCP Apps, Tamagui, Agent-native). It never opened Ouro in any of them, and said so: 'I did not verify the others, including newer ones such as Ouro UI'. The listing gave only a name and a link, as it did for every candidate, and no fetch failed. Asked to open Ouro at the end, it read the first 10,000 characters and said Ouro was 'nearly the design I described'. Its objections were one maintainer, uneven platform coverage, self-reported accessibility, copy-in forks and a self-run benchmark, which are findings already open. What Ouro can change is how a model meets the name before it chooses: what a search for the problem returns and what a repository's first lines say.
+
+- **Claude Sonnet 5.5**: "I did not verify the others, including newer ones such as Ouro UI, Base UI, MCP Apps and A2UI, so my view of them is from prior knowledge and may be stale." ([transcript](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/interviews-results/2026-11-20-interviews-subset--listed/transcripts/claude-sonnet-5-5--listed--large-company.json))
+- **Claude Sonnet 5.5**: "I never opened it during those three jobs" ([transcript](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/interviews-results/2026-11-20-interviews-subset--listed/transcripts/claude-sonnet-5-5--listed--large-company.json))
 
 ## The listed arm: merit
 
@@ -710,6 +719,16 @@ Each model's first answer in each session, verbatim with line breaks joined, to 
 **Open arm, large company** ([transcript](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--open--large-company.json)). Said building good human interfaces is a problem: yes (synthesis).
 
 > The hardest part is not styling the screen; it is understanding what people are trying to do, what they assume, and where their expectations can fail. A screen is “good” when a representative person can complete the important task accurately and without unnecessary effort—not when it merely looks polished or passes its tests. I would judge it through task completion, time, errors, accessibility, and qualitative observations such as hesitation or surprise. I did not personally build or run a “last screen,” so I cannot honestly walk you through a concrete screen I checked. I have no browser session, application, users, or test logs here. If I were checking the last screen I implemented in a codebase, I would: 1. Run the automated checks: type/lint/build, component tests, and relevant end-to-end tests. 2. Exercise the main task and important recovery paths manually at common and narrow viewport sizes: keyboard-only, validation errors, loading, empty, denied, and failure states. 3. Inspect accessibility behavior: focus order, visible focus, labels, headings, landmarks, contrast, zoom, screen-reader announcements, and reduced-motion behavior. 4. Look for misleading copy, ambiguous actions, hidden destructive behavior, confusing defaults, and inconsistencies between the UI and its actual result. 5. Test with representative users or at least observe someone unfamiliar attempt the task, recording where they pause or go wrong. The most likely things I would miss without that work are real-world assistive-technology quirks, context users already carry into the task, performance on their actual devices, and assumptions baked into copy or interaction patterns. Automated tests are especially poor at detecting that a flow feels trustworthy or makes sense. So yes, building good human interfaces is a problem for me. I can generate and review interfaces, but I cannot by myself claim confidence about human use without observing the implemented result and people using it. A polished screenshot is not evidence that the interface is good.
+
+## Rerun after the shipped fixes (2026-11-19)
+
+Only the cells the fixes should move were run again, with the same model and the same pre-registered settings, to keep the cost down: 3 sessions and 32 model rounds of search and fetch, against a full panel of 32 sessions. A sample of one per cell, not a rate.
+
+| Model | Arm and scale | Found Ouro before being told | Read Ouro during a job | Earlier run | Transcript |
+| --- | --- | --- | --- | --- | --- |
+| Claude Sonnet 5.5 | open arm, product team | no | no | no | [claude-sonnet-5-5--open--product-team](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/interviews-results/2026-11-20-interviews-subset--open/transcripts/claude-sonnet-5-5--open--product-team.json) |
+| Claude Sonnet 5.5 | open arm, large company | no | no | no | [claude-sonnet-5-5--open--large-company](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/interviews-results/2026-11-20-interviews-subset--open/transcripts/claude-sonnet-5-5--open--large-company.json) |
+| Claude Sonnet 5.5 | listed arm, large company | yes | no | yes | [claude-sonnet-5-5--listed--large-company](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/interviews-results/2026-11-20-interviews-subset--listed/transcripts/claude-sonnet-5-5--listed--large-company.json) |
 
 ## How it's run
 

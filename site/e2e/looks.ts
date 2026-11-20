@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { type BrowserContext, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
-import { waived, waivedPages } from "./waivers.ts";
+import { majorityFirst, waived } from "./waivers.ts";
 import { siteReady } from "./ready";
 
 // The shared half of the site's cross-page checks (sameness-sweep.ts, states-sweep.ts): the routes of the
@@ -398,8 +398,8 @@ export class Looks {
       const bySig = new Map<string, string[]>();
       for (const s of samples) bySig.set(s.sig, [...(bySig.get(s.sig) ?? []), s.where]);
       if (bySig.size < 2) continue;
-      // The most samples stand for the look; on a tie, a page a waiver is for never does (#2249).
-      const [majority, ...rest] = [...bySig].sort((a, b) => b[1].length - a[1].length || Number(waivedPages(key, a[1])) - Number(waivedPages(key, b[1])));
+      // The most samples stand for the look, but a page a waiver is for never does (#2249).
+      const [majority, ...rest] = majorityFirst(key, bySig);
       for (const [sig, where] of rest) {
         const left = majority![0].split(" ; ");
         const diff = sig.split(" ; ").filter((p) => !left.includes(p));
@@ -454,45 +454,74 @@ function same(a: Crop, b: Crop): boolean {
   return false;
 }
 
+/**
+ * How long a page is given to read the same twice. One read of a long page in WebKit can take seconds, so Playwright's
+ * 5 s left /docs/calendar/ two reads, then cut off a third that matched (ourostack/ouro-ui#2428).
+ */
+export const SETTLE_MS = 30_000;
+
 export async function settled(page: Page): Promise<void> {
   await siteReady(page);
   let last = "";
   let before: Look[] = [];
   let after: Look[] = [];
+  const reads: number[] = [];
+  const began = Date.now();
   try {
     await expect
-      .poll(async () => {
-        before = after;
-        after = (await page.evaluate(describe, { selector: LOOK_SELECTOR })).looks;
-        const now = JSON.stringify(after.map((l) => l.sig));
-        const same = now === last;
-        last = now;
-        return same;
-      })
+      .poll(
+        async () => {
+          const start = Date.now();
+          const looks = (await page.evaluate(describe, { selector: LOOK_SELECTOR })).looks;
+          reads.push(Date.now() - start);
+          before = after;
+          after = looks;
+          const now = JSON.stringify(after.map((l) => l.sig));
+          const same = now === last;
+          last = now;
+          return same;
+        },
+        { timeout: SETTLE_MS },
+      )
       .toBe(true);
   } catch (error) {
-    // Which looks kept changing, so a page that never settles names what moved (ourostack/ouro-ui#2428).
-    (error as Error).message += `\n\nThe page never settled (ourostack/ouro-ui#2428): ${page.url()}\n${changedLooks(before, after)}`;
+    // Which looks kept changing, so a page that never settles names what moved, and how many reads it had time for (ourostack/ouro-ui#2428).
+    const timing = `  ${reads.length} reads in ${Date.now() - began} ms, the slowest ${Math.max(0, ...reads)} ms`;
+    (error as Error).message += `\n\nThe page never settled (ourostack/ouro-ui#2428): ${page.url()}\n${changedLooks(before, after)}\n${timing}`;
     throw error;
   }
 }
 
 /**
  * The looks that differ between two reads of a page, up to three, each with the parts of its signature that changed, and
- * how many looks the page gained or lost.
+ * how many looks the page gained or lost. Many elements share a key (every plain button of a kind), so the looks of a key
+ * are paired in page order: one that changed among its twins is still named (ourostack/ouro-ui#2428).
  */
 export function changedLooks(before: readonly Look[], after: readonly Look[]): string {
-  const was = new Map(before.map((look) => [look.key, look.sig]));
-  const changed = after.filter((look) => was.has(look.key) && was.get(look.key) !== look.sig);
-  const lines = changed.slice(0, 3).map((look) => {
-    const old = was.get(look.key)!.split(" ; ");
-    const now = look.sig.split(" ; ");
-    return `  ${look.key}: ${now.filter((part) => !old.includes(part)).join(" ; ")} (was ${old.filter((part) => !now.includes(part)).join(" ; ")})`;
+  const byKey = (looks: readonly Look[]) => {
+    const groups = new Map<string, string[]>();
+    for (const look of looks) groups.set(look.key, [...(groups.get(look.key) ?? []), look.sig]);
+    return groups;
+  };
+  const was = byKey(before);
+  const now = byKey(after);
+  const changed: { key: string; old: string; sig: string }[] = [];
+  let added = 0;
+  let gone = 0;
+  for (const [key, sigs] of now) {
+    const old = was.get(key) ?? [];
+    for (let i = 0; i < Math.min(sigs.length, old.length); i++) if (sigs[i] !== old[i]) changed.push({ key, old: old[i]!, sig: sigs[i]! });
+    added += Math.max(0, sigs.length - old.length);
+  }
+  for (const [key, sigs] of was) gone += Math.max(0, sigs.length - (now.get(key)?.length ?? 0));
+  const lines = changed.slice(0, 3).map(({ key, old, sig }) => {
+    const then = old.split(" ; ");
+    const is = sig.split(" ; ");
+    return `  ${key}: ${is.filter((part) => !then.includes(part)).join(" ; ")} (was ${then.filter((part) => !is.includes(part)).join(" ; ")})`;
   });
   if (changed.length > 3) lines.push(`  and ${changed.length - 3} more`);
-  const keys = new Set(after.map((look) => look.key));
-  const gone = before.filter((look) => !keys.has(look.key)).length;
-  const added = after.filter((look) => !was.has(look.key)).length;
   if (gone || added) lines.push(`  ${added} looks appeared and ${gone} went between the last two reads`);
-  return lines.length > 0 ? lines.join("\n") : "  the last two reads differed only in the order of the looks";
+  if (lines.length > 0) return lines.join("\n");
+  const moved = after.findIndex((look, index) => look.key !== before[index]?.key);
+  return moved === -1 ? "  the last two reads were the same" : `  the last two reads differed only in the order of the looks: at ${moved}, ${after[moved]!.key} (was ${before[moved]?.key ?? "nothing"})`;
 }

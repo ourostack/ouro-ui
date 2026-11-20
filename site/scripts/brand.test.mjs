@@ -1,5 +1,6 @@
 /* global fetch, AbortSignal */
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -55,6 +56,31 @@ test("the rich render is square at each size and keeps its transparency", () => 
 
 const storybook = join(dir, "storybook");
 const story = JSON.parse(readFileSync(join(storybook, "provenance.json"), "utf8"));
+// A WebP's width and height. A lossy one ("VP8 ") holds them, 14 bits each, after its frame's start code; a lossless one
+// ("VP8L", as ourostack/.github ships a header refinished in place) holds width - 1 and height - 1, 14 bits each, after
+// its 0x2f signature byte.
+const webpSize = (webp, file) => {
+  const chunk = webp.toString("latin1", 12, 16);
+  if (chunk === "VP8 ") return [webp.readUInt16LE(26) & 0x3fff, webp.readUInt16LE(28) & 0x3fff];
+  assert.equal(chunk, "VP8L", `${file} is neither a lossy nor a lossless simple WebP`);
+  assert.equal(webp[20], 0x2f, `${file} has no lossless signature`);
+  const bits = webp.readUInt32LE(21);
+  return [(bits & 0x3fff) + 1, ((bits >>> 14) & 0x3fff) + 1];
+};
+
+test("webpSize reads a lossy and a lossless WebP's width and height", () => {
+  const lossy = Buffer.alloc(30);
+  lossy.write("VP8 ", 12, "latin1");
+  lossy.writeUInt16LE(1536, 26);
+  lossy.writeUInt16LE(576, 28);
+  assert.deepEqual(webpSize(lossy, "lossy"), [1536, 576]);
+  const lossless = Buffer.alloc(25);
+  lossless.write("VP8L", 12, "latin1");
+  lossless[20] = 0x2f;
+  lossless.writeUInt32LE((1536 - 1) | ((576 - 1) << 14), 21);
+  assert.deepEqual(webpSize(lossless, "lossless"), [1536, 576]);
+});
+
 const storyFiles = (folder = "") =>
   readdirSync(join(storybook, folder)).flatMap((name) => {
     const path = folder ? `${folder}/${name}` : name;
@@ -83,13 +109,8 @@ test("every scene the site shows is there at each width, by day and at night, wi
   const { CARDS } = await import("../src/storybook.ts");
   for (const card of Object.values(CARDS)) assert.ok(have.has(`og/${card.scene}.jpg`), `og/${card.scene}.jpg, the card ${card.file}'s scene, is missing`);
   // Each phone crop's shape is its own: the picture's height for it (SCENES[scene].phoneHeight, and its night's) is the file's.
-  // A lossy WebP ("VP8 ") holds its width and height, 14 bits each, after its frame's start code. The night's wide
-  // scene is the day's size, so the page holds the same box whichever theme draws it.
-  const size = (file) => {
-    const webp = readFileSync(join(storybook, file));
-    assert.equal(webp.toString("latin1", 12, 16), "VP8 ", file);
-    return [webp.readUInt16LE(26) & 0x3fff, webp.readUInt16LE(28) & 0x3fff];
-  };
+  // The night's wide scene is the day's size, so the page holds the same box whichever theme draws it.
+  const size = (file) => webpSize(readFileSync(join(storybook, file)), file);
   for (const [scene, { height, phoneHeight, night }] of Object.entries(SCENES)) {
     assert.deepEqual(size(`phone/${scene}-768.webp`), [768, phoneHeight], `phone/${scene}-768.webp`);
     assert.deepEqual(size(`phone/${scene}-dark-768.webp`), [768, night.phoneHeight], `phone/${scene}-dark-768.webp`);

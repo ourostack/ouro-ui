@@ -911,7 +911,8 @@
     "site/e2e/docs-page.spec.ts": 4000,
     "site/e2e/zoom.spec.ts": 3000,
     "site/e2e/hero-preload.spec.ts": 134883,
-    "site/e2e/ready.spec.ts": 3000
+    "site/e2e/ready.spec.ts": 3000,
+    "site/e2e/restyle-scope.spec.ts": 4000
   },
   "subset": {
     "button": 52812,

@@ -31,6 +31,7 @@ Type: `A2UISurfaceProps`.
 | --- | --- | --- | --- |
 | `catalog` (required) | `unknown` |  | The app's A2UI catalog, generated from its actions by core's `ouro-a2ui-catalog.mts catalog`. |
 | `className` | `string` |  | Layout only: margins, width (`max-w-md`). |
+| `components` | `ComposedSurfaceProps["components"]` | {} | Your app's own components, by the name your catalog declares them under: a renderer draws its component. See ComposedSurface's `components`. |
 | `label` | `((context: LabelContext) => string \| undefined)` |  | Names the ids in a confirm sheet's rows from the app's own data, such as a recipe's title for `rcp_lemon_orzo`. It is asked only for an id field, one whose catalog input has `shownAs`; every other row shows exactly what will be sent. Return undefined to keep the name the agent prepared, or the id. The name wins over what the agent prepared, because the agent's text is the one thing the person can't check. Keep it stable, as `messages` is: a new function on each render resolves the messages again. |
 | `messages` (required) | `readonly unknown[]` |  | The agent's A2UI messages, in order. The surface shows where they leave it. |
 | `onAction` (required) | `(message: A2UIActionMessage) => void \| Promise<void>` |  | Runs a pressed read or write button, and a consequential one once the person confirms. Send the message to the agent, or call the action's own tool with `message.action.context`. Return a promise to show the button loading until it settles. |
@@ -94,4 +95,73 @@ A problem the validator found in the agent's messages, in A2UI's validation erro
 
 ```ts
 type A2UIProblem = Problem;
+```
+
+### `ComposedHandoff`
+
+Where a person-only button takes the person: the action's id and the catalog's `how`.
+
+```ts
+interface ComposedHandoff {
+  action: string;
+  how: string;
+}
+```
+
+### `ComposedRenderer`
+
+Draws one of your app's own components, the ones your catalog declares beyond Ouro HX's: `node.props` holds its resolved props (core's `asText` text, booleans, lists) and `children` its children, already drawn.
+
+```ts
+type ComposedRenderer = (node: ComposedNode, children: ReactNode[]) => ReactNode;
+```
+
+### `ComposedSurfaceProps`
+
+Props for `ComposedSurface`.
+
+```ts
+interface ComposedSurfaceProps {
+  /**
+   * The composed tree to draw: core's `ComposedNode`, its values resolved. Check one you didn't resolve yourself
+   * with core's `validateTree` against the app's catalog first; A2UI's resolver already has.
+   */
+  tree: ComposedNode;
+  /**
+   * Runs a pressed read or write button, and a consequential one once the person confirms. `press` is core's
+   * `PersonPress` (the action, the prepared input, its consent, and that the person pressed it); `button` is the node,
+   * for a format that names its source. Return a promise to show the button loading until it settles.
+   */
+  onPress: (press: PersonPress, button: ComposedNode) => void | Promise<void>;
+  /**
+   * A person-only button never runs from composed UI: take the person to your app's own screen for it.
+   */
+  onHandoff: (handoff: ComposedHandoff) => void;
+  /**
+   * The data model the tree's fields start from, such as an MCP tool result's `structuredContent.ouro.data`. A
+   * TextField, Checkbox or Select shows what it holds at the field's `value` pointer and writes the person's answer
+   * there. A button input bound to that pointer (`{"@path": "/servings"}`) sends the answer when the person presses,
+   * and a consequential button's confirm sheet shows it. When `data` or `tree` changes, as an agent's update changes
+   * them, what the person entered stays, except at a pointer whose value the new `data` changed, or in a list item it
+   * changed: there the agent's value wins.
+   *
+   * @default {}
+   */
+  data?: Obj | undefined;
+  /**
+   * Your app's own components, by the name your catalog declares them under (the actions file's `components` export):
+   * a renderer draws its component and may use HX's components. A name left out of the map is left out of the drawing,
+   * and a development message names the fix.
+   *
+   * @default {}
+   */
+  components?: Readonly<Record<string, ComposedRenderer>> | undefined;
+  /** Layout only: margins, width (`max-w-md`). */
+  className?: string | undefined;
+
+  /** Not a prop. A pressed button calls `onPress`, or `onHandoff` for a person-only one: `<ComposedSurface onPress={run} onHandoff={openApp}>`. */
+  onAction?: { "Use onPress={run} onHandoff={openApp}": never };
+  /** Not a prop. The fields' data model is `data`: `<ComposedSurface data={structuredContent.ouro.data}>`. */
+  dataModel?: { "Use data={structuredContent.ouro.data}": never };
+}
 ```

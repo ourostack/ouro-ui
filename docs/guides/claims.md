@@ -15,7 +15,7 @@ node scripts/claims.mjs ratchet    # claims.config.json's exemptions against CLA
 Where they run:
 
 - The `ci` check runs `pnpm claims:check`, in its `checks` job. On a pull request it first runs the ratchet against the base branch, then reads the required checks at the base branch and fetches again the addresses the pull request adds to the cache or changes (`--network=changed`).[^ci] The job reads the description as it is when it runs, so after editing the description to name an exemption, re-run the job.[^live-body]
-- The Claims workflow lints a pull request's title and body, and runs the ratchet, when the pull request opens and whenever its description is edited.[^claims-workflow] Before you open one, `pnpm claims:lint --pr --title "<title>" --body-file <file>` runs the same title and body check locally and lints the change fragments (`changes/*.md`) the branch adds or changes, which the full check reads only along with the other surfaces.
+- The Claims workflow lints a pull request's title and body, and runs the ratchet, when the pull request opens and whenever its description is edited.[^claims-workflow] Before you open one, `pnpm claims:lint --pr --title "<title>" --body-file <file>` runs the same title and body check locally, lints the change fragments (`changes/*.md`) the branch adds or changes, which the full check reads only along with the other surfaces, and runs the workflow's ratchet and real-clock ratchet against the branch's merge base with the body it lints, so an exemption the description does not name fails before the pull request opens.[^lint-ratchets]
 - The Claim addresses workflow runs `pnpm claims:check --network` every week.[^addresses-workflow]
 
 ## What needs a source
@@ -168,3 +168,4 @@ The ratchet compares these lists, and the list of required checks, with the base
 [^ratchet-narrow]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::exemptions ratchet against the base ref: a new one must carry a reason and be named in the pull request)
 [^app]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::the claims checker ships in lib-claims and runs in an app)
 [^required-bootstrap]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::ciJob reads the pull request's list of required checks only when the base has none, and the ratchet makes it name each check it adds)
+[^lint-ratchets]: scripts/claims.mjs verify:testExists(scripts/claims.test.mjs::lint --pr also runs the exemption and real-clock ratchets against the branch's merge base, with the body it lints)

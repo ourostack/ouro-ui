@@ -521,7 +521,9 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
   writeFileSync(join(bin, "pnpm"), `#!/usr/bin/env bash\nprintf 'pnpm %s\\n' "$*" >> "${log}"\nn=$(grep -c '^pnpm ' "${log}")\n[ "$n" -gt "\${PNPM_FAILS:-0}" ]\n`);
   writeFileSync(join(bin, "apt-get"), `#!/usr/bin/env bash\nprintf 'apt-get %s\\n' "$*" >> "${log}"\n`);
   writeFileSync(join(bin, "timeout"), `#!/usr/bin/env bash\nprintf 'timeout %s\\n' "$1" >> "${log}"\nshift\nexec "$@"\n`);
-  for (const name of ["uname", "sudo", "tee", "dpkg", "pnpm", "apt-get", "timeout"]) chmodSync(join(bin, name), 0o755);
+  writeFileSync(join(bin, "pkill"), `#!/usr/bin/env bash\nprintf 'pkill %s\\n' "$*" >> "${log}"\n`);
+  writeFileSync(join(bin, "sleep"), `#!/usr/bin/env bash\n`);
+  for (const name of ["uname", "sudo", "tee", "dpkg", "pnpm", "apt-get", "timeout", "pkill", "sleep"]) chmodSync(join(bin, name), 0o755);
   const run = (dir, env = {}) => {
     writeFileSync(log, "");
     const result = spawnSync("bash", [join(root, "scripts/browser-deps.sh"), dir, "chromium", "webkit"], { encoding: "utf8", env: sandboxEnv(env, [bin]) });
@@ -555,7 +557,9 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
   // Each try first mends what a stopped one left half unpacked.
   const retried = run(join(scratch, "retried"), { PNPM_FAILS: "1", RETRY_DELAYS: "0" });
   assert.equal(retried.status, 0, retried.stdout + retried.stderr);
-  assert.match(retried.calls, /^dpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit\ndpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit$/m);
+  // A later try first stops the apt-get the last one left holding apt's list lock (main's run 44663533747); the first stops nothing.
+  assert.match(retried.calls, /^dpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit\npkill -x apt-get\npkill -KILL -x apt-get\ndpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit$/m);
+  for (const result of [broken, miss]) assert.doesNotMatch(result.calls, /^pkill/m);
   // A second apt waits for dpkg's lock rather than failing at once, on a hit and on a miss.
   for (const result of [hit, miss]) assert.match(result.calls, /^tee \/etc\/apt\/apt\.conf\.d\/90ouro-dpkg-lock\nDPkg::Lock::Timeout "600";$/m);
   assert.ok(existsSync(join(empty, "partial")));
@@ -870,6 +874,42 @@ test("Required checks compares the file with main's live rules hourly, on a chan
   assert.match(report, /QUIET_HOURS: 24/);
   assert.match(report, /permissions:\n\s+contents: read\n\s+issues: write/);
   assert.match(report, /run: scripts\/scheduled-failure\.sh "[^"]+" "Required checks drifted" /);
+});
+
+test("pages-clear.sh cancels other builds' Pages deployments that did not succeed, waits for one in progress to settle, and leaves this one, succeeded ones and a broken gh alone (#2447)", () => {
+  const bin = scratchDir("ouro-gh-");
+  const log = join(bin, "calls.log");
+  const cancelled = join(bin, "cancelled");
+  // A stand-in gh: this run's deployment (cur), one GitHub still holds (old) until it is cancelled, one that reads cancelled
+  // already (gone), which once still held off deploys until it was cancelled again, and one that succeeded (done).
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${log}"\n[ -z "$BROKEN" ] || exit 1\ncase "$*" in\n  *"deployments?environment=github-pages"*) printf 'cur\\nold\\nold\\ngone\\ndone\\n' ;;\n  *"pages/deployments/gone/cancel"*) ;;\n  *"pages/deployments/gone --jq .status") echo deployment_cancelled ;;\n  *"pages/deployments/old/cancel"*) touch "${cancelled}" ;;\n  *"pages/deployments/old --jq .status") [ -e "${cancelled}" ] && echo deployment_cancelled || echo updating_pages ;;\n  *"pages/deployments/done --jq .status") echo succeed ;;\n  *) exit 99 ;;\nesac\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const run = (env = {}) => spawnSync("bash", [join(root, "scripts/pages-clear.sh"), "cur"], { encoding: "utf8", env: sandboxEnv({ GH_REPO: "o/r", GH_TOKEN: "t", PAGES_CLEAR_SLEEP: "0", ...env }, [bin]) });
+  const cleared = run();
+  assert.equal(cleared.status, 0, cleared.stderr);
+  assert.match(cleared.stdout, /The Pages deployment of old is updating_pages: cancelling it/);
+  assert.match(cleared.stdout, /The Pages deployment of old is now deployment_cancelled\./);
+  const calls = readFileSync(log, "utf8").trim().split("\n");
+  assert.deepEqual(calls.filter((call) => call.includes("/cancel")), ["api -X POST repos/o/r/pages/deployments/old/cancel", "api -X POST repos/o/r/pages/deployments/gone/cancel"]);
+  assert.ok(!calls.some((call) => call.includes("pages/deployments/cur")), "this run's own deployment is never read or cancelled");
+  // A gh that answers nothing leaves the deploy to fail as before, without failing the job here.
+  const broken = run({ BROKEN: "1" });
+  assert.equal(broken.status, 0, broken.stderr);
+  assert.equal(broken.stdout, "");
+});
+
+test("Pages clears a deployment still in progress before it deploys, and deploys once more after clearing again when GitHub refuses it (#2447)", () => {
+  const deploy = workflow("pages.yml").split("\n  deploy:\n")[1];
+  const steps = deploy.slice(deploy.indexOf("    steps:"));
+  assert.match(deploy, /^ {6}url: \$\{\{ steps\.again\.outputs\.page_url \|\| steps\.deployment\.outputs\.page_url \}\}$/m);
+  const clear = steps.indexOf('- run: scripts/pages-clear.sh "$GITHUB_SHA"');
+  const first = steps.indexOf("- id: deployment\n        continue-on-error: true\n        uses: actions/deploy-pages@");
+  const again = steps.indexOf("- id: again\n        if: steps.deployment.outcome == 'failure'\n        uses: actions/deploy-pages@");
+  assert.ok(clear > 0 && first > clear && again > first, "clear, deploy, then deploy again only after a refusal");
+  assert.match(steps, /- if: steps\.deployment\.outcome == 'failure'\n {8}run: \|\n[^\n]*\n {10}scripts\/pages-clear\.sh "\$GITHUB_SHA"\n/);
 });
 
 test("scheduled-failure.sh comments with the text it is given, and says \"Failed again\" by default", () => {
@@ -1739,10 +1779,10 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   const jobs = ciJobs();
   const block = jobs.design;
   assert.match(block, /^ {4}needs: \[plan\]$/m);
-  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/8\)$/m);
-  assert.match(block, /^ {8}shard: \[1, 2, 3, 4, 5, 6, 7, 8, fallback\]$/m);
+  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/12\)$/m);
+  assert.match(block, /^ {8}shard: \[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, fallback\]$/m);
   // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
-  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/8\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
+  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/12\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
   assert.doesNotMatch(block, /continue-on-error/);
   // The first shard also checks the converted components' pages with the corner-shape fallback forced on.
   assert.match(block, /targets: site\/dist-fallback\n {10}sizes: 390x844,1440x900\n {10}themes: dark,light\n/);
@@ -2019,10 +2059,10 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "failure" }).status, 1);
   // The sweeps run in shards of their own, so between the e2e and sweep shards every spec runs once.
   const { sweepFiles } = await import("./shard.mjs");
-  const sweeps = Array.from({ length: 9 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 9 }, readTimings("e2e")));
+  const sweeps = Array.from({ length: 14 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 14 }, readTimings("e2e")));
   assert.deepEqual(sweeps.flat().sort(), sweepFiles());
   assert.ok(sweeps.every((share) => share.length > 0));
-  assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/9$/m);
+  assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/14$/m);
 });
 
 test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {
@@ -2276,7 +2316,7 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
 });
 
 // The screen-reader lane (screen-reader-lane.yml, which screen-reader.yml and ci.yml call): real VoiceOver and
-// NVDA through Guidepup, nightly, before every release, and for a pull request whose change reaches a spec.
+// NVDA through Guidepup, nightly, and on every push to main, right after a release tags it; ci.yml's plan selects it for no pull request.
 // Guidepup's setup rewrites VoiceOver and TCC settings, so the lane runs only what it is asked to, on throwaway
 // hosted runners, with nothing to leak. Only screen-reader.yml writes issues, on a schedule or a push: a pull
 // request's call never meets that job.
@@ -2333,17 +2373,14 @@ test("ci.yml calls the lane for a pull request from this repository only, with i
   // The caller grants what the lane needs, and no secret reaches it.
   assert.match(ci["screen-reader"], /^ {4}permissions:\n {6}contents: read\n?$/m);
   assert.doesNotMatch(ci["screen-reader"], /secrets/);
-  // The plan's lane step selects specs for a pull request from this repository and nothing for any other event or fork.
+  // The plan's lane step selects no spec for any event: macOS and Windows runners never gate a pull request; main's push run does.
   const lane = stepScript(ci.plan, "Which screen-reader specs can the change reach?");
-  const fork = runStep(lane, { EVENT: "pull_request", HEAD_REPO: "someone/fork", REPO: "ourostack/ouro-ui" });
-  assert.equal(fork.status, 0, fork.stdout + fork.stderr);
-  assert.doesNotMatch(fork.calls, /sr-impact/);
-  assert.equal(fork.output.screen_reader, "none");
-  const pushed = runStep(lane, { EVENT: "push", HEAD_REPO: "", REPO: "ourostack/ouro-ui" });
-  assert.doesNotMatch(pushed.calls, /sr-impact/);
-  assert.equal(pushed.output.screen_reader, "none");
-  const sameRepo = runStep(lane, { EVENT: "pull_request", HEAD_REPO: "ourostack/ouro-ui", REPO: "ourostack/ouro-ui" });
-  assert.match(sameRepo.calls, /^CALL node scripts\/sr-impact\.mjs plan HEAD\^1 HEAD$/m);
+  for (const [event, headRepo] of [["pull_request", "someone/fork"], ["push", ""], ["pull_request", "ourostack/ouro-ui"]]) {
+    const ran = runStep(lane, { EVENT: event, HEAD_REPO: headRepo, REPO: "ourostack/ouro-ui" });
+    assert.equal(ran.status, 0, ran.stdout + ran.stderr);
+    assert.doesNotMatch(ran.calls, /sr-impact/);
+    assert.equal(ran.output.screen_reader, "none");
+  }
   // The ci check passes the lane's skip only when the plan selected no spec, and counts every other result.
   const parts = stepScript(ci.ci, "Every part passed");
   const passing = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false" };
@@ -2402,16 +2439,19 @@ test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-
   const lane = srJobs().lane;
   // The matrix for an event: the nightly run adds the advisory macos-15 job; a push to main, a dispatch and a pull request's call run the two that gate (#2097).
   const include = lane.match(/include: \$\{\{ (fromJSON\(.*\)) \}\}\n/)[1];
-  const matrix = (event_name) => runInNewContext(include.replace(/github\.event_name/g, JSON.stringify(event_name)).replace(/'/g, "`"), { fromJSON: JSON.parse });
+  const matrix = (event_name, strict = false) => runInNewContext(include.replace(/github\.event_name/g, JSON.stringify(event_name)).replace(/'/g, "`"), { fromJSON: JSON.parse, inputs: { strict } });
   const gate = [{ os: "macos-26", project: "voiceover", advisory: false }, { os: "windows-2025", project: "nvda", advisory: false }];
   const advisory = { os: "macos-15", project: "voiceover", advisory: true };
   assert.deepEqual(matrix("push"), gate);
   assert.deepEqual(matrix("schedule"), [gate[0], advisory, gate[1]]);
   assert.deepEqual(matrix("workflow_dispatch"), gate);
   assert.deepEqual(matrix("pull_request"), gate);
+  // The nightly strict call runs VoiceOver on macos-26 alone, advisory, with the hint-only fallback off (#2085).
+  assert.deepEqual(matrix("schedule", true), [{ os: "macos-26", project: "voiceover", advisory: true }]);
+  assert.match(lane, /^ {6}SR_STRICT: \$\{\{ inputs\.strict && '1' \|\| '' \}\}$/m);
   // An advisory job's failure does not fail the run, whose conclusion release.yml reads; each job keeps its own artifact.
   assert.match(lane, /^ {4}continue-on-error: \$\{\{ matrix\.advisory \}\}$/m);
-  assert.match(lane, /name: screen-reader-\$\{\{ matrix\.project \}\}-\$\{\{ matrix\.os \}\}\n/);
+  assert.match(lane, /name: screen-reader-\$\{\{ matrix\.project \}\}-\$\{\{ matrix\.os \}\}\$\{\{ inputs\.strict && '-strict' \|\| '' \}\}\n/);
   // At most two macOS runners at once.
   assert.equal(matrix("schedule").filter((job) => job.os.startsWith("macos-")).length, 2);
   assert.equal(matrix("push").filter((job) => job.os.startsWith("macos-")).length, 1);
@@ -2464,6 +2504,27 @@ test("the screen-reader lane sets up Guidepup in two phases, setup --ci then ins
   assert.match(lane, /^ {8}if: always\(\) && steps\.guard\.outcome == 'success'$/m);
 });
 
+test("the screen-reader lane annotates every failed verdict but an accessibility finding title=infra, so main's auto-revert reverts only for a finding about the components", () => {
+  const classify = stepScript(srJobs().lane, "Classify the result");
+  for (const [name, log, exit, annotated] of [
+    ["an accessibility finding", `  ✘  1 [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button\n    Error: [sr] no utterance matched /save/i; heard: "Close, button"\n  1 failed`, "1", false],
+    ["an infrastructure failure", `  ✘  1 [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button\n    Error: VoiceOver cannot be started\n  1 failed`, "1", true],
+    ["a harness failure", "Error: No tests found", "1", true],
+    ["a run with no log", "", "", true],
+    ["a pass", `  ✓  1 [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button (4.0s)\n  1 passed`, "0", false],
+  ]) {
+    const temp = scratchDir("ouro-sr-classify-");
+    try {
+      writeFileSync(join(temp, "sr.log"), log);
+      const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", classify], { cwd: root, encoding: "utf8", env: sandboxEnv({ RUNNER_TEMP: temp, EXIT: exit }) });
+      assert.equal(result.status === 0, exit === "0", `${name}: ${result.stdout}${result.stderr}`);
+      assert.equal(/^::error title=infra::Screen-reader lane: /m.test(result.stdout), annotated, `${name}: ${result.stdout}`);
+    } finally {
+      rmSync(temp, { recursive: true, force: true });
+    }
+  }
+});
+
 test("the screen-reader lane tries Guidepup's OS setup once more when it fails, with a warning naming why (#2396)", () => {
   const lane = srJobs().lane;
   assert.match(lane, /^ {6}- id: os\n {8}name: Set up the OS for screen reader automation\n {8}continue-on-error: true\n/m);
@@ -2480,8 +2541,30 @@ test("the lane runs the specs its input names before --project, or every spec wh
   assert.match(lane, /^ {4}timeout-minutes: 60$/m);
 });
 
-test("release reads only screen-reader.yml's push runs, which a pull request's call never is", () => {
-  for (const file of ["release.yml", "release-auto.yml"]) assert.match(workflow(file), /gh run list --workflow screen-reader\.yml --commit "\$sha" --event push/, file);
+test("release names only screen-reader.yml's push runs, which a pull request's call never is, and Release auto waits for none", () => {
+  assert.match(workflow("release.yml"), /gh run list --workflow screen-reader\.yml --commit "\$sha" --event push/);
+  assert.doesNotMatch(workflow("release-auto.yml"), /screen-reader\.yml|Screen reader/);
+});
+
+test("the screen-reader lane runs after the tag, and a commit that breaks it twice is reverted through a pull request that merges on green", () => {
+  const text = workflow("screen-reader-revert.yml");
+  const on = text.split("\non:\n")[1].split(/\n(?=\S)/)[0];
+  assert.match(on, /^ {2}workflow_run:\n {4}workflows: \[Screen reader\]\n {4}types: \[completed\]\n {4}branches: \[main\]$/m);
+  assert.doesNotMatch(on, /pull_request|workflow_dispatch|schedule/);
+  assert.match(text, /^permissions: \{\}$/m);
+  assert.match(text, /if: github\.event\.workflow_run\.event == 'push' && github\.event\.workflow_run\.conclusion == 'failure' && github\.event\.workflow_run\.head_repository\.full_name == github\.repository/);
+  assert.doesNotMatch(text, /actions\/checkout/, "it runs no code from the repository");
+  const decide = stepScript(text, "Did this commit break the lane?");
+  assert.ok(decide.indexOf("SR_CLASS=infrastructure") < decide.indexOf("gh run rerun"), "infrastructure reverts nothing, before any rerun");
+  assert.match(decide, /if \[ "\$ATTEMPT" = 1 \]; then\n\s+gh run rerun "\$RUN_ID" --failed\n/, "a first failure reruns the failed jobs once");
+  assert.match(decide, /gh run list --workflow screen-reader\.yml --commit "\$parent" --event push/, "only the first red commit is reverted");
+  assert.match(decide, /--label red-main-fix --search "Revert in:title #\$pr"/, "one open revert is enough");
+  const revert = stepScript(text, "Revert the pull request, and merge the revert on green");
+  assert.match(revert, /revertPullRequest\(input: \{ pullRequestId: \$id, body: \$body \}\)/);
+  assert.match(revert, /gh pr edit "\$revert" --add-label red-main-fix\n/);
+  assert.match(revert, /gh pr merge "\$revert" --auto --squash\n/);
+  assert.doesNotMatch(text, /@[a-z]|--reviewer|--assignee|gh pr comment|gh issue comment/i, "it mentions and asks no one");
+  assert.match(text, /GH_TOKEN: \$\{\{ steps\.app\.outputs\.token \}\}/, "the Ouro Current app opens the revert, so its checks run");
 });
 
 test("the screen-reader packages are pinned exactly, and test:sr runs its own config", () => {
@@ -2829,7 +2912,7 @@ const calendarLog = logLines("install (shadcn@latest, nova)", [
   "##[error]Process completed with exit code 1.",
 ]);
 const diveTitle = "pressing Dive > ends early on a click, which reaches nothing under the water, or on the button under it";
-const diveLog = logLines("browser (5/14)", [
+const diveLog = logLines("browser (5/22)", [
   ` FAIL   site (chromium)  site/src/voyage/dive/dive.test.tsx > ${diveTitle}`,
   " Test Files  1 failed | 75 passed (76)",
   "      Tests  1 failed | 3284 passed | 4 skipped (3289)",
@@ -2862,10 +2945,10 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   const latestStep = 'Run SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" b478a3226bf42656ed903307714b9f1d4280e26a';
   const contexts = ["ci", "motion-coverage", "install (shadcn, nova)", "install (shadcn@latest, nova)"];
   const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
-  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/14)", "success"), job(5, "motion-coverage", "success")];
+  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/22)", "success"), job(5, "motion-coverage", "success")];
   const runWith = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: green.filter((base) => !jobs.some((other) => other.name === base.name)).concat(jobs) }];
   const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: [latestStep], log: calendarLog });
-  const dive = [job(4, "browser (5/14)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
+  const dive = [job(4, "browser (5/22)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
 
   // Tonight's Calendar failure, quarantined: retried once, recorded with its issue and owner.
   const plan = retryPlan({ runs: runWith([calendar]), contexts, entries: [calendarEntry] });
@@ -2899,9 +2982,9 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.match(setup.problems.join("\n"), /failed in "Run pnpm i --frozen-lockfile", which is not a step that runs the tests/);
   assert.equal(retryPlan({ runs: runWith([{ ...dive[0], failedSteps: ["Browser tests", "Coverage of installed subsets"] }, dive[1], dive[2]]), contexts, entries: [diveEntry] }).retry, false);
   // A gate that read a skipped job failed on that, which no test explains.
-  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/14)", "skipped")]), contexts, entries: [diveEntry] });
+  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/22)", "skipped")]), contexts, entries: [diveEntry] });
   assert.equal(skippedShard.retry, false);
-  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/14\), which was skipped/);
+  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/22\), which was skipped/);
   // A quarantined failure beside any other failure: not retried.
   assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
   const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });
@@ -2974,7 +3057,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
 });
 
-test("Release tags a commit of main whose push CI and screen-reader lane passed, and runs no rehearsal", () => {
+test("Release tags a commit of main whose push CI passed, names the screen-reader lane that runs after, and runs no rehearsal", () => {
   const release = workflow("release.yml");
   assert.match(release, /\n {6}sha:\n/);
   assert.doesNotMatch(release, /rehearsal-evidence|release-rehearsal/);
@@ -2986,13 +3069,12 @@ test("Release tags a commit of main whose push CI and screen-reader lane passed,
   assert.ok(!existsSync(join(root, ".github/workflows/release-rehearsal.yml")));
 });
 
-test("Release auto releases a commit once main's push CI and lane have ended, naming that commit and no other", () => {
+test("Release auto releases a commit once main's push CI has ended, naming that commit and no other", () => {
   const auto = workflow("release-auto.yml");
   const on = auto.split("\non:\n")[1].split(/\n(?=\S)/)[0];
-  assert.match(on, /workflows: \[CI, Screen reader\]/);
+  assert.match(on, /workflows: \[CI\]/);
   assert.match(on, /branches: \[main\]/);
   assert.match(auto, /gh workflow run release\.yml --ref main -f version="\$version" -f sha="\$sha"/);
-  assert.match(auto, /--workflow screen-reader\.yml --commit "\$sha" --event push/);
   assert.match(auto, /--workflow ci\.yml --commit "\$sha" --event push/);
   assert.match(auto, /\[ "\$RUN_EVENT" = push \]/);
 });
@@ -3233,6 +3315,19 @@ test("Docs pin changes nothing for a tag that is not the newest release, and say
   assert.match(changed.calls, /CALL node scripts\/latest-release\.mjs set/);
 });
 
+test("Docs pin leaves an open pull request alone only when it holds the same docs and no check failed", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Leave the pull request alone when it already holds these docs");
+  const env = { BRANCH: "docs/point-at-release" };
+  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "pr view"*) echo ${o.failing ?? 0} ;; "pr diff"*) printf '${o.theirs ?? "a.md\\nb.md"}\\n' ;; esac; }\ngit() { case "$*" in "diff --cached --name-only") printf 'a.md\\nb.md\\n' ;; "diff --cached --quiet"*) return ${o.differs ? 1 : 0} ;; esac; }\n`;
+  const same = runStep(fns({ number: 7 }) + script, env);
+  assert.equal(same.output.same, "true", same.calls);
+  for (const o of [{}, { number: 7, failing: 1 }, { number: 7, theirs: "a.md" }, { number: 7, differs: true }]) {
+    assert.notEqual(runStep(fns(o) + script, env).output.same, "true", JSON.stringify(o));
+  }
+  assert.equal(pin.split("steps.same.outputs.same != 'true'").length - 1, 3, "the push, the pull request and its CI start all wait on the check");
+});
+
 test("Docs pin reuses its open pull request and turns auto-merge on for it", () => {
   const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
   const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
@@ -3362,6 +3457,11 @@ test("Release starts Docs pin once it has tagged, and no job waits for it", () =
   assert.match(jobs["docs-pin"], /^ {4}needs: release$/m);
   assert.match(jobs["docs-pin"], /if: \$\{\{ needs\.release\.result == 'success' \}\}/);
   assert.match(jobs["docs-pin"], /gh workflow run docs-pin\.yml --ref main -f tag="\$TAG"/);
+  assert.ok(jobs["docs-pin"].indexOf("gh workflow run released.yml --ref main -f tag=\"$TAG\"") < jobs["docs-pin"].indexOf("gh workflow run docs-pin.yml"), "Released, the signal that a release is out, starts first");
+  const released = workflow("released.yml");
+  assert.match(released, /^on:\n {2}workflow_dispatch:\n {4}inputs:\n {6}tag:\n/m, "only Release starts it");
+  assert.match(released, /^permissions:\n {2}contents: read$/m);
+  assert.doesNotMatch(released, /actions\/checkout|secrets\./, "it runs no code and holds no secret");
   for (const id of ["pages", "publish", "finish", "next"]) assert.doesNotMatch(jobs[id], /docs-pin/, id);
 });
 
@@ -3390,6 +3490,20 @@ test("the factory check runs the Ouro check of the release factory has installed
   assert.match(check, /\[\[ "\$tag" =~ \^v\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$ \]\]/);
   assert.match(check, /^ {10}ref: \$\{\{ steps\.installed\.outputs\.tag \}\}$/m);
   assert.doesNotMatch(check, /^ {10}ref: main$/m);
+});
+
+test("the nightly run calls the lane once more after it, strict, and opens or comments on one issue when that fails (#2085)", () => {
+  const { strict, "strict-report": report } = callerJobs();
+  // After the lane, so the nightly run never holds more than two macOS runners at once.
+  assert.match(strict, /^ {4}needs: \[lane\]$/m);
+  assert.match(strict, /^ {4}if: always\(\) && github\.event_name == 'schedule'$/m);
+  assert.match(strict, /^ {4}uses: \.\/\.github\/workflows\/screen-reader-lane\.yml$/m);
+  assert.match(strict, /^ {6}strict: true$/m);
+  assert.match(strict, /^ {4}permissions:\n {6}contents: read$/m);
+  assert.match(report, /^ {4}needs: \[strict\]$/m);
+  assert.match(report, /^ {4}if: always\(\) && github\.event_name == 'schedule'$/m);
+  assert.match(report, /select\(\.name \| test\("strict"\)\)/);
+  assert.match(report, /scripts\/scheduled-failure\.sh "\$RUN_URL" "Screen-reader lane: VoiceOver on macOS 26 missed a step with the hint-only fallback off"/);
 });
 
 test("the nightly run opens or comments on one issue when its advisory VoiceOver on macos-15 fails, and no other run does", () => {

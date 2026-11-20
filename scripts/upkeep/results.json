@@ -1,0 +1,783 @@
+{
+  "latestCoreTag": "v1.1.0",
+  "releasesTotal": 39,
+  "summary": [
+    {
+      "kit": "web",
+      "pins": 9,
+      "bumps": 8,
+      "currentPin": "v0.21.0",
+      "medianLagDays": 0.1,
+      "maxLagDays": 0.4,
+      "medianReleaseLagDays": 0.1,
+      "maxReleaseLagDays": 0.4,
+      "pinsReleased": 9,
+      "maxBumpLines": 1474,
+      "medianBumpFiles": 15.5,
+      "medianBumpLines": 363,
+      "medianCommitsBetweenPins": 42
+    },
+    {
+      "kit": "apple",
+      "pins": 9,
+      "bumps": 8,
+      "currentPin": "v0.21.0",
+      "medianLagDays": 0,
+      "maxLagDays": 0.4,
+      "medianReleaseLagDays": 0.2,
+      "maxReleaseLagDays": 2.5,
+      "pinsReleased": 9,
+      "maxBumpLines": 4310,
+      "medianBumpFiles": 7,
+      "medianBumpLines": 92.5,
+      "medianCommitsBetweenPins": 9.5
+    },
+    {
+      "kit": "windows",
+      "pins": 8,
+      "bumps": 7,
+      "currentPin": "v0.21.0",
+      "medianLagDays": 0,
+      "maxLagDays": 0.4,
+      "medianReleaseLagDays": 0.1,
+      "maxReleaseLagDays": 0.5,
+      "pinsReleased": 8,
+      "maxBumpLines": 7376,
+      "medianBumpFiles": 13,
+      "medianBumpLines": 164,
+      "medianCommitsBetweenPins": 3
+    },
+    {
+      "kit": "android",
+      "pins": 8,
+      "bumps": 7,
+      "currentPin": "v0.21.0",
+      "medianLagDays": 0,
+      "maxLagDays": 0.4,
+      "medianReleaseLagDays": 0.05,
+      "maxReleaseLagDays": 0.5,
+      "pinsReleased": 8,
+      "maxBumpLines": 5330,
+      "medianBumpFiles": 16,
+      "medianBumpLines": 179,
+      "medianCommitsBetweenPins": 2
+    }
+  ],
+  "releases": [
+    {
+      "tag": "v0.1.0",
+      "date": "2026-11-03T12:13:24-08:00",
+      "commits": null
+    },
+    {
+      "tag": "v0.2.0",
+      "date": "2026-11-03T14:34:05-08:00",
+      "commits": 1,
+      "files": 11,
+      "lines": 1013
+    },
+    {
+      "tag": "v0.3.0",
+      "date": "2026-11-04T03:40:22-08:00",
+      "commits": 5,
+      "files": 18,
+      "lines": 981
+    },
+    {
+      "tag": "v0.4.0",
+      "date": "2026-11-07T19:20:34-08:00",
+      "commits": 8,
+      "files": 19,
+      "lines": 1611
+    },
+    {
+      "tag": "v0.4.1",
+      "date": "2026-11-08T04:43:41-08:00",
+      "commits": 1,
+      "files": 16,
+      "lines": 197
+    },
+    {
+      "tag": "v0.5.0",
+      "date": "2026-11-13T13:56:30-08:00",
+      "commits": 11,
+      "files": 34,
+      "lines": 2998
+    },
+    {
+      "tag": "v0.6.0",
+      "date": "2026-11-13T14:24:29-08:00",
+      "commits": 2,
+      "files": 16,
+      "lines": 321
+    },
+    {
+      "tag": "v0.6.1",
+      "date": "2026-11-13T14:29:54-08:00",
+      "commits": 1,
+      "files": 13,
+      "lines": 173
+    },
+    {
+      "tag": "v0.7.0",
+      "date": "2026-11-13T14:55:59-08:00",
+      "commits": 1,
+      "files": 38,
+      "lines": 4606
+    },
+    {
+      "tag": "v0.7.1",
+      "date": "2026-11-13T15:21:13-08:00",
+      "commits": 1,
+      "files": 18,
+      "lines": 102
+    },
+    {
+      "tag": "v0.7.2",
+      "date": "2026-11-13T15:37:23-08:00",
+      "commits": 1,
+      "files": 12,
+      "lines": 32
+    },
+    {
+      "tag": "v0.8.0",
+      "date": "2026-11-13T22:05:53-08:00",
+      "commits": 3,
+      "files": 27,
+      "lines": 666
+    },
+    {
+      "tag": "v0.9.0",
+      "date": "2026-11-14T00:45:40-08:00",
+      "commits": 5,
+      "files": 21,
+      "lines": 449
+    },
+    {
+      "tag": "v0.10.0",
+      "date": "2026-11-14T00:59:52-08:00",
+      "commits": 1,
+      "files": 16,
+      "lines": 781
+    },
+    {
+      "tag": "v0.11.0",
+      "date": "2026-11-14T21:33:14Z",
+      "commits": 9,
+      "files": 34,
+      "lines": 1828
+    },
+    {
+      "tag": "v0.12.0",
+      "date": "2026-11-14T22:04:35Z",
+      "commits": 4,
+      "files": 33,
+      "lines": 1903
+    },
+    {
+      "tag": "v0.12.1",
+      "date": "2026-11-14T22:55:15Z",
+      "commits": 3,
+      "files": 31,
+      "lines": 1012
+    },
+    {
+      "tag": "v0.13.0",
+      "date": "2026-11-14T23:21:28Z",
+      "commits": 2,
+      "files": 26,
+      "lines": 722
+    },
+    {
+      "tag": "v0.13.1",
+      "date": "2026-11-15T00:22:08Z",
+      "commits": 2,
+      "files": 17,
+      "lines": 76
+    },
+    {
+      "tag": "v0.14.0",
+      "date": "2026-11-15T02:52:42Z",
+      "commits": 1,
+      "files": 15,
+      "lines": 59
+    },
+    {
+      "tag": "v0.15.0",
+      "date": "2026-11-15T03:32:32Z",
+      "commits": 1,
+      "files": 34,
+      "lines": 733
+    },
+    {
+      "tag": "v0.16.0",
+      "date": "2026-11-16T05:51:00Z",
+      "commits": 2,
+      "files": 21,
+      "lines": 277
+    },
+    {
+      "tag": "v0.17.0",
+      "date": "2026-11-16T06:49:57Z",
+      "commits": 1,
+      "files": 17,
+      "lines": 97
+    },
+    {
+      "tag": "v0.17.1",
+      "date": "2026-11-16T06:59:43Z",
+      "commits": 1,
+      "files": 16,
+      "lines": 48
+    },
+    {
+      "tag": "v0.17.2",
+      "date": "2026-11-16T07:43:41Z",
+      "commits": 1,
+      "files": 16,
+      "lines": 120
+    },
+    {
+      "tag": "v0.17.3",
+      "date": "2026-11-16T08:40:20Z",
+      "commits": 1,
+      "files": 16,
+      "lines": 109
+    },
+    {
+      "tag": "v0.17.4",
+      "date": "2026-11-16T10:27:01Z",
+      "commits": 1,
+      "files": 16,
+      "lines": 74
+    },
+    {
+      "tag": "v0.17.5",
+      "date": "2026-11-16T23:58:42Z",
+      "commits": 1,
+      "files": 16,
+      "lines": 47
+    },
+    {
+      "tag": "v0.17.6",
+      "date": "2026-11-17T00:10:59Z",
+      "commits": 1,
+      "files": 16,
+      "lines": 47
+    },
+    {
+      "tag": "v0.17.7",
+      "date": "2026-11-18T00:03:37Z",
+      "commits": 3,
+      "files": 23,
+      "lines": 295
+    },
+    {
+      "tag": "v0.18.0",
+      "date": "2026-11-18T03:32:40Z",
+      "commits": 2,
+      "files": 31,
+      "lines": 943
+    },
+    {
+      "tag": "v0.18.1",
+      "date": "2026-11-18T05:54:39Z",
+      "commits": 1,
+      "files": 19,
+      "lines": 105
+    },
+    {
+      "tag": "v0.18.2",
+      "date": "2026-11-18T07:06:49Z",
+      "commits": 1,
+      "files": 19,
+      "lines": 159
+    },
+    {
+      "tag": "v0.18.3",
+      "date": "2026-11-18T09:12:16Z",
+      "commits": 1,
+      "files": 17,
+      "lines": 51
+    },
+    {
+      "tag": "v0.19.0",
+      "date": "2026-11-18T10:11:54Z",
+      "commits": 1,
+      "files": 28,
+      "lines": 1263
+    },
+    {
+      "tag": "v0.20.0",
+      "date": "2026-11-19T02:13:41Z",
+      "commits": 1,
+      "files": 20,
+      "lines": 302
+    },
+    {
+      "tag": "v0.21.0",
+      "date": "2026-11-19T14:15:15Z",
+      "commits": 10,
+      "files": 46,
+      "lines": 1198
+    },
+    {
+      "tag": "v1.0.0",
+      "date": "2026-11-19T15:51:10Z",
+      "commits": 2,
+      "files": 16,
+      "lines": 71
+    },
+    {
+      "tag": "v1.1.0",
+      "date": "2026-11-19T18:12:22Z",
+      "commits": 2,
+      "files": 22,
+      "lines": 198
+    }
+  ],
+  "rows": [
+    {
+      "kit": "web",
+      "adoption": true,
+      "tag": "v0.7.2",
+      "coreDate": "2026-11-13T15:37:23-08:00",
+      "pinDate": "2026-11-13T20:33:09-08:00",
+      "kitRelease": "v1.3.20",
+      "releaseLagDays": 0.2,
+      "lagDays": 0.2,
+      "commitsSincePreviousPin": null,
+      "bumpFiles": 39,
+      "bumpLines": 4505
+    },
+    {
+      "kit": "web",
+      "adoption": false,
+      "tag": "v0.9.0",
+      "coreDate": "2026-11-14T00:45:40-08:00",
+      "pinDate": "2026-11-14T09:22:59Z",
+      "kitRelease": "v1.3.39",
+      "releaseLagDays": 0,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 47,
+      "bumpFiles": 13,
+      "bumpLines": 294
+    },
+    {
+      "kit": "web",
+      "adoption": false,
+      "tag": "v0.12.1",
+      "coreDate": "2026-11-14T22:55:15Z",
+      "pinDate": "2026-11-14T23:16:22Z",
+      "kitRelease": "v1.3.106",
+      "releaseLagDays": 0,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 126,
+      "bumpFiles": 10,
+      "bumpLines": 646
+    },
+    {
+      "kit": "web",
+      "adoption": false,
+      "tag": "v0.13.1",
+      "coreDate": "2026-11-15T00:22:08Z",
+      "pinDate": "2026-11-15T01:53:17Z",
+      "kitRelease": "v1.3.118",
+      "releaseLagDays": 0.1,
+      "lagDays": 0.1,
+      "commitsSincePreviousPin": 30,
+      "bumpFiles": 17,
+      "bumpLines": 432
+    },
+    {
+      "kit": "web",
+      "adoption": false,
+      "tag": "v0.18.0",
+      "coreDate": "2026-11-18T03:32:40Z",
+      "pinDate": "2026-11-18T05:30:06Z",
+      "kitRelease": "v1.3.287",
+      "releaseLagDays": 0.1,
+      "lagDays": 0.1,
+      "commitsSincePreviousPin": 524,
+      "bumpFiles": 25,
+      "bumpLines": 1160
+    },
+    {
+      "kit": "web",
+      "adoption": false,
+      "tag": "v0.18.3",
+      "coreDate": "2026-11-18T09:12:16Z",
+      "pinDate": "2026-11-18T10:27:43Z",
+      "kitRelease": "v1.3.293",
+      "releaseLagDays": 0.1,
+      "lagDays": 0.1,
+      "commitsSincePreviousPin": 37,
+      "bumpFiles": 14,
+      "bumpLines": 168
+    },
+    {
+      "kit": "web",
+      "adoption": false,
+      "tag": "v0.19.0",
+      "coreDate": "2026-11-18T10:11:54Z",
+      "pinDate": "2026-11-18T12:07:17Z",
+      "kitRelease": "v1.3.297",
+      "releaseLagDays": 0.1,
+      "lagDays": 0.1,
+      "commitsSincePreviousPin": 17,
+      "bumpFiles": 22,
+      "bumpLines": 1474
+    },
+    {
+      "kit": "web",
+      "adoption": false,
+      "tag": "v0.20.0",
+      "coreDate": "2026-11-19T02:13:41Z",
+      "pinDate": "2026-11-19T12:21:58Z",
+      "kitRelease": "v1.3.329",
+      "releaseLagDays": 0.4,
+      "lagDays": 0.4,
+      "commitsSincePreviousPin": 176,
+      "bumpFiles": 6,
+      "bumpLines": 17
+    },
+    {
+      "kit": "web",
+      "adoption": false,
+      "tag": "v0.21.0",
+      "coreDate": "2026-11-19T14:15:15Z",
+      "pinDate": "2026-11-19T14:55:09Z",
+      "kitRelease": "v1.3.336",
+      "releaseLagDays": 0,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 17,
+      "bumpFiles": 19,
+      "bumpLines": 119
+    },
+    {
+      "kit": "apple",
+      "adoption": true,
+      "tag": "v0.1.0",
+      "coreDate": "2026-11-03T12:13:24-08:00",
+      "pinDate": "2026-11-03T12:27:18-08:00",
+      "kitRelease": "v0.1.0",
+      "releaseLagDays": 0.1,
+      "lagDays": 0,
+      "commitsSincePreviousPin": null,
+      "bumpFiles": 24,
+      "bumpLines": 1217
+    },
+    {
+      "kit": "apple",
+      "adoption": false,
+      "tag": "v0.2.0",
+      "coreDate": "2026-11-03T14:34:05-08:00",
+      "pinDate": "2026-11-03T16:30:17-08:00",
+      "kitRelease": "v0.2.0",
+      "releaseLagDays": 0.1,
+      "lagDays": 0.1,
+      "commitsSincePreviousPin": 4,
+      "bumpFiles": 47,
+      "bumpLines": 4310
+    },
+    {
+      "kit": "apple",
+      "adoption": false,
+      "tag": "v0.3.0",
+      "coreDate": "2026-11-04T03:40:22-08:00",
+      "pinDate": "2026-11-04T04:20:40-08:00",
+      "kitRelease": "v0.3.0",
+      "releaseLagDays": 2.5,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 4,
+      "bumpFiles": 16,
+      "bumpLines": 275
+    },
+    {
+      "kit": "apple",
+      "adoption": false,
+      "tag": "v0.4.0",
+      "coreDate": "2026-11-07T19:20:34-08:00",
+      "pinDate": "2026-11-08T03:41:21Z",
+      "kitRelease": "v0.3.6",
+      "releaseLagDays": 0.1,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 36,
+      "bumpFiles": 7,
+      "bumpLines": 554
+    },
+    {
+      "kit": "apple",
+      "adoption": false,
+      "tag": "v0.8.0",
+      "coreDate": "2026-11-13T22:05:53-08:00",
+      "pinDate": "2026-11-14T06:22:58Z",
+      "kitRelease": "v0.5.1",
+      "releaseLagDays": 0.2,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 26,
+      "bumpFiles": 7,
+      "bumpLines": 51
+    },
+    {
+      "kit": "apple",
+      "adoption": false,
+      "tag": "v0.13.1",
+      "coreDate": "2026-11-15T00:22:08Z",
+      "pinDate": "2026-11-15T01:59:39Z",
+      "kitRelease": "v0.7.0",
+      "releaseLagDays": 0.3,
+      "lagDays": 0.1,
+      "commitsSincePreviousPin": 14,
+      "bumpFiles": 12,
+      "bumpLines": 134
+    },
+    {
+      "kit": "apple",
+      "adoption": false,
+      "tag": "v0.14.0",
+      "coreDate": "2026-11-15T02:52:42Z",
+      "pinDate": "2026-11-15T03:33:41Z",
+      "kitRelease": "v0.7.0",
+      "releaseLagDays": 0.2,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 5,
+      "bumpFiles": 6,
+      "bumpLines": 39
+    },
+    {
+      "kit": "apple",
+      "adoption": false,
+      "tag": "v0.20.0",
+      "coreDate": "2026-11-19T02:13:41Z",
+      "pinDate": "2026-11-19T12:24:02Z",
+      "kitRelease": "v1.3.0",
+      "releaseLagDays": 0.6,
+      "lagDays": 0.4,
+      "commitsSincePreviousPin": 70,
+      "bumpFiles": 5,
+      "bumpLines": 33
+    },
+    {
+      "kit": "apple",
+      "adoption": false,
+      "tag": "v0.21.0",
+      "coreDate": "2026-11-19T14:15:15Z",
+      "pinDate": "2026-11-19T14:47:50Z",
+      "kitRelease": "v1.3.0",
+      "releaseLagDays": 0.1,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 1,
+      "bumpFiles": 4,
+      "bumpLines": 16
+    },
+    {
+      "kit": "windows",
+      "adoption": true,
+      "tag": "v0.12.0",
+      "coreDate": "2026-11-14T22:04:35Z",
+      "pinDate": "2026-11-14T22:21:07Z",
+      "kitRelease": "v0.1.0",
+      "releaseLagDays": 0.1,
+      "lagDays": 0,
+      "commitsSincePreviousPin": null,
+      "bumpFiles": 27,
+      "bumpLines": 4443
+    },
+    {
+      "kit": "windows",
+      "adoption": false,
+      "tag": "v0.13.1",
+      "coreDate": "2026-11-15T00:22:08Z",
+      "pinDate": "2026-11-15T00:32:47Z",
+      "kitRelease": "v0.1.1",
+      "releaseLagDays": 0,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 6,
+      "bumpFiles": 10,
+      "bumpLines": 129
+    },
+    {
+      "kit": "windows",
+      "adoption": false,
+      "tag": "v0.18.0",
+      "coreDate": "2026-11-18T03:32:40Z",
+      "pinDate": "2026-11-18T04:18:04Z",
+      "kitRelease": "v0.2.0",
+      "releaseLagDays": 0.1,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 3,
+      "bumpFiles": 46,
+      "bumpLines": 7376
+    },
+    {
+      "kit": "windows",
+      "adoption": false,
+      "tag": "v0.18.1",
+      "coreDate": "2026-11-18T05:54:39Z",
+      "pinDate": "2026-11-18T06:48:25Z",
+      "kitRelease": "v0.2.1",
+      "releaseLagDays": 0.1,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 4,
+      "bumpFiles": 13,
+      "bumpLines": 200
+    },
+    {
+      "kit": "windows",
+      "adoption": false,
+      "tag": "v0.18.2",
+      "coreDate": "2026-11-18T07:06:49Z",
+      "pinDate": "2026-11-18T07:23:56Z",
+      "kitRelease": "v0.2.2",
+      "releaseLagDays": 0,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 2,
+      "bumpFiles": 14,
+      "bumpLines": 164
+    },
+    {
+      "kit": "windows",
+      "adoption": false,
+      "tag": "v0.19.0",
+      "coreDate": "2026-11-18T10:11:54Z",
+      "pinDate": "2026-11-18T12:39:02Z",
+      "kitRelease": "v0.3.0",
+      "releaseLagDays": 0.1,
+      "lagDays": 0.1,
+      "commitsSincePreviousPin": 2,
+      "bumpFiles": 29,
+      "bumpLines": 1857
+    },
+    {
+      "kit": "windows",
+      "adoption": false,
+      "tag": "v0.20.0",
+      "coreDate": "2026-11-19T02:13:41Z",
+      "pinDate": "2026-11-19T11:52:58Z",
+      "kitRelease": "v0.5.0",
+      "releaseLagDays": 0.5,
+      "lagDays": 0.4,
+      "commitsSincePreviousPin": 8,
+      "bumpFiles": 9,
+      "bumpLines": 98
+    },
+    {
+      "kit": "windows",
+      "adoption": false,
+      "tag": "v0.21.0",
+      "coreDate": "2026-11-19T14:15:15Z",
+      "pinDate": "2026-11-19T14:28:31Z",
+      "kitRelease": "v0.5.0",
+      "releaseLagDays": 0,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 1,
+      "bumpFiles": 13,
+      "bumpLines": 37
+    },
+    {
+      "kit": "android",
+      "adoption": true,
+      "tag": "v0.13.1",
+      "coreDate": "2026-11-15T00:22:08Z",
+      "pinDate": "2026-11-14T19:38:35-08:00",
+      "kitRelease": "v0.1.0",
+      "releaseLagDays": 0.2,
+      "lagDays": 0.1,
+      "commitsSincePreviousPin": null,
+      "bumpFiles": 84,
+      "bumpLines": 6108
+    },
+    {
+      "kit": "android",
+      "adoption": false,
+      "tag": "v0.15.0",
+      "coreDate": "2026-11-15T03:32:32Z",
+      "pinDate": "2026-11-15T03:46:32Z",
+      "kitRelease": "v0.1.0",
+      "releaseLagDays": 0,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 2,
+      "bumpFiles": 17,
+      "bumpLines": 91
+    },
+    {
+      "kit": "android",
+      "adoption": false,
+      "tag": "v0.18.0",
+      "coreDate": "2026-11-18T03:32:40Z",
+      "pinDate": "2026-11-18T04:19:02Z",
+      "kitRelease": "v0.2.0",
+      "releaseLagDays": 0.1,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 6,
+      "bumpFiles": 30,
+      "bumpLines": 5330
+    },
+    {
+      "kit": "android",
+      "adoption": false,
+      "tag": "v0.18.1",
+      "coreDate": "2026-11-18T05:54:39Z",
+      "pinDate": "2026-11-18T06:49:12Z",
+      "kitRelease": "v0.2.1",
+      "releaseLagDays": 0,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 4,
+      "bumpFiles": 16,
+      "bumpLines": 210
+    },
+    {
+      "kit": "android",
+      "adoption": false,
+      "tag": "v0.18.2",
+      "coreDate": "2026-11-18T07:06:49Z",
+      "pinDate": "2026-11-18T07:21:10Z",
+      "kitRelease": "v0.2.2",
+      "releaseLagDays": 0,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 1,
+      "bumpFiles": 15,
+      "bumpLines": 179
+    },
+    {
+      "kit": "android",
+      "adoption": false,
+      "tag": "v0.19.0",
+      "coreDate": "2026-11-18T10:11:54Z",
+      "pinDate": "2026-11-18T12:37:18Z",
+      "kitRelease": "v0.3.0",
+      "releaseLagDays": 0.1,
+      "lagDays": 0.1,
+      "commitsSincePreviousPin": 1,
+      "bumpFiles": 28,
+      "bumpLines": 1881
+    },
+    {
+      "kit": "android",
+      "adoption": false,
+      "tag": "v0.20.0",
+      "coreDate": "2026-11-19T02:13:41Z",
+      "pinDate": "2026-11-19T11:51:09Z",
+      "kitRelease": "v0.6.0",
+      "releaseLagDays": 0.5,
+      "lagDays": 0.4,
+      "commitsSincePreviousPin": 8,
+      "bumpFiles": 8,
+      "bumpLines": 96
+    },
+    {
+      "kit": "android",
+      "adoption": false,
+      "tag": "v0.21.0",
+      "coreDate": "2026-11-19T14:15:15Z",
+      "pinDate": "2026-11-19T14:25:59Z",
+      "kitRelease": "v0.6.0",
+      "releaseLagDays": 0,
+      "lagDays": 0,
+      "commitsSincePreviousPin": 1,
+      "bumpFiles": 11,
+      "bumpLines": 37
+    }
+  ]
+}

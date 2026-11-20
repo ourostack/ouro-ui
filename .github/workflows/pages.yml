@@ -131,7 +131,28 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.again.outputs.page_url || steps.deployment.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/pages-clear.sh
+          sparse-checkout-cone-mode: false
+      # GitHub refuses a deployment while another build's is in progress, and one can stay in progress after
+      # deploy-pages gives up on it (#2447): any that did not succeed is cancelled first, and once more if this deploy is refused.
+      - run: scripts/pages-clear.sh "$GITHUB_SHA"
       - id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      - if: steps.deployment.outcome == 'failure'
+        run: |
+          echo "::warning title=Pages deploy refused::Deploying once more after clearing any deployment still in progress (ourostack/ouro-ui#2447)."
+          scripts/pages-clear.sh "$GITHUB_SHA"
+          # GitHub let a cancelled deployment go only a moment after it read cancelled.
+          sleep 60
+      - id: again
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

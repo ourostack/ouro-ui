@@ -298,24 +298,17 @@ jobs:
             echo "Design check run: $EVENT."
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
-      # Which screen-reader specs the change can reach (scripts/sr-impact.mjs), for the screen-reader job below. Only a
-      # pull request from this repository gets any: a fork's code is not this repository's branch. A change the mapping
-      # cannot place selects every spec; every other event selects none, since main's own lane runs are screen-reader.yml's
-      # push and schedule runs.
+      # No screen-reader lane on a pull request: it needs macOS and Windows runners, which are scarce, so a pull request waits for
+      # none. Main's own lane runs are screen-reader.yml's push and schedule runs, and release.yml tags only a commit whose push
+      # run passed (docs/guides/screen-reader-lane.md). The screen-reader job below stays for a plan that selects specs.
       - id: lane
         name: Which screen-reader specs can the change reach?
         env:
           EVENT: ${{ github.event_name }}
-          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
-          REPO: ${{ github.repository }}
         run: |
-          if [ "$EVENT" = pull_request ] && [ "$HEAD_REPO" = "$REPO" ]; then
-            node scripts/sr-impact.mjs plan HEAD^1 HEAD
-          else
-            echo "No screen-reader lane for $EVENT${HEAD_REPO:+ from $HEAD_REPO}."
-            echo "screen_reader=none" >> "$GITHUB_OUTPUT"
-            echo "screen_reader_specs=" >> "$GITHUB_OUTPUT"
-          fi
+          echo "No screen-reader lane for $EVENT: it runs on main after the merge."
+          echo "screen_reader=none" >> "$GITHUB_OUTPUT"
+          echo "screen_reader_specs=" >> "$GITHUB_OUTPUT"
   sr-yield:
     # Waits while main's screen-reader lane holds or waits for a macOS runner (scripts/sr-yield.mjs), so a pull request's
     # lane takes the runners after it. It fails open and never fails: at worst the lane starts after 10 minutes.
@@ -562,12 +555,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    name: browser (${{ matrix.shard }}/14)
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    name: browser (${{ matrix.shard }}/22)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/14
+      SHARD: ${{ matrix.shard }}/22
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -850,7 +843,7 @@ jobs:
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      BROWSER_SHARDS: 14
+      BROWSER_SHARDS: 22
       BROWSER_RUN: ${{ needs.plan.outputs.browser != 'false' }}
     steps:
       # A failed shard decides the ci check whatever the full suite would do, so it runs only after every shard passed.
@@ -861,7 +854,7 @@ jobs:
         run: |
           if [ "$BROWSER_RUN" = false ]; then
             if [ "$BROWSER" != skipped ]; then
-              echo "::error::The plan skipped the browser shards, but they report $BROWSER: see the browser (n/14) jobs."
+              echo "::error::The plan skipped the browser shards, but they report $BROWSER: see the browser (n/22) jobs."
               exit 1
             fi
             echo "Nothing the browser tests read changed, so the browser shards did not run and there is no coverage to measure."
@@ -869,7 +862,7 @@ jobs:
             exit 0
           fi
           if [ "$BROWSER" != success ]; then
-            echo "::error::The browser jobs did not pass ($BROWSER): see the browser (n/14) jobs."
+            echo "::error::The browser jobs did not pass ($BROWSER): see the browser (n/22) jobs."
             exit 1
           fi
           echo "ran=true" >> "$GITHUB_OUTPUT"
@@ -956,7 +949,7 @@ jobs:
       - if: env.BROWSER_RUN == 'true' && steps.tests.outputs.fallback != 'true'
         name: Motion coverage
         env:
-          MOTION_PARTITIONS: ouro-chromium:14,ouro-webkit:14,ouro-touch:14,site:14
+          MOTION_PARTITIONS: ouro-chromium:22,ouro-webkit:22,ouro-touch:22,site:22
           REDUCED: ${{ steps.tests.outputs.reduced }}
           STEMS: ${{ steps.tests.outputs.stems }}
         run: |
@@ -988,10 +981,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-    name: browser fallback (${{ matrix.shard }}/16)
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
+    name: browser fallback (${{ matrix.shard }}/28)
     env:
-      SHARD: ${{ matrix.shard }}/16
+      SHARD: ${{ matrix.shard }}/28
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1185,8 +1178,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, fallback]
-    name: design (${{ matrix.shard }}/8)
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, fallback]
+    name: design (${{ matrix.shard }}/12)
     steps:
       # Its checkout needs the base commit (HEAD^1), which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -1247,7 +1240,7 @@ jobs:
         with:
           targets: site/dist
           sizes: 390x844,1440x900,3840x2160
-          shard: ${{ matrix.shard }}/8
+          shard: ${{ matrix.shard }}/12
           script: registry/ouro/check/check.ts
           config: .github/ouro-check.json
           artifact: design-check
@@ -1294,7 +1287,7 @@ jobs:
       browser: ${{ needs.plan.outputs.browser != 'false' }}
     env:
       FALLBACK: ${{ needs.coverage.outputs.fallback }}
-      FALLBACK_SHARDS: 16
+      FALLBACK_SHARDS: 28
       BROWSER_RUN: ${{ needs.plan.outputs.browser != 'false' }}
       DESIGN_RUN: ${{ needs.plan.outputs.design != 'false' }}
       SCREEN_READER_RUN: ${{ needs.plan.outputs.screen_reader != 'none' }}
@@ -1415,8 +1408,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      MOTION_PARTITIONS: ouro-chromium:14,ouro-webkit:14,ouro-touch:14,site:14
-      FULL_SUITE_PARTITIONS: ouro-chromium:16,ouro-webkit:16,ouro-touch:16,site:16
+      MOTION_PARTITIONS: ouro-chromium:22,ouro-webkit:22,ouro-touch:22,site:22
+      FULL_SUITE_PARTITIONS: ouro-chromium:28,ouro-webkit:28,ouro-touch:28,site:28
       REDUCED: ${{ needs.ci.outputs.reduced }}
       STEMS: ${{ needs.ci.outputs.stems }}
       FALLBACK: ${{ needs.ci.outputs.fallback }}
@@ -2216,13 +2209,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
-    name: e2e (${{ matrix.shard }}/6)
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    name: e2e (${{ matrix.shard }}/10)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/6
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of6.json
+      SHARD: ${{ matrix.shard }}/10
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of10.json
     steps:
       # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -2323,11 +2316,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    name: sweeps (${{ matrix.shard }}/9)
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    name: sweeps (${{ matrix.shard }}/14)
     env:
-      SHARD: ${{ matrix.shard }}/9
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of9.json
+      SHARD: ${{ matrix.shard }}/14
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of14.json
     steps:
       # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -2410,10 +2403,10 @@ jobs:
           SWEEPS: ${{ needs.sweep-shard.result }}
         run: |
           if [ "$SHARDS" != success ]; then
-            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/6) jobs."
+            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/10) jobs."
           fi
           if [ "$SWEEPS" != success ]; then
-            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/9) jobs."
+            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/14) jobs."
           fi
           if [ "$SHARDS" != success ] || [ "$SWEEPS" != success ]; then
             exit 1

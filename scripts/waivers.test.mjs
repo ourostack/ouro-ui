@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { stale } from "./waivers.mjs";
-import { WAIVERS, waived, waivedPages } from "../site/e2e/waivers.ts";
+import { WAIVERS, waived, waivedPages, majorityFirst } from "../site/e2e/waivers.ts";
 
 test("every sweep waiver names its component, part, page, property, reason and source", () => {
   for (const w of WAIVERS) {
-    for (const field of ["component", "part", "page", "property", "reason", "source"]) assert.ok(w[field], `${JSON.stringify(w)} lacks ${field}`);
+    for (const field of ["component", "page", "property", "reason", "source"]) assert.ok(w[field], `${JSON.stringify(w)} lacks ${field}`);
+    assert.equal(typeof w.part, "string", `${JSON.stringify(w)} lacks part`);
     assert.ok(w.page.startsWith("/") && w.page.endsWith("/"), `${w.page} is one page`);
   }
 });
@@ -39,6 +40,21 @@ test("a look's samples on a waived page are the odd one out of a tie, so its wai
     assert.equal(waivedPages(key, ["/apple/feel/"]), true);
     assert.equal(waivedPages(key, ["/docs/porthole/"]), false);
     assert.equal(waivedPages(key, ["/apple/feel/", "/docs/porthole/"]), false);
+  } finally {
+    WAIVERS.splice(0, WAIVERS.length, ...kept);
+  }
+});
+
+test("a waived page is the odd one out even when it has more samples than the other pages", () => {
+  const key = "switch||div||h20|pearl|245,245,247,255";
+  const kept = WAIVERS.splice(0);
+  try {
+    WAIVERS.push({ component: "switch", part: "", variant: "", state: "", page: "/", property: "gap", reason: "test", source: "test" });
+    const bySig = new Map([
+      ["gap 4px 0px", ["/", "/", "/", "/"]],
+      ["gap 4px 12px", ["/docs/agent-presence/", "/docs/agent-presence/", "/docs/switch/"]],
+    ]);
+    assert.deepEqual(majorityFirst(key, bySig).map(([sig]) => sig), ["gap 4px 12px", "gap 4px 0px"]);
   } finally {
     WAIVERS.splice(0, WAIVERS.length, ...kept);
   }

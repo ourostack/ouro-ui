@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { NAVIGATION_HUNG, NAVIGATION_RETRY_PREFIX, NAVIGATION_TIMEOUT_MS, navigateWithRetry, voiceOverGone, waitUntil } from "../registry/ouro/e2e/screen-reader/navigation.ts";
+import { NAVIGATION_HUNG, NAVIGATION_OUTSIDE, NAVIGATION_RETRY_PREFIX, NAVIGATION_TIMEOUT_MS, navigateWithRetry, voiceOverGone, waitUntil } from "../registry/ouro/e2e/screen-reader/navigation.ts";
 import { classify, navigationSummary, why } from "./sr-classify.mjs";
 
 // The bounded navigation to the page (registry/ouro/e2e/screen-reader/navigation.ts), with VoiceOver
@@ -106,11 +106,40 @@ test("navigateWithRetry: VoiceOver gone on both tries fails as infrastructure, a
   assert.equal(classify(log, 1), "infrastructure");
 });
 
-test("voiceOverGone: AppleScript's -600 is VoiceOver gone; a test's own error is not", () => {
+test("navigateWithRetry: a navigation that leaves VoiceOver outside the web area navigates once more, without restarting it", async () => {
+  const voiceOver = fakeVoiceOver("ok", "ok");
+  const said = ["", "Button Save to cookbook"];
+  const outside = async () => (said.shift() === "" ? 'VoiceOver stayed outside the page\'s web area (it said "")' : null);
+  await navigateWithRetry({ ...voiceOver, outside, timeoutMs: 20 });
+  assert.deepEqual(voiceOver.order, ["navigate", "navigate"]);
+  assert.equal(voiceOver.lines.length, 1);
+  assert.match(voiceOver.lines[0], new RegExp(`^${NAVIGATION_RETRY_PREFIX.replace(/[[\]]/g, "\\$&")} VoiceOver stayed outside the page's web area \\(it said ""\\) on try 1 of 2; navigating again\\.$`));
+});
+
+test("navigateWithRetry: VoiceOver outside the web area on both tries fails as infrastructure, and is not navigated a third time", async () => {
+  const voiceOver = fakeVoiceOver("ok", "ok", "ok");
+  const outside = async () => 'VoiceOver stayed outside the page\'s web area (it said "You are currently on web content.")';
+  const failure = await navigateWithRetry({ ...voiceOver, outside, timeoutMs: 20 }).then(
+    () => null,
+    (error) => error.message,
+  );
+  assert.deepEqual(voiceOver.order, ["navigate", "navigate"]);
+  assert.ok(failure.startsWith(`${NAVIGATION_OUTSIDE}: `), failure);
+  const log = `  ✘   2 [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button\n    Error: ${failure}\n`;
+  assert.equal(classify(log, 1), "infrastructure");
+  assert.match(why(log), /VoiceOver never entered the page's web area/);
+});
+
+test("voiceOverGone: AppleScript's -600, -609 for a lost connection to System Events, and -2741 when VoiceOver's terms cannot load, are VoiceOver gone; a test's own error is not", () => {
   assert.equal(voiceOverGone(new Error("System Events got an error: Application isn’t running. (-600)")), true);
   assert.equal(voiceOverGone(new Error("Application isn't running")), true);
   assert.equal(voiceOverGone(new Error("locator.focus: element is detached")), false);
   assert.equal(voiceOverGone("(-600)"), true);
+  // Main's run 44605928118 (#2453): osascript lost System Events while the navigation pressed VoiceOver's keys.
+  assert.equal(voiceOverGone(new Error("Unable to send keys: to application: VoiceOver\nCommand failed: /usr/bin/osascript\n60:71: execution error: System Events got an error: Connection is invalid. (-609)")), true);
+  // Main's run 44622775423 (#2465): Guidepup's key-press script failed to compile because VoiceOver's scripting terms could not load.
+  assert.equal(voiceOverGone(new Error("Unable to send keys: to application: VoiceOver\nCommand failed: /usr/bin/osascript\n64:68: syntax error: Expected end of line, etc. but found identifier. (-2741)")), true);
+  assert.equal(voiceOverGone(new Error("syntax error: A identifier can't go after this identifier. (-2740)")), false);
 });
 
 test("navigateWithRetry: a stop that fails is logged, and VoiceOver still starts again", async () => {

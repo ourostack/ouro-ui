@@ -240,6 +240,38 @@ describe("ComposedSurface", () => {
     expect(host.textContent).toBe("Second");
   });
 
+  it("draws the app's own component with its renderer, children first, and keeps HX's drawing beside it", async () => {
+    const own = node("root", "Stack", {}, [node("wine", "WineCard", { name: "Syrah" }, [node("note", "Text", { text: "Dry" })]), node("name", "Heading", { text: "Cellar", level: 2 })]);
+    const components: ComposedSurfaceProps["components"] = {
+      WineCard: (n, children) => (
+        <section data-test-harness data-wine={String(n.props.name)}>
+          {children}
+        </section>
+      ),
+    };
+    const host = await render(<ComposedSurface {...props({ tree: own, components })} />);
+    const wine = host.querySelector("[data-wine]")!;
+    expect(wine.getAttribute("data-wine")).toBe("Syrah");
+    expect(wine.textContent).toBe("Dry");
+    expect(page.getByRole("heading", { level: 2, name: "Cellar" }).element()).toBeTruthy();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("draws Ouro HX's own names with HX, whatever the map holds", async () => {
+    const own = node("root", "Stack", {}, [node("name", "Heading", { text: "Cellar", level: 2 })]);
+    const host = await render(<ComposedSurface {...props({ tree: own, components: { Heading: () => <b data-test-harness>mine</b> } })} />);
+    expect(host.querySelector("b")).toBeNull();
+    expect(page.getByRole("heading", { level: 2, name: "Cellar" }).element()).toBeTruthy();
+  });
+
+  it("shows nothing for an own component with no renderer, and the message names the fix", async () => {
+    const own = node("root", "Stack", {}, [node("wine", "WineCard", { name: "Syrah" }), node("name", "Heading", { text: "Cellar", level: 2 })]);
+    const host = await render(<ComposedSurface {...props({ tree: own })} />);
+    expect(host.querySelector("button")).toBeNull();
+    expect(host.textContent).toBe("Cellar");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("ComposedSurface: WineCard is not Ouro HX's and has no renderer. Fix: <ComposedSurface components={{ WineCard: (node, children) => <div>{children}</div> }} />."));
+  });
+
   it("warns when a guessed onAction takes the place of onPress", async () => {
     await render(<ComposedSurface {...props()} {...({ onAction: () => {} } as object)} />);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("ComposedSurface: onAction is not a prop; a pressed button calls onPress, or onHandoff for a person-only one. Fix: <ComposedSurface onPress={run} onHandoff={openApp} />."));

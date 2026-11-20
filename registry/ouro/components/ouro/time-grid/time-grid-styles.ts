@@ -332,9 +332,9 @@ function stepTo(pieces: ReadonlyArray<{ key: string; day: number; start: number 
 /**
  * An event: its text from the top, and a bar in its tone on its start edge (each status sets the
  * border widths, `statusClass`). Keyboard focus is a ring outside the event, with a gap, as on
- * Ouro's other controls; the selected event has a line just inside its edge instead, so focus on
- * it still shows. Under forced colours every event keeps a border.
- * @claim "Keyboard focus is a ring outside the event" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > draws keyboard focus apart from selection: a ring outside the event, where selection is a line just inside it)
+ * Ouro's other controls; the selected event is a deeper fill of its own colour instead of an
+ * outline, so focus on it still shows apart from selection. Under forced colours every event keeps a border.
+ * @claim "Keyboard focus is a ring outside the event" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > draws keyboard focus apart from selection: a ring outside the event, where selection is a deeper fill)
  * @claim "each status sets the" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /busy: "border-0 border-s-3"/)
  * @claim "Under forced colours every event" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /forced-colors:border forced-colors:border-s-3/)
  */
@@ -344,9 +344,9 @@ const eventClass =
   "cursor-pointer select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-(--ouro-ease-out) " +
   "outline-ring outline-offset-2 focus-visible:z-30 focus-visible:outline-2 focus-visible:outline-solid " +
-  "aria-[current=true]:z-20 aria-[current=true]:shadow-[inset_0_0_0_2px_var(--foreground)] " +
+  "aria-[current=true]:z-20 " +
   "aria-expanded:z-20 aria-expanded:outline-2 aria-expanded:outline-solid aria-expanded:outline-primary " +
-  "forced-colors:border forced-colors:border-s-3 forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText]";
+  "forced-colors:border forced-colors:border-s-3 forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText] forced-colors:aria-[current=true]:pointer-fine:hover:bg-[Highlight] forced-colors:aria-[current=true]:active:bg-[Highlight]";
 
 /** A timed event fills its place in the day's column, over the now line. */
 const timedClass = "absolute inset-0 z-10 scroll-mt-(--ouro-time-grid-head) @container/event";
@@ -379,14 +379,14 @@ const toneBarClass: Record<TimeGridTone, string> = {
  */
 const toneFillClass: Record<TimeGridTone, string> = {
   primary:
-    "bg-[color-mix(in_oklab,var(--primary)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+12%),var(--background))]",
-  secondary: "bg-secondary pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_8%,var(--secondary))] active:bg-[color-mix(in_oklab,var(--foreground)_12%,var(--secondary))]",
+    "bg-[color-mix(in_oklab,var(--primary)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]",
+  secondary: "bg-secondary pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_8%,var(--secondary))] active:bg-[color-mix(in_oklab,var(--foreground)_12%,var(--secondary))] aria-[current=true]:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--secondary))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_20%,var(--secondary))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--foreground)_20%,var(--secondary))]",
   success:
-    "bg-[color-mix(in_oklab,var(--success)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+12%),var(--background))]",
+    "bg-[color-mix(in_oklab,var(--success)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]",
   warning:
-    "bg-[color-mix(in_oklab,var(--warning)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+12%),var(--background))]",
+    "bg-[color-mix(in_oklab,var(--warning)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]",
   destructive:
-    "bg-[color-mix(in_oklab,var(--destructive)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+12%),var(--background))]",
+    "bg-[color-mix(in_oklab,var(--destructive)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]",
 };
 
 /**
@@ -394,7 +394,8 @@ const toneFillClass: Record<TimeGridTone, string> = {
  *
  * @claim "The page-coloured fill of" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /status === "busy" \? toneFillClass\[tone\] : plainFillClass/)
  */
-const plainFillClass = "bg-background pointer-fine:hover:bg-accent active:bg-accent";
+const plainFillClass =
+  "bg-background pointer-fine:hover:bg-(--ouro-time-grid-hover,var(--accent)) active:bg-accent aria-[current=true]:bg-[color-mix(in_oklab,var(--foreground)_14%,var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_18%,var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--foreground)_18%,var(--background))]";
 
 /**
  * A background event's fill: a step off the page whatever its tone, so it reads as secondary
@@ -402,7 +403,7 @@ const plainFillClass = "bg-background pointer-fine:hover:bg-accent active:bg-acc
  * @claim "A background event's fill" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws background events in a lane at each day's start, beside the person's own)
  */
 const backgroundFillClass =
-  "bg-[color-mix(in_oklab,var(--foreground)_4%,var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_9%,var(--background))] active:bg-[color-mix(in_oklab,var(--foreground)_12%,var(--background))]";
+  "bg-[color-mix(in_oklab,var(--foreground)_4%,var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_9%,var(--background))] active:bg-[color-mix(in_oklab,var(--foreground)_12%,var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--foreground)_14%,var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_18%,var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--foreground)_21%,var(--background))]";
 
 /**
  * A background event in a week: a press target as wide as its share of the lane, with no text,
@@ -428,7 +429,7 @@ const eventHitClass = "before:absolute before:top-0 before:start-0 before:-z-1 b
  * @claim "The slim bar a week draws" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > names a week's thin bars in a tooltip, and labels them in a day)
  */
 const backgroundBarFillClass =
-  "pointer-events-none absolute inset-y-0 start-0.5 box-border w-1 rounded-full border-solid pointer-fine:group-hover/bar:w-1.5 group-aria-expanded/bar:w-1.5";
+  "pointer-events-none absolute inset-y-0 start-0.5 box-border w-1 rounded-full border-solid pointer-fine:group-hover/bar:w-1.5 group-aria-expanded/bar:w-1.5 group-aria-[current=true]/bar:w-2";
 
 /**
  * Each tone as a solid swatch, the bar's colour: mixed toward the page so a column of bars stays quiet.

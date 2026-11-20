@@ -1,0 +1,1 @@
+- New: [What is proven on a device](https://ui.ouroboros.bot/docs/platforms/proof/) says per platform where its checks run and what has not run on a device.

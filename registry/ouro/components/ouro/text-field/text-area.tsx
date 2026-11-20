@@ -1,5 +1,6 @@
 "use client";
 
+import "@/registry/ouro/lib/ouro/last-input";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { ChangeEvent, JSX, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";

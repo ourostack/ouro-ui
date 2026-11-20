@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, CURRENT_PAGE, firstMatch, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saidInMiss, saysValue, speechTimeline, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints, withTimeline } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, CURRENT_PAGE, firstMatch, HINT_ONLY_PREFIX, hintOnlyMiss, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saidInMiss, saysValue, speechTimeline, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints, withTimeline } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -294,7 +294,7 @@ test("a miss lists what VoiceOver said, so a wrong state it said fails instead o
   assert.equal(hint.some((phrase) => inOneSentence(phrase, CHECKED) || UNCHECKED.test(phrase)), false);
 });
 
-test("the describe fallback is the Checkbox and Checklist toggles' (#118), the Dialog opening's (#119), and the hint-only Select focus and Menu opening (#2085) alone, once each", () => {
+test("the describe fallback is the Checkbox and Checklist toggles' (#118) and the Dialog opening's (#119) alone, once each", () => {
   const dir = join(import.meta.dirname, "../registry/ouro/e2e/screen-reader");
   const uses = Object.fromEntries(
     readdirSync(dir)
@@ -302,17 +302,11 @@ test("the describe fallback is the Checkbox and Checklist toggles' (#118), the D
       .map((file) => [file, (readFileSync(join(dir, file), "utf8").match(/heardOrDescribed\(/g) ?? []).length])
       .filter(([, count]) => count > 0),
   );
-  assert.deepEqual(uses, { "checkbox.sr.spec.ts": 1, "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1, "menu.sr.spec.ts": 1, "select.sr.spec.ts": 1 });
+  assert.deepEqual(uses, { "checkbox.sr.spec.ts": 1, "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1 });
   // The Menu's opening is only logged on macOS 15's VoiceOver, and must be read everywhere else (#1721).
   const menuSpec = readFileSync(join(dir, "menu.sr.spec.ts"), "utf8");
   assert.match(menuSpec, /if \(onOlderMacOS\(\)\) \{\n {4}await said\(sr, open,/);
-  assert.match(menuSpec, /\} else \{\n {4}\/\/[^\n]*\n {4}await heardOrDescribed\(sr, open,/);
-  // #2085's fallback is for a miss in which macOS 26's VoiceOver said nothing but hints: any other phrase fails as it is.
-  const selectSpec = readFileSync(join(dir, "select.sr.spec.ts"), "utf8");
-  for (const spec of [menuSpec, selectSpec]) {
-    assert.match(spec, /finding: "ourostack\/ouro-ui#2085",\n {4,6}contradicts: \(phrase\) => withoutHints\(phrase\) !== "",/);
-    assert.doesNotMatch(spec, /from: "container"|olderMacOS: true/);
-  }
+  assert.match(menuSpec, /\} else \{\n {4}await heard\(sr, open,/);
   // A field Form focuses after a submit needs no fallback: Form's alert says the error for every reader (#1720).
   const textField = readFileSync(join(dir, "text-field.sr.spec.ts"), "utf8");
   assert.match(textField, /heard\(sr, submit, \(phrase\) => inOneSentence\(phrase, \/\\bcouldn't save\\b\/i/);
@@ -334,7 +328,6 @@ test("the describe fallback is the Checkbox and Checklist toggles' (#118), the D
   assert.match(guide, /ourostack\/ouro-ui#118/);
   assert.match(guide, /ourostack\/ouro-ui#119/);
   assert.match(guide, /ourostack\/ouro-ui#1720/);
-  assert.match(guide, /ourostack\/ouro-ui#2085/);
 });
 
 test("the opened dialog, described, must name it as a web dialog in one sentence (#119)", () => {
@@ -387,4 +380,27 @@ test("a timeline with no MARK lists every phrase it was given, and a miss with o
   const verdict = speechVerdict([], editTrigger, '"Edit", button', { now: 1_001, deadline: 1_000, ended: null });
   assert.deepEqual(saidInMiss(withTimeline(verdict.fail, timeline)), []);
   assert.equal(missedPhrase(withTimeline(verdict.fail, timeline)), true);
+});
+
+test("a missed step falls back to describing the focus only when VoiceOver said something, and nothing but its hints (#2085)", () => {
+  const miss = (heard) => `[sr] no utterance matched "Dark", selected or checked, after ArrowRight; heard: ${heard} timeline: MARK at -1186 ms`;
+  // Main's run 44579536643: only the hint of the radio button focus moved to.
+  assert.deepEqual(hintOnlyMiss(miss('"You are currently on a selected radio button, 2 of 3."')), ["You are currently on a selected radio button, 2 of 3."]);
+  assert.deepEqual(hintOnlyMiss(miss('"You are currently on a menu item. To choose this menu item, press Control-Option-Space." | "To exit this web area, press Control-Option-Shift-Up Arrow."')).length, 2);
+  // Silence, a phrase that names something, and any other failure fail as they are.
+  assert.equal(hintOnlyMiss(miss("nothing")), null);
+  assert.equal(hintOnlyMiss(miss('"Light radio button, 1 of 3"')), null);
+  assert.equal(hintOnlyMiss(miss('"You are currently on a radio button." | "Light radio button"')), null);
+  assert.equal(hintOnlyMiss("[sr] infrastructure: VoiceOver's speech could not be read"), null);
+});
+
+test("every VoiceOver step's heard falls back on a hint-only miss, with the step's own matcher, unless SR_STRICT=1, and logs it for the lane to count", () => {
+  const helpers = readFileSync(join(import.meta.dirname, "../registry/ouro/e2e/screen-reader/screen-reader.ts"), "utf8");
+  const heard = helpers.slice(helpers.indexOf("export async function heard("), helpers.indexOf("export async function heardOrDescribed("));
+  assert.match(heard, /process\.env\["SR_STRICT"\] !== "1" \? hintOnlyMiss\(error\.message\) : null/);
+  assert.match(heard, /describesFocus\(sr, matches, /);
+  // A describe that fails the matcher rethrows the step's own miss.
+  assert.match(heard, /\.catch\(\(\) => \{\n\s+throw error;/);
+  assert.match(heard, /console\.log\(`\$\{HINT_ONLY_PREFIX\} /);
+  assert.ok(HINT_ONLY_PREFIX.startsWith("[sr] finding:"));
 });

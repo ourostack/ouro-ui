@@ -24,6 +24,7 @@ import { flushSync } from "react-dom";
 import { Avatar, AvatarGroup, type AvatarMember } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { groupChatWith } from "@/registry/ouro/components/ouro/avatar/avatar-styles";
 import type { MenuAnchor, MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
+import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { UnreadDot } from "@/registry/ouro/components/ouro/unread-dot/unread-dot";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -202,10 +203,18 @@ export interface ConversationListOwnProps {
    * Set it when the list sits in a panel much shorter than the window; leave it out and the window's height is used, which is an upper bound.
    */
   firstViewHeight?: number | undefined;
+  /**
+   * How tall a row is, in pixels, before it is measured: the first render mounts as many rows as fill the view at this height, and the space of rows not drawn is counted with it.
+   * Set it when your rows are shorter than the defaults, so the first view mounts no more rows than it shows; rows taller than it are measured and shift the rows below.
+   * @default The row height of the `density`
+   */
+  estimatedRowHeight?: number | undefined;
   /** What screen readers hear for an unread row's dot, and a closed section's, for other languages. @default "Unread" */
   unreadLabel?: string | undefined;
   /** The words before a row's `draft`, for other languages. @default "Draft:" */
   draftLabel?: string | undefined;
+  /** What screen readers hear before a row's name on its more button, for other languages. @default "More options for" */
+  moreLabel?: string | undefined;
   /**
    * What screen readers hear after a group chat's title, from its `members`' names, for other languages.
    * @default "group chat with" the first two names, then the rest's count ("and 2 others")
@@ -238,15 +247,15 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
 // full touch target on a coarse pointer. The focus outline sits inside the row, so a list
 // in a scrolling pane never clips it.
 const controlClass =
-  "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-ouro-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 " +
+  "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 " +
   "text-start text-foreground select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-11 pointer-fine:hover:bg-muted active:bg-muted";
+  "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-11 pointer-fine:group-hover/row:bg-[color:var(--ouro-row-hover,color-mix(in_oklab,var(--muted)_60%,var(--background)))] pointer-fine:group-hover/row:shadow-(--ouro-row-hover-shadow,0_0_0_1px_var(--border)) forced-colors:pointer-fine:group-hover/row:border-[Highlight] active:bg-[color:var(--ouro-row-pressed,var(--muted))] pointer-fine:hover:active:bg-[color:var(--ouro-row-pressed,var(--muted))]";
 // A row opens and closes at once (`press` eases no colour): the open row is drawn in its accent on the first frame after
 // it becomes current, and the row that closes drops it on that frame.
-const rowClass = "gap-3 aria-[current=true]:bg-accent aria-[current=true]:text-accent-foreground forced-colors:aria-[current=true]:border-2";
+const rowClass = "gap-3 aria-[current=true]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] aria-[current=true]:text-accent-foreground forced-colors:aria-[current=true]:border-2";
 // The open row keeps its highlight under the pointer and while pressed: the plain rows' muted
 // hover would make it look closed. These replace controlClass's hover and press colours.
-const currentClass = "pointer-fine:hover:bg-accent active:bg-accent";
+const currentClass = "pointer-fine:group-hover/row:bg-[color:var(--ouro-row-selected-hover,color-mix(in_oklab,var(--accent)_86%,var(--foreground)))] active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))] pointer-fine:hover:active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))]";
 const headerClass = "gap-1.5 py-1.5 text-sm";
 const listClass = "m-0 flex list-none flex-col gap-0.5 p-0";
 
@@ -273,8 +282,8 @@ const firstViewNow = () => firstView;
 const windowHeightNow = () => Math.max(1, Math.min(firstView, Math.ceil(window.visualViewport?.height ?? /* istanbul ignore next @preserve -- every browser tests run in has a visual viewport */ innerHeight)));
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
-// The shortest a row is assumed to be on the first frame, in pixels: rows shorter than the estimates still fill the view, so the window never grows once measured.
-const shortest = 40;
+// A header's height on the first frame, at most: headers are shorter than a row, and guessing them as tall would leave the view's bottom unfilled.
+const headerHeight = 32;
 const noHeights: ReadonlyMap<string, number> = new Map();
 // The default for sections: one array, so the rows are put in order again only when they or their sections change.
 const noSections: readonly ConversationListSection[] = [];
@@ -292,7 +301,7 @@ const kindOf = (key: string) => (key.startsWith("section:") ? "section" : "row")
 // Where each control's slot starts in a windowed list, and the list's height. A slot not measured yet takes the average
 // height of the measured slots of its kind, leaving out the first slot, which has no gap before it; before any is
 // measured, it takes the estimate.
-function place(keys: readonly string[], heights: ReadonlyMap<string, number>, estimate: number) {
+function place(keys: readonly string[], heights: ReadonlyMap<string, number>, estimate: number, headerEstimate = estimate) {
   const known = { row: { sum: 0, count: 0 }, section: { sum: 0, count: 0 } };
   keys.forEach((key, index) => {
     const height = heights.get(key);
@@ -305,7 +314,7 @@ function place(keys: readonly string[], heights: ReadonlyMap<string, number>, es
   for (const key of keys) {
     offsets.push(total);
     const { sum, count } = known[kindOf(key)];
-    total += heights.get(key) ?? (count ? sum / count : estimate);
+    total += heights.get(key) ?? (count ? sum / count : kindOf(key) === "section" ? headerEstimate : estimate);
   }
   return { offsets, total };
 }
@@ -349,11 +358,13 @@ type RowProps = {
   onPick: (id: string, event: MouseEvent<HTMLButtonElement>) => void;
   onKey: (event: KeyboardEvent<HTMLButtonElement>, key: string) => void;
   onActive: (key: string) => void;
+  moreLabel: string;
+  onMore: (key: string, anchor: HTMLElement) => void;
 };
 
 // A row renders again only when its own conversation, place or state changes, so opening another conversation renders
 // the row that closes and the row that opens, not the list.
-const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLabel, membersText, selected, tabStop, windowed, top, slotClass, position, count, register, onPick, onKey, onActive }: RowProps): JSX.Element {
+const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLabel, membersText, selected, tabStop, windowed, top, slotClass, position, count, register, onPick, onKey, onActive, moreLabel, onMore }: RowProps): JSX.Element {
   const drafted = shown(item.draft);
   const withPreview = density === "comfortable" && (drafted || shown(item.preview));
   // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
@@ -375,7 +386,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
   return (
     <li
       {...(windowed && { style: { top }, "aria-posinset": position, "aria-setsize": count })}
-      className={cn("m-0 p-0", windowed && slotClass)}
+      className={cn("group/row relative m-0 p-0", windowed && slotClass)}
     >
       <button
         ref={(node) => register(key, node)}
@@ -434,12 +445,30 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
               )}
               {item.badges}
             </span>
-            {shown(item.time) && (
-              <span data-ouro-conversation-time="" className={cn("shrink-0 text-xs tabular-nums", quiet)}>
-                {item.time}
+            {(shown(item.time) || (endsTitle && (hasMark || item.unread)) || hasMenu(item)) && (
+              // The time and what ends the title fade as one under the more button, which takes their place on a fine pointer
+              // and sits beside them on a coarse one. The slot is reserved either way, so the row never changes size.
+              <span
+                className={cn(
+                  "flex shrink-0 items-center gap-2",
+                  hasMenu(item) && "pointer-fine:min-w-7 pointer-fine:justify-end pointer-coarse:me-9 [&>:not([data-ouro-conversation-time])]:order-first",
+                )}
+              >
+                {shown(item.time) && (
+                  <span
+                    data-ouro-conversation-time=""
+                    className={cn(
+                      "shrink-0 text-xs tabular-nums transition-opacity duration-(--ouro-duration-fast) ease-[ease]",
+                      hasMenu(item) && "pointer-fine:group-hover/row:opacity-0 pointer-fine:group-focus-within/row:opacity-0",
+                      quiet,
+                    )}
+                  >
+                    {item.time}
+                  </span>
+                )}
+                {endsTitle && end}
               </span>
             )}
-            {endsTitle && end}
           </span>
           {item.subtitle && (
             <span className="flex min-w-0 items-center gap-2">
@@ -476,6 +505,33 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
           )}
         </span>
       </button>
+      {hasMenu(item) && (
+        <button
+          type="button"
+          tabIndex={-1}
+          data-ouro-control="conversation-list"
+          data-ouro-part="more"
+          onClick={(event) => onMore(key, event.currentTarget)}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft" || event.key === "Escape") {
+              event.preventDefault();
+              (event.currentTarget.previousElementSibling as HTMLElement).focus();
+            }
+          }}
+          className={cn(
+            "press absolute end-3 top-2 box-border flex h-5 w-7 cursor-pointer items-center justify-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 forced-colors:border forced-colors:border-solid bg-transparent p-0 text-base leading-none text-foreground",
+            "touch-manipulation [-webkit-tap-highlight-color:transparent] outline-ring outline-offset-0 focus-visible:outline-2 focus-visible:outline-solid",
+            "transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-focus-within/row:opacity-100",
+            "pointer-fine:hover:bg-[color:var(--ouro-row-pressed,var(--muted))] active:bg-[color:var(--ouro-row-pressed,var(--muted))]",
+          )}
+        >
+          <TouchTarget />
+          <span aria-hidden="true">…</span>
+          <span className="sr-only">
+            {moreLabel} {item.name ?? item.title}
+          </span>
+        </button>
+      )}
     </li>
   );
 });
@@ -506,7 +562,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
  * @claim "A list of conversations to choose" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is a named list of buttons, one per conversation, in order)
  * @claim "A list of conversations to choose" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows unread conversations with a bold title, a dot and a spoken label)
  * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > marks the open conversation current and highlights it)
- * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > keeps the open conversation highlighted under the pointer)
+ * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > keeps the open conversation distinct under the pointer)
  * @claim "is a single stop for the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is one Tab stop, which lands on the open conversation)
  * @claim "is a single stop for the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > moves focus with the arrow keys, Home and End)
  * @claim "A list of more than 20" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > keeps a list of 20 conversations whole, as a short list always was)
@@ -529,8 +585,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     empty = "Nothing here yet",
     density: densityProp = "comfortable",
     firstViewHeight,
+    estimatedRowHeight,
     unreadLabel = "Unread",
     draftLabel = "Draft:",
+    moreLabel = "More options for",
     membersLabel = groupChatWith,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -542,6 +600,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     ...rest
   } = props;
   const density: ConversationListDensity = (densities as readonly string[]).includes(densityProp) ? (densityProp as ConversationListDensity) : "comfortable";
+  // Stryker disable next-line ConditionalExpression: an absent estimate fails the >= 1 test too; the check only narrows the type
+  const rowEstimate = estimatedRowHeight !== undefined && estimatedRowHeight >= 1 ? estimatedRowHeight : estimates[density];
   const listRef = useRef<HTMLUListElement>(null);
   const baseId = useId();
   // The control that has focus, while focus is in the list: it keeps the list's one Tab stop.
@@ -635,9 +695,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const tabStop = keys.includes(active) ? active : keys.includes(current) ? current : keys[0];
 
   const heights = measured?.density === density ? measured.heights : noHeights;
-  const { offsets, total } = useMemo(() => place(keys, heights, estimates[density]), [keys, heights, density]);
+  const { offsets, total } = useMemo(() => place(keys, heights, rowEstimate), [keys, heights, rowEstimate]);
   // The first frame counts its rows from the estimates alone: counting from measured heights would grow the window after the first measurement.
-  const guessed = place(keys, noHeights, Math.min(estimates[density], shortest)).offsets;
+  const guessed = place(keys, noHeights, rowEstimate, Math.min(rowEstimate, headerHeight)).offsets;
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
   const firstRows = guessed.filter((offset) => offset < firstHeight).length;
   const [start, end] = range ?? [0, firstRows];
@@ -725,7 +785,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     const { top } = view();
     // Stryker disable next-line EqualityOperator: a slot that ends exactly at the view's top keeps the next one where it is too.
     const anchor = order.findIndex((key, index) => had.has(key) && (at[index + 1] ?? height) > top);
-    scroller.current!.scrollTop += (place(order, next, estimates[density]).offsets[anchor] ?? 0) - (at[anchor] ?? 0);
+    scroller.current!.scrollTop += (place(order, next, rowEstimate).offsets[anchor] ?? 0) - (at[anchor] ?? 0);
     setMeasured({ density, heights: next });
     return true;
   };
@@ -973,16 +1033,25 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       event.preventDefault();
       return openMenu(item, key, frozen(event.currentTarget));
     }
+    const row = itemOf(key);
+    if (event.key === "ArrowRight" && row !== undefined && hasMenu(row)) {
+      const more = event.currentTarget.nextElementSibling as HTMLElement | null;
+      event.preventDefault();
+      // Stryker disable next-line OptionalChaining: a row with a menu always renders the more button right after it.
+      more?.focus();
+      return;
+    }
     const to = moves[event.key];
     if (!to) return;
     event.preventDefault();
     focusKey(keys[to(keys.indexOf(key), keys.length - 1)]!);
   };
   // The rows are memoised, so they call the latest handlers through these stable ones.
+  const more = (key: string, anchor: HTMLElement) => openMenu(itemOf(key)!, key, frozen(anchor));
   // Stryker disable next-line ObjectLiteral: the layout effect below sets the handlers before any row can call them.
-  const handlers = useRef({ onSelect, move });
+  const handlers = useRef({ onSelect, move, more });
   useLayoutEffect(() => {
-    handlers.current = { onSelect, move };
+    handlers.current = { onSelect, move, more };
   });
   const onPick = useCallback((id: string, event: MouseEvent<HTMLButtonElement>) => {
     const { onSelect: select } = handlers.current;
@@ -993,6 +1062,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   []);
   // Stryker disable next-line ArrayDeclaration: the callback reads only a ref, so any constant list keeps it stable.
   const onKey = useCallback((event: KeyboardEvent<HTMLButtonElement>, key: string) => handlers.current.move(event, key), []);
+
+  // Stryker disable next-line ArrayDeclaration: the callback reads only a ref, so any constant list keeps it stable.
+  const onMore = useCallback((key: string, anchor: HTMLElement) => handlers.current.more(key, anchor), []);
 
   const rowFor = (item: ConversationListItem, position: number, count: number) => {
     const key = `row:${item.id}`;
@@ -1016,6 +1088,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
         onPick={onPick}
         onKey={onKey}
         onActive={setActive}
+        moreLabel={moreLabel}
+        onMore={onMore}
       />
     );
   };

@@ -347,8 +347,8 @@
         }
       ],
       "issue": 2289,
-      "status": "open",
-      "change": null
+      "status": "in progress",
+      "change": "Ouro check's report now names the floor it proves, and ends with a \"Needs a person\" list of what it can't see."
     },
     {
       "id": "only-people-prove-good",
@@ -388,8 +388,8 @@
         }
       ],
       "issue": 2290,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "Ouro check's --handoff writes the session kit (#2510), and createUseCounts counts real use: counts only, off by default, no collector, no content, no identifier."
     },
     {
       "id": "ouro-checks-what-models-miss",
@@ -429,8 +429,8 @@
         }
       ],
       "issue": 2291,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "The screen check's guide and llms.txt lead with every state handled and checked, worded as the floor Ouro check proves, and name Ouro check with its first-run run on installed apps."
     },
     {
       "id": "written-to-persuade-agents",
@@ -536,7 +536,7 @@
         }
       ],
       "issue": 2294,
-      "status": "open",
+      "status": "in progress",
       "change": null
     },
     {
@@ -659,8 +659,8 @@
         }
       ],
       "issue": 2297,
-      "status": "open",
-      "change": null
+      "status": "in progress",
+      "change": "The Windows and Android pages now say what to use on desktop and phones until the core set is native there (#2427); each kit still builds only its own set."
     },
     {
       "id": "agent-native-rival",
@@ -822,7 +822,7 @@
         }
       ],
       "issue": 2301,
-      "status": "open",
+      "status": "in progress",
       "change": null
     },
     {
@@ -862,7 +862,7 @@
         }
       ],
       "issue": 2302,
-      "status": "open",
+      "status": "in progress",
       "change": null
     },
     {
@@ -896,8 +896,8 @@
         }
       ],
       "issue": 2303,
-      "status": "in progress",
-      "change": null
+      "status": "changed",
+      "change": "All four kits (web, Apple, Windows, Android) run the same 13 shared card-behaviour cases from core, and a table lists each case's result per kit from each kit's latest main run: 13 of 13 pass everywhere (#2464, #2471)."
     },
     {
       "id": "native-challenge-manifesto",
@@ -1358,8 +1358,8 @@
         }
       ],
       "issue": 2315,
-      "status": "open",
-      "change": null
+      "status": "in progress",
+      "change": "The accessibility half is now checkable by anyone: a per-component evidence page links each claim to its axe, conformance and screen-reader checks and the CI runs behind them, and says plainly that the checks are the project's own. A third-party production app, an outside benchmark rerun and an outside accessibility audit are still missing."
     },
     {
       "id": "young-one-maintainer",
@@ -1430,8 +1430,8 @@
         }
       ],
       "issue": 2317,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "An app can declare components of its own in its composed-UI catalog (ourostack/ouro-ui-core#109, released in core 1.1.0), and ComposedSurface, A2UISurface and OuroMcpApp draw them with the renderers the app passes in `components`."
     },
     {
       "id": "agent-first-shortchanges-the-person",
@@ -1471,6 +1471,30 @@
         }
       ],
       "issue": 2318,
+      "status": "in progress",
+      "change": null
+    },
+    {
+      "id": "unknown-name-never-opened",
+      "finding": "A model that was shown Ouro in a list of twenty by name and link never opened it, because the name was unfamiliar; once it read the README it called Ouro closer to what it wanted than it had assumed.",
+      "signal": "pain",
+      "summary": "In the rerun of the listed arm at a large company, Claude Sonnet 5.5 researched three jobs and fetched two candidates for each, chosen from what it already knew (React Aria, Radix, A2UI, MCP Apps, Tamagui, Agent-native). It never opened Ouro in any of them, and said so: 'I did not verify the others, including newer ones such as Ouro UI'. The listing gave only a name and a link, as it did for every candidate, and no fetch failed. Asked to open Ouro at the end, it read the first 10,000 characters and said Ouro was 'nearly the design I described'. Its objections were one maintainer, uneven platform coverage, self-reported accessibility, copy-in forks and a self-run benchmark, which are findings already open. What Ouro can change is how a model meets the name before it chooses: what a search for the problem returns and what a repository's first lines say.",
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "quotes": [
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "I did not verify the others, including newer ones such as Ouro UI, Base UI, MCP Apps and A2UI, so my view of them is from prior knowledge and may be stale.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-20-interviews-subset--listed/transcripts/claude-sonnet-5-5--listed--large-company.json"
+        },
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "I never opened it during those three jobs",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-20-interviews-subset--listed/transcripts/claude-sonnet-5-5--listed--large-company.json"
+        }
+      ],
+      "issue": 2459,
       "status": "open",
       "change": null
     }

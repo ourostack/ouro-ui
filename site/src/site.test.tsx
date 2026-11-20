@@ -18,7 +18,7 @@ import { docsPages, guidePages, platformPages, publishedMarkdown, repositoryLink
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
-import { headTags, SITE } from "./head";
+import { headTags, homeStructuredData, SITE } from "./head";
 import { componentPrompt, GUIDE_TASKS, PROMPT_SITE, withInstall } from "./docs/agent-prompt";
 import { headerPath } from "./components/docs-header";
 import { componentGroups, docsSections, filterHint, rankedComponents } from "./components/docs-sections";
@@ -117,6 +117,7 @@ describe("home page", () => {
 
   it("titles the home page with Ouro UI's name and the six-word story, which a search result shows", () => {
     expect(routes.find((route) => route.path === "/")?.title).toBe(`Ouro UI: ${VOYAGE_HERO.title.join(" ")}`);
+    expect(VOYAGE_HERO.title.join(" ").split(" ")).toHaveLength(6);
   });
 
   it("counts no components anywhere a visitor reads, and no longer says under construction", async () => {
@@ -195,10 +196,21 @@ describe("home page", () => {
       expect(opening.indexOf(link)).toBeLessThan(opening.indexOf("## Ouro HX"));
     }
     expect(llms.startsWith("# Ouro HX\n")).toBe(true);
+    for (const term of ["design system's tokens and theme", "`ouro-theme`", "A2UI messages", "MCP Apps view"]) {
+      expect(llms).toContain(term);
+    }
     for (const text of [readme, llms]) {
       expect(text).not.toMatch(/under construction/i);
       expect(text).toContain("Ouro UI");
     }
+  });
+
+  it("says in the README's at-a-glance list what Ouro UI is, in the words a search for it uses, without calling it a shadcn registry", () => {
+    const bullet = readme.split("\n").find((line) => line.startsWith("- **What it is:**"))!;
+    for (const term of ["React", "Base UI", "Tailwind CSS", "SwiftUI", "WinUI", "Jetpack Compose", "A2UI", "MCP Apps", "shadcn CLI"]) {
+      expect(bullet).toContain(term);
+    }
+    expect(bullet).not.toMatch(/shadcn registry/i);
   });
 
   it("uses the approved rich HX artwork decoratively beside its accessible name", async () => {
@@ -220,8 +232,8 @@ describe("home page", () => {
     expect(image!.getBoundingClientRect().height).toBe(32);
   });
 
-  it("describes itself with the hero's words, and README and llms.txt keep their shared first lines", () => {
-    expect(routes[0]!.description.startsWith(VOYAGE_HERO.title.join(" "))).toBe(true);
+  it("keeps README and llms.txt's shared first lines, and describes the home page in a search result's length", () => {
+    expect(routes[0]!.description.length).toBeLessThanOrEqual(160);
     expect(readme).toContain(`${HERO_TITLE} ${HERO_SUBLINE}`);
     expect(llms).toContain(`${HERO_TITLE} ${HERO_SUBLINE}`);
     for (const text of [readme, llms, routes[0]!.description]) {
@@ -1101,6 +1113,23 @@ describe("the header's current section on a docs page", () => {
 });
 
 describe("head tags", () => {
+  it("give the home page, and only the home page, schema.org data naming the repository and licence", () => {
+    const home = routes.find((route) => route.path === "/")!;
+    const tag = headTags(home, true).find((t) => t.startsWith('<script type="application/ld+json">'))!;
+    const data = JSON.parse(tag.slice(tag.indexOf(">") + 1, -"</script>".length));
+    expect(data["@type"]).toBe("SoftwareSourceCode");
+    expect(data.codeRepository).toBe("https://github.com/ourostack/ouro-ui");
+    expect(data.keywords).toContain("shadcn registry");
+    expect(homeStructuredData({ path: "/", title: "t", description: "a </script> b" })).not.toContain("</script>");
+    expect(headTags(routes.find((route) => route.path === "/ax/")!, true).some((t) => t.includes("ld+json"))).toBe(false);
+  });
+  it("give the home page's description the words a search for it would use, without calling it a shadcn registry", () => {
+    const { description } = routes.find((route) => route.path === "/")!;
+    for (const term of ["React", "Base UI", "Tailwind", "SwiftUI", "A2UI", "MCP"]) {
+      expect(description).toContain(term);
+    }
+    expect(description).not.toMatch(/shadcn registry/i);
+  });
   it("end a card's title with a full stop before its scene in the alt text, when the title has none", () => {
     const tags = headTags({ path: "/ax/", title: "Ouro AX", description: "A morning with an agent" }, true).join("\n");
     expect(tags).toContain('<meta property="og:image:alt" content="Ouro AX: A morning with an agent. Inside a sleek high-speed train in low golden morning sun, ');
@@ -1248,7 +1277,7 @@ describe("docs running text", () => {
 
 describe("platforms", () => {
   it("has a page per file in docs/platforms at docs/platforms/<name>, the index at docs/platforms", () => {
-    expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/windows", "platforms/parity", "platforms/your-platform", "platforms/contributing"]);
+    expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/proof", "platforms/windows", "platforms/parity", "platforms/your-platform", "platforms/contributing"]);
     for (const doc of platformPages) {
       expect(doc.group).toBe("Platforms");
       expect(routes.find((route) => route.path === `/docs/${doc.name}/`)?.title).toBe(`${doc.title} · Ouro UI`);
@@ -1257,7 +1286,7 @@ describe("platforms", () => {
 
   it("lists the platforms last in the docs sidebar, a platform only ever after for", () => {
     const platforms = docsSections().find((section) => section.label === "Platforms")!;
-    expect(platforms.items.map((item) => ("label" in item ? item.label : ""))).toEqual(["Overview", "For Apple", "For Android", "For Windows", "Parity across platforms", "For your platform", "A guide for platform builders"]);
+    expect(platforms.items.map((item) => ("label" in item ? item.label : ""))).toEqual(["Overview", "For Apple", "For Android", "What is proven on a device", "For Windows", "Parity across platforms", "For your platform", "A guide for platform builders"]);
     expect(platforms.items.map((item) => ("href" in item ? item.href : ""))).toEqual(platformPages.map((doc) => href(`/docs/${doc.name}/`)));
   });
 

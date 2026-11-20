@@ -1,17 +1,18 @@
 name: Release auto
 # Starts the next release on its own, so a merge to main reaches consumers without anyone dispatching
-# a workflow. It runs when a push to main finishes CI or the screen-reader lane, and when a release
-# ends. When changes/ lists a change the newest release's notes lack, no release is running, and
-# both CI and the screen-reader lane have finished on that commit with the lane passed, it
-# dispatches Release (release.yml) for the next patch version on that exact commit, so the suite
+# a workflow. It runs when a push to main finishes CI, and when a release ends. When changes/ lists a
+# change the newest release's notes lack, no release is running, and CI has finished on that commit,
+# it dispatches Release (release.yml) for the next patch version on that exact commit, so the suite
 # that tested the commit on main is the proof and nothing runs twice. Release judges CI's required
-# checks itself. If several commits land while a release runs, the release that follows takes the
+# checks itself. The screen-reader lane is off the tag's path (Ari, 2026-11-19): it runs on the same
+# commit of main right after, and a release whose lane fails is followed by a released revert
+# (screen-reader-revert.yml). If several commits land while a release runs, the release that follows takes the
 # commit whose runs finished last, which is the newest to finish. A failed release starts nothing by
 # itself: the next push's green runs do, once the cause is fixed. It adds no gate and relaxes none.
 # A commit that only points the docs at a release (docs-pin.yml, scripts/pin-only.mjs) starts nothing.
 on:
   workflow_run:
-    workflows: [CI, Screen reader]
+    workflows: [CI]
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -87,9 +88,6 @@ jobs:
             exit 0
           fi
           echo "$sha is not only a docs pin, so it releases: $why"
-          # Both of main's runs for the commit must have ended, the lane passed; the later of the two finishing starts this.
-          lane=$(gh run list --workflow screen-reader.yml --commit "$sha" --event push --json conclusion --jq '[.[] | select(.conclusion == "success")] | length')
-          [ "$lane" -gt 0 ] || { wait_for "The screen-reader lane has not passed on $sha yet; its end starts this again."; exit 0; }
           ci=$(gh run list --workflow ci.yml --commit "$sha" --event push --json status,conclusion --jq '[.[] | select(.status == "completed" and .conclusion != "cancelled")] | length')
           [ "$ci" -gt 0 ] || { wait_for "CI has not finished on $sha yet; its end starts this again."; exit 0; }
           # The workflow files Release pushes with the release commit must already be main's tip's: GitHub refuses a push by

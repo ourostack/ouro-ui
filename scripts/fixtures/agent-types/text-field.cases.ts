@@ -2,6 +2,8 @@ import { type AgentCase, notAssignable, hint } from "./shared.ts";
 
 const textFieldTypes = `"text" | "email" | "password" | "tel" | "url" | "search" | "date" | "time" | (string & { 'number is <NumberField> (digit codes: inputMode="numeric"); a calendar or datetime-local is <DatePicker>; file is <FileField>': never; }) | undefined`;
 
+const textFieldSizes = `"sm" | "lg" | "md" | (string & { 'default is "md"; "sm" matches Button sm; "lg" is 20px text. For a width, use className="w-40"': never; }) | undefined`;
+
 /** The text-field snippets in text-field.snippets.tsx that make mistakes, in file order. */
 export const agentCases: AgentCase[] = [
   {
@@ -22,7 +24,14 @@ export const agentCases: AgentCase[] = [
     dev: '<TextField label="Email" hideLabel> to hide a label you still need',
     names: ["tsc", "dev"],
   },
+  {
+    id: "s51",
+    habit: "a size named small",
+    tsc: [notAssignable('"small"', textFieldSizes)],
+    dev: '<TextField size="md">',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid text-field snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["ok11"];
+export const validSnippets: string[] = ["ok11", "textFieldSmall01"];

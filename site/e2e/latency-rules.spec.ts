@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { EVENT_TIMING_STEP, LATENCY, expectPressesWithinBudget, forgetSteadySlowRunner, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, slowRunnerMessage, splitPaint, splitPress, steadySlow, summarise, describeFrame, thinMargin } from "./latency";
+import { EVENT_TIMING_STEP, LATENCY, expectPressesWithinBudget, forgetSteadySlowRunner, loaded, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, slowRunnerMessage, splitPaint, splitPress, steadySlow, summarise, describeFrame, thinMargin } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -142,6 +142,20 @@ test("a probe past the cap calls for a re-measure, read from the probe alone", (
   expect(pastCap([cap + 8, cap + 8, cap])).toBe(true);
 });
 
+test("a probe round past the cap during the presses calls for a re-measure, though the rounds either side were quiet", () => {
+  const quiet = LATENCY.probeQuiet;
+  const busy = LATENCY.probeQuiet * LATENCY.maxFactor + 8;
+  // The feathers run in ourostack/ouro-ui#2114: quiet before and after, the load within the presses.
+  expect(pastCap([quiet, quiet, quiet, busy, busy, busy, quiet, quiet, quiet])).toBe(false);
+  expect(loaded([[quiet, quiet, quiet], [busy, busy, busy], [quiet, quiet, quiet]])).toBe(true);
+  expect(loaded([[quiet, quiet, quiet], [quiet, busy, quiet], [quiet, quiet, quiet]])).toBe(false);
+  expect(loaded([[busy, busy, busy], [], [busy, busy, busy]])).toBe(true);
+  expect(loaded([[quiet, quiet, quiet], [], [quiet, quiet, quiet]])).toBe(false);
+  // The lights run in ourostack/ouro-ui#716: a runner near the cap, a round's median past it, no round past it whole, and the
+  // median over all its rounds within it.
+  expect(loaded([[72, 96, 64], [80, 88, 72], [64, 88, 64]])).toBe(false);
+});
+
 test("a probe that reads past the cap every time, within one Event Timing step, is steady; spiky or within the cap is not", () => {
   const slow = 80;
   // The reads from ourostack/ouro-ui#2114: 80, then 80; 80, 84, 80; 80, 88, 80. Steady, past the cap every time.
@@ -179,7 +193,10 @@ test.describe("a runner the probe reads past the cap", () => {
   });
 
   test("re-measures a fast control too, carrying its presses on: a spiky runner fails it as too loaded to judge, and a steady one judges it at the cap, failing only a miss there", async ({ page }) => {
-    // The default time limit for one measurement: each re-measure extends it by what it needs.
+    // Four measurements where a control runs one (overloaded twice, then later and missed), each with its probe rounds:
+    // a loaded runner ran the last out of a limit sized for two (ourostack/ouro-ui#2529).
+    test.slow();
+    // The time limit before any re-measure: each re-measure extends it by what it needs.
     const limit = test.info().timeout;
     await page.setContent(`<button id="b">Press</button><output id="o"></output>`);
     await page.evaluate(() => document.getElementById("b")!.addEventListener("click", () => (document.getElementById("o")!.textContent = String(Math.random()))));

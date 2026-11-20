@@ -27,6 +27,17 @@ export const WAIVERS: Waiver[] = [
     reason: "the hero's duel sits on the glow, so its quiet text, which the off switch's outline reads, takes a step toward the foreground",
     source: "site/src/apple/feel-reins.css: .feel-duel sets --muted-foreground to --apple-quiet-on-glow (apple.css)",
   },
+  {
+    component: "switch",
+    // The root: it carries no part name.
+    part: "",
+    variant: "",
+    state: "",
+    page: "/",
+    property: "gap",
+    reason: "a switch with a hidden label drops the gap that separates the label, so the stage's lights switch lines up with its row's end",
+    source: "site/src/voyage/stage/stage.tsx: <Switch label={STAGE_COPY.lights} hideLabel />",
+  },
 ];
 
 export const matched = new Set<number>();
@@ -70,6 +81,15 @@ function covers(w: Waiver, parts: string[], pages: string[]): boolean {
 export function waivedPages(key: string, pages: string[]): boolean {
   const parts = key.replace(/^grouped /, "").split("|");
   return WAIVERS.some((w) => covers(w, parts, [...new Set(pages)]));
+}
+
+/**
+ * A look's signatures, the one that stands for the look first. A page a waiver is for is never the one that stands
+ * for it, however many samples it has, so the waived page is the odd one out and its waiver can match; among the
+ * rest, the most samples win.
+ */
+export function majorityFirst(key: string, bySig: Map<string, string[]>): [string, string[]][] {
+  return [...bySig].sort((a, b) => Number(waivedPages(key, a[1])) - Number(waivedPages(key, b[1])) || b[1].length - a[1].length);
 }
 
 // Each sweep writes the waivers it used beside the timings CI uploads; scripts/waivers.mjs fails on one no run used.

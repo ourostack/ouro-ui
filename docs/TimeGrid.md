@@ -32,7 +32,7 @@ Type: `TimeGridProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `allDayLabel` | `string` | `"All day"` | The all-day row's name, shown beside it and heard in each all-day event's name. Translate it with your app. |
-| `backgroundEvents` | `readonly TimeGridEvent[]` |  | Events that are not the person's own, such as a shared calendar, a colleague's or a room's. Each day draws them in a lane of their own at its start, beside the person's events: thin bars that name themselves in a tooltip in a week, and labelled ones in a day. Each is a button that `onEventSelect` gets, reached with the arrow keys like the others. Timed events only: those that are all day, or 24 hours or longer, are left out. |
+| `backgroundEvents` | `readonly TimeGridEvent[]` |  | Events that are not the person's own, such as a shared calendar, a colleague's or a room's. Each day draws them in a lane of their own at its start, beside the person's events: thin bars that name themselves in a tooltip in a week, and labelled ones in a day. Each is a button that `onEventSelect` gets, reached with the arrow keys like the others. Timed events only: those that are all day, or 24 hours or longer, are left out. The person's events make room for the lane only where a background event shares their time. |
 | `backgroundLabel` | `string` | `"Other calendars"` | What the background events are, heard after each one's title, time and day, and as the name of each day's lane: `"Shared calendar"`. Translate it with your app. |
 | `className` | `string` |  | Layout only: the grid's height (`h-full`, `h-[40rem]`), width and margins. Appearance classes warn in development. In a grid taller than a day, the hours grow so the day ends at its foot. |
 | `date` (required) | `string` |  | The day to show, as an ISO date (`"2026-03-12"`). `week` and `work-week` show the week it is in. Move it with your own Today, Previous and Next buttons. |
@@ -47,7 +47,7 @@ Type: `TimeGridProps`.
 | `onSlotSelect` | `((slot: TimeGridSlot) => void)` |  | Called when someone presses an empty part of a day, with the slot under the pointer, for a new event there. A mouse shows the slot before the press. Slots answer a pointer only, so give keyboards a New event button of your own as well. |
 | `ref` | `Ref<HTMLDivElement>` |  | The grid's root element. |
 | `renderDaySummary` | `((day: string) => ReactNode)` |  | Content of your own under each day's header, such as a count or a load bar. It gets the day as an ISO date. Screen readers read it, so give a bar words of its own. |
-| `selectedId` | `string \| null` |  | The selected event's id: it gets an outline and `aria-current`. |
+| `selectedId` | `string \| null` |  | The selected event's id: it gets a deeper fill of its own colour and `aria-current`. |
 | `slotMinutes` | `15 \| 30 \| 60` | `30` | How long a slot `onSlotSelect` gets is, in minutes: 15, 30 or 60. |
 | `stackLabel` | `((count: number) => string)` | `` (count) => `${count} events` `` | The words on a stack of a day's background events drawn as one: in a day too narrow to label each of them, overlapping background events show as one block with their count, which opens their list. Translate it with your app. |
 | `statusLabels` | `TimeGridStatusLabels` | { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" } | The words screen readers hear for each status, after the event's title. Translate them with your app. |

@@ -54,6 +54,16 @@ export const States: Story = {
   ),
 };
 
+/** The thin size: a 2px line, determinate or indeterminate, with its label hidden, as under a list header. */
+export const Thin: Story = {
+  render: () => (
+    <Surface>
+      <Progress label="Syncing messages" value={40} size="thin" hideLabel />
+      <Progress label="Checking for updates" value={null} size="thin" hideLabel />
+    </Surface>
+  ),
+};
+
 function Advancing() {
   const [value, setValue] = useState(0);
   useEffect(() => {

@@ -11,7 +11,7 @@ On the home page, choose a preset under "Repaint the whole ship", then press "Co
 The default look, Pearl, is what `ouro-theme` installs:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-theme#v1.3.323
+npx shadcn@latest add ourostack/ouro-ui/ouro-theme#v1.3.375
 ```
 
 ## Mix your own paint
@@ -44,6 +44,20 @@ The maker on the home page, under "Or mix your own paint", writes these lines fo
 The other variables cover the rest of the room: `--background` and `--foreground` for the page, `--card` and `--popover` for raised surfaces, `--muted` and `--muted-foreground` for quiet text, `--border` and `--input` for lines, `--destructive` for danger, `--chart-1` to `--chart-5` for data. Ouro HX also reads `--font-heading` for headings and the `--shadow-xs` to `--shadow-xl` scale for depth.
 
 Headings are set a little tighter at each larger size, which suits a sans-serif.[^tighter] A serif heading font has less room between its letters, so with one in `--font-heading`, set `--ouro-heading-tracking` in `:root` to the share of that tightening to keep: `0.5` for half, `0` for the font's own spacing. It defaults to `1`.[^tracking]
+
+### Hover, pressed and selected
+
+These variables set how a row looks hovered, pressed and selected. `ouro-base` defines them from shadcn's own `--foreground`, `--background` and `--accent`, so a theme without `ouro-theme` still has them. `ouro-theme` tunes them for the Ouro look.
+
+| Variable | Sets |
+| --- | --- |
+| `--ouro-row-hover`, `--ouro-row-pressed` | A row's fill while hovered and pressed |
+| `--ouro-row-selected`, `--ouro-row-selected-hover`, `--ouro-row-selected-pressed` | The selected row's fill at rest, hovered and pressed |
+| `--ouro-row-hover-shadow` | The hairline edge and lift of a hovered row |
+| `--ouro-row-radius` | A row's corner |
+| `--ouro-state-hover`, `--ouro-state-pressed` | How strongly a state layer tints |
+
+Set them in `:root` and `.dark` after the Ouro tokens.
 
 ### Dark mode
 

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/registry/ouro/lib/ouro/last-input";
 import { OTPField } from "@base-ui/react/otp-field";
 import { Fragment, useLayoutEffect, useRef, type JSX, type ReactNode, type Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";

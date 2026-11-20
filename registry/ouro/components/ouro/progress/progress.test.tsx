@@ -159,6 +159,29 @@ describe("Progress", () => {
     expect(getComputedStyle(track).backgroundColor).not.toBe(themeColor("--background"));
   });
 
+  it('draws a 2px bar with size="thin", determinate or not, and keeps its name and value', async () => {
+    const height = async (value: number | null, size?: ProgressProps["size"]) => {
+      const bar = await render(<Progress label="Syncing" value={value} size={size} />);
+      return { bar, h: bar.track.getBoundingClientRect().height };
+    };
+    expect((await height(40)).h).toBe(8);
+    const determinate = await height(40, "thin");
+    expect(determinate.h).toBe(2);
+    expect(determinate.bar.bar.getAttribute("aria-valuenow")).toBe("40");
+    expect(determinate.bar.bar.getAttribute("aria-labelledby")).toBeTruthy();
+    const indeterminate = await height(null, "thin");
+    expect(indeterminate.h).toBe(2);
+    expect(indeterminate.bar.bar.hasAttribute("aria-valuenow")).toBe(false);
+    expect(indeterminate.bar.bar.getAttribute("aria-valuetext")).toBe("Loading");
+    expect(warnings()).toEqual([]);
+  });
+
+  it("renders the default size and warns, once, for a size that is not one of ours", async () => {
+    const { track } = await render(<Progress label="Syncing" value={40} size={"xs" as ProgressProps["size"]} />);
+    expect(track.getBoundingClientRect().height).toBe(8);
+    expect(warnings()).toEqual(['[ouro-ui] Progress: size="xs" is not a size. Fix: <Progress size="thin"> for 2px, or leave size off for 8px.']);
+  });
+
   it("keeps layout classes and passes ids through", async () => {
     const { root } = await render(<Progress label="Uploading" value={10} className="mt-4" id="upload" />);
     expect(root.classList.contains("mt-4")).toBe(true);

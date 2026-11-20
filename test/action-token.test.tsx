@@ -194,11 +194,11 @@ describe("the action token", () => {
       button.addEventListener("click", (event) => event.preventDefault());
       await userEvent.hover(button);
       await expect.poll(() => getComputedStyle(button).backgroundColor).toBe("rgb(30, 40, 50)");
-      await expect.poll(() => getComputedStyle(button, "::before").opacity).toBe("0.08");
+      await expect.poll(() => getComputedStyle(button, "::before").opacity).toBe(String(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ouro-state-hover")) / 100));
       await commands.pointerPress({ selector: `[data-probe="${name}"]`, action: "down" });
       try {
         await expect.poll(() => getComputedStyle(button).backgroundColor).toBe("rgb(50, 40, 30)");
-        await expect.poll(() => getComputedStyle(button, "::before").opacity).toBe("0.14");
+        await expect.poll(() => getComputedStyle(button, "::before").opacity).toBe(String(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ouro-state-pressed")) / 100));
       } finally {
         await commands.pointerPress({ action: "up" });
       }
