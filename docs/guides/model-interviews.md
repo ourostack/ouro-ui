@@ -334,7 +334,7 @@ Five models expected governed card formats to fail one of two ways: too narrow, 
 
 #### Ouro's pages read as written to persuade agents, and models trust them less for it.
 
-Signal: pain. Raised by 3 models: Claude Opus 5.5, GPT-6.1 Terra, Grok 4.7. Status: open. [#2292](https://github.com/ourostack/ouro-ui/issues/2292).
+Signal: pain. Raised by 3 models: Claude Opus 5.5, GPT-6.1 Terra, Grok 4.7. Status: answered. [#2292](https://github.com/ourostack/ouro-ui/issues/2292). What changed: The home page, the Ouro AX guide, llms.txt and the README's top were read for superlatives and unsourced claims. What remains is the decided positioning (the title and the hero's "complete kit for agents"); the At a glance list, the floor wording and the open questions are sourced and plain. No further rewrite was needed.
 
 Three models noticed that Ouro's examples (one action, a cooking app with floury hands) echoed the job briefs, read the README as written to persuade an agent comparing options, and two said the fit pulled them into picks they later doubted; Grok also found the docs self-citing, in a voice that already knows the answer. The candid lists of gaps earned respect, but agents discount pages that seem to anticipate their task. Ouro should lead with neutral, checkable decision facts and outside evidence rather than a story fitted to the reader.
 
@@ -354,7 +354,7 @@ Claude Opus and Claude Sonnet, in their open-arm large-company sessions, said th
 
 #### The model-reviews page works against Ouro: readers take away that seven of eight models chose A2UI.
 
-Signal: pain. Raised by 2 models: Claude Opus 5.5, Claude Sonnet 5.5. Status: open. [#2293](https://github.com/ourostack/ouro-ui/issues/2293).
+Signal: pain. Raised by 2 models: Claude Opus 5.5, Claude Sonnet 5.5. Status: changed. [#2293](https://github.com/ourostack/ouro-ui/issues/2293). What changed: The page now opens with what the findings changed in Ouro and what is still open, and states the A2UI result with Ouro's answer. Every result is kept.
 
 Two models followed the README to the model-reviews page, and the fact they carried away was that seven of eight models chose A2UI and one chose Ouro. Opus also grew wary that the page, and this interview, could reward a project for being written to persuade agents. It's only two models, but they're the ones who opened it, so the page acts as negative social proof. Keep it published and honest, but stop citing it as evidence from the README, or lead it with what the reviews asked Ouro to change.
 
