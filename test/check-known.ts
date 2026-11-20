@@ -147,10 +147,4 @@ export const knownFindings: KnownFinding[] = [
     issue: 1955,
     reason: "The caption's last line is one word, 'week?', at this width; the caption text is the story's copy.",
   },
-  {
-    story: "LiveCaptions/ReducedMotion",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "The caption's last line is one word, 'week?', at this width; the caption text is the story's copy.",
-  },
 ];
