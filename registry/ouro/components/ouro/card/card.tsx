@@ -181,7 +181,7 @@ const backdropPictureStyle: CSSProperties = { position: "absolute", inset: 0, wi
 // A linked card's hover and press tint, which its stretched link draws as a plain rectangle, lies on the backdrop
 // instead, inside the picture's clip, since a card with a backdrop doesn't clip its corners. The link draws none, and
 // Card follows the link's hover and press itself, so no class of the tint's own is compiled where no card has a backdrop.
-const backdropTint = { none: "transparent", hover: "color-mix(in oklab, var(--foreground) 3%, transparent)", press: "color-mix(in oklab, var(--foreground) 6%, transparent)" } as const;
+const backdropTint = { none: "transparent", hovered: "color-mix(in oklab, var(--foreground) 3%, transparent)", pressed: "color-mix(in oklab, var(--foreground) 6%, transparent)" } as const;
 
 // With href, the title's link stretches over the card (`stretchedLinkClass`), so the whole
 // card is one link with one tab stop, and every control in any slot (a share button over
@@ -412,9 +412,9 @@ export function Card(props: CardProps): JSX.Element {
       onClick: (event: MouseEvent<HTMLElement>) => (rest.onClick?.(event), followStretchedLink(event)),
       onAuxClick: (event: MouseEvent<HTMLElement>) => (rest.onAuxClick?.(event), followStretchedLink(event)),
       ...(tints && {
-        onPointerOver: (event: PointerEvent<HTMLElement>) => (rest.onPointerOver?.(event), setTint((now) => (now === "press" ? now : event.pointerType !== "touch" && onLink(event) ? "hover" : "none"))),
-        onPointerDown: (event: PointerEvent<HTMLElement>) => (rest.onPointerDown?.(event), onLink(event) && setTint("press")),
-        onPointerUp: (event: PointerEvent<HTMLElement>) => (rest.onPointerUp?.(event), setTint(event.pointerType !== "touch" && onLink(event) ? "hover" : "none")),
+        onPointerOver: (event: PointerEvent<HTMLElement>) => (rest.onPointerOver?.(event), setTint((now) => (now === "pressed" ? now : event.pointerType !== "touch" && onLink(event) ? "hovered" : "none"))),
+        onPointerDown: (event: PointerEvent<HTMLElement>) => (rest.onPointerDown?.(event), onLink(event) && setTint("pressed")),
+        onPointerUp: (event: PointerEvent<HTMLElement>) => (rest.onPointerUp?.(event), setTint(event.pointerType !== "touch" && onLink(event) ? "hovered" : "none")),
         onPointerCancel: (event: PointerEvent<HTMLElement>) => (rest.onPointerCancel?.(event), setTint("none")),
         onPointerLeave: (event: PointerEvent<HTMLElement>) => (rest.onPointerLeave?.(event), setTint("none")),
       }),
