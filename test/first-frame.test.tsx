@@ -65,7 +65,7 @@ export const firstFrameFindings: Record<string, FirstFrameFinding> = {
   ...pin(
     ["Hero/Column", "Hero/Decorative", "Hero/FullWidth", "Hero/InContext", "Hero/LiveMedia", "Hero/LongLede", "Hero/Playground", "Hero/SmallPicture", "Hero/Stage", "Hero/TrailAndStatus"],
     ["div[data-ouro=hero][data-ouro-part=media]"],
-    "Designed motion: the picture's page-load rise is documented and claim-tested, and the picture is not text a person needs at once. motion="none" opts out.",
+    "Designed motion: the picture's page-load rise is documented and claim-tested, and the picture is not text a person needs at once. motion=\"none\" opts out.",
   ),
   ...pin(["Composer/Quoting"], ["div[data-ouro=composer]"], "Composer's quote strip fades in on mount, though it is ready at mount (#1999)."),
   ...pin(["Composer/Sending"], ["span[data-ouro=button]"], "The Send button's loading mark fades in on mount, though the button is loading at mount (#1999)."),
