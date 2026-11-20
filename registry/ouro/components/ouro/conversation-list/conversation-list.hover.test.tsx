@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { ConversationList, type ConversationListItem } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -166,5 +166,21 @@ describe("ConversationList hover", () => {
     const slotOf = (title: string) => rowOf(host, title).querySelector<HTMLElement>("[data-ouro-conversation-time]")!.parentElement!;
     expect(style(slotOf("Ana Lind")).minWidth).toBe("28px");
     expect(style(slotOf("No menu here")).minWidth).not.toBe("28px");
+  });
+
+  it("draws an edge on a shown more button in forced colours, where its hover background is gone (#2489)", async () => {
+    const host = await render(list());
+    const row = rowOf(host, "Trail crew");
+    const more = moreOf(row)!;
+    expect(style(more).borderTopWidth).toBe("0px");
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      await userEvent.hover(row);
+      await expect.poll(() => style(more).opacity).toBe("1");
+      expect(style(more).borderTopStyle).toBe("solid");
+      expect(style(more).borderTopWidth).not.toBe("0px");
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 });
