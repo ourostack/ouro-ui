@@ -2,7 +2,7 @@
 
 # createUseCounts
 
-Counts, from real use, the moments a person got stuck, so an agent has evidence from people's use. Counts only, and off by default: nothing is recorded until you call `enable()`, nothing leaves the page unless your own `onReport` sends it, and a report holds no content and no identifier. Ouro UI has no collector and this reads and writes no storage, cookie or network.
+Counts, from real use, the moments a person got stuck, so an agent has evidence from people's use. Counts only, and off by default: nothing is recorded until you call `enable()`, nothing leaves the page unless your own `onReport` sends it, and a report has no field for content or an identifier. Ouro UI has no collector and this reads and writes no storage, cookie or network.
 
 ```tsx
 import { createUseCounts } from "@/registry/ouro/lib/ouro/use-counts";

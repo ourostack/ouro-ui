@@ -18,7 +18,7 @@ counts.flush();
 
 - **Off by default.** A counter records nothing until your code calls `enable()`. Ask the person first, and call `disable()` when they say no.[^off]
 - **Counts only.** A report is a day and a list of counts. Each count names a moment, a screen and a part, and how many times it happened.[^shape]
-- **Content stays out.** It never holds text a person typed, a page's text, a URL or a form value.[^shape] A screen or part name that is not a short name from your code is counted as `other`.[^shape]
+- **Content stays out.** The report has fields for a day, a moment, a screen, a part and a count, and no field for what a person typed.[^shape] You must pass fixed screen and part names from your code, not typed text. As a safety net, a name that does not look like a short code name is counted as `other`, but a short word that looks fine passes through, so the safety net is not a promise.[^shape]
 - **People stay anonymous.** It holds no person, device, session or account, and no time finer than the day.[^shape]
 - **You own the destination.** Ouro UI runs no server and sends nothing.[^quiet] The counts go only where your `onReport` sends them. You own that place, and you tell people about it in your own privacy notice.[^quiet]
 - **Memory only.** It uses no cookie and no storage.[^quiet] The counts live in memory and are gone when the page closes.[^quiet]

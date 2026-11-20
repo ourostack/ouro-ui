@@ -47,8 +47,8 @@ interface UseCounts {
   readonly enabled: boolean;
   /**
    * Counts one moment on a screen and part, such as `{ screen: "checkout", part: "coupon-field" }`.
-   * Both are short lowercase names (letters, digits and hyphens), not text from a person, so a
-   * value that is not one is counted under `other`. Does nothing while counting is off.
+   * Pass fixed names from your code, not text from a person. As a safety net only, a value that
+   * is not a short lowercase name (letters, digits and hyphens) is counted under `other`; a short word passes. Does nothing while counting is off.
    */
   record(moment: UseMoment, where: { screen: string; part: string }): void;
   /** Hands the counts to `onReport` (when given), returns them and starts a fresh tally. Empty when the counter counted nothing. */
@@ -74,7 +74,7 @@ function nameOf(value: string, what: string): string {
 /**
  * Counts, from real use, the moments a person got stuck, so an agent has evidence from people's
  * use. Counts only, and off by default: nothing is recorded until you call `enable()`, nothing
- * leaves the page unless your own `onReport` sends it, and a report holds no content and no identifier.
+ * leaves the page unless your own `onReport` sends it, and a report has no field for content or an identifier.
  * Ouro UI has no collector and this reads and writes no storage, cookie or network.
  *
  * Use it when you want evidence of where people get stuck in a shipped app. Use Ouro check's `--handoff` kit instead when you can put a person in front of the app.
@@ -87,7 +87,7 @@ function nameOf(value: string, what: string): string {
  * @claim "Ouro UI has no collector and" registry/ouro/lib/ouro/use-counts.test.ts verify:testExists(registry/ouro/lib/ouro/use-counts.test.ts::createUseCounts > uses no network, storage or cookie, even when enabled and flushed)
  * @claim "off by default: nothing is recorded until" registry/ouro/lib/ouro/use-counts.test.ts verify:testExists(registry/ouro/lib/ouro/use-counts.test.ts::createUseCounts > records nothing and sends nothing by default)
  * @claim "nothing leaves the page unless your" registry/ouro/lib/ouro/use-counts.test.ts verify:testExists(registry/ouro/lib/ouro/use-counts.test.ts::createUseCounts > uses no network, storage or cookie, even when enabled and flushed)
- * @claim "a report holds no content and" registry/ouro/lib/ouro/use-counts.test.ts verify:testExists(registry/ouro/lib/ouro/use-counts.test.ts::createUseCounts > a report holds only a day and counts, and text that could identify someone is counted as other)
+ * @claim "a report has no field for content or" registry/ouro/lib/ouro/use-counts.test.ts verify:testExists(registry/ouro/lib/ouro/use-counts.test.ts::createUseCounts > a report holds only a day and counts, and text that could identify someone is counted as other)
  * @group App setup
  */
 function createUseCounts(options: UseCountsOptions = {}): UseCounts {
