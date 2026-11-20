@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, browserBalance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, browserBalance, subsetWeight, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
@@ -72,7 +72,8 @@ test("with groups, each group's files spread as evenly as the shards allow, then
 
 test("CI's browser shards: every file runs exactly once, and no shard's total time is over its share by more than 30 s", () => {
   assert.equal(projectOf("ouro-touch (chromium) registry/ouro/components/ouro/sheet/sheet.touch.test.tsx"), "ouro-touch (chromium)");
-  const timings = { ...readTimings("vitest"), ...readTimings("subset") };
+  const subsets = readTimings("subset");
+  const timings = { ...readTimings("vitest"), ...Object.fromEntries(Object.entries(subsets).map(([key, ms]) => [key, ms * subsetWeight])) };
   const count = 10;
   const shards = browserBalance(count);
   const keys = Object.keys(timings).filter((key) => !slicedSuites.some((suite) => key.endsWith(` ${suite}`)));
