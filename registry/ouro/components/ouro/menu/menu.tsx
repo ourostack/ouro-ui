@@ -1274,6 +1274,7 @@ export function MenuSub({ label, children, disabled, backLabel = "Back" }: MenuS
         // Base UI leaves a mouse's press to the hover, which a held pointer does not give: a press opens the submenu itself.
         onClick={() => {
           rest.current = undefined;
+          // Stryker disable next-line BooleanLiteral: in the browsers tested, Base UI's hover opens it in the same press once the hold is let go; this opens it where it doesn't.
           setOpen(true);
         }}
       >
