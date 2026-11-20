@@ -2198,7 +2198,7 @@ jobs:
     # 7 to 10 minutes on main; its limit is about twice that, so a spec that hangs fails its shard
     # by its own test timeout or this one, not after the run has waited 25 minutes on it.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     # In Playwright's image (see the note above jobs:).
@@ -2305,7 +2305,7 @@ jobs:
     # spec files whose measured times add up to its share (`node scripts/shard.mjs sweeps`). Part of
     # the e2e check.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     # In Playwright's image (see the note above jobs:).
@@ -2406,7 +2406,7 @@ jobs:
     # fails whichever shard they land in, and a route that moves a page to another shard changes nothing.
     # It starts when the last shard ends, and the shards' escape checks stay in the shards. Part of the e2e check.
     needs: [plan, sweep-shard]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     name: sweeps-compare
@@ -2490,7 +2490,12 @@ jobs:
           SHARDS: ${{ needs.e2e-shard.result }}
           SWEEPS: ${{ needs.sweep-shard.result }}
           COMPARE: ${{ needs.sweeps-compare.result }}
+          HEAVY: ${{ needs.plan.outputs.heavy }}
         run: |
+          if [ "$HEAVY" = skip ]; then
+            echo "::notice::Not affected: this pull request changes only files the end-to-end specs never read (the plan's heavy=skip)."
+            exit 0
+          fi
           if [ "$SHARDS" != success ]; then
             echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/6) jobs."
           fi

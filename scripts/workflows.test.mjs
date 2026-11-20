@@ -1563,7 +1563,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
     // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
-    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : [...heavyJobs.filter((id) => id !== "themes"), "latency-shard"].includes(name) ? heavyRuns : untested;
+    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : [...heavyJobs.filter((id) => id !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(name) ? heavyRuns : untested;
     const needs = jobs[name].match(new RegExp(`^ {4}needs: \\[([^\\]]*)\\]\\n {4}if: ${condition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"))?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
@@ -1631,7 +1631,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs beside ci once the coverage job and the shards it reads passed or were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser.result) && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser-fallback.result) }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -2063,6 +2063,9 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.equal(runStep(gate, { SHARDS: "failure", SWEEPS: "success", COMPARE: "success" }).status, 1);
   assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "failure", COMPARE: "success" }).status, 1);
   assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "success", COMPARE: "failure" }).status, 1);
+  // The plan's heavy=skip (only files the specs never read changed) passes the skipped shards; anything else needs them.
+  assert.equal(runStep(gate, { SHARDS: "skipped", SWEEPS: "skipped", COMPARE: "skipped", HEAVY: "skip" }).status, 0);
+  assert.equal(runStep(gate, { SHARDS: "skipped", SWEEPS: "skipped", COMPARE: "skipped", HEAVY: "here" }).status, 1);
   // Each sweeps shard saves its looks, and one job compares every part's, so a page in another shard is compared too (#2527).
   assert.match(jobs["sweep-shard"], /name: sweeps-looks-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/looks\//);
   assert.match(jobs["sweeps-compare"], /^ {4}needs: \[plan, sweep-shard\]$/m);
