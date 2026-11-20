@@ -45,6 +45,14 @@ export function nameAndRole(name: string, role: string, notFollowedBy?: string):
   return new RegExp(`${named}[^.]*\\b${role}\\b|\\b${role}\\b[^.]*${named}`, "i");
 }
 
+/**
+ * A button read with nothing else in its sentence, hints dropped ("button"): a control with a role and no name, as Base
+ * UI's focus guards beside a popup are when they keep `role="button"` (ourostack/ouro-ui#666).
+ */
+export function unnamedButton(phrase: string): boolean {
+  return sentences(withoutHints(phrase)).some((sentence) => /^\W*button\W*$/i.test(sentence));
+}
+
 /** A link, as both readers say it ("link", "visited link"). */
 export const LINK = /\blink\b/i;
 

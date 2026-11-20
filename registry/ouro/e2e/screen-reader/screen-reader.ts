@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import { navigateWithRetry, waitUntil } from "./navigation";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
 import { installVoiceOverStartRetry, voiceOverRunning } from "./start-retry";
-import { firstMatch, type FocusMove, HINT_ONLY_PREFIX, hintOnlyMiss, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechTimeline, speechVerdict, spokenAfter, withTimeline, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
+import { firstMatch, type FocusMove, HINT_ONLY_PREFIX, hintOnlyMiss, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechTimeline, speechVerdict, spokenAfter, unnamedButton, withoutHints, withTimeline, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -418,6 +418,27 @@ async function heardFromVoiceOver(sr: VoiceOverPlaywright, action: () => Promise
   } finally {
     await watch.stop();
   }
+}
+
+/**
+ * Moves VoiceOver's cursor, not the keyboard focus, with `move` (`sr.next`, `sr.previous`) one stop at a time, up to
+ * `stops` times, until it reads a phrase `arrived` accepts, and returns what each stop read. A stop that reads an unnamed
+ * button fails the step: a focus guard with a role and no name, which Base UI puts beside a popup (ourostack/ouro-ui#666).
+ * VoiceOver only: NVDA's browse mode has no cursor apart from the focus inside a menu.
+ */
+export async function cursorReaches(sr: VoiceOverPlaywright, move: () => Promise<unknown>, arrived: (phrase: string) => boolean, what: string, stops = 4): Promise<string[]> {
+  const read: string[] = [];
+  const said = () => read.map((phrase) => `"${phrase}"`).join(" | ");
+  for (let stop = 1; stop <= stops; stop++) {
+    // The first thing the stop says, hints dropped, whatever it is: each stop is checked, not only the last.
+    read.push(await heardFromVoiceOver(sr, move, (phrase) => withoutHints(phrase).trim() !== "", `the VoiceOver cursor's stop ${stop} on the way to ${what}`, 15_000));
+    if (unnamedButton(read.at(-1)!)) throw new Error(`[sr] no utterance matched ${what} without an unnamed button on the way; the VoiceOver cursor read: ${said()}`);
+    if (arrived(read.at(-1)!)) {
+      console.log(`[sr] the VoiceOver cursor reached ${what}: ${said()}`);
+      return read;
+    }
+  }
+  throw new Error(`[sr] no utterance matched ${what} within ${stops} stops of the VoiceOver cursor; it read: ${said()}`);
 }
 
 /** The focus moves recordFocus logged at or after `since`. A page that cannot be read gives none, and the check's own failure still stands. */
