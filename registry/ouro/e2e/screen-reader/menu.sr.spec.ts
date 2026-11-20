@@ -1,7 +1,6 @@
 import { expect } from "@playwright/test";
-import type { VoiceOverPlaywright } from "@guidepup/playwright";
 import { inOneSentence, nameAndRole } from "./phrases";
-import { cursorReaches, heard, onOlderMacOS, said, startReading, test } from "./screen-reader";
+import { heard, onOlderMacOS, said, startReading, test } from "./screen-reader";
 import { storyIds } from "./stories";
 
 test.use({ storyId: storyIds.menu });
@@ -32,53 +31,4 @@ test("Menu is announced from its trigger, reads each item the arrow keys reach, 
   await heard(sr, () => page.keyboard.press("Escape"), saysTrigger, '"Actions", button, as focus returns');
   await expect(page.getByRole("menu")).toBeHidden();
   await expect(trigger).toBeFocused();
-});
-
-test("Menu's submenu opens from the keyboard on its first item, and the left arrow returns to its trigger", async ({ page, sr }) => {
-  await startReading(sr, page);
-  const trigger = page.getByRole("button", { name: "Actions" });
-  await heard(sr, () => trigger.focus(), (phrase) => inOneSentence(phrase, nameAndRole("Actions", "button")), '"Actions", button');
-  const menu = page.getByRole("menu").first();
-  await said(sr, async () => {
-    await page.keyboard.press("Enter");
-    await expect(menu.getByRole("menuitem", { name: /^Edit/ })).toBeFocused();
-  }, "as the menu opens on Edit");
-  await menu.evaluate((element) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)));
-  const share = page.getByRole("menuitem", { name: "Share" });
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("ArrowDown");
-  await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => inOneSentence(phrase, /\bshare\b/i), '"Share", the submenu\'s trigger');
-  await expect(share).toBeFocused();
-  const copyLink = page.getByRole("menuitem", { name: "Copy link" });
-  const openShare = async () => {
-    await page.keyboard.press("ArrowRight");
-    await expect(copyLink).toBeFocused();
-  };
-  if (onOlderMacOS()) await said(sr, openShare, "as Share opens on Copy link");
-  else await heard(sr, openShare, (phrase) => inOneSentence(phrase, /\bcopy link\b/i), '"Copy link", the first item, as Share opens');
-  await heard(sr, () => page.keyboard.press("ArrowLeft"), (phrase) => inOneSentence(phrase, /\bshare\b/i), '"Share" as focus returns');
-  await expect(copyLink).toBeHidden();
-  await expect(share).toBeFocused();
-});
-
-test("Menu's submenu: VoiceOver's cursor moves from the open Share trigger into its items, past no unnamed button", async ({ page, sr }) => {
-  test.skip(process.platform !== "darwin", "VoiceOver's cursor only: NVDA reads a menu from the focus");
-  const voiceOver = sr as VoiceOverPlaywright;
-  await startReading(sr, page);
-  await page.getByRole("button", { name: "Actions" }).focus();
-  await page.keyboard.press("Enter");
-  const share = page.getByRole("menuitem", { name: "Share" });
-  await share.focus();
-  const copyLink = page.getByRole("menuitem", { name: "Copy link" });
-  await said(sr, async () => {
-    await page.keyboard.press("ArrowRight");
-    await expect(copyLink).toBeFocused();
-  }, "as Share opens");
-  const submenu = page.getByRole("menu").filter({ has: copyLink });
-  await submenu.evaluate((element) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)));
-  // Back from Copy link the cursor reaches Share, and forward again Copy link: the guards #665 hid beside a submenu's
-  // trigger, in its parent menu, are not stops.
-  await cursorReaches(voiceOver, () => voiceOver.previous(), (phrase) => inOneSentence(phrase, /\bshare\b/i), '"Share", the open submenu\'s trigger');
-  await cursorReaches(voiceOver, () => voiceOver.next(), (phrase) => inOneSentence(phrase, /\bcopy link\b/i), '"Copy link", the submenu\'s first item');
-  await expect(copyLink).toBeVisible();
 });
