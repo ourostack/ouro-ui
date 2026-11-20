@@ -221,7 +221,6 @@ export function runItYourself(latest) {
   ];
 }
 
-/** The page, from `runs` (publishedRuns()). */
 /** The lead: what the model reviews and interviews changed in Ouro, and what is still open, from findings.json. */
 export function findingsLead(findings, runs = []) {
   const list = findings.findings;
@@ -238,6 +237,7 @@ export function findingsLead(findings, runs = []) {
   return out;
 }
 
+/** The page, from `runs` (publishedRuns()). */
 export function renderPage(runs, subject = SUBJECT, replays = searchReplays(), findings = readFindings()) {
   const all = seriesOf(runs);
   if (!all.length) throw new Error("No published run in scripts/model-reviews/results/. Run the reviews and copy the run there first.");
