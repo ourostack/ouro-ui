@@ -479,20 +479,34 @@ export async function settled(page: Page): Promise<void> {
 
 /**
  * The looks that differ between two reads of a page, up to three, each with the parts of its signature that changed, and
- * how many looks the page gained or lost.
+ * how many looks the page gained or lost. Many elements share a key (every plain button of a kind), so the looks of a key
+ * are paired in page order: one that changed among its twins is still named (ourostack/ouro-ui#2428).
  */
 export function changedLooks(before: readonly Look[], after: readonly Look[]): string {
-  const was = new Map(before.map((look) => [look.key, look.sig]));
-  const changed = after.filter((look) => was.has(look.key) && was.get(look.key) !== look.sig);
-  const lines = changed.slice(0, 3).map((look) => {
-    const old = was.get(look.key)!.split(" ; ");
-    const now = look.sig.split(" ; ");
-    return `  ${look.key}: ${now.filter((part) => !old.includes(part)).join(" ; ")} (was ${old.filter((part) => !now.includes(part)).join(" ; ")})`;
+  const byKey = (looks: readonly Look[]) => {
+    const groups = new Map<string, string[]>();
+    for (const look of looks) groups.set(look.key, [...(groups.get(look.key) ?? []), look.sig]);
+    return groups;
+  };
+  const was = byKey(before);
+  const now = byKey(after);
+  const changed: { key: string; old: string; sig: string }[] = [];
+  let added = 0;
+  let gone = 0;
+  for (const [key, sigs] of now) {
+    const old = was.get(key) ?? [];
+    for (let i = 0; i < Math.min(sigs.length, old.length); i++) if (sigs[i] !== old[i]) changed.push({ key, old: old[i]!, sig: sigs[i]! });
+    added += Math.max(0, sigs.length - old.length);
+  }
+  for (const [key, sigs] of was) gone += Math.max(0, sigs.length - (now.get(key)?.length ?? 0));
+  const lines = changed.slice(0, 3).map(({ key, old, sig }) => {
+    const then = old.split(" ; ");
+    const is = sig.split(" ; ");
+    return `  ${key}: ${is.filter((part) => !then.includes(part)).join(" ; ")} (was ${then.filter((part) => !is.includes(part)).join(" ; ")})`;
   });
   if (changed.length > 3) lines.push(`  and ${changed.length - 3} more`);
-  const keys = new Set(after.map((look) => look.key));
-  const gone = before.filter((look) => !keys.has(look.key)).length;
-  const added = after.filter((look) => !was.has(look.key)).length;
   if (gone || added) lines.push(`  ${added} looks appeared and ${gone} went between the last two reads`);
-  return lines.length > 0 ? lines.join("\n") : "  the last two reads differed only in the order of the looks";
+  if (lines.length > 0) return lines.join("\n");
+  const moved = after.findIndex((look, index) => look.key !== before[index]?.key);
+  return moved === -1 ? "  the last two reads were the same" : `  the last two reads differed only in the order of the looks: at ${moved}, ${after[moved]!.key} (was ${before[moved]?.key ?? "nothing"})`;
 }
