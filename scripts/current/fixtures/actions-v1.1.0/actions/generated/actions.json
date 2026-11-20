@@ -1,0 +1,46 @@
+{
+  "generator": "ouro-actions 1.1.0",
+  "set": "notes",
+  "tool": "notes",
+  "actions": [
+    {
+      "id": "notes",
+      "consent": "read",
+      "label": "List the notes",
+      "description": "Every note, newest first.",
+      "agent": "List the notes. Read-only.",
+      "input": {},
+      "output": {
+        "ok": {
+          "label": "Done",
+          "description": "True when the app did it.",
+          "kind": "boolean"
+        }
+      },
+      "cli": "notes"
+    },
+    {
+      "id": "delete",
+      "consent": "consequential",
+      "label": "Delete a note",
+      "description": "Delete one note for good.",
+      "agent": "Delete one note. A person says yes first.",
+      "input": {
+        "id": {
+          "label": "Note",
+          "description": "The note's id.",
+          "arg": true,
+          "kind": "string"
+        }
+      },
+      "output": {
+        "ok": {
+          "label": "Done",
+          "description": "True when the app did it.",
+          "kind": "boolean"
+        }
+      },
+      "cli": "delete"
+    }
+  ]
+}

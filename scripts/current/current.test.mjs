@@ -1064,10 +1064,70 @@ test("a core manifest copied beside its files moves with them, or, when one was 
   assert.ok(gone.notes.some((note) => /no longer ships `tools\/ouro-actions\/actions\.claims\.json`/.test(note)));
   assert.deepEqual([...edited.notes, ...gone.notes].flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
 
-  const stampFree = await UPDATERS["core-manifest"](pin, JSON.stringify(oldManifest), { ...RELEASES.core, tag: "v0.17.6" }, { ...asset, consumerFolder: folder("claims v1") });
-  assert.ok(stampFree.notes.some((note) => /version stamp/.test(note)), "from core v0.17.6 on, projections need nothing generated again");
-  assert.ok(!update.notes.some((note) => /version stamp/.test(note)));
-  assert.deepEqual(stampFree.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+  const later = await UPDATERS["core-manifest"](pin, JSON.stringify(oldManifest), { ...RELEASES.core, tag: "v0.17.6" }, { ...asset, consumerFolder: folder("claims v1") });
+  assert.ok(![...update.notes, ...later.notes].some((note) => /version stamp|nothing generated again/.test(note)), "no update is said to need nothing generated again (ouro-ui-core#123)");
+});
+
+// An app whose projections Ouro UI core v1.1.0's generator wrote (fixtures/actions-v1.1.0), stamped 1.1.0, and which the
+// generator Ouro UI vendors (scripts/ouro-actions, core v1.2.0 or later) writes differently: the update that moves the
+// generator generates them again, or the app's projections check fails on the update (ouro-ui-core#123).
+const OLD_ACTIONS = join(import.meta.dirname, "fixtures", "actions-v1.1.0", "actions");
+const NEW_GENERATOR = readFileSync(join(import.meta.dirname, "..", "ouro-actions", "ouro-actions.mts"), "utf8");
+const oldActionsApp = (extra = {}) => {
+  const files = { "tools/ouro-actions/ouro-actions.mts": "gen v1", "actions/notes.actions.mts": readFileSync(join(OLD_ACTIONS, "notes.actions.mts"), "utf8"), ...extra };
+  for (const name of ["actions.json", "commands.json", "mcp.json", "OuroActions.swift", "OuroActionsReins.swift", "web.ts", "webmcp.json"]) files[`actions/generated/${name}`] = readFileSync(join(OLD_ACTIONS, "generated", name), "utf8");
+  files["tools/ouro-actions/dist-manifest.json"] = JSON.stringify({ coreTag: "v1.1.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v1") } });
+  return files;
+};
+const newCore = () => distAsset({ "dist-manifest.json": JSON.stringify({ coreTag: "v0.15.0", files: { "dist/actions/ouro-actions.mts": sha256(NEW_GENERATOR) } }), "actions/ouro-actions.mts": NEW_GENERATOR });
+
+test("an update that vendors a new action generator generates the projections again, as the repository runs generate, and commits what changed", async () => {
+  const scripts = { scripts: { "actions:generate": "node tools/ouro-actions/ouro-actions.mts generate actions/notes.actions.mts actions/generated", "actions:check": "node tools/ouro-actions/ouro-actions.mts check actions/notes.actions.mts actions/generated" } };
+  const repo = fakeRepo(oldActionsApp({ "package.json": JSON.stringify(scripts, null, 2) }));
+  const kept = await keepRepo(repo.gh, "o/r", RELEASES, newCore());
+  assert.equal(kept.state, "pr");
+  assert.equal(repo.fileAt(BRANCH, "tools/ouro-actions/ouro-actions.mts"), NEW_GENERATOR);
+  const mcp = repo.fileAt(BRANCH, "actions/generated/mcp.json");
+  assert.match(mcp, /"title": "Delete a note"/, "what the new generator writes, not what v1.1.0 wrote");
+  assert.match(repo.fileAt(BRANCH, "actions/generated/webmcp.json"), /"title": "List the notes"/);
+  assert.doesNotMatch(mcp, /ouro-actions 1\.1\.0/);
+  // The branch passes the projections check the repository runs, with the vendored generator.
+  const dir = scratchDir("current-actions-");
+  for (const [path, bytes] of repo.filesAt(BRANCH)) {
+    mkdirSync(dirname(join(dir, path)), { recursive: true });
+    writeFileSync(join(dir, path), bytes);
+  }
+  const check = spawnSync(process.execPath, ["tools/ouro-actions/ouro-actions.mts", "check", "actions/notes.actions.mts", "actions/generated"], { cwd: dir, encoding: "utf8" });
+  assert.equal(check.status, 0, check.stderr);
+  const body = repo.pulls[0].body;
+  assert.match(body, /Runs `generate` with the new `tools\/ouro-actions\/ouro-actions\.mts` on `actions\/notes\.actions\.mts`, as `package\.json` does, and commits what it changed: [^\n]*`actions\/generated\/mcp\.json`/);
+  assert.doesNotMatch(body, /nothing generated again|version stamp/);
+  assert.deepEqual(lintMarkdown(body, { file: "pull request body" }), []);
+});
+
+test("an update that vendors a new action generator finds generate in a workflow, and says so when it finds no generate step", async () => {
+  // As m365crawl runs it: the check in its X-ray workflow, a command split over two lines, no package.json.
+  const workflow = "jobs:\n  x:\n    steps:\n      - run: |\n          node tools/ouro-actions/ouro-actions.mts check actions/notes.actions.mts actions/generated \\\n            --report xray-actions/report.json --app notes\n";
+  const fromWorkflow = fakeRepo(oldActionsApp({ ".github/workflows/ax-xray.yml": workflow }));
+  await keepRepo(fromWorkflow.gh, "o/r", RELEASES, newCore());
+  assert.match(fromWorkflow.fileAt(BRANCH, "actions/generated/mcp.json"), /"title": "Delete a note"/);
+  assert.match(fromWorkflow.pulls[0].body, /as `\.github\/workflows\/ax-xray\.yml` does/);
+  assert.equal(fromWorkflow.fileAt(BRANCH, ".github/workflows/ax-xray.yml"), workflow, "a workflow is read, never written");
+
+  const none = fakeRepo(oldActionsApp());
+  const kept = await keepRepo(none.gh, "o/r", RELEASES, newCore());
+  assert.equal(kept.state, "pr");
+  assert.equal(none.fileAt(BRANCH, "actions/generated/mcp.json"), none.fileAt("main", "actions/generated/mcp.json"));
+  const body = none.pulls[0].body;
+  assert.match(body, /Leaves the projections as they were: [^\n]*could not find a step that runs `tools\/ouro-actions\/ouro-actions\.mts`/);
+  assert.match(body, /node tools\/ouro-actions\/ouro-actions\.mts generate <declarations> <folder>/);
+  assert.deepEqual(lintMarkdown(body, { file: "pull request body" }), []);
+
+  // A generate step that fails is said, with its first error line, and the projections stay as they were.
+  const broken = fakeRepo(oldActionsApp({ "package.json": JSON.stringify({ scripts: { gen: "node tools/ouro-actions/ouro-actions.mts generate actions/gone.actions.mts actions/generated" } }) }));
+  await keepRepo(broken.gh, "o/r", RELEASES, newCore());
+  assert.equal(broken.fileAt(BRANCH, "actions/generated/mcp.json"), broken.fileAt("main", "actions/generated/mcp.json"));
+  assert.match(broken.pulls[0].body, /Running `generate` with the new `tools\/ouro-actions\/ouro-actions\.mts` on `actions\/gone\.actions\.mts`, as `package\.json` does, failed: 'actions\/gone\.actions\.mts' is not in the repository\./);
 });
 
 test("a repository whose whole update is held back gets no pull request, and the reason", async () => {

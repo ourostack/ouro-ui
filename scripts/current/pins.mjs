@@ -6,7 +6,6 @@
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { dirname, posix } from "node:path";
-import { isAfter } from "./rules.mjs";
 import { THEME_ITEMS, applyItem, hasItem } from "./stylesheet.mjs";
 
 export const REPOS = { web: "ourostack/ouro-ui", core: "ourostack/ouro-ui-core", apple: "ourostack/ouro-ui-apple" };
@@ -780,13 +779,6 @@ export function newCheckRules(previous, next, from, release) {
 export const coreDistAsset = (tag) => `ouro-ui-core-${tag}-dist.zip`;
 /** Where a core `dist/` path sits in that asset: its paths are relative to `dist/`, and `dist-manifest.json` is at its root. */
 const inDistAsset = (path) => path.replace(/^dist\//, "");
-/**
- * Said of an update that vendors core's action generator: projections a repository generated with the old one still
- * pass `check`, which ignores the generator's version stamp from this release on, so they need not be generated again.
- */
-const STAMP_FREE = "v0.17.6";
-const projectionsNote = (release) => (isAfter(STAMP_FREE, release.tag) ? [] : [`Generated projections stay valid: \`check\` ignores the generator's version stamp from Ouro UI core \`${STAMP_FREE}\` on, so a version-only update needs nothing generated again.`]);
-
 /** One file vendored from ouro-ui-core's release asset (`vendor/ouro-ui-core/pin.json`), taken from the new release's asset. */
 async function updateCorePin(pin, text, release, ctx) {
   const data = JSON.parse(text);
@@ -957,8 +949,7 @@ async function updateVendorLock(pin, text, release, ctx) {
     }
   };
   files[pin.file] = edited !== null && same(edited) ? edited : `${JSON.stringify(lock, null, 2)}\n`;
-  const actions = pin.follows === "core" && source.files.some((file) => /(^|\/)actions\//.test(file.sourcePath));
-  const notes = actions ? projectionsNote(release) : [];
+  const notes = [];
   if (added.length) notes.push(`Vendors what the updated files now import: ${list(added.map((file) => file.generatedPath))}.`);
   notes.push(...axFix.notes);
   // The entry added above resolves the vendored files' `#ouro-ax/*`; otherwise the pull request says what is missing.
@@ -1128,9 +1119,7 @@ async function updateCoreManifest(pin, text, release, ctx) {
     files[path] = bytes;
   }
   files[pin.file] = manifestBytes;
-  const notes = [];
-  if (moves.some(({ source }) => /(^|\/)actions\//.test(source))) notes.push(...projectionsNote(release));
-  return { files, notes };
+  return { files, notes: [] };
 }
 
 export const UPDATERS = {

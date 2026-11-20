@@ -1,0 +1,42 @@
+{
+  "generator": "ouro-actions 1.1.0",
+  "set": "notes",
+  "tools": [
+    {
+      "name": "notes",
+      "description": "List the notes. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "consequentialHint": false
+      }
+    },
+    {
+      "name": "delete",
+      "description": "Delete one note. A person says yes first.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The note's id."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "consequentialHint": true
+      }
+    }
+  ],
+  "refusals": {}
+}
