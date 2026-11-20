@@ -471,6 +471,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    // Stryker disable next-line ArrayDeclaration: an effect that only sets a flag to true runs the same whatever its list holds.
   }, []);
   const [ownExpanded, setOwnExpanded] = useState(defaultExpanded ?? false);
   const expandable = expandedProp !== undefined || defaultExpanded !== undefined || onExpandedChange !== undefined;
