@@ -1084,7 +1084,11 @@ describe.each([
       await renderPage(path);
       await settle();
       const violations = await scan();
-      expect(violations, describeViolations(violations)).toEqual([]);
+      // A scrollable region with no tab stop: what each ScrollArea viewport looked like when the scan ended (#1620).
+      const viewports = violations.some((violation) => violation.rule === "scrollable-region-focusable")
+        ? [...document.querySelectorAll<HTMLElement>("[data-scroll-viewport]")].map((viewport) => `\nviewport: tabindex ${viewport.tabIndex}, scroll ${viewport.scrollHeight}×${viewport.scrollWidth} in ${viewport.clientHeight}×${viewport.clientWidth}, ${viewport.hasAttribute("data-ouro-scroll-fade-y") ? "marked" : "unmarked"}, fonts ${document.fonts.status}`).join("")
+        : "";
+      expect(violations, describeViolations(violations) + viewports).toEqual([]);
     }, pageScanTimeout);
   });
 
