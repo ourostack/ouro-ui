@@ -458,7 +458,7 @@ export class FirstRunSession {
       if (onSignIn(before)) return this.step(`${phase}-account`, true, `the window is on the sign-in page, where the account button leads, after ${secs(this.report.at() - t1)} s of "${waited}"`);
       pressed = (await this.eyes.press(pid, this.app.accountButton)).ok;
     }
-    const after = waited && this.report.at() > t1 ? ` (after ${secs(this.report.at() - t1)} s of "${waited}"${starting(before) ? ", still under way" : ""})` : "";
+    const after = waited ? ` (after ${secs(this.report.at() - t1)} s of "${waited}"${starting(before) ? ", still under way" : ""})` : "";
     if (!pressed) return this.step(`${phase}-account`, false, `there was no enabled account button to press${after}`);
     const was = before ? this.watch.key(before).key : "";
     const offered = new Set(before ? forwardActions(before, this.v) : []);
