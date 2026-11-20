@@ -212,6 +212,8 @@ export interface TimeGridOwnProps {
    * bars that name themselves in a tooltip in a week, and labelled ones in a day. Each is a
    * button that `onEventSelect` gets, reached with the arrow keys like the others. Timed events
    * only: those that are all day, or 24 hours or longer, are left out.
+   * The person's events make room for the lane only where a background event shares their time.
+   * @claim "make room for the lane only where" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > leaves room for the background lane only where a background event shares an event's time (%s))
    * @claim "Each day draws them in a lane" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws background events in a lane at each day's start, beside the person's own)
    * @claim "thin bars that name themselves" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > names a week's thin bars in a tooltip, and labels them in a day)
    * @claim "reached with the arrow keys" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > takes the arrow keys through background events in time order with the rest)
@@ -729,6 +731,20 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // The preview spans one slot across its day's column, so it is left off where one of the person's own timed
   // events covers that slot: the card (opaque, above the slots) would hide its text. Background events sit in
   // the lane the preview starts after, so they never cover it.
+  // The person's own events that overlap a background event in time, with the rest of their stack of overlapping events
+  // so they share one layout, by day. Only these make room for the lane.
+  const clearOfLane = useMemo(
+    () =>
+      timed.map((placements, column) => {
+        const lane = behind[column]!;
+        const keys = new Set<string>();
+        for (const stack of stacksOf(placements)) {
+          if (stack.some((placed) => lane.some((back) => back.top < placed.bottom && back.bottom > placed.top))) for (const placed of stack) keys.add(placed.key);
+        }
+        return keys;
+      }),
+    [timed, behind],
+  );
   const coveredAt = (column: number, from: number) => timed[column]!.some((placed) => placed.top < from + slotMinutes && placed.bottom > from);
 
   const columns = `var(--ouro-time-grid-gutter) repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))`;
@@ -846,9 +862,12 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   };
 
   // One day's events, each in its place among those it overlaps.
-  const placedItems = (placements: ReadonlyArray<DayPlacement<string>>) =>
+  const placedItems = (placements: ReadonlyArray<DayPlacement<string>>, clearOfLane?: ReadonlySet<string>) =>
     placements.map((placed) => {
       const share = 100 / placed.columns;
+      const cleared = clearOfLane?.has(placed.key);
+      // Where a background event shares its time, the event is placed in what the lane leaves free.
+      const free = "(100% - var(--ouro-time-grid-lane))";
       return (
         <li
           key={placed.key}
@@ -856,8 +875,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           style={{
             top: minutesTall(placed.top),
             height: `calc(${minutesTall(placed.bottom - placed.top)} - 1px)`,
-            insetInlineStart: `${placed.column * share}%`,
-            width: `${placed.span * share}%`,
+            insetInlineStart: cleared ? `calc(var(--ouro-time-grid-lane) + ${free} * ${placed.column / placed.columns})` : `${placed.column * share}%`,
+            width: cleared ? `calc(${free} * ${placed.span / placed.columns})` : `${placed.span * share}%`,
           }}
         >
           {renderEvent(pieces.find((piece) => piece.key === placed.key)!, placed)}
@@ -1032,7 +1051,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                         data-ouro-time-grid-slot=""
                         className={cn(
                           "pointer-events-none absolute box-border rounded-ouro-md border border-dashed border-primary px-1.5 text-[11px] leading-4 text-muted-foreground",
-                          hasBackground ? "start-(--ouro-time-grid-lane) ms-0.5 end-0.5" : "inset-x-0.5",
+                          behind[index]!.some((back) => back.top < hover.minutes + slotMinutes && back.bottom > hover.minutes) ? "start-(--ouro-time-grid-lane) ms-0.5 end-0.5" : "inset-x-0.5",
                         )}
                         style={{ top: minutesTall(hover.minutes), height: minutesTall(slotMinutes) }}
                       >
@@ -1059,9 +1078,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                     role="list"
                     aria-label={formats.fullDay.format(utcDate(day))}
                     aria-current={index === todayIndex ? "date" : undefined}
-                    className={cn("pointer-events-none absolute inset-0 m-0 list-none p-0", hasBackground && "start-(--ouro-time-grid-lane)")}
+                    className="pointer-events-none absolute inset-0 m-0 list-none p-0"
                   >
-                    {placedItems(timed[index]!)}
+                    {placedItems(timed[index]!, clearOfLane[index])}
                   </ul>
                 ) : null}
                 {behind[index]!.length > 0 ? (

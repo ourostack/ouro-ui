@@ -1364,7 +1364,8 @@ describe("TimeGrid background events", () => {
     // Overlapping background events share their lane; the person's own start after it, on every day.
     expect(["All hands", "Budget review"].map((title) => spokenAs(title).closest("li")!.style.width)).toEqual(["50%", "50%"]);
     const column = (element: Element) => element.closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect().left;
-    expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(13);
+    // Standup's day has no background event, so it keeps the day's full width.
+    expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(1);
     expect(titled("Architecture forum").getBoundingClientRect().left - column(titled("Architecture forum"))).toBe(13);
     // In a week each is a slim bar in its tone, on no fill of its own.
     const swatch = (title: string) => getComputedStyle(spokenAs(title).querySelector("[data-ouro-time-grid-bar]")!).backgroundColor;
@@ -1377,6 +1378,52 @@ describe("TimeGrid background events", () => {
     await rerender({ events: [forum, standup], backgroundEvents: [] });
     expect(lanes()).toEqual([]);
     expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(1);
+  });
+
+  it.each(["ltr", "rtl"] as const)("leaves room for the background lane only where a background event shares an event's time (%s)", async (direction) => {
+    if (direction === "rtl") {
+      document.documentElement.dir = "rtl";
+      onTestFinished(() => {
+        document.documentElement.dir = "";
+      });
+    }
+    const busy: TimeGridEvent = { id: "busy", title: "Room booked", start: at(12, "10:00"), end: at(12, "11:00") };
+    const during: TimeGridEvent = { id: "during", title: "During", start: at(12, "10:30"), end: at(12, "11:30") };
+    const after: TimeGridEvent = { id: "after", title: "After", start: at(12, "14:00"), end: at(12, "15:00") };
+    await render({ view: "day", events: [during, after], backgroundEvents: [busy] });
+    const body = titled("After").closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect();
+    const lane = body.width;
+    const inset = (title: string) => {
+      const box = titled(title).getBoundingClientRect();
+      return direction === "ltr" ? box.left - body.left : body.right - box.right;
+    };
+    expect(inset("During")).toBeGreaterThanOrEqual(lane * 0.4);
+    expect(inset("After")).toBeLessThanOrEqual(2);
+    expect(titled("After").getBoundingClientRect().width).toBeGreaterThan(lane * 0.9);
+  });
+
+  it("keeps the full width for events that only touch a background event's time", async () => {
+    const busy: TimeGridEvent = { id: "busy", title: "Room booked", start: at(12, "10:00"), end: at(12, "11:00") };
+    const ev = (id: string, from: string, to: string): TimeGridEvent => ({ id, title: id, start: at(12, from), end: at(12, to) });
+    await render({ view: "day", events: [ev("Before", "08:00", "10:00"), ev("Touching", "11:00", "11:45"), ev("First", "13:00", "14:00"), ev("Second", "13:30", "14:30")], backgroundEvents: [busy] });
+    const body = titled("Before").closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect();
+    const inset = (title: string) => titled(title).getBoundingClientRect().left - body.left;
+    expect([inset("Before"), inset("Touching")]).toEqual([1, 1]);
+    expect(inset("First")).toBe(1);
+  });
+
+  it("shares the lane across a stack that overlaps a background event through one event", async () => {
+    const busy: TimeGridEvent = { id: "busy", title: "Room booked", start: at(12, "10:00"), end: at(12, "11:00") };
+    const ev = (id: string, from: string, to: string): TimeGridEvent => ({ id, title: id, start: at(12, from), end: at(12, to) });
+    const { grid } = await render({ view: "day", events: [ev("First", "10:30", "11:30"), ev("Second", "11:15", "12:15")], backgroundEvents: [busy] });
+    const body = titled("First").closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect();
+    const lane = grid.ownerDocument.querySelector<HTMLElement>("[data-ouro-time-grid-background]")!.offsetWidth;
+    const free = body.width - 1 - lane;
+    const box = (title: string) => titled(title).getBoundingClientRect();
+    // The stack overlaps the background event through its first event only, yet both leave the lane free and share what is left.
+    expect(box("First").left - body.left).toBeCloseTo(lane + 1, 0);
+    expect(Math.abs(box("Second").left - body.left - (lane + 1 + free / 2))).toBeLessThan(2.5);
+    expect(Math.abs(box("Second").width - (free / 2 - 1))).toBeLessThan(2.5);
   });
 
   it("names a week's thin bars in a tooltip, and labels them in a day", async () => {
@@ -1776,6 +1823,25 @@ describe("TimeGrid slot preview", () => {
     else expect(box.right).toBeLessThanOrEqual(laneBox.left);
     const text = textBox(preview(grid)!);
     for (const bar of grid.querySelectorAll<HTMLElement>("[data-background]")) expect(meets(text, bar.getBoundingClientRect())).toBe(false);
+  });
+
+  it("starts the preview past the lane only in a slot a background event shares", async () => {
+    const early: TimeGridEvent = { id: "early", title: "Room booked", start: at(12, "10:00"), end: at(12, "11:00") };
+    const late: TimeGridEvent = { id: "late", title: "Room held", start: at(12, "15:00"), end: at(12, "16:00") };
+    const { grid } = await render({ view: "day", backgroundEvents: [early, late], onSlotSelect: vi.fn() });
+    const slots = grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-slots]")[0]!;
+    const inset = () => preview(grid)!.getBoundingClientRect().left - slots.getBoundingClientRect().left;
+    await hover(grid, 10 * 60 + 5);
+    await expect.poll(() => previewText(grid)).toBe("10:00 AM");
+    const past = inset();
+    expect(past).toBeGreaterThan(50);
+    // Where the background event ends, or has not begun, the slot has the day's width.
+    await hover(grid, 11 * 60 + 5);
+    await expect.poll(() => previewText(grid)).toBe("11:00 AM");
+    expect(inset()).toBeLessThan(past);
+    await hover(grid, 9 * 60 + 35);
+    await expect.poll(() => previewText(grid)).toBe("9:30 AM");
+    expect(inset()).toBeLessThan(past);
   });
 
   it("keeps the preview of a day that no event covers, beside another day's event", async () => {
