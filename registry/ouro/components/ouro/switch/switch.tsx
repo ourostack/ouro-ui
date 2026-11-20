@@ -84,10 +84,12 @@ const owner = { name: "Switch", data: "switch", layout: "inline" } as const;
 /** Marks the hidden input Base UI submits the switch with. */
 const markInput = controlRef("switch", "hidden-input");
 
-/** The track and thumb, inside the Field: they take their name, description and error ids from the field. */
+/** The ids in `lists`, each once, space-separated, or undefined when there are none. */
 function mergeIds(...lists: (string | undefined)[]): string | undefined {
-  const ids = lists.flatMap((list) => list?.split(/\s+/) ?? []).filter(Boolean);
-  return ids.filter((id, at) => ids.indexOf(id) === at).join(" ") || undefined;
+  // Stryker disable next-line Regex: the empty strings a looser split leaves are deleted on the next line
+  const ids = new Set(lists.join(" ").split(/\s+/));
+  ids.delete("");
+  return [...ids].join(" ") || undefined;
 }
 
 function SwitchTrack(props: {
