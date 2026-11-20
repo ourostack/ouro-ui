@@ -190,7 +190,7 @@ export interface TimeGridOwnProps {
    * @claim "start: 8, end: 17" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /const defaultWorkingHours = \{ start: 8, end: 17 \}/)
    */
   workingHours?: { start: number; end: number } | undefined;
-  /** The selected event's id: it gets an outline and `aria-current`. */
+  /** The selected event's id: it gets a deeper fill of its own colour and `aria-current`. */
   selectedId?: string | null | undefined;
   /**
    * Called with the event when someone presses it, or presses Enter on it, and with its element

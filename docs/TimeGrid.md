@@ -47,7 +47,7 @@ Type: `TimeGridProps`.
 | `onSlotSelect` | `((slot: TimeGridSlot) => void)` |  | Called when someone presses an empty part of a day, with the slot under the pointer, for a new event there. A mouse shows the slot before the press. Slots answer a pointer only, so give keyboards a New event button of your own as well. |
 | `ref` | `Ref<HTMLDivElement>` |  | The grid's root element. |
 | `renderDaySummary` | `((day: string) => ReactNode)` |  | Content of your own under each day's header, such as a count or a load bar. It gets the day as an ISO date. Screen readers read it, so give a bar words of its own. |
-| `selectedId` | `string \| null` |  | The selected event's id: it gets an outline and `aria-current`. |
+| `selectedId` | `string \| null` |  | The selected event's id: it gets a deeper fill of its own colour and `aria-current`. |
 | `slotMinutes` | `15 \| 30 \| 60` | `30` | How long a slot `onSlotSelect` gets is, in minutes: 15, 30 or 60. |
 | `stackLabel` | `((count: number) => string)` | `` (count) => `${count} events` `` | The words on a stack of a day's background events drawn as one: in a day too narrow to label each of them, overlapping background events show as one block with their count, which opens their list. Translate it with your app. |
 | `statusLabels` | `TimeGridStatusLabels` | { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" } | The words screen readers hear for each status, after the event's title. Translate them with your app. |

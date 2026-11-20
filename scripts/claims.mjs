@@ -4,7 +4,8 @@
 //   pnpm claims:check              lints every surface and runs every claim's checks
 //   pnpm claims:lint <file>…       the same for some files; --pr lints a pull request's title and
 //                                  body (PR_TITLE, PR_BODY, or --title and --body-file) and the change
-//                                  fragments its branch adds or changes, --stdin reads a draft
+//                                  fragments its branch adds or changes, and runs the base ratchets
+//                                  (baseRatchets); --stdin reads a draft
 //   pnpm claims:show <file>        lists the file's claims, their sources and each check's result
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -131,6 +132,48 @@ export function withBranchFragments(args, root) {
   return [...args, ...files.filter((file) => !args.includes(file))];
 }
 
+/**
+ * `lint --pr` also runs the Claims workflow's checks against the base: an exemption claims.config.json adds
+ * (`ratchet`) and a `// real clock:` escape a test adds (scripts/real-clock-ratchet.mjs) each fail unless the
+ * pull request's description names it. Without them here, `gh ouro-pr` and the pre-push hook passed a description
+ * the workflow then failed. They run against the branch's merge base with origin/main or else main, with the body
+ * from --body-file or PR_BODY; with no base to compare (CI's merge checkout), the workflow's own step runs them.
+ * Returns the exit code, 0 when both pass or there is nothing to compare.
+ */
+export function baseRatchets(args, root, env = process.env, run = runRatchet) {
+  if (args[0] !== "lint" || !args.includes("--pr")) return 0;
+  const { base } = branchFragments(root);
+  const mergeBase = base && git(root, ["merge-base", base, "HEAD"])?.trim();
+  if (!mergeBase) return 0;
+  const at = args.indexOf("--body-file");
+  let body = env.PR_BODY ?? "";
+  if (at !== -1) {
+    try {
+      body = readFileSync(args[at + 1] ?? "", "utf8");
+    } catch {
+      return 0;
+    }
+  }
+  const codes = [
+    run(root, ["scripts/claims.mjs", "ratchet"], { ...env, PR_BODY: body, CLAIMS_BASE_REF: mergeBase }),
+    run(root, ["scripts/real-clock-ratchet.mjs"], { ...env, PR_BODY: body, REAL_CLOCK_BASE_REF: mergeBase }),
+  ];
+  return codes.find((code) => code !== 0) ?? 0;
+}
+
+/** Runs one ratchet script with node, its problems on stderr; returns its exit code. */
+function runRatchet(root, args, env) {
+  try {
+    execFileSync(process.execPath, args, { cwd: root, env, stdio: ["ignore", "ignore", "inherit"] });
+    return 0;
+  } catch (error) {
+    return error.status ?? 1;
+  }
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  process.exitCode = await main(withBranchFragments(process.argv.slice(2), repoRoot), { root: repoRoot, hooks, guide: "docs/guides/claims.md" });
+  const args = process.argv.slice(2);
+  const linted = await main(withBranchFragments(args, repoRoot), { root: repoRoot, hooks, guide: "docs/guides/claims.md" });
+  const ratchets = baseRatchets(args, repoRoot);
+  process.exitCode = linted || ratchets;
 }

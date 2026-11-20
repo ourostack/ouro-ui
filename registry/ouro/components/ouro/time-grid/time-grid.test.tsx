@@ -746,7 +746,7 @@ describe("TimeGrid", () => {
     expect(events()).toEqual([]);
   });
 
-  it("draws keyboard focus apart from selection: a ring outside the event, where selection is a line just inside it", async () => {
+  it("draws keyboard focus apart from selection: a ring outside the event, where selection is a deeper fill", async () => {
     await render({ view: "day", events: [forum, focus], selectedId: "forum" });
     const colour = (value: string) => {
       const probe = document.createElement("span");
@@ -762,16 +762,15 @@ describe("TimeGrid", () => {
     const selected = titled("Architecture forum");
     const unfocused = look(selected);
     expect(unfocused.outline).toBe("none");
-    expect(unfocused.shadow).toContain(colour("var(--foreground)"));
-    expect(unfocused.shadow).toContain("inset");
-    // The keyboard reaches the selected event: the ring shows, in the theme's ring colour, with a gap, and the line inside stays.
+    expect(unfocused.shadow).toBe("none");
+    // The keyboard reaches the selected event: the ring shows, in the theme's ring colour, with a gap, and the fill stays.
     titled("Focus time").focus();
     await press("{ArrowUp}");
     expect(document.activeElement).toBe(selected);
     const focused = look(selected);
     expect([focused.outline, focused.offset, focused.outlineColour]).toEqual(["solid", "2px", colour("var(--ring)")]);
     expect(focused.shadow).toBe(unfocused.shadow);
-    // An event that is not selected shows the same ring when focused, and no line inside.
+    // An event that is not selected shows the same ring when focused.
     await press("{ArrowDown}");
     expect(document.activeElement).toBe(titled("Focus time"));
     expect([look(titled("Focus time")).outline, look(titled("Focus time")).offset, look(titled("Focus time")).shadow]).toEqual(["solid", "2px", "none"]);
