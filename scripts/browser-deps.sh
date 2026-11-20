@@ -45,7 +45,20 @@ printf 'Dir::Cache::Archives "%s/";\nAPT::Keep-Downloaded-Packages "true";\nBina
 # try first mends what a stopped one left half unpacked, which dpkg would otherwise refuse to
 # install over.
 printf 'Acquire::http::Timeout "60";\nAcquire::https::Timeout "60";\nAcquire::Retries "3";\n' | sudo tee /etc/apt/apt.conf.d/90ouro-acquire > /dev/null
+# timeout stops pnpm but not the apt-get Playwright started under sudo, which went on holding apt's list lock, so every
+# later try failed at once on it (main's run 44663533747). So a try after the first stops what the last one left
+# running; the first leaves alone an apt the runner started itself, which the lock timeout above waits for. The mark
+# that a try has run is named for retry.sh's process, which runs every try, and lives outside <dir>, which is cached.
 # shellcheck disable=SC2016 # expanded by the inner shell, once per try
-"$here/retry.sh" bash -c 'sudo dpkg --configure -a > /dev/null 2>&1 || true; exec timeout 900 pnpm exec playwright install-deps "$@"' _ "$@"
+"$here/retry.sh" bash -c '
+  tried="${TMPDIR:-/tmp}/ouro-browser-deps-tried-$PPID"
+  if [ -e "$tried" ]; then
+    sudo pkill -x apt-get > /dev/null 2>&1 || true
+    sleep 2
+    sudo pkill -KILL -x apt-get > /dev/null 2>&1 || true
+  fi
+  touch "$tried"
+  sudo dpkg --configure -a > /dev/null 2>&1 || true
+  exec timeout 900 pnpm exec playwright install-deps "$@"' _ "$@"
 # apt leaves partial/ to its own user; the cache's tar reads the folder as the runner's.
 sudo chmod -R a+rX "$dir"
