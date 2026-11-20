@@ -1,6 +1,12 @@
-import { createElement } from "react";
+import { createElement, type ComponentProps } from "react";
 import { expectTypeOf } from "vitest";
 import { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "@/registry/ouro/components/ouro/radio-group/radio-group";
+
+// A call site's props, typed as the component takes them. A case below keeps children in the props object because it
+// checks the props a call passes, children among them, and a .ts file has no JSX to put children in; an app's lint
+// (react(no-children-prop)) flags children passed in createElement's props, so the check doesn't call createElement.
+const propsOf = <P>(value: P): P => value;
+
 expectTypeOf<readonly ["Taken."]>().toExtend<NonNullable<RadioGroupProps["error"]>>();
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
@@ -54,6 +60,6 @@ expectTypeOf<{ legend: "Size"; helperText: "Hint"; options: typeof options }>().
 
 // The same checks through JSX.
 // @ts-expect-error options and children, not both.
-createElement(RadioGroup, { legend: "Size", options, children: null });
+propsOf<ComponentProps<typeof RadioGroup>>({ legend: "Size", options, children: null });
 // @ts-expect-error a Radio's checked state is the group's value.
 createElement(Radio, { value: "small", label: "Small", checked: true });

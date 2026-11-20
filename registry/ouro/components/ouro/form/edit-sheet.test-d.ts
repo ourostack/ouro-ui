@@ -1,7 +1,12 @@
-import { createElement } from "react";
+import { createElement, type ComponentProps } from "react";
 import { expectTypeOf } from "vitest";
 import { EditSheet, type EditSheetProps } from "@/registry/ouro/components/ouro/form/edit-sheet";
 import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
+
+// A call site's props, typed as the component takes them. A case below keeps children in the props object because it
+// checks the props a call passes, children among them, and a .ts file has no JSX to put children in; an app's lint
+// (react(no-children-prop)) flags children passed in createElement's props, so the check doesn't call createElement.
+const propsOf = <P>(value: P): P => value;
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
 // fails the check if the line below it stops being an error.
@@ -29,12 +34,12 @@ expectTypeOf<{
   onDiscard: () => void;
   className: "mt-4";
 }>().toExtend<EditSheetProps>();
-createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: async () => {}, children: "Fields" });
+propsOf<ComponentProps<typeof EditSheet>>({ title: "Edit recipe", trigger, onSubmit: async () => {}, children: "Fields" });
 const readonlyErrors = { name: ["Required."] as const };
-createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: () => readonlyErrors, children: "Fields" });
-createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: async () => readonlyErrors, children: "Fields" });
-createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: () => formErrors({}, readonlyErrors), children: "Fields" });
-createElement(EditSheet, { title: "Edit recipe", trigger, onSubmit: async () => formErrors({}, readonlyErrors), children: "Fields" });
+propsOf<ComponentProps<typeof EditSheet>>({ title: "Edit recipe", trigger, onSubmit: () => readonlyErrors, children: "Fields" });
+propsOf<ComponentProps<typeof EditSheet>>({ title: "Edit recipe", trigger, onSubmit: async () => readonlyErrors, children: "Fields" });
+propsOf<ComponentProps<typeof EditSheet>>({ title: "Edit recipe", trigger, onSubmit: () => formErrors({}, readonlyErrors), children: "Fields" });
+propsOf<ComponentProps<typeof EditSheet>>({ title: "Edit recipe", trigger, onSubmit: async () => formErrors({}, readonlyErrors), children: "Fields" });
 
 // title and onSubmit are required.
 expectTypeOf<{ trigger: typeof trigger; onSubmit: typeof save; children: "Fields" }>().not.toExtend<EditSheetProps>();
@@ -57,4 +62,4 @@ expectTypeOf<Base & { onClose: () => void }>().not.toExtend<EditSheetProps>();
 
 // The same checks through JSX.
 // @ts-expect-error onSave is not a prop; use onSubmit.
-createElement(EditSheet, { title: "Edit recipe", trigger, onSave: save, children: "Fields" });
+propsOf<ComponentProps<typeof EditSheet>>({ title: "Edit recipe", trigger, onSave: save, children: "Fields" });
