@@ -2700,6 +2700,7 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "squircle-cost.yml": "  group: squircle-cost-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "ax-xray.yml": "  group: ax-xray-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "first-run-windows.yml": "  group: first-run-windows-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "playwright-mirror.yml": "  group: playwright-mirror-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "incumbent.yml": "  group: incumbent-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "first-run-sso.yml": "  group: first-run-sso-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
   };

@@ -1,0 +1,58 @@
+name: Playwright image mirror
+# Copies the Playwright image CI's browser jobs run in from mcr.microsoft.com to this organization's
+# GitHub container registry, by digest, so a job's container start does not depend on
+# mcr.microsoft.com answering from the runner (its pulls timed out on every retry in CI runs). The
+# digest is the one ci.yml pins; the copy keeps it, and the job fails if it does not. A change to
+# the pin in ci.yml starts this run on its pull request, so the copy exists for the CI run that
+# reads it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ci.yml
+      - .github/workflows/playwright-mirror.yml
+  pull_request:
+    paths:
+      - .github/workflows/ci.yml
+      - .github/workflows/playwright-mirror.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: playwright-mirror-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  mirror:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Copy the pinned image
+        env:
+          GH_ACTOR: ${{ github.actor }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          digest=$(grep -m1 -o 'playwright@sha256:[0-9a-f]\{64\}' .github/workflows/ci.yml | cut -d@ -f2)
+          tag=$(grep -m1 'playwright@sha256' .github/workflows/ci.yml | sed -E 's/.*# (v[^ ]+).*/\1/')
+          target=ghcr.io/ourostack/playwright
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
+          if docker buildx imagetools inspect "$target@$digest" > /dev/null 2>&1; then
+            echo "$target@$digest is already there."
+            exit 0
+          fi
+          for attempt in 1 2 3; do
+            docker buildx imagetools create --annotation "index:org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" --tag "$target:$tag" "mcr.microsoft.com/playwright@$digest" && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep $((attempt * 10))
+          done
+          copied=$(docker buildx imagetools inspect "$target:$tag" --format '{{json .Manifest}}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["digest"])')
+          if [ "$copied" != "$digest" ]; then
+            echo "::error::The copy has digest $copied, not the pinned $digest."
+            exit 1
+          fi
+          echo "Mirrored $target:$tag at $digest."
