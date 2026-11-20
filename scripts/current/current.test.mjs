@@ -1105,6 +1105,45 @@ test("an update that vendors a new action generator generates the projections ag
   assert.deepEqual(lintMarkdown(body, { file: "pull request body" }), []);
 });
 
+// As ouro-md runs its generator: a shell wrapper names the generator, the declarations and the folder in variables,
+// and its workflow calls the wrapper, never the generator itself (ouro-md#215).
+const WRAPPER = `#!/usr/bin/env bash
+#   scripts/ouro-actions.sh generate          write every door from the declaration
+#   scripts/ouro-actions.sh check             nothing generated has drifted
+set -euo pipefail
+ROOT="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+DIR=tools/ouro-actions
+GEN="$DIR/ouro-actions.mts"
+DECLARATIONS=actions/notes.actions.mts
+OUT='actions/generated'
+
+case "\${1:-}" in
+  generate)
+    node "$GEN" generate "$DECLARATIONS" "$OUT"
+    ;;
+  check)
+    node "$GEN" check "$DECLARATIONS" "$OUT"
+    ;;
+  report)
+    node "$GEN" check "$DECLARATIONS" "$OUT" --report "\${2:-xray/actions/report.json}"
+    ;;
+esac
+`;
+
+test("an update that vendors a new action generator follows a shell script that runs it, as ouro-md's wrapper does", async () => {
+  const workflow = "jobs:\n  bundle:\n    steps:\n      - run: scripts/ouro-actions.sh check\n";
+  const repo = fakeRepo(oldActionsApp({ "scripts/ouro-actions.sh": WRAPPER, ".github/workflows/app-bundle.yml": workflow }));
+  await keepRepo(repo.gh, "o/r", RELEASES, newCore());
+  assert.match(repo.fileAt(BRANCH, "actions/generated/mcp.json"), /"title": "Delete a note"/);
+  assert.match(repo.fileAt(BRANCH, "actions/generated/webmcp.json"), /"title": "List the notes"/);
+  assert.equal(repo.fileAt(BRANCH, "scripts/ouro-actions.sh"), WRAPPER, "the wrapper is read, never written");
+  const body = repo.pulls[0].body;
+  assert.match(body, /Runs `generate` with the new `tools\/ouro-actions\/ouro-actions\.mts` on `actions\/notes\.actions\.mts`, as `scripts\/ouro-actions\.sh` does, and commits what it changed: [^\n]*`actions\/generated\/mcp\.json`/);
+  assert.doesNotMatch(body, /could not find a step/);
+  assert.deepEqual(lintMarkdown(body, { file: "pull request body" }), []);
+});
+
 test("an update that vendors a new action generator finds generate in a workflow, and says so when it finds no generate step", async () => {
   // As m365crawl runs it: the check in its X-ray workflow, a command split over two lines, no package.json.
   const workflow = "jobs:\n  x:\n    steps:\n      - run: |\n          node tools/ouro-actions/ouro-actions.mts check actions/notes.actions.mts actions/generated \\\n            --report xray-actions/report.json --app notes\n";

@@ -11,8 +11,34 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 const GENERATOR = /(^|\/)ouro-actions\.mts$/;
-/** Where a repository says how it runs generate: its package scripts, its workflows and its Makefile or justfile. */
-const SOURCE = /(^|\/)package\.json$|^\.github\/workflows\/[^/]+\.ya?ml$|^(?:Makefile|makefile|GNUmakefile|justfile|Justfile|\.justfile)$/;
+/**
+ * Where a repository says how it runs generate: its package scripts, its workflows, its Makefile or justfile, and a
+ * shell script those call, such as ouro-md's `scripts/ouro-actions.sh generate` (ouro-md#215).
+ */
+const SOURCE = /(^|\/)package\.json$|^\.github\/workflows\/[^/]+\.ya?ml$|^(?:Makefile|makefile|GNUmakefile|justfile|Justfile|\.justfile)$|(^|\/)scripts\/[^/]+\.sh$|^[^/]+\.sh$/;
+const SHELL = /\.sh$/;
+const ASSIGNMENT = /^\s*(?:export\s+|readonly\s+|local\s+)?([A-Za-z_]\w*)=("([^"`]*)"|'([^']*)'|([^\s"'`;|&]*))\s*(?:#.*)?$/;
+const REFERENCE = /\$\{([A-Za-z_]\w*)\}|\$([A-Za-z_]\w*)/g;
+
+/**
+ * A shell script with the plain values it assigns written in where it uses them, so `node "$GEN" generate
+ * "$DECLARATIONS" "$OUT"` reads as the command it runs. A value that is not plain text (a command's output, an
+ * argument, a default) stays a variable, and a command that uses one is not read as a step.
+ */
+function expandShell(text) {
+  const known = new Map();
+  const expand = (line) => line.replace(REFERENCE, (all, braced, bare) => known.get(braced ?? bare) ?? all);
+  return text.split("\n").map((line) => {
+    const assigned = ASSIGNMENT.exec(line);
+    if (assigned) {
+      const value = expand(assigned[3] ?? assigned[4] ?? assigned[5] ?? "");
+      if (!/\$/.test(value)) known.set(assigned[1], value);
+      else known.delete(assigned[1]);
+      return line;
+    }
+    return expand(line).replace(/"([^"$]*)"/g, "$1");
+  }).join("\n");
+}
 const notRead = /(^|\/)node_modules\//;
 const PATH = String.raw`["']?((?:\.\/)?[\w@.\/-]+)["']?`;
 // `<generator> generate|check <declarations> <folder>`: check takes the same two arguments as generate, so either names
@@ -26,9 +52,11 @@ const list = (paths) => paths.map(code).join(", ");
 async function generateSteps(generators, ctx) {
   const steps = [];
   for (const path of ctx.consumerPaths().filter((path) => SOURCE.test(path) && !notRead.test(path)).sort()) {
-    const text = (await ctx.consumerFile(path))?.toString("utf8").replace(/\\\r?\n/g, " ");
-    if (!text) continue;
-    // A package script runs in its package's folder; a workflow or a Makefile at the root.
+    const read = (await ctx.consumerFile(path))?.toString("utf8").replace(/\\\r?\n/g, " ");
+    if (!read) continue;
+    const text = SHELL.test(path) ? expandShell(read) : read;
+    // A package script runs in its package's folder; a workflow, a Makefile or a shell script at the root, where a
+    // wrapper like ouro-md's changes to before it runs the generator.
     const cwd = posix.basename(path) === "package.json" ? posix.dirname(path) : ".";
     const at = (relative) => posix.normalize(posix.join(cwd, relative));
     for (const match of text.matchAll(COMMAND)) {
@@ -101,7 +129,7 @@ export async function regenerate(files, ctx) {
   for (const generator of generators) {
     const mine = steps.filter((step) => step.generator === generator);
     if (!mine.length) {
-      notes.push(`Leaves the projections as they were: Ouro Current reads how a repository runs \`generate\` from its package scripts, workflows and Makefile, and could not find a step that runs ${code(generator)}. Run \`node ${generator} generate <declarations> <folder>\` and commit what changes, or the projections check can fail on this update.`);
+      notes.push(`Leaves the projections as they were: Ouro Current reads how a repository runs \`generate\` from its package scripts, workflows, Makefile and shell scripts, and could not find a step that runs ${code(generator)}. Run \`node ${generator} generate <declarations> <folder>\` and commit what changes, or the projections check can fail on this update.`);
       continue;
     }
     for (const step of mine) {
