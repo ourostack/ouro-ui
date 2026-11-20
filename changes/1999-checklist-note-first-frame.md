@@ -1,0 +1,1 @@
+- Fixed: a Checklist row whose out-of-order note is there at mount draws it at full opacity on the first frame; the note fades in only when a row goes out of order after mount.

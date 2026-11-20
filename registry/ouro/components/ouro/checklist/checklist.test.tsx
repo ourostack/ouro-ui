@@ -644,6 +644,28 @@ describe("Checklist ordered", () => {
     expect(row("Add the leaves")).not.toHaveAttribute("data-out-of-order");
   });
 
+  it("draws a note present at mount at once, and fades one in that comes later", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    const steps = (warm: boolean) => tea.map((step) => (step.id === "warm" ? { ...step, checked: warm } : step));
+    const list = (warm: boolean) => <Checklist label="Steps" ordered items={steps(warm)} onCheckedChange={() => {}} />;
+    try {
+      const note = () => host.querySelector<HTMLElement>('[data-ouro-part="note"]')!;
+      flushSync(() => root.render(list(true)));
+      expect(getComputedStyle(note()).opacity).toBe("1");
+      expect(note().getAnimations()).toEqual([]);
+      flushSync(() => root.render(list(false)));
+      flushSync(() => root.render(list(true)));
+      expect(note().getAnimations().some((a) => a instanceof CSSTransition && a.transitionProperty === "opacity")).toBe(true);
+    } finally {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      root.unmount();
+      host.remove();
+    }
+  });
+
   it("says a row was out of order only when it goes out of order, not on the first render", async () => {
     const announcements = watchAnnouncements();
     const { row } = await render(
