@@ -105,14 +105,17 @@ async function foldsStill(page: Page): Promise<void> {
 }
 
 /**
- * The sheet has finished moving: it has left its starting style, nothing animates on it (the "you're here" ping inside
+ * The sheet has finished moving: it has left its starting style, nothing runs or waits to run on it (the "you're here" ping inside
  * may go on), and two reads of its place agree. The starting style parks it off-screen before the slide begins, where two
  * reads would agree too.
  */
 async function settled(page: Page): Promise<void> {
   const place = () =>
     sheet(page).evaluate((element) =>
-      element.hasAttribute("data-starting-style") || element.hasAttribute("data-ending-style") || element.getAnimations().length > 0
+      // Only an animation still running or about to: a finished one that stays attached (a fill) moves nothing (#709).
+      element.hasAttribute("data-starting-style") ||
+      element.hasAttribute("data-ending-style") ||
+      element.getAnimations().some((animation) => animation.playState === "running" || animation.pending)
         ? "moving"
         : `${element.getBoundingClientRect().x}`,
     );
