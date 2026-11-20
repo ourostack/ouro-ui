@@ -13,8 +13,15 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Try every prop. */
-export const Playground: Story = {};
+/** Try every prop. The dot marks the conversation beside it. */
+export const Playground: Story = {
+  render: (args) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--foreground)" }}>
+      <span>Ana Lind</span>
+      <UnreadDot {...args} />
+    </div>
+  ),
+};
 
 /** In a row's mark slot, beside the title it marks. */
 export const InARow: Story = {
