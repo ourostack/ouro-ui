@@ -1,0 +1,7 @@
+# Changes in this release
+
+- Fixed: [MessageList pays what a wheel carried and a later change above in one scroll write](registry/ouro/components/ouro/message/message-list.windowing.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > pays what it carries together with a later change above in one write once the wheel has rested, never in two that each round to whole pixels (#1646))"), so the reader's place stays within 2 px in WebKit, where two writes each round to whole pixels.
+- Fixed: a Checklist row whose out-of-order note is there at mount draws it at full opacity on the first frame; the note fades in only when a row goes out of order after mount.
+- Fixed: a Composer whose quote is there at mount draws the quote strip at full opacity on the first frame; the strip fades in only when a quote arrives after mount.
+- Fixed: a Porthole that opens its detail lines at mount (`defaultOpen`) draws them at full opacity on the first frame; the lines fade in only when they open after mount.
+- New: Ouro check's `popup-first-frame` rule opens the popups a page has, records their boxes as they settle, and fails a popup drawn somewhere other than where it settles, not counting its own scale or fade, as one measured against the viewport and drawn inside a layer far down the page is; it reports first, so an app waives it with a reason while it fixes its findings.
