@@ -10,7 +10,7 @@ const navbar = (
     label="Main"
     brand={
       <Text>
-        <strong>Spoonjoy</strong>
+        <strong style={{ fontWeight: 600 }}>Spoonjoy</strong>
       </Text>
     }
     items={[
