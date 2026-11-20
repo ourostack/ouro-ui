@@ -73,4 +73,13 @@ describe("Accordion item disabledReason", () => {
     expect(el.getAttribute("aria-expanded")).toBe("true");
     await expect.poll(() => tooltip()).toBeNull();
   });
+
+  it("lets a reason win over disabled, so the title stays focusable and shows it", async () => {
+    await render(<Accordion items={[{ value: "a", title: "Storage", content: "x", disabled: true, disabledReason: "Frozen for audit" }]} />);
+    const el = document.querySelector<HTMLElement>("[data-ouro-part=trigger]")!;
+    await pressTab();
+    expect(document.activeElement).toBe(el);
+    await userEvent.keyboard("{Enter}");
+    expect(el.getAttribute("aria-expanded")).toBe("false");
+  });
 });
