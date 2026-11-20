@@ -2,6 +2,7 @@
 // The MCP door: lists the tools in generated/mcp.json and answers each call with the app's own handler.
 import { createInterface } from "node:readline";
 import { readFileSync } from "node:fs";
+import { URL } from "node:url";
 import { handlers } from "./tasks.mjs";
 
 const { tools } = JSON.parse(readFileSync(new URL("../generated/mcp.json", import.meta.url), "utf8"));
