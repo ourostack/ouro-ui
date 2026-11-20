@@ -435,10 +435,6 @@
     "status": 200,
     "checked": "2026-11-19"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/3410bcdc81d46ffb88a35d0b2d605bae3d68a575/docs/decisions/2026-11-19-evidence-from-people.md": {
-    "status": 200,
-    "checked": "2026-11-20"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45": {
     "status": 200,
     "checked": "2026-11-18"
@@ -466,6 +462,10 @@
   "https://github.com/ourostack/ouro-ui-core/blob/2fab8a308f72381f0bcb244722cc10976fd27d14/parity.json": {
     "status": 200,
     "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/3410bcdc81d46ffb88a35d0b2d605bae3d68a575/docs/decisions/2026-11-19-evidence-from-people.md": {
+    "status": 200,
+    "checked": "2026-11-20"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md": {
     "status": 200,
