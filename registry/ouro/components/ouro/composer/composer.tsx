@@ -270,11 +270,12 @@ const frameClass =
   "ouro-field-cue outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid " +
   "[&_textarea:focus-visible]:outline-0";
 
-// The quote: a box on the muted surface with a hairline, which fades in when it appears (not
-// with reduced motion). Message's quote looks the same (message.tsx).
+// The quote: a box on the muted surface with a hairline, which fades in when it appears after the
+// composer is on screen (not with reduced motion); a quote there at mount is drawn at once. Message's quote looks the same (message.tsx).
 const quoteBoxClass =
   "flex min-w-0 items-center gap-1 rounded-ouro-inner [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-muted pe-1 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid " +
-  "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:transition-none";
+  "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none";
+const quoteFadeClass = "starting:opacity-0";
 const quoteBodyClass = "flex min-w-0 flex-1 items-center gap-2 p-1.5";
 // The quote as a button: it highlights while hovered rather than scaling, as a wide row does, and
 // with two lines of text it is taller than a touch target already.
@@ -466,6 +467,11 @@ export function Composer(props: ComposerProps): JSX.Element {
     expandable: expandableHint,
     ...rest
   } = props;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
   const [ownExpanded, setOwnExpanded] = useState(defaultExpanded ?? false);
   const expandable = expandedProp !== undefined || defaultExpanded !== undefined || onExpandedChange !== undefined;
   // The person can expand and collapse it: the composer holds the state, or the app listens.
@@ -660,7 +666,7 @@ export function Composer(props: ComposerProps): JSX.Element {
         )}
         {quote && (
           <div className="px-1 pt-1">
-            <div data-ouro-composer-quote="" className={quoteBoxClass}>
+            <div data-ouro-composer-quote="" className={cn(quoteBoxClass, mounted && quoteFadeClass)}>
               {quote.onActivate ? (
                 <button type="button" data-ouro-control="composer" data-ouro-part="quote" onClick={quote.onActivate} className={quoteButtonClass}>
                   <QuoteBody quote={quote} id={id} />
