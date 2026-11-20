@@ -42,10 +42,9 @@ export async function watchHang(page: Page): Promise<() => void> {
   const check = async () => {
     const answered = await Promise.race([page.evaluate(() => true).catch(() => true), new Promise<false>((resolve) => setTimeout(() => resolve(false), 4_000))]);
     if (answered) return;
-    type Frame = { functionName: string; url: string; location: { lineNumber: number; columnNumber: number } };
     const paused = new Promise<string[]>((resolve) =>
-      cdp.once("Debugger.paused", (event: { callFrames: Frame[] }) =>
-        resolve(event.callFrames.slice(0, 30).map((frame) => `${frame.functionName || "(anonymous)"} ${frame.url.split("/").pop()}:${frame.location.lineNumber + 1}:${frame.location.columnNumber + 1}`)),
+      cdp.once("Debugger.paused", (event) =>
+        resolve(event.callFrames.slice(0, 30).map((frame) => `${frame.functionName || "(anonymous)"} ${frame.url.split("/").pop()}:${frame.location.lineNumber + 1}:${(frame.location.columnNumber ?? 0) + 1}`)),
       ),
     );
     await cdp.send("Debugger.pause");
