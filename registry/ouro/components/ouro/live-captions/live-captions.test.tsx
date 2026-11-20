@@ -686,10 +686,17 @@ describe("LiveCaptions motion", () => {
     const first = lift(track);
     expect(first).toBeGreaterThan(0);
     expect(first).toBeLessThanOrEqual(28);
-    // Another line before the slide ends: the lines start from where they are drawn, one more line down.
+    // Another line before the slide ends: the lines start from where they are drawn, one more line down. The slide is held
+    // where it was read, and the next one read at its start, so a slow runner's frames during the render can't carry
+    // either on before the read (#735).
+    slide!.pause();
     await rerender(<LiveCaptions label="Captions" lines={[a, b, c, d]} />);
+    const [again] = track.getAnimations() as CSSTransition[];
+    again!.pause();
+    again!.currentTime = 0;
     expect(lift(track)).toBeGreaterThan(28);
     expect(lift(track)).toBeLessThanOrEqual(first + 28 + 0.5);
+    again!.play();
     await expect.poll(() => track.getAnimations().length).toBe(0);
     expect(lift(track)).toBe(0);
     expect(row("4").getBoundingClientRect().bottom).toBeCloseTo(bottom(), 0);
