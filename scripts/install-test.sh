@@ -84,6 +84,9 @@
 #   OURO_CHECK_ONLY             runs only the type check, the build and the install check of the
 #                               shipped tests in <app-dir>, a tree OURO_SKIP_CHECKS left; for the shadcn
 #                               variant, also adds the Node-only tools and checks them (see shadcn below).
+#   OURO_AX_SHARD               <index>/<count>, with OURO_CHECK_ONLY on the shadcn variant: this job runs
+#                               only its share of the Ouro AX tests (node --test --test-shard); the job
+#                               whose index is 1 runs every other check too, so each runs once.
 #   OURO_REUSE_APP              skips all of that and runs the shipped tests in <app-dir>, which
 #                               must be the tree a prepare run left, restored at the same path.
 #
@@ -764,7 +767,10 @@ node -e '
 echo "::endgroup::"
 fi
 
-if [ -z "${OURO_REUSE_APP:-}" ] && [ -z "${OURO_SKIP_CHECKS:-}" ]; then
+ax_shard="${OURO_AX_SHARD:-1/1}"
+ax_first=1
+[ "${ax_shard%%/*}" = 1 ] || ax_first=0
+if [ -z "${OURO_REUSE_APP:-}" ] && [ -z "${OURO_SKIP_CHECKS:-}" ] && { [ -z "${OURO_CHECK_ONLY:-}" ] || [ "$ax_first" = 1 ]; }; then
 echo "::group::Check the app with the shipped tests"
 # The type check and the build read the same files and write nothing the other reads, so they run at once.
 npx tsc -b &
@@ -789,13 +795,17 @@ node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$regis
 "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
 "${shadcn[@]}" add --yes "$registry/r/ouro-check.json" "$registry/r/ouro-images.json" "$registry/r/ouro-ax.json" "$registry/r/ouro-ax-tests.json" "$registry/r/ouro-feel-probe.json"
 npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"
+if [ "$ax_first" = 1 ]; then
 node "$root/scripts/install-check.mjs" --node-tools "$app"
 npx tsc -b
-node --test scripts/ouro/ax/*.test.mts
+fi
+node --test --test-shard="$ax_shard" scripts/ouro/ax/*.test.mts
+if [ "$ax_first" = 1 ]; then
 node scripts/ouro/check/check.ts --help
 # Ouro Feel's probe arrives as the registry built it, a plain script the CLI leaves unchanged.
 cmp scripts/ouro/feel/ouro-feel-probe.js "$root/registry/ouro/feel/ouro-feel-probe.js"
 node --check scripts/ouro/feel/ouro-feel-probe.js
+fi
 echo "::endgroup::"
 fi
 
