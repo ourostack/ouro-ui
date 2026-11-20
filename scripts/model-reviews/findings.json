@@ -465,8 +465,8 @@
         }
       ],
       "issue": 2292,
-      "status": "open",
-      "change": null
+      "status": "answered",
+      "change": "The home page, the Ouro AX guide, llms.txt and the README's top were read for superlatives and unsourced claims. What remains is the decided positioning (the title and the hero's \"complete kit for agents\"); the At a glance list, the floor wording and the open questions are sourced and plain. No further rewrite was needed."
     },
     {
       "id": "model-reviews-page-backfires",
@@ -495,8 +495,8 @@
         }
       ],
       "issue": 2293,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "The page now opens with what the findings changed in Ouro and what is still open, and states the A2UI result with Ouro's answer. Every result is kept."
     },
     {
       "id": "kits-unproven-on-real-hardware",
@@ -699,8 +699,8 @@
         }
       ],
       "issue": 2298,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "A fair side-by-side with Agent-Native now sits in the guides: what each does, where each is stronger, when to pick which, and whether they combine, with Agent-Native's own README cited at a pinned commit."
     },
     {
       "id": "a2ui-default-card-format",

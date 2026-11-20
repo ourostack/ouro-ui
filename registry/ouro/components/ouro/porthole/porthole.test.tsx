@@ -243,6 +243,27 @@ describe("Porthole", () => {
     expect(view.porthole.getAttribute("data-open")).toBe("");
   });
 
+  it("draws lines open at mount at once, and fades them in when they open later", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    try {
+      const panel = () => host.querySelector<HTMLElement>("[data-ouro-part=panel]")!;
+      flushSync(() => root.render(<Porthole label="Status" source={fixed()} defaultOpen />));
+      expect(getComputedStyle(panel()).opacity).toBe("1");
+      expect(panel().getAnimations()).toEqual([]);
+      const spot = host.querySelector<HTMLElement>("[data-ouro-part=spot], button")!;
+      await act(() => spot.click());
+      await act(() => spot.click());
+      expect(panel().getAnimations().some((a) => a instanceof CSSTransition && a.transitionProperty === "opacity")).toBe(true);
+    } finally {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      root.unmount();
+      host.remove();
+    }
+  });
+
   it("fades the detail lines in as it opens, faster with reduced motion, and moves nothing", async () => {
     const view = await render(base(fixed()));
     const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));

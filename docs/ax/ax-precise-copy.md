@@ -7,7 +7,7 @@ A failure says what happened and precisely why (the system and its answer: "The 
 Vague: "couldn't", "could not", "something went wrong", "unable to", "failed to load", "an error occurred", and a text that is only a bare "Error" or "Upload failed", unless the cause follows the phrase in the same sentence ("Couldn't send: you're offline. Try again when you're back online.", "… because …"; not "Couldn't send: try again"). A negation or an action before the word ("No errors", "Retry failed") passes. The source rules kit (ouro-source-rules) keeps the identical list for an app's UI copy; change both together. A text that is precise and still holds a phrase ("The card service says your card could not be charged. Use another card.") goes on an allow-list, each entry with its reason.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-precise-copy#v1.3.377
+npx shadcn@latest add ourostack/ouro-ui/ax-precise-copy#v1.3.378
 ```
 
 It installs `lib/ouro/ax/precise-copy.ts`. Its tests are `ax-precise-copy-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -91,7 +91,7 @@ const NOT_BARE_LEADS: readonly string[]
 
 ### `statesCause`
 
-Whether the text after a failure phrase states the cause in the same sentence: after a colon, a dash or "because", a substitution (`${…}`) or at least two words whose first is not in `NOT_A_CAUSE`, with no vague phrase in it.
+Whether the text after a failure phrase states the cause in the same sentence: after a colon, a dash or "because", a substitution (`${…}`) or at least two words whose first is not in `NOT_A_CAUSE`, that are not a cause naming nothing (`VAGUE_CAUSE`), with no vague phrase in it.
 
 ```ts
 function statesCause(rest: string): boolean
@@ -102,6 +102,14 @@ Example:
 ```ts
 statesCause(" send: you're offline. Try again later."); // true
 statesCause(" send: try again."); // false
+```
+
+### `VAGUE_CAUSE`
+
+A cause that names nothing: the whole of it is "it broke", "it didn't work", "there was a problem", "an issue occurred" and the like, so it says neither what failed nor why. A cause that goes on ("it failed because the disk is full") names something and passes.
+
+```ts
+const VAGUE_CAUSE: RegExp
 ```
 
 ### `VAGUE_FAILURE_PHRASES`

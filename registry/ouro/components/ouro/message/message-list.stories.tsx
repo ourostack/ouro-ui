@@ -157,9 +157,11 @@ export const Live: Story = {
 export const ScrolledBack: Story = {
   args: { label: "Conversation with Ouro", children: null },
   render: () => (
-    <Surface>
-      <ChatHistory items={start} />
-    </Surface>
+    <div data-ouro-allow="overlap" data-ouro-allow-why="Jump to latest floats over the last message at this scroll position, as a floating control does by design.">
+      <Surface>
+        <ChatHistory items={start} />
+      </Surface>
+    </div>
   ),
   play: async ({ canvasElement }) => {
     canvasElement.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!.scrollTop = 0;
@@ -260,9 +262,11 @@ export const ReadingWidth: Story = {
 export const OpenedAtMessage: Story = {
   args: { label: "Conversation with Ouro", children: null },
   render: () => (
-    <Surface>
-      <ChatHistory items={longChat.slice(0, 20)} initialAnchor="found-10" />
-    </Surface>
+    <div data-ouro-allow="overlap" data-ouro-allow-why="Jump to latest floats over the end of the conversation at this scroll position, as a floating control does by design.">
+      <Surface>
+        <ChatHistory items={longChat.slice(0, 20)} initialAnchor="found-10" />
+      </Surface>
+    </div>
   ),
 };
 

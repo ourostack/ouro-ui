@@ -467,7 +467,7 @@ test("the page's headline is derived from the latest review and says so honestly
   // Two of four is not more than half: the bar is not met, and the headline says so.
   assert.equal(tally(second).barMet, false);
   const page = renderPage([baseline, retry, rerun]);
-  assert.match(page, /^# Which toolkit models choose\n\nOuro UI is not yet the models' choice: 2 of 4 models chose it; 2 chose A2UI\./);
+  assert.match(page, /^# Which toolkit models choose\n\n[\s\S]*?\n\nOuro UI is not yet the models' choice: 2 of 4 models chose it; 2 chose A2UI\./);
   // At a glance, under the headline: every model's pick and its own reason, one line each, before the method.
   assert.match(page, /chose A2UI\.\n\n- \*\*A\*\* chose Ouro UI: "Ouro UI because reasons"\n- \*\*B\*\* chose Ouro UI: "Ouro UI because reasons"\n- \*\*C\*\* chose A2UI: "A2UI because reasons"\n- \*\*D\*\* chose A2UI: "A2UI because reasons"\n\nOn 2026-11-14,/);
   assert.match(page, /counting only the 3 models that answered both times: 1 chose Ouro UI then and 2 now\. Changed: B \(A2UI to Ouro UI\)\./);
@@ -482,11 +482,11 @@ test("the page's headline is derived from the latest review and says so honestly
   assert.throws(() => renderPage([rerun, { ...copilotRun, folder: "2026-11-14-rerun--run-9", reviews: [pageReview("z", "A2UI")] }]), /mixes search backends/);
   assert.match(page, /Earlier reviews, still published: 2026-11-13 \(Ouro UI is not yet the models' choice: 1 of 3 models chose it; 2 chose A2UI\.\)/);
   // A majority, then every model, changes the headline.
-  assert.match(renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI"), pageReview("b", "Ouro UI"), pageReview("c", "A2UI")])]), /^# Which toolkit models choose\n\n2 of 3 models chose Ouro UI; 1 chose A2UI\./);
-  assert.match(renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI"), pageReview("b", "Ouro UI")])]), /^# Which toolkit models choose\n\nAll 2 models asked chose Ouro UI\./);
+  assert.match(renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI"), pageReview("b", "Ouro UI"), pageReview("c", "A2UI")])]), /^# Which toolkit models choose\n\n[\s\S]*?\n\n2 of 3 models chose Ouro UI; 1 chose A2UI\./);
+  assert.match(renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI"), pageReview("b", "Ouro UI")])]), /^# Which toolkit models choose\n\n[\s\S]*?\n\nAll 2 models asked chose Ouro UI\./);
   // A model that gave no verdict is a row, never left out, and blocks "all".
   const partial = renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI")], [{ provider: "z", error: "Session compacted" }])]);
-  assert.match(partial, /^# Which toolkit models choose\n\n1 of 1 models chose Ouro UI\./);
+  assert.match(partial, /^# Which toolkit models choose\n\n[\s\S]*?\n\n1 of 1 models chose Ouro UI\./);
   assert.match(partial, /\| z \| no verdict \(Session compacted; 1 attempt\) \| n\/a \|/);
   assert.match(partial, /\n- \*\*z\*\* gave no verdict\.\n/);
 });
@@ -678,4 +678,14 @@ test("Run it yourself shows a prompt only when it is exactly the one a model got
   const methodology = readFileSync(new URL("./METHODOLOGY.md", import.meta.url), "utf8");
   for (const command of RUN_COMMANDS.slice(0, 2)) assert.ok(methodology.includes(command), command);
   for (const command of RUN_COMMANDS.slice(2)) assert.ok(methodology.includes(command.replace("../my-review", "<new folder>")), command);
+});
+
+test("the page leads with the findings: counts, what changed, what is open, and the A2UI result computed from the runs", async () => {
+  const { findingsLead } = await import("./page.mjs");
+  const findings = { findings: [{ issue: 1, finding: "Done one.", status: "changed", change: "It shipped." }, { issue: 2, finding: "Open one.", status: "open", change: null }] };
+  const lead = findingsLead(findings).join("\n");
+  assert.match(lead, /produced 2 findings, filed as issues\. 1 are changed or answered and 1 are open or in progress/);
+  assert.match(lead, /### Changed or answered\n\n- \[#1\]\([^)]*\): Done one\. It shipped\./);
+  assert.match(lead, /### Still open\n\n- \[#2\]\([^)]*\) \(open\): Open one\./);
+  assert.match(lead, /### The A2UI result\n\nOuro's answer is that A2UI and MCP Apps are formats it speaks/);
 });

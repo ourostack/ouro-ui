@@ -44,12 +44,13 @@ test("the precise-copy list keeps the source rules kit's phrases", async () => {
   assert.equal(String(copy.BARE_FAILURE), String(kit.BARE_FAILURE));
   assert.equal(String(copy.CAUSE_MARKER), String(kit.CAUSE_MARKER));
   assert.equal(String(copy.LEAD_FAILURE), String(kit.LEAD_FAILURE));
+  assert.equal(String(copy.VAGUE_CAUSE), String(kit.VAGUE_CAUSE));
   assert.deepEqual([...copy.NOT_A_CAUSE], kit.NOT_A_CAUSE);
   assert.deepEqual([...copy.NOT_BARE_LEADS], kit.NOT_BARE_LEADS);
   // The two agree on every case, precise or vague.
   const samples = ["Couldn't send: you're offline. Try again when you're back online.", "Couldn't send: try again.", "Something went wrong. Error code: E42", "Error: error", "Error: the photo service says this picture was deleted", "Unable to save - try again", "No errors", "Retry failed", "Upload failed"];
   for (const text of samples) assert.equal(copy.vagueFailureIn(text), kit.vagueFailurePhrase(text) ?? null, text);
-  for (const rest of [" send: you're offline.", " send: try again.", " send because the server refused it"]) assert.equal(copy.statesCause(rest), kit.statesCause(rest), rest);
+  for (const rest of [" send: you're offline.", " send: try again.", " send because the server refused it", " send: it broke.", " send: it failed because the disk is full."]) assert.equal(copy.statesCause(rest), kit.statesCause(rest), rest);
 });
 
 test("the guide shows the tasks tool as it is, and the answers it gives", () => {

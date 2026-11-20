@@ -22,6 +22,7 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { unreadBy } from "./ci-paths.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -48,12 +49,12 @@ const quiet = [
 export const targets = {
   installs: {
     name: "the install test",
-    unread: quiet,
+    unread: [...quiet, ...unreadBy("installs")],
     readers: [/^scripts\/install-[^/]+\.mjs$/],
   },
   heavy: {
     name: "the heavy tier",
-    unread: quiet,
+    unread: [...quiet, ...unreadBy("heavy")],
     readers: [/^site\/scripts\/[^/]+\.mts$/],
   },
   browser: {
@@ -72,6 +73,7 @@ export const targets = {
       [/^registry\/ouro\/e2e\/.+\.spec\.ts$/, "an end-to-end spec, which Playwright runs"],
       [/^test\/__screenshots__\//, "a screenshot baseline, which only the visual job reads"],
       [/^\.github\/(?!workflows\/ci\.yml$)/, "another workflow or repository setting"],
+      ...unreadBy("browser"),
     ],
     readers: [/^(registry|test|site)\/.+\.(ts|tsx|mts|mjs)$/, /^vitest[^/]*\.config\.[cm]?[jt]s$/, /^scripts\/(vitest-shards|motion-reporter)\.mts$/],
   },
@@ -99,6 +101,7 @@ export const targets = {
       [/^stories\//, "a repository-only story"],
       [/^\.storybook\//, "Storybook's configuration"],
       [/^\.github\/(?!workflows\/screens\.yml$|actions\/check\/|ouro-check\.json$)/, "another workflow or repository setting"],
+      ...unreadBy("screens"),
     ],
     readers: [/^site\/(?!e2e\/|test\/).+\.(ts|tsx|mts|mjs)$/, /^scripts\/(generate\.mjs|gen-docs\.mts|registry\.mts|components\.mts|catalog-groups\.mts|docs-summary\.mts)$/],
   },

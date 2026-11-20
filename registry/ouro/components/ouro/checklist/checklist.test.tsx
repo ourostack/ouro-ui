@@ -644,6 +644,28 @@ describe("Checklist ordered", () => {
     expect(row("Add the leaves")).not.toHaveAttribute("data-out-of-order");
   });
 
+  it("draws a note present at mount at once, and fades one in that comes later", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    const steps = (warm: boolean) => tea.map((step) => (step.id === "warm" ? { ...step, checked: warm } : step));
+    const list = (warm: boolean) => <Checklist label="Steps" ordered items={steps(warm)} onCheckedChange={() => {}} />;
+    try {
+      const note = () => host.querySelector<HTMLElement>('[data-ouro-part="note"]')!;
+      flushSync(() => root.render(list(true)));
+      expect(getComputedStyle(note()).opacity).toBe("1");
+      expect(note().getAnimations()).toEqual([]);
+      flushSync(() => root.render(list(false)));
+      flushSync(() => root.render(list(true)));
+      expect(note().getAnimations().some((a) => a instanceof CSSTransition && a.transitionProperty === "opacity")).toBe(true);
+    } finally {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      root.unmount();
+      host.remove();
+    }
+  });
+
   it("says a row was out of order only when it goes out of order, not on the first render", async () => {
     const announcements = watchAnnouncements();
     const { row } = await render(
@@ -865,8 +887,12 @@ describe("Checklist development messages", () => {
     const guessed = { variant: "card" } as unknown as Partial<ChecklistProps>;
     const { row } = await render(<Checklist label="Steps" items={tea} onCheckedChange={() => {}} {...guessed} />);
     await expect.poll(messages).toEqual(['[ouro-ui] Checklist: variant="card" is not a variant; use "plain" or "outline". Fix: <Checklist variant="outline">.']);
-    // The plain box keeps its check corner, not the outline's full round.
-    expect(Number.parseFloat(getComputedStyle(partOf(row("Boil the water"), "box")).borderTopLeftRadius)).toBeLessThan(100);
+    // Plain, not outline: no card around the row, and the box at its start. (Not the box's corner: a
+    // theme such as Cookbook rounds the plain box too, through --ouro-check-radius.)
+    const boil = row("Boil the water");
+    const box = partOf(boil, "box");
+    expect(getComputedStyle(box.closest("label")!.parentElement!).borderTopWidth).toBe("0px");
+    expect(box.getBoundingClientRect().right).toBeLessThanOrEqual(partOf(boil, "label").getBoundingClientRect().left);
   });
 
   it("names media for an item's icon", async () => {

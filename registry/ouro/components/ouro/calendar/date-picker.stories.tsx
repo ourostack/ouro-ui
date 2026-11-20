@@ -8,9 +8,10 @@ import { DatePicker } from "@/registry/ouro/components/ouro/calendar/date-picker
 const caption: CSSProperties = { margin: 0, fontSize: "12px", lineHeight: "16px", color: "var(--muted-foreground)" };
 
 /** A themed panel. It follows the page's scheme (the `.dark` class on the root). */
-function Surface({ children }: { children: ReactNode }) {
+function Surface({ children, allow }: { children: ReactNode; allow?: Record<`data-${string}`, string> }) {
   return (
     <div
+      {...allow}
       style={{
         background: "var(--background)",
         color: "var(--foreground)",
@@ -56,7 +57,7 @@ export const Playground: Story = {
 /** `error`, `required` and `min`/`max` work as on every Ouro field. */
 export const States: Story = {
   render: () => (
-    <Surface>
+    <Surface allow={{ "data-ouro-allow": "duplicate-control", "data-ouro-allow-why": "each field shows one state with its own Choose date button, so the name repeats across fields; no field has it twice" }}>
       <DatePicker label="Delivery date" required error="Pick a weekday." defaultValue="2026-03-14" />
       <DatePicker label="Start date" min="2026-03-02" max="2026-03-27" defaultValue="2026-03-02" />
     </Surface>

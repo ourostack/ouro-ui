@@ -15,7 +15,7 @@ test("finds each vague phrase and a bare failure, and lets precise copy and allo
   assert.equal(vagueFailureIn("The photo service says this picture was deleted. Ask its owner to share it again."), null);
   assert.equal(vagueFailureIn("3 failed"), null);
   // The cause after the phrase makes it precise; without one, or with nothing after the colon, it is vague.
-  for (const precise of ["Couldn't send: you're offline. Try again when you're back online.", "Could not save because the server refused it", "Upload failed - the server answered 413", "Error: the photo service says this picture was deleted", "Something went wrong — the server answered 500", "Couldn't send: ${…}"]) assert.equal(vagueFailureIn(precise), null, precise);
+  for (const precise of ["Couldn't send: you're offline. Try again when you're back online.", "Could not save because the server refused it", "Upload failed - the server answered 413", "Error: the photo service says this picture was deleted", "Something went wrong — the server answered 500", "Couldn't send: ${…}", "Couldn't save: it failed because the disk is full", "Couldn't send: the mail service stopped answering"]) assert.equal(vagueFailureIn(precise), null, precise);
   assert.equal(vagueFailureIn("Couldn't send."), "couldn't");
   assert.equal(vagueFailureIn("Couldn't send:"), "couldn't");
   assert.equal(vagueFailureIn("Error: something went wrong"), "something went wrong");
@@ -35,6 +35,11 @@ test("finds each vague phrase and a bare failure, and lets precise copy and allo
     "Error: error": "bare error",
     "Error: please try again": "bare error",
     "Upload failed: try again": "bare failed",
+    "Something went wrong: it broke.": "something went wrong",
+    "Couldn't send: it didn't work.": "couldn't",
+    "Couldn't save: there was a problem": "couldn't",
+    "Upload failed: an issue occurred": "bare failed",
+    "Error: something stopped working": "bare error",
   };
   for (const [text, phrase] of Object.entries(vague)) assert.equal(vagueFailureIn(text), phrase, text);
   // A code or a status is not copy.

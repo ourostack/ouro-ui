@@ -625,10 +625,15 @@ describe("vague-failure-copy", () => {
             "Error: error": "bare error",
             "Error: please try again": "bare error",
             "Upload failed: try again": "bare failed",
+            "Something went wrong: it broke.": "something went wrong",
+            "Couldn't send: it didn't work.": "couldn't",
+            "Couldn't save: there was a problem": "couldn't",
+            "Upload failed: an issue occurred": "bare failed",
+            "Error: something stopped working": "bare error",
         };
         for (const [text, phrase] of Object.entries(samples))
             expect([text, vagueFailurePhrase(text)]).toEqual([text, phrase]);
-        for (const text of ["3 failed", "Sync failed again", "The upload to the photo service failed", "Could nothing be simpler", "unable tomorrow", "Error: the photo service says this picture was deleted", "Couldn't send: you're offline. Try again when you're back online.", "Could not save because the server refused it", "Upload failed - the server answered 413", "Something went wrong — the server answered 500", "Couldn't send: ${…}", "No errors", "Nothing failed", "Zero errors", "None failed", "Show errors", "Hide errors", "Retry failed", "Clear errors"])
+        for (const text of ["3 failed", "Sync failed again", "The upload to the photo service failed", "Could nothing be simpler", "unable tomorrow", "Error: the photo service says this picture was deleted", "Couldn't send: you're offline. Try again when you're back online.", "Could not save because the server refused it", "Upload failed - the server answered 413", "Something went wrong — the server answered 500", "Couldn't send: ${…}", "Couldn't save: it failed because the disk is full", "Couldn't send: the mail service stopped answering", "No errors", "Nothing failed", "Zero errors", "None failed", "Show errors", "Hide errors", "Retry failed", "Clear errors"])
             expect([text, vagueFailurePhrase(text)]).toEqual([text, undefined]);
         expect(vagueFailurePhrase("Failed", { whole: false })).toBe(undefined);
         expect(vagueFailurePhrase("Could not save", { whole: false })).toBe("could not");
