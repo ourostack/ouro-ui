@@ -123,22 +123,36 @@ async function measure(windowing: boolean): Promise<Numbers> {
 
 const round = (value: number) => Math.round(value);
 const report = (name: string, numbers: Numbers) =>
-  `${name}: ${numbers.messages} messages and ${numbers.elements} elements in the page; first draw ${round(numbers.firstDraw)} ms; redraw ${round(numbers.redraw)} ms; longest frame as a page of ${PAGE} older messages goes in ${round(numbers.prependFrame)} ms (each the fastest of ${SAMPLES}) (this runner and React's development build, not a person's device)`;
+  `${name}: ${numbers.messages} messages and ${numbers.elements} elements in the page; first draw ${round(numbers.firstDraw)} ms; redraw ${round(numbers.redraw)} ms; longest frame as a page of ${PAGE} older messages goes in ${round(numbers.prependFrame)} ms (the first draw the fastest of the arm's runs, the others of every sample in them) (this runner and React's development build, not a person's device)`;
 
 // One browser and a fine pointer: the timings compare like with like, and the touch project would only repeat them. Drawing
 // 2000 messages whole, more than once, takes longer than a test's usual 15 seconds on a slow runner.
 describe("MessageList windowing benchmark", () => {
   it.runIf(server.browser === "chromium" && matchMedia("(pointer: fine)").matches)("draws a conversation of 2000 messages in a fraction of the elements and time it takes drawn whole", { timeout: 60_000 }, async ({ annotate }) => {
-    const whole = await measure(false);
-    const windowed = await measure(true);
+    // The arms in turn, twice, and each number the fastest of its arm's runs: one arm timed whole before the other saw a
+    // different runner when load changed between them (#2469).
+    const runs: { whole: Numbers[]; windowed: Numbers[] } = { whole: [], windowed: [] };
+    for (let round = 0; round < 2; round++) {
+      runs.whole.push(await measure(false));
+      runs.windowed.push(await measure(true));
+    }
+    const best = (list: Numbers[]): Numbers => ({
+      messages: list[0]!.messages,
+      elements: list[0]!.elements,
+      firstDraw: fastest(list.map((numbers) => numbers.firstDraw)),
+      redraw: fastest(list.map((numbers) => numbers.redraw)),
+      prependFrame: fastest(list.map((numbers) => numbers.prependFrame)),
+    });
+    const whole = best(runs.whole);
+    const windowed = best(runs.windowed);
     await annotate(report("whole (windowing={false})", whole), "benchmark");
     await annotate(report("windowed", windowed), "benchmark");
     expect(whole.messages).toBe(COUNT);
     expect(windowed.messages).toBeLessThan(60);
     expect(windowed.elements).toBeLessThan(whole.elements / 20);
-    expect(windowed.firstDraw).toBeLessThan(whole.firstDraw / 2);
-    expect(windowed.redraw).toBeLessThan(whole.redraw / 2);
-    expect(windowed.prependFrame).toBeLessThan(whole.prependFrame / 2);
+    expect(windowed.firstDraw, "first draw, ms").toBeLessThan(whole.firstDraw / 2);
+    expect(windowed.redraw, "redraw, ms").toBeLessThan(whole.redraw / 2);
+    expect(windowed.prependFrame, "longest frame as an older page goes in, ms").toBeLessThan(whole.prependFrame / 2);
   });
 });
 
