@@ -118,6 +118,13 @@ describe("Card", () => {
     expect(media.top).toBe(box.top + 1);
   });
 
+  it("clips its content to its corner without a backdrop, and leaves a backdrop card unclipped", async () => {
+    const { card: plain } = await render(<Card title="Ragù">Body</Card>);
+    expect(getComputedStyle(plain).overflow).toBe("hidden");
+    const { card: pictured } = await render(<Card title="Ragù" backdrop={<img src={pixel} alt="" />}>Body</Card>);
+    expect(getComputedStyle(pictured).overflow).toBe("visible");
+  });
+
   it("lays a backdrop behind the whole card, edge to edge, clipping only the picture and not the card or its text", async () => {
     const { card } = await render(
       <Card
