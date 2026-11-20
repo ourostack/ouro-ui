@@ -2057,11 +2057,19 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.doesNotMatch(empty.calls, /CALL pnpm/);
   // A failing selection or split fails the shard rather than running nothing or everything.
   assert.notEqual(runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/6" }, { nodeStatus: 1 }).status, 0);
-  assert.match(jobs.e2e, /^ {4}needs: \[plan, e2e-shard, sweep-shard\]$/m);
+  assert.match(jobs.e2e, /^ {4}needs: \[plan, e2e-shard, sweep-shard, sweeps-compare\]$/m);
   const gate = stepScript(jobs.e2e, "Every shard passed");
-  assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "success" }).status, 0);
-  assert.equal(runStep(gate, { SHARDS: "failure", SWEEPS: "success" }).status, 1);
-  assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "failure" }).status, 1);
+  assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "success", COMPARE: "success" }).status, 0);
+  assert.equal(runStep(gate, { SHARDS: "failure", SWEEPS: "success", COMPARE: "success" }).status, 1);
+  assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "failure", COMPARE: "success" }).status, 1);
+  assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "success", COMPARE: "failure" }).status, 1);
+  // Each sweeps shard saves its looks, and one job compares every part's, so a page in another shard is compared too (#2527).
+  assert.match(jobs["sweep-shard"], /name: sweeps-looks-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/looks\//);
+  assert.match(jobs["sweeps-compare"], /^ {4}needs: \[plan, sweep-shard\]$/m);
+  assert.match(jobs["sweeps-compare"], /pattern: sweeps-looks-\*\n {10}path: \.tmp\/looks\n {10}merge-multiple: true/);
+  assert.match(jobs["sweeps-compare"], /run: node scripts\/sweeps-compare\.mjs \.tmp\/looks \.tmp\/timings$/m);
+  assert.match(jobs["sweeps-compare"], /name: timings-sweeps-compare/);
+  // ci-budget reaches sweeps-compare through the e2e gate, which waits on it.
   // The sweeps run in shards of their own, so between the e2e and sweep shards every spec runs once.
   const { sweepFiles } = await import("./shard.mjs");
   const sweeps = Array.from({ length: 14 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 14 }, readTimings("e2e")));

@@ -2376,6 +2376,14 @@ jobs:
           # Word splitting is wanted: the paths have no spaces.
           # shellcheck disable=SC2086
           pnpm test:e2e $specs
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sweeps-looks-${{ matrix.shard }}
+          path: .tmp/looks/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 1
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -2390,9 +2398,88 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
+  sweeps-compare:
+    # Compares a component's look across every part of the sameness sweep (scripts/sweeps-compare.mjs, #2527):
+    # each sweeps shard saves the looks its pages have (sweeps-looks-<shard>), and this one job runs the
+    # sweep's own comparison over all of them, per colour mode and engine, so a difference between two pages
+    # fails whichever shard they land in, and a route that moves a page to another shard changes nothing.
+    # It starts when the last shard ends, and the shards' escape checks stay in the shards. Part of the e2e check.
+    needs: [plan, sweep-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    name: sweeps-compare
+    steps:
+      # Imports site/e2e/looks.ts, which needs the installed packages only: no build and no browser.
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-tarball
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
+      - if: ${{ needs.sweep-shard.result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: sweeps-looks-*
+          path: .tmp/looks
+          merge-multiple: true
+      - name: Compare every part's looks
+        if: ${{ needs.sweep-shard.result == 'success' }}
+        run: node scripts/sweeps-compare.mjs .tmp/looks .tmp/timings
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timings-sweeps-compare
+          path: .tmp/timings/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
   e2e:
     # Passes when every e2e shard passed.
-    needs: [plan, e2e-shard, sweep-shard]
+    needs: [plan, e2e-shard, sweep-shard, sweeps-compare]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2401,6 +2488,7 @@ jobs:
         env:
           SHARDS: ${{ needs.e2e-shard.result }}
           SWEEPS: ${{ needs.sweep-shard.result }}
+          COMPARE: ${{ needs.sweeps-compare.result }}
         run: |
           if [ "$SHARDS" != success ]; then
             echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/10) jobs."
@@ -2408,7 +2496,10 @@ jobs:
           if [ "$SWEEPS" != success ]; then
             echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/14) jobs."
           fi
-          if [ "$SHARDS" != success ] || [ "$SWEEPS" != success ]; then
+          if [ "$COMPARE" != success ]; then
+            echo "::error::The sweeps-compare job did not pass ($COMPARE): a component looks different on two pages, see its log."
+          fi
+          if [ "$SHARDS" != success ] || [ "$SWEEPS" != success ] || [ "$COMPARE" != success ]; then
             exit 1
           fi
   theme-install:
