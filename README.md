@@ -625,6 +625,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-touch-target`,
 `lib-use-backdrop-anchor`,
 `lib-use-command-shortcut`,
+`lib-use-counts`,
 `lib-use-dev-messages`,
 `lib-use-drag`,
 `lib-use-field`,
@@ -878,6 +879,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### App setup
 
 - **ColorSchemeProvider** — Keeps the page's color scheme: it applies the person's choice (`light`, `dark` or `system`) as the `.dark` class on `<html>`, which is how shadcn themes switch, keeps it in `localStorage`, and follows the system's setting live while the choice is `system`. [Docs](docs/ColorSchemeProvider.md)
+- **createUseCounts** — Counts, from real use, the moments a person got stuck, so an agent has evidence from people's use. [Docs](docs/createUseCounts.md)
 - **fragmentFocusScript** — The inline script that keeps a person's focus where it is on a page whose address names a place on it (`#reviews`). [Docs](docs/fragmentFocusScript.md)
 - **Inspector** — X-ray for a page built with Ouro HX: outlines every Ouro component on the page with its name, linked to its docs, and lists them all for keyboard and screen reader users. [Docs](docs/Inspector.md)
 - **measureInteraction** — Runs `fn` in an event handler and names the interaction it belongs to, so the reports `onInteraction` sends carry `name`. [Docs](docs/measureInteraction.md)
