@@ -79,7 +79,8 @@ export function splitBase(css: string): { inline: string; utilities: string[]; k
   const utilities = [...source.matchAll(/@utility\s+([\w-]+)\s*\{[^{}]*\}/g)].map((match) => match[1]!);
   const keyframes = [...source.matchAll(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g)].map((match) => match[0]);
   const supportsPattern = /@(?:supports|container)[^{]*\{(?:\s*[^{}]*\{[^{}]*\})*\s*\}/g;
-  const supports = [...source.matchAll(supportsPattern)].map((match) => {
+  // The keyboard-only focus rules need Ouro's last-input tracker, which a page without the components never runs.
+  const supports = [...source.matchAll(supportsPattern)].filter((match) => !match[0].includes("data-ouro-pressed-focus")).map((match) => {
     const query = /(@(?:supports|container)[^{]*?)\s*\{/.exec(match[0])![1]!;
     const inner = match[0].slice(match[0].indexOf("{") + 1, match[0].lastIndexOf("}"));
     const rules = [...inner.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((rm) => rule(rm[1]!.trim(), declarations(rm[2]!), "  "));
@@ -89,7 +90,6 @@ export function splitBase(css: string): { inline: string; utilities: string[]; k
     .replace(inline[0], "")
     .replace(supportsPattern, "")
     .replace(/@utility\s+[\w-]+\s*\{[^{}]*\}/g, "")
-    .replace(/:root\[data-ouro-modality[^{}]*\{[^{}]*\}/g, "")
     .replace(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
   return { inline: inline[1]!, utilities, keyframes, supports, classes, blocks: parseBlocks(rest) };
 }

@@ -192,11 +192,17 @@
   }
 }
 
-/* Keyboard-only focus rings. Ouro's last-input tracker puts data-ouro-modality="pointer" on <html> after a press and "keyboard" after a key, so a ring follows the keyboard, including focus a script moves after a key press, and never a press. A text field's own box is covered by ouro-field-cue, which marks it with a border tone instead. Outside any layer, so it beats the utilities that draw the ring; a borderless field (variant plain) keeps its ring, since it has no border to carry the cue. It never reaches a ring that a keyboard drew. */
-:root[data-ouro-modality="pointer"] :is([data-ouro], [data-ouro-control], [data-ouro-part], [data-ouro-input-group], [data-ouro-composer-frame], [data-ouro-number-field-group]):not([data-variant="plain"]):focus-visible,
-:root[data-ouro-modality="pointer"] :is([data-ouro], [data-ouro-control], [data-ouro-part], [data-ouro-input-group], [data-ouro-composer-frame], [data-ouro-number-field-group]):not([data-variant="plain"]):has(> :is(input, textarea):focus-visible),
-:root[data-ouro-modality="pointer"] :is([data-ouro], [data-ouro-control], [data-ouro-part], [data-ouro-input-group], [data-ouro-composer-frame], [data-ouro-number-field-group]):not([data-variant="plain"]):has(> * > :is(input, textarea):focus-visible) {
-  outline-style: none;
+/* Keyboard-only focus rings. Ouro's last-input tracker marks the focused element with data-ouro-pressed-focus while focus came from a press, and takes the mark off after a key, so a ring follows the keyboard, including focus a script moves after a key press, and never a press. The mark sits on the focused element alone, not on <html>, so a press after a key restyles that element and the fields around it, not every Ouro element on the page (#2524). A text field's own box is covered by ouro-field-cue, which marks it with a border tone instead. Outside any layer (the @supports only gives a theme file a place for them), so it beats the utilities that draw the ring; a borderless field (variant plain) keeps its ring, since it has no border to carry the cue. It never reaches a ring that a keyboard drew. */
+@supports selector(:focus-visible) {
+  :is([data-ouro], [data-ouro-control], [data-ouro-part], [data-ouro-input-group], [data-ouro-composer-frame], [data-ouro-number-field-group]):not([data-variant="plain"])[data-ouro-pressed-focus]:focus-visible,
+  :is([data-ouro], [data-ouro-control], [data-ouro-part], [data-ouro-input-group], [data-ouro-composer-frame], [data-ouro-number-field-group]):not([data-variant="plain"]):has(> :is(input, textarea)[data-ouro-pressed-focus]:focus-visible),
+  :is([data-ouro], [data-ouro-control], [data-ouro-part], [data-ouro-input-group], [data-ouro-composer-frame], [data-ouro-number-field-group]):not([data-variant="plain"]):has(> * > :is(input, textarea)[data-ouro-pressed-focus]:focus-visible) {
+    outline-style: none;
+  }
+  .ouro-field-cue:has(:focus[data-ouro-pressed-focus]):not([aria-invalid="true"]):not(:has([aria-invalid="true"])) {
+    --ouro-bd: var(--ring);
+    border-color: var(--ring);
+  }
 }
 
 /* Where the engine has no corner-shape, a circular corner at 0.7 of the squircle's radius stays within 6% of it, so box-shadow, outline and the element's own box follow the squircle closely. */
@@ -309,11 +315,6 @@
   --corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
   border-radius: var(--ouro-check-radius, calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.6));
   corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
-}
-
-:root[data-ouro-modality="pointer"] .ouro-field-cue:focus-within:not([aria-invalid="true"]):not(:has([aria-invalid="true"])) {
-  --ouro-bd: var(--ring);
-  border-color: var(--ring);
 }
 
 @utility press {

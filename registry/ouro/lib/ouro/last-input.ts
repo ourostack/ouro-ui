@@ -2,11 +2,30 @@ export { lastInput };
 
 const modifierKeys = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph", "CapsLock"]);
 
+/** The mark ouro-base's keyboard-only focus rings read: on the focused element, while its focus came from a press. */
+const PRESSED_FOCUS = "data-ouro-pressed-focus";
+
+// The modality of the last press or key, once there has been one.
+let current: "keyboard" | "pointer" | undefined;
+
+// Marks an element that has focus after a press, and unmarks it after a key: one element's attribute, so a switch
+// between keyboard and pointer restyles the element that has focus, not every element a rule on <html> reaches (#2524).
+function mark(element: EventTarget | null): void {
+  // The page itself holds focus when nothing does; it is no control and draws no ring.
+  if (!(element instanceof Element) || element === document.body || element === document.documentElement) return;
+  if (current === "pointer") {
+    if (!element.hasAttribute(PRESSED_FOCUS)) element.setAttribute(PRESSED_FOCUS, "");
+  } else if (element.hasAttribute(PRESSED_FOCUS)) element.removeAttribute(PRESSED_FOCUS);
+}
+
 // Written to <html> only when it changes, and only after the first press or key: the server HTML and the
-// first client render carry no attribute, so hydration never differs, and reading it forces no layout.
+// first client render carry no attribute, so hydration never differs, and reading it forces no layout. No Ouro rule
+// reads it; the focused element's mark is what the focus rings follow.
 function modality(next: "keyboard" | "pointer"): void {
+  current = next;
   const root = document.documentElement;
   if (root.getAttribute("data-ouro-modality") !== next) root.setAttribute("data-ouro-modality", next);
+  mark(document.activeElement);
 }
 
 // The pointer type of the last `pointerdown` (or mouse or pen `pointermove`) on the document, or "keyboard" after a later key press.
@@ -20,9 +39,10 @@ let input = "";
  * than its first input after a tap (the app's own button opened it, so Dialog never
  * saw the press), and a `Tooltip` never opens after a touch.
  *
- * The same listeners keep `data-ouro-modality="keyboard"` or `"pointer"` on `<html>` for `ouro-base`'s
- * keyboard-only focus rings: `pointer` after a press and `keyboard` after a key other than a lone modifier. Before either, the
- * attribute is absent and the browser's own `:focus-visible` decides. Moving the mouse changes neither.
+ * The same listeners keep `data-ouro-modality="keyboard"` or `"pointer"` on `<html>`: `pointer` after a press and
+ * `keyboard` after a key other than a lone modifier. For `ouro-base`'s keyboard-only focus rings they mark the focused
+ * element with `data-ouro-pressed-focus` while its focus came from a press. Before either, there is no mark and the
+ * browser's own `:focus-visible` decides. Moving the mouse changes neither.
  *
  * Internal: Ouro UI components use it; apps don't need to.
  *
@@ -54,6 +74,15 @@ if (typeof document !== "undefined") {
       input = "keyboard";
       // A modifier alone (Shift held for a range select with the mouse) is no sign the keyboard is in use.
       if (!modifierKeys.has(event.key)) modality("keyboard");
+    },
+    true,
+  );
+  // Focus that lands takes the mark the last press or key calls for; focus that leaves takes none away with it.
+  document.addEventListener("focusin", (event) => mark(event.target), true);
+  document.addEventListener(
+    "focusout",
+    (event) => {
+      if (event.target instanceof Element) event.target.removeAttribute(PRESSED_FOCUS);
     },
     true,
   );

@@ -1,0 +1,1 @@
+- Keyboard-only focus rings: the last-input tracker marks the focused element with `data-ouro-pressed-focus` after a press, and the rings read that mark instead of `data-ouro-modality` on `<html>`, so a press after a key restyles the focused element rather than the whole page (#2524).
