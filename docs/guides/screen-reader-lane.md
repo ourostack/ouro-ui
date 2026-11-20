@@ -12,7 +12,8 @@ Each spec opens one story from a static build of this repository's Storybook, wa
 | Checkbox | `forms-checkbox--playground` | "Email me new recipes", checkbox, unchecked; then checked after Space |
 | Checklist | `lists-checklist--in-context` | the first item's name, checkbox and its state; then the other state after Space |
 | Dialog | `overlays-dialog--playground` | "Edit", button; "Edit recipe", dialog, as it opens; the "Edit" button again after Escape |
-| Menu | `menus-menu--playground` | "Actions", button; the menu as it opens on "Edit"; "Duplicate" after ArrowDown; the "Actions" button again after Escape |
+| Menu | `menus-menu--playground` | "Actions", button; the menu as it opens on "Edit"; "Duplicate" after ArrowDown; the "Actions" button again after Escape. The Share submenu: "Copy link" as ArrowRight opens it, "Share" again after ArrowLeft; on VoiceOver, its cursor moves from "Copy link" back to "Share" and forward again, reading no unnamed button on the way |
+| MenuBar | `menus-menu--bar` | "File"; "New recipe" as Enter opens it; "Save" after ArrowDown; "File" again after Escape; on VoiceOver, its cursor moves from "New recipe" back to "File" and forward again, reading no unnamed button on the way |
 | Select | `forms-select--playground` | "Course", combo box, collapsed; the list as it opens; "Main", then "Side"; "Course" with "Side" once chosen, read from the focused control |
 | Switch | `forms-switch--playground` | "Cooking timers", switch, off; then on after Space |
 | TextField | `forms-textfield--states`, `forms-form--server-errors` | "Email" with its description, and edit text, required, as focus arrives; after a submit, the error "You already have a recipe called Pasta." as focus moves to "Name", which is invalid |

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, CURRENT_PAGE, firstMatch, HINT_ONLY_PREFIX, hintOnlyMiss, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saidInMiss, saysValue, speechTimeline, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints, withTimeline } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, CURRENT_PAGE, firstMatch, HINT_ONLY_PREFIX, hintOnlyMiss, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saidInMiss, saysValue, speechTimeline, speechVerdict, spokenAfter, UNCHECKED, unnamedButton, WATCH_LIMIT_SECONDS, withoutHints, withTimeline } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -53,6 +53,15 @@ test("the watcher's records are read whole, across chunks and lines, and an unfi
   assert.equal(second.rest, "");
   // osascript's own errors are not records.
   assert.deepEqual(readRecords("execution error: Not authorized to send Apple events to VoiceOver. (-1743)\n").records, []);
+});
+
+test("a stop that reads only \"button\" is an unnamed button, and a named button or menu item is not (#666)", () => {
+  assert.equal(unnamedButton("button"), true);
+  assert.equal(unnamedButton("Button. You are currently on a button."), true);
+  assert.equal(unnamedButton("New recipe, menu item. button"), true);
+  assert.equal(unnamedButton("Actions, button"), false);
+  assert.equal(unnamedButton("File, menu item"), false);
+  assert.equal(unnamedButton("You are currently on a button."), false);
 });
 
 test("VoiceOver's usage hints are dropped before matching", () => {
