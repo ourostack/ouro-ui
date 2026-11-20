@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.371 ourostack/ouro-ui/ouro-source-rules#v1.3.371
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.372 ourostack/ouro-ui/ouro-source-rules#v1.3.372
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -279,7 +279,7 @@ The check reads the styles the browser computed for the theme a person can't use
 
 | Rule | What it finds |
 | --- | --- |
-| `focus-ring` | A control that, given keyboard focus, changes nothing a person can see: no outline, shadow, border, fill, colour or underline (its colour or thickness too) on it, any box around it (a field's frame, or a card that holds a stretched link), an overlay beside it that draws its ring, what is in it, or their `::before` or `::after`.[^check-theme] An outline or a shadow in a transparent colour, or 0 wide, counts as none, and so does a ring on a part that isn't drawn, such as a see-through `::after`; one that appears on focus counts.[^check-theme] One control of each kind (its tag, id, classes, type, role and inline style), up to 60 kinds a page, is read unfocused first, even one that already has focus, then focused without scrolling, and focus goes back where it was; a control that hands its focus on, a disabled one and a hidden one are left alone.[^check-theme-focus-pass] |
+| `focus-ring` | A control that, given keyboard focus, changes nothing a person can see: no outline, shadow, border, fill, colour or underline (its colour or thickness too) on it, any box around it (a field's frame, or a card that holds a stretched link), an overlay beside it that draws its ring, what is in it, or their `::before` or `::after`.[^check-theme] An outline or a shadow in a transparent colour, or 0 wide, counts as none, and so does a ring on a part that isn't drawn, such as a see-through `::after`; one that appears on focus counts.[^check-theme] One control of each kind (its tag, id, classes, type, role and inline style), up to 60 kinds a page, is read unfocused first, even one that already has focus, then focused without scrolling, and focus goes back where it was; the page is judged in keyboard modality (`data-ouro-modality="keyboard"`, put back afterwards, and no `data-ouro-pressed-focus` mark on the control it focuses), so a screen reached by clicks still shows the rings a keyboard user would see;[^check-theme-modality][^check-theme-pressed] a control that hands its focus on, a disabled one and a hidden one are left alone.[^check-theme-focus-pass] |
 | `dark-miss` | On a page whose own background is dark, a surface of 48 × 24px or more still filled a light neutral (relative luminance 0.6 or more, little colour), the white, grey or cream a light theme fills with.[^check-theme-limits] A control's fill and a saturated fill are accents, a fill in the page's own text colour is an inversion on purpose, and a surface drawn over a picture, such as a speech bubble on a comic's art, is part of the picture: each passes.[^check-theme-dark-pass] So does a fill from a token the theme gives a dark value of its own, under a selector that names dark (shadcn's `.dark`) or in `@media (prefers-color-scheme: dark)`, as nova's near-white dark `primary` is: the theme chose it for dark. A token with no dark value still fails.[^check-dark-token] A page whose own background is light is left alone.[^check-theme-dark-pass] |
 | `hero-dark-art` | A registry `Hero` whose media frame holds a picture with no dark twin beside it, so dark mode shows the day scene; pass `picture={{ light, dark }}`, the same scene by day and at night.[^check-hero-dark] It reads the markup, so it finds the hero in light mode too; live media that isn't a picture passes, and the rule takes no allow, since a hero has night art.[^check-hero-dark-pass] |
 | `dark-art` | A dark page whose hero art, the largest picture of 60,000 square CSS pixels or more in the first screen, is the same file the light theme shows: day art on a night page.[^check-dark-art] Where `hero-dark-art` reads a registry `Hero`'s markup, this compares the files drawn in light and in dark, so it finds a hand-built hero's art too. The check reads it at each size in light first, then in dark.[^check-dark-art] A picture marked `data-ouro-allow="dark-art"` with its reason, such as a screen capture recorded in its light theme, is left out.[^check-dark-art] |
@@ -356,7 +356,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.371
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.372
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -440,7 +440,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.371
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.372
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -450,7 +450,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.371
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.372
         with:
           merge: "true"
 ```
@@ -470,7 +470,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.371
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.372
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -508,7 +508,7 @@ Fix the findings that fail first, so a session is spent on the task and not on a
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.371
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.372
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -699,6 +699,8 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-stretched]: test:test/check-in-page.test.ts::findSizeIssues: stretched-image > finds a picture drawn out of its own shape, taller or wider, small ones too, by how much; test:test/check-in-page.test.ts::findSizeIssues: stretched-image > finds a small video drawn out of its frames' shape, and asks no video it can't judge verify:testExists(test/check-in-page.test.ts::findSizeIssues: stretched-image > finds a picture drawn out of its own shape, taller or wider, small ones too, by how much) verify:testExists(test/check-in-page.test.ts::findSizeIssues: stretched-image > finds a small video drawn out of its frames' shape, and asks no video it can't judge)
 [^check-stretched-pass]: test:test/check-in-page.test.ts::findSizeIssues: stretched-image > passes a picture in its shape or within a rounding, padded, framed or turned, one object-fit fits, SVG, hidden and allowed pictures; test:test/check-in-page.test.ts::findSizeIssues: stretched-image > finds a small video drawn out of its frames' shape, and asks no video it can't judge verify:testExists(test/check-in-page.test.ts::findSizeIssues: stretched-image > passes a picture in its shape or within a rounding, padded, framed or turned, one object-fit fits, SVG, hidden and allowed pictures) verify:testExists(test/check-in-page.test.ts::findSizeIssues: stretched-image > finds a small video drawn out of its frames' shape, and asks no video it can't judge)
 [^check-theme]: test:test/check-theme-in-page.test.ts::findThemeIssues: focus-ring > finds a control whose keyboard focus changes nothing a person can see, a transparent or 0-wide ring too; test:test/check-theme-in-page.test.ts::findThemeIssues: dark-miss > finds a light neutral surface on a dark page, once for a nest, by its fill and the page's verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: focus-ring > finds a control whose keyboard focus changes nothing a person can see, a transparent or 0-wide ring too) verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: dark-miss > finds a light neutral surface on a dark page, once for a nest, by its fill and the page's)
+[^check-theme-pressed]: test:test/check-theme-in-page.test.ts::findThemeIssues: focus-ring > judges a control Ouro marked as pressed-focused as a keyboard user sees it (#2524) verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: focus-ring > judges a control Ouro marked as pressed-focused as a keyboard user sees it (#2524))
+[^check-theme-modality]: test:test/check-theme-in-page.test.ts::findThemeIssues: focus-ring > judges a screen reached by clicks as a keyboard user sees it, and leaves the page's modality as it was verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: focus-ring > judges a screen reached by clicks as a keyboard user sees it, and leaves the page's modality as it was)
 [^check-theme-focus-pass]: test:test/check-theme-in-page.test.ts::findThemeIssues: focus-ring > passes a ring, a shadow, a border, a fill, a colour or an underline, on it, its frame, what is in it or a pseudo-element; test:test/check-theme-in-page.test.ts::findThemeIssues: focus-ring > judges one control of a kind, passes controls it can't focus or judge and allowed ones, and stops at maxControls, then gives focus back verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: focus-ring > passes a ring, a shadow, a border, a fill, a colour or an underline, on it, its frame, what is in it or a pseudo-element) verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: focus-ring > judges one control of a kind, passes controls it can't focus or judge and allowed ones, and stops at maxControls, then gives focus back)
 [^check-theme-dark-pass]: test:test/check-theme-in-page.test.ts::findThemeIssues: dark-miss > passes accents, controls, an inversion, translucent, dim, small, hidden, picture-filled and allowed surfaces, and surfaces on a picture; test:test/check-theme-in-page.test.ts::findThemeIssues: dark-miss > leaves a light page alone, whatever it fills, and a page with no fill of its own is white verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: dark-miss > passes accents, controls, an inversion, translucent, dim, small, hidden, picture-filled and allowed surfaces, and surfaces on a picture) verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: dark-miss > leaves a light page alone, whatever it fills, and a page with no fill of its own is white)
 [^check-hero-dark]: test:test/check-theme-in-page.test.ts::findThemeIssues: hero-dark-art > finds a hero whose picture has no night art, in light mode too, named by its words verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: hero-dark-art > finds a hero whose picture has no night art, in light mode too, named by its words)

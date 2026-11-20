@@ -28,6 +28,46 @@ const of = (rule: string, options?: Parameters<typeof findThemeIssues>[0]) => fi
 const reset = "<style>.t :focus-visible { outline: none; }</style>";
 
 describe("findThemeIssues: focus-ring", () => {
+  it("judges a control Ouro marked as pressed-focused as a keyboard user sees it (#2524)", () => {
+    // Ouro's last-input tracker marks focus that lands after a press; this stands in for it.
+    const press = (event: FocusEvent) => (event.target as Element).setAttribute("data-ouro-pressed-focus", "");
+    document.addEventListener("focusin", press, true);
+    try {
+      render(`${reset}<div class="t">
+        <style>
+          .quiet[data-ouro-pressed-focus]:focus-visible { outline: none !important; }
+          .quiet:focus-visible { outline: 2px solid #36f; }
+        </style>
+        <button class="quiet">Save</button>
+        <button id="bare">Cancel</button>
+      </div>`);
+      expect(of("focus-ring").map(({ element }) => element)).toEqual(['button#bare "Cancel"']);
+    } finally {
+      document.removeEventListener("focusin", press, true);
+    }
+  });
+
+  it("judges a screen reached by clicks as a keyboard user sees it, and leaves the page's modality as it was", () => {
+    document.documentElement.setAttribute("data-ouro-modality", "pointer");
+    try {
+      render(`${reset}<div class="t">
+        <style>
+          :root[data-ouro-modality="pointer"] .quiet:focus-visible { outline: none !important; }
+          .quiet:focus-visible { outline: 2px solid #36f; }
+        </style>
+        <button class="quiet">Save</button>
+        <button id="bare">Cancel</button>
+      </div>`);
+      expect(of("focus-ring").map(({ element }) => element)).toEqual(['button#bare "Cancel"']);
+      expect(document.documentElement.getAttribute("data-ouro-modality")).toBe("pointer");
+      document.documentElement.removeAttribute("data-ouro-modality");
+      of("focus-ring");
+      expect(document.documentElement.hasAttribute("data-ouro-modality")).toBe(false);
+    } finally {
+      document.documentElement.removeAttribute("data-ouro-modality");
+    }
+  });
+
   it("finds a control whose keyboard focus changes nothing a person can see, a transparent or 0-wide ring too", () => {
     render(`${reset}<div class="t">
       <style>

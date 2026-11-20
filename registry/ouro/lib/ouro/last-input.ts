@@ -1,14 +1,15 @@
 export { lastInput };
 
-const modifierKeys = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph", "CapsLock"]);
+// The keys that move focus, as in Fluent's keyborg. Shift+Tab is Tab with a modifier.
+const focusKeys = new Set(["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"]);
 
 /** The mark ouro-base's keyboard-only focus rings read: on the focused element, while its focus came from a press. */
 const PRESSED_FOCUS = "data-ouro-pressed-focus";
 
-// The modality of the last press or key, once there has been one.
+// The modality of the last press or key that moves focus, once there has been one.
 let current: "keyboard" | "pointer" | undefined;
 
-// Marks an element that has focus after a press, and unmarks it after a key: one element's attribute, so a switch
+// Marks an element that has focus after a press, and unmarks it after a key that moves focus: one element's attribute, so a switch
 // between keyboard and pointer restyles the element that has focus, not every element a rule on <html> reaches (#2524).
 function mark(element: EventTarget | null): void {
   // The page itself holds focus when nothing does; it is no control and draws no ring.
@@ -40,8 +41,9 @@ let input = "";
  * saw the press), and a `Tooltip` never opens after a touch.
  *
  * The same listeners keep `data-ouro-modality="keyboard"` or `"pointer"` on `<html>`: `pointer` after a press and
- * `keyboard` after a key other than a lone modifier. For `ouro-base`'s keyboard-only focus rings they mark the focused
- * element with `data-ouro-pressed-focus` while its focus came from a press. Before either, the
+ * `keyboard` after a key that moves focus (Tab and Shift+Tab, the arrows, Home, End, Page Up, Page Down), as in Fluent's
+ * keyborg; Escape, Enter, a shortcut or a typed character leaves it as it was. For `ouro-base`'s keyboard-only focus rings
+ * they mark the focused element with `data-ouro-pressed-focus` while its focus came from a press. Before either, the
  * browser's own `:focus-visible` decides. Moving the mouse changes neither.
  *
  * Internal: Ouro UI components use it; apps don't need to.
@@ -72,8 +74,8 @@ if (typeof document !== "undefined") {
     "keydown",
     (event) => {
       input = "keyboard";
-      // A modifier alone (Shift held for a range select with the mouse) is no sign the keyboard is in use.
-      if (!modifierKeys.has(event.key)) modality("keyboard");
+      // Only a key that moves focus shows the keyboard is steering: Escape, Enter, a shortcut such as ⌘K or a typed character is not.
+      if (focusKeys.has(event.key)) modality("keyboard");
     },
     true,
   );
