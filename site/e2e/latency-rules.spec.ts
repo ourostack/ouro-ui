@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { EVENT_TIMING_STEP, LATENCY, expectPressesWithinBudget, forgetSteadySlowRunner, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, slowRunnerMessage, splitPaint, splitPress, steadySlow, summarise, describeFrame, thinMargin } from "./latency";
+import { EVENT_TIMING_STEP, LATENCY, expectPressesWithinBudget, forgetSteadySlowRunner, loaded, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, slowRunnerMessage, splitPaint, splitPress, steadySlow, summarise, describeFrame, thinMargin } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -140,6 +140,17 @@ test("a probe past the cap calls for a re-measure, read from the probe alone", (
   const cap = LATENCY.probeQuiet * LATENCY.maxFactor;
   expect(pastCap([cap, cap, cap + 8])).toBe(false);
   expect(pastCap([cap + 8, cap + 8, cap])).toBe(true);
+});
+
+test("a probe round past the cap during the presses calls for a re-measure, though the rounds either side were quiet", () => {
+  const quiet = LATENCY.probeQuiet;
+  const busy = LATENCY.probeQuiet * LATENCY.maxFactor + 8;
+  // The feathers run in ourostack/ouro-ui#2114: quiet before and after, the load within the presses.
+  expect(pastCap([quiet, quiet, quiet, busy, busy, busy, quiet, quiet, quiet])).toBe(false);
+  expect(loaded([[quiet, quiet, quiet], [busy, busy, busy], [quiet, quiet, quiet]])).toBe(true);
+  expect(loaded([[quiet, quiet, quiet], [quiet, busy, quiet], [quiet, quiet, quiet]])).toBe(false);
+  expect(loaded([[busy, busy, busy], [], [busy, busy, busy]])).toBe(true);
+  expect(loaded([[quiet, quiet, quiet], [], [quiet, quiet, quiet]])).toBe(false);
 });
 
 test("a probe that reads past the cap every time, within one Event Timing step, is steady; spiky or within the cap is not", () => {

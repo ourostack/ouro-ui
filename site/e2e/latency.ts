@@ -31,8 +31,8 @@ import { expect, test, type Page } from "@playwright/test";
 //
 // A shared runner is sometimes slow all over: every control on it slower together, the time going to the wait for the
 // next paint (ourostack/ouro-ui#798). So beside each control, at the same throttle, measure() presses a calibration
-// probe of its own (openProbe), in a page of its own with none of the app's code, pressed before the control's presses and after
-// them. Its median over a quiet runner's (LATENCY.probeQuiet) is the runner's factor (runnerFactor), at least 1 and at
+// probe of its own (openProbe), in a page of its own with none of the app's code, pressed before the control's presses, halfway
+// through them and after them. Its median over a quiet runner's (LATENCY.probeQuiet) is the runner's factor (runnerFactor), at least 1 and at
 // most LATENCY.maxFactor, and the control's p95 bound and median ceiling are each times it. A quiet runner's factor is
 // 1, so its bounds are the ones above; a slow app is as slow beside the probe on any runner, so it still fails.
 
@@ -338,7 +338,7 @@ export async function measure(
   more?: (samples: readonly number[], factor: number) => boolean,
   /** The index the first press takes, so a second measurement of a control carries on where its first stopped. */
   indexFrom = 0,
-): Promise<{ samples: number[]; probe: number[]; factor: number; presses: number }> {
+): Promise<{ samples: number[]; probe: number[]; rounds: number[][]; factor: number; presses: number }> {
   await page.evaluate(() => {
     const store: Array<[number, number, number, number, string]> = [];
     (window as unknown as { __latency: typeof store }).__latency = store;
@@ -415,7 +415,11 @@ export async function measure(
   const warmUps = !browserWarmed && test.info().project.name.startsWith("site-latency") ? LATENCY.firstWarmUps : LATENCY.warmUps;
   browserWarmed = true;
   let presses = warmUps + LATENCY.samples;
+  // A round halfway through the counted presses too, so load that comes and goes within them is read (ourostack/ouro-ui#2114).
+  const halfway = warmUps + Math.floor(LATENCY.samples / 2);
+  let probeDuring: number[] = [];
   for (let index = 0; index < presses; index++) {
+    if (index === halfway) probeDuring = await probeRound();
     if (setUp) await unthrottled(() => setUp(indexFrom + index));
     await page.evaluate(() => {
       (window as unknown as { __latency: unknown[] }).__latency.length = 0;
@@ -456,13 +460,14 @@ export async function measure(
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   }
   const probeAfter = await probeRound();
-  const probe = [...probeBefore, ...probeAfter];
+  const rounds = [probeBefore, probeDuring, probeAfter].filter((round) => round.length > 0);
+  const probe = rounds.flat();
   const factor = runnerFactor(probe);
-  const line = `${label}: median ${median(probe)} ms (quiet ${LATENCY.probeQuiet}), factor ${factor}; before ${probeBefore.join(", ")}; after ${probeAfter.join(", ")}`;
+  const line = `${label}: median ${median(probe)} ms (quiet ${LATENCY.probeQuiet}), factor ${factor}; before ${probeBefore.join(", ")}; during ${probeDuring.join(", ")}; after ${probeAfter.join(", ")}`;
   test.info().annotations.push({ type: "latency-probe", description: line });
   console.log(`latency-probe ${line}`);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
-  return { samples, probe, factor, presses };
+  return { samples, probe, rounds, factor, presses };
 }
 
 /** Holds a control's samples to the budget and its baseline's median ceiling, each times the runner's factor, reporting every sample, pass or fail. */
@@ -489,6 +494,15 @@ export function thinMargin(p95: number, factor: number): boolean {
  */
 export function pastCap(probe: readonly number[]): boolean {
   return pastCapRead(median(probe));
+}
+
+/**
+ * Whether the runner was loaded while a control was measured: the probe past the cap over all its rounds (pastCap), or in
+ * any one round, before, during or after the presses. A load that comes and goes within the presses leaves the rounds
+ * either side of it quiet, and moves their median little, so one round past the cap is enough (ourostack/ouro-ui#2114).
+ */
+export function loaded(rounds: readonly (readonly number[])[]): boolean {
+  return pastCap(rounds.flat()) || rounds.some((round) => round.length > 0 && pastCap(round));
 }
 
 /** Whether one probe median reads the runner past the cap (LATENCY.maxFactor). */
@@ -592,7 +606,7 @@ export async function expectPressesWithinBudget(page: Page, label: string, press
   const reads = [median(result.probe)];
   // Each measurement's presses carry on from the last index of the ones before it.
   let pressed = result.presses;
-  while (pastCap(result.probe) && reads.length < LATENCY.loadTries && !steadySlow(reads) && !steadyVerdict()) {
+  while (loaded(result.rounds) && reads.length < LATENCY.loadTries && !steadySlow(reads) && !steadyVerdict()) {
     test.info().setTimeout(test.info().timeout + LATENCY.loadWaitMs + Math.ceil(took * 1.5));
     await page.waitForTimeout(LATENCY.loadWaitMs);
     result = await measure(page, `${label} (again)`, presses, LATENCY.throttle, more, pressed);
@@ -621,7 +635,7 @@ export async function expectPressesWithinBudget(page: Page, label: string, press
       expect(false, message).toBe(true);
     }
   } else if (reads.length > 1) {
-    expect(pastCap(result.probe), `${label}: runner too loaded to judge: probe ${reads.join(" ms, then ")} ms, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms), ${reads.length} times`).toBe(false);
+    expect(loaded(result.rounds), `${label}: runner too loaded to judge: probe ${reads.join(" ms, then ")} ms, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms), ${reads.length} times`).toBe(false);
   }
   const { p95 } = summarise(result.samples, baseline, result.factor);
   summary(`- ${label}: p95 ${p95} ms, bound ${p95Bound(result.factor)} ms (${LATENCY.p95 * result.factor} raw, rounded to Event Timing's 8 ms step)`);
