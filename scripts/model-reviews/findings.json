@@ -1472,7 +1472,7 @@
       ],
       "issue": 2318,
       "status": "changed",
-      "change": "The README now leads with what a person gets, each part backed by a story, test or component, and links the review-volume guide. The per-surface difference of one action is not yet measured."
+      "change": "The README now leads with what a person gets, each part backed by a story, test or component, and links the review-volume guide. The per-surface difference of one action is measured in the issue: the description split between the person's and the model's wording, and no surface carried declared consent wording. Core 1.2.0 (ourostack/ouro-ui-core#116) adds an optional declared `confirm` and one `actionText()` that every generator reads, and web's generated text is checked against the declaration; the kits take it next."
     },
     {
       "id": "unknown-name-never-opened",

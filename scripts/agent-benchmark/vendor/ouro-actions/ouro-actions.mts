@@ -12,11 +12,11 @@
 //   node ouro-actions.mts check <actions.mts> <dir>         fail when <dir> differs from what generate writes
 //   node ouro-actions.mts compare-mcp <actions.mts> <tools.json>  fail when a live MCP tools/list differs
 import { readdir, readFile, mkdir, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 /** The generator's version, written into every generated file; it is core's version. */
-export const ACTIONS_VERSION = "0.15.0";
+export const ACTIONS_VERSION = "1.2.0";
 const GENERATOR = `ouro-actions ${ACTIONS_VERSION}`;
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -63,14 +63,27 @@ interface FieldBase {
   flag?: string;
   /** Input only, and optional: the value may also be null, which a program sends to clear it (JSON Schema's `null`). */
   nullable?: boolean;
+  /**
+   * Input only, and optional: the property name the field has on the JSON wire (MCP, WebMCP), when the existing tool's
+   * input is named differently from the declaration's camelCase name, such as `wire: "has_instructions"` for
+   * `hasInstructions`. Only the JSON property changes; the other projections keep the declaration's name.
+   */
+  wire?: string;
 }
 /** A JSON Schema `format` a string can name; MCP and WebMCP carry it, and the CLI and Swift take the string as it is. */
 export const STRING_FORMATS = Object.freeze(["date-time", "date", "uri", "email"] as const);
 export interface StringField extends FieldBase {
   kind: "string";
+  /**
+   * Input only: the field is a positional CLI word, not a flag. A required one comes first; an optional one may follow
+   * other optional ones, and no required one may follow it, since a positional can't be skipped. Not for a number,
+   * boolean, list, group or one-of.
+   */
   arg?: boolean;
   /** The longest the string may be, in characters (JSON Schema's `maxLength`). */
   maxLength?: number;
+  /** A regular expression the string must match (JSON Schema's `pattern`), written as the source text, unanchored. */
+  pattern?: string;
   format?: (typeof STRING_FORMATS)[number];
   /**
    * Input only: the app's own App Entity type, such as `"MarkdownDocumentEntity"`. The App Intent's parameter takes it, so
@@ -92,27 +105,57 @@ export interface StringField extends FieldBase {
    * name there uses the resolver alone.
    */
   shownAs?: string;
+  /**
+   * Input only, and optional: the value the field takes when the person or program leaves it out, typed as the field's
+   * value. It is written into the JSON Schema, the CLI's args or flags and the usage line; the handler applies it.
+   */
+  default?: string;
 }
-export interface NumberField extends FieldBase { kind: "number" | "integer"; min?: number; max?: number }
+export interface NumberField extends FieldBase {
+  kind: "number" | "integer";
+  min?: number;
+  max?: number;
+  /** Input only, and optional: the value left out takes; within `min` and `max`, and a whole number for an integer. */
+  default?: number;
+}
 export interface BooleanField extends FieldBase {
   kind: "boolean";
   /** The one value it takes: `const: true` is an explicit confirmation a program must send, such as `confirmNoCover`. */
   const?: true;
+  /** Input only, and optional: the value left out takes, a boolean (true when `const` is true). */
+  default?: boolean;
 }
-export interface EnumField<V extends string = string> extends FieldBase { kind: "enum"; values: readonly V[] }
+/** An enum takes `arg` as a string does; its `values` ride along in the CLI's args and in the MCP and WebMCP schemas. */
+export interface EnumField<V extends string = string> extends FieldBase {
+  kind: "enum";
+  values: readonly V[];
+  /** Input only: a positional CLI word, with the same placement rules as a string's `arg`. */
+  arg?: boolean;
+  /** Input only, and optional: the value left out takes, one of `values`. */
+  default?: V;
+}
 /**
  * The structured fields, for an existing MCP tool's inputs that a person's door can't carry: a list of values, a group
  * of named fields, or one of several shapes. They are protocol-only input fields: MCP and WebMCP carry their JSON
- * Schema and the CLI takes them as JSON; the App Intent, Reins and the Swift input leave them out.
+ * Schema and the CLI takes them as JSON; the App Intent, Reins and the Swift input leave them out. A list without `of`, or a
+ * group without `fields`, is free-form: any JSON array, or any JSON object, for an existing MCP tool's input that takes one
+ * without a shape.
  */
-export interface ListField extends FieldBase { kind: "list"; of: Field }
-export interface GroupField extends FieldBase { kind: "group"; fields: Fields }
-export interface OneOfField extends FieldBase { kind: "one-of"; options: readonly Field[] }
+export interface ListField extends FieldBase { kind: "list"; of?: Field; minItems?: number; maxItems?: number; default?: never }
+export interface GroupField extends FieldBase { kind: "group"; fields?: Fields; default?: never }
+/**
+ * `combinator` is JSON Schema's `oneOf` (the default: exactly one option matches) or `anyOf` (one or more match; the
+ * options take the field's description, and their own are left out).
+ */
+export interface OneOfField extends FieldBase { kind: "one-of"; options: readonly Field[]; combinator?: "oneOf" | "anyOf"; default?: never }
 export type Field = StringField | NumberField | BooleanField | EnumField | ListField | GroupField | OneOfField;
 export type Fields = Readonly<Record<string, Field>>;
 
 type Opt = { optional?: boolean };
-/** Field builders; `arg: true` makes a required string field a positional CLI argument instead of a flag (web's arguments are strings). */
+/**
+ * Field builders. `arg: true` makes a string or enum input field a positional CLI word instead of a flag: web's words are
+ * strings, and an enum's values are what the word may be. Required words come before optional ones.
+ */
 export const field = Object.freeze({
   string: <O extends Omit<StringField, "kind">>(o: O) => ({ ...o, kind: "string" as const }),
   number: <O extends Omit<NumberField, "kind">>(o: O) => ({ ...o, kind: "number" as const }),
@@ -129,6 +172,8 @@ export const field = Object.freeze({
 const KINDS = Object.freeze(["string", "number", "integer", "boolean", "enum", "list", "group", "one-of"]);
 const STRUCTURED = Object.freeze(["list", "group", "one-of"]);
 const isStructured = (f: Field) => STRUCTURED.includes(f.kind);
+/** A positional CLI word: a string or enum input field declared `arg: true`. */
+const isArg = (f: Field) => "arg" in f && Boolean(f.arg);
 
 type Nullable<F, T> = F extends { nullable: true } ? T | null : T;
 type ValueOf<F> = Nullable<F, F extends { kind: "string" } ? string
@@ -136,7 +181,9 @@ type ValueOf<F> = Nullable<F, F extends { kind: "string" } ? string
   : F extends { kind: "boolean" } ? boolean
   : F extends { kind: "enum"; values: readonly (infer V)[] } ? V
   : F extends { kind: "list"; of: infer I } ? ValueOf<I>[]
+  : F extends { kind: "list" } ? unknown[]
   : F extends { kind: "group"; fields: infer G } ? ValuesOf<G>
+  : F extends { kind: "group" } ? Record<string, unknown>
   : F extends { kind: "one-of"; options: readonly (infer U)[] } ? ValueOf<U>
   : never>;
 type OptionalKeys<F> = { [K in keyof F]: F[K] extends Opt & { optional: true } ? K : never }[keyof F];
@@ -162,8 +209,14 @@ export interface ActionDef<I extends Fields = Fields, O extends Fields = Fields>
   label: string;
   /** The person's one sentence: the control's hint, the component AX summary. */
   description: string;
-  /** The agent's description: the MCP and WebMCP description, the CLI summary, the App Intent's description. One line. */
+  /** The agent's description: the MCP and WebMCP description, the CLI summary. One line. */
   agent: string;
+  /**
+   * Only for `consequential`: the one question the person is asked before it acts, word for word on every surface that
+   * asks (the confirm sheet, the A2UI and MCP Apps card, the App Intent's prompt). One line of at most 200 characters.
+   * Left out, it is the `description`.
+   */
+  confirm?: string;
   input: I;
   output: O;
   /** Exactly when `consent` is `person-only`. */
@@ -181,6 +234,12 @@ export interface ActionDef<I extends Fields = Fields, O extends Fields = Fields>
   destructive?: true;
   /** Calling it again with the same input changes nothing more: MCP's `idempotentHint`, so a client may retry it. */
   idempotent?: true;
+  /**
+   * The input takes keys it doesn't name, and a schema with no required input has no `required` list: the input schema
+   * an MCP server already serves for a tool moved onto the model. Declare it only to keep an existing tool's input exactly;
+   * a new action keeps the closed schema, which rejects a key it doesn't name.
+   */
+  openInput?: true;
 }
 
 export interface Action<I extends Fields = Fields, O extends Fields = Fields> extends Readonly<ActionDef<I, O>> {
@@ -196,6 +255,28 @@ export interface ActionSet {
   readonly actions: readonly Action[];
 }
 
+/** The longest `confirm`, so a phone's prompt, an App Intent's dialog and a card's sheet all show it whole. */
+export const CONFIRM_MAX = 200;
+
+/**
+ * The words a person meets for one action, which every surface takes from here and never writes for itself: `label` is
+ * the name, `description` the person's sentence, `agent` the model's, and `confirm` the question before a consequential
+ * action acts (the declared `confirm`, else the `description`; absent for any other consent). Person-facing surfaces
+ * (the control, the confirm sheet, a card, the App Intent, a Windows App Action) show `label`, `description` and
+ * `confirm`; model-facing ones (MCP, WebMCP, the CLI summary, an AppFunction's instruction) read `agent`, and carry
+ * `confirm` too where the protocol has a place for it.
+ */
+export interface ActionText {
+  label: string;
+  description: string;
+  agent: string;
+  confirm?: string;
+}
+
+export function actionText(a: Pick<Action, "label" | "description" | "agent" | "consent" | "confirm">): ActionText {
+  return { label: a.label, description: a.description, agent: a.agent, ...(a.consent === "consequential" ? { confirm: a.confirm ?? a.description } : {}) };
+}
+
 export interface Names {
   kebab: string;
   camel: string;
@@ -204,6 +285,7 @@ export interface Names {
 
 const ID = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/;
 const FIELD_NAME = /^[a-z][a-zA-Z0-9]*$/;
+const WIRE_NAME = /^[a-zA-Z][a-zA-Z0-9_]*$/;
 /**
  * What an input field may not take: web's kit's own flags (`--json`, `--help`, `--why`, `--why-file`, `--dry-run`,
  * `--agent`, `--quiet`), which the field's flag would shadow (a field keeps its name and takes another with `flag`), and
@@ -212,8 +294,8 @@ const FIELD_NAME = /^[a-z][a-zA-Z0-9]*$/;
  */
 const KIT_FLAGS = Object.freeze(["json", "help", "why", "why-file", "dry-run", "agent", "quiet"]);
 const INTENT_MEMBERS = Object.freeze(["input", "perform"]);
-/** An enum value: lowercase words and digits, joined by -, _, / or . (`shopping-list`, `image/jpeg`). */
-const ENUM_VALUE = /^[a-z][a-z0-9]*([-_/.][a-z0-9]+)*$/;
+/** An enum value: lowercase words and digits, joined by -, _, /, . or : (`shopping-list`, `image/jpeg`, `notes:safe`). */
+const ENUM_VALUE = /^[a-z][a-z0-9]*([-_/.:][a-z0-9]+)*$/;
 /**
  * Ids web's `defineComponentAx` reserves for the person (its `RESERVED_PERSON_ONLY`), which only a person-only action may
  * take. Web also reads an id's meaning (`share-screen`, `mic-on`); its defineComponentAx and X-ray still apply that.
@@ -230,11 +312,41 @@ export function names(id: string): Names {
   return { kebab: parts.join("-"), camel: parts[0] + parts.slice(1).map(cap).join(""), pascal: parts.map(cap).join("") };
 }
 
+/**
+ * A field's default: the value it takes when left out. Refused where "left out" has no value to stand for (an output,
+ * a required, structured, entity or protocol-only field) and where the value doesn't fit the field's type, values,
+ * range, length, pattern or const.
+ */
+function checkDefault(at: string, f: Field, input: boolean): void {
+  const v: unknown = f.default;
+  if (!input) throw new Error(`${at}: default is for an input field, and an output has no value to leave out. Fix: drop default.`);
+  if (isStructured(f)) throw new Error(`${at}: a ${f.kind} field takes no default, since its value is a whole list, object or shape. Fix: drop default.`);
+  if (f.protocolOnly) throw new Error(`${at}: a protocol-only field takes no default, since the person's doors don't carry it. Fix: drop default, or drop protocolOnly.`);
+  if ("entity" in f && f.entity !== undefined) throw new Error(`${at}: an entity takes no default, since the person picks it. Fix: drop default, or drop entity.`);
+  if (!f.optional) throw new Error(`${at}: a default on a required field, which every call sends. Fix: make it optional: true, or drop the default.`);
+  if (f.kind === "enum") {
+    if (!(f.values as readonly unknown[]).includes(v)) throw new Error(`${at}: default ${JSON.stringify(v)} is not one of its values. Fix: one of ${f.values.map((x) => JSON.stringify(x)).join(", ")}, or drop default.`);
+  } else if (f.kind === "string") {
+    if (typeof v !== "string") throw new Error(`${at}: default ${JSON.stringify(v)} is not a string. Fix: a string, or drop default.`);
+    if (f.maxLength !== undefined && [...v].length > f.maxLength) throw new Error(`${at}: default is ${[...v].length} characters, over maxLength ${f.maxLength}. Fix: a shorter default, or a larger maxLength.`);
+    if (f.pattern !== undefined && !new RegExp(f.pattern, "u").test(v)) throw new Error(`${at}: default ${JSON.stringify(v)} doesn't match pattern ${f.pattern}. Fix: a default that matches, or drop pattern.`);
+  } else if (f.kind === "boolean") {
+    if (typeof v !== "boolean") throw new Error(`${at}: default ${JSON.stringify(v)} is not a boolean. Fix: true or false, or drop default.`);
+    if (f.const !== undefined && v !== f.const) throw new Error(`${at}: default ${v} is not the one value const allows, true. Fix: default: true, or drop default.`);
+  } else if (f.kind === "number" || f.kind === "integer") {
+    const whole = f.kind === "integer";
+    if (typeof v !== "number" || !Number.isFinite(v) || (whole && !Number.isInteger(v))) throw new Error(`${at}: default ${JSON.stringify(v)} is not ${whole ? "a whole number" : "a number"}. Fix: ${whole ? "a whole number" : "a number"} within min and max, or drop default.`);
+    if (f.min !== undefined && v < f.min) throw new Error(`${at}: default ${v} is below min ${f.min}. Fix: a default of ${f.min} or more, or a lower min.`);
+    if (f.max !== undefined && v > f.max) throw new Error(`${at}: default ${v} is above max ${f.max}. Fix: a default of ${f.max} or less, or a higher max.`);
+  }
+}
+
 /** Checks one field, wherever it sits: `top` is an action's input or output field; otherwise it is inside a list, group or one-of. */
 function checkField(at: string, f: Field, input: boolean, top: boolean): void {
   if (!KINDS.includes(f?.kind)) throw new Error(`${at}: has no kind. Fix: build it with field.string, field.number, field.integer, field.boolean, field.enum, field.list, field.group or field.oneOf.`);
   if (!oneLine(f.label)) throw new Error(`${at}: label is empty or more than one line. Fix: the person's word for it, such as "Quantity".`);
   if (!oneLine(f.description)) throw new Error(`${at}: description is empty or more than one line. Fix: one sentence for the agent.`);
+  if (f.wire !== undefined && !WIRE_NAME.test(f.wire)) throw new Error(`${at}: wire is not a JSON property name. Fix: letters, digits and underscores, starting with a letter, such as "has_instructions".`);
   if (!top) {
     for (const key of ["ask", "protocolOnly", "returned", "flag", "arg", "entity", "multiline", "shownAs"] as const) {
       if (key in f && (f as unknown as Record<string, unknown>)[key] !== undefined) throw new Error(`${at}: ${key} is for an action's own input or output field, not one inside a list, group or one-of. Fix: drop ${key}.`);
@@ -266,16 +378,24 @@ function checkField(at: string, f: Field, input: boolean, top: boolean): void {
     if (f.entity !== undefined) throw new Error(`${at}: multiline is for typed text, and an entity is picked. Fix: drop entity or multiline.`);
     if (f.protocolOnly) throw new Error(`${at}: multiline is for the person's doors, and a protocol-only field isn't on them. Fix: drop multiline or protocolOnly.`);
   }
-  if ("arg" in f && f.arg && (f.kind !== "string" || f.optional || !input)) throw new Error(`${at}: arg is only for a required string input field, since web's CLI arguments are strings. Fix: drop arg, or make it a required string.`);
+  if (isArg(f) && (!input || (f.kind !== "string" && f.kind !== "enum"))) throw new Error(`${at}: arg is only for an input string or enum field, since a positional is one word on the command line. Fix: drop arg, or make it a string or enum.`);
+  if (isArg(f) && f.nullable) throw new Error(`${at}: a positional arg can't be nullable, since a word can't be null. Fix: drop nullable, or drop arg.`);
   if (f.kind === "string") {
     if (f.maxLength !== undefined && !(Number.isInteger(f.maxLength) && f.maxLength > 0)) throw new Error(`${at}: maxLength is ${JSON.stringify(f.maxLength)}. Fix: a whole number above 0.`);
+    if (f.pattern !== undefined) {
+      try {
+        new RegExp(f.pattern, "u");
+      } catch {
+        throw new Error(`${at}: pattern ${JSON.stringify(f.pattern)} is not a regular expression. Fix: write the expression's source, such as "^[a-z]+$".`);
+      }
+    }
     if (f.format !== undefined && !(STRING_FORMATS as readonly string[]).includes(f.format)) throw new Error(`${at}: format is ${JSON.stringify(f.format)}. Fix: one of ${STRING_FORMATS.join(", ")}, or leave it out.`);
   }
   if (f.kind === "boolean" && f.const !== undefined && f.const !== true) throw new Error(`${at}: const is ${JSON.stringify(f.const)}. Fix: const: true, for a confirmation a program must send, or leave it out.`);
   if (f.kind === "boolean" && f.const !== undefined && f.nullable) throw new Error(`${at}: a const field can't be nullable, since const: true takes only true. Fix: drop nullable.`);
   if (f.kind === "enum") {
     if (!Array.isArray(f.values) || f.values.length === 0 || !f.values.every((v) => ENUM_VALUE.test(v))) {
-      throw new Error(`${at}: values is empty or not lowercase words. Fix: values: ["all", "unchecked"]; words may be joined by -, _, / or ., as in "image/jpeg".`);
+      throw new Error(`${at}: values is empty or not lowercase words. Fix: values: ["all", "unchecked"]; words may be joined by -, _, /, . or :, as in "image/jpeg" or "notes:safe".`);
     }
     // Only an action's own enum fields become Swift enums, so only they must keep their cases apart.
     const cases = new Map<string, string>();
@@ -285,18 +405,27 @@ function checkField(at: string, f: Field, input: boolean, top: boolean): void {
       cases.set(caseName(v), v);
     }
   }
-  if (f.kind === "list") {
+  if (f.default !== undefined) checkDefault(at, f, input);
+  if (f.kind === "list" && f.of !== undefined) {
     if (f.of?.optional) throw new Error(`${at} item: an item can't be optional. Fix: drop optional from of.`);
+    if (f.of?.default !== undefined) throw new Error(`${at} item: an item takes no default, since each value is sent. Fix: drop default from of.`);
+    for (const bound of ["minItems", "maxItems"] as const) {
+      const v = f[bound];
+      if (v !== undefined && !(Number.isInteger(v) && v >= 0)) throw new Error(`${at}: ${bound} is ${JSON.stringify(v)}. Fix: a whole number of 0 or more.`);
+    }
+    if (f.minItems !== undefined && f.maxItems !== undefined && f.minItems > f.maxItems) throw new Error(`${at}: minItems ${f.minItems} is above maxItems ${f.maxItems}. Fix: make minItems no larger than maxItems.`);
     checkField(`${at} item`, f.of, input, false);
   }
-  if (f.kind === "group") checkFields(`${at}`, f.fields, input, false);
+  if (f.kind === "group" && f.fields !== undefined) checkFields(`${at}`, f.fields, input, false);
   if (f.kind === "one-of") {
+    if (f.combinator !== undefined && f.combinator !== "oneOf" && f.combinator !== "anyOf") throw new Error(`${at}: combinator is not "oneOf" or "anyOf". Fix: combinator: "anyOf" when a value may match more than one option, else leave it out.`);
     if (!Array.isArray(f.options) || f.options.length < 2) throw new Error(`${at}: options needs two shapes or more. Fix: options: [field.integer({ ... }), field.enum({ ... })], or use the one field.`);
     // JSON Schema's oneOf takes a value that matches exactly one option, so no two options may take the same value.
     const shapes = new Map<string, number>();
     f.options.forEach((o, i) => {
       if (o?.optional) throw new Error(`${at} option ${i + 1}: an option can't be optional. Fix: drop optional from the option; make the one-of field optional instead.`);
       if (o?.nullable) throw new Error(`${at} option ${i + 1}: an option can't be nullable. Fix: make the one-of field nullable instead.`);
+      if (o?.default !== undefined) throw new Error(`${at} option ${i + 1}: an option takes no default, since the value itself picks the option. Fix: drop default from the option.`);
       checkField(`${at} option ${i + 1}`, o, input, false);
       const shape = o?.kind === "enum" ? "string" : o?.kind === "integer" ? "number" : o?.kind;
       const other = shapes.get(shape);
@@ -328,13 +457,27 @@ function checkFields(where: string, fields: unknown, input: boolean, top = true)
     }
     checkField(at, f, input, top);
   }
+  const wires = new Map<string, string>();
+  for (const [name, f] of Object.entries(fields as Record<string, Field>)) {
+    const wire = f.wire ?? name;
+    if (wires.has(wire)) throw new Error(`${where}: "${wires.get(wire)}" and "${name}" are both named "${wire}" on the wire. Fix: give one a different wire name.`);
+    wires.set(wire, name);
+  }
   if (top && !input) {
     const returned = Object.entries(fields as Record<string, Field>).filter(([, f]) => f.returned);
     if (returned.length > 1) throw new Error(`${where}: ${returned.map(([n]) => `"${n}"`).join(" and ")} are both returned, and only one output field can be returned. Fix: keep returned on the one Shortcuts should get.`);
   }
   if (top && input) {
     const flags = new Map<string, string>();
+    let optionalArg: string | undefined;
     for (const [name, f] of Object.entries(fields as Record<string, Field>)) {
+      if (isArg(f)) {
+        if (!f.optional) {
+          if (optionalArg !== undefined) throw new Error(`${where} "${name}": a required arg comes after the optional arg "${optionalArg}"; a positional can't be skipped. Fix: make "${name}" optional, or put it before "${optionalArg}".`);
+        } else {
+          optionalArg ??= name;
+        }
+      }
       const flag = f.flag ?? flagName(name);
       const other = flags.get(flag);
       if (other !== undefined) throw new Error(`${where}: "${other}" and "${name}" share the CLI flag --${flag}. Fix: give one its own flag.`);
@@ -351,6 +494,10 @@ export function defineAction<const I extends Fields, const O extends Fields>(def
   if (!(CONSENTS as readonly string[]).includes(def.consent)) throw new Error(`${at}: consent is ${JSON.stringify(def.consent)}. Fix: one of ${CONSENTS.join(", ")}.`);
   for (const key of ["label", "description", "agent"] as const) {
     if (!oneLine(def[key])) throw new Error(`${at}: ${key} is empty or more than one line. Fix: write it in one line.`);
+  }
+  if (def.confirm !== undefined) {
+    if (def.consent !== "consequential") throw new Error(`${at}: confirm is only for consent "consequential", the one that asks. Fix: drop confirm, or make the consent "consequential".`);
+    if (!oneLine(def.confirm) || def.confirm.length > CONFIRM_MAX) throw new Error(`${at}: confirm is empty, more than one line or over ${CONFIRM_MAX} characters. Fix: ask the person in one short line.`);
   }
   if (def.consent === "person-only") {
     if (!def.personOnly || !oneLine(def.personOnly.reason) || !oneLine(def.personOnly.how)) {
@@ -370,6 +517,7 @@ export function defineAction<const I extends Fields, const O extends Fields>(def
   if (def.idempotent !== undefined && (def.idempotent !== true || (def.consent !== "write" && def.consent !== "consequential"))) {
     throw new Error(`${at}: idempotent is for a write or consequential action that changes nothing more when called again with the same input; a read is idempotent already. Fix: idempotent: true, or drop it.`);
   }
+  if (def.openInput !== undefined && def.openInput !== true) throw new Error(`${at}: openInput is ${JSON.stringify(def.openInput)}. Fix: true, or drop it.`);
   checkFields(`${at} input`, def.input, true);
   checkFields(`${at} output`, def.output, false);
   const n = names(id);
@@ -480,9 +628,10 @@ const describe = (f: Field) => (f.kind === "string" && f.multiline ? `${f.descri
 
 function fieldSchema(f: Field): Record<string, Json> {
   if (f.kind === "one-of") {
-    const options: Json[] = f.options.map((o) => fieldSchema(o));
+    const anyOf = f.combinator === "anyOf";
+    const options: Json[] = f.options.map((o) => (anyOf ? withoutDescriptions(fieldSchema(o)) : fieldSchema(o)));
     if (f.nullable) options.push({ type: "null" });
-    return { oneOf: options, description: describe(f) };
+    return anyOf ? { anyOf: options, description: describe(f) } : { oneOf: options, description: describe(f) };
   }
   const type = f.kind === "enum" ? "string" : f.kind === "list" ? "array" : f.kind === "group" ? "object" : f.kind;
   const s: Record<string, Json> = { type: f.nullable ? [type, "null"] : type, description: describe(f) };
@@ -490,25 +639,42 @@ function fieldSchema(f: Field): Record<string, Json> {
   if ((f.kind === "number" || f.kind === "integer") && f.min !== undefined) s["minimum"] = f.min;
   if ((f.kind === "number" || f.kind === "integer") && f.max !== undefined) s["maximum"] = f.max;
   if (f.kind === "string" && f.maxLength !== undefined) s["maxLength"] = f.maxLength;
+  if (f.kind === "string" && f.pattern !== undefined) s["pattern"] = f.pattern;
   if (f.kind === "string" && f.format !== undefined) s["format"] = f.format;
   if (f.kind === "boolean" && f.const !== undefined) s["const"] = f.const;
-  if (f.kind === "list") s["items"] = fieldSchema(f.of);
-  if (f.kind === "group") Object.assign(s, objectSchema(f.fields));
+  if (f.default !== undefined) s["default"] = f.default;
+  if (f.kind === "list" && f.of !== undefined) s["items"] = fieldSchema(f.of);
+  if (f.kind === "list" && f.minItems !== undefined) s["minItems"] = f.minItems;
+  if (f.kind === "list" && f.maxItems !== undefined) s["maxItems"] = f.maxItems;
+  if (f.kind === "group" && f.fields !== undefined) Object.assign(s, objectSchema(f.fields));
   return s;
 }
 
-function objectSchema(fields: Fields): { type: "object"; properties: Record<string, Json>; required: string[]; additionalProperties: false } {
+/** The JSON property a field has on the wire: its `wire` name, or its declaration name. */
+const wireOf = (name: string, f: Field) => f.wire ?? name;
+
+/** An anyOf option takes the one-of field's description, so its own (and its items') descriptions are left out. */
+function withoutDescriptions(s: Json): Json {
+  if (Array.isArray(s)) return s.map(withoutDescriptions);
+  if (s === null || typeof s !== "object") return s;
+  return Object.fromEntries(Object.entries(s).filter(([k, v]) => k !== "description" || typeof v !== "string").map(([k, v]) => [k, withoutDescriptions(v)]));
+}
+
+/** An open object leaves out `additionalProperties` and an empty `required`, as an MCP server already serves them. */
+function objectSchema(fields: Fields, open = false): { type: "object"; properties: Record<string, Json>; required?: string[]; additionalProperties?: false } {
   const entries = Object.entries(fields);
+  const required = entries.filter(([, f]) => !f.optional).map(([k, f]) => wireOf(k, f));
   return {
     type: "object",
-    properties: Object.fromEntries(entries.map(([k, f]) => [k, fieldSchema(f)])),
-    required: entries.filter(([, f]) => !f.optional).map(([k]) => k),
-    additionalProperties: false,
+    properties: Object.fromEntries(entries.map(([k, f]) => [wireOf(k, f), fieldSchema(f)])),
+    ...(open && required.length === 0 ? {} : { required }),
+    ...(open ? {} : { additionalProperties: false }),
   };
 }
 
 /** The input's JSON Schema, shared by MCP, WebMCP and the CLI's `help --json`. */
-export const inputSchema = (a: Action) => objectSchema(a.input);
+export const inputSchema = (a: Action) => objectSchema(a.input, a.openInput === true);
+
 /** The output's JSON Schema. */
 export const outputSchema = (a: Action) => objectSchema(a.output);
 
@@ -517,7 +683,11 @@ export interface CommandJson {
   summary: string;
   effect: "private" | "others";
   readOnly?: true;
-  args?: { name: string; description: string; required: true }[];
+  /**
+   * Positional words, in order: a required one has `required: true`; an optional one omits it. An enum's values ride along,
+   * and a default is typed JSON, as the field's type says.
+   */
+  args?: { name: string; description: string; required?: true; values?: string[]; default?: string | number | boolean }[];
   flags?: Record<string, Record<string, Json>>;
   output?: string;
 }
@@ -531,6 +701,7 @@ function flagSpec(f: Field): Record<string, Json> {
     if (f.min !== undefined) s["min"] = f.min;
     if (f.max !== undefined) s["max"] = f.max;
   }
+  if (f.default !== undefined) s["default"] = f.default;
   if (!f.optional) s["required"] = true;
   return s;
 }
@@ -541,8 +712,14 @@ export function toCommand(a: Action): CommandJson {
   const cmd: CommandJson = { name: a.cliWords, summary: a.agent, effect: effectOf(a) };
   if (a.consent === "read") cmd.readOnly = true;
   const fields = Object.entries(a.input);
-  const args = fields.filter(([, f]) => "arg" in f && f.arg).map(([name, f]) => ({ name, description: f.description, required: true as const }));
-  const flags = Object.fromEntries(fields.filter(([, f]) => !("arg" in f && f.arg)).map(([name, f]) => [f.flag ?? flagName(name), flagSpec(f)]));
+  const args = fields.filter(([, f]) => isArg(f)).map(([name, f]) => ({
+    name,
+    description: f.description,
+    ...(f.optional ? {} : { required: true as const }),
+    ...(f.kind === "enum" ? { values: [...f.values] } : {}),
+    ...(f.default !== undefined ? { default: f.default } : {}),
+  }));
+  const flags = Object.fromEntries(fields.filter(([, f]) => !isArg(f)).map(([name, f]) => [f.flag ?? flagName(name), flagSpec(f)]));
   if (args.length) cmd.args = args;
   if (Object.keys(flags).length) cmd.flags = flags;
   const out = Object.keys(a.output);
@@ -557,18 +734,26 @@ export interface McpTool {
   inputSchema: ReturnType<typeof objectSchema>;
   outputSchema?: ReturnType<typeof objectSchema>;
   annotations: McpAnnotations;
+  /** A consequential action's confirm question, under `CONFIRM_META`; MCP has no field of its own for it. */
+  _meta?: Record<string, string>;
 }
+
+/** The key under which an MCP tool's `_meta` carries the question the person is asked before it acts. */
+export const CONFIRM_META = "ouro.bot/confirm";
 
 /** The MCP tool. */
 export function toMcpTool(a: Action): McpTool {
   const tool: McpTool = { name: a.id, title: a.label, description: a.agent, inputSchema: inputSchema(a), annotations: annotationsOf(a) };
+  const confirm = actionText(a).confirm;
+  if (confirm !== undefined) tool._meta = { [CONFIRM_META]: confirm };
   if (Object.keys(a.output).length) tool.outputSchema = outputSchema(a);
   return tool;
 }
 
 /** The WebMCP tool descriptor, for `registerTool`, with the hints WebMCP defines. */
 export function toWebMcpTool(a: Action) {
-  return { name: a.id, description: a.agent, inputSchema: inputSchema(a), annotations: { readOnlyHint: a.consent === "read", consequentialHint: a.consent === "consequential" } };
+  const confirm = actionText(a).confirm;
+  return { name: a.id, title: a.label, description: a.agent, inputSchema: inputSchema(a), annotations: { readOnlyHint: a.consent === "read", consequentialHint: a.consent === "consequential" }, ...(confirm === undefined ? {} : { _meta: { [CONFIRM_META]: confirm } }) };
 }
 
 const header = (set: ActionSet) => ({ generator: GENERATOR, set: set.name });
@@ -578,7 +763,9 @@ const refusals = (set: ActionSet) => Object.fromEntries(set.actions.filter((a) =
 const lit = (s: string) => JSON.stringify(s);
 
 function twinOf(set: ActionSet, a: Action): string {
-  const args = Object.entries(a.input).filter(([, f]) => "arg" in f && f.arg).map(([name]) => `<${name}>`);
+  // A word the person may leave out is bracketed, as web's usage line shows it: `[<name>]`, or `[<name>=<default>]` when
+  // it has a default.
+  const args = Object.entries(a.input).filter(([, f]) => isArg(f)).map(([name, f]) => (f.optional ? `[<${name}>${f.default === undefined ? "" : `=${f.default}`}]` : `<${name}>`));
   return [set.tool, a.cliWords, ...args].join(" ");
 }
 
@@ -599,7 +786,7 @@ function renderWeb(set: ActionSet): string {
     return structured.length ? [`  ${lit(a.names.kebab)}: [${structured.join(", ")}],`] : [];
   });
   const controls = set.actions.map((a) =>
-    `  ${lit(a.names.kebab)}: { label: ${lit(a.label)}, description: ${lit(a.description)}, consent: ${lit(a.consent)}, props: { "data-ax-action": ${lit(a.names.kebab)} } },`,
+    `  ${lit(a.names.kebab)}: { label: ${lit(a.label)}, description: ${lit(a.description)}, consent: ${lit(a.consent)},${actionText(a).confirm === undefined ? "" : ` confirm: ${lit(actionText(a).confirm!)},`} props: { "data-ax-action": ${lit(a.names.kebab)} } },`,
   );
   return [
     comment,
@@ -657,7 +844,7 @@ function renderWeb(set: ActionSet): string {
 const swiftLit = (s: string) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 const SWIFT_KEYWORDS = new Set(["as", "break", "case", "catch", "class", "continue", "default", "defer", "do", "else", "enum", "extension", "fallthrough", "false", "for", "func", "guard", "if", "import", "in", "init", "inout", "internal", "is", "let", "nil", "operator", "private", "protocol", "public", "repeat", "rethrows", "return", "self", "Self", "static", "struct", "subscript", "super", "switch", "throw", "throws", "true", "try", "typealias", "var", "where", "while"]);
 const swiftId = (name: string) => (SWIFT_KEYWORDS.has(name) ? `\`${name}\`` : name);
-const caseName = (v: string) => swiftId(names(v.replace(/[-/.]/g, "_").replace(/_+/g, "_")).camel);
+const caseName = (v: string) => swiftId(names(v.replace(/[-/.:]/g, "_").replace(/_+/g, "_")).camel);
 const enumType = (a: Action, field: string) => `${a.names.pascal}${field.charAt(0).toUpperCase()}${field.slice(1)}Value`;
 
 /** Optional in Swift: an optional field, or a protocol-only one, which the person's doors leave nil. */
@@ -763,7 +950,9 @@ function renderSwift(set: ActionSet): string {
     L.push(`    /// The app's handler; every door calls it.`);
     L.push(`    public static var perform: (@MainActor @Sendable (${P}Input) async throws -> ${P}Output)?`);
     if (agentDoor && a.consent === "consequential") {
-      L.push("    /// How the intent asks the person before it acts. Unset, the system asks. A test sets it: return to");
+      L.push(`    /// The question the person is asked, the declaration's confirm: the same words as the confirm sheet and the card.`);
+      L.push(`    public static let confirmation: LocalizedStringResource = ${swiftLit(actionText(a).confirm!)}`);
+      L.push("    /// How the intent asks the person before it acts. Unset, it asks `confirmation`. A test sets it: return to");
       L.push("    /// confirm, or throw to cancel, and the handler never runs. The app can also set it to ask in its own way.");
       L.push(`    public static var confirm: (@MainActor @Sendable (${P}Input) async throws -> Void)?`);
     }
@@ -781,7 +970,7 @@ function renderSwift(set: ActionSet): string {
     if (agentDoor) {
       L.push(`public struct ${P}Intent: AppIntent {`);
       L.push(`    public static let title: LocalizedStringResource = ${swiftLit(a.label)}`);
-      L.push(`    public static let description = IntentDescription(${swiftLit(a.agent)})`, "");
+      L.push(`    public static let description = IntentDescription(${swiftLit(a.description)})`, "");
       if (a.opensApp) L.push("    public static let openAppWhenRun = true", "");
       const entityOf = (f: Field) => (f.kind === "string" ? f.entity : undefined);
       for (const [n, f] of fields) {
@@ -805,7 +994,7 @@ function renderSwift(set: ActionSet): string {
       const returned = Object.entries(a.output).find(([, f]) => f.returned);
       const returns = ["IntentResult", ...(returned ? [`ReturnsValue<${swiftType(a, returned[0], returned[1])}>`] : []), "ProvidesDialog"].join(" & ");
       L.push("    @MainActor", `    public func perform() async throws -> some ${returns} {`);
-      if (a.consent === "consequential") L.push("        // Consequential: the person says yes before it acts.", `        if let confirm = ${P}Action.confirm { try await confirm(self.input) } else { try await requestConfirmation() }`);
+      if (a.consent === "consequential") L.push("        // Consequential: the person says yes before it acts.", `        if let confirm = ${P}Action.confirm { try await confirm(self.input) } else { try await requestConfirmation(result: .result(dialog: IntentDialog(${P}Action.confirmation))) }`);
       L.push("        let input = self.input", `        let result: Result<${P}Output, any Error>`);
       L.push(`        do { result = .success(try await ${P}Action.run(input)) } catch { result = .failure(error) }`);
       if (returned) {
@@ -885,17 +1074,21 @@ export function renderActions(set: ActionSet): Map<string, string> {
   return files;
 }
 
-/** Every way `found` differs from what the set generates: a missing, extra or different file, at its first differing line. */
-export function checkGenerated(set: ActionSet, found: ReadonlyMap<string, string>): string[] {
+/** Every way `found` differs from what the set generates: a missing, extra or different file, at its first differing line. `only` checks just those files. */
+/** A projection without its generator's version, so files a newer ouro-actions would stamp differently still match. */
+const unstamped = (text: string) => text.replace(/\bouro-actions \d+\.\d+\.\d+\b/g, "ouro-actions");
+
+export function checkGenerated(set: ActionSet, found: ReadonlyMap<string, string>, only?: ReadonlySet<string>): string[] {
   const expected = renderActions(set);
   const problems: string[] = [];
   for (const [path, text] of expected) {
+    if (only && !only.has(path)) continue;
     const have = found.get(path);
     if (have === undefined) {
       problems.push(`${path}: missing. Fix: run generate.`);
       continue;
     }
-    if (have === text) continue;
+    if (have === text || unstamped(have) === unstamped(text)) continue;
     const a = text.split("\n");
     const b = have.split("\n");
     let i = 0;
@@ -957,6 +1150,95 @@ export function compareMcp(set: ActionSet, tools: unknown, options: { undeclared
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// The report: what `check --report` writes, in the shape of the Ouro AX X-ray's report.json
+// ---------------------------------------------------------------------------------------------------------------
+
+/** One claim of the action claim set (standard/ax/actions.claims.json), as the report needs it. */
+export interface ReportClaim {
+  id: string;
+  tier: "must" | "should";
+  rule: string;
+}
+
+export interface ActionsReport {
+  tool: "ouro-actions";
+  checker: { version: string };
+  at: string;
+  claimSet: { name: "actions"; version: string };
+  target: { app: { name: string }; set: string; commit: string | null };
+  summary: { claims: number; holding: number; must: number; mustHolding: number; checks: number };
+  claims: { id: string; tier: "must" | "should"; holds: boolean; problems: string[] }[];
+}
+
+const parseJson = (text: string | undefined): Record<string, unknown> | null => {
+  if (text === undefined) return null;
+  try {
+    const value: unknown = JSON.parse(text);
+    return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+};
+const toolsOf = (doc: Record<string, unknown> | null): Record<string, unknown>[] => (Array.isArray(doc?.["tools"]) ? (doc!["tools"] as Record<string, unknown>[]) : []);
+const hintsOf = (doc: Record<string, unknown> | null, name: string): Record<string, unknown> | null => {
+  const tool = toolsOf(doc).find((t) => t["name"] === name);
+  return tool && typeof tool["annotations"] === "object" ? (tool["annotations"] as Record<string, unknown>) : null;
+};
+const has = (doc: Record<string, unknown> | null, key: string, name: string) => Boolean(doc && typeof doc[key] === "object" && doc[key] !== null && name in (doc[key] as object));
+
+/**
+ * Proves the action claim set's claims on a set's committed projections (the folder `generate` wrote), each from what
+ * the files say: projections that equal their declaration; person-only actions offered on no agent door and refused on
+ * each; consequential actions marked so on every door, and confirmed in the App Intent. The result is shaped like the
+ * Ouro AX X-ray's report.json, so CI uploads it beside an X-ray report and the adoption ledger reads both.
+ */
+export function actionsReport(set: ActionSet, found: ReadonlyMap<string, string>, claims: readonly ReportClaim[], options: { claimSetVersion: string; app?: string; commit?: string | null; now?: () => Date }): ActionsReport {
+  const mcp = parseJson(found.get("mcp.json"));
+  const webmcp = parseJson(found.get("webmcp.json"));
+  const commands = parseJson(found.get("commands.json"));
+  const swift = found.get("OuroActions.swift");
+  const commandOf = (a: Action) => (Array.isArray(commands?.["commands"]) ? (commands!["commands"] as Record<string, unknown>[]) : []).find((c) => c["name"] === a.cliWords);
+  const proofs: Record<string, () => string[]> = {
+    "action.projections-match": () => checkGenerated(set, found),
+    "action.one-declaration": () => checkGenerated(set, found).length ? [`the committed projections are not all generated from ${set.name}'s declarations. Fix: run generate.`] : [],
+    "action.person-only-refuses": () =>
+      set.actions.filter((a) => a.consent === "person-only").flatMap((a) => [
+        ...(toolsOf(mcp).some((t) => t["name"] === a.id) ? [`${a.id}: mcp.json offers it as a tool. Fix: run generate.`] : []),
+        ...(toolsOf(webmcp).some((t) => t["name"] === a.id) ? [`${a.id}: webmcp.json offers it as a tool. Fix: run generate.`] : []),
+        ...(has(mcp, "refusals", a.id) ? [] : [`${a.id}: mcp.json does not refuse it. Fix: run generate.`]),
+        ...(has(webmcp, "refusals", a.id) ? [] : [`${a.id}: webmcp.json does not refuse it. Fix: run generate.`]),
+        ...(has(commands, "personOnly", a.cliWords) && !commandOf(a) ? [] : [`${a.id}: commands.json does not refuse "${a.cliWords}". Fix: run generate.`]),
+        ...(swift !== undefined && swift.includes(`struct ${a.names.pascal}Intent:`) ? [`${a.id}: OuroActions.swift has an App Intent for it. Fix: run generate.`] : []),
+      ]),
+    "action.consequential-confirms": () =>
+      set.actions.filter((a) => a.consent === "consequential").flatMap((a) => {
+        const swiftIntent = swift === undefined ? null : swift.slice(swift.indexOf(`struct ${a.names.pascal}Intent:`), swift.indexOf("\n}\n", swift.indexOf(`struct ${a.names.pascal}Intent:`)));
+        return [
+          ...(hintsOf(mcp, a.id)?.["destructiveHint"] === true ? [] : [`${a.id}: mcp.json does not mark it destructive. Fix: run generate.`]),
+          ...(hintsOf(webmcp, a.id)?.["consequentialHint"] === true ? [] : [`${a.id}: webmcp.json does not mark it consequential. Fix: run generate.`]),
+          ...(commandOf(a)?.["effect"] === "others" ? [] : [`${a.id}: commands.json does not give "${a.cliWords}" the effect "others", so the CLI does not ask for --why. Fix: run generate.`]),
+          ...(swiftIntent === null || swiftIntent.includes("requestConfirmation(") ? [] : [`${a.id}: its App Intent does not call requestConfirmation. Fix: run generate.`]),
+        ];
+      }),
+    "action.agent-description": () => set.actions.filter((a) => !a.agent?.trim()).map((a) => `${a.id}: has no agent description. Fix: write one line for a model in agent.`),
+  };
+  const results = claims.map((c) => {
+    const problems = proofs[c.id]?.() ?? [`no check in ouro-actions ${ACTIONS_VERSION} proves ${c.id}. Fix: use the ouro-actions from the same core release as the claim set.`];
+    return { id: c.id, tier: c.tier, holds: problems.length === 0, problems };
+  });
+  const musts = results.filter((r) => r.tier === "must");
+  return {
+    tool: "ouro-actions",
+    checker: { version: ACTIONS_VERSION },
+    at: (options.now ?? (() => new Date()))().toISOString(),
+    claimSet: { name: "actions", version: options.claimSetVersion },
+    target: { app: { name: options.app ?? set.tool ?? set.name }, set: set.name, commit: options.commit ?? null },
+    summary: { claims: results.length, holding: results.filter((r) => r.holds).length, must: musts.length, mustHolding: musts.filter((r) => r.holds).length, checks: results.length },
+    claims: results,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // The CLI
 // ---------------------------------------------------------------------------------------------------------------
 
@@ -985,22 +1267,84 @@ async function readDir(dir: string): Promise<Map<string, string>> {
   return found;
 }
 
-const USAGE = "usage: node ouro-actions.mts generate|check <actions.mts> <dir> | compare-mcp <actions.mts> <tools.json> [--undeclared <names.json>]";
+const USAGE = "usage: node ouro-actions.mts generate <actions.mts> <dir> [--targets <names>] | check <actions.mts> <dir> [--targets <names>] [--report <report.json> [--claims <actions.claims.json>] [--app <name>] [--commit <sha>]] | compare-mcp <actions.mts> <tools.json> [--undeclared <names.json>]";
+
+const REPORT_FLAGS = ["--report", "--claims", "--app", "--commit", "--targets"];
+
+/** The projections `--targets` names, by the short name a person types (`mcp,actions`), and the file each writes. */
+export const PROJECTIONS: Readonly<Record<string, string>> = Object.freeze({
+  actions: "actions.json",
+  commands: "commands.json",
+  mcp: "mcp.json",
+  webmcp: "webmcp.json",
+  web: "web.ts",
+  swift: "OuroActions.swift",
+  reins: "OuroActionsReins.swift",
+});
+
+/** The files a `--targets` list names, or every file when it is absent. Unknown names fail with the list of names. */
+export function targetFiles(targets: string | undefined): Set<string> | undefined {
+  if (targets === undefined) return undefined;
+  const names = targets.split(",");
+  const unknown = names.filter((n) => !(n in PROJECTIONS));
+  if (unknown.length || names.length === 0) throw new Error(`--targets: ${unknown.length ? unknown.join(", ") : "is empty"} is not a projection. Fix: use any of ${Object.keys(PROJECTIONS).join(", ")}.`);
+  return new Set(names.map((n) => PROJECTIONS[n]!));
+}
+
+/** check's options after its two arguments: each of --report, --claims, --app and --commit at most once with a value; null when they are not. */
+function reportOptions(rest: readonly string[]): Record<string, string> | null {
+  const options: Record<string, string> = {};
+  for (let i = 0; i < rest.length; i += 2) {
+    const [flag, value] = [rest[i]!, rest[i + 1]];
+    if (!REPORT_FLAGS.includes(flag) || value === undefined || flag in options) return null;
+    options[flag] = value;
+  }
+  const keys = Object.keys(options);
+  return keys.length && !("--report" in options) && keys.some((k) => k !== "--targets") ? null : options;
+}
 
 /** Runs the CLI; returns the exit code: 0 clean, 1 drift, 2 usage. */
 export async function main(argv: readonly string[], io: { out(s: string): void; err(s: string): void }): Promise<number> {
   const [cmd, declarations, target, flag, flagValue, ...rest] = argv;
-  const flagOk = flag === undefined || (cmd === "compare-mcp" && flag === "--undeclared" && flagValue !== undefined && rest.length === 0);
+  const report = cmd === "check" ? reportOptions(argv.slice(3)) : null;
+  const flagOk = flag === undefined || (cmd === "compare-mcp" && flag === "--undeclared" && flagValue !== undefined && rest.length === 0) || (cmd === "generate" && flag === "--targets" && flagValue !== undefined && rest.length === 0) || report !== null;
   if (!cmd || !declarations || !target || !["generate", "check", "compare-mcp"].includes(cmd) || !flagOk) {
     io.err(`${USAGE}\n`);
     return 2;
   }
   const set = await loadSet(declarations);
+  let only: Set<string> | undefined;
+  try {
+    only = cmd === "generate" ? targetFiles(flag === "--targets" ? flagValue : undefined) : targetFiles(report?.["--targets"]);
+  } catch (e) {
+    io.err(`ouro-actions: ${(e as Error).message}\n`);
+    return 2;
+  }
   if (cmd === "generate") {
     await mkdir(target, { recursive: true });
     const files = renderActions(set);
-    for (const [path, text] of files) await writeFile(join(target, path), text);
-    io.out(`ouro-actions: wrote ${files.size} files for ${count(set.actions.length, "action")} into ${target}.\n`);
+    for (const [path, text] of files) if (!only || only.has(path)) await writeFile(join(target, path), text);
+    io.out(`ouro-actions: wrote ${only ? only.size : files.size} files for ${count(set.actions.length, "action")} into ${target}.\n`);
+    return 0;
+  }
+  if (cmd === "check") {
+    const found = await readDir(target);
+    const problems = checkGenerated(set, found, only);
+    for (const p of problems) io.err(`ouro-actions: ${p}\n`);
+    if (report?.["--report"]) {
+      const claimsPath = report["--claims"] ?? fileURLToPath(new URL("./actions.claims.json", import.meta.url));
+      const claimSet = JSON.parse(await readFile(claimsPath, "utf8")) as { version: string; claims: ReportClaim[] };
+      const written = actionsReport(set, found, claimSet.claims, { claimSetVersion: claimSet.version, app: report["--app"], commit: report["--commit"] ?? null });
+      await mkdir(dirname(resolve(report["--report"])), { recursive: true });
+      await writeFile(report["--report"], `${JSON.stringify(written, null, 2)}\n`);
+      const { must, mustHolding, claims, holding } = written.summary;
+      io.out(`ouro-actions: ${mustHolding} of ${must} must claims and ${holding} of ${claims} claims hold; wrote ${report["--report"]}.\n`);
+      const broken = written.claims.filter((c) => c.tier === "must" && !c.holds);
+      for (const c of broken) io.err(`ouro-actions: must claim ${c.id} does not hold: ${c.problems[0] ?? "no proof in this ouro-actions"}. See ${report["--report"]}.\n`);
+      if (broken.length) return 1;
+    }
+    if (problems.length) return 1;
+    io.out(`ouro-actions: ${count(set.actions.length, "action")}, every projection matches its declaration.\n`);
     return 0;
   }
   let undeclared: string[] | undefined;
@@ -1012,10 +1356,10 @@ export async function main(argv: readonly string[], io: { out(s: string): void; 
     }
     undeclared = names;
   }
-  const problems = cmd === "check" ? checkGenerated(set, await readDir(target)) : compareMcp(set, JSON.parse(await readFile(target, "utf8")), { undeclared });
+  const problems = compareMcp(set, JSON.parse(await readFile(target, "utf8")), { undeclared });
   for (const p of problems) io.err(`ouro-actions: ${p}\n`);
   if (problems.length) return 1;
-  io.out(`ouro-actions: ${count(set.actions.length, "action")}, ${cmd === "check" ? "every projection matches its declaration" : "the live tools match their declarations"}.\n`);
+  io.out(`ouro-actions: ${count(set.actions.length, "action")}, the live tools match their declarations.\n`);
   return 0;
 }
 
