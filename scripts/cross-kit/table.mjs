@@ -34,11 +34,28 @@ export function parseCases(kit, log) {
   return out;
 }
 
+/** Component spec cases: Android's log names each as `| <spec>/<case id> | pass |`, Windows' as `Passed Ouro.Claims.Each_spec_case_holds(name: "<spec>/<case id>")`; the other kits name none, so their columns are "-". */
+const componentReaders = {
+  android: (log) => [...log.matchAll(/\| ([a-z][a-z-]*\/[a-z][a-z0-9-]*) \| (pass|FAIL) \|/g)].map((m) => [m[1], m[2] === "pass"]),
+  windows: (log) => [...log.matchAll(/\b(Passed|Failed) Ouro\.Claims\.Each_spec_case_holds\(name: "([^"]+)"\)/g)].map((m) => [m[2], m[1] === "Passed"]),
+};
+const componentJobs = { android: /^build$/, windows: /^windows$/ };
+
+export function parseComponentCases(kit, log) {
+  const out = new Map();
+  for (const [name, passed] of componentReaders[kit](log)) out.set(name, (out.get(name) ?? true) && passed);
+  return out;
+}
+
 /** One row per core case, one column per kit: pass, FAIL, or "-" where that kit's log names no such case. */
 export function caseTable(caseNames, results) {
   const names = Object.keys(results);
   return ["| Case | " + names.join(" | ") + " |", "|---|" + names.map(() => "---|").join(""),
     ...caseNames.map((c) => `| ${c} | ` + names.map((k) => (results[k].has(c) ? (results[k].get(c) ? "pass" : "FAIL") : "-")).join(" | ") + " |")].join("\n");
+}
+
+export function componentCaseNames(coreRoot, specs) {
+  return specs.flatMap((spec) => JSON.parse(readFileSync(join(coreRoot, "standard/hx/components", `${spec}.spec.json`), "utf8")).cases.map((c) => `${spec}/${c.id}`));
 }
 
 const gh = (...args) => JSON.parse(execFileSync("gh", args, { encoding: "utf8" }));
@@ -73,6 +90,21 @@ function latestCases(k) {
   }
 }
 
+function latestComponentCases(k) {
+  const job = componentJobs[k.kit];
+  try {
+    const runs = gh("run", "list", "-R", k.repo, "-b", "main", "-w", "CI", "-L", "10", "--json", "databaseId,conclusion");
+    for (const run of runs.filter((r) => r.conclusion && r.conclusion !== "skipped")) {
+      const found = gh("run", "view", String(run.databaseId), "-R", k.repo, "--json", "jobs").jobs.find((j) => job.test(j.name));
+      const cases = found ? parseComponentCases(k.kit, jobLog(k.repo, found.databaseId)) : new Map();
+      if (cases.size > 0) return cases;
+    }
+  } catch {
+    /* a kit with no readable log shows a dash */
+  }
+  return new Map();
+}
+
 function jobLog(repo, id) {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -102,4 +134,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const results = {};
   for (const k of kits) results[k.kit] = latestCases(k);
   console.log("\n" + caseTable(readdirSync(coreDir).filter((f) => f.endsWith(".json")).sort(), results));
+  const componentResults = {};
+  for (const k of kits.filter((k) => k.kit in componentJobs)) componentResults[k.kit] = latestComponentCases(k);
+  console.log("\n" + caseTable(componentCaseNames(coreRoot, ["tabs", "tab-bar", "sidebar"]), componentResults));
 }
