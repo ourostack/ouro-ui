@@ -170,7 +170,7 @@ function SmileIcon(props: SVGProps<SVGSVGElement>) {
 
 function EmojiTokensStory() {
   const [text, setText] = useState("");
-  const [sent, setSent] = useState(["Release notes are out :party: thanks all", ":heart: :fern:"]);
+  const [sent, setSent] = useState(["Notes are out :party: thanks all", ":heart: :fern:"]);
   const [open, setOpen] = useState(false);
   // The person's skin tone, kept in one place: the picker sets it, and both insert in it.
   const [tone, setTone] = useState<EmojiSkinTone>("default");

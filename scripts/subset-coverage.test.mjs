@@ -39,7 +39,7 @@ test("CI checks the button, the dialog, the sheet and the forms set, each alone 
 test("installing the button with its tests brings only the helpers it imports, each with the tests that cover it", () => {
   const { runtime, tests } = subset(registry, ["button"]);
   // The helpers the first app excluded from coverage by hand: none arrives with the button.
-  for (const stem of ["toast", "stretched-link", "floating"]) assert.ok(!runtime.includes(`registry/ouro/lib/ouro/${stem}.ts`), stem);
+  for (const stem of ["toast", "stretched-link"]) assert.ok(!runtime.includes(`registry/ouro/lib/ouro/${stem}.ts`), stem);
   assert.ok(runtime.includes("registry/ouro/components/ouro/button/button.tsx"));
   assert.ok(tests.includes("registry/ouro/components/ouro/button/button.test.tsx"));
   // Every installed helper that has a test file has it installed too.
@@ -51,8 +51,8 @@ test("installing the button with its tests brings only the helpers it imports, e
 });
 
 test("a pull request's reduced run checks only the sets that install a selected component", () => {
-  assert.deepEqual(setsTouching(registry, ["checkbox-group"]), [formsSet, sets[4]]);
-  assert.deepEqual(setsTouching(registry, ["dialog"]).at(0), ["dialog"]);
+  assert.deepEqual(setsTouching(registry, ["checkbox-group"]), [sets[0], sets[1], sets[2], formsSet, sets[4]]);
+  assert.ok(setsTouching(registry, ["dialog"]).some((set) => set.length === 1 && set[0] === "dialog"));
   assert.ok(!setsTouching(registry, ["dialog"]).includes(formsSet) || subset(registry, formsSet).items.includes("dialog"));
   assert.deepEqual(setsTouching(registry, ["chart"]), []);
   assert.deepEqual(setsTouching(registry, []), []);

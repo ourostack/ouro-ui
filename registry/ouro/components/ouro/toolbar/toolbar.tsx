@@ -13,6 +13,7 @@ import { TooltipsHidden } from "@/registry/ouro/lib/ouro/portal-container";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import type { Platform } from "@/registry/ouro/lib/ouro/platform";
+import { useDisabledReason, type DisabledReasonWiring } from "@/registry/ouro/lib/ouro/disabled-reason";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -39,6 +40,15 @@ interface ToolbarControlEntry {
   shortcut?: ToolbarShortcut | undefined;
   /** Shown, and still reachable with the arrow keys, but cannot be pressed. */
   disabled?: boolean | undefined;
+  /**
+   * Why the control can't be pressed now. Passing a reason turns the control off as `disabled`
+   * does, and the reason shows in its tooltip on hover and focus and is read as its description.
+   * It wins over `disabled`. `undefined` leaves the control on and keeps its place, so it keeps
+   * focus as the reason comes and goes. Use `disabled` alone when the reason is obvious.
+   * @example
+   * { label: "Paste", onClick: paste, disabledReason: clipboardEmpty ? "Nothing copied yet" : undefined }
+   */
+  disabledReason?: string | undefined;
   /**
    * The id of the agent action this control performs, set as `data-ax-action` on the control and
    * on its item in the More menu, so the component that holds the bar and declares the action
@@ -853,12 +863,29 @@ interface ControlContext {
 
 /** A control in the row: a Toggle or a Button, with a tooltip when it hides its label or has a shortcut. */
 function control(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: ControlContext, key: string | number, index?: number): JSX.Element {
+  if ("disabledReason" in entry) return <ReasonedControl key={key} entry={entry} context={context} index={index} />;
+  return plainControl(entry, context, key, index, undefined);
+}
+
+/** A control whose entry passes `disabledReason`: it keeps its place as the reason comes and goes. */
+function ReasonedControl({ entry, context, index }: { entry: ToolbarButtonEntry | ToolbarToggleEntry; context: ControlContext; index: number | undefined }): JSX.Element {
+  const reason = useDisabledReason(entry, undefined);
+  return (
+    <>
+      {plainControl(entry, context, "control", index, reason)}
+      {reason.note}
+    </>
+  );
+}
+
+function plainControl(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: ControlContext, key: string | number, index: number | undefined, reason: DisabledReasonWiring | undefined): JSX.Element {
   const { size, keepFocus, disabled, toggles, stop, platform } = context;
   const Icon = entry.icon;
   const iconOnly = Boolean(entry.hideLabel && Icon);
   const shortcut = keysOf(entry);
-  const off = Boolean(disabled || entry.disabled);
+  const off = Boolean(disabled || entry.disabled || reason?.off);
   const shared = {
+    "aria-describedby": reason?.describedBy,
     ...rowStop(entry.label, stop === entry.label, off),
     "data-ouro-toolbar-entry": index,
     "aria-keyshortcuts": shortcut && ariaKeyShortcuts(shortcut, platform),
@@ -897,9 +924,10 @@ function control(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: Contro
         {iconOnly && Icon ? <Icon aria-hidden="true" className="size-[1.25em] shrink-0" /> : entry.label}
       </Button>
     );
-  if (!iconOnly && !shortcut) return <Fragment key={key}>{element}</Fragment>;
+  const why = reason?.reason;
+  if (!iconOnly && !shortcut && !reason?.wrapped) return <Fragment key={key}>{element}</Fragment>;
   return (
-    <Tooltip key={key} content={tip(entry.label, shortcut)}>
+    <Tooltip key={key} content={why ? (iconOnly || shortcut ? <>{tip(entry.label, shortcut)}<span className="block">{why}</span></> : why) : iconOnly || shortcut ? tip(entry.label, shortcut) : undefined}>
       {element}
     </Tooltip>
   );
@@ -931,11 +959,11 @@ function asMenuEntry(entry: ToolbarEntry, toggles: Toggles): MenuEntry {
       checked: toggles.pressedOf(entry),
       onCheckedChange: (next) => toggles.press(entry, next),
       shortcut,
-      disabled: entry.disabled,
+      disabled: Boolean(entry.disabled || entry.disabledReason),
       axAction: entry.axAction,
     };
   }
-  return { label: entry.label, onClick: entry.onClick, shortcut, disabled: entry.disabled, axAction: entry.axAction };
+  return { label: entry.label, onClick: entry.onClick, shortcut, disabled: entry.disabled, disabledReason: entry.disabledReason, axAction: entry.axAction };
 }
 
 // The button that opens what does not fit. A disabled toolbar has no menu to open.

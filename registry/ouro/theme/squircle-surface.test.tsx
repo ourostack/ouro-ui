@@ -114,6 +114,64 @@ describe("squircle surface where the engine has no corner-shape", () => {
     expect(getComputedStyle(outlined!).borderTopColor).toBe("rgba(0, 0, 0, 0)");
     expect(bare!.querySelector("[data-ouro-surface]")).toBeNull();
   });
+
+  it("clips a Card's backdrop, and only it, to the squircle at the card's radius", async () => {
+    applyFallback();
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    roots.push({ root, host });
+    await act(() =>
+      root.render(
+        <Card backdrop={<img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" />} footer={<Button>Start</Button>}>
+          x
+        </Card>,
+      ),
+    );
+    const card = host.querySelector<HTMLElement>("[data-ouro=card]")!;
+    const backdrop = card.querySelector<HTMLElement>(":scope > [data-card-backdrop]")!;
+    // The card's own corner is a circle at 0.7 of the squircle's radius (--ouro-corner-fallback) where corner-shape is missing.
+    const radius = parseFloat(getComputedStyle(card).borderTopLeftRadius) / 0.7;
+    expect(radius).toBeGreaterThan(1);
+    // The squircle at the card's radius, starting down the left edge at that radius, as an avatar's photo is clipped.
+    const clip = getComputedStyle(backdrop).clipPath;
+    const start = clip.match(/^shape\(from 0px ([\d.]+)px/);
+    expect(start).not.toBeNull();
+    expect(Number(start![1])).toBeCloseTo(radius, 1);
+    expect(clip).not.toMatch(/round|circle|ellipse/);
+    // The clip is its only edge: no circular corner or overflow clip under it.
+    expect(getComputedStyle(backdrop).borderTopLeftRadius).toBe("0px");
+    expect(getComputedStyle(backdrop).overflow).toBe("visible");
+    // The card, its text and its controls aren't clipped.
+    expect(getComputedStyle(card).clipPath).toBe("none");
+    expect(getComputedStyle(card).overflow).toBe("visible");
+    const button = card.querySelector("button")!;
+    for (let node: Element | null = button; node && node !== card; node = node.parentElement) expect(getComputedStyle(node).clipPath).toBe("none");
+  });
+
+  it.each([
+    ["md", 1.4],
+    ["sm", 1],
+  ] as const)("clips a plain %s Card's backdrop to the squircle at the radius plain media rounds to", async (size, scale) => {
+    applyFallback();
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    roots.push({ root, host });
+    await act(() =>
+      root.render(
+        <Card variant="plain" size={size} backdrop={<img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" />}>
+          x
+        </Card>,
+      ),
+    );
+    const backdrop = host.querySelector<HTMLElement>("[data-card-backdrop]")!;
+    const radius = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--radius")) * 16 * scale;
+    const start = getComputedStyle(backdrop).clipPath.match(/^shape\(from 0px ([\d.]+)px/);
+    expect(start).not.toBeNull();
+    expect(Number(start![1])).toBeCloseTo(radius, 1);
+    expect(getComputedStyle(backdrop).borderTopLeftRadius).toBe("0px");
+  });
 });
 
 describe("a Dialog where the engine has no corner-shape", () => {

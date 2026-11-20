@@ -1579,7 +1579,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
 const matrixValues = (block, key) =>
   (block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m")) ?? block.match(new RegExp(`^ {8}${key}: \\$\\{\\{ fromJSON\\(github\\.event_name == 'pull_request' && '\\[([^\\]]*)\\]' \\|\\| '\\[[^\\]]*\\]'\\) \\}\\}$`, "m")))?.[1]
     .split(",")
-    .map((value) => value.trim());
+    .map((value) => value.trim().replace(/^"(.*)"$/, "$1"));
 
 /** Every name a job's checks report: its name with each combination of its matrix, less the excluded ones. */
 function checkNames(block, id) {
@@ -1787,10 +1787,10 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   const jobs = ciJobs();
   const block = jobs.design;
   assert.match(block, /^ {4}needs: \[plan\]$/m);
-  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/12\)$/m);
-  assert.match(block, /^ {8}shard: \[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, fallback\]$/m);
+  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 12 \|\| 6 \}\}\)$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12,"fallback"\]' \|\| '\[1,2,3,4,5,6,"fallback"\]'\) \}\}$/m);
   // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
-  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/12\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
+  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 12 \|\| 6 \}\}\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
   assert.doesNotMatch(block, /continue-on-error/);
   // The first shard also checks the converted components' pages with the corner-shape fallback forced on.
   assert.match(block, /targets: site\/dist-fallback\n {10}sizes: 390x844,1440x900\n {10}themes: dark,light\n/);
@@ -1949,7 +1949,7 @@ test("the conformance shards run only the checks' proofs on the first shard when
   // The shard is the matrix entry over the matrix's size, and the job's name says the same count.
   assert.match(block, /^ {10}OURO_CONFORMANCE_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
   // Three shards where every story is checked (main, the merge queue, a full plan) and one on a reduced pull request.
-  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && '\[1,2,3\]' \|\| '\[1\]'\) \}\}$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && \(github\.event_name == 'pull_request' && '\[1,2,3\]' \|\| '\[1,2\]'\) \|\| '\[1\]'\) \}\}$/m);
   assert.match(block, /^ {4}name: conformance \(\$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}\)$/m);
 });
 
@@ -2079,12 +2079,12 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   // ci-budget reaches sweeps-compare through the e2e gate, which waits on it.
   // The sweeps run in shards of their own, so between the e2e and sweep shards every spec runs once.
   const { sweepFiles } = await import("./shard.mjs");
-  const sweeps = Array.from({ length: 8 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 8 }, readTimings("e2e")));
+  const sweeps = Array.from({ length: 14 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 14 }, readTimings("e2e")));
   assert.deepEqual(sweeps.flat().sort(), sweepFiles());
   assert.ok(sweeps.every((share) => share.length > 0));
   assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
-  assert.deepEqual(matrixValues(jobs["sweep-shard"], "shard"), ["1", "2", "3", "4", "5", "6", "7", "8"]);
-  assert.match(jobs["sweep-shard"], /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8\]' \|\| '\[1,2,3,4\]'\)/);
+  assert.deepEqual(matrixValues(jobs["sweep-shard"], "shard"), ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"]);
+  assert.match(jobs["sweep-shard"], /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14\]' \|\| '\[1,2,3,4\]'\)/);
 });
 
 test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {

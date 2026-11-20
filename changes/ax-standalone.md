@@ -1,0 +1,1 @@
+- New: the guide "Add Ouro AX to an app you already have" adds the Ouro AX kit to an app without Ouro HX, and a test runs its steps on a fixture app.

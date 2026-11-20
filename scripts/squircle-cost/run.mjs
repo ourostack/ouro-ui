@@ -17,7 +17,7 @@ import { compareRounds } from "./compare.mjs";
 
 // The squircle cost probe: where the engine has no corner-shape (Safari and WKWebView 26), Ouro draws each squircle
 // through clip paths, which WebKit redraws whenever a repaint touches them. It measures that cost in a real WKWebView
-// (harness.swift), on macOS only: the frame time while the area around 270 squircle controls repaints, against the
+// (harness.swift), on macOS only: the frame time while the area around 285 squircle controls repaints, against the
 // same page drawn as before #1385 (five points a corner, five-point.css) and with the surfaces hidden, and each key's
 // time to paint while typing beside squircle controls. Fails when the repaint costs more than the five-point drawing,
 // judged round by round (compare.mjs), so one slow stretch of the runner cannot decide it.

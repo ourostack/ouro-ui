@@ -306,8 +306,8 @@
         }
       ],
       "issue": 2288,
-      "status": "open",
-      "change": null
+      "status": "in progress",
+      "change": "A guide, \"Add Ouro AX to an app you already have\", opens with the typed action layer models were going to build, and walks through two actions wired to existing buttons and served over MCP; a test installs only the ouro-ax items into a fixture app without Ouro HX and runs the steps and the X-ray."
     },
     {
       "id": "passing-checks-not-proof",
@@ -1237,8 +1237,8 @@
         }
       ],
       "issue": 2312,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "Ouro AX installs without Ouro HX, and the guide \"Add Ouro AX to an app you already have\" and a CI test hold it. The X-ray outlines any app's controls by role and name with the bound action (#2566), checked on a page with only Mantine."
     },
     {
       "id": "nothing-new-borrow-the-ideas",

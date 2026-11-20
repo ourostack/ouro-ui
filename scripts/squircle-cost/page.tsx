@@ -134,6 +134,11 @@ function Chat() {
   );
 }
 
+// A picture for the cards over a photo, drawn here so the page loads nothing.
+const photo = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#7a4b2a"/><stop offset="1" stop-color="#e2b07a"/></linearGradient></defs><rect width="320" height="240" fill="url(#g)"/><circle cx="210" cy="90" r="60" fill="#f4e3c1"/></svg>',
+)}`;
+
 function Bench() {
   return (
     <div
@@ -147,6 +152,12 @@ function Bench() {
           {i % 4 === 0 && (
             <Card title={`Card ${i}`} description="A card">
               x
+            </Card>
+          )}
+          {/* A card over a photo: only its picture takes the squircle clip; its text and button repaint unclipped. */}
+          {i % 8 === 4 && (
+            <Card backdrop={<img src={photo} alt="" />} footer={<Button>Cook {i}</Button>} className="min-h-40 w-56 justify-end">
+              On the counter
             </Card>
           )}
         </span>

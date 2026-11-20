@@ -68,30 +68,9 @@ export function knownProblems(entries: readonly KnownFinding[]): string[] {
   });
 }
 
-const disabledReason =
-  "A disabled control shows alone: the reason it is off is the app's words, which a story does not supply. An app gives one with a title or aria-describedby.";
-
 
 
 export const knownFindings: KnownFinding[] = [
-  { story: "Accordion/Multiple", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Button/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Button/Loading", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  {
-    story: "Calendar/Unavailable",
-    rule: "disabled-no-reason",
-    issue: 1953,
-    reason: "Each unavailable day is a disabled button with no reason beside it; the reason (a booked date, a closed day) is the app's copy.",
-  },
-  { story: "Checkbox/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  {
-    story: "Composer/EmojiTokens",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "The last line of the message holds one word at this width; the words are the story's copy, not a component's wrap.",
-  },
-  { story: "Composer/Sending", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Composer/SendingOff", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   {
     story: "Emoji/Placeholder",
     rule: "broken-image",
@@ -105,22 +84,10 @@ export const knownFindings: KnownFinding[] = [
     reason: "The story holds the display headline to 16ch on purpose, to show it wrap onto two balanced lines.",
   },
   {
-    story: "Hero/FullWidth",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "A paragraph of the story's copy ends on one word at this width; the copy is the story's, not a component's wrap.",
-  },
-  {
-    story: "Item/BesideDetail",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "The description's last line is the end of a hyphenated word at this width; the copy is the story's.",
-  },
-  {
     story: "ItemGroup/InContext",
     rule: "lone-word",
     issue: 1955,
-    reason: "A row's detail text ends on its action at this width; the rows' copy is the story's.",
+    reason: "The Revoke button sits beside a row's text, centred on it, so the check reads it as a line of its own; the text above it wraps pretty.",
   },
   {
     story: "Message/Chat",
@@ -142,39 +109,12 @@ export const knownFindings: KnownFinding[] = [
     story: "NavigationRail/LongLabels",
     rule: "lone-word",
     issue: 1955,
-    reason: "A long label breaks onto a last line of one piece of a hyphenated or long word at this width; the labels are the story's copy.",
+    reason: "The label that is longer than two lines is cut with an ellipsis on purpose, so its hidden lines end on a piece of a word; the story shows exactly that.",
   },
-  { story: "RadioGroup/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "ReactionBar/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Reorderable/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "SegmentedControl/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Switch/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Tabs/Vertical", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   {
     story: "TimeGrid/Locales",
     rule: "lone-word",
     issue: 1955,
-    reason: "A Japanese time range breaks onto its own last line at this width; the copy and its locale are the story's.",
-  },
-  { story: "Toggle/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "ToggleGroup/Modes", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Toolbar/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  {
-    story: "LiveCaptions/ReadAloud",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "The caption's last line is one word, 'week?', at this width; the caption text is the story's copy.",
-  },
-  {
-    story: "LiveCaptions/ReducedMotion",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "The caption's last line is one word, 'week?', at this width; the caption text is the story's copy.",
-  },
-  {
-    story: "DescriptionList/InANarrowPane",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "The description's last line is one word, 'follow.', at this width in a narrow pane; the copy is the story's.",
+    reason: "A Japanese time range has no break points, so it sits on its own line at this width; the copy and its locale are the story's.",
   },
 ];

@@ -1,0 +1,28 @@
+{
+  "generator": "ouro-actions 1.1.0",
+  "set": "notes",
+  "tool": "notes",
+  "commands": [
+    {
+      "name": "notes",
+      "summary": "List the notes. Read-only.",
+      "effect": "private",
+      "readOnly": true,
+      "output": "{ ok }"
+    },
+    {
+      "name": "delete",
+      "summary": "Delete one note. A person says yes first.",
+      "effect": "others",
+      "args": [
+        {
+          "name": "id",
+          "description": "The note's id.",
+          "required": true
+        }
+      ],
+      "output": "{ ok }"
+    }
+  ],
+  "personOnly": {}
+}

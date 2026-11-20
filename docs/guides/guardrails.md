@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.381 ourostack/ouro-ui/ouro-source-rules#v1.3.381
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.386 ourostack/ouro-ui/ouro-source-rules#v1.3.386
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -300,7 +300,7 @@ The check reads each disabled control for a reason the page gives for it, as App
 
 | Rule | What it finds |
 | --- | --- |
-| `disabled-no-reason` | A disabled control (`disabled`, `aria-disabled="true"`, or in a disabled fieldset) with no reason tied to it: no `title`, no `aria-description` and no `aria-describedby` text, on it or its disabled fieldset.[^check-interaction] A hint beside it that nothing ties to it isn't enough. Two cases explain themselves and pass: a control that moves one way (Previous, Next, Back, Later, Zoom out, Undo) at its end, and a control beside an empty field in its form or in a box up to three out, such as Send under an empty message.[^check-interaction-pass] A field on the page itself, such as a search box in the header, excuses nothing.[^check-interaction-pass] |
+| `disabled-no-reason` | A disabled control (`disabled`, `aria-disabled="true"`, or in a disabled fieldset) with no reason tied to it: no `title`, no `aria-description` and no `aria-describedby` text, on it or its disabled fieldset.[^check-interaction] A hint beside it that nothing ties to it isn't enough. Three cases explain themselves and pass: a busy control (`aria-busy`, such as a loading Button), a control that moves one way (Previous, Next, Back, Later, Zoom out, Undo) at its end, and a control beside an empty field in its form or in a box up to three out, such as Send under an empty message.[^check-interaction-pass] A field on the page itself, such as a search box in the header, excuses nothing.[^check-interaction-pass] |
 | `linked-card-dead-zone` | A card or row that is one link (Ouro's `data-linked`, or a box around a link whose `::after` is stretched over it) where a click at some spot outside its own controls opens nothing, as when the page positions one of its parts and the link's layer stops there. The check hit-tests a grid of spots on each card, as a click would land, and runs none of the page's code.[^check-dead-zone] A card whose root opens its link from any click on it says so with `data-follows-link` and passes; Ouro's Card, Item and Table do.[^check-dead-zone] |
 | `reveal-reflow` | A card whose hover or keyboard focus reveals a part (Card's `revealDescription`, an Item's `revealActions`, or `data-ouro-reveal`) and moves the card's own box or anything outside it. The check hovers each such card, then gives its link keyboard focus, and compares where everything is with where it was at rest.[^check-reveal-reflow] |
 
@@ -357,7 +357,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.381
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.386
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -441,7 +441,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.381
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.386
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -451,7 +451,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.381
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.386
         with:
           merge: "true"
 ```
@@ -471,7 +471,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.381
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.386
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -509,7 +509,7 @@ Fix the findings that fail first, so a session is spent on the task and not on a
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.381
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.386
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -720,7 +720,7 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-first-run-words]: test:scripts/check/check.test.mts::Ouro check > reads the first-run rules in the app's own words from ouro-check.json's firstRun verify:testExists(scripts/check/check.test.mts::Ouro check > reads the first-run rules in the app's own words from ouro-check.json's firstRun) verify:testExists(test/check-first-run-in-page.test.ts::findFirstRunIssues: the app's own words > takes the app's words for a way in and for progress)
 [^check-dialog-escape]: test:registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > closes on Escape and returns focus to the trigger verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > closes on Escape and returns focus to the trigger)
 [^check-interaction]: test:test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > finds a disabled control the page gives no reason for, however it is turned off, named by its words verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > finds a disabled control the page gives no reason for, however it is turned off, named by its words)
-[^check-interaction-pass]: test:test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > passes a reason tied to it or its fieldset, a control moving one way at its end, one waiting for an empty field, enabled, hidden and allowed controls; test:test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > counts a field only in the control's own form or a box up to three out, short of the page, and an allow only with its reason verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > passes a reason tied to it or its fieldset, a control moving one way at its end, one waiting for an empty field, enabled, hidden and allowed controls) verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > counts a field only in the control's own form or a box up to three out, short of the page, and an allow only with its reason)
+[^check-interaction-pass]: test:test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > passes a reason tied to it or its fieldset, a busy control (aria-busy), a control moving one way at its end, one waiting for an empty field, enabled, hidden and allowed controls; test:test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > counts a field only in the control's own form or a box up to three out, short of the page, and an allow only with its reason verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > passes a reason tied to it or its fieldset, a busy control (aria-busy), a control moving one way at its end, one waiting for an empty field, enabled, hidden and allowed controls) verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > counts a field only in the control's own form or a box up to three out, short of the page, and an allow only with its reason)
 [^check-layout-limits]: registry/ouro/check/layout-check.ts verify:fileLine(registry/ouro/check/layout-check.ts, /cutPx = 2, minScroll = 1, maxScroll = 8/)
 [^hand-drawn-hero]: test:scripts/kits/source-rules.test.mjs::hand-drawn hero > flags a section or header classed as a hero, naming the registry Hero; test:scripts/kits/source-rules.test.mjs::hand-drawn hero > passes a registry Hero, other sections and a component given a hero class verify:testExists(scripts/kits/source-rules.test.mjs::hand-drawn hero > flags a section or header classed as a hero, naming the registry Hero) verify:testExists(scripts/kits/source-rules.test.mjs::hand-drawn hero > passes a registry Hero, other sections and a component given a hero class)
 

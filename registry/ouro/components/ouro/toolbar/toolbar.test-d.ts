@@ -72,3 +72,12 @@ createElement(Toolbar, { label: "Formatting", items, children: "Bold" });
 createElement(Toolbar, { label: "Call controls", items, autoHide: true });
 // @ts-expect-error the bar is controlled with hidden.
 createElement(Toolbar, { label: "Call controls", items, autoHide: 3000, visible: true });
+
+// A control's disabledReason is text, or undefined while it is on.
+const reasoned: ToolbarEntry = { label: "Paste", disabledReason: "Nothing copied yet" };
+const unreasoned: ToolbarEntry = { label: "Paste", disabledReason: undefined };
+void reasoned;
+void unreasoned;
+// @ts-expect-error disabledReason is text, not a flag.
+const flagged: ToolbarEntry = { label: "Paste", disabledReason: true };
+void flagged;

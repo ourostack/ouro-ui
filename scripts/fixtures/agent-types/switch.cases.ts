@@ -7,4 +7,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid switch snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["switchOk01"];
+export const validSnippets: string[] = ["switchOk01", "switchReason01"];

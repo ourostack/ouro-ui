@@ -30,6 +30,7 @@ Type: `MenuItemProps`.
 | `children` (required) | `ReactNode` | The item's text, or text with an icon. |
 | `current` | `boolean` | Marks a link item as the page being shown (`aria-current="page"`, a medium-weight label with a bar at the start edge, which the highlight does not have), for a menu of pages. It does nothing on an item without `href`. |
 | `disabled` | `boolean` | Shown, but cannot be chosen. |
+| `disabledReason` | `string` | Why the item can't be chosen now. Passing a reason keeps the item in the arrow keys' reach with `aria-disabled`, shows the reason as its tooltip on hover and focus and as its description, and choosing it does nothing and leaves the menu open. It wins over `disabled`. `undefined` leaves the item on and keeps its place. A link cannot be disabled, so with a reason `href` is dropped. Use `disabled` alone when the reason is obvious. |
 | `href` | `string` | Makes the item a link: an internal path goes through `OuroProvider`'s router link, an absolute URL is a plain `<a>`. The menu closes when it is followed. |
 | `onClick` | `((event: MouseEvent<HTMLElement>) => void)` | Runs when the item is chosen, by click, tap or Enter. The menu then closes. |
 | `shortcut` | `MenuShortcut` | The item's keyboard shortcut, as `Kbd` shows it: `["mod", "e"]` is ⌘E on Apple platforms and Ctrl+E elsewhere. It only shows the keys; bind them in your app. |

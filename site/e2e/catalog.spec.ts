@@ -76,8 +76,12 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * Then 1 KiB more (281 KiB) for the hand-off as HX's AgentHandoff (#2356; Ari: the site's improvements reach every app
  * through Ouro), whose look moved from the voyage's stylesheet into the component's classes: home measured 286,820 bytes
  * with it, on CI at 372a0256.
+ * Then 1 KiB more (282 KiB) for the disabled reason: Button now carries Tooltip's wrapper for a button with a reason (#1953),
+ * with which home measured 288,389 bytes on CI.
+ * The docs pages take 23,777 bytes more (191,197 on CI) plus 1 KiB: Button carries Tooltip for a button with a reason, so
+ * Tooltip and its popup code come with every page that has a Button (#1953).
  */
-const CEILINGS = { voyage: 281 * 1024, docs: 167_396 + 1024 } as const;
+const CEILINGS = { voyage: 282 * 1024, docs: 191_197 + 1024 } as const;
 
 /**
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's
@@ -120,7 +124,10 @@ const CEILINGS = { voyage: 281 * 1024, docs: 167_396 + 1024 } as const;
 // the docs' Tailwind build carries: 48,160 bytes with them, on CI merged with main at 95a472ce.
 // The voyage pages' rose to 46 KiB for the row and state token defaults in ouro-base: 46,117 bytes with them, on CI merged with main at 753056c3.
 // The docs' rose to 49 KiB for TimeGrid's selected-event fills, whose classes the docs' Tailwind build carries: 49,488 bytes with them, on CI merged with main at ebebc75f.
-const CSS_CEILINGS = { voyage: 46 * 1024, docs: 49 * 1024 } as const;
+// The voyage pages' rose to 47 KiB for ouro-base's text-wrap rules (pretty body copy, balanced headings): 47,147 bytes with them, on CI merged with main at 7c23ca8f.
+// The docs' rose to 50 KiB for Card's backdrop (a picture behind the whole card, its own corner clip and a linked card's
+// tint inside it), whose classes the docs' Tailwind build carries: 50,210 bytes with them, built locally over main at c7d1a1ad.
+const CSS_CEILINGS = { voyage: 47 * 1024, docs: 50 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the

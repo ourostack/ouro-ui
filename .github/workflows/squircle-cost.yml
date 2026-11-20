@@ -1,7 +1,7 @@
 name: Squircle cost
 # Where WebKit has no corner-shape (Safari and WKWebView 26, which a Mac app embeds), Ouro draws each squircle
 # through clip paths, and Playwright's WebKit draws corner-shape natively, so only a Mac shows what they cost. This runs
-# scripts/squircle-cost/run.mjs on the same runner image as an app's Mac legs: a WKWebView repaints the area around 270
+# scripts/squircle-cost/run.mjs on the same runner image as an app's Mac legs: a WKWebView repaints the area around 285
 # squircle controls and types beside them while messages arrive, and the job fails when the repaint costs more than the
 # five-point drawing before #1385 in more rounds than chance allows (scripts/squircle-cost/compare.mjs). The summary has
 # the typing times. Not a required check.

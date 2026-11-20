@@ -76,6 +76,16 @@ export interface DatePickerProps {
    */
   isDateDisabled?: ((date: string) => boolean) | undefined;
   /**
+   * Gives the reason a day is unavailable: a sentence (`dateDisabledReason="Closed on weekends"`),
+   * or a function that takes the ISO date and returns the reason, or `undefined` to give nothing
+   * for a day. An unavailable day stays focusable and not pickable; the reason describes it and
+   * shows as its tooltip on hover and keyboard focus. Use it whenever the person can be told why.
+   *
+   * @example
+   * <DatePicker label="Delivery" isDateDisabled={(date) => booked.has(date)} dateDisabledReason={(date) => (booked.has(date) ? "Fully booked" : "Outside our delivery window")} />
+   */
+  dateDisabledReason?: string | ((date: string) => string | undefined) | undefined;
+  /**
    * The BCP 47 locale for the calendar and the typed format: `"en-GB"` reads 11/10/2026 as
    * 11 October and starts weeks on Monday. Pass your app's locale; the default is the same
    * on the server and in the browser. Phones show their own picker in the phone's language.
@@ -191,6 +201,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
     min,
     max,
     isDateDisabled,
+    dateDisabledReason,
     locale = "en-US",
     placeholder,
     readOnly,
@@ -472,6 +483,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                           min={low}
                           max={high}
                           isDateDisabled={isDateDisabled}
+                          dateDisabledReason={dateDisabledReason}
                           locale={locale}
                           previousMonthLabel={previousMonthLabel}
                           nextMonthLabel={nextMonthLabel}
