@@ -88,7 +88,7 @@ describe("ConversationList", () => {
     await userEvent.hover(away);
     await Promise.allSettled(rows.flatMap((row) => row.getAnimations()).map((animation) => animation.finished));
     const probe = document.createElement("span");
-    probe.style.color = "var(--accent)";
+    probe.style.color = "var(--ouro-row-selected)";
     host.append(probe);
     expect(getComputedStyle(rows[1]!).backgroundColor).toBe(getComputedStyle(probe).color);
     probe.remove();
@@ -97,7 +97,7 @@ describe("ConversationList", () => {
     expect(rows.some((row) => row.hasAttribute("aria-current"))).toBe(false);
   });
 
-  it("draws the row that opens in its accent on the first frame, and drops the one that closes at once, as hover changes at once", async () => {
+  it("draws the row that opens in its selected fill on the first frame, and drops the one that closes at once, as hover changes at once", async () => {
     const { host, rows, rerender } = await render(<ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />);
     const away = document.createElement("div");
     away.style.height = "40px";
@@ -105,7 +105,7 @@ describe("ConversationList", () => {
     await userEvent.hover(away);
     await Promise.allSettled(rows.flatMap((row) => row.getAnimations()).map((animation) => animation.finished));
     const probe = document.createElement("span");
-    probe.style.color = "var(--accent)";
+    probe.style.color = "var(--ouro-row-selected)";
     host.append(probe);
     const accent = getComputedStyle(probe).color;
     const easing = (row: HTMLElement) => row.getAnimations().filter((animation) => (animation as CSSTransition).transitionProperty === "background-color");
