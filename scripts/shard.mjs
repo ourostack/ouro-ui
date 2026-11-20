@@ -34,6 +34,7 @@ export const slicedSuites = [
   "site/src/site.test.tsx",
   "test/controls.test.tsx",
   "test/controls.touch.test.tsx",
+  "test/first-frame.test.tsx",
   "test/stories.test.tsx",
   "test/text-size.touch.test.tsx",
   "test/theme-tokens.test.tsx",
