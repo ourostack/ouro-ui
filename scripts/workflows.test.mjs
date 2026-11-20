@@ -1579,7 +1579,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
 const matrixValues = (block, key) =>
   (block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m")) ?? block.match(new RegExp(`^ {8}${key}: \\$\\{\\{ fromJSON\\(github\\.event_name == 'pull_request' && '\\[([^\\]]*)\\]' \\|\\| '\\[[^\\]]*\\]'\\) \\}\\}$`, "m")))?.[1]
     .split(",")
-    .map((value) => value.trim());
+    .map((value) => value.trim().replace(/^"(.*)"$/, "$1"));
 
 /** Every name a job's checks report: its name with each combination of its matrix, less the excluded ones. */
 function checkNames(block, id) {
