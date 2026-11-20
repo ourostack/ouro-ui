@@ -282,7 +282,8 @@ const SYNC_END = "/* synced from Spoonjoy: end */";
  * onto Spoonjoy's own palette so the preset still follows its .dark. --ouro-action and its
  * foreground give the primary Button Spoonjoy's charcoal action (amber in the dark) while its
  * selection stays brass (--primary). The control and check tokens make its controls capsules and
- * its checks circles, as Spoonjoy's Apple app draws them, while its cards keep --radius.
+ * its checks circles, as Spoonjoy's Apple app draws them, while its cards keep --radius. The cover
+ * tokens make a Cover without a picture the Apple app's initial tile: vellum to brass, a brass letter.
  */
 const COOKBOOK_ADDITIONS = [
   "--card: var(--sj-panel-solid)",
@@ -311,6 +312,9 @@ const COOKBOOK_ADDITIONS = [
   "--ouro-control-corner-shape: round",
   "--ouro-check-radius: 9999px",
   "--ouro-check-corner-shape: round",
+  "--ouro-cover-from: var(--sj-vellum)",
+  "--ouro-cover-to: color-mix(in srgb, var(--sj-brass) 32%, transparent)",
+  "--ouro-cover-ink: var(--sj-brass)",
   "--ouro-action-foreground: var(--sj-on-action)",
 ];
 
