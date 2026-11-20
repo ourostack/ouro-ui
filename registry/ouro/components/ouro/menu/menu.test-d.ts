@@ -70,3 +70,9 @@ expectTypeOf<{ children: "Edit"; checked: true }>().not.toExtend<MenuItemProps>(
 createElement(Menu, { children: "Items" });
 createElement(Menu, { trigger, children: "Items" });
 createElement(MenuItem, { children: "Edit", onClick: (event) => event.currentTarget });
+
+// disabledReason is text, or undefined while the item is on.
+createElement(MenuItem, { children: "Paste", disabledReason: "Nothing copied yet" });
+createElement(MenuItem, { children: "Paste", disabledReason: undefined });
+// @ts-expect-error disabledReason is text, not a flag.
+createElement(MenuItem, { children: "Paste", disabledReason: true });

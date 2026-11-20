@@ -24,4 +24,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid toggle-group snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["toggleGroupOk", "toggleGroupPillOk"];
+export const validSnippets: string[] = ["toggleGroupOk", "toggleGroupPillOk", "toggleGroupReason01"];

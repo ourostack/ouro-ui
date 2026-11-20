@@ -38,6 +38,7 @@ Type: `ReorderableProps`.
 | `className` | `string` |  | Layout only: margins, or a height with `overflow-auto` (`max-h-80 overflow-auto`) to scroll the list in place. Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The item that closes a handle's menu on a phone, where it is a bottom sheet. |
 | `disabled` | `boolean` |  | Stops reordering, for example while a save of the last move is in flight: no drag, no menu of moves, no pick-up with Space. The handles stay in the tab order, marked `aria-disabled`, so focus stays where it is and a screen reader says they are unavailable. A row held from the keyboard or dragged when it turns on is put back, and an open menu closes. |
+| `disabledReason` | `string` |  | Stops reordering as `disabled` does, and says why: `disabledReason="Saving your last move"`. Handles are described by the reason, which shows as their tooltip on hover and keyboard focus. It turns reordering off by itself and wins over `disabled`; `undefined` turns reordering back on. Use it instead of `disabled` whenever the person can be told why. |
 | `droppedLabel` | `string` | `"{label} dropped. Position {n} of {total}."` | Announced when a row is dropped. |
 | `handleLabel` | `string` | `"Reorder {label}"` | Each handle's accessible name; `{label}` is the row's label. |
 | `heldLabel` | `string` | `"Picked up. Use the arrow keys to move, Space to drop, and Escape to cancel."` | Read after a handle's name, in place of the instructions, while its row is picked up from the keyboard. |

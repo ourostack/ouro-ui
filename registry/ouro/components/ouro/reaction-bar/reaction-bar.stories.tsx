@@ -295,11 +295,11 @@ export const ReadOnly: Story = {
   ),
 };
 
-/** `disabled` keeps the counts but turns off reacting. */
+/** `disabledReason` keeps the counts but turns off reacting, and says why: each button shows it as its tooltip. */
 export const Disabled: Story = {
   render: () => (
     <Surface>
-      <ReactionBar reactions={reactions} quick={quick} onReact={() => {}} disabled />
+      <ReactionBar reactions={reactions} quick={quick} onReact={() => {}} disabledReason="Reactions are off while you're offline." />
     </Surface>
   ),
 };

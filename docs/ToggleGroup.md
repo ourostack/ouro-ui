@@ -120,6 +120,14 @@ interface ToggleGroupItem {
   /** Shows the toggle but keeps it from being pressed. */
   disabled?: boolean | undefined;
   /**
+   * Why this toggle can't be pressed now. It stays in the tab order with `aria-disabled`, pressing
+   * does nothing, and the reason shows as its tooltip on hover and focus. Pass `undefined` while
+   * it can be pressed so it keeps its place and focus. It wins over `disabled` and the group's.
+   * @example
+   * { value: "bold", label: "Bold", disabledReason: locked ? "Unlock the layer first" : undefined }
+   */
+  disabledReason?: string | undefined;
+  /**
    * `data-*` attributes for the item's button (`"data-testid": "bold"`), for an app's own hooks. The
    * markers Ouro UI sets itself (`data-ouro-control`, `data-ouro-part`) keep their values.
    */

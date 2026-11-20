@@ -175,7 +175,7 @@ export type ButtonLinkProps = ButtonBaseProps &
     type?: never;
     /** A link cannot be disabled. Remove `href` to render a disabled button, or don't render the link. */
     disabled?: never;
-    /** A link cannot be disabled, so it has no reason. Remove `href` to render a button, or don't render the link. */
+    /** Only a button takes a reason. Remove `href` to render a button, or don't render the link. */
     disabledReason?: never;
     /** A dialog's default action is a button. Remove `href`: `<Button default onClick={start}>`. */
     default?: never;

@@ -30,6 +30,7 @@ Type: `ToggleProps`.
 | `className` | `string` |  | Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development; use `variant`, `size` and `shape` instead. |
 | `defaultPressed` | `boolean` | `false` | Whether the toggle starts on, when it keeps its own state. |
 | `disabled` | `boolean` |  | Keeps the toggle from being pressed, and fades it. |
+| `disabledReason` | `string` |  | Why the toggle can't be pressed now. Passing a reason turns the toggle off without taking it out of the tab order: it gets `aria-disabled`, pressing does nothing, focus still reaches it, and the reason shows as its tooltip on hover and focus and is read through `aria-describedby`. Pass `undefined` while it can be pressed: the toggle keeps its place and focus as it turns off and on. It wins over `disabled`. Use `disabled` alone when no reason is needed. |
 | `hideLabel` | `boolean` |  | Shows only the icon; the label stays the toggle's name for screen readers. Pass `icon` with it. |
 | `icon` | `ToggleIcon` |  | Icon before the label, or alone with `hideLabel`. Pass the component, not an element: `icon={BoldIcon}`. |
 | `label` (required) | `string` |  | What the toggle turns on, such as "Bold". It is the button's name and stays the same while pressed: `aria-pressed` says whether it is on. Required: every toggle needs a name. |

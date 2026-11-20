@@ -53,13 +53,14 @@ describe("findInteractionIssues: disabled-no-reason", () => {
     expect(host.querySelector("#launch")!.getAttribute("data-ouro-check-ref")).toBe(`i1 ${ref}`);
   });
 
-  it("passes a reason tied to it or its fieldset, a control moving one way at its end, one waiting for an empty field, enabled, hidden and allowed controls", () => {
+  it("passes a reason tied to it or its fieldset, a busy control (aria-busy), a control moving one way at its end, one waiting for an empty field, enabled, hidden and allowed controls", () => {
     expect(
       each([
         `<button disabled title="Add a dish first">Order</button>`,
         `<button disabled aria-description="Opens at noon">Book</button>`,
         `<p id="hint">Finish the three jobs first.</p><button disabled aria-describedby="hint">Launch</button>`,
         `<fieldset disabled aria-describedby="closed"><button>Pay now</button></fieldset><p id="closed">Payments open on Monday.</p>`,
+        `<button disabled aria-busy="true">Saving</button><div role="button" aria-disabled="true" aria-busy="true">Sending</div>`,
         `<button disabled aria-label="Previous slide">‹</button><button disabled>No later week</button><button disabled>Zoom out</button><button disabled>Undo</button>`,
         `<form><input aria-label="Dish" value=" "><button type="submit" disabled>Add</button></form>`,
         `<div><textarea aria-label="Message"></textarea><div><button disabled>Send</button></div></div>`,

@@ -81,6 +81,15 @@ interface SegmentedControlItem {
   label: string;
   /** Shows the segment but keeps it from being pressed. */
   disabled?: boolean | undefined;
+  /**
+   * Why this segment can't be checked now. Turns it off with `aria-disabled`: it stays
+   * focusable and the arrow keys land on it without checking it, pressing it does nothing,
+   * and the reason shows as its tooltip on hover and keyboard focus and is read as its
+   * description. It wins over `disabled`. Pass `undefined` while the segment is available.
+   * @example
+   * { value: "map", label: "Map", disabledReason: offline ? "Reconnect to see the map" : undefined }
+   */
+  disabledReason?: string | undefined;
   /** Not a prop. A segment switches a view in place; to go to another page, use `Tabs` or links in a `<nav>`. */
   href?: { 'A segment switches a view in place. To navigate, use links in a <nav>': never };
 }

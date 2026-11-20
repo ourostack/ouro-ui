@@ -587,6 +587,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-css-panel`,
 `lib-current-path`,
 `lib-dev`,
+`lib-disabled-reason`,
 `lib-env`,
 `lib-feedback`,
 `lib-floating`,

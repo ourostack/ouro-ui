@@ -35,6 +35,7 @@ Type: `SwitchProps`.
 | `defaultChecked` | `boolean` | Whether it starts on, for an uncontrolled switch. |
 | `description` | `ReactNode` | Supporting text under the label, read after it through `aria-describedby`. |
 | `disabled` | `boolean` | Disables the switch and fades it. |
+| `disabledReason` | `string` | Why the switch can't be changed now. Passing a reason turns it off without taking it out of the tab order: it gets `aria-disabled`, clicks and keys do nothing, focus still reaches it, and the reason shows as its tooltip on hover and focus and is read through `aria-describedby`. Pass `undefined` while it can be changed: it keeps its place and focus as it turns off and on. It wins over `disabled`. Use `disabled` alone when no reason is needed. |
 | `error` | `ReadonlyErrorMessages` | What is wrong, from your server action or client check, shown under the label; the switch gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the switch's name. |
 | `label` (required) | `string` | The setting it turns on, shown to the right of the switch and read as its name. Required: every control needs a name. To hide it visually, keep it and add `hideLabel`. |

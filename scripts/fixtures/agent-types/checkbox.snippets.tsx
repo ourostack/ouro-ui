@@ -5,3 +5,4 @@ export const checkbox01 = <Checkbox label="Basil" onChange={() => {}} />;
 export const checkbox02 = <Checkbox label="Basil" isChecked />;
 export const checkbox03 = <Checkbox label="Basil" defaultValue />;
 export const checkboxOk01 = <Checkbox label="I accept the terms" name="terms" required error="Accept the terms." description="Read them first." defaultChecked />;
+export const checkboxReason01 = <Checkbox label="Publish" disabledReason="Verify your email first" />;

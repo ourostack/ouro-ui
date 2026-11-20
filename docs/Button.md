@@ -54,6 +54,7 @@ A Button without `href`: renders a native `<button>`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `default` | `boolean` |  | The dialog's default action, as on a Mac: Return presses it from anywhere in the dialog around it, unless focus is in a multi-line field (where Command or Control Return presses it), on a control that takes Return itself (another button, a link, an option) or in a list that is open, or Shift or Option is held. Return calls `onClick` with the key's own `KeyboardEvent`, so an action that needs a person's gesture still gets one, and a submit button then sends its form once. It tells assistive technology so with `aria-keyshortcuts`. Give it to one button per dialog, the main action, and keep the solid look; outside a dialog it does nothing, since Return there belongs to the page. |
+| `disabledReason` | `string` |  | Why the button can't be pressed now. Passing a reason turns the button off without removing it from the tab order: it takes `aria-disabled`, a press does nothing, keyboard focus still reaches it, and the reason shows as its tooltip on hover and focus and is read as its description. Plain `disabled` stays as it is, removed from the tab order and silent. Pass `undefined` while the button is available, so it keeps its place and focus as it turns off and on. Use it whenever a button is off and a person would ask why; a loading button needs no reason, since `loading` says what is happening. |
 | `ref` | `Ref<HTMLButtonElement>` |  | Reaches the rendered element. |
 | `type` | `"button" \| "submit" \| "reset"` | `"button"` (never submits a form by accident) | The button's role in a form: `submit` sends it, `reset` clears it. |
 
@@ -80,6 +81,7 @@ Not in this mode (a type error):
 
 - `default`: A dialog's default action is a button. Remove `href`: `<Button default onClick={start}>`.
 - `disabled`: A link cannot be disabled. Remove `href` to render a disabled button, or don't render the link.
+- `disabledReason`: Only a button takes a reason. Remove `href` to render a button, or don't render the link.
 - `type`: Links have no `type`. Remove `href` to make a submit button: `<Button type="submit">`.
 
 ## Don't use
