@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Popup first frame: fail</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:60rem;margin:0 auto}.spacer{height:2400px}#layer{position:relative;isolation:isolate}.popup{width:180px;padding:8px;border-radius:8px;background:#fff;box-shadow:0 2px 12px #0004;margin:0}</style>
+<main><h1>Popup first frame</h1><p>A menu opened from a button, drawn in a layer at the end of a tall page.</p>
+<button id="open" type="button" aria-haspopup="menu" aria-expanded="false">Actions</button>
+<div class="spacer"></div></main>
+<div id="layer"></div>
+<script>
+const open = document.getElementById("open");
+const layer = document.getElementById("layer");
+open.addEventListener("click", () => {
+  const menu = document.createElement("div");
+  menu.className = "popup";
+  menu.setAttribute("role", "menu");
+  menu.textContent = "Rename";
+  const at = open.getBoundingClientRect();
+  menu.style.top = at.bottom + 8 + "px";
+  menu.style.left = at.left + "px";
+  menu.style.position = "absolute";
+  layer.append(menu);
+  open.setAttribute("aria-expanded", "true");
+  requestAnimationFrame(() => { menu.style.position = "fixed"; });
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  layer.replaceChildren();
+  open.setAttribute("aria-expanded", "false");
+});
+</script>

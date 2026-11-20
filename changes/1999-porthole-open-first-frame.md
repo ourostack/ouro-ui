@@ -1,0 +1,1 @@
+- Fixed: a Porthole that opens its detail lines at mount (`defaultOpen`) draws them at full opacity on the first frame; the lines fade in only when they open after mount.

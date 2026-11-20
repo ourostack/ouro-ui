@@ -85,7 +85,10 @@ export const Compact: Story = {
 export const Unread: Story = {
   parameters: { screenshot: { name: "agent-presence-unread" } },
   render: () => (
-    <div style={{ display: "grid", gap: 16, justifyItems: "start" }}>
+    <div
+      style={{ display: "grid", gap: 16, justifyItems: "start" }}
+      data-ouro-allow="duplicate-control" data-ouro-allow-why="the full and the compact chip are two cells of the same demo, each with its own restart button, so the name repeats across cells; no cell has it twice"
+    >
       <Listening initial={[inbox]} unread />
       <Listening initial={[inbox, research]} unread compact />
     </div>

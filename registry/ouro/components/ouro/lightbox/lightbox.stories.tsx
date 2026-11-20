@@ -202,7 +202,15 @@ export const ChatMosaic: Story = {
 /** Six pictures in a mosaic: four show, the last saying how many more the viewer steps on to. */
 export const MosaicWithMore: Story = {
   args: { layout: "mosaic", images: [...coast, ...coast.slice(0, 2).map((image) => ({ ...image, alt: `${image.alt}, again` }))] },
-  render: chatColumn,
+  render: (args) => (
+    <div data-ouro-allow="overlap" data-ouro-allow-why="The count sits over the last tile on purpose: it says how many more pictures the viewer steps on to.">
+      <Surface>
+        <div style={{ maxWidth: 400 }}>
+          <Lightbox {...args} />
+        </div>
+      </Surface>
+    </div>
+  ),
 };
 
 /** One picture at its own shape, as a chat shows a single photo. */

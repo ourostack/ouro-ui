@@ -442,12 +442,14 @@ describe("docs", () => {
     const last = frames.findLast((frame) => !NO_PREVIEW.has(frame.dataset["sitePreview"]!))!;
     expect(last.children).toHaveLength(0);
     last.scrollIntoView({ block: "center" });
-    await expect.poll(() => last.querySelector("[data-ouro]") !== null).toBe(true);
+    // Its turn has come: the attribute is set when the frame is told to draw, before its demo's chunk has loaded, which on a
+    // cold cache can take longer than a poll (the demo's own drawing is the first row's check above).
+    await expect.poll(() => last.hasAttribute("data-site-preview-drawn")).toBe(true);
     // A demo that runs something for the whole page stays a plain frame.
     const at = frames.findIndex((frame) => NO_PREVIEW.has(frame.dataset["sitePreview"]!) && frames[frames.indexOf(frame) + 1] && !NO_PREVIEW.has(frames[frames.indexOf(frame) + 1]!.dataset["sitePreview"]!));
     frames[at]!.scrollIntoView({ block: "center" });
     // Its neighbour, drawn with it, says the frames there have had their turn.
-    await expect.poll(() => frames[at + 1]!.querySelector("[data-ouro]") !== null).toBe(true);
+    await expect.poll(() => frames[at + 1]!.hasAttribute("data-site-preview-drawn")).toBe(true);
     expect(frames[at]!.children).toHaveLength(0);
   });
 

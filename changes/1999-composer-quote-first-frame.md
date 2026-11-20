@@ -1,0 +1,1 @@
+- Fixed: a Composer whose quote is there at mount draws the quote strip at full opacity on the first frame; the strip fades in only when a quote arrives after mount.

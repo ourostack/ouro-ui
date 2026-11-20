@@ -1,0 +1,1 @@
+- New: Ouro check's `popup-first-frame` rule opens the popups a page has, records their boxes as they settle, and fails a popup drawn somewhere other than where it settles, not counting its own scale or fade, as one measured against the viewport and drawn inside a layer far down the page is; it reports first, so an app waives it with a reason while it fixes its findings.

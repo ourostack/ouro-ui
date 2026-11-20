@@ -1795,6 +1795,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
           carry(moved);
           return keepAnchor();
         }
+        // The wheel's scroll has ended with something still carried: the move joins it, and both are written in one move, not
+        // two that each round to the browser's whole pixels and may not cancel.
+        // Stryker disable next-line EqualityOperator: a move of exactly half a pixel is under what the scroll position keeps, carried or not.
+        if (Math.abs(moved) >= 0.5 && carriedRef.current !== 0) {
+          owed = 0;
+          carriedRef.current += moved;
+          content.style.removeProperty("translate");
+          pay();
+          return keepAnchor();
+        }
         owed = moved;
         if (Math.abs(moved) >= 0.5) {
           const before = scroller.scrollTop;

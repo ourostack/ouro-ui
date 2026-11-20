@@ -414,7 +414,11 @@ export class Looks {
     const shown = this.rawDifferences().filter((line) => !waived(line));
     for (const [key, samples] of this.groups) {
       const bySig = new Map<string, number[]>();
-      samples.forEach((s, n) => bySig.set(s.sig, [...(bySig.get(s.sig) ?? []), n]));
+      samples.forEach((s, n) => {
+        const at = bySig.get(s.sig);
+        if (at) at.push(n);
+        else bySig.set(s.sig, [n]);
+      });
       if (bySig.size < 2) continue;
       const sigs = [...bySig.keys()];
       const parts = sigs.map((sig) => sig.split(" ; "));
@@ -432,7 +436,11 @@ export class Looks {
     const out: string[] = [];
     for (const [key, samples] of this.groups) {
       const bySig = new Map<string, string[]>();
-      for (const s of samples) bySig.set(s.sig, [...(bySig.get(s.sig) ?? []), s.where]);
+      for (const s of samples) {
+        const at = bySig.get(s.sig);
+        if (at) at.push(s.where);
+        else bySig.set(s.sig, [s.where]);
+      }
       if (bySig.size < 2) continue;
       // The most samples stand for the look, but a page a waiver is for never does (#2249).
       const [majority, ...rest] = majorityFirst(key, bySig);
