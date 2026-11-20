@@ -39,7 +39,7 @@
     {
       "match": "^docs/guides/model-reviews\\.md$",
       "mode": "generated",
-      "reason": "scripts/model-reviews/page.mjs renders it from the published runs in scripts/model-reviews/results/; pnpm claims:check renders it again and compares"
+      "reason": "scripts/model-reviews/page.mjs renders it from the published runs in scripts/model-reviews/results/, at pnpm i, and git ignores it (#2600); pnpm claims:check renders it again and compares"
     },
     {
       "match": "^docs/guides/accessibility-evidence\\.md$",
@@ -49,7 +49,7 @@
     {
       "match": "^docs/guides/model-interviews\\.md$",
       "mode": "generated",
-      "reason": "scripts/model-reviews/interviews-page.mjs renders it from the published runs in scripts/model-reviews/interviews-results/ and the synthesis in scripts/model-reviews/findings.json; pnpm claims:check renders it again and compares"
+      "reason": "scripts/model-reviews/interviews-page.mjs renders it from the published runs in scripts/model-reviews/interviews-results/ and the synthesis in scripts/model-reviews/findings.json, at pnpm i, and git ignores it (#2600); pnpm claims:check renders it again and compares"
     },
     {
       "match": "^scripts/agent-usability/runs/",

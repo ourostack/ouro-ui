@@ -5,9 +5,12 @@
 // through another. A change to anything shared, or to something the mapping cannot place, selects
 // every spec (the lane fails closed); a change no spec renders selects none.
 //
-//   node scripts/sr-impact.mjs plan <base> <head>   the plan job: writes `screen_reader`
-//                                                   (none, all or list) and `screen_reader_specs`
-//                                                   (`all`, or the spec paths) to $GITHUB_OUTPUT
+//   node scripts/sr-impact.mjs plan <base> <head>   writes `screen_reader` (none, all or list) and
+//                                                   `screen_reader_specs` (`all`, or the spec paths)
+//                                                   to $GITHUB_OUTPUT
+//   node scripts/sr-impact.mjs pr <base> <head>     ci.yml's plan on a pull request: `plan`, but only
+//                                                   when the change touches the lane itself (laneFiles);
+//                                                   any other change waits for main's push run
 //
 // The selection reads the repository through `repo` (`read(path)` and `list(dir)`), so a test
 // can give it files in memory; the command reads the disk.
@@ -36,6 +39,19 @@ export const everything = [
   [/^(\.storybook\/|app\.css$)/, "Storybook's build and the stylesheet it compiles"],
   [/^(tsconfig[\w.-]*\.json|[\w.-]+\.config\.[cm]?[jt]s)$/, "the build or test configuration"],
 ];
+
+/**
+ * The lane's own files: its specs and harness, its Playwright configuration, its workflows and its scripts. A pull request
+ * that changes one runs the lane before it merges, as a spec main's lane has never run can only be proven there
+ * (ourostack/ouro-ui#666); any other pull request waits for main's push run, as macOS and Windows runners are scarce.
+ */
+export const laneFiles = /^(registry\/ouro\/e2e\/screen-reader\/|playwright\.screen-reader\.config\.ts$|\.github\/workflows\/screen-reader(-lane)?\.yml$|scripts\/sr-)/;
+
+/** `selectLane` for a pull request: no lane unless the change touches a lane file (laneFiles), and every spec when nothing changed is known. */
+export function selectPullRequestLane(changed, repo) {
+  if (changed.length > 0 && !changed.some((path) => laneFiles.test(path))) return { lane: "none", specs: [], reasons: ["no file of the lane's own changed, so main's push run reads this change"] };
+  return selectLane(changed, repo);
+}
 
 /** Paths no screen-reader spec can see, so a change to them selects none (unless a spec does load them). */
 export const nothing = [
@@ -224,14 +240,14 @@ function changedFiles(base, head) {
 }
 
 async function main([command, ...args]) {
-  if (command !== "plan") {
-    console.error("Usage: node scripts/sr-impact.mjs plan <base> <head>");
+  if (command !== "plan" && command !== "pr") {
+    console.error("Usage: node scripts/sr-impact.mjs <plan|pr> <base> <head>");
     return 2;
   }
   const [base, head] = args;
   let result;
   try {
-    result = selectLane(changedFiles(base, head), diskRepo());
+    result = (command === "pr" ? selectPullRequestLane : selectLane)(changedFiles(base, head), diskRepo());
   } catch (error) {
     // An error means no selection: every spec runs, as a change the mapping cannot place does.
     result = { lane: "all", specs: laneSpecs(diskRepo()), reasons: [`the change could not be read (${error.message})`] };

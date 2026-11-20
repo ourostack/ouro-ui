@@ -1,9 +1,10 @@
 {
-  "generator": "ouro-actions 0.21.0",
+  "generator": "ouro-actions 1.2.0",
   "set": "ouro-ui-registry",
   "tools": [
     {
       "name": "list_registry_items",
+      "title": "List items",
       "description": "List the names of the Ouro UI registry items, in registry order. Pass filter to keep only the names that contain it, such as 'dialog' or 'button'. Use a name from this list with get_item_install or get_item_docs.",
       "inputSchema": {
         "type": "object",
@@ -24,6 +25,7 @@
     },
     {
       "name": "get_item_install",
+      "title": "Install command",
       "description": "Return the shadcn command that adds one registry item to an app, pinned to the newest Ouro UI release. Run the command as it is; it installs the item and the Ouro items it needs. The name is one from list_registry_items.",
       "inputSchema": {
         "type": "object",
@@ -46,6 +48,7 @@
     },
     {
       "name": "get_item_docs",
+      "title": "Item docs",
       "description": "Return the docs page address for one registry item and, when the docs are in the repository, the page's Markdown: its purpose, props, examples and when to use something else. The name is one from list_registry_items.",
       "inputSchema": {
         "type": "object",

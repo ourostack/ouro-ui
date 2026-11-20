@@ -535,6 +535,26 @@ describe("MessageList", () => {
     expect(spoken).toEqual(["Ouro: Preheat the oven."]);
   });
 
+  it("draws the loading pill at once when the list mounts loading, and fades it in when loading starts later", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    try {
+      const pill = () => host.querySelector<HTMLElement>("[data-ouro-message-list-older] span")!;
+      flushSync(() => root.render(<Chat items={history(3)} hasOlder loadingOlder />));
+      expect(getComputedStyle(pill()).opacity).toBe("1");
+      expect(pill().getAnimations()).toEqual([]);
+      flushSync(() => root.render(<Chat items={history(3)} hasOlder />));
+      flushSync(() => root.render(<Chat items={history(3)} hasOlder loadingOlder />));
+      expect(pill().getAnimations().some((a) => a instanceof CSSTransition && a.transitionProperty === "opacity")).toBe(true);
+    } finally {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      root.unmount();
+      host.remove();
+    }
+  });
+
   it("never announces older history loaded above, and keeps the reader's place while it loads", async () => {
     const items = history(20, 10);
     const { scroller, live, rerender } = await render(<Chat items={items} />);

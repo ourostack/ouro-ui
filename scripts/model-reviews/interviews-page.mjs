@@ -2,7 +2,8 @@
 // published interview runs in scripts/model-reviews/interviews-results/ and the synthesis in
 // scripts/model-reviews/findings.json. Every pick, count and answer comes from the runs' run.json files; the findings
 // and the "said it's a problem" judgments are synthesis, labelled as such on the page, with every quote linked to its
-// transcript. pnpm claims:check renders it again and fails when the committed page differs.
+// transcript. It is not committed: `pnpm i` renders it (scripts/generate.mjs), as each pull request that changes the
+// findings would leave the others' copies stale (#2600).
 //
 //   node scripts/model-reviews/interviews-page.mjs docs/guides/model-interviews.md
 //

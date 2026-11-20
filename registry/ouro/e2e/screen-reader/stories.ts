@@ -17,7 +17,6 @@ export const storyIds = {
   formServerErrors: "forms-form--server-errors",
   item: "lists-item--in-context",
   menu: "menus-menu--playground",
-  menuBar: "menus-menu--bar",
   patternDashboard: "reference-patterns--dashboard",
   patternListDetail: "reference-patterns--list-detail",
   reorderableDisabled: "lists-reorderable--disabled",

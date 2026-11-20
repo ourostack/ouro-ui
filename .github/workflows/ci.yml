@@ -298,17 +298,30 @@ jobs:
             echo "Design check run: $EVENT."
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
-      # No screen-reader lane on a pull request: it needs macOS and Windows runners, which are scarce, so a pull request waits for
-      # none. Main's own lane runs are screen-reader.yml's push and schedule runs, and release.yml tags only a commit whose push
-      # run passed (docs/guides/screen-reader-lane.md). The screen-reader job below stays for a plan that selects specs.
+      # The screen-reader lane on a pull request into main from this repository runs only when the change touches the lane
+      # itself: a spec, its harness, its Playwright configuration, its workflows or its scripts (laneFiles in
+      # scripts/sr-impact.mjs, whose `pr` command then picks the specs), so a spec is proven on VoiceOver and NVDA before it
+      # merges (#666). If the script fails, every spec runs. Any other change, and every other event, waits for main's own
+      # lane runs, screen-reader.yml's push and schedule runs: macOS and Windows runners are scarce (docs/guides/screen-reader-lane.md).
       - id: lane
         name: Which screen-reader specs can the change reach?
         env:
           EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
         run: |
-          echo "No screen-reader lane for $EVENT: it runs on main after the merge."
-          echo "screen_reader=none" >> "$GITHUB_OUTPUT"
-          echo "screen_reader_specs=" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [ "$HEAD_REPO" = "$REPO" ]; then
+            if ! node scripts/sr-impact.mjs pr HEAD^1 HEAD; then
+              echo "The lane's selection failed: every spec runs."
+              echo "screen_reader=all" >> "$GITHUB_OUTPUT"
+              echo "screen_reader_specs=all" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "No screen-reader lane for $EVENT${BASE_REF:+ into $BASE_REF}: it runs on main after the merge."
+            echo "screen_reader=none" >> "$GITHUB_OUTPUT"
+            echo "screen_reader_specs=" >> "$GITHUB_OUTPUT"
+          fi
   sr-yield:
     # Waits while main's screen-reader lane holds or waits for a macOS runner (scripts/sr-yield.mjs), so a pull request's
     # lane takes the runners after it. It fails open and never fails: at worst the lane starts after 10 minutes.
@@ -662,11 +675,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: scripts (${{ matrix.shard }}/3)
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3]' || '[1,2]') }}
+    name: scripts (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
-      SHARD: ${{ matrix.shard }}/3
-      TIMINGS: .tmp/timings/scripts-${{ matrix.shard }}of3.json
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+      TIMINGS: .tmp/timings/scripts-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
       # Its newest release tag comes from origin's history, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -755,11 +768,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-    name: scripts (browser ${{ matrix.shard }}/4)
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4]' || '[1,2]') }}
+    name: scripts (browser ${{ matrix.shard }}/${{ strategy.job-total }})
     env:
-      SHARD: ${{ matrix.shard }}/4
-      TIMINGS: .tmp/timings/scripts-browser-${{ matrix.shard }}of4.json
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+      TIMINGS: .tmp/timings/scripts-browser-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -2198,7 +2211,7 @@ jobs:
     # 7 to 10 minutes on main; its limit is about twice that, so a spec that hangs fails its shard
     # by its own test timeout or this one, not after the run has waited 25 minutes on it.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     # In Playwright's image (see the note above jobs:).
@@ -2210,13 +2223,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    name: e2e (${{ matrix.shard }}/10)
+        # Half as many shards, twice as long each, for a run that is not a pull request's: main has no one waiting on it, and fewer jobs leave runners for the pull requests.
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6]' || '[1,2,3]') }}
+    name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/10
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of10.json
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
       # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -2305,7 +2319,7 @@ jobs:
     # spec files whose measured times add up to its share (`node scripts/shard.mjs sweeps`). Part of
     # the e2e check.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     # In Playwright's image (see the note above jobs:).
@@ -2317,11 +2331,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    name: sweeps (${{ matrix.shard }}/14)
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8]' || '[1,2,3,4]') }}
+    name: sweeps (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
-      SHARD: ${{ matrix.shard }}/14
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of14.json
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
       # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -2406,7 +2420,7 @@ jobs:
     # fails whichever shard they land in, and a route that moves a page to another shard changes nothing.
     # It starts when the last shard ends, and the shards' escape checks stay in the shards. Part of the e2e check.
     needs: [plan, sweep-shard]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     name: sweeps-compare
@@ -2490,12 +2504,17 @@ jobs:
           SHARDS: ${{ needs.e2e-shard.result }}
           SWEEPS: ${{ needs.sweep-shard.result }}
           COMPARE: ${{ needs.sweeps-compare.result }}
+          HEAVY: ${{ needs.plan.outputs.heavy }}
         run: |
+          if [ "$HEAVY" = skip ]; then
+            echo "::notice::Not affected: this pull request changes only files the end-to-end specs never read (the plan's heavy=skip)."
+            exit 0
+          fi
           if [ "$SHARDS" != success ]; then
-            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/10) jobs."
+            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/N) jobs."
           fi
           if [ "$SWEEPS" != success ]; then
-            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/14) jobs."
+            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/N) jobs."
           fi
           if [ "$COMPARE" != success ]; then
             echo "::error::The sweeps-compare job did not pass ($COMPARE): a component looks different on two pages, see its log."
@@ -2948,16 +2967,17 @@ jobs:
         variant: [shadcn, ouro]
         # Another shadcn preset than the README's, so its preset wording is verified.
         preset: [nova, vega]
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        # Three shards, not six, for a run that is not a pull request's (the install gate reads the same count).
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6]' || '[1,2,3]') }}
         exclude:
           - variant: ouro
             preset: vega
-    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/8)
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 6 || 3 }})
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
-      OURO_SHARD: ${{ matrix.shard }}/8
+      OURO_SHARD: ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 6 || 3 }}
       OURO_APP: /tmp/ouro-app
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
@@ -3167,6 +3187,7 @@ jobs:
           SHARDS: ${{ needs.install-shard.result }}
           CHECKS: ${{ needs.install-checks.result }}
           INSTALLS: ${{ needs.plan.outputs.installs }}
+          SHARD_COUNT: ${{ github.event_name == 'pull_request' && 6 || 3 }}
         run: |
           if [ "$INSTALLS" = skip ]; then
             echo "::notice::Not affected: this pull request changes only files the install test never reads (the plan's installs=skip)."
@@ -3174,16 +3195,16 @@ jobs:
           fi
           failed=0
           if [ "$SHARDS" != success ]; then
-            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/8) jobs."
+            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/N) jobs."
             failed=1
           fi
           if [ "$CHECKS" != success ]; then
             echo "::error::the type check, build or install check of the prepared app did not pass ($CHECKS): see the install checks job."
             failed=1
           fi
-          for shard in 1 2 3 4 5 6 7 8; do
+          for shard in $(seq 1 "$SHARD_COUNT"); do
             if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
-              echo "::error::install ($VARIANT, $PRESET, $shard/8) did not pass: see that job."
+              echo "::error::install ($VARIANT, $PRESET, $shard/$SHARD_COUNT) did not pass: see that job."
               failed=1
             fi
           done

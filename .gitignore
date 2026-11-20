@@ -22,6 +22,8 @@ test/generated/
 # (scripts/release-commit.sh).
 /registry.json
 /site/public/llms.txt
+/docs/guides/model-reviews.md
+/docs/guides/model-interviews.md
 /registry/ouro/feel/ouro-feel-probe.js
 /site/src/docs/catalog.json
 /site/src/docs/sources.json

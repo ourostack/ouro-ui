@@ -88,7 +88,10 @@ export function jobGraph(text) {
       if (!/^\$\{\{[^}]*\}\}$/.test(part)) return escape(part);
       const key = /^\$\{\{ *matrix\.(\w+) *\}\}$/.exec(part)?.[1];
       if (!key) return "[^,()]+";
-      const values = block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m"))?.[1].split(",").map((value) => value.trim());
+      const literal = block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m"))?.[1];
+      // An event-dependent matrix lists its values in both of its JSON arrays.
+      const lists = literal === undefined ? [...(block.match(new RegExp(`^ {8}${key}: \\$\\{\\{ fromJSON\\(.*$`, "m"))?.[0].matchAll(/'\[([^\]]*)\]'/g) ?? [])].map((match) => match[1]) : [literal];
+      const values = lists.length ? [...new Set(lists.flatMap((list) => list.split(",").map((value) => value.trim())))] : undefined;
       return values ? `(?:${values.map(escape).join("|")})` : "[^,()]+";
     });
     return { id, pattern: new RegExp(`^${source.join("")}$`), template: name, needs };

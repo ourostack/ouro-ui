@@ -15,6 +15,8 @@ version=${1:?usage: scripts/release-commit.sh <x.y.z>}
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "version must be x.y.z, without the v (got $version)" >&2; exit 1; }
 
 node scripts/latest-release.mjs set "v$version"
+node scripts/model-reviews/page.mjs docs/guides/model-reviews.md
+node scripts/model-reviews/interviews-page.mjs docs/guides/model-interviews.md
 pnpm run docs
 node scripts/registry.mts --release "$version"
 node scripts/control-matrix.mts

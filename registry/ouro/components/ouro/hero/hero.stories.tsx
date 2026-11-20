@@ -117,7 +117,7 @@ export const FullWidth: Story = {
   render: (args) => (
     <div style={{ display: "grid", gap: 24, width: "min(56rem, 100%)", marginInline: "auto", color: "var(--foreground)" }}>
       <Hero {...args} />
-      <p style={{ margin: 0 }}>The post starts here, on the same edge as the hero.</p>
+      <p style={{ margin: 0 }}>The post starts on the hero's edge.</p>
     </div>
   ),
 };

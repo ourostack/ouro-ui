@@ -1563,7 +1563,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
     // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
-    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : [...heavyJobs.filter((id) => id !== "themes"), "latency-shard"].includes(name) ? heavyRuns : untested;
+    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : [...heavyJobs.filter((id) => id !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(name) ? heavyRuns : untested;
     const needs = jobs[name].match(new RegExp(`^ {4}needs: \\[([^\\]]*)\\]\\n {4}if: ${condition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"))?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
@@ -1576,7 +1576,10 @@ test("every job that reads the plan runs whatever happened to it, and runs every
 });
 
 /** The values of a matrix key in a job's block, or undefined. */
-const matrixValues = (block, key) => block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m"))?.[1].split(",").map((value) => value.trim());
+const matrixValues = (block, key) =>
+  (block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m")) ?? block.match(new RegExp(`^ {8}${key}: \\$\\{\\{ fromJSON\\(github\\.event_name == 'pull_request' && '\\[([^\\]]*)\\]' \\|\\| '\\[[^\\]]*\\]'\\) \\}\\}$`, "m")))?.[1]
+    .split(",")
+    .map((value) => value.trim());
 
 /** Every name a job's checks report: its name with each combination of its matrix, less the excluded ones. */
 function checkNames(block, id) {
@@ -1586,7 +1589,7 @@ function checkNames(block, id) {
   for (const key of keys) combinations = combinations.flatMap((combination) => (matrixValues(block, key) ?? []).map((value) => ({ ...combination, [key]: value })));
   const excluded = [...(block.split(/^ {8}exclude:\n/m)[1] ?? "").matchAll(/^ {10}- (\w+): (\S+)\n {12}(\w+): (\S+)$/gm)].map(([, k1, v1, k2, v2]) => ({ [k1]: v1, [k2]: v2 }));
   combinations = combinations.filter((combination) => !excluded.some((exclusion) => Object.entries(exclusion).every(([key, value]) => combination[key] === value)));
-  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name));
+  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name).replace("${{ github.event_name == 'pull_request' && 6 || 3 }}", "6").replace("${{ strategy.job-total }}", String(Math.max(...keys.map((key) => matrixValues(block, key).length))))); // a pull request's count: the names the ruleset requires
 }
 
 /** The condition of every job a push whose tree already passed skips (the plan's `tested`, scripts/ci-proof.mjs). */
@@ -1631,7 +1634,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs beside ci once the coverage job and the shards it reads passed or were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser.result) && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser-fallback.result) }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -1745,8 +1748,8 @@ test("each browser shard runs its share of every browser test, or of the reduced
 test("the script test shards run every file of pnpm test:scripts between them", async () => {
   const block = ciJobs().scripts;
   const count = shardCount(block);
-  assert.match(block, new RegExp(`^ {6}SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
-  assert.match(block, new RegExp(`^ {6}TIMINGS: \\.tmp/timings/scripts-\\$\\{\\{ matrix\\.shard \\}\\}of${count}\\.json$`, "m"));
+  assert.match(block, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
+  assert.match(block, /^ {6}TIMINGS: \.tmp\/timings\/scripts-\$\{\{ matrix\.shard \}\}of\$\{\{ strategy\.job-total \}\}\.json$/m);
   assert.match(stepScript(block, "Script tests"), /^node scripts\/run-script-tests\.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=\.\/scripts\/timings-node-reporter\.mjs --test-reporter-destination="\$TIMINGS" \$\(node scripts\/shard\.mjs scripts "\$SHARD"\)$/m);
   const { readTimings, shardKeys } = await import("./shard.mjs");
   const all = Array.from({ length: count }, (_, index) => shardKeys(scriptTestFiles(), { index: index + 1, count }, readTimings("scripts"))).flat();
@@ -2035,12 +2038,13 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   const jobs = ciJobs();
   const block = jobs["e2e-shard"];
   const count = shardCount(block);
-  assert.match(block, new RegExp(`^ {6}SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
+  assert.match(block, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
+  assert.match(block, /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6\]' \|\| '\[1,2,3\]'\)/);
   const script = stepScript(block, "End-to-end specs");
   // A full run: the spec files the shard's measured share holds (the stand-in for node prints two).
   const full = runStep(script, { FULL: "true", SHARD: "1/3" });
   assert.match(full.calls, /^CALL node scripts\/shard\.mjs e2e 1\/3\nCALL pnpm test:e2e registry\/ouro\/e2e\/ouro\/checkbox\.spec\.ts site\/e2e\/$/m);
-  assert.match(block, new RegExp(`^ {6}OURO_E2E_TIMINGS: \\.tmp/timings/e2e-\\$\\{\\{ matrix\\.shard \\}\\}of${count}\\.json$`, "m"));
+  assert.match(block, /^ {6}OURO_E2E_TIMINGS: \.tmp\/timings\/e2e-\$\{\{ matrix\.shard \}\}of\$\{\{ strategy\.job-total \}\}\.json$/m);
   assert.match(block, /^ {10}name: timings-e2e-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/timings\/\n/m);
   // Between them, the shards run every spec file once.
   const { e2eFiles, readTimings, shardKeys } = await import("./shard.mjs");
@@ -2063,6 +2067,9 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.equal(runStep(gate, { SHARDS: "failure", SWEEPS: "success", COMPARE: "success" }).status, 1);
   assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "failure", COMPARE: "success" }).status, 1);
   assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "success", COMPARE: "failure" }).status, 1);
+  // The plan's heavy=skip (only files the specs never read changed) passes the skipped shards; anything else needs them.
+  assert.equal(runStep(gate, { SHARDS: "skipped", SWEEPS: "skipped", COMPARE: "skipped", HEAVY: "skip" }).status, 0);
+  assert.equal(runStep(gate, { SHARDS: "skipped", SWEEPS: "skipped", COMPARE: "skipped", HEAVY: "here" }).status, 1);
   // Each sweeps shard saves its looks, and one job compares every part's, so a page in another shard is compared too (#2527).
   assert.match(jobs["sweep-shard"], /name: sweeps-looks-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/looks\//);
   assert.match(jobs["sweeps-compare"], /^ {4}needs: \[plan, sweep-shard\]$/m);
@@ -2072,17 +2079,20 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   // ci-budget reaches sweeps-compare through the e2e gate, which waits on it.
   // The sweeps run in shards of their own, so between the e2e and sweep shards every spec runs once.
   const { sweepFiles } = await import("./shard.mjs");
-  const sweeps = Array.from({ length: 14 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 14 }, readTimings("e2e")));
+  const sweeps = Array.from({ length: 8 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 8 }, readTimings("e2e")));
   assert.deepEqual(sweeps.flat().sort(), sweepFiles());
   assert.ok(sweeps.every((share) => share.length > 0));
-  assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/14$/m);
+  assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
+  assert.deepEqual(matrixValues(jobs["sweep-shard"], "shard"), ["1", "2", "3", "4", "5", "6", "7", "8"]);
+  assert.match(jobs["sweep-shard"], /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8\]' \|\| '\[1,2,3,4\]'\)/);
 });
 
 test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {
   const jobs = ciJobs();
   const block = jobs["install-shard"];
   const count = shardCount(block);
-  assert.match(block, new RegExp(`^ {6}OURO_SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
+  assert.match(block, /^ {6}OURO_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 6 \|\| 3 \}\}$/m);
+  assert.equal(count, 6);
   const script = stepScript(block, "Install test");
   // `show` stands for install-test.sh: it prints whether OURO_COMPONENTS is set, and to what.
   const scriptWithShow = (env) => {
@@ -2103,11 +2113,11 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   assert.deepEqual(checkNames(gate, "install-gate"), ["install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)"]);
   assert.match(gate, /^ {10}pattern: install-passed-\$\{\{ matrix\.variant \}\}-\$\{\{ matrix\.preset \}\}-\*\n/m);
   const counting = stepScript(gate, "Every shard passed");
-  assert.match(counting, new RegExp(`^for shard in ${Array.from({ length: count }, (_, index) => index + 1).join(" ")}; do$`, "m"));
+  assert.match(counting, /^for shard in \$\(seq 1 "\$SHARD_COUNT"\); do$/m);
   const markers = scratchDir("ouro-install-gate-");
   mkdirSync(join(markers, "passed"));
   for (let shard = 1; shard < count; shard++) writeFileSync(join(markers, `passed/install-passed-shadcn-vega-${shard}`), "");
-  const passed = { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega", SHARDS: "success", CHECKS: "success" };
+  const passed = { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega", SHARD_COUNT: String(count), SHARDS: "success", CHECKS: "success" };
   assert.match(gate, /^ {10}SHARDS: \$\{\{ needs\.install-shard\.result \}\}$/m);
   const missing = runStep(counting, passed);
   assert.equal(missing.status, 1);
@@ -2386,14 +2396,22 @@ test("ci.yml calls the lane for a pull request from this repository only, with i
   // The caller grants what the lane needs, and no secret reaches it.
   assert.match(ci["screen-reader"], /^ {4}permissions:\n {6}contents: read\n?$/m);
   assert.doesNotMatch(ci["screen-reader"], /secrets/);
-  // The plan's lane step selects no spec for any event: macOS and Windows runners never gate a pull request; main's push run does.
+  // The plan's lane step asks sr-impact's `pr` command only for a pull request into main from this repository, which runs
+  // the lane when the change touches the lane's own files (#666); every other event and a fork wait for main's push run.
   const lane = stepScript(ci.plan, "Which screen-reader specs can the change reach?");
-  for (const [event, headRepo] of [["pull_request", "someone/fork"], ["push", ""], ["pull_request", "ourostack/ouro-ui"]]) {
-    const ran = runStep(lane, { EVENT: event, HEAD_REPO: headRepo, REPO: "ourostack/ouro-ui" });
+  for (const [event, baseRef, headRepo] of [["pull_request", "main", "someone/fork"], ["push", "", ""], ["merge_group", "", ""], ["pull_request", "release/v1.3.0", "ourostack/ouro-ui"]]) {
+    const ran = runStep(lane, { EVENT: event, BASE_REF: baseRef, HEAD_REPO: headRepo, REPO: "ourostack/ouro-ui" });
     assert.equal(ran.status, 0, ran.stdout + ran.stderr);
-    assert.doesNotMatch(ran.calls, /sr-impact/);
+    assert.doesNotMatch(ran.calls, /sr-impact/, `${event} ${baseRef} ${headRepo}`);
     assert.equal(ran.output.screen_reader, "none");
   }
+  const asked = runStep(lane, { EVENT: "pull_request", BASE_REF: "main", HEAD_REPO: "ourostack/ouro-ui", REPO: "ourostack/ouro-ui" });
+  assert.equal(asked.status, 0, asked.stdout + asked.stderr);
+  assert.match(asked.calls, /^CALL node scripts\/sr-impact\.mjs pr HEAD\^1 HEAD$/m);
+  // It fails closed: a selection that fails runs every spec.
+  const failed = runStep(lane, { EVENT: "pull_request", BASE_REF: "main", HEAD_REPO: "ourostack/ouro-ui", REPO: "ourostack/ouro-ui" }, { nodeStatus: 1 });
+  assert.equal(failed.status, 0, failed.stdout + failed.stderr);
+  assert.deepEqual(failed.output, { screen_reader: "all", screen_reader_specs: "all" });
   // The ci check passes the lane's skip only when the plan selected no spec, and counts every other result.
   const parts = stepScript(ci.ci, "Every part passed");
   const passing = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false" };

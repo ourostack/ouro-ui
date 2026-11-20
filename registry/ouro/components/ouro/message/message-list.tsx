@@ -298,19 +298,6 @@ function touchesItems(record: MutationRecord): boolean {
 }
 
 /**
- * Whether a change put in or took out a message, or the room kept above the first one: either moves the messages
- * after it. Read as the change happens, so the reader's place is held before the browser draws it.
- */
-function movesItems(record: MutationRecord): boolean {
-  return (
-    // Stryker disable next-line ConditionalExpression: holding for a change that moved nothing finds nothing moved, as the observer below says of its own check.
-    touchesItems(record) ||
-    // Stryker disable next-line MethodExpression,ConditionalExpression: the room goes in or out as a node of its own, never beside another in one record; and holding for a change that moved nothing finds nothing moved.
-    [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && node.hasAttribute("data-ouro-message-list-older-room"))
-  );
-}
-
-/**
  * The messages, with each child of a slot that holds none (a day's heading), in page order: the children found slot by slot,
  * rather than with a `:has()` selector over the whole content, which a scroll landing where nothing is drawn yet would pay for.
  * @claim "The messages, with each child of a slot that holds none" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place over rows not drawn yet without a :has() selector over the whole conversation, which reads every element against every message)
@@ -364,12 +351,13 @@ const LINE = 40;
 /** How close to the bottom, in pixels, counts as "at the bottom", where the list follows new messages (zoom leaves fractions). */
 const AT_BOTTOM = 2;
 /**
- * "Loading older messages": a raised pill over the top of the list, fading in where motion is allowed, its ring
+ * "Loading older messages": a raised pill over the top of the list, fading in where motion is allowed when loading starts after mount, its ring
  * spinning (pulsing with reduced motion).
  */
 const olderClass =
   "relative m-0 box-border inline-flex h-8 items-center gap-2 rounded-full border border-solid border-border bg-background px-3 " +
-  "text-sm text-muted-foreground shadow-(--shadow-md) whitespace-nowrap transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0";
+  "text-sm text-muted-foreground shadow-(--shadow-md) whitespace-nowrap transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out)";
+const olderFadeClass = "starting:opacity-0";
 
 /**
  * How many of the newest children's keys, with the first child's, say the list's messages changed enough to look again for a switch.
@@ -1066,6 +1054,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
     defaultItemHeight,
     ...rest
   } = props;
+  const [mounted, setMounted] = useState(false);
+  useEffect(
+    () => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMounted(true);
+    },
+    // Stryker disable next-line ArrayDeclaration: an effect that only sets a flag to true runs the same whatever its list holds.
+    [],
+  );
   // The height an app gives for a row not measured yet, where it is a positive number of pixels.
   const estimate = Number.isFinite(estimatedItemHeight) && estimatedItemHeight! > 0 ? estimatedItemHeight : undefined;
   useAppearanceClassNameCheck(
@@ -1830,14 +1827,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const moves = new MutationObserver((all) => {
       const records = all.filter((record) => !barOnly(record));
       if (records.length === 0) return;
-      const touched = records.some(movesItems);
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
       // The mark holds the scroll height, so a committed change of the content's own height is looked for too.
       // Stryker disable next-line ConditionalExpression,ArrowFunction: not equivalent; "drops the room at once when hasOlder ends" (message-list.test.tsx) fails on both mutants, but per-test coverage attributes this observer callback to another test, so the shard never runs it.
       const floorMoved = () => floor !== 0 && content.offsetHeight !== floor;
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
-      if (pinned.current ? farthest() !== end || floorMoved() : touched) hold();
+      if (!pinned.current || farthest() !== end || floorMoved()) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {
@@ -2713,7 +2709,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       <div data-ouro-message-list-older="" className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
         <div aria-live="polite">
           {loadingOlder && (
-            <span className={olderClass}>
+            <span className={cn(olderClass, mounted && olderFadeClass)}>
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4 animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.25" />
                 <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />

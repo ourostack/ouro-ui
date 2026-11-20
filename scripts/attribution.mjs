@@ -7,7 +7,9 @@
 // - is authored by anyone but the maintainer, release.yml's github-actions[bot], which authors
 //   the "Prepare main for the next release" commits, or Dependabot, whose commit may change only
 //   dependency files (DEPENDENCY_FILES), may carry its own Signed-off-by trailer, and, as the squash's
-//   author, its own Co-authored-by trailer (DEPENDABOT_CREDIT);
+//   author, its own Co-authored-by trailer (DEPENDABOT_CREDIT), or the project's own app, Ouro Current,
+//   whose commit may only be GitHub's revert of a pull request (REVERT_SUBJECT), as screen-reader-revert.yml
+//   opens it;
 // - is committed by anyone but those two or GitHub (noreply@github.com, which commits the merge
 //   queue's squash commits and the web editor's);
 // - carries AI attribution in its message: a `*-by:` trailer (Co-authored-by, Assisted-by, ...)
@@ -41,6 +43,10 @@ export const DEPENDABOT_CREDIT = `dependabot[bot] <${DEPENDABOT}>`;
 /** What a Dependabot commit may change: manifests, the lockfile and the workflows and actions it pins. */
 export const DEPENDENCY_FILES = /^(?:package\.json|pnpm-lock\.yaml|\.github\/(?:workflows|actions)\/.+)$/;
 export const AUTHORS = [MAINTAINER.email, RELEASE_BOT, DEPENDABOT];
+/** The project's own app, Ouro Current: it authors the revert pull requests screen-reader-revert.yml opens, and only those. */
+export const OURO_CURRENT = "357084126+ouro-current[bot]@users.noreply.github.com";
+/** A revert's subject as GitHub writes it, for a commit and for its squash: `Revert "<the reverted pull request's title>"`. */
+export const REVERT_SUBJECT = /^Revert "/;
 /** The trailer GitHub adds to the squash of a pull request release.yml opened: no AI, so the one bot a trailer may name. */
 export const RELEASE_BOT_TRAILER = `github-actions[bot] <${RELEASE_BOT}>`;
 export const COMMITTERS = [MAINTAINER.email, RELEASE_BOT, GITHUB];
@@ -82,7 +88,8 @@ export function problems(commits, { messages = true } = {}) {
     const bump = dependabot && files.length > 0 && files.every((file) => DEPENDENCY_FILES.test(file));
     const stray = files.filter((file) => !DEPENDENCY_FILES.test(file));
     if (dependabot && (files.length === 0 || stray.length > 0)) report("files", files.length === 0 ? "Dependabot's commit changes no file the check could read" : `Dependabot may change only dependency files (package.json, pnpm-lock.yaml, workflows and actions), not ${stray.join(", ")}`, REAUTHOR);
-    if (!AUTHORS.includes(commit.authorEmail.toLowerCase())) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")})`, REAUTHOR);
+    const revert = commit.authorEmail.toLowerCase() === OURO_CURRENT && REVERT_SUBJECT.test(commit.message);
+    if (!AUTHORS.includes(commit.authorEmail.toLowerCase()) && !revert) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")}, or ${OURO_CURRENT} for a revert)`, REAUTHOR);
     if (!COMMITTERS.includes(commit.committerEmail.toLowerCase())) report("committer", `${commit.committerName} <${commit.committerEmail}> may not commit here (only ${COMMITTERS.join(", ")})`, REAUTHOR);
     // A line is read with its hidden characters removed and as spaces. NEL is a line terminator and a hidden character at once, so a message is read split at it and, when it holds one, again whole.
     const read = (raw, field) => {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { diskRepo, outputsOf, selectLane, storyId, storyIdTable, storyIdsOf } from "./sr-impact.mjs";
+import { diskRepo, laneFiles, outputsOf, selectLane, selectPullRequestLane, storyId, storyIdTable, storyIdsOf } from "./sr-impact.mjs";
 
 // Which screen-reader specs a change reaches (scripts/sr-impact.mjs). The fixture is a small repository
 // in memory: two components whose stories load each other's code, a reference story that renders one
@@ -173,4 +173,17 @@ test("in this repository every spec's stories resolve, so a docs change selects 
   assert.ok(selectLane(["registry/ouro/components/ouro/text-field/text-field.tsx"], repo).specs.includes(TEXT_FIELD));
   assert.ok(selectLane(["registry/ouro/components/ouro/form/form.tsx"], repo).specs.includes(TEXT_FIELD), "Form's story renders TextField");
   assert.ok(selectLane(["registry/ouro/components/ouro/button/button.tsx"], repo).specs.includes(BUTTON));
+});
+
+test("a pull request runs the lane only when it changes the lane's own files, and then what the plan selects (#666)", () => {
+  // A component, a library helper or ci.yml alone waits for main's push run, though the plan would select specs for them.
+  for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/lib/ouro/dev.ts", ".github/workflows/ci.yml", "README.md"]) assert.equal(selectPullRequestLane([path], repoWith()).lane, "none", path);
+  // A spec selects itself; the harness, the configuration, the lane's workflows and scripts select every spec.
+  assert.deepEqual(selectPullRequestLane([TEXT_FIELD], repoWith()).specs, [TEXT_FIELD]);
+  for (const path of ["registry/ouro/e2e/screen-reader/phrases.ts", "playwright.screen-reader.config.ts", ".github/workflows/screen-reader.yml", ".github/workflows/screen-reader-lane.yml", "scripts/sr-impact.mjs"]) assert.equal(selectPullRequestLane([path], repoWith()).lane, "all", path);
+  // A lane file beside other changes is judged with them; a change it cannot read runs every spec.
+  assert.equal(selectPullRequestLane([TEXT_FIELD, "registry/ouro/lib/ouro/dev.ts"], repoWith()).lane, "all");
+  assert.equal(selectPullRequestLane([], repoWith()).lane, "all");
+  assert.equal(laneFiles.test("registry/ouro/e2e/ouro/menu.spec.ts"), false);
+  assert.equal(laneFiles.test(".github/workflows/screen-reader-revert.yml"), false);
 });
