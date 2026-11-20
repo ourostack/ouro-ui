@@ -1,7 +1,7 @@
 "use client";
 
 import { Toggle as BaseToggle } from "@base-ui/react/toggle";
-import { useId, useState, type JSX, type KeyboardEvent, type Ref } from "react";
+import { useId, useMemo, useState, type JSX, type KeyboardEvent, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
@@ -64,9 +64,9 @@ function GroupItem(props: {
   size: keyof typeof sizes;
 }): JSX.Element {
   const { item, pressed, onPress, groupDisabled, tabIndex, onFocus, variant, shape, size } = props;
-  const { value: _value, label, icon: Icon, hideLabel: iconOnlyItem, disabled: itemDisabled, disabledReason: _reason, ...itemRest } = item;
+  const { label, icon: Icon, hideLabel: iconOnlyItem, disabled: itemDisabled } = item;
   const reason = useDisabledReason(item);
-  const dataAttributes = Object.fromEntries(Object.entries(itemRest).filter(([name]) => name.startsWith("data-")));
+  const dataAttributes = useMemo(() => Object.fromEntries(Object.entries(item).filter(([name]) => name.startsWith("data-"))), [item]);
   const iconOnly = Boolean(iconOnlyItem && Icon);
   const toggle = (
     <BaseToggle
