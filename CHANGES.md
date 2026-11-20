@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: MessageList, scrolled up, holds the reader's place at once for any change in the list (a picture taking the place of a placeholder above the view), not only for messages added, removed or moved, so an animation frame's callbacks no longer read the place moved for one frame.
