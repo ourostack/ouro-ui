@@ -988,7 +988,7 @@ export function MenuItem(props: MenuItemProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const shared = { className: reason.off ? cn(menuItemClass, "data-disabled:pointer-events-auto") : menuItemClass, "data-ouro-control": "menu", "data-ouro-part": "item", "data-tone": tone, "data-ax-action": axAction, ...keyShortcutProps(shortcut, platform), ...(onClick && !reason.off ? { onClick: (event: MouseEvent<HTMLElement>) => onClick(event) } : {}) };
+  const shared = { className: menuItemClass, ...(reason.off ? { style: { pointerEvents: "auto" as const } } : {}), "data-ouro-control": "menu", "data-ouro-part": "item", "data-tone": tone, "data-ax-action": axAction, ...keyShortcutProps(shortcut, platform), ...(onClick && !reason.off ? { onClick: (event: MouseEvent<HTMLElement>) => onClick(event) } : {}) };
   const body = (
     <>
       <ItemBody shortcut={shortcut}>{children}</ItemBody>
