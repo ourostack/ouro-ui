@@ -2,12 +2,13 @@
 
 ## What the findings changed in Ouro
 
-The reviews and the [interviews](model-interviews.md) produced 33 findings, filed as issues. 14 are changed or answered and 19 are open or in progress. The results below are kept whole, including the ones that went against Ouro.
+The reviews and the [interviews](model-interviews.md) produced 33 findings, filed as issues. 15 are changed or answered and 18 are open or in progress. The results below are kept whole, including the ones that went against Ouro.
 
 ### Changed or answered
 
 - [#2290](https://github.com/ourostack/ouro-ui/issues/2290): Only watching real people do the task proves a screen is good, and models can't run that themselves. Ouro check's report names the floor it proves and ends with a "Needs a person" list (#2506), --handoff writes the session kit for watching real people (#2510), and createUseCounts counts real use: counts only, off by default, no collector, no content, no identifier (#2517). A model can't run the sessions itself, so the answer is to hand them to a person.
 - [#2291](https://github.com/ourostack/ouro-ui/issues/2291): Models miss the states and details Ouro already checks, and none reaches for Ouro check to catch them. The screen check's guide and llms.txt lead with every state handled and checked, worded as the floor Ouro check proves, and name Ouro check with its first-run run on installed apps.
+- [#2292](https://github.com/ourostack/ouro-ui/issues/2292): Ouro's pages read as written to persuade agents, and models trust them less for it. The home page, the Ouro AX guide, llms.txt and the README's top were read for superlatives and unsourced claims. What remains is the decided positioning (the title and the hero's "complete kit for agents"); the At a glance list, the floor wording and the open questions are sourced and plain. No further rewrite was needed.
 - [#2293](https://github.com/ourostack/ouro-ui/issues/2293): The model-reviews page works against Ouro: readers take away that seven of eight models chose A2UI. The page now opens with what the findings changed in Ouro and what is still open, and states the A2UI result with Ouro's answer. Every result is kept.
 - [#2295](https://github.com/ourostack/ouro-ui/issues/2295): The agent doors aren't finished: Android refuses consequential actions, and ax-mcp, AppFunctions, the Siri AI SDK and WebMCP are previews. ax-mcp is out of preview, speaking MCP 2026-07-28 and the four revisions before it, and the Ouro AX guide lists each agent door's maturity and the platform API under it (#2361), and on Android an agent's consequential call now asks the person with a built-in confirmation instead of being refused (ourostack/ouro-ui-android#22, released in v0.5.0).
 - [#2296](https://github.com/ourostack/ouro-ui/issues/2296): Copy-in source makes every team a fork owner, and auto-merged updates don't satisfy company governance. Ouro Current can leave auto-merge off and ask a named review team (#2338), a mirror script builds a company-owned registry under its own namespace and records each item's source tag and hash (#2342), and a drift report and a company guide show who is behind and who has edited what (#2347).
@@ -26,7 +27,6 @@ The reviews and the [interviews](model-interviews.md) produced 33 findings, file
 - [#2287](https://github.com/ourostack/ouro-ui/issues/2287) (open): With no list to pick from, no model found Ouro UI: 0 of 16 open-arm sessions, and three models never read it even when it was listed.
 - [#2288](https://github.com/ourostack/ouro-ui/issues/2288) (open): Without Ouro, every model hand-built Ouro AX's idea: one typed action layer that the buttons and an MCP server both call.
 - [#2289](https://github.com/ourostack/ouro-ui/issues/2289) (in progress): Passing checks only shows a screen isn't broken, not that it's good.
-- [#2292](https://github.com/ourostack/ouro-ui/issues/2292) (open): Ouro's pages read as written to persuade agents, and models trust them less for it.
 - [#2294](https://github.com/ourostack/ouro-ui/issues/2294) (in progress): The native kits are unproven on real hardware: Android runs only on emulators, and Windows agent registration is unproven on a Windows 11 client.
 - [#2297](https://github.com/ourostack/ouro-ui/issues/2297) (in progress): Windows and Android have only 8 components each, so models fall back to Flutter or to the web kit in a desktop shell.
 - [#2298](https://github.com/ourostack/ouro-ui/issues/2298) (open): Agent-Native is the rival shared-action layer models pick when they want a bigger vendor or a built-in database.
