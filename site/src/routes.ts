@@ -57,8 +57,18 @@ export const redirects: Array<{ from: string; to: string; note?: string }> = [{ 
 
 // The words a person or an agent searches with: what it is (React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits), who it is for (agents building A2UI and MCP Apps interfaces) and how it installs.
 const DESCRIPTION = claim("Accessible React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits, for agents building A2UI and MCP Apps. Installs with the shadcn CLI.", {
-  source: { file: "test/stories.test.tsx" },
-  verify: { testExists: "test/stories.test.tsx::at $width px > %s > $id has no axe violations, closed and with each overlay open" },
+  source: [{ file: "test/stories.test.tsx" }, { file: "package.json" }, { file: "docs/platforms/windows.md" }, { file: "docs/platforms/android.md" }, { file: "docs/platforms/apple.md" }, { file: "scripts/install-test.sh" }],
+  verify: [
+    { testExists: "test/stories.test.tsx::at $width px > %s > $id has no axe violations, closed and with each overlay open" },
+    { fileLine: "package.json", pattern: "\"@base-ui/react\"" },
+    { fileLine: "docs/platforms/apple.md", pattern: "Swift" },
+    { fileLine: "docs/platforms/windows.md", pattern: "WinUI" },
+    { fileLine: "docs/platforms/android.md", pattern: "Compose" },
+    { fileLine: "package.json", pattern: "\"tailwindcss\"" },
+    { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+    { testExists: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > draws a composed tree in structuredContent.ouro with ComposedSurface" },
+    { fileLine: "scripts/install-test.sh", pattern: "shadcn@4\\.21\\.1" },
+  ],
 });
 // NAUTILUS_PAGE.intro (voyage/copy.ts), written out so the docs, which import this file, do not load the voyage's words.
 const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret, on a far-off island. Help him get her ready, then sail with him. A story told with Ouro HX components: build the Nautilus, plan her voyage, and meet a very friendly squid.`;
