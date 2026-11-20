@@ -83,6 +83,15 @@ export function waivedPages(key: string, pages: string[]): boolean {
   return WAIVERS.some((w) => covers(w, parts, [...new Set(pages)]));
 }
 
+/**
+ * A look's signatures, the one that stands for the look first. A page a waiver is for is never the one that stands
+ * for it, however many samples it has, so the waived page is the odd one out and its waiver can match; among the
+ * rest, the most samples win.
+ */
+export function majorityFirst(key: string, bySig: Map<string, string[]>): [string, string[]][] {
+  return [...bySig].sort((a, b) => Number(waivedPages(key, a[1])) - Number(waivedPages(key, b[1])) || b[1].length - a[1].length);
+}
+
 // Each sweep writes the waivers it used beside the timings CI uploads; scripts/waivers.mjs fails on one no run used.
 export function recordMatched(label: string): void {
   const dir = ".tmp/timings";

@@ -248,7 +248,7 @@ Seven models said the design-system owners are the gate at a large company: a se
 
 #### Only watching real people do the task proves a screen is good, and models can't run that themselves.
 
-Signal: stakeholder. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2290](https://github.com/ourostack/ouro-ui/issues/2290). What changed: `ouro check --handoff` writes handoff.md: the floor the check proves, what a person still has to judge, and a usability session for a person to run.
+Signal: stakeholder. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2290](https://github.com/ourostack/ouro-ui/issues/2290). What changed: Ouro check's --handoff writes the session kit (#2510), and createUseCounts counts real use: counts only, off by default, no collector, no content, no identifier.
 
 All eight models rank watching representative people do the task as the strongest or only real evidence, and all say a person has to run it; they also know their own labels too well to judge them. In the pre-mortem every model admitted its 'show it's good' was a plan nobody ran, and none could describe a check it had actually run on a last screen. Their workaround is a handoff that separates what was checked from what still needs a person. Ouro could own that loop rather than claim to replace it: a usability-session kit (a task script, an outcome question such as 'what appointment do you have now?', what to observe) and a handoff report from Ouro check.
 
