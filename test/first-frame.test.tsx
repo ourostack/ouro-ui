@@ -72,11 +72,6 @@ export const firstFrameFindings: Record<string, FirstFrameFinding> = {
   ...pin(["Porthole/Narrow", "Porthole/Open"], ["div[data-ouro=porthole][data-ouro-part=panel]"], "Porthole's panel fades in on mount, though it is open at mount (#1999)."),
   ...pin(["Celebrate/Playground"], ["span[data-ouro=celebrate][data-ouro-part=message]"], "Designed motion: the burst and its message are the moment itself, and they play only when the moment starts."),
   ...pin(["Emoji/Placeholder"], ["img[data-ouro=emoji]"], "Designed motion: the picture is not ready at mount, since it decodes first, and fades in over its placeholder once it has."),
-<<<<<<< HEAD
-  ...pin(["MessageList/LoadingOlder"], ["span[data-ouro=message-list]"], "MessageList's loading mark fades in on mount, though it is loading at mount (#1999)."),
-=======
-  ...pin(["Checklist/Ordered", "Checklist/Outlined"], ["span[data-ouro=checklist][data-ouro-part=note]"], "Checklist's out-of-order note fades in on mount, though it is ready at mount (#1999)."),
->>>>>>> 6a14ed0e7 (MessageList: the loading-older pill is drawn at full opacity when ready at mount)
   ...pin(
     ["RouteProgress/Playground"],
     ["div[data-ouro=route-progress][data-ouro-part=bar]"],
