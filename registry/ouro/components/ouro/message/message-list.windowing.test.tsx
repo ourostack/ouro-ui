@@ -997,6 +997,28 @@ describe("MessageList windowing", () => {
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
   });
 
+  it("holds the reader's place at once when something above the view that is no message changes size, as an animation frame's callbacks read it (#702)", async () => {
+    const items = conversation(60).map((item) => ({ ...item, tall: 100 }));
+    const { scroller } = await render(<Chat items={items} springy={false} style={{ height: 400, width: 360 }} />);
+    await scrollTo(scroller, 3000);
+    const reading = firstVisible(scroller);
+    const above = document.getElementById(`m${Number(reading.message.id.slice(1)) - 2}`)!;
+    const placeholder = document.createElement("div");
+    placeholder.style.height = "20px";
+    above.append(placeholder);
+    await settle(scroller);
+    const read = new Promise<number>((resolve) => {
+      // A picture's placeholder gives way to the picture, in a task of its own; the frame's callbacks come before the resize observer.
+      setTimeout(() => {
+        const picture = document.createElement("div");
+        picture.style.height = "140px";
+        placeholder.replaceWith(picture);
+        requestAnimationFrame(() => resolve(Math.abs(reading.message.getBoundingClientRect().top - reading.top)));
+      });
+    });
+    expect(await read).toBeLessThanOrEqual(1);
+  });
+
   /** Lets the wheel rest at the top, and waits until the list has taken it: the mark that held the scroll range while it turned goes. */
   async function restWheel(scroller: HTMLElement, clock: { now: number }) {
     const floor = scroller.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;
