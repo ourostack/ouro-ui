@@ -429,8 +429,8 @@ const variants = ["default", "chat", "post", "reply"] as const;
 const placements = ["corner", "beside"] as const;
 
 const bubbles = {
-  user: "rounded-ouro-2xl rounded-ee-ouro-md bg-primary px-3.5 py-2 text-primary-foreground",
-  assistant: "rounded-ouro-2xl rounded-es-ouro-md bg-muted px-3.5 py-2 text-foreground",
+  user: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] rounded-ee-ouro-md bg-primary px-3.5 py-2 text-primary-foreground",
+  assistant: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] rounded-es-ouro-md bg-muted px-3.5 py-2 text-foreground",
   system: "bg-transparent text-center text-muted-foreground",
 } as const;
 
@@ -482,12 +482,12 @@ const mutedInk = {
 const layouts = {
   filled: {
     // A transparent border, which forced colours draw, so a bubble that is only a fill keeps its edge there.
-    user: `rounded-ouro-2xl rounded-ee-ouro-md border border-solid border-transparent px-3 py-2 ${filledInk}`,
-    assistant: "rounded-ouro-2xl rounded-es-ouro-md border border-solid border-transparent bg-muted px-3 py-2 text-foreground",
+    user: `rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] rounded-ee-ouro-md border border-solid border-transparent px-3 py-2 ${filledInk}`,
+    assistant: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] rounded-es-ouro-md border border-solid border-transparent bg-muted px-3 py-2 text-foreground",
   },
   raised: {
-    user: "rounded-ouro-lg bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
-    assistant: `rounded-ouro-lg px-3 py-2 ${raised}`,
+    user: "rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
+    assistant: `rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] px-3 py-2 ${raised}`,
   },
 } as const;
 
@@ -1089,7 +1089,7 @@ function avatarSlot(avatar: string | ReactElement | undefined, name: string | nu
 
 // The quote: a box on the muted surface with a hairline, as Composer's quote (composer.tsx).
 const quoteClass =
-  "m-0 mb-2 flex min-w-0 items-center gap-2 rounded-ouro-md bg-muted p-1.5 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid";
+  "m-0 mb-2 flex min-w-0 items-center gap-2 rounded-ouro-inner bg-muted p-1.5 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid";
 // The quote as a button: it highlights while hovered rather than scaling, as a wide row does, and
 // with two lines of text it is taller than a touch target already.
 const quoteButtonClass =
@@ -1117,11 +1117,11 @@ function quoteBox(quote: MessageQuote): JSX.Element {
     </>
   );
   return quote.onActivate ? (
-    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass)}>
+    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why="the quote bar is a 4px stroke, which cannot hold a concentric corner" onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass)}>
       {body}
     </button>
   ) : (
-    <blockquote data-ouro-message-quote="" className={quoteClass}>
+    <blockquote data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why="the quote bar is a 4px stroke, which cannot hold a concentric corner" className={quoteClass}>
       {body}
     </blockquote>
   );

@@ -19,6 +19,7 @@ export {
   thumbnailImageClass,
   titleClass,
   zoomedImageClass,
+  zoomFrameClass,
   zoomOrigin,
   zoomViewClass,
 };
@@ -207,9 +208,12 @@ const imageClass =
  * @claim "a swipe that reaches its edge" registry/ouro/components/ouro/lightbox/lightbox-styles.ts verify:fileLine(registry/ouro/components/ouro/lightbox/lightbox-styles.ts, /overflow-auto overscroll-contain/)
  */
 const zoomViewClass =
-  "absolute inset-0 flex overflow-auto overscroll-contain rounded-ouro-lg bg-popover " +
+  "absolute inset-0 flex overflow-auto overscroll-contain rounded-ouro-lg " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "forced-colors:border forced-colors:border-solid";
+
+/** The panel the zoomed image scrolls in: it holds the fill and clips the picture to the panel's corners in either theme, which the scroller's own scrolling cannot show. @internal */
+const zoomFrameClass = "absolute inset-0 overflow-hidden rounded-ouro-lg bg-popover";
 
 /** @internal */
 const zoomedImageClass = "m-auto block max-w-none max-h-none shrink-0";
