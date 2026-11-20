@@ -22,6 +22,7 @@ import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
+import { classify } from "./ci-paths.mjs";
 import { treeFiles } from "./tree.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -157,8 +158,10 @@ export function testImpact(changedFiles, root = repoRoot) {
   const changed = new Set();
   const demoLoads = siteFilesDemosLoad(root);
   for (const path of changedFiles) {
-    const shared = everything.find(([pattern]) => pattern.test(path));
-    const none = noComponent.find(([pattern]) => pattern.test(path));
+    const scope = classify(path);
+    const scopedOut = scope?.scope === "scoped" && !scope.rule.components ? [scope.rule.pattern, scope.rule.reason] : undefined;
+    const shared = scopedOut ? undefined : everything.find(([pattern]) => pattern.test(path));
+    const none = scopedOut ?? noComponent.find(([pattern]) => pattern.test(path));
     if (shared) {
       full = true;
       reasons.push(`${path}: ${shared[1]}, so everything runs`);

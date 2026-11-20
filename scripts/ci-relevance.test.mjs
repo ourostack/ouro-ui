@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { classify, scoped } from "./ci-paths.mjs";
 import { relevance, targets } from "./ci-relevance.mjs";
 import { scratchDir } from "./scratch.mjs";
 
@@ -217,4 +218,23 @@ test("the install test and the heavy tier run for every risky path, and skip onl
     assert.equal(runs(target, []), true, `${target} runs on an empty diff`);
     assert.equal(runs(target, ["changes/x.md", "AGENTS.md", "scripts/ci-budget.test.mjs", ".github/workflows/pages.yml"]), false, `${target} skips a quiet change`);
   }
+});
+
+test("every file under scripts/, test/ and .github/ is scoped to the tiers it reaches or explicitly runs everything", () => {
+  const files = spawnSync("git", ["ls-files", "-z", "scripts", "test", ".github"], { cwd: root, encoding: "utf8" }).stdout.split("\0").filter(Boolean);
+  assert.ok(files.length > 100);
+  assert.deepEqual(files.filter((path) => !classify(path)), [], "put each new file in scoped or runsAll in scripts/ci-paths.mjs");
+  for (const rule of scoped) assert.ok(files.some((path) => rule.pattern.test(path)), `${rule.pattern} matches no file`);
+});
+
+test("a change to a CI helper, a Node script test or another workflow starts no browser, install or heavy tier, and a path that reaches them still does", () => {
+  for (const path of ["scripts/main-green.mjs", "scripts/workflows.test.mjs", ".github/workflows/release.yml", "test/__screenshots__/a/b-linux.png"]) {
+    assert.equal(runs("browser", [path]), false, path);
+    assert.equal(runs("installs", [path]), false, path);
+  }
+  assert.equal(runs("heavy", ["scripts/main-green.mjs"]), false);
+  assert.equal(runs("heavy", ["scripts/latency-shards.mjs"]), true);
+  assert.equal(runs("browser", ["scripts/shard.mjs"]), true);
+  assert.equal(runs("installs", ["scripts/install-test.sh"]), true);
+  assert.equal(runs("browser", ["scripts/gen-docs.mts"]), true);
 });
