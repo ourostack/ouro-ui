@@ -34,10 +34,16 @@ export function parseCases(kit, log) {
   return out;
 }
 
-/** Android's log names each component spec case as `| <spec>/<case id> | pass |`; no other kit's log names one yet, so its column is "-". */
-export function parseComponentCases(log) {
+/** Component spec cases: Android's log names each as `| <spec>/<case id> | pass |`, Windows' as `Passed Ouro.Claims.Each_spec_case_holds(name: "<spec>/<case id>")`; the other kits name none, so their columns are "-". */
+const componentReaders = {
+  android: (log) => [...log.matchAll(/\| ([a-z][a-z-]*\/[a-z][a-z0-9-]*) \| (pass|FAIL) \|/g)].map((m) => [m[1], m[2] === "pass"]),
+  windows: (log) => [...log.matchAll(/\b(Passed|Failed) Ouro\.Claims\.Each_spec_case_holds\(name: "([^"]+)"\)/g)].map((m) => [m[2], m[1] === "Passed"]),
+};
+const componentJobs = { android: /^build$/, windows: /^windows$/ };
+
+export function parseComponentCases(kit, log) {
   const out = new Map();
-  for (const m of log.matchAll(/\| ([a-z][a-z-]*\/[a-z][a-z0-9-]*) \| (pass|FAIL) \|/g)) out.set(m[1], (out.get(m[1]) ?? true) && m[2] === "pass");
+  for (const [name, passed] of componentReaders[kit](log)) out.set(name, (out.get(name) ?? true) && passed);
   return out;
 }
 
@@ -85,11 +91,12 @@ function latestCases(k) {
 }
 
 function latestComponentCases(k) {
+  const job = componentJobs[k.kit];
   try {
     const runs = gh("run", "list", "-R", k.repo, "-b", "main", "-w", "CI", "-L", "10", "--json", "databaseId,conclusion");
     for (const run of runs.filter((r) => r.conclusion && r.conclusion !== "skipped")) {
-      const job = gh("run", "view", String(run.databaseId), "-R", k.repo, "--json", "jobs").jobs.find((j) => k.job.test(j.name));
-      const cases = job ? parseComponentCases(jobLog(k.repo, job.databaseId)) : new Map();
+      const found = gh("run", "view", String(run.databaseId), "-R", k.repo, "--json", "jobs").jobs.find((j) => job.test(j.name));
+      const cases = found ? parseComponentCases(k.kit, jobLog(k.repo, found.databaseId)) : new Map();
       if (cases.size > 0) return cases;
     }
   } catch {}
@@ -125,7 +132,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const results = {};
   for (const k of kits) results[k.kit] = latestCases(k);
   console.log("\n" + caseTable(readdirSync(coreDir).filter((f) => f.endsWith(".json")).sort(), results));
-  const android = kits.find((k) => k.kit === "android");
-  const componentResults = { android: latestComponentCases(android) };
+  const componentResults = {};
+  for (const k of kits.filter((k) => k.kit in componentJobs)) componentResults[k.kit] = latestComponentCases(k);
   console.log("\n" + caseTable(componentCaseNames(coreRoot, ["tabs", "tab-bar", "sidebar"]), componentResults));
 }

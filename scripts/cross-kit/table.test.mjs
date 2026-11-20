@@ -30,8 +30,10 @@ test("a kit's log becomes per-case results, and the table shows - where a kit na
 
 test("Android's component case lines become results keyed spec/case, and core's specs name the cases to look for", async () => {
   const { parseComponentCases, componentCaseNames } = await import("./table.mjs");
-  const results = parseComponentCases("| tab-bar/two-tabs | pass |\n| sidebar/collapsed-rail | FAIL |\n| a2ui.json | pass |");
+  const results = parseComponentCases("android", "| tab-bar/two-tabs | pass |\n| sidebar/collapsed-rail | FAIL |\n| a2ui.json | pass |");
   assert.deepEqual([...results], [["tab-bar/two-tabs", true], ["sidebar/collapsed-rail", false]]);
+  const win = parseComponentCases("windows", '2026-11-20T19:00:00Z Passed Ouro.Claims.Each_spec_case_holds(name: "tabs/two")\nFailed Ouro.Claims.Each_spec_case_holds(name: "sidebar/rail")');
+  assert.deepEqual([...win], [["tabs/two", true], ["sidebar/rail", false]]);
   const dir = scratchDir("cross-kit-specs");
   mkdirSync(join(dir, "standard/hx/components"), { recursive: true });
   writeFileSync(join(dir, "standard/hx/components/tabs.spec.json"), JSON.stringify({ cases: [{ id: "recipe-sections" }] }));
