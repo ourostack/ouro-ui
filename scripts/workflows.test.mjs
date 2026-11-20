@@ -1949,7 +1949,7 @@ test("the conformance shards run only the checks' proofs on the first shard when
   // The shard is the matrix entry over the matrix's size, and the job's name says the same count.
   assert.match(block, /^ {10}OURO_CONFORMANCE_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
   // Three shards where every story is checked (main, the merge queue, a full plan) and one on a reduced pull request.
-  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && '\[1,2,3\]' \|\| '\[1\]'\) \}\}$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && \(github\.event_name == 'pull_request' && '\[1,2,3\]' \|\| '\[1,2\]'\) \|\| '\[1\]'\) \}\}$/m);
   assert.match(block, /^ {4}name: conformance \(\$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}\)$/m);
 });
 
