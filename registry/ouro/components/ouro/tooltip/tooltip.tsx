@@ -241,6 +241,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     // Never after a touch: a tap that focuses the trigger would otherwise show it, and a phone has no way to hover it away.
     // Nor while the trigger's own menu or popover is open: the person is using that, so the tooltip waits until it closes.
     const element = triggerRef.current;
+    if (content === undefined || content === null || content === "") return;
     if (lastInput() !== "touch" && !popupOpen(element?.getAttribute("aria-expanded"), element?.getAttribute("aria-haspopup"))) setOpen(how);
   };
   const after = (delay: number, act: () => void) => {
