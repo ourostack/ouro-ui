@@ -36,6 +36,7 @@ describe("Accordion item disabledReason", () => {
   it("keeps the title focusable with aria-disabled and describes it by the reason", async () => {
     await render(<Accordion items={items} />);
     expect(trigger().getAttribute("aria-disabled")).toBe("true");
+    expect(trigger().getAttribute("data-disabled")).toBe("");
     expect(document.getElementById(trigger().getAttribute("aria-describedby")!)!.textContent).toBe("Freezing tips arrive next week");
     await pressTab();
     await pressTab();
