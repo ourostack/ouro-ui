@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createUseCounts, useMoments } from "@/registry/ouro/lib/ouro/use-counts";
+import { createUseCounts, useMoments, type UseCountReport } from "@/registry/ouro/lib/ouro/use-counts";
 
+const USER_AGENT = navigator.userAgent;
 const NOON = Date.UTC(2026, 10, 19, 12, 34, 56);
 
 describe("createUseCounts", () => {
@@ -114,5 +115,74 @@ describe("createUseCounts", () => {
 
   it("lists the moments it counts", () => {
     expect(useMoments).toHaveLength(7);
+  });
+  describe("the privacy promise", () => {
+    let sends: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      sends = vi.fn();
+      vi.stubGlobal("WebSocket", function WebSocketStub() { sends("WebSocket"); });
+      vi.stubGlobal("EventSource", function EventSourceStub() { sends("EventSource"); });
+      vi.stubGlobal("Image", function ImageStub() { sends("Image"); });
+      vi.stubGlobal("XMLHttpRequest", function XhrStub() { sends("XMLHttpRequest"); });
+      vi.stubGlobal("fetch", (...args: unknown[]) => { sends("fetch", args); return Promise.resolve(new Response("")); });
+      vi.stubGlobal("navigator", Object.assign(Object.create(navigator), { sendBeacon: () => { sends("sendBeacon"); return true; } }));
+      vi.spyOn(document, "createElement");
+    });
+
+    function session(counts: ReturnType<typeof createUseCounts>) {
+      counts.enable();
+      for (const moment of useMoments) counts.record(moment, { screen: "checkout", part: "pay-button" });
+      counts.record("disabled-press", { screen: "https://example.com/a?token=abc", part: "ari@example.com" });
+      counts.flush();
+      counts.disable();
+    }
+
+    it("calls no fetch, beacon, XMLHttpRequest, WebSocket, EventSource or image ping, whether off or on", () => {
+      const received: unknown[] = [];
+      session(createUseCounts({ onReport: (report) => received.push(report), now: () => NOON }));
+      const off = createUseCounts({ now: () => NOON });
+      for (const moment of useMoments) off.record(moment, { screen: "checkout", part: "pay-button" });
+      off.flush();
+      expect(sends).not.toHaveBeenCalled();
+      expect(document.createElement).not.toHaveBeenCalledWith("img");
+      expect(received).toHaveLength(1);
+    });
+
+    it("keeps nothing in memory while off, so counts made before enable() never appear", () => {
+      const onReport = vi.fn();
+      const counts = createUseCounts({ onReport, now: () => NOON });
+      counts.record("disabled-press", { screen: "checkout", part: "pay-button" });
+      counts.enable();
+      expect(counts.flush().counts).toEqual([]);
+      expect(onReport).not.toHaveBeenCalled();
+    });
+
+    it("reports only fixed moment names with whole-number counts, and drops or rewrites anything smuggled in", () => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      const received: UseCountReport[] = [];
+      const counts = createUseCounts({ onReport: (report) => received.push(report), now: () => NOON });
+      counts.enable();
+      const smuggled = { screen: "checkout", part: "pay-button", text: "ari@example.com", value: "4111 1111", url: "https://example.com/?q=secret", id: "u-1" };
+      counts.record("disabled-press", smuggled as never);
+      counts.record("ari@example.com" as never, { screen: "checkout", part: "pay-button" });
+      counts.record("search-empty", { screen: "https://example.com/?q=secret", part: "q=secret" });
+      counts.record("search-empty", { screen: 42 as never, part: { toString: () => "secret" } as never });
+      counts.record("search-empty", { screen: "ABC", part: "a b" });
+      counts.record("search-empty", { screen: "id-1234567", part: "\u00e9" });
+      counts.record("search-empty", { screen: USER_AGENT, part: "ok-1" });
+      const report = counts.flush();
+      expect(received).toEqual([report]);
+      for (const entry of report.counts) {
+        expect(Object.keys(entry).sort()).toEqual(["count", "moment", "part", "screen"]);
+        expect(useMoments).toContain(entry.moment);
+        expect(Number.isInteger(entry.count)).toBe(true);
+        expect(entry.count).toBeGreaterThan(0);
+      }
+      const json = JSON.stringify(report);
+      expect(json).not.toMatch(/example|secret|4111|u-1|1234567|ABC|a b|Mozilla/);
+      expect(report.day).toBe("2026-11-19");
+      expect(json).not.toContain("12:34");
+    });
   });
 });
