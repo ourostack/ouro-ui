@@ -311,7 +311,7 @@
   corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
 }
 
-:root[data-ouro-modality="pointer"] .ouro-field-cue:is(:focus, :has(:is(input, textarea):focus)):not([aria-invalid="true"], :has([aria-invalid="true"])) {
+:root[data-ouro-modality="pointer"] .ouro-field-cue:focus-within:not([aria-invalid="true"]):not(:has([aria-invalid="true"])) {
   --ouro-bd: var(--ring);
   border-color: var(--ring);
 }

@@ -33,6 +33,8 @@ it("marks the page's modality: pointer after a press, keyboard after a key, and 
   key("Control");
   key("Alt");
   key("Meta");
+  key("AltGraph");
+  key("CapsLock");
   expect(modality()).toBe("pointer");
   key("Tab");
   expect(modality()).toBe("keyboard");
