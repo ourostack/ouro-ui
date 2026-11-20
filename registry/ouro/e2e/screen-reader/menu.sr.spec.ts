@@ -54,8 +54,8 @@ test("Menu's submenu opens from the keyboard on its first item, and the left arr
   };
   if (onOlderMacOS()) await said(sr, openShare, "as Share opens on Copy link");
   else await heard(sr, openShare, (phrase) => inOneSentence(phrase, /\bcopy link\b/i), '"Copy link", the first item, as Share opens');
-  // What the reader hears: Share, collapsed. Under VoiceOver the submenu reads collapsed here but is open again a moment
-  // later (ourostack/ouro-ui#2652), so its DOM state is left to the end-to-end spec (menu.spec.ts), which checks it hides.
-  await heard(sr, () => page.keyboard.press("ArrowLeft"), (phrase) => inOneSentence(phrase, /\bshare\b/i, /\bcollapsed\b/i), '"Share", collapsed, as focus returns');
+  await heard(sr, () => page.keyboard.press("ArrowLeft"), (phrase) => inOneSentence(phrase, /\bshare\b/i), '"Share" as focus returns');
+  // Closed, and still closed under a pointer that rests where the submenu lay (ourostack/ouro-ui#2652).
+  await expect(share).toHaveAttribute("aria-expanded", "false");
   await expect(share).toBeFocused();
 });
