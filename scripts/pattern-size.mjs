@@ -31,10 +31,13 @@ const prefix = "ourostack/ouro-ui/";
 // side by side and settings-page's CSS went 26 bytes over: Button's reason tooltip and the backdrop's squircle clipping
 // are new classes in every page that renders a Button or a Card. Measured by CI over main at f9d696b42 with the same bare
 // app (main's run 44810561463, scripts 2/2), in JavaScript and CSS: 85,369 and 10,798; 85,796 and 9,731; 104,027 and 13,895.
+// CSS ceilings lowered 2026-11-20 once Card's backdrop styles itself inline (#2643), so an app compiles none of it unless a
+// card has a backdrop: measured with and without the change over the same main, settings-page's CSS fell 158 bytes and
+// dashboard-page's 200.
 export const CEILINGS = {
-  "dashboard-page": { js: 85_369 + 1024, css: 10_798 + 512 },
+  "dashboard-page": { js: 85_369 + 1024, css: 10_598 + 512 },
   "list-detail-page": { js: 85_796 + 1024, css: 9_731 + 512 },
-  "settings-page": { js: 104_027 + 1024, css: 13_895 + 512 },
+  "settings-page": { js: 104_027 + 1024, css: 13_737 + 512 },
 };
 
 /** The name of the bare app, built beside the patterns. */
