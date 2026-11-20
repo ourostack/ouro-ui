@@ -70,7 +70,6 @@ export function knownProblems(entries: readonly KnownFinding[]): string[] {
 
 const disabledReason =
   "A disabled control shows alone: the reason it is off is the app's words, which a story does not supply. An app gives one with a title or aria-describedby.";
-const repeatedControl = "The story lays the same control out in each variant or state, so its name repeats in view; the repetition is what the story shows.";
 
 
 
