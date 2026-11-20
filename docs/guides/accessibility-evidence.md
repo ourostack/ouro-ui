@@ -57,7 +57,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [copy-button](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/copy-button) | 2 | 0 | none yet |
 | [cover](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/cover) | 3 | 0 | none yet |
 | [description-list](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/description-list) | 3 | 0 | none yet |
-| [dialog](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/dialog) | 14 | 0 | [dialog.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/dialog.sr.spec.ts): 1 test on `overlays-dialog--playground` |
+| [dialog](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/dialog) | 15 | 0 | [dialog.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/dialog.sr.spec.ts): 1 test on `overlays-dialog--playground` |
 | [emoji](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/emoji) | 5 | 0 | none yet |
 | [emoji-picker](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/emoji-picker) | 7 | 0 | none yet |
 | [empty](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/empty) | 2 | 0 | none yet |
