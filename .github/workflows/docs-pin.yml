@@ -156,7 +156,30 @@ jobs:
           else
             echo "result=changed" >> "$GITHUB_OUTPUT"
           fi
+      # Main moved, but the pull request's docs may already be what this run just generated: the same files, the same
+      # contents. Then pushing again changes nothing the pull request would merge and only restarts its CI (about 12
+      # minutes each time, so a pin could wait an hour behind a busy main). A pull request whose checks failed or were
+      # cancelled is pushed again, as before, so a red or superseded run still gets another.
       - if: steps.pin.outputs.result == 'changed'
+        id: same
+        name: Leave the pull request alone when it already holds these docs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          number=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty') || exit 0
+          [ -n "$number" ] || exit 0
+          failing=$(gh pr view "$number" --json statusCheckRollup --jq '[.statusCheckRollup[]? | select(.conclusion == "FAILURE" or .conclusion == "CANCELLED" or .conclusion == "TIMED_OUT" or .conclusion == "ACTION_REQUIRED")] | length') || exit 0
+          [ "$failing" = 0 ] || exit 0
+          git add -A
+          mine=$(git diff --cached --name-only | sort)
+          theirs=$(gh pr diff "$number" --name-only | sort) || exit 0
+          [ -n "$mine" ] && [ "$mine" = "$theirs" ] || exit 0
+          git fetch -q --depth=1 origin "$BRANCH" || exit 0
+          git diff --cached --quiet FETCH_HEAD -- $mine || exit 0
+          echo "same=true" >> "$GITHUB_OUTPUT"
+          echo "#$number already holds these docs, so its CI keeps running and nothing is pushed." >> "$GITHUB_STEP_SUMMARY"
+      - if: steps.pin.outputs.result == 'changed' && steps.same.outputs.same != 'true'
         id: push
         name: Commit the docs and push their branch
         run: |
@@ -167,7 +190,7 @@ jobs:
           git commit -q -m "Point docs at $TAG"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           git push -q --force origin "$BRANCH"
-      - if: steps.pin.outputs.result == 'changed'
+      - if: steps.pin.outputs.result == 'changed' && steps.same.outputs.same != 'true'
         id: pr
         name: Open or update the pull request, and turn auto-merge on
         env:
@@ -197,7 +220,7 @@ jobs:
           [ -n "$on" ] || { echo "::error::Could not turn auto-merge on for #$number after 5 tries."; exit 1; }
           echo "Auto-merge is on for #$number: it merges once the checks main's ruleset requires pass." >> "$GITHUB_STEP_SUMMARY"
           echo "number=$number" >> "$GITHUB_OUTPUT"
-      - if: steps.pin.outputs.result == 'changed'
+      - if: steps.pin.outputs.result == 'changed' && steps.same.outputs.same != 'true'
         name: Start the pull request's CI, and fail when it has not started
         env:
           GH_TOKEN: ${{ github.token }}
