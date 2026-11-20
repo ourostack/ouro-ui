@@ -4,7 +4,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { AUTHORS, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, problems, readCommits, textProblems, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
+import { AUTHORS, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, OURO_CURRENT, problems, readCommits, textProblems, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const script = join(dirname(fileURLToPath(import.meta.url)), "attribution.mjs");
@@ -208,6 +208,19 @@ test("attribution passes Dependabot's dependency-bump commit, and only that", ()
   assert.deepEqual(fieldsOf([bump({ committerName: "dependabot[bot]", committerEmail: DEPENDABOT })]), ["committer"]);
   // Nobody else gets the exemption.
   assert.deepEqual(fieldsOf([commit({ authorEmail: "198982749+Copilot@users.noreply.github.com", files: ["package.json"] })]), ["author"]);
+});
+
+test("attribution passes the project's own app as the author of a revert, and of nothing else", () => {
+  const revert = (fields = {}) => commit({ authorName: "ouro-current[bot]", authorEmail: OURO_CURRENT, message: 'Revert "Screen-reader lane: a spec (#9)"\n\nThis reverts commit ' + "b".repeat(40) + ".", ...fields });
+  assert.deepEqual(problems([revert(), revert({ message: 'Revert "Screen-reader lane: a spec (#9)" (#10)' })]), []);
+  // Any other commit of the app's fails, and the app may not commit.
+  assert.deepEqual(fieldsOf([revert({ message: "Button: a fix (#1)" })]), ["author"]);
+  assert.deepEqual(fieldsOf([revert({ message: 'Fix: Revert "x"' })]), ["author"]);
+  assert.deepEqual(fieldsOf([revert({ committerName: "ouro-current[bot]", committerEmail: OURO_CURRENT })]), ["committer"]);
+  // A revert still may not carry an AI credit.
+  assert.deepEqual(fieldsOf([revert({ message: 'Revert "x"\n\nCo-authored-by: Copilot <198982749+Copilot@users.noreply.github.com>' })]), ["message line 3"]);
+  // Nobody else gets the exemption.
+  assert.deepEqual(fieldsOf([commit({ authorEmail: "198982749+Copilot@users.noreply.github.com", message: 'Revert "x"' })]), ["author"]);
 });
 
 test("attribution accepts Dependabot's own Co-authored-by trailer on its dependency-bump squash, and nowhere else", () => {
