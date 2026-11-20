@@ -62,8 +62,11 @@ Put the before and after in the pull request as the proof. A finding you keep on
 
 ## What it can't tell you
 
+A clean report is the floor, not proof that a screen is good: what measurement can decide isn't broken. Whether people understand the screen and finish its task, such as whether they know a form saved or what an action will remove, shows only when you watch them do it, so before you call a screen good, watch a few people do its task.[^floor]
+
 It decides what measurement can decide. Whether a picture is the right picture, whether the words are the right words, and whether a flow makes sense still need a person or a judge. Line length is checked only against a measure you declare. Jank is measured in headless Chromium at one size and theme; [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures a component in the engine an app ships in.
 
+[^floor]: https://github.com/ourostack/ouro-ui-core/blob/3410bcdc81d46ffb88a35d0b2d605bae3d68a575/docs/decisions/2026-11-19-evidence-from-people.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/3410bcdc81d46ffb88a35d0b2d605bae3d68a575/docs/decisions/2026-11-19-evidence-from-people.md)
 [^check-run]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups)
 [^guide-rules]: test:scripts/agent-plugin.test.mjs::ouro-check agent plugin > the screen check guide names every rule Ouro check reports verify:testExists(scripts/agent-plugin.test.mjs::ouro-check agent plugin > the screen check guide names every rule Ouro check reports)
 [^latest]: https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases; test:scripts/agent-plugin.test.mjs::ouro-check agent plugin > fetches the files the release's registry.json lists for ouro-check, and names only options Ouro check has verify:urlOk(https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases) verify:testExists(scripts/agent-plugin.test.mjs::ouro-check agent plugin > fetches the files the release's registry.json lists for ouro-check, and names only options Ouro check has)
