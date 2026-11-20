@@ -699,8 +699,8 @@
         }
       ],
       "issue": 2298,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "A fair side-by-side with Agent-Native now sits in the guides: what each does, where each is stronger, when to pick which, and whether they combine, with Agent-Native's own README cited at a pinned commit."
     },
     {
       "id": "a2ui-default-card-format",
