@@ -1826,7 +1826,7 @@ describe("TimeGrid slot preview", () => {
   });
 
   it("starts the preview past the lane only in a slot a background event shares", async () => {
-    const early: TimeGridEvent = { id: "early", title: "Room booked", start: at(12, "10:10"), end: at(12, "11:00") };
+    const early: TimeGridEvent = { id: "early", title: "Room booked", start: at(12, "10:00"), end: at(12, "11:00") };
     const late: TimeGridEvent = { id: "late", title: "Room held", start: at(12, "15:00"), end: at(12, "16:00") };
     const { grid } = await render({ view: "day", backgroundEvents: [early, late], onSlotSelect: vi.fn() });
     const slots = grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-slots]")[0]!;
