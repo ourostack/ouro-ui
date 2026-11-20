@@ -33,9 +33,20 @@ describe("Checkbox disabledReason", () => {
     const el = control();
     expect(el.getAttribute("aria-disabled")).toBe("true");
     expect(el.hasAttribute("disabled")).toBe(false);
+    expect(el.getAttribute("data-disabled")).toBe("");
     expect(el.getAttribute("aria-describedby")!.split(" ").some((id) => document.getElementById(id)?.textContent === "Not yet")).toBe(true);
     await pressTab();
     expect(document.activeElement).toBe(el);
+  });
+
+  it("Checkbox keeps a reason soft when disabled is passed too, and a read-only box stays read-only without one", async () => {
+    await render(<Checkbox label="Basil" disabled disabledReason="Not yet" />);
+    expect(control().hasAttribute("disabled")).toBe(false);
+    expect(control().getAttribute("aria-disabled")).toBe("true");
+    await render(<Checkbox label="Mint" readOnly />);
+    const mint = document.querySelectorAll<HTMLElement>('button[role="checkbox"]')[1]!;
+    expect(mint.getAttribute("aria-readonly")).toBe("true");
+    expect(mint.hasAttribute("aria-disabled")).toBe(false);
   });
 
   it("Checkbox ignores a click and Space while it has a reason", async () => {
