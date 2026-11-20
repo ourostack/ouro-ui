@@ -90,8 +90,8 @@ it("marks the focused element after a press and unmarks it after a key, when foc
     second.blur();
     press("mouse");
     expect([pressedFocus(document.body), pressedFocus(document.documentElement)]).toEqual([false, false]);
-    // A focusout an app dispatches on the document itself has no element to unmark, and is let through.
-    expect(document.dispatchEvent(new FocusEvent("focusout"))).toBe(true);
+    // A focus event an app dispatches on the document itself has no element to mark or unmark, and is let through.
+    expect([document.dispatchEvent(new FocusEvent("focusin")), document.dispatchEvent(new FocusEvent("focusout"))]).toEqual([true, true]);
   } finally {
     first.remove();
     second.remove();

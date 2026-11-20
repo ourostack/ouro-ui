@@ -12,10 +12,9 @@ let current: "keyboard" | "pointer" | undefined;
 // between keyboard and pointer restyles the element that has focus, not every element a rule on <html> reaches (#2524).
 function mark(element: EventTarget | null): void {
   // The page itself holds focus when nothing does; it is no control and draws no ring.
-  if (!(element instanceof Element) || element === document.body || element === document.documentElement) return;
-  if (current === "pointer") {
-    if (!element.hasAttribute(PRESSED_FOCUS)) element.setAttribute(PRESSED_FOCUS, "");
-  } else if (element.hasAttribute(PRESSED_FOCUS)) element.removeAttribute(PRESSED_FOCUS);
+  if (!(element instanceof Element) || element === document.body) return;
+  // Forced, toggleAttribute writes only when the mark changes, so a press on an element already marked restyles nothing.
+  element.toggleAttribute(PRESSED_FOCUS, current === "pointer");
 }
 
 // Written to <html> only when it changes, and only after the first press or key: the server HTML and the
