@@ -44,8 +44,8 @@ describe("TextField's weight", () => {
 });
 
 // Mounting is timed per instance against bare elements drawn the same way, so the ratio holds on a slow or busy host.
-// Each side is warmed once and timed at its best of three, and the bare side is drawn 5,000 times, so its time is
-// tens of milliseconds or more rather than one, which a single scheduler pause would multiply.
+// The bare side is drawn 5,000 times, so its time is tens of milliseconds or more rather than one, which a single
+// scheduler pause would multiply.
 async function mountMs(render: () => ReactElement, count: number): Promise<number> {
   const host = document.createElement("div");
   host.dataset["testHarness"] = "";
@@ -59,12 +59,21 @@ async function mountMs(render: () => ReactElement, count: number): Promise<numbe
   return took;
 }
 
-/** The best of three timed mounts of `count` copies, after one to warm up, per copy. */
-async function perCopyMs(render: () => ReactElement, count: number): Promise<number> {
-  await mountMs(render, count);
-  const runs: number[] = [];
-  for (let run = 0; run < 3; run++) runs.push(await mountMs(render, count));
-  return Math.min(...runs) / count;
+/**
+ * The lowest of five ratios of an item's time per copy to a bare element's, each from an item mount and a bare
+ * mount timed one after the other, after one of each to warm up. Timed in turn, the two sides of a ratio see the same
+ * load: when all the item's runs came first, a runner that got busier or quieter in between moved the ratio (#2469).
+ */
+async function lowestRatio(item: () => ReactElement, items: number, bare: () => ReactElement, bares: number): Promise<{ ratio: number; item: number; bare: number }> {
+  await mountMs(item, items);
+  await mountMs(bare, bares);
+  let best = { ratio: Infinity, item: 0, bare: 0 };
+  for (let run = 0; run < 5; run++) {
+    const each = (await mountMs(item, items)) / items;
+    const plain = (await mountMs(bare, bares)) / bares;
+    if (each / plain < best.ratio) best = { ratio: each / plain, item: each, bare: plain };
+  }
+  return best;
 }
 
 const constraints: { constraint: string; field: ReactElement }[] = [
@@ -119,8 +128,7 @@ describe("TextField's commits on mount", () => {
 
 describe("TextField's mount time", () => {
   it("mounts a plain field, one of 100, in a bounded multiple of the time a bare input takes, one of 5,000", async () => {
-    const field = await perCopyMs(() => <TextField label="Name" />, 100);
-    const bare = await perCopyMs(() => <label>Name<input /></label>, 5000);
-    expect(field / bare, `ratio (field ${(field * 1000).toFixed(0)} µs, bare ${(bare * 1000).toFixed(0)} µs)`).toBeLessThan(RATIO);
+    const { ratio, item, bare } = await lowestRatio(() => <TextField label="Name" />, 100, () => <label>Name<input /></label>, 5000);
+    expect(ratio, `ratio (field ${(item * 1000).toFixed(0)} µs, bare ${(bare * 1000).toFixed(0)} µs)`).toBeLessThan(RATIO);
   });
 });
