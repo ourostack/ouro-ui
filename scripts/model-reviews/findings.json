@@ -388,8 +388,8 @@
         }
       ],
       "issue": 2290,
-      "status": "open",
-      "change": null
+      "status": "in progress",
+      "change": "`ouro check --handoff` writes handoff.md: the floor the check proves, what a person still has to judge, and a usability session for a person to run."
     },
     {
       "id": "ouro-checks-what-models-miss",
