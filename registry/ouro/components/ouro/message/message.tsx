@@ -429,8 +429,8 @@ const variants = ["default", "chat", "post", "reply"] as const;
 const placements = ["corner", "beside"] as const;
 
 const bubbles = {
-  user: "rounded-ouro-2xl [--ouro-frame-radius:var(--radius-ouro-2xl)] [--ouro-frame-inset:0.5rem] rounded-ee-ouro-md bg-primary px-3.5 py-2 text-primary-foreground",
-  assistant: "rounded-ouro-2xl [--ouro-frame-radius:var(--radius-ouro-2xl)] [--ouro-frame-inset:0.5rem] rounded-es-ouro-md bg-muted px-3.5 py-2 text-foreground",
+  user: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] rounded-ee-ouro-md bg-primary px-3.5 py-2 text-primary-foreground",
+  assistant: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] rounded-es-ouro-md bg-muted px-3.5 py-2 text-foreground",
   system: "bg-transparent text-center text-muted-foreground",
 } as const;
 
@@ -482,12 +482,12 @@ const mutedInk = {
 const layouts = {
   filled: {
     // A transparent border, which forced colours draw, so a bubble that is only a fill keeps its edge there.
-    user: `rounded-ouro-2xl [--ouro-frame-radius:var(--radius-ouro-2xl)] [--ouro-frame-inset:9px] rounded-ee-ouro-md border border-solid border-transparent px-3 py-2 ${filledInk}`,
-    assistant: "rounded-ouro-2xl [--ouro-frame-radius:var(--radius-ouro-2xl)] [--ouro-frame-inset:9px] rounded-es-ouro-md border border-solid border-transparent bg-muted px-3 py-2 text-foreground",
+    user: `rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] rounded-ee-ouro-md border border-solid border-transparent px-3 py-2 ${filledInk}`,
+    assistant: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] rounded-es-ouro-md border border-solid border-transparent bg-muted px-3 py-2 text-foreground",
   },
   raised: {
-    user: "rounded-ouro-lg [--ouro-frame-radius:var(--radius-ouro-lg)] [--ouro-frame-inset:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
-    assistant: `rounded-ouro-lg [--ouro-frame-radius:var(--radius-ouro-lg)] [--ouro-frame-inset:0.5rem] px-3 py-2 ${raised}`,
+    user: "rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
+    assistant: `rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] px-3 py-2 ${raised}`,
   },
 } as const;
 
