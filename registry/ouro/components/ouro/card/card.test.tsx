@@ -165,12 +165,37 @@ describe("Card", () => {
     const link = card.querySelector<HTMLElement>("[data-card-link]")!;
     const tint = backdrop.querySelector<HTMLElement>("[data-card-tint]")!;
     const clear = "rgba(0, 0, 0, 0)";
-    expect(getComputedStyle(tint).backgroundColor).toBe(clear);
+    expect(tint.style.backgroundColor).toBe("transparent");
+    expect(tint.getBoundingClientRect().toJSON()).toEqual(backdrop.getBoundingClientRect().toJSON());
+    expect(tint.style.transition).toContain("background-color");
     await userEvent.hover(link);
     await expect.poll(() => getComputedStyle(tint).backgroundColor).not.toBe(clear);
     expect(getComputedStyle(link, "::after").backgroundColor).toBe(clear);
     expect(getComputedStyle(backdrop).overflow).toBe("clip");
     await commands.parkPointer();
+  });
+
+  it("deepens and clears a linked backdrop card's tint on a press when the app passes no pointer handlers", async () => {
+    const { card } = await render(<Card href="/recipes/1" title="Ribs" backdrop={<img src={pixel} alt="" />} className="min-h-40" />);
+    const tint = card.querySelector<HTMLElement>("[data-card-tint]")!;
+    const link = card.querySelector<HTMLElement>("[data-card-link]")!;
+    const fire = (type: string) => act(() => link.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: "mouse" })));
+    await fire("pointerover");
+    const hover = tint.style.backgroundColor;
+    await fire("pointerdown");
+    expect(tint.style.backgroundColor).not.toBe(hover);
+    await fire("pointerup");
+    expect(tint.style.backgroundColor).toBe(hover);
+    await fire("pointerdown");
+    await fire("pointercancel");
+    expect(tint.style.backgroundColor).toBe("transparent");
+  });
+
+  it("fills the backdrop with a picture drawn by an inline element, such as a <picture>", async () => {
+    const { card } = await render(<Card title="Ribs" backdrop={<span data-picture="" />} className="min-h-40" />);
+    const backdrop = card.querySelector<HTMLElement>("[data-card-backdrop]")!;
+    const picture = backdrop.querySelector<HTMLElement>("[data-picture]")!;
+    expect(picture.getBoundingClientRect().toJSON()).toEqual(backdrop.getBoundingClientRect().toJSON());
   });
 
   it("deepens a linked backdrop card's tint while its link is pressed, never for a touch, and clears it when the pointer leaves", async () => {

@@ -312,6 +312,7 @@ export function Card(props: CardProps): JSX.Element {
   const linked = href !== undefined && Boolean(title);
   // The backdrop's tint follows the link's hover (a mouse or pen, as pointer-fine:hover) and press.
   const [tint, setTint] = useState<keyof typeof backdropTint>("none");
+  // Stryker disable next-line ConditionalExpression,LogicalOperator: a card with no backdrop or no link draws no tint, so following the pointer there changes nothing anyone sees; the check only spares the renders.
   const tints = Boolean(backdrop) && linked;
   const onLink = (event: PointerEvent<HTMLElement>) => event.target instanceof Element && event.target.closest("[data-card-link]") !== null;
   const zoom = linked && zoomMedia === true && Boolean(media);
