@@ -109,6 +109,14 @@ interface CheckboxGroupOption {
   description?: ReactNode | undefined;
   /** Disables this one box. */
   disabled?: boolean | undefined;
+  /**
+   * Why this box can't be changed now. It stays in the tab order with `aria-disabled`, clicks and
+   * keys do nothing, and the reason shows as its tooltip on hover and focus. Pass `undefined`
+   * while it can be changed so it keeps its place and focus. It wins over `disabled`.
+   * @example
+   * { value: "pepper", label: "Pepper", disabledReason: soldOut ? "Sold out" : undefined }
+   */
+  disabledReason?: string | undefined;
 }
 ```
 

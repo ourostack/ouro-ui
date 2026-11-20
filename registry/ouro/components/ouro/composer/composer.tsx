@@ -747,6 +747,7 @@ export function Composer(props: ComposerProps): JSX.Element {
                 data-ouro-part="send"
                 variant="plain"
                 aria-label={sendLabel}
+                aria-describedby={notes[0]}
                 disabled={!ready && !sending}
                 loading={sending}
                 loadingLabel={sendingLabel}

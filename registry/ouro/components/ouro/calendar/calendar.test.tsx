@@ -344,6 +344,33 @@ describe("Calendar", () => {
       expect(stop()).toBe(day("2026-10-26"));
     });
 
+    it("with dateDisabledReason, describes each unavailable day by its reason, shows it as a tooltip, and keeps the day unpickable", async () => {
+      const onValueChange = vi.fn();
+      await render(
+        <Calendar
+          label="Date"
+          defaultMonth="2026-10-01"
+          min="2026-10-05"
+          isDateDisabled={(date) => date === "2026-10-15"}
+          dateDisabledReason={(date) => (date === "2026-10-15" ? "Fully booked" : date < "2026-10-05" ? "Too soon" : undefined)}
+          onValueChange={onValueChange}
+        />,
+      );
+      expect(document.getElementById(day("2026-10-15").getAttribute("aria-describedby")!)!.textContent).toBe("Fully booked");
+      expect(document.getElementById(day("2026-10-04").getAttribute("aria-describedby")!)!.textContent).toBe("Too soon");
+      expect(day("2026-10-10").hasAttribute("aria-describedby")).toBe(false);
+      day("2026-10-15").click();
+      expect(onValueChange).not.toHaveBeenCalled();
+      await userEvent.hover(day("2026-10-15"));
+      await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Fully booked");
+    });
+
+    it("gives every unavailable day one sentence, and none to an available day", async () => {
+      await render(<Calendar label="Date" defaultMonth="2026-10-01" max="2026-10-20" dateDisabledReason="Closed" />);
+      expect(document.getElementById(day("2026-10-21").getAttribute("aria-describedby")!)!.textContent).toBe("Closed");
+      expect(day("2026-10-20").hasAttribute("aria-describedby")).toBe(false);
+    });
+
     it("disables the month buttons at min and max, and moves focus to the day when a press disables one", async () => {
       await render(<Calendar label="Date" defaultValue="2026-11-20" min="2026-10-10" max="2026-12-05" />);
       await userEvent.click(nav("Previous month"));
