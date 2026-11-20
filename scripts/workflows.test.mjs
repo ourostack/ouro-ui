@@ -3315,6 +3315,19 @@ test("Docs pin changes nothing for a tag that is not the newest release, and say
   assert.match(changed.calls, /CALL node scripts\/latest-release\.mjs set/);
 });
 
+test("Docs pin leaves an open pull request alone only when it holds the same docs and no check failed", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Leave the pull request alone when it already holds these docs");
+  const env = { BRANCH: "docs/point-at-release" };
+  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "pr view"*) echo ${o.failing ?? 0} ;; "pr diff"*) printf '${o.theirs ?? "a.md\\nb.md"}\\n' ;; esac; }\ngit() { case "$*" in "diff --cached --name-only") printf 'a.md\\nb.md\\n' ;; "diff --cached --quiet"*) return ${o.differs ? 1 : 0} ;; esac; }\n`;
+  const same = runStep(fns({ number: 7 }) + script, env);
+  assert.equal(same.output.same, "true", same.calls);
+  for (const o of [{}, { number: 7, failing: 1 }, { number: 7, theirs: "a.md" }, { number: 7, differs: true }]) {
+    assert.notEqual(runStep(fns(o) + script, env).output.same, "true", JSON.stringify(o));
+  }
+  assert.equal(pin.split("steps.same.outputs.same != 'true'").length - 1, 3, "the push, the pull request and its CI start all wait on the check");
+});
+
 test("Docs pin reuses its open pull request and turns auto-merge on for it", () => {
   const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
   const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
