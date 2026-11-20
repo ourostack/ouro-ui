@@ -210,6 +210,13 @@ test("the install test and the heavy tier run for every risky path, and skip onl
     "docs/button.md",
     "README.md",
     "some/unmapped/file.txt",
+    "playwright.config.ts",
+    "vitest.config.ts",
+    "tsconfig.json",
+    "app.css",
+    ".github/ouro-check.json",
+    "site/e2e/looks.ts",
+    "registry/ouro/e2e/ouro/button.spec.ts",
   ];
   for (const target of ["installs", "heavy"]) {
     for (const file of risky) assert.equal(runs(target, [file]), true, `${target} must run for ${file}`);

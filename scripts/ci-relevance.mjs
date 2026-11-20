@@ -9,7 +9,7 @@
 //   screens   CI's design shards (.github/workflows/ci.yml): Ouro check over the site as it builds,
 //             which Screens (.github/workflows/screens.yml) runs at every size on main daily
 //   installs  CI's install test (install-prep, install-shard, install, install-upgrade, install-current)
-//   heavy     CI's heavy tier (themes, visual, theme-install, latency, lighthouse)
+//   heavy     CI's heavy tier (themes, visual, theme-install, latency, lighthouse, e2e, sweeps and sweeps-compare)
 //
 // Each target lists the paths it never reads. A change runs the target unless every file it
 // changes is one of those, so a path nobody listed, a new folder or a renamed file runs it: it
