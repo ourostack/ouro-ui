@@ -384,7 +384,6 @@ describe("Composer states", () => {
       const { textarea, send, root } = await render(<Composer label="Message" defaultValue="Hello" description="Ctrl+Enter to send" sendDisabledReason={reason} onSend={onSend} />);
       expect(root.getAttribute("data-send-disabled")).toBe("");
       expect(send.disabled).toBe(true);
-      expect(descriptions(send)).toEqual([reason]);
       expect(textarea.disabled).toBe(false);
       await expect.element(page.getByText(reason)).toBeVisible();
       expect(root.querySelector<HTMLElement>("[data-ouro-composer-reason]")!.getBoundingClientRect().height).toBeGreaterThan(1);

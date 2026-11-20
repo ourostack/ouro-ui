@@ -7,11 +7,9 @@ import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
-import { useDisabledReason } from "@/registry/ouro/lib/ouro/disabled-reason";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { thumbClass, trackClass } from "@/registry/ouro/components/ouro/switch/switch-styles";
 
 /** Props for {@link Switch}. */
@@ -35,16 +33,6 @@ export interface SwitchProps {
   required?: boolean | undefined;
   /** Disables the switch and fades it. */
   disabled?: boolean | undefined;
-  /**
-   * Why the switch can't be changed now. Passing a reason turns it off without taking it out of the
-   * tab order: it gets `aria-disabled`, clicks and keys do nothing, focus still reaches it, and
-   * the reason shows as its tooltip on hover and focus and is read through `aria-describedby`.
-   * Pass `undefined` while it can be changed: it keeps its place and focus as it turns off and on.
-   * It wins over `disabled`. Use `disabled` alone when no reason is needed.
-   * @example
-   * <Switch label="Wi-Fi" disabledReason={locked ? "Ask an admin to unlock this" : undefined} />
-   */
-  disabledReason?: string | undefined;
   /** The form field name it submits under when on. */
   name?: string | undefined;
   /** What it submits when on (`on` without one). */
@@ -111,16 +99,13 @@ function SwitchTrack(props: {
   onCheckedChange: ((checked: boolean) => void) | undefined;
   readOnly: boolean | undefined;
   describedBy: string | undefined;
-  disabledProps: { disabledReason?: string | undefined } | { [key: string]: never };
   ref: Ref<HTMLElement> | undefined;
 }): JSX.Element {
-  const { onCheckedChange, describedBy, disabledProps, readOnly, ...rest } = props;
+  const { onCheckedChange, describedBy, ...rest } = props;
   const field = useField()!;
-  const reason = useDisabledReason(disabledProps, mergeIds(field.describedBy, describedBy));
-  const track = (
+  return (
     <BaseSwitch.Root
       {...rest}
-      readOnly={readOnly || reason.off}
       // A real button, so the label's `for` names it and not the hidden input: its label finds one control.
       nativeButton
       render={<button />}
@@ -131,17 +116,14 @@ function SwitchTrack(props: {
       required={field.required}
       // Set here, not left to Base UI's effects, so the server HTML names and describes the switch.
       aria-labelledby={field.labelId}
-      aria-describedby={reason.describedBy}
-      {...(reason.off ? { "aria-readonly": undefined, "aria-disabled": true, "data-disabled": "" } : {})}
+      aria-describedby={mergeIds(field.describedBy, describedBy)}
       aria-invalid={field.invalid || undefined}
       className={trackClass}
     >
       <TouchTarget />
       <BaseSwitch.Thumb data-ouro-switch-thumb="" className={thumbClass} />
-      {reason.note}
     </BaseSwitch.Root>
   );
-  return reason.wrapped ? <Tooltip content={reason.reason}>{track}</Tooltip> : track;
 }
 
 /**
@@ -221,12 +203,12 @@ export function Switch(props: SwitchProps): JSX.Element {
         description={description}
         error={error}
         required={required}
-        disabled={disabled && !props.disabledReason}
+        disabled={disabled}
         name={name}
         // A hidden label takes no room beside the track, so the gap that separated them goes too.
         className={cn(hideLabel && "gap-x-0", className)}
       >
-        <SwitchTrack disabledProps={"disabledReason" in props ? { disabledReason: props.disabledReason } : {}} value={value} checked={checked} defaultChecked={defaultChecked} onCheckedChange={onCheckedChange} readOnly={readOnly} describedBy={describedBy} ref={ref} />
+        <SwitchTrack value={value} checked={checked} defaultChecked={defaultChecked} onCheckedChange={onCheckedChange} readOnly={readOnly} describedBy={describedBy} ref={ref} />
       </Field>
     </FieldOwnerContext.Provider>
   );

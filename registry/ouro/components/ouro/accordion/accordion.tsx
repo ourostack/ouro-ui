@@ -2,8 +2,6 @@
 
 import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
 import { useId, useRef, type JSX, type ReactNode, type Ref } from "react";
-import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
-import { useDisabledReason } from "@/registry/ouro/lib/ouro/disabled-reason";
 import { CssPanel } from "@/registry/ouro/lib/ouro/css-panel";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -40,15 +38,6 @@ export interface AccordionItem {
   content: ReactNode;
   /** Shows the item but keeps it from opening or closing. */
   disabled?: boolean | undefined;
-  /**
-   * Why the item can't be opened or closed now. Passing a reason turns the item off as `disabled`
-   * does, but its title stays in the Tab order, pressing it does nothing, and the reason shows as
-   * its tooltip on hover and focus and is read as its description. It wins over `disabled`.
-   * `undefined` leaves the item on and keeps its place.
-   * @example
-   * { title: "Billing", content: <Billing />, disabledReason: isOwner ? undefined : "Only the owner can change billing" }
-   */
-  disabledReason?: string | undefined;
 }
 
 /**
@@ -136,27 +125,20 @@ function Row({ item, Heading, open }: { item: AccordionItem; Heading: `h${Accord
   const triggerId = useId();
   const panelId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const reason = useDisabledReason(item, undefined);
-  const trigger = (
-    <BaseAccordion.Trigger
-      ref={triggerRef}
-      id={triggerId}
-      aria-controls={open ? panelId : undefined}
-      aria-describedby={reason.describedBy}
-      {...(reason.off ? { "aria-disabled": true, "data-disabled": "" } : {})}
-      data-ouro-control="accordion"
-      data-ouro-part="trigger"
-      className={triggerClass}
-    >
-      {item.title}
-      <Chevron />
-      {reason.note}
-    </BaseAccordion.Trigger>
-  );
   return (
     <>
       <BaseAccordion.Header render={<Heading />} className={headerClass}>
-        {reason.wrapped ? <Tooltip content={reason.reason}>{trigger}</Tooltip> : trigger}
+        <BaseAccordion.Trigger
+          ref={triggerRef}
+          id={triggerId}
+          aria-controls={open ? panelId : undefined}
+          data-ouro-control="accordion"
+          data-ouro-part="trigger"
+          className={triggerClass}
+        >
+          {item.title}
+          <Chevron />
+        </BaseAccordion.Trigger>
       </BaseAccordion.Header>
       <CssPanel
         id={panelId}
@@ -300,9 +282,7 @@ export function Accordion(props: AccordionProps): JSX.Element {
         <BaseAccordion.Item
           key={values[index]}
           value={values[index]}
-          // Stryker disable next-line BooleanLiteral: a Base UI item that is disabled still opens nothing and the reason's trigger sets its own aria-disabled, so the two read the same.
-          disabled={item.disabledReason ? false : item.disabled === true}
-          onOpenChange={item.disabledReason ? (_open, details) => details.cancel() : undefined}
+          disabled={item.disabled === true}
           className={itemClass}
           render={(props, state) => (
             <div {...props}>

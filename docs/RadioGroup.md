@@ -120,15 +120,6 @@ interface RadioGroupOption {
   description?: ReactNode | undefined;
   /** Disables this one radio; the arrow keys skip it. */
   disabled?: boolean | undefined;
-  /**
-   * Why this choice can't be picked now. Turns it off with `aria-disabled`: it stays
-   * focusable, picking does nothing, and the reason shows as its tooltip on
-   * hover and keyboard focus and is read as its description. The arrow keys skip it, as they
-   * skip a `disabled` radio; Tab reaches it, so a keyboard user can read why. It wins over `disabled`. Pass `undefined` while the radio is available.
-   * @example
-   * { value: "large", label: "Large", disabledReason: soldOut ? "Sold out today" : undefined }
-   */
-  disabledReason?: string | undefined;
 }
 ```
 

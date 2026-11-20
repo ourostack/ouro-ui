@@ -156,15 +156,11 @@ export const Composer: Story = {
   },
 };
 
-/** Controls that cannot be used yet, each saying why in its tooltip and description. */
+/** Every control disabled at once. */
 export const Disabled: Story = {
   render: () => (
     <Surface>
-      <Toolbar
-        label="Formatting"
-        size="sm"
-        items={formatting.slice(0, 6).map((entry) => (entry.type === "separator" || entry.type === "group" ? entry : { ...entry, disabledReason: "Select some text first" }))}
-      />
+      <Toolbar label="Formatting" size="sm" disabled items={formatting.slice(0, 6)} />
     </Surface>
   ),
 };

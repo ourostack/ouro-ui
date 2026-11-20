@@ -48,4 +48,3 @@ expectTypeOf<{ label: "Basil"; isDisabled: true }>().not.toExtend<CheckboxProps>
 createElement(Checkbox, { label: "Basil", onChange: () => {} });
 // @ts-expect-error label is required.
 createElement(Checkbox, { checked: true });
-expectTypeOf<{ label: "Basil"; disabledReason: "Sold out" }>().toExtend<CheckboxProps>();

@@ -28,7 +28,6 @@ Type: `DatePickerProps`.
 | `chooseDateLabel` | `string` | `"Choose date"` | The name of the button that opens the calendar, as visually hidden text and not an `aria-label`, so a test's `getByLabel("Date")` finds the text box alone. Translate it with your app. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `closeLabel` | `string` | `"Close"` | The label of the calendar's close button, which only screen readers and the keyboard reach. Translate it with your app. |
-| `dateDisabledReason` | `string \| ((date: string) => string \| undefined)` |  | Gives the reason a day is unavailable: a sentence (`dateDisabledReason="Closed on weekends"`), or a function that takes the ISO date and returns the reason, or `undefined` to give nothing for a day. An unavailable day stays focusable and not pickable; the reason describes it and shows as its tooltip on hover and keyboard focus. Use it whenever the person can be told why. |
 | `defaultValue` | `string` |  | The date at first, as an ISO date, when you do not control `value`. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the field and its calendar button, and fades it. |

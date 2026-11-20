@@ -30,7 +30,6 @@ Type: `CheckboxProps`.
 | `defaultChecked` | `boolean` | Whether it starts checked, for an uncontrolled checkbox. |
 | `description` | `ReactNode` | Supporting text under the label, read after it through `aria-describedby`. |
 | `disabled` | `boolean` | Disables the checkbox and fades it. |
-| `disabledReason` | `string` | Why the checkbox can't be changed now. Passing a reason turns it off without taking it out of the tab order: it gets `aria-disabled`, clicks and keys do nothing, focus still reaches it, and the reason shows as its tooltip on hover and focus and is read through `aria-describedby`. Pass `undefined` while it can be changed: it keeps its place and focus as it turns off and on. It wins over `disabled`. Use `disabled` alone when no reason is needed. |
 | `error` | `ReadonlyErrorMessages` | What is wrong, from your server action or client check, shown under the label; the box gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. In a `CheckboxGroup`, pass it to the group. |
 | `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the checkbox's name. |
 | `indeterminate` | `boolean` | Shows a dash and announces "mixed": neither checked nor unchecked, as a "select all" box does when some of its items are checked. It is controlled: a click does not clear it, so clear it in `onCheckedChange`, as in `<Checkbox indeterminate={some} checked={all} onCheckedChange={toggleAll}>`. The box submits only while `checked`. |

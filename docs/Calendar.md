@@ -27,7 +27,6 @@ Type: `CalendarProps<Range>`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins and grid placement (`mt-4`). Appearance classes warn in development; the calendar takes its colors from your theme. |
-| `dateDisabledReason` | `string \| ((date: string) => string \| undefined)` |  | Gives the reason a day is unavailable: a sentence (`dateDisabledReason="Closed on weekends"`), or a function that takes the ISO date and returns the reason, or `undefined` to give nothing for a day. An unavailable day stays focusable and not pickable; the reason describes it and shows as its tooltip on hover and keyboard focus. Use it whenever the person can be told why. |
 | `defaultMonth` | `string` |  | The month shown first, as any ISO date in it. Without it, the selected date's month, or today's. |
 | `defaultValue` | `(Range extends true ? DateRange \| null : string)` |  | What is picked at first, when you do not control `value`: an ISO date, or with `range` a `{ start, end }`. |
 | `isDateDisabled` | `((date: string) => boolean)` |  | Marks single days unavailable: `isDateDisabled={(date) => booked.has(date)}`. It gets each day as an ISO date. Unavailable days stay in the arrow-key path, so screen readers still hear them, but cannot be picked. |

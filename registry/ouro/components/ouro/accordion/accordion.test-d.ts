@@ -25,7 +25,3 @@ expectTypeOf<{ items: Items; headingLevel: 1 }>().not.toExtend<AccordionProps>()
 
 // @ts-expect-error items is required.
 createElement(Accordion, {});
-
-// An item's disabledReason is text, or undefined while it is on.
-expectTypeOf<{ items: Array<{ value: string; title: string; content: string; disabledReason?: string | undefined }> }>().toExtend<AccordionProps>();
-expectTypeOf<{ items: Array<{ value: string; title: string; content: string; disabledReason: true }> }>().not.toExtend<AccordionProps>();

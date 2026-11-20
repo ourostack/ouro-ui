@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type JSX, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -43,16 +42,6 @@ export interface CalendarBaseProps {
    * @claim "It gets each day as an" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > unavailable days > marks days outside min and max, and days isDateDisabled names, and never picks them)
    */
   isDateDisabled?: ((date: string) => boolean) | undefined;
-  /**
-   * Gives the reason a day is unavailable: a sentence (`dateDisabledReason="Closed on weekends"`),
-   * or a function that takes the ISO date and returns the reason, or `undefined` to give nothing
-   * for a day. An unavailable day stays focusable and not pickable; the reason describes it and
-   * shows as its tooltip on hover and keyboard focus. Use it whenever the person can be told why.
-   *
-   * @example
-   * <Calendar label="Delivery" isDateDisabled={(date) => booked.has(date)} dateDisabledReason={(date) => (booked.has(date) ? "Fully booked" : "Outside our delivery window")} />
-   */
-  dateDisabledReason?: string | ((date: string) => string | undefined) | undefined;
   /**
    * The BCP 47 locale for the month and weekday names, the digits and the first day of the
    * week: `"en-GB"` starts weeks on Monday, `"en-US"` on Sunday. Pass your app's locale; the
@@ -197,7 +186,6 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
     min,
     max,
     isDateDisabled,
-    dateDisabledReason,
     locale = "en-US",
     defaultMonth,
     previousMonthLabel = "Previous month",
@@ -464,11 +452,10 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
               {week.map((day, index) => {
                 if (day === null) return <td key={`blank-${index}`} className="p-0" />;
                 const off = unavailable(day);
-                const why = off ? ((typeof dateDisabledReason === "function" ? dateDisabledReason(day) : dateDisabledReason) || undefined) : undefined;
-                const whyId = why ? `${id}-why-${day}` : undefined;
                 const ends = shown !== null && (day === shown.start || day === shown.end);
                 const inside = shown !== null && day > shown.start && day < shown.end;
-                const dayButton = (
+                return (
+                  <td key={day} role="gridcell" aria-selected={ends || inside} className="p-0 text-center">
                     <button
                       type="button"
                       data-ouro-day={day}
@@ -478,7 +465,6 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
                       aria-label={formats.full.format(utc(day))}
                       aria-current={day === today ? "date" : undefined}
                       aria-disabled={off || undefined}
-                      aria-describedby={whyId}
                       {...(ends ? { "data-selected": "true" } : {})}
                       {...(inside ? { "data-in-range": "" } : {})}
                       className={dayClass}
@@ -488,16 +474,6 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
                     >
                       {formats.day.format(utc(day))}
                     </button>
-                );
-                return (
-                  <td key={day} role="gridcell" aria-selected={ends || inside} className="p-0 text-center">
-                    {/* Wrapped whenever the prop is passed, so a day keeps its button as its reason comes and goes. */}
-                    {dateDisabledReason !== undefined ? <Tooltip content={why}>{dayButton}</Tooltip> : dayButton}
-                    {why && (
-                      <span id={whyId} hidden>
-                        {why}
-                      </span>
-                    )}
                   </td>
                 );
               })}

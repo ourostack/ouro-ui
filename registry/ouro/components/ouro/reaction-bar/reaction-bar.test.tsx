@@ -209,25 +209,6 @@ describe("ReactionBar", () => {
     expect(onMore).not.toHaveBeenCalled();
   });
 
-  it("with disabledReason, keeps every reaction focusable, does nothing on press, and shows and describes the reason", async () => {
-    const onReact = vi.fn();
-    const onMore = vi.fn();
-    const { bar } = await render(<ReactionBar reactions={reactions} quick={quick} onReact={onReact} onMore={onMore} disabledReason="You're offline" />);
-    const buttons = [...bar!.querySelectorAll<HTMLButtonElement>("button")];
-    expect(buttons).toHaveLength(4);
-    for (const button of buttons) {
-      expect(button.disabled).toBe(false);
-      expect(button.getAttribute("aria-disabled")).toBe("true");
-      expect(document.getElementById(button.getAttribute("aria-describedby")!)!.textContent).toBe("You're offline");
-      button.click();
-    }
-    expect(onReact).not.toHaveBeenCalled();
-    expect(onMore).not.toHaveBeenCalled();
-    await pressTab();
-    expect(document.activeElement).toBe(buttons[0]);
-    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="tooltip"]')?.textContent).toBe("You're offline");
-  });
-
   it("is read-only without onReact, and says which reaction is yours", async () => {
     const { bar } = await render(<ReactionBar reactions={reactions} />);
     expect(bar!.querySelector("button")).toBeNull();

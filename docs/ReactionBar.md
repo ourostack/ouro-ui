@@ -35,7 +35,6 @@ Type: `ReactionBarProps`.
 | `catalogue` | `EmojiCatalogue` |  | An image emoji catalogue, the same as the app's `EmojiPicker`: reactions and quick reactions then go by emoji id, each showing the catalogue's image, named by the emoji's name, an animated one playing while its button is under the mouse or in focus. |
 | `className` | `string` |  | Layout only: margins, placement (`mt-1`). Appearance classes warn in development. |
 | `disabled` | `boolean` |  | Keeps the counts but turns off reacting, for example while the app is offline. |
-| `disabledReason` | `string` |  | Turns reacting off and says why: `disabledReason="You're offline"`. The counts stay and the reaction buttons stay focusable; pressing one does nothing and its tooltip gives the reason. Use it instead of `disabled` whenever the person can be told why. It wins over `disabled`. |
 | `label` | `string` | `"Reactions"` | What screen readers hear for the group, for other languages. |
 | `mineLabel` | `string` | `"including you"` | What screen readers hear after a read-only reaction that is the person's own. |
 | `moreLabel` | `string` | `"Add reaction"` | The "Add reaction" button's name and tooltip, for other languages. |

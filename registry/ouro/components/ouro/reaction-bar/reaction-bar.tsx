@@ -113,15 +113,6 @@ export interface ReactionBarOwnProps {
   moreLabel?: string | undefined;
   /** Keeps the counts but turns off reacting, for example while the app is offline. */
   disabled?: boolean | undefined;
-  /**
-   * Turns reacting off and says why: `disabledReason="You're offline"`. The counts stay and the
-   * reaction buttons stay focusable; pressing one does nothing and its tooltip gives the reason. Use it instead of `disabled` whenever the person can be told why.
-   * It wins over `disabled`.
-   *
-   * @example
-   * <ReactionBar reactions={reactions} onReact={react} disabledReason={offline ? "You're offline" : undefined} />
-   */
-  disabledReason?: string | undefined;
   /** What screen readers hear for the group, for other languages. @default "Reactions" */
   label?: string | undefined;
   /** What screen readers hear after a read-only reaction that is the person's own. @default "including you" */
@@ -182,7 +173,6 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
     moreOpen,
     moreLabel = "Add reaction",
     disabled = false,
-    disabledReason,
     label = "Reactions",
     mineLabel = "including you",
     className,
@@ -228,12 +218,8 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  const reasonId = `${id}-reason`;
-  const reasoned = disabledReason ? disabledReason : undefined;
   const offered = onReact ? quickOptions.filter((option) => !shown.some((reaction) => reaction.key === option.key)) : [];
   if (shown.length === 0 && offered.length === 0 && !onMore) return null;
-  // With a reason the buttons are soft-disabled: aria-disabled, still focusable, so the tooltip and the description reach a keyboard.
-  const softOff = reasoned ? ({ "aria-disabled": true, "data-disabled": "" } as const) : {};
   const buttons = (
     <>
       {/* One keyed list, counts then quick reactions: a quick reaction once chosen, or the last one
@@ -248,16 +234,15 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
         const name = <span className="sr-only">{counted ? `${reaction.label}, ` : reaction.label}</span>;
         // Every pressable reaction has a tooltip, its name or who reacted, so a reaction keeps its button as one comes.
         return onReact ? (
-          <Tooltip key={reaction.key} content={reasoned ?? reaction.tooltip ?? reaction.label}>
+          <Tooltip key={reaction.key} content={reaction.tooltip ?? reaction.label}>
             <Badge
               data-ouro-control="reaction-bar"
               data-ouro-part={counted ? "reaction" : "quick"}
               {...look}
               aria-pressed={reaction.mine === true}
-              aria-describedby={[described, reasoned && reasonId].filter(Boolean).join(" ") || undefined}
-              {...softOff}
-              disabled={reasoned ? undefined : disabled}
-              onClick={(event) => (reasoned ? undefined : onReact(reaction.key, event))}
+              aria-describedby={described}
+              disabled={disabled}
+              onClick={(event) => onReact(reaction.key, event)}
             >
               {emoji}
               {name}
@@ -280,7 +265,7 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
         );
       })}
       {onMore && (
-        <Tooltip content={reasoned ?? moreLabel}>
+        <Tooltip content={moreLabel}>
           <Badge
             data-ouro-control="reaction-bar"
             data-ouro-part="more"
@@ -289,19 +274,12 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
             icon={AddReactionIcon}
             aria-haspopup="dialog"
             aria-expanded={moreOpen}
-            aria-describedby={reasoned && reasonId}
-            {...softOff}
-            disabled={reasoned ? undefined : disabled}
-            onClick={reasoned ? () => {} : onMore}
+            disabled={disabled}
+            onClick={onMore}
           >
             <span className="sr-only">{moreLabel}</span>
           </Badge>
         </Tooltip>
-      )}
-      {reasoned && (
-        <span id={reasonId} hidden>
-          {reasoned}
-        </span>
       )}
     </>
   );

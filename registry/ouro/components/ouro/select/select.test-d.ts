@@ -59,9 +59,3 @@ expectTypeOf<{ label: "Course"; isDisabled: true }>().not.toExtend<SelectProps>(
 createElement(Select, { options: courses });
 // @ts-expect-error isMulti is not a prop; use multiple.
 createElement(Select, { label: "Tags", isMulti: true });
-
-// disabledReason is text, or undefined while the select is on.
-createElement(Select, { label: "Course", options: courses, disabledReason: "This term is full" });
-createElement(Select, { label: "Course", options: courses, disabledReason: undefined });
-// @ts-expect-error disabledReason is text, not a flag.
-createElement(Select, { label: "Course", options: courses, disabledReason: true });

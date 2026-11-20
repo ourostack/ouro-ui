@@ -24,13 +24,10 @@ const prefix = "ourostack/ouro-ui/";
 // about two thirds of what list-detail-page and settings-page add is Base UI and Floating UI (ColorSchemeToggle's Menu
 // in all three, Select in settings-page). dashboard-page's lowered 2026-11-18 from 190,829 and 10,161, once Chart drew
 // its own marks and stopped loading Recharts.
-// JavaScript ceilings raised 2026-11-20 (the disabledReason prop): Button imports Tooltip for its reason, so Base UI's
-// tooltip, Floating UI's helpers and the shared reason hook arrive with every page; measured over main at e37c6a4a4 with the
-// same bare app, 85,116, 85,689 and 103,760 bytes of JavaScript.
 export const CEILINGS = {
-  "dashboard-page": { js: 85_116 + 1024, css: 10_381 + 512 },
-  "list-detail-page": { js: 85_689 + 1024, css: 9_303 + 512 },
-  "settings-page": { js: 103_760 + 1024, css: 13_357 + 512 },
+  "dashboard-page": { js: 80_788 + 1024, css: 10_381 + 512 },
+  "list-detail-page": { js: 81_466 + 1024, css: 9_303 + 512 },
+  "settings-page": { js: 99_526 + 1024, css: 13_357 + 512 },
 };
 
 /** The name of the bare app, built beside the patterns. */

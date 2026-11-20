@@ -196,14 +196,6 @@ interface MenuItemEntry {
   /** Shown, but cannot be chosen. */
   disabled?: boolean | undefined;
   /**
-   * Why the item can't be chosen now, as `MenuItem`'s `disabledReason`: the item stays reachable
-   * with the arrow keys, shows the reason as its tooltip and description, and choosing it does
-   * nothing and leaves the menu open. It wins over `disabled`.
-   * @example
-   * { label: "Paste", onClick: paste, disabledReason: clipboardEmpty ? "Nothing copied yet" : undefined }
-   */
-  disabledReason?: string | undefined;
-  /**
    * The id of the agent action this item performs, set as `data-ax-action` on it, so the component
    * that declares the action finds its control: `axAction: "mute"`.
    */

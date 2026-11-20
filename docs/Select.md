@@ -40,7 +40,6 @@ The props the modes share. Type: `SelectProps`.
 | `className` | `string` | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `description` | `ReactNode` | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` | Disables the select and fades it. |
-| `disabledReason` | `string` | Why the select can't be used now. Passing a reason turns it off as `disabled` does, but it stays in the Tab order, opening it does nothing, and the reason shows as its tooltip on hover and focus and is read as its description. It wins over `disabled`. `undefined` leaves the select on and keeps its place. Use `disabled` alone when the reason is obvious. |
 | `error` | `ReadonlyErrorMessages` | What is wrong, from your server action or client check. The message (or several, as a list) shows under the select, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `form` | `string` | The id of a form outside which the select sits, so its value submits with that form. |
 | `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the select's name. |

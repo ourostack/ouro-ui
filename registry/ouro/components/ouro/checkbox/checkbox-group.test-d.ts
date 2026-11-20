@@ -48,4 +48,3 @@ expectTypeOf<{ legend: "Herbs"; isRequired: true; options: typeof options }>().n
 createElement(CheckboxGroup, { legend: "Herbs", options, children: null });
 // @ts-expect-error legend is required.
 createElement(CheckboxGroup, { options });
-expectTypeOf<{ legend: "Herbs"; options: [{ value: "a"; label: "A"; disabledReason: "Sold out" }] }>().toExtend<CheckboxGroupProps>();

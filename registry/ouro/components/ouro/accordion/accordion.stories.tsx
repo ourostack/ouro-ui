@@ -56,11 +56,11 @@ export const InContext: Story = {
   ),
 };
 
-/** Several open at once, with one item turned off and saying why. */
+/** Several open at once, with one item disabled. */
 export const Multiple: Story = {
   render: () => (
     <Surface>
-      <Accordion multiple defaultValue={["storage", "vegan"]} items={[faq[0]!, { ...faq[1]!, disabledReason: "Freezing tips arrive next week" }, faq[2]!]} />
+      <Accordion multiple defaultValue={["storage", "vegan"]} items={[faq[0]!, { ...faq[1]!, disabled: true }, faq[2]!]} />
     </Surface>
   ),
 };

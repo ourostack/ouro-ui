@@ -93,16 +93,6 @@ interface TabsItem {
   content: ReactNode;
   /** Shows the tab but keeps it from being selected. */
   disabled?: boolean | undefined;
-  /**
-   * Why this tab can't be selected now. Turns it off with `aria-disabled`: it stays focusable,
-   * selecting it does nothing, and the reason shows as its tooltip on hover and keyboard focus
-   * and is read as its description. The arrow keys skip it, as they skip a `disabled` tab; Tab
-   * reaches it, so a keyboard user can read why. It wins over `disabled`. Pass `undefined`
-   * while the tab is available.
-   * @example
-   * { value: "sharing", label: "Sharing", content: <Sharing />, disabledReason: signedIn ? undefined : "Sign in to share" }
-   */
-  disabledReason?: string | undefined;
   /** Not set: a tab with a panel. Give every item an `href`, and no `content`, for tabs that are links. */
   href?: never;
 }
@@ -127,8 +117,6 @@ interface TabsLinkItem {
   content?: never;
   /** A link cannot be disabled. Leave the item out instead. */
   disabled?: never;
-  /** A link cannot be disabled. Leave the item out instead. */
-  disabledReason?: never;
 }
 ```
 

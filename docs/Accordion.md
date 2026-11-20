@@ -100,15 +100,6 @@ interface AccordionItem {
   content: ReactNode;
   /** Shows the item but keeps it from opening or closing. */
   disabled?: boolean | undefined;
-  /**
-   * Why the item can't be opened or closed now. Passing a reason turns the item off as `disabled`
-   * does, but its title stays in the Tab order, pressing it does nothing, and the reason shows as
-   * its tooltip on hover and focus and is read as its description. It wins over `disabled`.
-   * `undefined` leaves the item on and keeps its place.
-   * @example
-   * { title: "Billing", content: <Billing />, disabledReason: isOwner ? undefined : "Only the owner can change billing" }
-   */
-  disabledReason?: string | undefined;
 }
 ```
 

@@ -7,4 +7,3 @@ export const toggle02 = <Toggle label="Bold" onCheckedChange={() => {}} />;
 export const toggle03 = <Toggle label="Bold" variant="default" />;
 export const toggle04 = <Toggle label="Bold" isPressed />;
 export const toggleOk = <Toggle label="Bold" icon={Plus} hideLabel pressed onPressedChange={() => {}} variant="outline" size="sm" />;
-export const toggleReason01 = <Toggle label="Bold" disabledReason="Unlock the layer first" />;

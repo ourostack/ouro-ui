@@ -41,13 +41,12 @@ export const Range: Story = {
   parameters: { screenshot: { name: "calendar-range" } },
 };
 
-/** `min`, `max` and `isDateDisabled` make days unavailable, weekends here; `dateDisabledReason` says why, as each day's tooltip. */
+/** `min`, `max` and `isDateDisabled` make days unavailable; weekends here. */
 export const Unavailable: Story = {
   args: {
     min: "2026-03-04",
     max: "2026-03-27",
     isDateDisabled: (date: string) => [0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay()),
-    dateDisabledReason: (date: string) => ([0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay()) ? "Closed on weekends" : "Outside the booking window"),
   },
 };
 

@@ -27,12 +27,6 @@ expectTypeOf<{
 }>().toExtend<RadioGroupProps>();
 expectTypeOf<{ value: "small"; label: "Small"; description: "Serves 2."; disabled: true; hideLabel: true }>().toExtend<RadioProps>();
 
-// A choice, or a Radio, takes a reason it is off, a string or undefined.
-expectTypeOf<{ legend: "Size"; options: [{ value: "a"; label: "A"; disabledReason: string | undefined }] }>().toExtend<RadioGroupProps>();
-expectTypeOf<{ value: "small"; label: "Small"; disabledReason: "Sold out" }>().toExtend<RadioProps>();
-// @ts-expect-error disabledReason is a string, not a boolean
-createElement(Radio, { value: "small", label: "Small", disabledReason: true });
-
 // The legend is required; a group has no label. Its value is one string.
 expectTypeOf<{ options: typeof options }>().not.toExtend<RadioGroupProps>();
 expectTypeOf<{ label: "Size"; legend: "Size"; options: typeof options }>().not.toExtend<RadioGroupProps>();

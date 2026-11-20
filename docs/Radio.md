@@ -30,7 +30,6 @@ Type: `RadioProps`.
 | `className` | `string` | Layout only: margins, width, grid placement. Appearance classes warn in development. |
 | `description` | `ReactNode` | Supporting text under the label, read after it through `aria-describedby`. |
 | `disabled` | `boolean` | Disables this one radio; the arrow keys skip it. |
-| `disabledReason` | `string` | Why this radio can't be picked now. Turns it off with `aria-disabled`: it stays focusable, picking does nothing, and the reason shows as its tooltip on hover and keyboard focus and is read as its description. The arrow keys skip it, as they skip a `disabled` radio; Tab reaches it, so a keyboard user can read why. It wins over `disabled`. Pass `undefined` while the radio is available. |
 | `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the radio's name. |
 | `label` (required) | `string` | The choice's name, shown to the right of the radio. Required: every control needs a name. |
 | `ref` | `Ref<HTMLElement>` | The radio element, a `<button role="radio">`, which the label names with `for`. |

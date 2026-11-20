@@ -342,8 +342,8 @@ test("registryDependencies are the same-repo items each item imports, as full un
   assert.deepEqual(item("lib-cn").registryDependencies, undefined);
   assert.deepEqual(item("lib-class-name-check").registryDependencies, [repo("lib-dev"), repo("lib-env")]);
   // A -tests item also names the tests of everything it installs.
-  assert.deepEqual(notHelpers("heading-tests"), ["button", "button-tests", "heading", "ouro-testing", "text", "text-tests", "tooltip-tests"].map(repo));
-  assert.deepEqual(notHelpers("dialog-tests"), ["button", "button-tests", "dialog", "ouro-testing", "sheet", "sheet-tests", "tooltip-tests"].map(repo));
+  assert.deepEqual(notHelpers("heading-tests"), ["button", "button-tests", "heading", "ouro-testing", "text", "text-tests"].map(repo));
+  assert.deepEqual(notHelpers("dialog-tests"), ["button", "button-tests", "dialog", "ouro-testing", "sheet", "sheet-tests"].map(repo));
   assert.deepEqual(item("lib-cn-tests").registryDependencies, [repo("lib-cn"), repo("ouro-testing")]);
   assert.equal(item("ouro-testing").registryDependencies, undefined);
   assert.equal(item("ouro-theme").registryDependencies, undefined);
@@ -458,7 +458,7 @@ test("each item has a one-line description and a docs message with its docs URL"
   );
   assert.equal(
     item("confirm-dialog").docs,
-    `${item("confirm-dialog").description} Import: import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, sheet, tooltip, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouroboros.bot/docs/confirm-dialog.md`,
+    `${item("confirm-dialog").description} Import: import { ConfirmDialog } from "@/components/ouro/dialog/confirm-dialog", with @/components replaced by your components alias (aliases.components in components.json, such as ~/components). Also installed: button, dialog, sheet, the helpers they import in lib/ouro. Needs ouro-base in your stylesheet: add that item once per app, from the same place as this one, if you have not. Docs: https://ui.ouroboros.bot/docs/confirm-dialog.md`,
   );
   assert.match(item("heading").docs, /import \{ Heading \} from "@\/components\/ouro\/text\/heading"/);
   // ouro-base is the one item an app adds by hand, once; the helpers come with what imports them.
@@ -748,7 +748,7 @@ test("audit and the census check axe-core with one minimum and one comparison: t
 test("each lib helper is its own item, so an item installs only the helpers it imports", () => {
   const button = closure("button");
   for (const helper of ["lib-cn", "lib-dev", "lib-announce"]) assert.ok(button.has(helper), `button installs ${helper}`);
-  for (const helper of ["lib-toast", "lib-stretched-link", "lib-spring", "lib-use-drag"]) {
+  for (const helper of ["lib-toast", "lib-stretched-link", "lib-floating", "lib-spring", "lib-use-drag"]) {
     assert.ok(!button.has(helper), `button does not import ${helper}`);
   }
   // Every helper file an installed file imports is installed, and nothing else from lib/ouro.
@@ -763,7 +763,7 @@ test("each lib helper is its own item, so an item installs only the helpers it i
     const helpers = files
       .filter((path) => path.startsWith("registry/ouro/lib/ouro/") && !path.endsWith("env.d.ts") && !path.endsWith("/ouro-provider.tsx"))
       .map((path) => path.replace(/\.tsx?$/, ""));
-    assert.equal(files.includes("registry/ouro/lib/ouro/ouro-provider.tsx"), files.includes("registry/ouro/lib/ouro/router-link.ts") || installed.has("tooltip"), `${entry.name} has OuroProvider exactly when it renders links or is the tooltip, which the provider groups`);
+    assert.equal(files.includes("registry/ouro/lib/ouro/ouro-provider.tsx"), files.includes("registry/ouro/lib/ouro/router-link.ts") || entry.name === "tooltip", `${entry.name} has OuroProvider exactly when it renders links or is the tooltip, which the provider groups`);
     assert.deepEqual(helpers.filter((path) => !imported.has(path)), [], `${entry.name} installs helpers nothing it installs imports`);
   }
   // ouro-lib stays, as every helper in one item.
