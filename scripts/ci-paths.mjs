@@ -20,6 +20,7 @@ export const scoped = [
     components: false,
     reason: "a CI or release helper that only the workflows and the Node script tests run",
   },
+  { pattern: /^scripts\/(model-reviews\/|claims-urls\.json$)/, tiers: [], components: false, reason: "the model review pages and the claim URL list, which only the Node script tests and the docs build read" },
   { pattern: /^scripts\/latency-shards\.mjs$/, tiers: ["heavy"], components: false, reason: "the latency shard table, which only the heavy tier's latency shards read" },
   { pattern: /^scripts\/(shard\.mjs|shard-timings\.json|vitest-shards\.mts)$/, tiers: ["browser"], components: false, reason: "how the browser shards split their tests, which changes no test" },
   {
@@ -36,10 +37,10 @@ export const scoped = [
 export const runsAll = {
   scripts: [
     "a11y-evidence/", "addresses.d.mts", "addresses.mjs", "adoption/", "agent-benchmark/", "agent-usability/", "apple-release.mjs", "attribution.mjs", "ax-docs.mts",
-    "browser-deps.sh", "catalog-groups.mts", "changes.mjs", "check/", "ci-paths.mjs", "ci-relevance.mjs", "claims-urls.json", "claims.mjs", "components.mts", "conformance-exemptions.mjs", "control-matrix.mts",
+    "browser-deps.sh", "catalog-groups.mts", "changes.mjs", "check/", "ci-paths.mjs", "ci-relevance.mjs", "claims.mjs", "components.mts", "conformance-exemptions.mjs", "control-matrix.mts",
     "core-bundle.mts", "coverage-merge.mjs", "cross-kit/", "current/", "docs-summary.mts", "drift/", "fixtures/", "form-answer-impact.mjs", "gen-docs.mts", "generate.mjs",
     "generated-files.d.mts", "generated-files.mjs", "git-hooks/", "goto-timeout-reporter.mjs", "images/", "install-check.mjs", "install-folders.mts", "install-hooks.mjs",
-    "kits/", "latency-quiet.mjs", "latest-release.mjs", "layout-animation-allowed.json", "links.mjs", "lint/", "mcp-app.mts", "mcp-app/", "mirror/", "model-reviews/",
+    "kits/", "latency-quiet.mjs", "latest-release.mjs", "layout-animation-allowed.json", "links.mjs", "lint/", "mcp-app.mts", "mcp-app/", "mirror/", 
     "motion-coverage.mts", "motion-reporter.mts", "motion-states.mts", "mutation.mjs", "mutation/", "namespace.sh", "ouro-actions/", "parity-data/", "parity-matrix.mjs",
     "parity-rows.d.mts", "parity-rows.mjs", "pattern-size.json", "pattern-size.mjs", "physical-allowed.json", "pin-only.mjs", "platform-parity.mjs", "platform-versions.mjs",
     "pre-push.mjs", "public-registry.mjs", "published-release.mjs", "radius-codemod.mjs", "read-stdin.mjs", "readme-steps.mjs", "real-clock-ratchet.mjs", "registry.mts",
