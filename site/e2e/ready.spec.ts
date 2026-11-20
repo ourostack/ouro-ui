@@ -21,5 +21,9 @@ test("a page that never settles names the looks that changed between its last tw
   expect(changedLooks(before, after)).toBe("  button#save: color: blue (was color: red)\n  1 looks appeared and 1 went between the last two reads");
   const many = Array.from({ length: 5 }, (_, n) => look(`l${n}`, "a"));
   expect(changedLooks(many, many.map((l) => ({ ...l, sig: "b" })))).toContain("and 2 more");
-  expect(changedLooks(before, before)).toBe("  the last two reads differed only in the order of the looks");
+  expect(changedLooks(before, before)).toBe("  the last two reads were the same");
+  expect(changedLooks(before, [before[1]!, before[0]!, before[2]!])).toBe("  the last two reads differed only in the order of the looks: at 0, switch (was button#save)");
+  // One of several looks that share a key changed: still named, not hidden behind its twins (#2428).
+  const twins = [look("button", "color: red"), look("button", "color: red"), look("button", "color: red")];
+  expect(changedLooks(twins, [twins[0]!, look("button", "color: blue"), twins[2]!])).toBe("  button: color: blue (was color: red)");
 });
