@@ -41,7 +41,7 @@ test.describe("restyle scope of an input switch", () => {
       // with a text field focused, then a press, which moves focus nowhere.
       await page.locator("input").first().focus();
       await page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true })));
-      const count = await restyled(page, () => page.evaluate(() => document.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }))));
+      const count = await restyled(page, () => page.evaluate(() => void document.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }))));
       expect(count, `a press after Tab restyled ${count} elements of a page with ${ouro} Ouro elements`).toBeLessThanOrEqual(SCOPE);
     });
   }
