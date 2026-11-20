@@ -158,7 +158,7 @@ function roleOf(element: Element): string {
   return "button";
 }
 
-/** A control's accessible name, the way a person's assistive technology reads it: aria-labelledby, aria-label, a label, its content, then title and placeholder. */
+/** A control's accessible name, the way a person's assistive technology reads it: aria-labelledby, aria-label, a label, its content, a button input's value, then title and placeholder. */
 function nameOf(element: Element): string {
   const text = (value: string | null | undefined) => (value ?? "").replace(/\s+/g, " ").trim();
   const by = element.getAttribute("aria-labelledby");
@@ -169,7 +169,7 @@ function nameOf(element: Element): string {
   const labelled = text(element.getAttribute("aria-label"));
   if (labelled) return labelled;
   const fromLabel = text([...((element as HTMLInputElement).labels ?? [])].map((label) => label.textContent).join(" "));
-  return fromLabel || text(element.textContent) || text(element.getAttribute("title")) || text(element.getAttribute("placeholder")) || text(element.getAttribute("data-ax-action"));
+  return fromLabel || text(element.textContent) || text(element instanceof HTMLInputElement && ["submit", "reset", "button"].includes(element.type) ? element.value : "") || text(element.getAttribute("title")) || text(element.getAttribute("placeholder")) || text(element.getAttribute("data-ax-action"));
 }
 
 /** The visible controls on the page outside Ouro components, in document order, skipping what `findComponents` skips. */

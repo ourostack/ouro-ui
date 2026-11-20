@@ -649,6 +649,67 @@ describe("Inspector", () => {
     expect(tags().slice(3).map((tag) => tag.textContent)).toEqual(["button: Save draft", "button: Fallback name"]);
   });
 
+  it("reads each kind of page control's role and name, skips what a person can't reach, and lists them in the sheet", async () => {
+    await render(
+      <Page inspector={{ controls: true }}>
+        <div>
+          <input type="checkbox" aria-label="Agree" />
+          <input type="radio" aria-label="Pick" />
+          <input type="range" aria-label="Volume" />
+          <input type="submit" value="Send" />
+          <input type="search" aria-label="Find" />
+          <select aria-label="Size">
+            <option>S</option>
+          </select>
+          <textarea placeholder="Notes" />
+          <div role="switch" aria-checked="false" tabIndex={0}>Dark mode</div>
+          <button type="button" role="tab presentation">Overview</button>
+          <button type="button" title="Titled" style={{ width: 24, height: 24 }} />
+          <button type="button" data-ax-action="only-action" style={{ width: 24, height: 24 }} />
+          <button type="button" aria-label="   Spaced   out   ">z</button>
+          <input type="hidden" name="secret" />
+          <button type="button" style={{ display: "none" }}>Hidden</button>
+          <button type="button" style={{ width: 1, height: 1, padding: 0, border: 0, overflow: "hidden" }} aria-label="Tiny" />
+        </div>
+      </Page>,
+    );
+    await drawn(15);
+    const text = tags().slice(3).map((tag) => tag.textContent);
+    expect(text).toEqual([
+      "checkbox: Agree",
+      "radio: Pick",
+      "slider: Volume",
+      "button: Send",
+      "textbox: Find",
+      "combobox: Size",
+      "textbox: Notes",
+      "switch: Dark mode",
+      "tab: Overview",
+      "button: Titled",
+      "button: only-action → only-action",
+      "button: Spaced out",
+    ]);
+    await userEvent.click(page.getByRole("button", { name: "15 components" }));
+    const sheet = page.getByRole("dialog", { name: "X-ray" });
+    await expect.element(sheet).toBeVisible();
+    const rows = [...sheet.element().querySelectorAll("[data-ouro-inspector-list] li")];
+    expect(rows.slice(3).map((row) => row.textContent)).toEqual(text);
+    expect(rows.slice(3).every((row) => !row.querySelector("a"))).toBe(true);
+    expect(sheet.element().textContent).toContain("Every Ouro HX component and every other control on this page, in order.");
+  }, 15_000);
+
+  it("shows an unnamed control by its role alone", async () => {
+    await render(
+      <Page inspector={{ controls: true }}>
+        <div>
+          <button type="button" style={{ width: 24, height: 24 }} />
+        </div>
+      </Page>,
+    );
+    await drawn(4);
+    expect(tags()[3]!.textContent).toBe("button");
+  });
+
   it("starts and stops outlining a page's own controls when controls changes while X-ray is open", async () => {
     function Toggle() {
       const [on, setOn] = useState(false);
