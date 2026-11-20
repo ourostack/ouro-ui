@@ -22,7 +22,14 @@ export const agentCases: AgentCase[] = [
     dev: '<TextField label="Email" hideLabel> to hide a label you still need',
     names: ["tsc", "dev"],
   },
+  {
+    id: "s51",
+    habit: "a size named small",
+    tsc: [hint("string", 'default is "md"; "sm" matches Button sm')],
+    dev: '<TextField size="md">',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid text-field snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["ok11"];
+export const validSnippets: string[] = ["ok11", "ok12"];
