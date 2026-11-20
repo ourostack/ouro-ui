@@ -110,7 +110,8 @@ export async function settle(): Promise<void> {
   }
   // A web font that finishes loading rewraps text, and a region that overflows only then becomes a tab stop a frame later
   // (ScrollArea's observer): wait for the fonts first, so a scan doesn't land between the two (#1620).
-  await document.fonts.ready;
+  // Bounded: a face that never finishes loading would otherwise hold the test to its time limit, naming nothing (#2149).
+  await Promise.race([document.fonts.ready, new Promise((resolve) => setTimeout(resolve, 3000))]);
   for (let round = 0; round < 50; round++) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const running = document
