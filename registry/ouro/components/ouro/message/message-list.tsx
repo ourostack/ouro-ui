@@ -1068,10 +1068,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
     ...rest
   } = props;
   const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
+  useEffect(
+    () => {
+      setMounted(true);
+    },
     // Stryker disable next-line ArrayDeclaration: an effect that only sets a flag to true runs the same whatever its list holds.
-  }, []);
+    [],
+  );
   // The height an app gives for a row not measured yet, where it is a positive number of pixels.
   const estimate = Number.isFinite(estimatedItemHeight) && estimatedItemHeight! > 0 ? estimatedItemHeight : undefined;
   useAppearanceClassNameCheck(
