@@ -27,10 +27,14 @@ const prefix = "ourostack/ouro-ui/";
 // JavaScript ceilings raised 2026-11-20 (the disabledReason prop): Button imports Tooltip for its reason, so Base UI's
 // tooltip, Floating UI's helpers and the shared reason hook arrive with every page; measured over main at e37c6a4a4 with the
 // same bare app, 85,116, 85,689 and 103,760 bytes of JavaScript.
+// settings-page's CSS ceiling raised 2026-11-20 (Card's backdrop picture, #2628): its corner, clip and linked-card tint
+// rules arrive with every Card, 13,895 bytes against 13,869. Card leaves a backdrop card's overflow at its initial value
+// rather than naming it, which saves 8 of them; measured over main at 5a91427 with Node 24, as CI runs it, 13,887 bytes,
+// with a 64-byte margin rather than 512, so the next rule it gains is looked at again.
 export const CEILINGS = {
   "dashboard-page": { js: 85_116 + 1024, css: 10_381 + 512 },
   "list-detail-page": { js: 85_689 + 1024, css: 9_303 + 512 },
-  "settings-page": { js: 103_760 + 1024, css: 13_357 + 512 },
+  "settings-page": { js: 103_760 + 1024, css: 13_887 + 64 },
 };
 
 /** The name of the bare app, built beside the patterns. */

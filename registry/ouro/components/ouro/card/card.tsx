@@ -414,8 +414,9 @@ export function Card(props: CardProps): JSX.Element {
       "data-follows-link": linked ? "" : undefined,
       className: cn(
         // A card with a backdrop doesn't clip: the backdrop clips itself, so its text and controls repaint without a clip.
+        // It leaves overflow at its initial `visible` rather than naming it, a rule settings-page's stylesheet then needn't carry.
         "relative isolate flex min-w-0 list-none flex-col",
-        backdrop ? "overflow-visible" : "overflow-hidden",
+        !backdrop && "overflow-hidden",
         backdrop && linked && cn("group/card", backdropLinkClass),
         variants[variant],
         rootSizes[variant][size],
