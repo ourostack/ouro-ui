@@ -31,6 +31,7 @@ Type: `InspectorProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `controls` | `boolean` | `false` | Also outline the page's own controls (buttons, links, fields, checkboxes, switches, tabs and menu items outside Ouro components), whichever library draws them. A tag says the control's role and accessible name, and the action it is bound to (its `data-ax-action`) where it has one; it is a plain label, since the control is not an Ouro item. Use it on a page of another library's components, or to see which controls an agent's actions reach. Leave it off to outline Ouro components only. |
 | `docsHref` | `((item: string) => string)` |  | The address of an item's docs page, from its registry name, where each tag and the list link. Without it they link to Ouro's public docs, `https://ui.ouroboros.bot/docs/<item>/`. |
 | `label` | `string` | `"X-ray"` | What X-ray is called, on its bar and as its list's title. Translate it here. |
 | `onOpenChange` (required) | `(open: boolean) => void` |  | Called with `false` when the person closes X-ray (its Close button, or Escape). |

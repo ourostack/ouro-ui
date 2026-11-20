@@ -2198,7 +2198,7 @@ jobs:
     # 7 to 10 minutes on main; its limit is about twice that, so a spec that hangs fails its shard
     # by its own test timeout or this one, not after the run has waited 25 minutes on it.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     # In Playwright's image (see the note above jobs:).
@@ -2210,13 +2210,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    name: e2e (${{ matrix.shard }}/10)
+        shard: [1, 2, 3, 4, 5, 6]
+    name: e2e (${{ matrix.shard }}/6)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/10
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of10.json
+      SHARD: ${{ matrix.shard }}/6
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of6.json
     steps:
       # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -2305,7 +2305,7 @@ jobs:
     # spec files whose measured times add up to its share (`node scripts/shard.mjs sweeps`). Part of
     # the e2e check.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     # In Playwright's image (see the note above jobs:).
@@ -2317,11 +2317,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    name: sweeps (${{ matrix.shard }}/14)
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    name: sweeps (${{ matrix.shard }}/8)
     env:
-      SHARD: ${{ matrix.shard }}/14
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of14.json
+      SHARD: ${{ matrix.shard }}/8
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of8.json
     steps:
       # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -2406,7 +2406,7 @@ jobs:
     # fails whichever shard they land in, and a route that moves a page to another shard changes nothing.
     # It starts when the last shard ends, and the shards' escape checks stay in the shards. Part of the e2e check.
     needs: [plan, sweep-shard]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     name: sweeps-compare
@@ -2490,12 +2490,17 @@ jobs:
           SHARDS: ${{ needs.e2e-shard.result }}
           SWEEPS: ${{ needs.sweep-shard.result }}
           COMPARE: ${{ needs.sweeps-compare.result }}
+          HEAVY: ${{ needs.plan.outputs.heavy }}
         run: |
+          if [ "$HEAVY" = skip ]; then
+            echo "::notice::Not affected: this pull request changes only files the end-to-end specs never read (the plan's heavy=skip)."
+            exit 0
+          fi
           if [ "$SHARDS" != success ]; then
-            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/10) jobs."
+            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/6) jobs."
           fi
           if [ "$SWEEPS" != success ]; then
-            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/14) jobs."
+            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/8) jobs."
           fi
           if [ "$COMPARE" != success ]; then
             echo "::error::The sweeps-compare job did not pass ($COMPARE): a component looks different on two pages, see its log."
@@ -2948,16 +2953,16 @@ jobs:
         variant: [shadcn, ouro]
         # Another shadcn preset than the README's, so its preset wording is verified.
         preset: [nova, vega]
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6]
         exclude:
           - variant: ouro
             preset: vega
-    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/8)
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/6)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
-      OURO_SHARD: ${{ matrix.shard }}/8
+      OURO_SHARD: ${{ matrix.shard }}/6
       OURO_APP: /tmp/ouro-app
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
@@ -3174,16 +3179,16 @@ jobs:
           fi
           failed=0
           if [ "$SHARDS" != success ]; then
-            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/8) jobs."
+            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/6) jobs."
             failed=1
           fi
           if [ "$CHECKS" != success ]; then
             echo "::error::the type check, build or install check of the prepared app did not pass ($CHECKS): see the install checks job."
             failed=1
           fi
-          for shard in 1 2 3 4 5 6 7 8; do
+          for shard in 1 2 3 4 5 6; do
             if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
-              echo "::error::install ($VARIANT, $PRESET, $shard/8) did not pass: see that job."
+              echo "::error::install ($VARIANT, $PRESET, $shard/6) did not pass: see that job."
               failed=1
             fi
           done

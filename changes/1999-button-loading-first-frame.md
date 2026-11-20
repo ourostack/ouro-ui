@@ -1,0 +1,1 @@
+- Changed: a Button that mounts already `loading` draws its spinner on the first frame; the spinner fades in only when `loading` turns on after mount.
