@@ -2210,13 +2210,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    name: e2e (${{ matrix.shard }}/10)
+        shard: [1, 2, 3, 4, 5, 6]
+    name: e2e (${{ matrix.shard }}/6)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/10
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of10.json
+      SHARD: ${{ matrix.shard }}/6
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of6.json
     steps:
       # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -2317,11 +2317,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    name: sweeps (${{ matrix.shard }}/14)
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    name: sweeps (${{ matrix.shard }}/8)
     env:
-      SHARD: ${{ matrix.shard }}/14
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of14.json
+      SHARD: ${{ matrix.shard }}/8
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of8.json
     steps:
       # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -2492,10 +2492,10 @@ jobs:
           COMPARE: ${{ needs.sweeps-compare.result }}
         run: |
           if [ "$SHARDS" != success ]; then
-            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/10) jobs."
+            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/6) jobs."
           fi
           if [ "$SWEEPS" != success ]; then
-            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/14) jobs."
+            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/8) jobs."
           fi
           if [ "$COMPARE" != success ]; then
             echo "::error::The sweeps-compare job did not pass ($COMPARE): a component looks different on two pages, see its log."
@@ -2948,16 +2948,16 @@ jobs:
         variant: [shadcn, ouro]
         # Another shadcn preset than the README's, so its preset wording is verified.
         preset: [nova, vega]
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6]
         exclude:
           - variant: ouro
             preset: vega
-    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/8)
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/6)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
-      OURO_SHARD: ${{ matrix.shard }}/8
+      OURO_SHARD: ${{ matrix.shard }}/6
       OURO_APP: /tmp/ouro-app
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
@@ -3174,7 +3174,7 @@ jobs:
           fi
           failed=0
           if [ "$SHARDS" != success ]; then
-            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/8) jobs."
+            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/6) jobs."
             failed=1
           fi
           if [ "$CHECKS" != success ]; then
@@ -3183,7 +3183,7 @@ jobs:
           fi
           for shard in 1 2 3 4 5 6 7 8; do
             if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
-              echo "::error::install ($VARIANT, $PRESET, $shard/8) did not pass: see that job."
+              echo "::error::install ($VARIANT, $PRESET, $shard/6) did not pass: see that job."
               failed=1
             fi
           done
