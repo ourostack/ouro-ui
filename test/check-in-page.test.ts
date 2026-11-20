@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
+import { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listPersonSignals, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
 import { findImageFades } from "@/registry/ouro/check/fade-check";
 import { findOverlaps } from "@/registry/ouro/check/overlap-check";
 import { findSizeIssues } from "@/registry/ouro/check/size-check";
@@ -1345,5 +1345,15 @@ describe("findFragmentFocusIssues", () => {
     const [first] = findFragmentFocusIssues();
     const [second] = findFragmentFocusIssues();
     expect(document.body.getAttribute("data-ouro-check-ref")).toBe(`${first!.ref} ${second!.ref}`);
+  });
+});
+
+describe("listPersonSignals", () => {
+  it("names what the page holds that only a person can judge, and nothing for an error message", () => {
+    host = render(`<div data-ouro="alert" data-tone="destructive">Could not save</div><p>Plain</p>`);
+    expect(listPersonSignals()).toEqual([]);
+    host.remove();
+    host = render(`<button data-tone="destructive">Delete</button><form></form><div data-ouro="composer"></div>`);
+    expect(listPersonSignals()).toEqual(["destructive", "form", "sends"]);
   });
 });
