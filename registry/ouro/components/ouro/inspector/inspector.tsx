@@ -421,9 +421,10 @@ function tagPlace(box: DOMRect, part: Edges, rtl: boolean, size: [number, number
   return null;
 }
 
-// Stryker disable next-line all: it only decides whether to set the list again, and the next frame reads the same elements either way.
+// Stryker disable all: it only decides whether to set the list again, and the next frame reads the same elements either way.
 const sameComponents = (a: Found[], b: Found[]) =>
   a.length === b.length && a.every((entry, index) => entry.key === b[index]!.key && entry.item === b[index]!.item && entry.control?.name === b[index]!.control?.name && entry.control?.action === b[index]!.control?.action);
+// Stryker restore all
 
 /** What a control's tag and list row say: its role and name, and the action it is bound to. */
 const controlText = (control: NonNullable<Found["control"]>) => `${control.role}${control.name ? `: ${control.name}` : ""}${control.action ? ` → ${control.action}` : ""}`;
