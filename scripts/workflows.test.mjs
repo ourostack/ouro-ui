@@ -1393,6 +1393,15 @@ test("the release runs the public-registry tests with the script tests", () => {
   assert.ok(scriptTestFiles().includes("scripts/public-registry.test.mjs"));
 });
 
+test("every ci.yml job that runs npm or npx resolves packages as published a day ago, as install-test.sh does", () => {
+  const runsNpm = (job) => job.split("\n").some((line) => !/^\s*#/.test(line) && !/\becho\b/.test(line) && /(?:^|[\s;&|(])(?:npx|npm) /.test(line));
+  const jobs = Object.entries(ciJobs()).filter(([, job]) => runsNpm(job));
+  assert.deepEqual(jobs.map(([id]) => id).sort(), ["lighthouse", "registry"]);
+  for (const [id, job] of jobs) assert.match(job, /^ {6}- [&*]npm-day-old$/m, id);
+  assert.match(workflow("ci.yml"), /^ {8}run: echo "npm_config_before=\$\(date -u -d '1 day ago' \+%Y-%m-%dT%H:%M:%SZ\)" >> "\$GITHUB_ENV"$/m);
+  assert.match(readFileSync(join(root, "scripts/install-test.sh"), "utf8"), /^export npm_config_before="\$\{npm_config_before:-\$\(date -u -d '1 day ago' /m);
+});
+
 /** ci.yml's jobs, by name, each the text of its block. */
 const ciJobs = () =>
   Object.fromEntries(
