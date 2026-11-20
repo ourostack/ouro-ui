@@ -246,7 +246,7 @@
   }
   /* A card's backdrop is its picture alone: the squircle clip is its only edge, with no circular corner or overflow clip under it, which would cut inside the squircle's corners. It covers the box the card's surface paints, so it lines up with the cards beside it. */
   [data-card-backdrop] {
-    inset: 0;
+    --ouro-card-backdrop-inset: 0;
     border-radius: 0;
     overflow: visible;
   }
