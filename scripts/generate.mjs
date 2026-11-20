@@ -12,13 +12,14 @@ import { isTracked } from "./generated-files.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const steps = [
-  ["scripts/control-matrix.mts", "--uncommitted"],
-  // gen-docs runs registry.mts --uncommitted after it, for registry.json and llms.txt.
-  ["scripts/gen-docs.mts", "--uncommitted"],
+  // The model pages come first: gen-docs lists the site's pages from the docs folder, these two among them.
   ...[
     ["scripts/model-reviews/page.mjs", "docs/guides/model-reviews.md"],
     ["scripts/model-reviews/interviews-page.mjs", "docs/guides/model-interviews.md"],
   ].filter(([, page]) => !isTracked(root, page)),
+  ["scripts/control-matrix.mts", "--uncommitted"],
+  // gen-docs runs registry.mts --uncommitted after it, for registry.json and llms.txt.
+  ["scripts/gen-docs.mts", "--uncommitted"],
 ];
 for (const [script, ...args] of steps) {
   const result = spawnSync(process.execPath, [join(root, script), ...args], { cwd: root, stdio: "inherit" });
