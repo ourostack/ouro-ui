@@ -119,6 +119,11 @@ interface ToggleGroupItem {
   hideLabel?: boolean | undefined;
   /** Shows the toggle but keeps it from being pressed. */
   disabled?: boolean | undefined;
+  /**
+   * `data-*` attributes for the item's button (`"data-testid": "bold"`), for an app's own hooks. The
+   * markers Ouro UI sets itself (`data-ouro-control`, `data-ouro-part`) keep their values.
+   */
+  [attribute: `data-${string}`]: string | number | boolean | undefined;
 }
 ```
 
