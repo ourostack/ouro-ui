@@ -24,7 +24,7 @@ export function sameCases(coreDir, kitDir) {
 const readers = {
   web: (log) => [...log.matchAll(/(✔|✖) core case (\S+\.json) resolves to its expect/g)].map((m) => [m[2], m[1] === "✔"]),
   windows: (log) => [...log.matchAll(/\b(Passed|Failed) Ouro\.Tests\.A2UITests\.Each_case_resolves_to_its_expect\(name: "([^"]+\.json)"\)/g)].map((m) => [m[2], m[1] === "Passed"]),
-  apple: (log) => [...log.matchAll(/\| (\S+\.json) \| (pass|FAIL) \|/g)].map((m) => [m[1], m[2] === "pass"]),
+  apple: (log) => [...log.matchAll(/(◇|✘) Test case passing 1 argument name → "([^"]+\.json)" to resolvesToExpect\(_:\) (started|failed)/g)].map((m) => [m[2], m[3] === "started"]),
   android: (log) => [...log.matchAll(/\| (\S+\.json) \| (pass|FAIL) \|/g)].map((m) => [m[1], m[2] === "pass"]),
 };
 
@@ -73,10 +73,20 @@ function latestCases(k) {
   }
 }
 
+function jobLog(repo, id) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return execFileSync("gh", ["run", "view", "--job", String(id), "-R", repo, "--log"], { encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] });
+    } catch (error) {
+      if (attempt >= 2) throw error;
+    }
+  }
+}
+
 function parseJobs(k, runId, merged) {
   const jobs = gh("run", "view", String(runId), "-R", k.repo, "--json", "jobs").jobs;
   for (const j of jobs.filter((j) => (k.logJob ?? k.job).test(j.name))) {
-    const log = execFileSync("gh", ["run", "view", "--job", String(j.databaseId), "-R", k.repo, "--log"], { encoding: "utf8", maxBuffer: 1 << 28 });
+    const log = jobLog(k.repo, j.databaseId);
     for (const [name, passed] of parseCases(k.kit, log)) merged.set(name, (merged.get(name) ?? true) && passed);
   }
   return merged.size > 0;
