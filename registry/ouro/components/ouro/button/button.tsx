@@ -225,6 +225,7 @@ const base =
   // A state layer in the text color: a light wash on hover, a deeper one while pressed.
   "before:pointer-events-none before:absolute before:-inset-px before:rounded-[inherit] before:[corner-shape:inherit] before:bg-current " +
   "before:opacity-0 before:transition-opacity before:duration-(--ouro-duration-fast) before:ease-[ease] " +
+  // Stryker disable next-line StringLiteral: a class string in a class position; test/state-hovers.test.tsx reads its tokens, outside this file's tests
   "not-data-disabled:not-active:pointer-fine:hover:before:opacity-[var(--ouro-state-hover,8%)] not-data-disabled:active:before:opacity-[var(--ouro-state-pressed,14%)] " +
   // Where corner-shape is missing, the surface slot paints the background, border and state layer instead (see ouro-base.css).
   "bg-(--ouro-bg) border-(--ouro-bd) [--ouro-sq-w:1px] " +

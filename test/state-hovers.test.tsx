@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
+import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { NavigationRail } from "@/registry/ouro/components/ouro/navigation-rail/navigation-rail";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { applyThemeFixture, themeFixtures } from "./theme-fixtures.ts";
@@ -61,6 +62,30 @@ describe("Button's hover overlay", () => {
     await userEvent.hover(button);
     await settled(button);
     expect(getComputedStyle(button, "::before").opacity).toBe("0.4");
+  });
+});
+
+describe("NavigationRail's hover tokens", () => {
+  it("draws no slab under the pointer when --ouro-rail-hover is transparent, and colours the label with --ouro-rail-hover-foreground", async () => {
+    const host = await mount(
+      <NavigationRail label="Main" items={[{ label: "Files", href: "/files", icon: <svg viewBox="0 0 8 8" /> }]} />,
+      "--ouro-rail-hover: transparent; --ouro-rail-hover-foreground: rgb(255, 0, 0);",
+    );
+    const link = host.querySelector<HTMLElement>('a[href="/files"]')!;
+    await userEvent.hover(link);
+    await settled(link);
+    expect(getComputedStyle(link).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(link).color).toBe("rgb(255, 0, 0)");
+  });
+});
+
+describe("Toggle hover overlay", () => {
+  it("follows --ouro-state-hover", async () => {
+    const host = await mount(<Toggle label="Bold" />, "--ouro-state-hover: 40%;");
+    const toggle = host.querySelector("button")!;
+    await userEvent.hover(toggle);
+    await settled(toggle);
+    expect(getComputedStyle(toggle, "::before").opacity).toBe("0.4");
   });
 });
 
