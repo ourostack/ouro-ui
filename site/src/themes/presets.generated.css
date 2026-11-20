@@ -670,6 +670,5 @@
   --ouro-check-corner-shape: round;
   --ouro-cover-from: var(--sj-vellum);
   --ouro-cover-to: color-mix(in srgb, var(--sj-brass) 32%, transparent);
-  --ouro-cover-ink: var(--sj-brass);
   --ouro-action-foreground: var(--sj-on-action);
 }

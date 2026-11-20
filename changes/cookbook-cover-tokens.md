@@ -1,1 +1,1 @@
-- The Cookbook theme sets `--ouro-cover-from`, `--ouro-cover-to` and `--ouro-cover-ink`, so a Cover without a picture is a vellum-to-brass tile with a brass letter, as the Apple app draws a recipe without a photo.
+- The Cookbook theme sets `--ouro-cover-from` and `--ouro-cover-to`, so a Cover without a picture has the Apple app's wash, vellum to brass, as Spoonjoy's Apple app draws a recipe without a photo. Its letter keeps Cover's own ink.
