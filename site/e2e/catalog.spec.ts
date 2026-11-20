@@ -125,7 +125,9 @@ const CEILINGS = { voyage: 282 * 1024, docs: 191_197 + 1024 } as const;
 // The voyage pages' rose to 46 KiB for the row and state token defaults in ouro-base: 46,117 bytes with them, on CI merged with main at 753056c3.
 // The docs' rose to 49 KiB for TimeGrid's selected-event fills, whose classes the docs' Tailwind build carries: 49,488 bytes with them, on CI merged with main at ebebc75f.
 // The voyage pages' rose to 47 KiB for ouro-base's text-wrap rules (pretty body copy, balanced headings): 47,147 bytes with them, on CI merged with main at 7c23ca8f.
-const CSS_CEILINGS = { voyage: 47 * 1024, docs: 49 * 1024 } as const;
+// The docs' rose to 50 KiB for Card's backdrop (a picture behind the whole card, its own corner clip and a linked card's
+// tint inside it), whose classes the docs' Tailwind build carries: 50,210 bytes with them, built locally over main at c7d1a1ad.
+const CSS_CEILINGS = { voyage: 47 * 1024, docs: 50 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the
