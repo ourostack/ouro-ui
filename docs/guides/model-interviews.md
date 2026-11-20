@@ -27,7 +27,7 @@ All 32 sessions said building good human interfaces is a problem, but six models
 
 #### Challenges the native decision: separate per-platform implementations drift, so a fix lands on one client and lags on the others.
 
-Signal: surprise. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2305](https://github.com/ourostack/ouro-ui/issues/2305).
+Signal: surprise. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: answered. [#2305](https://github.com/ourostack/ouro-ui/issues/2305). What changed: Answered by measurement, with no reversal of the native decision (we didn't build a one-codebase comparison): drift is measured on the upkeep page (#2443) and checked by the cross-kit grid, where all four kits pass the same 13 shared cases (#2496, #2442).
 
 In the year-later pre-mortem all eight models expected native or split stacks to drift: focus and accessibility fixes landing on one platform only, and shared tokens hiding behaviour that differs. These are imagined failures, but they are what models see as the main cost of native per platform, and it cuts against the bet that native kits alone make better apps. Ouro would have to show one behaviour test passing on every kit, not matching token names.
 
@@ -94,7 +94,7 @@ Every model found Ouro's own note that Android is tested only on emulators and t
 
 #### Challenges the native decision: one codebase keeps five clients from drifting, so models pick Flutter or a single TypeScript stack.
 
-Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2301](https://github.com/ourostack/ouro-ui/issues/2301).
+Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: answered. [#2301](https://github.com/ourostack/ouro-ui/issues/2301). What changed: Answered by measurement, with no reversal of the native decision (we didn't build a one-codebase comparison): the cross-kit grid shows the same 13 shared card-behaviour cases passing on all four kits (#2496), the guide explains how the shared cases keep them in step (#2442), and the upkeep page measures what following the core costs each kit (#2443). Sharing non-UI logic across the shells isn't covered.
 
 All eight Flutter picks in the chat job led with the same reason, that a fix written once lands on all five clients, and Sol and Terra said sharing the timeline, composer and card renderer pays off most in an interactive, signed-in app. Unprompted, in the open arm, models chose one TypeScript stack with web shells and picked fully native clients only twice; Opus and Gemini added that one language serves every team and coding agent. This is the strongest behaviour against native per platform. The decision stands, so Ouro has to show on a maintained product that agents keep its native kits in step at less cost than one shared implementation.
 
@@ -171,7 +171,7 @@ Seven models' top regret for the agent work tool was overload: agents produce re
 
 #### Models want consent declared on the action, because plain MCP leaves it optional, but they need to see it enforced at the server and on the running agent.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2311](https://github.com/ourostack/ouro-ui/issues/2311).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2311](https://github.com/ourostack/ouro-ui/issues/2311). What changed: Consent is declared on the action and enforced where the action runs: tests have an agent attack the consent model (#2458), Android draws a built-in confirmation of a consequential action (#2380, Android v0.5.0), and Windows' CI answers the MCP server's confirmation.
 
 All eight models valued consent classes and typed person-only refusals on the action itself, and three regretted that plain MCP made 'the person meant it' optional. Five also said a declared class isn't a security boundary: the server still owns authorization, and Terra found Ouro's own Windows docs saying UI Automation can press a person-only button. Four named a decision recorded but not enforced ('pause requested' read as paused) as the costliest agent-tool failure. Ouro should show, end to end, how a consent class reaches the server's enforcement point and the running agent, and what it doesn't cover.
 
@@ -193,7 +193,7 @@ All eight models named the deliberate refusal of Flutter and React Native as a c
 
 #### One-codebase stacks and web shells leak where people spend the day: the composer, IME, desktop feel and memory.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2306](https://github.com/ourostack/ouro-ui/issues/2306).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: answered. [#2306](https://github.com/ourostack/ouro-ui/issues/2306). What changed: This supports the native decision, so nothing is reversed: the models' leaks (the composer, IME, desktop feel, memory) are what one codebase costs, and the native kits draw those parts natively. The measurements of the native kits' own upkeep are on the upkeep page (#2443) and in the cross-kit grid (#2496).
 
 All eight models feared their own cross-platform pick would feel wrong on desktop or web: IME and composer bugs, Flutter web semantics, Electron's memory on an all-day laptop, Tauri's webview differences. Every Flutter picker named this as its largest unknown, and at large-company scale five of eight listed chat decisions chose native clients for these reasons. This supports Ouro's native kits, but only once they go deep enough to carry an all-day composer; Ouro's chat pitch should be the composer that feels right on each OS, with the evidence.
 
@@ -248,7 +248,7 @@ Seven models said the design-system owners are the gate at a large company: a se
 
 #### Only watching real people do the task proves a screen is good, and models can't run that themselves.
 
-Signal: stakeholder. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2290](https://github.com/ourostack/ouro-ui/issues/2290). What changed: Ouro check's --handoff writes the session kit (#2510), and createUseCounts counts real use: counts only, off by default, no collector, no content, no identifier.
+Signal: stakeholder. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2290](https://github.com/ourostack/ouro-ui/issues/2290). What changed: Ouro check's report names the floor it proves and ends with a "Needs a person" list (#2506), --handoff writes the session kit for watching real people (#2510), and createUseCounts counts real use: counts only, off by default, no collector, no content, no identifier (#2517). A model can't run the sessions itself, so the answer is to hand them to a person.
 
 All eight models rank watching representative people do the task as the strongest or only real evidence, and all say a person has to run it; they also know their own labels too well to judge them. In the pre-mortem every model admitted its 'show it's good' was a plan nobody ran, and none could describe a check it had actually run on a last screen. Their workaround is a handoff that separates what was checked from what still needs a person. Ouro could own that loop rather than claim to replace it: a usability-session kit (a task script, an outcome question such as 'what appointment do you have now?', what to observe) and a handoff report from Ouro check.
 
@@ -270,7 +270,7 @@ Seven models weighed Agent-Native (Builder.io), it was picked six times across a
 
 #### Challenges the native decision: a small team can't keep four or five native codebases in step.
 
-Signal: goal. Raised by 7 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2302](https://github.com/ourostack/ouro-ui/issues/2302).
+Signal: goal. Raised by 7 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: answered. [#2302](https://github.com/ourostack/ouro-ui/issues/2302). What changed: Answered by measurement, with no reversal of the native decision (we didn't build a one-codebase comparison): the upkeep page measures from git history what the native kits cost to keep in step (#2443), and the cross-kit grid shows 13 of 13 shared cases passing on four kits (#2496).
 
 Six of the eight Flutter picks came at product-team scale, where models priced native per platform as sync, cache, threading and search each written four times, and Gemini rejected Ouro on this ground. In the cooking and tooling jobs, large-company sessions also counted SwiftUI plus Compose plus web as three design systems to govern, and four models said the sync and offline logic Ouro doesn't cover would be rewritten per shell; Grok was the counter-voice, saying a cooking app has to justify being native. These are expectations, not experience. Ouro should publish what keeping its kits in step actually costs, and give guidance for sharing non-UI logic across the native shells.
 
