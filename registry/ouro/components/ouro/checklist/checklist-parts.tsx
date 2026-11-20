@@ -204,6 +204,7 @@ export function ChecklistRow({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    // Stryker disable next-line ArrayDeclaration: an effect that only sets a flag to true runs the same whatever its list holds.
   }, []);
   const describedBy = [held && `${id}-note`, description !== undefined && `${id}-description`, value !== undefined && `${id}-value`].filter(Boolean).join(" ") || undefined;
   const box = (
