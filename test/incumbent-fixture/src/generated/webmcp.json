@@ -1,9 +1,10 @@
 {
-  "generator": "ouro-actions 0.21.0",
+  "generator": "ouro-actions 1.2.0",
   "set": "incumbent-billing",
   "tools": [
     {
       "name": "list_invoices",
+      "title": "List invoices",
       "description": "List the account's invoices: each one's id, amount and whether it is paid. Take an id from here for pay_invoice.",
       "inputSchema": {
         "type": "object",
@@ -18,6 +19,7 @@
     },
     {
       "name": "pay_invoice",
+      "title": "Pay invoice",
       "description": "Pay one invoice with the card on file. Take the id from list_invoices.",
       "inputSchema": {
         "type": "object",
