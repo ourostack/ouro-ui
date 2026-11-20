@@ -11,8 +11,10 @@ afterEach(() => {
 
 const frame = () => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())));
 
-/** A layer at the end of a tall page, with a menu opened in it: drawn as `first` says, then as `then` says. */
-async function open(first: string, then: string, attrs = "") {
+type Step = string | ((menu: HTMLElement) => void);
+
+/** A layer at the end of a tall page, with a menu opened in it: drawn as `first` says, then changed by each step. */
+async function open(first: string, then: Step | Step[], attrs = "") {
   host = document.createElement("div");
   host.innerHTML = `<div style="height:3000px"></div><div style="position:relative;isolation:isolate"><div role="menu" ${attrs} style="width:120px;height:40px;top:100px;left:40px;${first}">Rename</div></div>`;
   const menu = host.querySelector<HTMLElement>("[role=menu]")!;
@@ -21,8 +23,11 @@ async function open(first: string, then: string, attrs = "") {
   watchPopups();
   menu.style.visibility = "";
   await frame();
-  menu.style.cssText += `;${then}`;
-  await frame();
+  for (const step of [then].flat()) {
+    if (typeof step === "string") menu.style.cssText += `;${step}`;
+    else step(menu);
+    await frame();
+  }
   await frame();
   return findPopupJumps();
 }
@@ -51,5 +56,46 @@ describe("popup-first-frame", () => {
 
   it("is left alone where a page allows it with a reason", async () => {
     expect(await open("position:absolute", "position:fixed", 'data-ouro-allow="popup-first-frame" data-ouro-allow-why="a documented demo"')).toEqual([]);
+  });
+
+  it("names a popup that moved after its first frames, by its id and classes, and keeps an earlier reference", async () => {
+    (window as unknown as { __ouroCheckRef?: number }).__ouroCheckRef = 3;
+    const issues = await open("position:fixed", ["position:absolute", "position:fixed"], 'id="m" class="a b" data-ouro-check-ref="w1"');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatchObject({ ref: "p4", element: "div#m.a.b" });
+    expect(issues[0]!.detail).toMatch(/frame \d+ of \d+ visible frame/);
+    expect(host.querySelector("[role=menu]")!.getAttribute("data-ouro-check-ref")).toBe("w1 p4");
+  });
+
+  it("measures a positioner by where it is drawn, as its transform is its placement", async () => {
+    const issues = await open("position:absolute;--anchor-width:10px", "position:fixed");
+    expect(issues).toHaveLength(1);
+  });
+
+  it("reads a popup that opens with the scale and translate properties and a transform as where it settles", async () => {
+    expect(await open("position:fixed;translate:10px;scale:1.2;transform:translateX(5px)", "translate:none;scale:none;transform:none")).toEqual([]);
+    expect(await open("position:fixed;translate:10px 6px;scale:0.9 0.8", "translate:none;scale:none")).toEqual([]);
+  });
+
+  it("does not count a frame where the popup has no size or sits in a hidden box", async () => {
+    expect(await open("position:absolute;width:0px", "position:fixed;width:120px")).toEqual([]);
+    expect(await open("position:absolute;display:none", "position:fixed;display:block")).toEqual([]);
+  });
+
+  it("does not judge a popup that is gone or hidden by the time it is read", async () => {
+    expect(await open("position:absolute", "visibility:hidden")).toEqual([]);
+    expect(await open("position:absolute", (menu) => menu.remove())).toEqual([]);
+  });
+
+  it("starts fresh when it is watching already, and reads nothing when it was never started", async () => {
+    watchPopups();
+    expect(await open("position:fixed", "position:fixed")).toEqual([]);
+    expect(findPopupJumps()).toEqual([]);
+  });
+
+  it("is left alone for all rules with a reason, but not without one", async () => {
+    expect(await open("position:absolute", "position:fixed", 'data-ouro-allow="all" data-ouro-allow-why="a demo"')).toEqual([]);
+    host.remove();
+    expect(await open("position:absolute", "position:fixed", 'data-ouro-allow="popup-first-frame" data-ouro-allow-why=" "')).toHaveLength(1);
   });
 });

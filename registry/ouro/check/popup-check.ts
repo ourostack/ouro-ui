@@ -51,7 +51,7 @@ function watchPopups(): void {
     // A positioner's own transform is its placement, not an opening motion, so it is measured as drawn.
     const s = getComputedStyle(el);
     if ((el as HTMLElement).style.getPropertyValue("--anchor-width")) return { left: r.left, top: r.top, opacity };
-    const [ox = 0, oy = 0] = s.transformOrigin.split(" ").map(parseFloat);
+    const [ox, oy] = s.transformOrigin.split(" ").map(parseFloat) as [number, number];
     const [tx = 0, ty = 0] = s.translate === "none" ? [] : s.translate.split(" ").map(parseFloat);
     const [sx = 1, sy = sx] = s.scale === "none" ? [] : s.scale.split(" ").map(parseFloat);
     const m = s.transform === "none" ? null : new DOMMatrixReadOnly(s.transform);
@@ -95,9 +95,9 @@ function findPopupJumps(): PageIssue[] {
   };
   const describe = (el: Element) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""}`;
   for (const [el, frames] of watching.frames) {
-    const layout = (el as unknown as { __ouroPopupLayout?: (el: Element) => Seen | null }).__ouroPopupLayout;
+    const layout = (el as unknown as { __ouroPopupLayout: (el: Element) => Seen | null }).__ouroPopupLayout;
     delete (el as unknown as { __ouroPopupLayout?: unknown }).__ouroPopupLayout;
-    if (!el.isConnected || optedOut(el) || !layout) continue;
+    if (!el.isConnected || optedOut(el)) continue;
     const settled = layout(el);
     if (!settled) continue;
     const at = frames.findIndex((frame) => Math.abs(frame.left - settled.left) > 2 || Math.abs(frame.top - settled.top) > 2);
