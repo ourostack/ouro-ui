@@ -1405,7 +1405,7 @@ describe("TimeGrid background events", () => {
   it("keeps the full width for events that only touch a background event's time", async () => {
     const busy: TimeGridEvent = { id: "busy", title: "Room booked", start: at(12, "10:00"), end: at(12, "11:00") };
     const ev = (id: string, from: string, to: string): TimeGridEvent => ({ id, title: id, start: at(12, from), end: at(12, to) });
-    const { grid } = await render({ view: "day", events: [ev("Before", "08:00", "10:00"), ev("Touching", "11:00", "11:45"), ev("First", "13:00", "14:00"), ev("Second", "13:30", "14:30")], backgroundEvents: [busy] });
+    await render({ view: "day", events: [ev("Before", "08:00", "10:00"), ev("Touching", "11:00", "11:45"), ev("First", "13:00", "14:00"), ev("Second", "13:30", "14:30")], backgroundEvents: [busy] });
     const body = titled("Before").closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect();
     const inset = (title: string) => titled(title).getBoundingClientRect().left - body.left;
     expect([inset("Before"), inset("Touching")]).toEqual([1, 1]);
