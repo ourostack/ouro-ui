@@ -86,4 +86,16 @@ describe("Toggle disabledReason", () => {
     expect(soft.getAttribute("aria-disabled")).toBe("true");
     expect(soft.getAttribute("aria-pressed")).toBe("true");
   });
+
+  it("Toggle with a reason key presses on its own when no handler is passed, and follows pressed when it is controlled", async () => {
+    await render(<Toggle label="Bold" disabledReason={undefined} />);
+    control().click();
+    await expect.poll(() => control().getAttribute("aria-pressed")).toBe("true");
+    const onChange = vi.fn();
+    await render(<Toggle label="Italic" pressed={false} disabledReason={undefined} onPressedChange={onChange} />);
+    const held = document.querySelectorAll<HTMLElement>('button[data-ouro="toggle"]')[1]!;
+    held.click();
+    expect(onChange).toHaveBeenCalledWith(true);
+    expect(held.getAttribute("aria-pressed")).toBe("false");
+  });
 });
