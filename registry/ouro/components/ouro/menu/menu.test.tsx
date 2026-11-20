@@ -596,6 +596,81 @@ describe("Menu items", () => {
     await expect.poll(() => menus().length).toBe(1);
   });
 
+  it("keeps a submenu the keyboard closed shut under a pointer resting where it was, and opens it once the pointer moves", async () => {
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+        <MenuSub label="Share">
+          <MenuItem>Copy link</MenuItem>
+        </MenuSub>
+      </Menu>,
+    );
+    trigger().focus();
+    await userEvent.keyboard("{Enter}");
+    await settled();
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Copy link");
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => menus().length).toBe(1);
+    const share = document.activeElement as HTMLElement;
+    expect(share.textContent).toContain("Share");
+    const box = share.getBoundingClientRect();
+    const [x, y] = [Math.round(box.left + box.width / 2), Math.round(box.top + box.height / 2)];
+    // What a browser sends to a pointer that stayed still while the submenu, which lay under it, closed: the item it now rests on is entered.
+    const pointerAt = (left: number) => {
+      share.dispatchEvent(new MouseEvent("mouseenter", { clientX: left, clientY: y }));
+      share.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: left, clientY: y }));
+    };
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await act(async () => {
+        pointerAt(x);
+        pointerAt(x);
+        vi.advanceTimersByTime(2000);
+      });
+      expect(share.getAttribute("aria-expanded")).toBe("false");
+      expect(menus().length).toBe(1);
+      await act(async () => {
+        pointerAt(x + 4);
+        vi.advanceTimersByTime(2000);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    await expect.poll(() => share.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("opens a submenu the keyboard closed when its item is clicked where the pointer rests", async () => {
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+        <MenuSub label="Share">
+          <MenuItem>Copy link</MenuItem>
+        </MenuSub>
+      </Menu>,
+    );
+    trigger().focus();
+    await userEvent.keyboard("{Enter}");
+    await settled();
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Copy link");
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => menus().length).toBe(1);
+    const share = document.activeElement as HTMLElement;
+    const box = share.getBoundingClientRect();
+    const at = { clientX: Math.round(box.left + box.width / 2), clientY: Math.round(box.top + box.height / 2) };
+    // The pointer enters the item and is held there, then presses it without moving.
+    await act(async () => {
+      share.dispatchEvent(new MouseEvent("mouseenter", at));
+      share.dispatchEvent(new MouseEvent("mousemove", { ...at, bubbles: true }));
+    });
+    await userEvent.click(share, { position: { x: at.clientX - box.left, y: at.clientY - box.top } });
+    await expect.poll(() => share.getAttribute("aria-expanded")).toBe("true");
+    await commands.parkPointer();
+  });
+
   it("opens a submenu with ArrowLeft in a right-to-left page, where it opens to the left, and closes it with ArrowRight", async () => {
     document.documentElement.dir = "rtl";
     try {

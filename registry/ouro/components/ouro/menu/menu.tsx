@@ -1243,9 +1243,41 @@ export function MenuSub({ label, children, disabled, backLabel = "Back" }: MenuS
   const { sheet } = useMenuPart("MenuSub", '<MenuSub label="Share">…</MenuSub>');
   // Owned here, so the Back item can close only this submenu.
   const [open, setOpen] = useState(false);
+  // Once the submenu closes other than by the pointer leaving (the left arrow, Escape, a press), a pointer resting on its item
+  // opens it again only after it moves. A pointer left where the submenu lay is over the item once it closes, and the browser
+  // tells the item so: without this, a submenu the keyboard closed would open again under a still pointer (ourostack/ouro-ui#2652).
+  // undefined: not held; null: held, the pointer's place not known yet; else where the pointer rests.
+  const rest = useRef<{ x: number; y: number } | null | undefined>(undefined);
+  const onOpenChange = (next: boolean, details: BaseMenu.SubmenuRoot.ChangeEventDetails) => {
+    if (next && details.reason === "trigger-hover" && rest.current !== undefined) {
+      const { clientX: x, clientY: y } = details.event as globalThis.MouseEvent;
+      const moved = rest.current !== null && (rest.current.x !== x || rest.current.y !== y);
+      if (!moved) {
+        rest.current = { x, y };
+        // Canceled, not just ignored: Base UI then keeps no record of a hover open, so a press on the item still opens it.
+        details.cancel();
+        return;
+      }
+    }
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: a pointer that left the item and comes back has moved, so holding after the pointer closed the submenu, or while it is open, only waits for one more of its events, which no one can tell.
+    rest.current = next || details.reason === "trigger-hover" ? undefined : null;
+    setOpen(next);
+  };
   return (
-    <BaseMenu.SubmenuRoot open={open} onOpenChange={setOpen} disabled={disabled}>
-      <BaseMenu.SubmenuTrigger data-ouro-control="menu" data-ouro-part="submenu-trigger" className={menuItemClass} disabled={disabled} openOnHover={!sheet}>
+    <BaseMenu.SubmenuRoot open={open} onOpenChange={onOpenChange} disabled={disabled}>
+      <BaseMenu.SubmenuTrigger
+        data-ouro-control="menu"
+        data-ouro-part="submenu-trigger"
+        className={menuItemClass}
+        disabled={disabled}
+        openOnHover={!sheet}
+        // Base UI leaves a mouse's press to the hover, which a held pointer does not give: a press opens the submenu itself.
+        onClick={(event) => {
+          if (open || event.detail === 0 || rest.current === undefined) return;
+          rest.current = undefined;
+          setOpen(true);
+        }}
+      >
         <span data-ouro-menu-label="" className="flex min-w-0 flex-1 items-center gap-2">
           {label}
         </span>
