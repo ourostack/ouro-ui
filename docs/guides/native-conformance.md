@@ -14,7 +14,7 @@ The kits run the cases with their own code, on their own toolchains, in their ow
 
 `scripts/cross-kit/table.mjs` prints a table of kits and a table of cases.[^table] The kit table compares the case files a kit vendors with core's, byte for byte, and links the latest main CI job that runs them.[^table] The case table lists the core cases down the side and the kits across the top, read from the log of that job: `pass`, `FAIL`, or `-` where a kit's log names no such case.[^table] When Apple's results joined it in [#2496](https://github.com/ourostack/ouro-ui/pull/2496 "verify:urlOk(https://github.com/ourostack/ouro-ui/pull/2496)"), the grid was complete and all four kits passed all 13 cases.
 
-Run it with core's checkout first, then the web, Apple, Windows and Android checkouts, in that order: `node scripts/cross-kit/table.mjs <core> <ouro-ui> <ouro-ui-apple> <ouro-ui-windows> <ouro-ui-android>`. It needs `gh` signed in to read the kits' logs. Its parsers have tests against sample logs from each kit.[^tests]
+Run it with core's checkout first, then the web, Apple, Windows and Android checkouts, in that order: `node scripts/cross-kit/table.mjs <core> <ouro-ui> <ouro-ui-apple> <ouro-ui-windows> <ouro-ui-android>`. It needs `gh` signed in to read the kits' logs. The parsers for web, Apple and Windows have tests against sample logs; Android's has none yet.[^tests]
 
 ## What is not shared
 
