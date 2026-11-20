@@ -68,6 +68,56 @@ test("a change to checkbox-styles.ts selects checkbox, its siblings and every co
   assert.ok(impact.reasons.some((reason) => /checklist: imports checkbox/.test(reason)), impact.reasons.join("\n"));
 });
 
+test("a change to checkbox's type test plans no component's tests or stories: only tsc reads it, in pnpm typecheck on every run", () => {
+  const impact = testImpact([`${components}/checkbox/checkbox.test-d.ts`], fixture());
+  assert.equal(impact.full, false);
+  assert.deepEqual(impact.components, []);
+  assert.deepEqual(impact.rendered, []);
+  assert.deepEqual(impact.reasons, [`${components}/checkbox/checkbox.test-d.ts: a type test, which only tsc reads (pnpm typecheck, on every run), no component's tests`]);
+});
+
+test("a change to checkbox's tests runs checkbox's tests, and renders no story: no component's code changed, so its importers' tests and stories stay out", () => {
+  const impact = testImpact([`${components}/checkbox/checkbox.test.tsx`], fixture());
+  assert.equal(impact.full, false);
+  assert.deepEqual(impact.components, ["checkbox", "checkbox-group"]);
+  assert.deepEqual(impact.rendered, []);
+  assert.deepEqual(impact.reasons, [`${components}/checkbox/checkbox.test.tsx: a test in the checkbox folder (checkbox, checkbox-group), which runs that folder's tests and renders no story`]);
+});
+
+test("a change to checkbox's code and its tests together still renders checkbox and its importers", () => {
+  const impact = testImpact([`${components}/checkbox/checkbox.test.tsx`, `${components}/checkbox/checkbox.tsx`], fixture());
+  assert.deepEqual(impact.components, ["checkbox", "checkbox-group", "checklist", "form", "radio", "toggle"]);
+  assert.deepEqual(impact.rendered, impact.components);
+});
+
+test("a change to radio's tests and checkbox's code runs both folders' tests, and renders only what checkbox's code reaches", () => {
+  const impact = testImpact([`${components}/radio/radio.test.tsx`, `${components}/checkbox/checkbox-styles.ts`], fixture());
+  assert.deepEqual(impact.components, ["checkbox", "checkbox-group", "checklist", "form", "radio", "toggle"]);
+  assert.deepEqual(impact.rendered, ["checkbox", "checkbox-group", "checklist", "form", "radio", "toggle"]);
+  const tests = testImpact([`${components}/field/field.test.tsx`, `${components}/checkbox/checkbox-styles.ts`], fixture());
+  assert.ok(tests.components.includes("field") && !tests.rendered.includes("field"), JSON.stringify(tests));
+});
+
+test("in this repository, a change to button.test-d.ts alone plans no conformance or story work, for button or any component that imports it", () => {
+  const impact = testImpact([`${components}/button/button.test-d.ts`]);
+  assert.equal(impact.full, false);
+  assert.deepEqual(impact.components, []);
+  assert.deepEqual(impact.rendered, []);
+  assert.equal(storyFolders(impact.rendered), "");
+});
+
+test("in this repository, a change to button.test.tsx alone runs button's tests and renders no story, for button or the components that import it", () => {
+  const impact = testImpact([`${components}/button/button.test.tsx`]);
+  assert.equal(impact.full, false);
+  assert.deepEqual(impact.components, ["button"]);
+  assert.deepEqual(impact.rendered, []);
+});
+
+test("a full run renders every component", () => {
+  const impact = testImpact(["package.json"], fixture());
+  assert.deepEqual(impact.rendered, impact.components);
+});
+
 test("in this repository, a change to checkbox-styles.ts selects checkbox and checkbox-group, and not slider", () => {
   const impact = testImpact([`${components}/checkbox/checkbox-styles.ts`]);
   assert.equal(impact.full, false);
@@ -77,7 +127,7 @@ test("in this repository, a change to checkbox-styles.ts selects checkbox and ch
 
 test("a component's own end-to-end spec selects that component", () => {
   const impact = testImpact(["registry/ouro/e2e/ouro/checklist.spec.ts"], fixture());
-  assert.deepEqual(impact, { full: false, reasons: ["registry/ouro/e2e/ouro/checklist.spec.ts: checklist's end-to-end spec", "form: its tests, stories or docs demo import checklist"], components: ["checklist", "form"] });
+  assert.deepEqual(impact, { full: false, reasons: ["registry/ouro/e2e/ouro/checklist.spec.ts: checklist's end-to-end spec", "form: its tests, stories or docs demo import checklist"], components: ["checklist", "form"], rendered: ["checklist", "form"] });
 });
 
 for (const [path, reason] of [
@@ -171,7 +221,7 @@ test("in this repository, a change to dialog's tests measures button, sheet and 
 
 test("a docs demo selects its component; the site's stylesheet, which the text-size scan reads, runs everything", () => {
   const dir = fixture();
-  assert.deepEqual(testImpact(["site/src/docs/demos/checklist.demo.tsx"], dir), { full: false, reasons: ["site/src/docs/demos/checklist.demo.tsx: checklist's docs demo", "form: its tests, stories or docs demo import checklist"], components: ["checklist", "form"] });
+  assert.deepEqual(testImpact(["site/src/docs/demos/checklist.demo.tsx"], dir), { full: false, reasons: ["site/src/docs/demos/checklist.demo.tsx: checklist's docs demo", "form: its tests, stories or docs demo import checklist"], components: ["checklist", "form"], rendered: ["checklist", "form"] });
   const css = testImpact(["site/src/styles.css"], dir);
   assert.equal(css.full, true);
   assert.match(css.reasons[0], /^site\/src\/styles\.css: the site's stylesheet, which the text-size scan reads/);

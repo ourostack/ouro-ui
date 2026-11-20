@@ -10,7 +10,7 @@ OURO_STORIES=pagination pnpm conformance          # the stories of the folders a
 OURO_CONFORMANCE_SHARD=2/4 pnpm conformance       # one CI shard: every 4th story from the 2nd
 ```
 
-The checks live in `test/conformance/` and run in their own Vitest project, `conformance` (Chromium only, `OURO_CONFORMANCE=1`), so `pnpm test` leaves them out. CI's `conformance (n/3)` jobs run them in three shards on a pull request and two on main (`OURO_CONFORMANCE_SHARD`), each shard every *n*th story, so the shards take about as long as each other, and the `conformance` job, the check the rules require, passes when every shard did.[^shards] On a pull request the shards render only the stories `scripts/test-impact.mjs` selects, as the other shared suites do. A reduced pull request starts one shard for them, since a few stories keep two more shards idle.[^shards]
+The checks live in `test/conformance/` and run in their own Vitest project, `conformance` (Chromium only, `OURO_CONFORMANCE=1`), so `pnpm test` leaves them out. CI's `conformance (n/3)` jobs run them in three shards on a pull request and two on main (`OURO_CONFORMANCE_SHARD`), each shard every *n*th story, so the shards take about as long as each other, and the `conformance` job, the check the rules require, passes when every shard did.[^shards] On a pull request the shards render only the stories `scripts/test-impact.mjs` selects, as the other shared suites do. A change to a component's tests alone selects none of its stories, since its code did not change: its own tests run, and a type test (`*.test-d.ts`) only in `pnpm typecheck`. A reduced pull request starts one shard for them, since a few stories keep two more shards idle.[^shards]
 
 ## The checks
 

@@ -74,6 +74,7 @@ jobs:
     outputs:
       full: ${{ steps.plan.outputs.full }}
       components: ${{ steps.plan.outputs.components }}
+      rendered: ${{ steps.plan.outputs.rendered }}
       tested: ${{ steps.tested.outputs.tested }}
       tree: ${{ steps.tree.outputs.tree }}
       design: ${{ steps.design.outputs.run }}
@@ -1508,7 +1509,8 @@ jobs:
         OURO_SYSTEM_PACKAGES: image
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
-      COMPONENTS: ${{ needs.plan.outputs.components }}
+      # The components whose stories can render differently: not those whose tests alone changed (scripts/test-impact.mjs).
+      COMPONENTS: ${{ needs.plan.outputs.rendered }}
       HEAVY: ${{ needs.plan.outputs.heavy }}
     strategy:
       fail-fast: false
@@ -1569,7 +1571,7 @@ jobs:
           elif [ "$FULL" = true ] || [ -n "$COMPONENTS" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Not affected: this pull request changes no component, so no story's theme scan can change. Nothing to run."
+            echo "Not affected: this pull request changes no component's code or stories, so no story's theme scan can change. Nothing to run."
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.affected.outputs.run == 'true'
@@ -1611,7 +1613,8 @@ jobs:
         OURO_SYSTEM_PACKAGES: image
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
-      COMPONENTS: ${{ needs.plan.outputs.components }}
+      # The components whose stories can render differently: not those whose tests alone changed (scripts/test-impact.mjs).
+      COMPONENTS: ${{ needs.plan.outputs.rendered }}
       SHARD: ${{ matrix.shard }}
     strategy:
       fail-fast: false
@@ -1671,10 +1674,10 @@ jobs:
           if [ "$FULL" = true ] || [ -n "$COMPONENTS" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           elif [ "$SHARD" = 1 ]; then
-            echo "Not affected: this pull request changes no component, so no story's conformance can change. The checks still prove they can fail."
+            echo "Not affected: this pull request changes no component's code or stories, so no story's conformance can change. The checks still prove they can fail."
             echo "run=proofs" >> "$GITHUB_OUTPUT"
           else
-            echo "Not affected: this pull request changes no component, so no story's conformance can change. Nothing to run."
+            echo "Not affected: this pull request changes no component's code or stories, so no story's conformance can change. Nothing to run."
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.affected.outputs.run != 'false'
@@ -2234,7 +2237,8 @@ jobs:
     name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
-      COMPONENTS: ${{ needs.plan.outputs.components }}
+      # The components whose code or specs changed, with their importers: not those whose tests alone changed (scripts/test-impact.mjs).
+      COMPONENTS: ${{ needs.plan.outputs.rendered }}
       SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
       OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
