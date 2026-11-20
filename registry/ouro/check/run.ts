@@ -1270,7 +1270,7 @@ function handoff({ findings, pages, sizes, themes }: Report, usability: Usabilit
     "",
     `- ${pages.length} page${pages.length === 1 ? "" : "s"} at ${sizes.length} size${sizes.length === 1 ? "" : "s"}, ${themes.join(" and ")}.`,
     `- The rules: ${RULES.map((rule) => LABELS[rule]).join(", ")}.`,
-    gated ? `- ${gated} finding${gated === 1 ? "" : "s"} still fail: fix them before a person looks, so the session is spent on the task and not on a broken screen.` : "- No finding fails.",
+    gated ? `- Failing findings: ${gated}. Fix them before a person looks, so the session is spent on the task and not on a broken screen.` : "- No finding fails.",
     "",
     "#### Left to a person",
     "",

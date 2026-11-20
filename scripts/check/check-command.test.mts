@@ -249,6 +249,9 @@ module.exports = { chromium: { launch: async (options) => {
       [{ firstRun: { empty: 3 } }, /"firstRun" takes signIn/],
       [{ firstRun: { progress: " " } }, /"firstRun" takes signIn/],
       [{ firstRun: { signedOut: "true" } }, /"firstRun" takes signIn/],
+      [{ usability: "book" }, /"usability" takes sessions/],
+      [{ usability: [{ task: "t", outcome: "o" }] }, /"usability" takes sessions/],
+      [{ usability: [{ task: "t", outcome: "o", observe: "w", page: " " }] }, /"usability" takes sessions/],
       [{ waive: { "/art/**": { "blurry-image": "soft on purpose" } } }, /"waive" > "\/art\/\*\*" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source/],
     ] as [object, RegExp][]) {
       writeFileSync(join(scratch, "press.json"), JSON.stringify(config));
@@ -322,5 +325,7 @@ module.exports = { chromium: { launch: async (options) => {
     assert.match(text, /^1\. \*\*Book an appointment\*\* \(on `\/a\.html`\)$/m);
     assert.match(text, /Ask afterwards: What appointment do you have now\?/);
     assert.match(handoff(base), /The config declares none/);
+    const failing = { ...base, findings: [{ site: "s", page: "/a.html", width: 390, height: 844, theme: "light", rule: "overlap", element: "p", detail: "", gated: true }] as Finding[] };
+    assert.match(handoff(failing), /^- Failing findings: 1\. Fix them before a person looks/m);
   });
 });

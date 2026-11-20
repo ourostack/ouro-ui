@@ -64,10 +64,12 @@ describe("Ouro check", () => {
     });
     for (const file of ["picture-160.png", "picture-960.png"]) copyFileSync(join(fixtures, file), join(art, file));
     const cwd = dir("art-cwd");
-    writeFileSync(join(cwd, "ouro-check.json"), JSON.stringify({ waive: { "**": { "*": "everything on purpose" } } }));
-    const result = await run([art, "--sizes", "390x844,1440x900", "--themes", "light", "--no-axe", "--no-measured", "--out", "first", "--images-report", "reports/images.json"], { cwd, env: { BROWSER_EXECUTABLE: browser } });
+    writeFileSync(join(cwd, "ouro-check.json"), JSON.stringify({ waive: { "**": { "*": "everything on purpose" } }, usability: [{ task: "Read the art page", outcome: "What is the picture of?", observe: "Where they squint" }] }));
+    const result = await run([art, "--sizes", "390x844,1440x900", "--themes", "light", "--no-axe", "--no-measured", "--out", "first", "--images-report", "reports/images.json", "--handoff"], { cwd, env: { BROWSER_EXECUTABLE: browser } });
     assert.equal(result.code, 3, result.out + result.err);
     assert.match(result.out, /Images report: 1 picture\(s\) too small for where they are drawn, in reports\/images\.json/);
+    assert.match(result.out, /Handoff: first\/handoff\.md/);
+    assert.match(readFileSync(join(cwd, "first", "handoff.md"), "utf8"), /Read the art page/);
     const { images } = JSON.parse(readFileSync(join(cwd, "reports", "images.json"), "utf8")) as { images: Record<string, unknown>[] };
     assert.deepEqual(images, [
       {
@@ -93,8 +95,9 @@ describe("Ouro check", () => {
       ["/other.html", "blurry-image", 'p "Words" [data-ouro-allow="blurry-image"]'],
       ["/page.html", "blurry-image", "picture-160.png"],
     ]);
-    const merged = await run(["merge", "first", "--out", "merged", "--images-report", "merged.json"], { cwd });
+    const merged = await run(["merge", "first", "--out", "merged", "--images-report", "merged.json", "--handoff"], { cwd });
     assert.equal(merged.code, 3, merged.err);
+    assert.match(readFileSync(join(cwd, "merged", "handoff.md"), "utf8"), /Read the art page/);
     assert.deepEqual(JSON.parse(readFileSync(join(cwd, "merged.json"), "utf8")), { images });
   });
 
