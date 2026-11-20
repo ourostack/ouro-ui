@@ -920,7 +920,7 @@ The rules:
 
 MIT
 
-[^glance-what]: test/stories.test.tsx verify:testExists(test/stories.test.tsx::at $width px > %s > $id has no axe violations, closed and with each overlay open)
+[^glance-what]: test/stories.test.tsx verify:testExists(test/stories.test.tsx::at $width px > %s > $id has no axe violations, closed and with each overlay open) verify:fileLine(package.json, /"@base-ui\/react"/) verify:fileLine(package.json, /"tailwindcss"/) verify:fileLine(docs/platforms/apple.md, /Swift/) verify:fileLine(docs/platforms/windows.md, /WinUI/) verify:fileLine(docs/platforms/android.md, /Compose/) verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated) verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > draws a composed tree in structuredContent.ouro with ComposedSurface) verify:fileLine(scripts/install-test.sh, /shadcn@4\.21\.1/)
 [^glance-licence]: LICENSE verify:fileLine(LICENSE, /^MIT License$/) verify:fileLine(LICENSE, /Copyright \(c\) 2026 Ari Mendelow/)
 [^glance-apple]: site/src/apple/kit.json verify:fileLine(site/src/apple/kit.json, /"components"/)
 [^glance-windows]: docs/platforms/windows.md verify:fileLine(docs/platforms/windows.md, /The kit has eight of core's components as WinUI 3 controls/)
