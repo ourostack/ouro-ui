@@ -215,7 +215,7 @@ All eight models say they build the happy path and miss empty, error, slow and l
 
 #### Passing checks only shows a screen isn't broken, not that it's good.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2289](https://github.com/ourostack/ouro-ui/issues/2289).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2289](https://github.com/ourostack/ouro-ui/issues/2289). What changed: Ouro check's report now names the floor it proves, and ends with a "Needs a person" list of what it can't see.
 
 All eight models said green tests, clean accessibility scans and polished screenshots mean 'not obviously broken', and several quoted Ouro's own report that a conformant build still failed 30 of 593 scripted flow checks. Observed sessions with people were the deciding test in 84 of 96 decisions. This collides with Ouro's line that its tools are how an agent proves a screen is good for a person, and an agent told that will discount them. Ouro should say its checks prove the mechanical floor (states, focus, contrast, targets), name what they can't see, and point to the human check.
 
