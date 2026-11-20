@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Collapsible: the title button stays within its root, so a title that shortens does and what follows it stays in view (#2501).
