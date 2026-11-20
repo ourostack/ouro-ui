@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 
-import { caption, dprAt, EXIT, group, inSweepOrder, LABELS, parseArgs, RULES, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
+import { caption, dprAt, EXIT, group, inSweepOrder, LABELS, needsAPerson, parseArgs, RULES, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { serve } from "../../registry/ouro/check/serve.ts";
 import { browser, dir, fixtures, playwrightModule, require, root, run, scratch, site, two } from "./kit.mts";
@@ -295,5 +295,18 @@ module.exports = { chromium: { launch: async (options) => {
     assert.match(one, /^\| · \| `s \/a\.html` \|/m);
     assert.doesNotMatch(one, /Fixed since/);
     assert.doesNotMatch(summary({ targets: [], sizes: two, themes: ["light"], pages: [], findings: [], fixed: [], candidates: [], shots: [], allowances: [] }), /Every finding/);
+  });
+
+  test("the summary names the floor and ends with what needs a person, drawn from what the page holds", () => {
+    const page = { site: "s", page: "/a.html", name: "a" };
+    const base = { targets: [], sizes: [[390, 844]] as [number, number][], themes: ["light"], findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
+    const text = summary({ ...base, pages: [{ ...page, asks: ["destructive", "form"] }] });
+    assert.match(text, /^This check proves the floor: /m);
+    assert.match(text, /^#### Needs a person$/m);
+    assert.match(text, /^- `s \/a\.html`: Do they know what will be lost before they confirm\?$/m);
+    assert.match(text, /^- `s \/a\.html`: Do they know it saved\?$/m);
+    assert.equal(text.trimEnd().split("\n").at(-1), "- Whether it works with the device, the assistive technology and the network they actually use.");
+    assert.match(summary({ ...base, pages: [page] }), /^#### Needs a person$/m);
+    assert.deepEqual(needsAPerson(["nothing-known"]), []);
   });
 });

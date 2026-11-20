@@ -347,8 +347,8 @@
         }
       ],
       "issue": 2289,
-      "status": "open",
-      "change": null
+      "status": "in progress",
+      "change": "Ouro check's report now names the floor it proves, and ends with a \"Needs a person\" list of what it can't see."
     },
     {
       "id": "only-people-prove-good",
