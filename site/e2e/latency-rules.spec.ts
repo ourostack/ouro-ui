@@ -193,7 +193,10 @@ test.describe("a runner the probe reads past the cap", () => {
   });
 
   test("re-measures a fast control too, carrying its presses on: a spiky runner fails it as too loaded to judge, and a steady one judges it at the cap, failing only a miss there", async ({ page }) => {
-    // The default time limit for one measurement: each re-measure extends it by what it needs.
+    // Four measurements where a control runs one (overloaded twice, then later and missed), each with its probe rounds:
+    // a loaded runner ran the last out of a limit sized for two (ourostack/ouro-ui#2529).
+    test.slow();
+    // The time limit before any re-measure: each re-measure extends it by what it needs.
     const limit = test.info().timeout;
     await page.setContent(`<button id="b">Press</button><output id="o"></output>`);
     await page.evaluate(() => document.getElementById("b")!.addEventListener("click", () => (document.getElementById("o")!.textContent = String(Math.random()))));
