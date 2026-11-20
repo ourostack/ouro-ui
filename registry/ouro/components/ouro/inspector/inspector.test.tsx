@@ -616,6 +616,52 @@ describe("Inspector", () => {
     expect(host.querySelector<HTMLElement>(".sr-only[data-ouro]")!.getBoundingClientRect().width).toBe(1);
   });
 
+  it("outlines a page's own controls by role and accessible name, with the action each is bound to, only when controls is set", async () => {
+    const own = (
+      <div>
+        <button type="button" data-ax-action="pay-invoice">Pay invoice</button>
+        <a href="/help">Help</a>
+        <label>
+          Email <input type="text" />
+        </label>
+        <button type="button" aria-label="Close panel">x</button>
+      </div>
+    );
+    await render(<Page inspector={{ controls: true }}>{own}</Page>);
+    await drawn(7);
+    const names = tags().map((tag) => tag.textContent);
+    expect(names.slice(3)).toEqual(["button: Pay invoice → pay-invoice", "link: Help", "textbox: Email", "button: Close panel"]);
+    expect(tags().slice(3).every((tag) => !tag.hasAttribute("href"))).toBe(true);
+  });
+
+  it("starts and stops outlining a page's own controls when controls changes while X-ray is open", async () => {
+    function Toggle() {
+      const [on, setOn] = useState(false);
+      return (
+        <Page inspector={{ controls: on }}>
+          <button type="button" onClick={() => setOn((value) => !value)}>Switch</button>
+        </Page>
+      );
+    }
+    await render(<Toggle />);
+    await drawn(3);
+    await userEvent.click(page.getByRole("button", { name: "Switch" }));
+    await drawn(4);
+    expect(tags().map((tag) => tag.textContent)).toContain("button: Switch");
+    await userEvent.click(page.getByRole("button", { name: "Switch" }));
+    await drawn(3);
+  });
+
+  it("leaves a page's own controls alone unless controls is set", async () => {
+    await render(
+      <Page>
+        <button type="button">Plain</button>
+      </Page>,
+    );
+    await drawn(3);
+    expect(tags().map((tag) => tag.textContent)).toEqual(["button", "badge", "checkbox"]);
+  });
+
   it("does not outline a component no one can see, and outlines it while hover or focus shows it", async () => {
     const { host } = await render(
       <Page>

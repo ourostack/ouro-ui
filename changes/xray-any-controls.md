@@ -1,0 +1,1 @@
+- New: `Inspector` takes `controls`, which also outlines a page's own buttons, links and fields by role and accessible name, with the AX action they are bound to, so X-ray works on a page built with another library.
