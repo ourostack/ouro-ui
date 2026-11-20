@@ -2,6 +2,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Menu, MenuItem } from "@/registry/ouro/components/ouro/menu/menu";
 import { NumberField } from "@/registry/ouro/components/ouro/number-field/number-field";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -87,7 +88,7 @@ describe("keyboard-only focus rings", () => {
   it("rings the field a script focuses after a key press, and not after a press", async () => {
     const { open, box, input } = await mount();
     open.focus();
-    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{ArrowDown}");
     input.focus();
     expect(ring(box)).toBe(true);
     input.blur();
@@ -146,5 +147,57 @@ describe("keyboard-only focus rings", () => {
     document.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "mouse" }));
     watch.stop();
     expect(watch.names()).toEqual([]);
+  });
+
+  it("keeps a ring on the trigger that gets focus back after Tab, Enter, an arrow and Escape", async () => {
+    host = document.createElement("div");
+    document.body.append(host);
+    root = createRoot(host);
+    await act(async () =>
+      root!.render(
+        <Menu trigger={<Button>Actions</Button>}>
+          <MenuItem>Edit</MenuItem>
+          <MenuItem>Copy</MenuItem>
+        </Menu>,
+      ),
+    );
+    const trigger = host.querySelector("button")!;
+    await pressTab();
+    expect(document.activeElement).toBe(trigger);
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelector('[role="menu"]')).not.toBeNull();
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(trigger);
+    expect(document.documentElement.dataset.ouroModality).toBe("keyboard");
+    expect(ring(trigger)).toBe(true);
+  });
+
+  it("draws no ring on the trigger that gets focus back after a click, a click-opened menu and Escape", async () => {
+    host = document.createElement("div");
+    document.body.append(host);
+    root = createRoot(host);
+    await act(async () =>
+      root!.render(
+        <Menu trigger={<Button>Actions</Button>}>
+          <MenuItem>Edit</MenuItem>
+        </Menu>,
+      ),
+    );
+    const trigger = host.querySelector("button")!;
+    await userEvent.click(trigger);
+    await expect.poll(() => document.querySelector('[role="menu"]')).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(trigger);
+    expect(document.documentElement.dataset.ouroModality).toBe("pointer");
+    expect(ring(trigger)).toBe(false);
+  });
+
+  it("stays in pointer modality while a person types into a field they clicked", async () => {
+    const { input } = await mount();
+    await userEvent.click(input);
+    await userEvent.keyboard("hello");
+    await userEvent.keyboard("{Meta>}k{/Meta}");
+    expect(document.documentElement.dataset.ouroModality).toBe("pointer");
   });
 });

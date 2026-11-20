@@ -1,1 +1,2 @@
 - Keyboard-only focus rings: the last-input tracker marks the focused element with `data-ouro-pressed-focus` after a press, and the rings read that mark instead of `data-ouro-modality` on `<html>`, so a press after a key restyles the focused element rather than the whole page (#2524).
+- Changed: Ouro check's `focus-ring` rule takes the `data-ouro-pressed-focus` mark off a control it focuses, as it sets keyboard modality, so a control focused after a click is judged with its keyboard ring (#2524).
