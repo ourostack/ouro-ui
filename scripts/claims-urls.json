@@ -479,10 +479,6 @@
     "status": 200,
     "checked": "2026-11-19"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/1bc6f3aadb0b459f800cb795518bd8e6c5e4a316/parity.json": {
-    "status": 200,
-    "checked": "2026-11-20"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45": {
     "status": 200,
     "checked": "2026-11-18"
@@ -522,6 +518,10 @@
   "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md": {
     "status": 200,
     "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/952b3aa17b9a8bc2c2c2cd78b943393158650673/parity.json": {
+    "status": 200,
+    "checked": "2026-11-20"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/9620eb4d6e99f276f1146b3e0e5cdbc2a71152cf/AGENTS.md#L31": {
     "status": 200,
@@ -635,7 +635,7 @@
     "status": 200,
     "checked": "2026-11-19"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v1.4.0": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v1.4.1": {
     "status": 200,
     "checked": "2026-11-20"
   },
