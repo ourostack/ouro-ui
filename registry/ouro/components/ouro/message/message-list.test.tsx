@@ -3059,6 +3059,30 @@ describe("MessageList's place, to the pixel", () => {
   }
 });
 
+describe("MessageList jump pill hover", () => {
+  it("fills a hovered Jump to latest pill with --ouro-jump-hover, and with the accent colour where the theme sets none", async () => {
+    const { host, scroller } = await render(<Chat items={history(20)} />);
+    await wheel(scroller, -400);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    const element = pill.element() as HTMLElement;
+    const probe = document.createElement("span");
+    probe.style.backgroundColor = "var(--accent)";
+    document.body.append(probe);
+    try {
+      const accent = getComputedStyle(probe).backgroundColor;
+      await userEvent.hover(element);
+      await expect.poll(() => element.matches(":hover")).toBe(true);
+      await expect.poll(() => getComputedStyle(element).backgroundColor).toBe(accent);
+
+      host.style.setProperty("--ouro-jump-hover", "rgb(12, 34, 56)");
+      await expect.poll(() => getComputedStyle(element).backgroundColor).toBe("rgb(12, 34, 56)");
+    } finally {
+      probe.remove();
+    }
+  });
+});
+
 describe("MessageList switching conversations", () => {
   /** A conversation with someone, its messages' ids and text their own. */
   const conversation = (name: string, count: number): Item[] => history(count).map((item) => ({ ...item, id: `${name}-${item.id}`, text: `${name}: ${item.text}` }));

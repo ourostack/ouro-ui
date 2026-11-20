@@ -395,7 +395,7 @@ const toneFillClass: Record<TimeGridTone, string> = {
  * @claim "The page-coloured fill of" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /status === "busy" \? toneFillClass\[tone\] : plainFillClass/)
  */
 const plainFillClass =
-  "bg-background pointer-fine:hover:bg-accent active:bg-accent aria-[current=true]:bg-[color-mix(in_oklab,var(--foreground)_14%,var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_18%,var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--foreground)_18%,var(--background))]";
+  "bg-background pointer-fine:hover:bg-(--ouro-time-grid-hover,var(--accent)) active:bg-accent aria-[current=true]:bg-[color-mix(in_oklab,var(--foreground)_14%,var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_18%,var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--foreground)_18%,var(--background))]";
 
 /**
  * A background event's fill: a step off the page whatever its tone, so it reads as secondary

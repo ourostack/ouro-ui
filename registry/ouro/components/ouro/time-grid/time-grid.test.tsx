@@ -1307,6 +1307,34 @@ describe("TimeGrid", () => {
   });
 });
 
+describe("TimeGrid plain event hover", () => {
+  it("fills a hovered free or tentative event with --ouro-time-grid-hover, and with the accent colour where the theme sets none", async () => {
+    const { host, grid } = await render({
+      view: "day",
+      events: [
+        { id: "lunch", title: "Lunch", start: at(12, "12:00"), end: at(12, "13:00"), status: "free" },
+        { id: "pairing", title: "Pairing", start: at(12, "14:00"), end: at(12, "15:00"), status: "tentative" },
+      ],
+    });
+    const probe = document.createElement("span");
+    probe.style.backgroundColor = "var(--accent)";
+    grid.append(probe);
+    const accent = getComputedStyle(probe).backgroundColor;
+    for (const title of ["Lunch", "Pairing"]) {
+      await userEvent.hover(titled(title));
+      await expect.poll(() => titled(title).matches(":hover")).toBe(true);
+      await expect.poll(() => getComputedStyle(titled(title)).backgroundColor).toBe(accent);
+    }
+
+    host.style.setProperty("--ouro-time-grid-hover", "rgb(12, 34, 56)");
+    for (const title of ["Lunch", "Pairing"]) {
+      await userEvent.hover(titled(title));
+      await expect.poll(() => titled(title).matches(":hover")).toBe(true);
+      await expect.poll(() => getComputedStyle(titled(title)).backgroundColor).toBe("rgb(12, 34, 56)");
+    }
+  });
+});
+
 describe("TimeGrid background events", () => {
   const hands: TimeGridEvent = { id: "hands", title: "All hands", start: at(12, "10:00"), end: at(12, "11:00"), tone: "success", description: "412 people" };
   const review: TimeGridEvent = { id: "review", title: "Budget review", start: at(12, "10:30"), end: at(12, "11:30") };
