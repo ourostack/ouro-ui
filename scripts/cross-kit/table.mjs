@@ -99,7 +99,9 @@ function latestComponentCases(k) {
       const cases = found ? parseComponentCases(k.kit, jobLog(k.repo, found.databaseId)) : new Map();
       if (cases.size > 0) return cases;
     }
-  } catch {}
+  } catch {
+    /* a kit with no readable log shows a dash */
+  }
   return new Map();
 }
 
