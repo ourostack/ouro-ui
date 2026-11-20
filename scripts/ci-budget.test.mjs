@@ -224,6 +224,13 @@ test("a matrix job its if skipped, reported once under its unexpanded name, is m
   assert.deepEqual(path.unmatched, []);
 });
 
+test("a skipped event-dependent matrix job, which GitHub reports with its expression normalised, is matched in the real ci.yml", () => {
+  const graph = jobGraph(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"));
+  const skipped = ["design (${{ matrix.shard }}/${{ (((github.event_name == 'pull_request') && 12) || 6) }})", "install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ (((github.event_name == 'pull_request') && 6) || 3) }})"];
+  const path = criticalPath([job("plan", 0, 0, 1), ...skipped.map((name) => job(name, 1, 1, 1, "skipped"))], graph);
+  assert.deepEqual(path.unmatched, []);
+});
+
 test("a pull request with a job that no ci.yml job matches fails, so the critical path never leaves a job out, and a merge group or a push only warns, so the required check never bounces a queue entry", () => {
   const unmatched = ["install (shadcn, nova, 3/3)"];
   assert.deepEqual(judge({ event: "pull_request", criticalSeconds: 60, workSeconds: 60, baselineWorkSeconds: 60, unmatched }), { fail: true, reason: "unmatched", warning: null });

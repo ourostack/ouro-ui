@@ -2043,6 +2043,13 @@ test("the mutation job merges the shards' results and keeps them under the plan'
   assert.match(block, /uses: actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ env\.KEY \}\}\$\{\{ github\.sha \}\}$/m);
 });
 
+test("ci-budget reads the sweep timings only when the sweeps ran, so a run that skipped them has no download to check", () => {
+  const block = ciJobs()["ci-budget"];
+  const steps = block.split("\n      - ").filter((step) => /timings-sweeps-\*|scripts\/waivers\.mjs \.tmp/.test(step));
+  assert.equal(steps.length, 2);
+  for (const step of steps) assert.match(step, /if: \$\{\{ needs\.e2e\.result == 'success' && needs\.plan\.outputs\.tested != 'true' && needs\.plan\.outputs\.heavy != 'skip' \}\}/);
+});
+
 test("the e2e shards run every spec, or the selected components' and the site's, each shard its share by measured time, and the e2e check passes when they all did", async () => {
   const jobs = ciJobs();
   const block = jobs["e2e-shard"];
