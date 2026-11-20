@@ -389,7 +389,7 @@
       ],
       "issue": 2290,
       "status": "changed",
-      "change": "Ouro check's --handoff writes the session kit (#2510), and createUseCounts counts real use: counts only, off by default, no collector, no content, no identifier."
+      "change": "Ouro check's report names the floor it proves and ends with a \"Needs a person\" list (#2506), --handoff writes the session kit for watching real people (#2510), and createUseCounts counts real use: counts only, off by default, no collector, no content, no identifier (#2517). A model can't run the sessions itself, so the answer is to hand them to a person."
     },
     {
       "id": "ouro-checks-what-models-miss",
@@ -822,8 +822,8 @@
         }
       ],
       "issue": 2301,
-      "status": "in progress",
-      "change": null
+      "status": "answered",
+      "change": "Answered by measurement, with no reversal of the native decision: the cross-kit grid shows the same 13 shared card-behaviour cases passing on all four kits (#2496), the guide explains how the shared cases keep them in step (#2442), and the upkeep page measures what following the core costs each kit (#2443)."
     },
     {
       "id": "native-challenge-small-team",
@@ -862,8 +862,8 @@
         }
       ],
       "issue": 2302,
-      "status": "in progress",
-      "change": null
+      "status": "answered",
+      "change": "Answered by measurement, with no reversal of the native decision: the upkeep page measures from git history what the native kits cost to keep in step (#2443), and the cross-kit grid shows 13 of 13 shared cases passing on four kits (#2496)."
     },
     {
       "id": "native-challenge-one-card-renderer",
@@ -978,8 +978,8 @@
         }
       ],
       "issue": 2305,
-      "status": "open",
-      "change": null
+      "status": "answered",
+      "change": "Answered by measurement, with no reversal of the native decision: drift is measured on the upkeep page (#2443) and checked by the cross-kit grid, where all four kits pass the same 13 shared cases (#2496, #2442)."
     },
     {
       "id": "one-codebase-leaks",
@@ -1019,8 +1019,8 @@
         }
       ],
       "issue": 2306,
-      "status": "open",
-      "change": null
+      "status": "answered",
+      "change": "This supports the native decision, so nothing is reversed: the same measurements (#2443, #2496, #2442) show the native kits can be kept in step, which is the cost the models weighed against the leaks they described."
     },
     {
       "id": "agent-tooling-is-ouros-job",
@@ -1196,8 +1196,8 @@
         }
       ],
       "issue": 2311,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "Consent is declared on the action and enforced where the action runs: tests have an agent attack the consent model (#2458), and Windows and Android draw a built-in confirmation of a consequential action (#2380, Android v0.5.0)."
     },
     {
       "id": "ax-and-xray-first",
