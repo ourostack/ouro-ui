@@ -850,6 +850,39 @@ describe("MessageList windowing", () => {
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
   });
 
+  it("pays what it carries together with a later change above in one write once the wheel has rested, never in two that each round to whole pixels (#1646)", async () => {
+    const { scroller, root } = await render(<Chat items={conversation(500)} />);
+    await scrollTo(scroller, 3000);
+    await settle(scroller);
+    const reading = firstVisible(scroller);
+    const above = Number(reading.message.id.slice(1)) - 1;
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    let now = 1_000_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const grown = (words: number) => conversation(500).map((item) => (item.id === above ? { ...item, text: item.text + " more words".repeat(words) } : item));
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    let writes = 0;
+    Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => own.get!.call(scroller), set: (value: number) => (writes++, own.set!.call(scroller, value)) });
+    onTestFinished(() => void delete (scroller as { scrollTop?: number }).scrollTop);
+    // The clock holds the rest timer, so only the reader's clock decides whether the wheel has rested.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    onTestFinished(() => void vi.useRealTimers());
+    await act(async () => {
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+      root.render(<Chat items={grown(6)} />);
+    });
+    expect(content.style.translate).not.toBe("");
+    expect(writes).toBe(0);
+    // The wheel has rested, but what it carried is not paid yet: the next change above joins it.
+    now += 10_000;
+    await frame();
+    await act(async () => root.render(<Chat items={grown(12)} />));
+    expect(content.style.translate).toBe("");
+    expect(writes).toBe(1);
+    vi.useRealTimers();
+    await settle(scroller);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+  });
   it("draws the content down for a shrink above of any size while the wheel turns, never writing the scroll position, and writes it once the wheel rests", async () => {
     let above = 1;
     const base = (shrink: number) => conversation(500).map((item) => (item.id === 0 ? item : { ...item, tall: item.id === above ? 120 - shrink : 20 }));
