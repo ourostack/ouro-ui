@@ -105,18 +105,6 @@ export const knownFindings: KnownFinding[] = [
     reason: "The Revoke button sits beside a row's text, centred on it, so the check reads it as a line of its own; the text above it wraps pretty.",
   },
   {
-    story: "NavigationRail/LongLabels",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "The label that is longer than two lines is cut with an ellipsis on purpose, so its hidden lines end on a piece of a word; the story shows exactly that.",
-  },
-  {
-    story: "TimeGrid/Locales",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "A Japanese time range has no break points, so it sits on its own line at this width; the copy and its locale are the story's.",
-  },
-  {
     story: "Lightbox/MosaicWithMore",
     rule: "overlap",
     issue: 1957,
@@ -156,6 +144,12 @@ export const knownFindings: KnownFinding[] = [
     issue: 1957,
     reason: "The 'Jump to latest' button floats over the last message at this scroll position, as a floating control does by design.",
   },
+  {
+    story: "NavigationRail/LongLabels",
+    rule: "lone-word",
+    issue: 1955,
+    reason: "The label that is longer than two lines is cut with an ellipsis on purpose, so its hidden lines end on a piece of a word; the story shows exactly that.",
+  },
   { story: "RadioGroup/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "ReactionBar/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Reorderable/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
@@ -167,6 +161,12 @@ export const knownFindings: KnownFinding[] = [
     rule: "overlap",
     issue: 1957,
     reason: "The playground's rail is w-96 (24rem), wider than the 390px phone's frame, so it runs over the story's own sample text at that width.",
+  },
+  {
+    story: "TimeGrid/Locales",
+    rule: "lone-word",
+    issue: 1955,
+    reason: "A Japanese time range has no break points, so it sits on its own line at this width; the copy and its locale are the story's.",
   },
   {
     story: "Timer/Ring",
@@ -183,4 +183,22 @@ export const knownFindings: KnownFinding[] = [
   { story: "Toggle/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "ToggleGroup/Modes", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Toolbar/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
+  {
+    story: "LiveCaptions/ReadAloud",
+    rule: "lone-word",
+    issue: 1955,
+    reason: "The caption's last line is one word, 'week?', at this width; the caption text is the story's copy.",
+  },
+  {
+    story: "LiveCaptions/ReducedMotion",
+    rule: "lone-word",
+    issue: 1955,
+    reason: "The caption's last line is one word, 'week?', at this width; the caption text is the story's copy.",
+  },
+  {
+    story: "DescriptionList/InANarrowPane",
+    rule: "lone-word",
+    issue: 1955,
+    reason: "The description's last line is one word, 'follow.', at this width in a narrow pane; the copy is the story's.",
+  },
 ];
