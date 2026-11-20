@@ -1,7 +1,7 @@
 // Renders the site's model reviews page (docs/guides/model-reviews.md, served at /docs/model-reviews/) from the
 // published runs in scripts/model-reviews/results/. The headline, every count and every quote come from the runs'
-// run.json files; nothing on the page is written by hand. pnpm claims:check renders it again and fails when the
-// committed page differs.
+// run.json files; nothing on the page is written by hand. It is not committed: `pnpm i` renders it (scripts/generate.mjs),
+// as each pull request that changes the runs would leave the others' copies stale (#2600).
 //
 //   node scripts/model-reviews/page.mjs docs/guides/model-reviews.md
 //
