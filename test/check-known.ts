@@ -71,8 +71,6 @@ export function knownProblems(entries: readonly KnownFinding[]): string[] {
 const disabledReason =
   "A disabled control shows alone: the reason it is off is the app's words, which a story does not supply. An app gives one with a title or aria-describedby.";
 const repeatedControl = "The story lays the same control out in each variant or state, so its name repeats in view; the repetition is what the story shows.";
-const layoutWeights =
-  "The story's own page chrome uses four font weights (400 to 700); the rule keeps a page to three. The weights are the layout's, not a component's.";
 
 
 
@@ -107,7 +105,6 @@ export const knownFindings: KnownFinding[] = [
     issue: 1959,
     reason: "The story shows the picture that fails to load on purpose, to show the placeholder that stands in for it.",
   },
-  { story: "FamilyBar/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
   {
     story: "Heading/Display",
     rule: "narrow-heading",
@@ -196,7 +193,6 @@ export const knownFindings: KnownFinding[] = [
     issue: 1957,
     reason: "The 'Jump to latest' button floats over the last message at this scroll position, as a floating control does by design.",
   },
-  { story: "Navbar/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
   {
     story: "NavigationRail/LongLabels",
     rule: "lone-word",
@@ -207,14 +203,6 @@ export const knownFindings: KnownFinding[] = [
   { story: "ReactionBar/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Reorderable/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "SegmentedControl/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Sidebar/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "SidebarLayout/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "SidebarLayout/Playground", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "StackedLayout/Document", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "StackedLayout/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "StackedLayout/Playground", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "StackedLayout/Reader", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "StackedLayout/WithToolbar", rule: "type-scale", issue: 1956, reason: layoutWeights },
   { story: "Switch/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "SyncStatus/States", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
   { story: "Tabs/Vertical", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },

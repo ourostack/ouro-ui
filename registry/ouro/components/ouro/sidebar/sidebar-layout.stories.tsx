@@ -43,7 +43,7 @@ const sidebar = (
     currentPath="/recipes"
     header={
       <Text>
-        <strong>Spoonjoy</strong>
+        <strong style={{ fontWeight: 600 }}>Spoonjoy</strong>
       </Text>
     }
   />
