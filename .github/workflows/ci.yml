@@ -2210,13 +2210,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
-    name: e2e (${{ matrix.shard }}/6)
+        # Half as many shards, twice as long each, for a run that is not a pull request's: main has no one waiting on it, and fewer jobs leave runners for the pull requests.
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6]' || '[1,2,3]') }}
+    name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/6
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of6.json
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
       # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -2317,11 +2318,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
-    name: sweeps (${{ matrix.shard }}/8)
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8]' || '[1,2,3,4]') }}
+    name: sweeps (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
-      SHARD: ${{ matrix.shard }}/8
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of8.json
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
       # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -2497,10 +2498,10 @@ jobs:
             exit 0
           fi
           if [ "$SHARDS" != success ]; then
-            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/6) jobs."
+            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/N) jobs."
           fi
           if [ "$SWEEPS" != success ]; then
-            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/8) jobs."
+            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/N) jobs."
           fi
           if [ "$COMPARE" != success ]; then
             echo "::error::The sweeps-compare job did not pass ($COMPARE): a component looks different on two pages, see its log."
@@ -2953,16 +2954,17 @@ jobs:
         variant: [shadcn, ouro]
         # Another shadcn preset than the README's, so its preset wording is verified.
         preset: [nova, vega]
-        shard: [1, 2, 3, 4, 5, 6]
+        # Three shards, not six, for a run that is not a pull request's (the install gate reads the same count).
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6]' || '[1,2,3]') }}
         exclude:
           - variant: ouro
             preset: vega
-    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/6)
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 6 || 3 }})
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
-      OURO_SHARD: ${{ matrix.shard }}/6
+      OURO_SHARD: ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 6 || 3 }}
       OURO_APP: /tmp/ouro-app
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
@@ -3172,6 +3174,7 @@ jobs:
           SHARDS: ${{ needs.install-shard.result }}
           CHECKS: ${{ needs.install-checks.result }}
           INSTALLS: ${{ needs.plan.outputs.installs }}
+          SHARD_COUNT: ${{ github.event_name == 'pull_request' && 6 || 3 }}
         run: |
           if [ "$INSTALLS" = skip ]; then
             echo "::notice::Not affected: this pull request changes only files the install test never reads (the plan's installs=skip)."
@@ -3179,16 +3182,16 @@ jobs:
           fi
           failed=0
           if [ "$SHARDS" != success ]; then
-            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/6) jobs."
+            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/N) jobs."
             failed=1
           fi
           if [ "$CHECKS" != success ]; then
             echo "::error::the type check, build or install check of the prepared app did not pass ($CHECKS): see the install checks job."
             failed=1
           fi
-          for shard in 1 2 3 4 5 6; do
+          for shard in $(seq 1 "$SHARD_COUNT"); do
             if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
-              echo "::error::install ($VARIANT, $PRESET, $shard/6) did not pass: see that job."
+              echo "::error::install ($VARIANT, $PRESET, $shard/$SHARD_COUNT) did not pass: see that job."
               failed=1
             fi
           done

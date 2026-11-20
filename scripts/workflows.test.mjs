@@ -1576,7 +1576,10 @@ test("every job that reads the plan runs whatever happened to it, and runs every
 });
 
 /** The values of a matrix key in a job's block, or undefined. */
-const matrixValues = (block, key) => block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m"))?.[1].split(",").map((value) => value.trim());
+const matrixValues = (block, key) =>
+  (block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m")) ?? block.match(new RegExp(`^ {8}${key}: \\$\\{\\{ fromJSON\\(github\\.event_name == 'pull_request' && '\\[([^\\]]*)\\]' \\|\\| '\\[[^\\]]*\\]'\\) \\}\\}$`, "m")))?.[1]
+    .split(",")
+    .map((value) => value.trim());
 
 /** Every name a job's checks report: its name with each combination of its matrix, less the excluded ones. */
 function checkNames(block, id) {
@@ -1586,7 +1589,7 @@ function checkNames(block, id) {
   for (const key of keys) combinations = combinations.flatMap((combination) => (matrixValues(block, key) ?? []).map((value) => ({ ...combination, [key]: value })));
   const excluded = [...(block.split(/^ {8}exclude:\n/m)[1] ?? "").matchAll(/^ {10}- (\w+): (\S+)\n {12}(\w+): (\S+)$/gm)].map(([, k1, v1, k2, v2]) => ({ [k1]: v1, [k2]: v2 }));
   combinations = combinations.filter((combination) => !excluded.some((exclusion) => Object.entries(exclusion).every(([key, value]) => combination[key] === value)));
-  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name));
+  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name).replace("${{ github.event_name == 'pull_request' && 6 || 3 }}", "6")); // a pull request's count: the names the ruleset requires
 }
 
 /** The condition of every job a push whose tree already passed skips (the plan's `tested`, scripts/ci-proof.mjs). */
@@ -2035,12 +2038,13 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   const jobs = ciJobs();
   const block = jobs["e2e-shard"];
   const count = shardCount(block);
-  assert.match(block, new RegExp(`^ {6}SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
+  assert.match(block, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
+  assert.match(block, /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6\]' \|\| '\[1,2,3\]'\)/);
   const script = stepScript(block, "End-to-end specs");
   // A full run: the spec files the shard's measured share holds (the stand-in for node prints two).
   const full = runStep(script, { FULL: "true", SHARD: "1/3" });
   assert.match(full.calls, /^CALL node scripts\/shard\.mjs e2e 1\/3\nCALL pnpm test:e2e registry\/ouro\/e2e\/ouro\/checkbox\.spec\.ts site\/e2e\/$/m);
-  assert.match(block, new RegExp(`^ {6}OURO_E2E_TIMINGS: \\.tmp/timings/e2e-\\$\\{\\{ matrix\\.shard \\}\\}of${count}\\.json$`, "m"));
+  assert.match(block, /^ {6}OURO_E2E_TIMINGS: \.tmp\/timings\/e2e-\$\{\{ matrix\.shard \}\}of\$\{\{ strategy\.job-total \}\}\.json$/m);
   assert.match(block, /^ {10}name: timings-e2e-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/timings\/\n/m);
   // Between them, the shards run every spec file once.
   const { e2eFiles, readTimings, shardKeys } = await import("./shard.mjs");
@@ -2078,14 +2082,17 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   const sweeps = Array.from({ length: 8 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 8 }, readTimings("e2e")));
   assert.deepEqual(sweeps.flat().sort(), sweepFiles());
   assert.ok(sweeps.every((share) => share.length > 0));
-  assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/8$/m);
+  assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
+  assert.deepEqual(matrixValues(jobs["sweep-shard"], "shard"), ["1", "2", "3", "4", "5", "6", "7", "8"]);
+  assert.match(jobs["sweep-shard"], /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8\]' \|\| '\[1,2,3,4\]'\)/);
 });
 
 test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {
   const jobs = ciJobs();
   const block = jobs["install-shard"];
   const count = shardCount(block);
-  assert.match(block, new RegExp(`^ {6}OURO_SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
+  assert.match(block, /^ {6}OURO_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 6 \|\| 3 \}\}$/m);
+  assert.equal(count, 6);
   const script = stepScript(block, "Install test");
   // `show` stands for install-test.sh: it prints whether OURO_COMPONENTS is set, and to what.
   const scriptWithShow = (env) => {
@@ -2106,11 +2113,11 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   assert.deepEqual(checkNames(gate, "install-gate"), ["install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)"]);
   assert.match(gate, /^ {10}pattern: install-passed-\$\{\{ matrix\.variant \}\}-\$\{\{ matrix\.preset \}\}-\*\n/m);
   const counting = stepScript(gate, "Every shard passed");
-  assert.match(counting, new RegExp(`^for shard in ${Array.from({ length: count }, (_, index) => index + 1).join(" ")}; do$`, "m"));
+  assert.match(counting, /^for shard in \$\(seq 1 "\$SHARD_COUNT"\); do$/m);
   const markers = scratchDir("ouro-install-gate-");
   mkdirSync(join(markers, "passed"));
   for (let shard = 1; shard < count; shard++) writeFileSync(join(markers, `passed/install-passed-shadcn-vega-${shard}`), "");
-  const passed = { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega", SHARDS: "success", CHECKS: "success" };
+  const passed = { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega", SHARD_COUNT: String(count), SHARDS: "success", CHECKS: "success" };
   assert.match(gate, /^ {10}SHARDS: \$\{\{ needs\.install-shard\.result \}\}$/m);
   const missing = runStep(counting, passed);
   assert.equal(missing.status, 1);
