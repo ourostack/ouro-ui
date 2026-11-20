@@ -1681,14 +1681,19 @@ test("the required ci job runs the claims ratchet on a pull request, against its
   assert.ok(JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8")).includes("ci"));
 });
 
-test("the claims steps read a pull request's description as it is now, and the event's copy when GitHub does not answer", () => {
-  // A re-run replays the event the run started with, so a description edited since reaches the ratchets only when read live.
+test("the claims, release note and exemption steps read a pull request's description as it is now, and the event's copy when GitHub does not answer", () => {
+  // A re-run replays the event the run started with, so a description edited since reaches the checks only when read live:
+  // when GitHub starts no run for an edit, a re-run is then enough, with no need to close and reopen the pull request.
   assert.match(ciJobs().checks, /^ {4}permissions:\n {6}contents: read\n {6}pull-requests: read\n/m);
-  assert.match(workflow("claims.yml"), /^permissions:\n {2}contents: read\n {2}pull-requests: read\n/m);
+  for (const file of ["claims.yml", "release-note.yml", "conformance-exemptions.yml"]) {
+    assert.match(workflow(file), /^permissions:\n {2}contents: read\n {2}pull-requests: read\n/m, file);
+  }
   const steps = [
     [ciJobs().checks, "Claims"],
     [workflow("claims.yml"), "Claims in the title and body"],
     [workflow("claims.yml"), "Exemptions against the base"],
+    [workflow("release-note.yml"), "Release note against the base"],
+    [workflow("conformance-exemptions.yml"), "Exemptions against the base"],
   ];
   for (const [block, name] of steps) {
     const read = (gh) =>
