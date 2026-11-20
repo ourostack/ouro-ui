@@ -1,7 +1,6 @@
 {
   "waive": {
     "**": {
-      "first-content": "A measured rule, new on this site: it reports without failing while its findings are fixed and its budget settles on CI's runners.",
       "off-scale": "A rule new on this site: its hand-tuned rem spacing reports without failing while it moves to Tailwind's spacing steps."
     },
     "/docs/message/": {
