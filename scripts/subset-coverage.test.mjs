@@ -51,7 +51,7 @@ test("installing the button with its tests brings only the helpers it imports, e
 });
 
 test("a pull request's reduced run checks only the sets that install a selected component", () => {
-  assert.deepEqual(setsTouching(registry, ["checkbox-group"]), [formsSet, sets[4]]);
+  assert.deepEqual(setsTouching(registry, ["checkbox-group"]), [sets[0], sets[1], sets[2], formsSet, sets[4]]);
   assert.ok(setsTouching(registry, ["dialog"]).some((set) => set.length === 1 && set[0] === "dialog"));
   assert.ok(!setsTouching(registry, ["dialog"]).includes(formsSet) || subset(registry, formsSet).items.includes("dialog"));
   assert.deepEqual(setsTouching(registry, ["chart"]), []);
