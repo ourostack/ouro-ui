@@ -179,10 +179,10 @@
   }
   /* Body copy in an Ouro component avoids a last line of one word, and its headings balance their lines. In the base layer, so a text-wrap utility on the element, or the app's own rule, wins. */
   [data-ouro] {
-    text-wrap: pretty;
+    text-wrap-style: pretty;
   }
   [data-ouro] :is(h1, h2, h3, h4, h5, h6, [role="heading"]), :is(h1, h2, h3, h4, h5, h6, [role="heading"])[data-ouro] {
-    text-wrap: balance;
+    text-wrap-style: balance;
   }
   /* A very wide screen at 1x (a 4K display at 100%, 3840px across) reads at a laptop's size: the root grows one step
      at 150rem (2400px) and another at 200rem (3200px), then stops, so rem-sized type, gutters and columns grow a
