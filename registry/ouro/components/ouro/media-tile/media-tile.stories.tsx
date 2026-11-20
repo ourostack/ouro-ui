@@ -93,11 +93,13 @@ export const Paused: Story = {
 export const ShareContain: Story = {
   args: { name: "Theo Okafor", speaking: false, source: "screen", presenting: true, ring: false },
   render: (args) => (
-    <Stage width={480}>
-      <MediaTile {...args}>
-        <img src={sharedWindow} alt="" />
-      </MediaTile>
-    </Stage>
+    <div data-ouro-allow="overlap" data-ouro-allow-why="The name and Presenting plate are the tile's own overlay, drawn over the letterboxed window's box.">
+      <Stage width={480}>
+        <MediaTile {...args}>
+          <img src={sharedWindow} alt="" />
+        </MediaTile>
+      </Stage>
+    </div>
   ),
 };
 
