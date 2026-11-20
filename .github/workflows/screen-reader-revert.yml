@@ -1,0 +1,84 @@
+name: Screen-reader revert
+# The screen-reader lane is off the tag's path (Ari, 2026-11-19): Release tags a commit of main once CI passes, and the lane
+# (screen-reader.yml) runs on that commit right after. When the lane's push run fails, this decides whether the commit
+# broke it, and if so reverts the pull request behind it, and Release auto releases the revert like any other commit.
+# - A failure the lane classes as infrastructure (SR_CLASS=infrastructure in its artifacts, as screen-reader.yml's report
+#   job reads it) reverts nothing.
+# - A first failure reruns the failed jobs once; the rerun's end starts this again, and only a second failure counts.
+# - Only the first red commit is reverted: the commit before it must have passed the lane. A later commit's failure that
+#   follows a red one is the earlier commit's, and that commit's own run decides.
+# - The revert is GitHub's own (revertPullRequest) of the pull request squash-merged as the commit, opened by the Ouro
+#   Current app so its checks run, labelled red-main-fix and set to merge on green. One open revert of it is enough.
+# It runs no code from the repository and mentions no one.
+on:
+  workflow_run:
+    workflows: [Screen reader]
+    types: [completed]
+    branches: [main]
+permissions: {}
+concurrency:
+  group: screen-reader-revert-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+jobs:
+  revert:
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write # read the lane's artifacts and rerun its failed jobs once
+      contents: read
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          pattern: screen-reader-*
+          path: ${{ runner.temp }}/sr
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - id: decide
+        name: Did this commit break the lane?
+        run: |
+          if grep -rqs '^SR_CLASS=infrastructure$' "$RUNNER_TEMP/sr"; then
+            echo "::notice::The lane failed on infrastructure, not on the components; nothing is reverted."; exit 0
+          fi
+          if [ "$ATTEMPT" = 1 ]; then
+            gh run rerun "$RUN_ID" --failed
+            echo "::notice::The lane failed on $SHA; its failed jobs run once more, and their end decides."; exit 0
+          fi
+          parent=$(gh api "repos/$GH_REPO/commits/$SHA" --jq '.parents[0].sha')
+          before=$(gh run list --workflow screen-reader.yml --commit "$parent" --event push --json conclusion --jq '[.[] | select(.conclusion == "success")] | length')
+          [ "$before" -gt 0 ] || { echo "::notice::The lane hadn't passed on $parent, the commit before; that commit's own run decides."; exit 0; }
+          pr=$(gh api "repos/$GH_REPO/commits/$SHA/pulls" --jq '[.[] | select(.merged_at != null)][0].number // empty')
+          [ -n "$pr" ] || { echo "::warning::The lane failed twice on $SHA, after passing on $parent, but no merged pull request made $SHA; revert it by hand."; exit 1; }
+          open=$(gh pr list --state open --label red-main-fix --search "Revert in:title #$pr" --json number --jq '.[0].number // empty')
+          [ -z "$open" ] || { echo "::notice::#$open already reverts #$pr."; exit 0; }
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          echo "The lane failed twice on $SHA after passing on $parent: reverting #$pr." | tee -a "$GITHUB_STEP_SUMMARY"
+      - id: app
+        if: steps.decide.outputs.pr != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.OURO_CURRENT_APP_ID }}
+          private-key: ${{ secrets.OURO_CURRENT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Revert the pull request, and merge the revert on green
+        if: steps.decide.outputs.pr != ''
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          PR: ${{ steps.decide.outputs.pr }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}
+        run: |
+          id=$(gh api "repos/$GH_REPO/pulls/$PR" --jq .node_id)
+          body="The screen-reader lane failed twice on $SHA, the commit #$PR made, after passing on the commit before: $RUN_URL. This reverts #$PR so the next release has the lane green again (screen-reader-revert.yml)."
+          revert=$(gh api graphql -f query='mutation($id: ID!, $body: String!) { revertPullRequest(input: { pullRequestId: $id, body: $body }) { revertPullRequest { number } } }' -f id="$id" -f body="$body" --jq .data.revertPullRequest.revertPullRequest.number)
+          gh pr edit "$revert" --add-label red-main-fix
+          gh pr merge "$revert" --auto --squash
+          echo "Opened #$revert, which reverts #$PR and merges on green." | tee -a "$GITHUB_STEP_SUMMARY"
