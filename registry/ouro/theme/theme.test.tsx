@@ -163,6 +163,26 @@ describe("wide-screen type", () => {
   });
 });
 
+describe("text wrapping", () => {
+  it("wraps Ouro body copy pretty and its headings balanced, and leaves the app's own text-wrap class the last word", () => {
+    const host = document.createElement("div");
+    host.setAttribute("data-ouro", "text");
+    host.innerHTML = '<p>copy</p><h2>title</h2><p class="text-nowrap">own</p>';
+    const outside = document.createElement("p");
+    document.body.append(host, outside);
+    try {
+      const wrap = (element: Element) => getComputedStyle(element).textWrapStyle;
+      expect(wrap(host.querySelector("p")!)).toBe("pretty");
+      expect(wrap(host.querySelector("h2")!)).toBe("balance");
+      expect(wrap(host.querySelector(".text-nowrap")!)).toBe("auto");
+      expect(wrap(outside)).toBe("auto");
+    } finally {
+      host.remove();
+      outside.remove();
+    }
+  });
+});
+
 describe("sheet shadows", () => {
   it.each([
     ["bottom", "up", (x: number, y: number) => x === 0 && y < 0],
