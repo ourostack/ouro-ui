@@ -6,6 +6,7 @@ import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
@@ -181,6 +182,31 @@ for (const [name, css] of Object.entries(themes)) {
         const edge = getComputedStyle(track);
         expect(edge.borderTopWidth).toBe("1px");
         expect(ratio(over(edge.borderTopColor, page), page)).toBeGreaterThanOrEqual(3);
+      });
+
+      it("the user's own chat bubble keeps its text at 4.5:1 or more on its fill", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.background = "var(--background)";
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        await act(async () =>
+          root.render(
+            <Message variant="chat" role="user" name="Priya Okafor">
+              Hi Mara
+            </Message>,
+          ),
+        );
+        const bubble = host.querySelector<HTMLElement>("[data-ouro-message-content]")!;
+        const behind = backdrop(bubble);
+        expect(ratio(over(getComputedStyle(bubble).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
       });
 
       it.each(["background", "popover"] as const)("every tone and variant has text at 4.5:1 or more on the %s", async (surface) => {
