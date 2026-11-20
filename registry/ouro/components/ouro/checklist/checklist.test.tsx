@@ -659,12 +659,18 @@ describe("Checklist ordered", () => {
   it("lets a row leave as it was, out of order, without reading as done on its way out", async () => {
     const { host, row } = await render(<Host items={tea.map((step) => ({ ...step, checked: step.id === "leaves" }))} extra={{ label: "Steps", ordered: true }} />);
     const leaves = row("Add the leaves");
-    await act(() => setList((list) => list.filter((item) => item.id !== "leaves")));
+    // Read in the same task as the removal: a loaded runner can finish the exit, and take the row out of the page, before
+    // `act` returns, and a row out of the page computes no style (#2469).
+    let scale = "";
+    await act(() => {
+      flushSync(() => setList((list) => list.filter((item) => item.id !== "leaves")));
+      scale = getComputedStyle(partOf(leaves, "strike")).scale;
+    });
+    expect(Number.parseFloat(scale), `the strike's scale read "${scale}", with reduced motion ${matchMedia("(prefers-reduced-motion: reduce)").matches ? "on" : "off"}`).toBe(0);
     expect(leaves).toHaveAttribute("data-ending-style");
     expect(leaves).toHaveAttribute("data-out-of-order");
     expect(leaves).not.toHaveAttribute("data-checked");
     expect(partOf(leaves, "note").textContent).toBe("Boil the water comes first");
-    expect(Number.parseFloat(getComputedStyle(partOf(leaves, "strike")).scale)).toBe(0);
     await expect.poll(() => labels(host)).toEqual(["Boil the water", "Warm the pot"]);
   });
 
