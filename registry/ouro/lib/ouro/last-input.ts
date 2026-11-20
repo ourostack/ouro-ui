@@ -41,7 +41,7 @@ let input = "";
  *
  * The same listeners keep `data-ouro-modality="keyboard"` or `"pointer"` on `<html>`: `pointer` after a press and
  * `keyboard` after a key other than a lone modifier. For `ouro-base`'s keyboard-only focus rings they mark the focused
- * element with `data-ouro-pressed-focus` while its focus came from a press. Before either, there is no mark and the
+ * element with `data-ouro-pressed-focus` while its focus came from a press. Before either, the
  * browser's own `:focus-visible` decides. Moving the mouse changes neither.
  *
  * Internal: Ouro UI components use it; apps don't need to.
