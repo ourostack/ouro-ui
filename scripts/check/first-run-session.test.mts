@@ -555,6 +555,35 @@ describe("first-run harness: signed out", () => {
     assert.equal((await run(null, null, { press: { ok: true } })).evidence, "the account button led nowhere to sign in within 8 s (the window: gone)");
   });
 
+  test("waits out a window still starting before it presses the account button, within the progress limit", async () => {
+    const run = async (startsFor: number) => {
+      const w = new World();
+      const cover = screen([[0, "AXStaticText", "Starting…"]], { signedIn: null });
+      w.screen = cover;
+      let started = false;
+      w.tick = () => {
+        if (started || w.now < startsFor) return;
+        started = true;
+        w.screen = signedOut();
+      };
+      // The cover has no account button; the window's own page, once drawn, has one that leads to Microsoft's page.
+      w.onPress = (label) => {
+        if (label !== "Account*" || !started) return { ok: false };
+        w.screen = screen([[0, "AXTextField", "Email"]], { signedIn: false, cp: "sign-in: email" });
+        return { ok: true };
+      };
+      const { s, steps } = session(w, { accountButton: "Account*" });
+      await s.stranded("p", { signIn: false });
+      return steps.at(-1)!;
+    };
+    const late = await run(60_000);
+    assert.equal(late.ok, true, late.evidence);
+    assert.match(late.evidence, /^the account button led to the sign-in page \(""\) in 0\.7 s$/);
+    const stuck = await run(1e9);
+    assert.equal(stuck.ok, false);
+    assert.match(stuck.evidence, /^there was no enabled account button to press \(after 9\d(\.\d)? s of "Starting…", still under way\)$/);
+  });
+
   test("signs out with the sign-in refused, judges the signed-out app, then signs in again", async () => {
     const w = new World();
     w.screen = inbox();
