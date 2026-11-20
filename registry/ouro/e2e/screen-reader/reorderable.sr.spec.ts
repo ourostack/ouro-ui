@@ -10,7 +10,7 @@ const UNAVAILABLE = /\b(dimmed|unavailable)\b/i;
 /** Any part of the handle's pick-up instructions. */
 const INSTRUCTIONS = /\b(pick up|menu of moves|arrow keys)\b/i;
 
-test("A disabled Reorderable's handles are heard as unavailable buttons, without the pick-up instructions", async ({ page, sr }) => {
+test("A disabled Reorderable's handles are heard as unavailable buttons, described by its reason, without the pick-up instructions", async ({ page, sr }) => {
   await startReading(sr, page);
   const handle = page.getByRole("button", { name: "Reorder Sear the ribs" });
   // VoiceOver's cursor does not follow focus() onto a dimmed button (run 39848346221: it stayed on
@@ -19,5 +19,6 @@ test("A disabled Reorderable's handles are heard as unavailable buttons, without
   const described = await describesFocus(sr, (phrase) => inOneSentence(phrase, nameAndRole("Reorder Sear the ribs", "button"), UNAVAILABLE), '"Reorder Sear the ribs", button, dimmed or unavailable');
   expect(described).not.toMatch(INSTRUCTIONS);
   await expect(handle).toHaveAttribute("aria-disabled", "true");
-  expect(await handle.getAttribute("aria-describedby")).toBeNull();
+  // The story's disabledReason is the handle's description, in place of the pick-up instructions (ourostack/ouro-ui#1953).
+  await expect(handle).toHaveAccessibleDescription("Saving your last move");
 });

@@ -162,7 +162,7 @@ The test titles, in the words of the specs, so a reader sees the claim before op
 - **menu**
   - Menu is announced from its trigger, reads each item the arrow keys reach, and returns to the trigger on Escape
 - **reorderable**
-  - A disabled Reorderable's handles are heard as unavailable buttons, without the pick-up instructions
+  - A disabled Reorderable's handles are heard as unavailable buttons, described by its reason, without the pick-up instructions
 - **route-progress**
   - RouteProgress is announced once from its status region when a navigation starts
 - **select**
