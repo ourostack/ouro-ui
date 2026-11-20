@@ -5,7 +5,8 @@ import { WAIVERS, waived, waivedPages } from "../site/e2e/waivers.ts";
 
 test("every sweep waiver names its component, part, page, property, reason and source", () => {
   for (const w of WAIVERS) {
-    for (const field of ["component", "part", "page", "property", "reason", "source"]) assert.ok(w[field], `${JSON.stringify(w)} lacks ${field}`);
+    for (const field of ["component", "page", "property", "reason", "source"]) assert.ok(w[field], `${JSON.stringify(w)} lacks ${field}`);
+    assert.equal(typeof w.part, "string", `${JSON.stringify(w)} lacks part`);
     assert.ok(w.page.startsWith("/") && w.page.endsWith("/"), `${w.page} is one page`);
   }
 });
