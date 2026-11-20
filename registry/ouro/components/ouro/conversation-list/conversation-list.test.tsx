@@ -148,7 +148,7 @@ describe("ConversationList", () => {
     }
     await userEvent.hover(rows[0]!);
     expect(await settled(rows[0]!)).toBe(paint("var(--ouro-row-hover)"));
-    expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+    expect(await settled(rows[1]!)).toBe(paint("var(--ouro-row-selected)"));
   });
 
   it("moves focus with the arrow keys, Home and End", async () => {
