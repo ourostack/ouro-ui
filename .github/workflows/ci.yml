@@ -3181,7 +3181,7 @@ jobs:
             echo "::error::the type check, build or install check of the prepared app did not pass ($CHECKS): see the install checks job."
             failed=1
           fi
-          for shard in 1 2 3 4 5 6 7 8; do
+          for shard in 1 2 3 4 5 6; do
             if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
               echo "::error::install ($VARIANT, $PRESET, $shard/6) did not pass: see that job."
               failed=1
