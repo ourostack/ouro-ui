@@ -521,7 +521,9 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
   writeFileSync(join(bin, "pnpm"), `#!/usr/bin/env bash\nprintf 'pnpm %s\\n' "$*" >> "${log}"\nn=$(grep -c '^pnpm ' "${log}")\n[ "$n" -gt "\${PNPM_FAILS:-0}" ]\n`);
   writeFileSync(join(bin, "apt-get"), `#!/usr/bin/env bash\nprintf 'apt-get %s\\n' "$*" >> "${log}"\n`);
   writeFileSync(join(bin, "timeout"), `#!/usr/bin/env bash\nprintf 'timeout %s\\n' "$1" >> "${log}"\nshift\nexec "$@"\n`);
-  for (const name of ["uname", "sudo", "tee", "dpkg", "pnpm", "apt-get", "timeout"]) chmodSync(join(bin, name), 0o755);
+  writeFileSync(join(bin, "pkill"), `#!/usr/bin/env bash\nprintf 'pkill %s\\n' "$*" >> "${log}"\n`);
+  writeFileSync(join(bin, "sleep"), `#!/usr/bin/env bash\n`);
+  for (const name of ["uname", "sudo", "tee", "dpkg", "pnpm", "apt-get", "timeout", "pkill", "sleep"]) chmodSync(join(bin, name), 0o755);
   const run = (dir, env = {}) => {
     writeFileSync(log, "");
     const result = spawnSync("bash", [join(root, "scripts/browser-deps.sh"), dir, "chromium", "webkit"], { encoding: "utf8", env: sandboxEnv(env, [bin]) });
@@ -555,7 +557,9 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
   // Each try first mends what a stopped one left half unpacked.
   const retried = run(join(scratch, "retried"), { PNPM_FAILS: "1", RETRY_DELAYS: "0" });
   assert.equal(retried.status, 0, retried.stdout + retried.stderr);
-  assert.match(retried.calls, /^dpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit\ndpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit$/m);
+  // A later try first stops the apt-get the last one left holding apt's list lock (main's run 44663533747); the first stops nothing.
+  assert.match(retried.calls, /^dpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit\npkill -x apt-get\npkill -KILL -x apt-get\ndpkg --configure -a\ntimeout 900\npnpm exec playwright install-deps chromium webkit$/m);
+  for (const result of [broken, miss]) assert.doesNotMatch(result.calls, /^pkill/m);
   // A second apt waits for dpkg's lock rather than failing at once, on a hit and on a miss.
   for (const result of [hit, miss]) assert.match(result.calls, /^tee \/etc\/apt\/apt\.conf\.d\/90ouro-dpkg-lock\nDPkg::Lock::Timeout "600";$/m);
   assert.ok(existsSync(join(empty, "partial")));
