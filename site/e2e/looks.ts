@@ -454,25 +454,40 @@ function same(a: Crop, b: Crop): boolean {
   return false;
 }
 
+/**
+ * How long a page is given to read the same twice. One read of a long page in WebKit can take seconds, so Playwright's
+ * 5 s left /docs/calendar/ two reads, then cut off a third that matched (ourostack/ouro-ui#2428).
+ */
+export const SETTLE_MS = 30_000;
+
 export async function settled(page: Page): Promise<void> {
   await siteReady(page);
   let last = "";
   let before: Look[] = [];
   let after: Look[] = [];
+  const reads: number[] = [];
+  const began = Date.now();
   try {
     await expect
-      .poll(async () => {
-        before = after;
-        after = (await page.evaluate(describe, { selector: LOOK_SELECTOR })).looks;
-        const now = JSON.stringify(after.map((l) => l.sig));
-        const same = now === last;
-        last = now;
-        return same;
-      })
+      .poll(
+        async () => {
+          const start = Date.now();
+          const looks = (await page.evaluate(describe, { selector: LOOK_SELECTOR })).looks;
+          reads.push(Date.now() - start);
+          before = after;
+          after = looks;
+          const now = JSON.stringify(after.map((l) => l.sig));
+          const same = now === last;
+          last = now;
+          return same;
+        },
+        { timeout: SETTLE_MS },
+      )
       .toBe(true);
   } catch (error) {
-    // Which looks kept changing, so a page that never settles names what moved (ourostack/ouro-ui#2428).
-    (error as Error).message += `\n\nThe page never settled (ourostack/ouro-ui#2428): ${page.url()}\n${changedLooks(before, after)}`;
+    // Which looks kept changing, so a page that never settles names what moved, and how many reads it had time for (ourostack/ouro-ui#2428).
+    const timing = `  ${reads.length} reads in ${Date.now() - began} ms, the slowest ${Math.max(0, ...reads)} ms`;
+    (error as Error).message += `\n\nThe page never settled (ourostack/ouro-ui#2428): ${page.url()}\n${changedLooks(before, after)}\n${timing}`;
     throw error;
   }
 }
