@@ -1,0 +1,1 @@
+- The Cookbook theme sets `--ouro-cover-from`, `--ouro-cover-to` and `--ouro-cover-ink`, so a Cover without a picture is a vellum-to-brass tile with a brass letter, as the Apple app draws a recipe without a photo.
