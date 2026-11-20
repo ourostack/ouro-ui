@@ -468,11 +468,14 @@ export function Composer(props: ComposerProps): JSX.Element {
     ...rest
   } = props;
   const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
+  useEffect(
+    () => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMounted(true);
+    },
     // Stryker disable next-line ArrayDeclaration: an effect that only sets a flag to true runs the same whatever its list holds.
-  }, []);
+    [],
+  );
   const [ownExpanded, setOwnExpanded] = useState(defaultExpanded ?? false);
   const expandable = expandedProp !== undefined || defaultExpanded !== undefined || onExpandedChange !== undefined;
   // The person can expand and collapse it: the composer holds the state, or the app listens.
