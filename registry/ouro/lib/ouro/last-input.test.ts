@@ -97,3 +97,19 @@ it("marks the focused element after a press and unmarks it after a key, when foc
     second.remove();
   }
 });
+
+it("marks and unmarks focus that a handler below stops, because it listens to focus in the capture phase", () => {
+  const target = document.body.appendChild(document.createElement("button"));
+  const stop = (event: Event) => event.stopPropagation();
+  target.addEventListener("focusin", stop);
+  target.addEventListener("focusout", stop);
+  try {
+    press("mouse");
+    target.focus();
+    expect(pressedFocus(target)).toBe(true);
+    target.blur();
+    expect(pressedFocus(target)).toBe(false);
+  } finally {
+    target.remove();
+  }
+});
