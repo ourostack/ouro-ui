@@ -1,4 +1,5 @@
 import { createRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -546,6 +547,26 @@ function themeColor(variable: string) {
 }
 
 describe("Composer quote", () => {
+  it("draws a quote present at mount at once, and fades one in that arrives later", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    try {
+      const quote = () => host.querySelector<HTMLElement>("[data-ouro-composer-quote]")!;
+      flushSync(() => root.render(<Composer label="Reply to Ana" quote={quoteOf()} onSend={() => {}} />));
+      expect(getComputedStyle(quote()).opacity).toBe("1");
+      expect(quote().getAnimations()).toEqual([]);
+      flushSync(() => root.render(<Composer label="Reply to Ana" onSend={() => {}} />));
+      flushSync(() => root.render(<Composer label="Reply to Ana" quote={quoteOf()} onSend={() => {}} />));
+      expect(quote().getAnimations().some((a) => a instanceof CSSTransition && a.transitionProperty === "opacity")).toBe(true);
+    } finally {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      root.unmount();
+      host.remove();
+    }
+  });
+
   it("shows the quote inside the frame above the text: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis", async () => {
     const { frame, textarea, quote } = await render(<Composer label="Reply to Ana" quote={quoteOf()} onSend={() => {}} />);
     expect(frame.contains(quote)).toBe(true);

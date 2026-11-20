@@ -63,7 +63,7 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
   render: (args) => (
     <Page>
-      <ThreadRail {...args} className="w-96" />
+      <ThreadRail {...args} className="w-96 max-w-[65%]" />
     </Page>
   ),
 };
@@ -79,7 +79,7 @@ function ControlledRail() {
         </Button>
       </div>
       {open && (
-        <ThreadRail label="Thread" title="Replies" detail="Design reviews" meta="2 replies" onClose={() => setOpen(false)} className="w-96">
+        <ThreadRail label="Thread" title="Replies" detail="Design reviews" meta="2 replies" onClose={() => setOpen(false)} className="w-96 max-w-[65%]">
           <Thread />
         </ThreadRail>
       )}

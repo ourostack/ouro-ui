@@ -105,18 +105,6 @@ export const knownFindings: KnownFinding[] = [
     reason: "The Revoke button sits beside a row's text, centred on it, so the check reads it as a line of its own; the text above it wraps pretty.",
   },
   {
-    story: "Lightbox/MosaicWithMore",
-    rule: "overlap",
-    issue: 1957,
-    reason: "The '+2' count sits over the last tile of the mosaic on purpose: it says how many pictures the tile hides.",
-  },
-  {
-    story: "MediaTile/ShareContain",
-    rule: "overlap",
-    issue: 1957,
-    reason: "The name and status sit over the letterboxed picture's box, which the story draws contained; the label is the tile's own overlay.",
-  },
-  {
     story: "Message/Chat",
     rule: "overlap",
     issue: 1957,
@@ -133,18 +121,6 @@ export const knownFindings: KnownFinding[] = [
     sometimes: true,
   },
   {
-    story: "MessageList/OpenedAtMessage",
-    rule: "overlap",
-    issue: 1957,
-    reason: "The 'Jump to latest' button floats over the end of the conversation at this scroll position, as a floating control does by design.",
-  },
-  {
-    story: "MessageList/ScrolledBack",
-    rule: "overlap",
-    issue: 1957,
-    reason: "The 'Jump to latest' button floats over the last message at this scroll position, as a floating control does by design.",
-  },
-  {
     story: "NavigationRail/LongLabels",
     rule: "lone-word",
     issue: 1955,
@@ -157,28 +133,10 @@ export const knownFindings: KnownFinding[] = [
   { story: "Switch/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Tabs/Vertical", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   {
-    story: "ThreadRail/Playground",
-    rule: "overlap",
-    issue: 1957,
-    reason: "The playground's rail is w-96 (24rem), wider than the 390px phone's frame, so it runs over the story's own sample text at that width.",
-  },
-  {
     story: "TimeGrid/Locales",
     rule: "lone-word",
     issue: 1955,
     reason: "A Japanese time range has no break points, so it sits on its own line at this width; the copy and its locale are the story's.",
-  },
-  {
-    story: "Timer/Ring",
-    rule: "overlap",
-    issue: 1957,
-    reason: "The time and its button sit over the progress ring on purpose: the ring is the timer's face.",
-  },
-  {
-    story: "Timer/RingPaused",
-    rule: "overlap",
-    issue: 1957,
-    reason: "The time and its status sit over the progress ring on purpose: the ring is the timer's face.",
   },
   { story: "Toggle/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "ToggleGroup/Modes", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
