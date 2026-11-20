@@ -1,0 +1,72 @@
+{
+  "generator": "ouro-actions 0.21.0",
+  "set": "standalone-tasks",
+  "tools": [
+    {
+      "name": "list_tasks",
+      "title": "List tasks",
+      "description": "List the tasks: each one's id, title and whether it is done. Take an id from here for complete_task.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "string",
+            "description": "The tasks, as JSON."
+          }
+        },
+        "required": [
+          "tasks"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "complete_task",
+      "title": "Complete task",
+      "description": "Mark one task done. Take the id from list_tasks.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The task's id, from list_tasks."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The task that was completed."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "refusals": {}
+}
