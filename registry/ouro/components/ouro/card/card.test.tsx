@@ -163,13 +163,77 @@ describe("Card", () => {
     const { card } = await render(<Card href="/recipes/1" title="Ribs" backdrop={<img src={pixel} alt="" />} className="min-h-40" />);
     const backdrop = card.querySelector<HTMLElement>("[data-card-backdrop]")!;
     const link = card.querySelector<HTMLElement>("[data-card-link]")!;
+    const tint = backdrop.querySelector<HTMLElement>("[data-card-tint]")!;
     const clear = "rgba(0, 0, 0, 0)";
-    expect(getComputedStyle(backdrop, "::after").backgroundColor).toBe(clear);
+    expect(getComputedStyle(tint).backgroundColor).toBe(clear);
     await userEvent.hover(link);
-    await expect.poll(() => getComputedStyle(backdrop, "::after").backgroundColor).not.toBe(clear);
+    await expect.poll(() => getComputedStyle(tint).backgroundColor).not.toBe(clear);
     expect(getComputedStyle(link, "::after").backgroundColor).toBe(clear);
     expect(getComputedStyle(backdrop).overflow).toBe("clip");
     await commands.parkPointer();
+  });
+
+  it("deepens a linked backdrop card's tint while its link is pressed, never for a touch, and clears it when the pointer leaves", async () => {
+    const calls: string[] = [];
+    const own = (name: string) => () => calls.push(name);
+    const { card } = await render(
+      <Card
+        href="/recipes/1"
+        title="Ribs"
+        backdrop={<img src={pixel} alt="" style={{ opacity: 0.5 }} />}
+        className="min-h-40"
+        onPointerOver={own("over")}
+        onPointerDown={own("down")}
+        onPointerUp={own("up")}
+        onPointerCancel={own("cancel")}
+        onPointerLeave={own("leave")}
+      />,
+    );
+    const tint = card.querySelector<HTMLElement>("[data-card-tint]")!;
+    const link = card.querySelector<HTMLElement>("[data-card-link]")!;
+    const fire = (target: Element, type: string, pointerType = "mouse", relatedTarget: Element | null = null) =>
+      act(() => target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType, relatedTarget })));
+    // The colour the tint is set to, not where its transition has reached.
+    const shade = () => tint.style.backgroundColor;
+    const clear = "transparent";
+    await fire(link, "pointerover");
+    const hover = shade();
+    expect(hover).not.toBe(clear);
+    await fire(link, "pointerdown");
+    const press = shade();
+    expect(press).not.toBe(hover);
+    // A press holds through moving over another part of the card.
+    await fire(card.querySelector("h3")!, "pointerover");
+    expect(shade()).toBe(press);
+    await fire(link, "pointerup");
+    expect(shade()).toBe(hover);
+    // React's onPointerLeave comes from the pointer moving out to something outside the card.
+    await fire(link, "pointerout", "mouse", document.body);
+    expect(shade()).toBe(clear);
+    // A touch leaves no hover behind, and a cancelled press clears.
+    await fire(link, "pointerover", "touch");
+    expect(shade()).toBe(clear);
+    await fire(link, "pointerdown", "touch");
+    expect(shade()).toBe(press);
+    await fire(link, "pointerup", "touch");
+    expect(shade()).toBe(clear);
+    await fire(link, "pointerdown", "touch");
+    await fire(link, "pointercancel", "touch");
+    expect(shade()).toBe(clear);
+    // A press that starts off the link isn't the link's.
+    await fire(card, "pointerdown");
+    expect(shade()).toBe(clear);
+    // The app's own pointer handlers still run, and the picture keeps its own style beside the fill.
+    expect(new Set(calls)).toEqual(new Set(["over", "down", "up", "cancel", "leave"]));
+    const picture = card.querySelector<HTMLImageElement>("[data-card-backdrop] img")!;
+    expect([picture.style.opacity, picture.style.objectFit]).toEqual(["0.5", "cover"]);
+  });
+
+  it("lays a backdrop that isn't an element as it is, and an unlinked card's backdrop has no tint", async () => {
+    const { card } = await render(<Card title="Ribs" backdrop="A photo of ribs" className="min-h-40" />);
+    const backdrop = card.querySelector<HTMLElement>("[data-card-backdrop]")!;
+    expect(backdrop.textContent).toBe("A photo of ribs");
+    expect(backdrop.querySelector("[data-card-tint]")).toBeNull();
   });
 
   it("keeps a plain card's backdrop inside the plain card, inside an outlined one", async () => {

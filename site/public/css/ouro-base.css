@@ -175,7 +175,7 @@
     clip-path: var(--ouro-sq-path, polygon(var(--ouro-sq-o)));
   }
   [data-card-backdrop] {
-    inset: 0;
+    --ouro-card-backdrop-inset: 0;
     border-radius: 0;
     overflow: visible;
   }
