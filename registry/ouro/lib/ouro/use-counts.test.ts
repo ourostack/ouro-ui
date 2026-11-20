@@ -9,7 +9,7 @@ describe("createUseCounts", () => {
   let beaconSpy: ReturnType<typeof vi.fn>;
   let storageSet: ReturnType<typeof vi.spyOn>;
   let xhrOpen: ReturnType<typeof vi.spyOn>;
-  let cookieSet: ReturnType<typeof vi.fn>;
+  let cookieSet: ReturnType<typeof vi.fn<(value: string) => void>>;
 
   beforeEach(() => {
     fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(""));
@@ -17,7 +17,7 @@ describe("createUseCounts", () => {
     vi.stubGlobal("navigator", Object.assign(Object.create(navigator), { sendBeacon: beaconSpy }));
     storageSet = vi.spyOn(Storage.prototype, "setItem");
     xhrOpen = vi.spyOn(XMLHttpRequest.prototype, "open");
-    cookieSet = vi.fn();
+    cookieSet = vi.fn<(value: string) => void>();
     vi.spyOn(document, "cookie", "set").mockImplementation(cookieSet);
   });
 
@@ -88,7 +88,18 @@ describe("createUseCounts", () => {
     for (const entry of report.counts) expect(Object.keys(entry).sort()).toEqual(["count", "moment", "part", "screen"]);
     expect(JSON.stringify(report)).not.toMatch(/example|123456|Settings|xxxx/);
     expect(report.counts.map((entry) => `${entry.screen}/${entry.part}`).sort()).toEqual(["other/name-field", "other/other", "profile/other"]);
-    expect(warn.mock.calls.map((call) => String(call[0])).join("\n")).toContain("[ouro-ui] createUseCounts:");
+    const warnings = warn.mock.calls.map((call) => String(call[0]));
+    expect(warnings).toContain(
+      '[ouro-ui] createUseCounts: part is not a short name from your code, so it is counted as "other". Fix: counts.record("field-error-left", { screen: "checkout", part: "coupon-field" }).',
+    );
+    expect(warnings.some((text) => text.includes("createUseCounts: screen is not a short name"))).toBe(true);
+  });
+
+  it("keeps a short name that holds one or two digits", () => {
+    const counts = createUseCounts({ now: () => NOON });
+    counts.enable();
+    counts.record("search-empty", { screen: "step-2", part: "tab12" });
+    expect(counts.flush().counts).toEqual([{ moment: "search-empty", screen: "step-2", part: "tab12", count: 1 }]);
   });
 
   it("ignores a moment it does not count, and drops what it held when disabled", () => {
@@ -117,10 +128,10 @@ describe("createUseCounts", () => {
     expect(useMoments).toHaveLength(7);
   });
   describe("the privacy promise", () => {
-    let sends: ReturnType<typeof vi.fn>;
+    let sends: ReturnType<typeof vi.fn<(...args: unknown[]) => void>>;
 
     beforeEach(() => {
-      sends = vi.fn();
+      sends = vi.fn<(...args: unknown[]) => void>();
       vi.stubGlobal("WebSocket", function WebSocketStub() { sends("WebSocket"); });
       vi.stubGlobal("EventSource", function EventSourceStub() { sends("EventSource"); });
       vi.stubGlobal("Image", function ImageStub() { sends("Image"); });

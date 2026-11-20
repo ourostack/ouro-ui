@@ -61,6 +61,7 @@ const DIGIT_RUN = /\d{3}/;
 /** A screen or part name, or `other` when it is not a short name from your code. */
 function nameOf(value: string, what: string): string {
   if (typeof value === "string" && NAME.test(value) && !DIGIT_RUN.test(value)) return value;
+  // Stryker disable next-line ConditionalExpression: tests run in development, where the condition is true anyway; its false branch only strips the message.
   if (process.env.NODE_ENV !== "production") {
     devWarn(
       "createUseCounts",
