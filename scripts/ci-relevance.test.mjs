@@ -155,6 +155,7 @@ const namedButUnread = {
     "site/src/pages/docs.tsx site/src/site.test.tsx": "a claim's source and check, read by the claims check",
     "site/src/storybook.ts site/src/site.test.tsx": "a claim's source and check, read by the claims check",
     "site/src/routes.ts site/src/site.test.tsx": "a claim's source and check, read by the claims check",
+    "site/src/routes.ts test/stories.test.tsx": "a claim's source and check, read by the claims check",
     "site/src/voyage/stage/copy.ts site/e2e/stage.spec.ts": "a claim's source and check, read by the claims check",
     "site/src/copy.ts site/e2e/stage.spec.ts": "a claim's source and check, read by the claims check",
     "site/src/docs/agent-prompt.ts test/install-fixture/package.json": "a claim's source and check, read by the claims check",

@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.362 ourostack/ouro-ui/ouro-source-rules#v1.3.362
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.363 ourostack/ouro-ui/ouro-source-rules#v1.3.363
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -171,7 +171,9 @@ The source rule's `gated-load` category finds the loads that wait.[^gated-load] 
 The screen check (`ouro-check`) opens every page of your built app in headless Chromium at every screen size from a 320px phone to a 3840px screen, and four short landscape screens, light and dark, at density 2 up to 3072px wide, the widest real 2x screen, and 1 above it, so a 3840 screen asks for the pictures a 4K monitor shows.[^check-sizes] Each finding records the density it was found at.[^check-sizes] It finds six things, by measurement rather than by looking at pictures:[^check-rules]
 
 
-Its report says what it proves and what it can't. It names the floor (states, focus, names, contrast, targets and motion work as measured), and it ends with a "Needs a person" list: questions only a person can answer, drawn from the components on each page, such as whether they know what a destructive action will lose, or that a form saved.[^check-floor]
+A clean report is the floor: what measurement can decide about the screen isn't broken. It can't see whether people understand the screen or finish its task, such as whether they know a form saved or what an action will remove. Say a screen passes Ouro check, and before you call it good, watch a few people do its task.[^check-floor]
+
+The report itself ends with a "Needs a person" list: questions only a person can answer, drawn from the components on each page.[^check-needs-a-person]
 
 While a modal is open (`aria-modal="true"` or a modal `<dialog>`), the layout, text and design rules check only the modal: the page behind it is out of reach and laid out for the modal, so its findings are left to the page's own run, as it is once the modal closes.[^check-behind-modal]
 
@@ -352,7 +354,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.362
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.363
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -436,7 +438,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.362
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.363
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -446,7 +448,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.362
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.363
         with:
           merge: "true"
 ```
@@ -466,7 +468,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.362
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.363
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -492,7 +494,7 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.362
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.363
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -635,6 +637,7 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^fades-ok]: test:scripts/check/fades.test.mts::the fade check > passes a gradient mask that says why on its line or the line before, and only with a reason verify:testExists(scripts/check/fades.test.mts::the fade check > passes a gradient mask that says why on its line or the line before, and only with a reason) verify:testExists(scripts/check/fades.test.mts::the fade check > passes a gradient mask whose reason is anywhere in the comment just above it, a block comment's continuation lines too) verify:testExists(scripts/check/fades.test.mts::the fade check > passes a wash that says why, on its line, in the comment above it, or at its rule's start, and only with a reason)
 [^fades-ci]: test:scripts/check/fades.test.mts::the fade check > keeps Ouro HX's own masks, which fade text and controls, each with its reason; .github/workflows/ci.yml verify:testExists(scripts/check/fades.test.mts::the fade check > keeps Ouro HX's own masks, which fade text and controls, each with its reason) verify:fileLine(.github/workflows/ci.yml, /^      - run: node registry\/ouro\/check\/fades\.ts registry site$/) verify:ciJob(ci)
 [^check-allow]: test:test/check-in-page.test.ts::findSizeIssues: sideways-scroll > names the page when only an allowed element sticks out, and passes a page that allows it with a reason verify:testExists(test/check-in-page.test.ts::findSizeIssues: sideways-scroll > names the page when only an allowed element sticks out, and passes a page that allows it with a reason)
+[^check-floor]: https://github.com/ourostack/ouro-ui-core/blob/3410bcdc81d46ffb88a35d0b2d605bae3d68a575/docs/decisions/2026-11-19-evidence-from-people.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/3410bcdc81d46ffb88a35d0b2d605bae3d68a575/docs/decisions/2026-11-19-evidence-from-people.md)
 [^check-sizes]: registry/ouro/check/run.ts verify:fileLine(registry/ouro/check/run.ts, /^  \[320, 640\], /) verify:fileLine(registry/ouro/check/run.ts, /\[3840, 2160\],$/) verify:fileLine(registry/ouro/check/run.ts, /^  \[640, 360\], \[720, 420\], \[900, 500\], \[1000, 600\],$/) verify:fileLine(registry/ouro/check/run.ts, /^const dprAt = \(width: number\) => \(width <= 3072 \? 2 : 1\);$/) verify:testExists(scripts/check/check-pages.test.mts::Ouro check > draws a screen wider than 3072px at density 1, holds its pictures to that, and records the density of each finding)
 [^check-clipped]: test:test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > finds a title pushed partly out of the card that hides its overflow, named with how much shows; test:test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > finds a title cut by a card hidden on one axis, whose other axis computes to auto; test:test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > passes a picture cropped by object-fit inside a frame whose box fits it, and finds one whose box the frame cuts verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > finds a title pushed partly out of the card that hides its overflow, named with how much shows) verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > finds a title cut by a card hidden on one axis, whose other axis computes to auto) verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > passes a picture cropped by object-fit inside a frame whose box fits it, and finds one whose box the frame cuts)
 [^check-clipped-pass]: test:test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > passes a title inside its card, and a cut one the page allows with a reason; test:test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > passes a visually hidden label that its card would cut: clipped with inset(50%), or the 1px sr-only pattern; test:test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > passes text in a horizontally scrolling carousel, which scrolls the text rather than cuts it verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > passes a title inside its card, and a cut one the page allows with a reason) verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > passes a visually hidden label that its card would cut: clipped with inset(50%), or the 1px sr-only pattern) verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text, cut by an ancestor's box > passes text in a horizontally scrolling carousel, which scrolls the text rather than cuts it)
@@ -745,4 +748,4 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^first-run-sso-webkit]: https://bugs.webkit.org/show_bug.cgi?id=227729; https://support.apple.com/guide/deployment/extensible-single-sign-on-payload-settings-depfd9cdf845/web verify:urlOk(https://bugs.webkit.org/show_bug.cgi?id=227729) verify:urlOk(https://support.apple.com/guide/deployment/extensible-single-sign-on-payload-settings-depfd9cdf845/web)
 [^check-fragment-focus]: test:scripts/check/check.test.mts::Ouro check > fragment-focus passes fragmentFocusScript as the item ships it, first in <body>, and names a copy a script adds to <head> as the page streams; test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups; test:test/check-in-page.test.ts::findFragmentFocusIssues > finds a page with a stylesheet and no fragmentFocusScript, marked on the page; test:test/check-in-page.test.ts::findFragmentFocusIssues > finds fragmentFocusScript before a stylesheet in <head>; test:test/check-in-page.test.ts::findFragmentFocusIssues > finds fragmentFocusScript that ran after the page was parsed, as one a script adds does; test:test/check-in-page.test.ts::findFragmentFocusIssues > passes fragmentFocusScript run as the page was parsed after every stylesheet, or taken out since, a stylesheet link with no address, and a page allowed fragment-focus with a reason verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:testExists(test/check-in-page.test.ts::findFragmentFocusIssues > finds a page with a stylesheet and no fragmentFocusScript, marked on the page) verify:testExists(test/check-in-page.test.ts::findFragmentFocusIssues > finds fragmentFocusScript before a stylesheet in <head>) verify:testExists(test/check-in-page.test.ts::findFragmentFocusIssues > finds fragmentFocusScript that ran after the page was parsed, as one a script adds does) verify:testExists(test/check-in-page.test.ts::findFragmentFocusIssues > passes fragmentFocusScript run as the page was parsed after every stylesheet, or taken out since, a stylesheet link with no address, and a page allowed fragment-focus with a reason) verify:testExists(scripts/check/check.test.mts::Ouro check > fragment-focus passes fragmentFocusScript as the item ships it, first in <body>, and names a copy a script adds to <head> as the page streams)
 
-[^check-floor]: test:scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds)
+[^check-needs-a-person]: test:scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds)

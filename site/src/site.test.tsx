@@ -117,6 +117,7 @@ describe("home page", () => {
 
   it("titles the home page with Ouro UI's name and the six-word story, which a search result shows", () => {
     expect(routes.find((route) => route.path === "/")?.title).toBe(`Ouro UI: ${VOYAGE_HERO.title.join(" ")}`);
+    expect(VOYAGE_HERO.title.join(" ").split(" ")).toHaveLength(6);
   });
 
   it("counts no components anywhere a visitor reads, and no longer says under construction", async () => {
@@ -204,6 +205,14 @@ describe("home page", () => {
     }
   });
 
+  it("says in the README's at-a-glance list what Ouro UI is, in the words a search for it uses, without calling it a shadcn registry", () => {
+    const bullet = readme.split("\n").find((line) => line.startsWith("- **What it is:**"))!;
+    for (const term of ["React", "Base UI", "Tailwind CSS", "SwiftUI", "WinUI", "Jetpack Compose", "A2UI", "MCP Apps", "shadcn CLI"]) {
+      expect(bullet).toContain(term);
+    }
+    expect(bullet).not.toMatch(/shadcn registry/i);
+  });
+
   it("uses the approved rich HX artwork decoratively beside its accessible name", async () => {
     await renderPage("/");
     const home = page.getByRole("banner").getByRole("link", { name: "Ouro UI", exact: true }).element();
@@ -223,8 +232,8 @@ describe("home page", () => {
     expect(image!.getBoundingClientRect().height).toBe(32);
   });
 
-  it("describes itself with the hero's words, and README and llms.txt keep their shared first lines", () => {
-    expect(routes[0]!.description.startsWith(VOYAGE_HERO.title.join(" "))).toBe(true);
+  it("keeps README and llms.txt's shared first lines, and describes the home page in a search result's length", () => {
+    expect(routes[0]!.description.length).toBeLessThanOrEqual(160);
     expect(readme).toContain(`${HERO_TITLE} ${HERO_SUBLINE}`);
     expect(llms).toContain(`${HERO_TITLE} ${HERO_SUBLINE}`);
     for (const text of [readme, llms, routes[0]!.description]) {
@@ -1113,6 +1122,13 @@ describe("head tags", () => {
     expect(data.keywords).toContain("shadcn registry");
     expect(homeStructuredData({ path: "/", title: "t", description: "a </script> b" })).not.toContain("</script>");
     expect(headTags(routes.find((route) => route.path === "/ax/")!, true).some((t) => t.includes("ld+json"))).toBe(false);
+  });
+  it("give the home page's description the words a search for it would use, without calling it a shadcn registry", () => {
+    const { description } = routes.find((route) => route.path === "/")!;
+    for (const term of ["React", "Base UI", "Tailwind", "SwiftUI", "A2UI", "MCP"]) {
+      expect(description).toContain(term);
+    }
+    expect(description).not.toMatch(/shadcn registry/i);
   });
   it("end a card's title with a full stop before its scene in the alt text, when the title has none", () => {
     const tags = headTags({ path: "/ax/", title: "Ouro AX", description: "A morning with an agent" }, true).join("\n");
