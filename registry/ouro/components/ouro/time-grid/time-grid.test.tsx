@@ -1364,7 +1364,8 @@ describe("TimeGrid background events", () => {
     // Overlapping background events share their lane; the person's own start after it, on every day.
     expect(["All hands", "Budget review"].map((title) => spokenAs(title).closest("li")!.style.width)).toEqual(["50%", "50%"]);
     const column = (element: Element) => element.closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect().left;
-    expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(13);
+    // Standup's day has no background event, so it keeps the day's full width.
+    expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(1);
     expect(titled("Architecture forum").getBoundingClientRect().left - column(titled("Architecture forum"))).toBe(13);
     // In a week each is a slim bar in its tone, on no fill of its own.
     const swatch = (title: string) => getComputedStyle(spokenAs(title).querySelector("[data-ouro-time-grid-bar]")!).backgroundColor;
@@ -1377,6 +1378,28 @@ describe("TimeGrid background events", () => {
     await rerender({ events: [forum, standup], backgroundEvents: [] });
     expect(lanes()).toEqual([]);
     expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(1);
+  });
+
+  it.each(["ltr", "rtl"] as const)("leaves room for the background lane only where a background event shares an event's time (%s)", async (direction) => {
+    if (direction === "rtl") {
+      document.documentElement.dir = "rtl";
+      onTestFinished(() => {
+        document.documentElement.dir = "";
+      });
+    }
+    const busy: TimeGridEvent = { id: "busy", title: "Room booked", start: at(12, "10:00"), end: at(12, "11:00") };
+    const during: TimeGridEvent = { id: "during", title: "During", start: at(12, "10:30"), end: at(12, "11:30") };
+    const after: TimeGridEvent = { id: "after", title: "After", start: at(12, "14:00"), end: at(12, "15:00") };
+    await render({ view: "day", events: [during, after], backgroundEvents: [busy] });
+    const body = titled("After").closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect();
+    const lane = body.width;
+    const inset = (title: string) => {
+      const box = titled(title).getBoundingClientRect();
+      return direction === "ltr" ? box.left - body.left : body.right - box.right;
+    };
+    expect(inset("During")).toBeGreaterThanOrEqual(lane * 0.4);
+    expect(inset("After")).toBeLessThanOrEqual(2);
+    expect(titled("After").getBoundingClientRect().width).toBeGreaterThan(lane * 0.9);
   });
 
   it("names a week's thin bars in a tooltip, and labels them in a day", async () => {
