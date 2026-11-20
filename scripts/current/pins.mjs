@@ -6,7 +6,7 @@
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { dirname, posix } from "node:path";
-import { THEME_ITEMS, applyItem, hasItem } from "./stylesheet.mjs";
+import { BASE_SOURCE, THEME_ITEMS, applyItem, baseImport, basePath, hasItem, importBase } from "./stylesheet.mjs";
 
 export const REPOS = { web: "ourostack/ouro-ui", core: "ourostack/ouro-ui-core", apple: "ourostack/ouro-ui-apple" };
 export const NAMES = { web: "Ouro UI", core: "Ouro UI core", apple: "Ouro UI for Apple" };
@@ -518,29 +518,56 @@ const registryItem = (tarball, name) => (JSON.parse(tarball.get("registry.json")
  * files alone leave a release's new theme variables out, and a component that reads one (`rounded-ouro-lg`, #1843)
  * then draws without it. Null when the app has no stylesheet Ouro Current can read; `text` null when nothing is missing.
  */
-export function stylesheetUpdate(previous, next, found, read, tag) {
+export function stylesheetUpdate(previous, next, found, read, tag, owned = () => false) {
   const path = stylesheetOf(found);
   const bytes = path && read(path);
   if (!bytes) return null;
   const original = bytes.toString("utf8");
   let text = original;
   const notes = [];
+  const files = {};
+  const hashes = {};
   for (const name of THEME_ITEMS) {
     const item = registryItem(next, name);
-    if (!item || !hasItem(text, item)) continue;
+    if (!item) continue;
+    if (name === "ouro-base") {
+      // A stylesheet that imports ouro-base's file takes it from that file, which updates as an installed file.
+      if (baseImport(text)) continue;
+      const source = next.get(BASE_SOURCE);
+      const at = basePath(path);
+      if (source && hasItem(text, item)) {
+        if (read(at) && !owned(at)) notes.push(`Leaves \`${path}\` holding ouro-base's rules: \`${at}\`, where its own file goes, is already a file of the app's.`);
+        else {
+          const was = previous.get(BASE_SOURCE)?.toString("utf8") ?? registryItem(previous, name) ?? item;
+          const moved = importBase(text, was);
+          if (moved) {
+            text = moved.text;
+            files[at] = source;
+            hashes[at] = sha256(source);
+            const named = (entry) => (entry.prop ? `\`${entry.prop}\` in ${entry.where}` : entry.where);
+            notes.push(`Moves ouro-base out of \`${path}\` into \`${at}\`, which \`${path}\` imports before its own rules, and which Ouro Current replaces whole on each release.`);
+            if (moved.kept.length) notes.push(`Keeps the app's own values after the import, where they win over ouro-base's: ${moved.kept.map(named).join(", ")}. Delete any that only copied an older ouro-base.`);
+            if (moved.restored.length) notes.push(`ouro-base's file brings back what \`${path}\` lacked: ${moved.restored.map(named).join(", ")}.`);
+            continue;
+          }
+        }
+      }
+    }
+    if (!hasItem(text, item)) continue;
     const result = applyItem(text, item, registryItem(previous, name));
     text = result.text;
     for (const { where, names } of result.added) notes.push(names.length ? `Adds ${list(names)} to ${where} in \`${path}\`, which \`${name}\` at \`${tag}\` puts there and the stylesheet lacked, as \`shadcn add\` would.` : `Adds ${where} to \`${path}\`, which \`${name}\` at \`${tag}\` has and the stylesheet lacked, as \`shadcn add\` would.`);
     for (const reason of result.skipped) notes.push(`Leaves ${reason} out of \`${path}\` for \`${name}\`: add it by hand if the app needs it.`);
   }
-  return { path, text: text === original ? null : text, notes };
+  return { path, text: text === original ? null : text, notes, files, hashes };
 }
 
 /**
  * Whether an install record already on the release left the app's stylesheet behind it: a component of that release
  * reads a theme variable, keyframes or utility the stylesheet lacks, because an earlier update moved the components
- * alone or the stylesheet never had it. Reads two files,
- * components.json and the stylesheet, not the repository's whole tree.
+ * alone or the stylesheet never had it; the stylesheet still holds ouro-base's rules rather than importing its file; or
+ * a stylesheet copied as is is an older release's. Reads components.json, the stylesheet and those copies, not the
+ * repository's whole tree.
  */
 export async function hxStylesheetBehind(pin, text, release, ctx) {
   const record = JSON.parse(text);
@@ -548,10 +575,34 @@ export async function hxStylesheetBehind(pin, text, release, ctx) {
   for (const path of ctx.consumerPaths()) if (posix.basename(path) === "components.json") configs.set(path, await ctx.consumerFile(path));
   const found = findComponentsJson(configs, Object.keys(record.files ?? {}));
   const path = stylesheetOf(found);
+  const tarball = await ctx.tarball("web", release.tag);
+  // A stylesheet copied as is (ouro-base's own file, a plain-CSS copy) that is still what was installed but not the
+  // release's: written by an older release, or by hand, under a record on this one.
+  const base = path && basePath(path);
+  for (const [file, hash] of Object.entries(record.files ?? {})) {
+    const from = copiedFrom(file, base, tarball, new Map());
+    if (!from) continue;
+    const now = await ctx.consumerFile(file);
+    if (now && sha256(now) === hash && !tarball.get(from).equals(now)) return true;
+  }
   if (!path) return false;
   const sheet = await ctx.consumerFile(path);
-  const tarball = await ctx.tarball("web", release.tag);
-  return Boolean(stylesheetUpdate(tarball, tarball, found, () => sheet, release.tag)?.text);
+  return Boolean(stylesheetUpdate(tarball, tarball, found, (file) => (file === path ? sheet : null), release.tag)?.text);
+}
+
+/** The plain-CSS copies a page with no Tailwind links, as the site serves them and the repository holds them at a tag. */
+const STATIC_CSS = "site/public/css/";
+
+/**
+ * Where an installed file copied as is comes from in the tag: ouro-base's source for the file the stylesheet imports,
+ * and the plain-CSS copy of the same name for `ouro-base.css`, `ouro-theme.css` or `ouro-plain.css` anywhere else that
+ * no registry item installs. Null for every other file.
+ */
+function copiedFrom(path, base, next, before) {
+  if (path === base) return next.has(BASE_SOURCE) ? BASE_SOURCE : null;
+  const name = posix.basename(path);
+  if (before.has(path) || !/^ouro-(base|theme|plain)\.css$/.test(name)) return null;
+  return next.has(`${STATIC_CSS}${name}`) ? `${STATIC_CSS}${name}` : null;
 }
 
 /**
@@ -592,9 +643,25 @@ async function updateHxInstalled(pin, text, release, ctx) {
   const moves = [];
   const blocked = [];
   const items = new Set();
+  const sheetPath = stylesheetOf(found);
+  const base = sheetPath && basePath(sheetPath);
   for (const path of installed) {
     hashes[path] = record.files[path];
     const now = consumer.get(path);
+    const from = copiedFrom(path, base, next, before);
+    if (from) {
+      // A stylesheet copied as is: ouro-base's own file, which the stylesheet imports, or a plain-CSS copy for a page
+      // with no Tailwind. It takes the new tag's file whole when it is still what was installed: its bytes hash to
+      // the record's hash, or equal the old tag's file.
+      const source = next.get(from);
+      if (!now || !(sha256(now) === record.files[path] || previous.get(from)?.equals(now))) {
+        edited.push(path);
+        continue;
+      }
+      hashes[path] = sha256(source);
+      if (!source.equals(now)) out[path] = source;
+      continue;
+    }
     const old = before.get(path);
     const wrote = old && rewrite(previous.get(old.path));
     if (now && !old && !after.has(path) && sha256(now) === record.files[path]) {
@@ -722,8 +789,11 @@ async function updateHxInstalled(pin, text, release, ctx) {
     forwarded.push({ from, to });
   }
   // What the theme items add to the app's stylesheet (#1843's `--radius-ouro-*`), as `shadcn add` writes it there.
-  const sheet = stylesheetUpdate(previous, next, found, (path) => (typeof out[path] === "string" || Buffer.isBuffer(out[path]) ? asBytes(out[path]) : consumer.get(path)), release.tag);
+  // A file at ouro-base's own path that the record holds is Ouro's own, and is written again.
+  const sheet = stylesheetUpdate(previous, next, found, (path) => (typeof out[path] === "string" || Buffer.isBuffer(out[path]) ? asBytes(out[path]) : consumer.get(path)), release.tag, (path) => path in record.files);
   if (sheet?.text) out[sheet.path] = Buffer.from(sheet.text, "utf8");
+  for (const [path, bytes] of Object.entries(sheet?.files ?? {})) out[path] = bytes;
+  Object.assign(hashes, sheet?.hashes ?? {});
   const sorted = Object.fromEntries(Object.keys(hashes).sort().map((path) => [path, hashes[path]]));
   out[pin.file] = `${JSON.stringify({ ...record, tag: release.tag, tagCommit: release.sha, files: sorted }, null, 2)}\n`;
   const notes = [];

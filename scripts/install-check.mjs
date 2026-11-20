@@ -45,6 +45,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 import ts from "typescript";
+import { baseImport } from "./current/stylesheet.mjs";
 import { comments, hasClientDirective } from "./source-rules.mjs";
 import { treeFiles } from "./tree.mjs";
 
@@ -394,7 +395,11 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
 } else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--theme-item") {
   const [, , , cssPath, registryPath, name] = process.argv;
   const item = JSON.parse(readFileSync(registryPath, "utf8")).items.find((each) => each.name === name);
-  const problems = item ? checkThemeItem(readFileSync(cssPath, "utf8"), item, cssPath) : [`${registryPath} has no item ${name}`];
+  // A stylesheet that imports ouro-base's own file has what that file has.
+  const css = readFileSync(cssPath, "utf8");
+  const imported = baseImport(css);
+  const text = imported ? `${css}\n${readFileSync(join(dirname(cssPath), imported), "utf8")}` : css;
+  const problems = item ? checkThemeItem(text, item, cssPath) : [`${registryPath} has no item ${name}`];
   for (const problem of problems) console.error(`install check: ${problem}`);
   if (problems.length === 0) console.log(`install check: ${cssPath} has everything ${name} adds`);
   process.exitCode = problems.length === 0 ? 0 : 1;
