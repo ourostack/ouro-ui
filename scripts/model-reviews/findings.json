@@ -896,8 +896,8 @@
         }
       ],
       "issue": 2303,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "All four kits (web, Apple, Windows, Android) run the same 13 shared card-behaviour cases from core, and a table lists each case's result per kit from each kit's latest main run: 13 of 13 pass everywhere (#2464, #2471)."
     },
     {
       "id": "native-challenge-manifesto",
