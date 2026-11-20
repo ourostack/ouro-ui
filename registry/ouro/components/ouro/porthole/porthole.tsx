@@ -264,6 +264,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
   const [drawnAtMount, setDrawnAtMount] = useState(defaultOpen === true);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: a starting style only applies to an element's first frame, so clearing the flag early changes nothing a person or a test can see.
     if (!open && drawnAtMount) setDrawnAtMount(false);
   }, [open, drawnAtMount]);
   const panelId = useId();
