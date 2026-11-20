@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { EVENT_TIMING_STEP, LATENCY, expectPressesWithinBudget, forgetSteadySlowRunner, loaded, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, slowRunnerMessage, splitPaint, splitPress, steadySlow, summarise, describeFrame, thinMargin } from "./latency";
+import { EVENT_TIMING_STEP, LATENCY, expectPressesWithinBudget, forgetSteadySlowRunner, hostBusy, hostTicks, loaded, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, slowRunnerMessage, splitPaint, splitPress, steadySlow, summarise, describeFrame, thinMargin } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -134,6 +134,16 @@ test.describe("a page whose button is slow on purpose", () => {
     expect(samples).toHaveLength(LATENCY.samples);
     expect(() => expectWithinBudget("every press", samples, 48)).toThrow();
   });
+});
+
+test("the host's CPU load over a press is read from /proc/stat: busy is all but idle and iowait, and steal is its own share", () => {
+  const before = hostTicks("cpu  100 0 50 800 50 0 0 0 0 0\ncpu0 50 0 25 400 25 0 0 0 0 0\n");
+  const after = hostTicks("cpu  160 0 80 840 60 0 0 20 0 0\n");
+  expect(before).toEqual({ total: 1000, busy: 150, steal: 0 });
+  expect(hostBusy(before, after)).toEqual({ busy: 69, steal: 13 });
+  expect(hostTicks("intr 1 2 3\n")).toBeNull();
+  expect(hostBusy(null, after)).toBeNull();
+  expect(hostBusy(after, after)).toBeNull();
 });
 
 test("a probe past the cap calls for a re-measure, read from the probe alone", () => {
