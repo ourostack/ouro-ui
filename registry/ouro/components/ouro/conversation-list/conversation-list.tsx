@@ -519,7 +519,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
             }
           }}
           className={cn(
-            "press absolute end-3 top-2 box-border flex h-5 w-7 cursor-pointer items-center justify-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 bg-transparent p-0 text-base leading-none text-foreground",
+            "press absolute end-3 top-2 box-border flex h-5 w-7 cursor-pointer items-center justify-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 forced-colors:border forced-colors:border-solid bg-transparent p-0 text-base leading-none text-foreground",
             "touch-manipulation [-webkit-tap-highlight-color:transparent] outline-ring outline-offset-0 focus-visible:outline-2 focus-visible:outline-solid",
             "transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-focus-within/row:opacity-100",
             "pointer-fine:hover:bg-[color:var(--ouro-row-pressed,var(--muted))] active:bg-[color:var(--ouro-row-pressed,var(--muted))]",
