@@ -263,9 +263,8 @@ export function Porthole(props: PortholeProps): JSX.Element {
   // Lines open at mount are drawn at once; the fade is for lines that open after, so it returns once they close.
   const [drawnAtMount, setDrawnAtMount] = useState(defaultOpen === true);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: a starting style only applies to an element's first frame, so clearing the flag early changes nothing a person or a test can see.
-    if (!open && drawnAtMount) setDrawnAtMount(false);
+    if (!open && drawnAtMount) setDrawnAtMount(false); // eslint-disable-line react-hooks/set-state-in-effect
   }, [open, drawnAtMount]);
   const panelId = useId();
   const toggle = () => {
