@@ -19,9 +19,6 @@
  *   theme sets them to give its controls their own shape, such as capsules (9999px and round) on a
  *   page of square cards. --ouro-check-radius and --ouro-check-corner-shape do the same for the
  *   checkbox's box (Checkbox and Checklist), such as circles (9999px and round).
- * - --ouro-bubble-user and --ouro-bubble-user-foreground: the fill and text of the user's own chat
- *   bubble (Message), which read them before --ouro-action and the primary color. Unset by default,
- *   so the bubble follows the action color; set both as a pair that passes 4.5:1.
  * - --ouro-layer: the z-index of sheet and dialog portals.
  * - The root type on a very wide screen: 112.5% from 150rem and 125% from 200rem, so a 4K display
  *   at 1x reads at a laptop's size.

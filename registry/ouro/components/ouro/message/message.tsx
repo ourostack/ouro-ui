@@ -123,8 +123,7 @@ export interface MessageOwnProps {
   variant?: MessageVariant | (string & { 'Use "default", "chat", "post" or "reply"': never }) | undefined;
   /**
    * How a `chat` message's bubble looks. `filled`, the default, is a messaging app's: the user's
-   * own message filled with `--ouro-bubble-user` and text in `--ouro-bubble-user-foreground`
-   * when the theme sets them, else as a primary button is (`--ouro-action`, else the primary color), others'
+   * own message filled as a primary button is (`--ouro-action`, else the primary color), others'
    * on the muted surface, each round with a smaller corner toward its sender, with an edge that
    * forced colors draw. Inside the user's own bubble, the theme's colors follow the fill, so a
    * link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link or mention in the primary color is
@@ -137,7 +136,7 @@ export interface MessageOwnProps {
    *
    * @claim "`filled`, the default, is a messaging" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with a smaller corner toward its sender)
    * @claim "on others', a link or mention" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > keeps a link in the primary color at 4.5:1 or more on others' muted bubble)
-   * @claim "else as a primary button" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble as a primary button is, from --ouro-action when the theme sets it)
+   * @claim "own message filled as a primary button" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble as a primary button is, from --ouro-action when the theme sets it)
    * @claim "with an edge that" registry/ouro/components/ouro/message/message.test.tsx verify:fileLine(registry/ouro/components/ouro/message/message.test.tsx, /chromiumOnly\("keeps both filled bubbles' edges under forced colors"/)
    * @claim "link (underlined), a mention" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > underlines a link in the user's own filled bubble, and gives both filled bubbles a clear edge)
    * @claim "the theme's colors follow the fill" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > keeps the primary color readable inside the user's filled bubble: a link or mention in it takes the bubble's text color)
@@ -437,7 +436,7 @@ const bubbles = {
 // A raised surface: the theme's card with its hairline and small shadow, for a chat's bubbles.
 const raised = "bg-card text-card-foreground ring-1 ring-border/60 shadow-(--shadow-sm)";
 
-// The user's filled bubble is drawn as a primary button is (`--ouro-bubble-user`, else `--ouro-action`, else the primary color), and inside it
+// The user's filled bubble is drawn as a primary button is (`--ouro-action`, else the primary color), and inside it
 // the theme's colors follow the fill, so a link, a mention, a quote, a card, a code block or a button in it stays
 // readable: the primary color, the foreground, the muted text, a primary button and the focus ring read as the
 // bubble's text color; the card, muted and accent surfaces as the fill, the accent a shade lighter for a hover; and a
@@ -445,8 +444,8 @@ const raised = "bg-card text-card-foreground ring-1 ring-border/60 shadow-(--sha
 // (bubbleColors), because the bubble re-points the colors for what is inside it (filledColors). These are inline
 // custom properties, not classes, so they add nothing to an app's stylesheet.
 const bubbleColors = {
-  "--ouro-bubble": "var(--ouro-bubble-user,var(--ouro-action,var(--primary)))",
-  "--ouro-bubble-ink": "var(--ouro-bubble-user-foreground,var(--ouro-action-foreground,var(--primary-foreground)))",
+  "--ouro-bubble": "var(--ouro-action,var(--primary))",
+  "--ouro-bubble-ink": "var(--ouro-action-foreground,var(--primary-foreground))",
 } as CSSProperties;
 const filledColors = {
   "--primary": "var(--ouro-bubble-ink)",
