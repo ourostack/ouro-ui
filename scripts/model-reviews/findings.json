@@ -1471,8 +1471,8 @@
         }
       ],
       "issue": 2318,
-      "status": "in progress",
-      "change": null
+      "status": "changed",
+      "change": "The README now leads with what a person gets, each part backed by a story, test or component, and links the review-volume guide. The per-surface difference of one action is not yet measured."
     },
     {
       "id": "unknown-name-never-opened",
