@@ -248,6 +248,8 @@ export function renderPage(runs, subject = SUBJECT, replays = searchReplays(), f
   const out = [];
   out.push("# Which toolkit models choose");
   out.push("");
+  out.push("Frontier models are asked which toolkit they would use for real jobs, and what they push back on becomes an issue that changes Ouro. This page opens with what those findings changed and what is still open, then gives each run's results.");
+  out.push("");
   out.push(...findingsLead(findings, runs));
   out.push(headline(latest, subject));
   out.push("");

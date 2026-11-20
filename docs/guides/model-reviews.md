@@ -1,5 +1,7 @@
 # Which toolkit models choose
 
+Frontier models are asked which toolkit they would use for real jobs, and what they push back on becomes an issue that changes Ouro. This page opens with what those findings changed and what is still open, then gives each run's results.
+
 ## What the findings changed in Ouro
 
 The reviews and the [interviews](model-interviews.md) produced 33 findings, filed as issues. 18 are changed or answered and 15 are open or in progress. The results below are kept whole, including the ones that went against Ouro.
