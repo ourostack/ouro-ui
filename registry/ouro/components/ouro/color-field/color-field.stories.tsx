@@ -5,9 +5,10 @@ import { ColorField } from "@/registry/ouro/components/ouro/color-field/color-fi
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
 /** A themed panel. It follows the page's scheme (the `.dark` class on the root). */
-function Surface({ children }: { children: ReactNode }) {
+function Surface({ children, allow }: { children: ReactNode; allow?: Record<`data-${string}`, string> }) {
   return (
     <div
+      {...allow}
       style={{
         background: "var(--background)",
         color: "var(--foreground)",
@@ -48,7 +49,7 @@ export const Playground: Story = {};
 export const States: Story = {
   parameters: { screenshot: { name: "color-field-states" } },
   render: () => (
-    <Surface>
+    <Surface allow={{ "data-ouro-allow": "duplicate-control", "data-ouro-allow-why": "each field shows one state with its own swatch, so the swatch name repeats across fields; no field has it twice" }}>
       <ColorField label="Accent color" name="accent" defaultValue="#3366ff" description="Used for buttons and links." />
       <ColorField label="Tag color" name="tag" defaultValue="#f5f5f4" error="Pick a darker color, so the tag text stays readable." />
       <ColorField label="Brand color" name="brand" defaultValue="#16a34a" disabled />

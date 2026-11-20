@@ -70,18 +70,13 @@ export function knownProblems(entries: readonly KnownFinding[]): string[] {
 
 const disabledReason =
   "A disabled control shows alone: the reason it is off is the app's words, which a story does not supply. An app gives one with a title or aria-describedby.";
-const repeatedControl = "The story lays the same control out in each variant or state, so its name repeats in view; the repetition is what the story shows.";
 
 
 
 export const knownFindings: KnownFinding[] = [
   { story: "Accordion/Multiple", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "AgentPresence/Unread", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
   { story: "Button/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Button/Loading", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Button/Loading", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
-  { story: "Button/Sizes", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
-  { story: "Button/TonesAndVariants", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
   {
     story: "Calendar/Unavailable",
     rule: "disabled-no-reason",
@@ -89,7 +84,6 @@ export const knownFindings: KnownFinding[] = [
     reason: "Each unavailable day is a disabled button with no reason beside it; the reason (a booked date, a closed day) is the app's copy.",
   },
   { story: "Checkbox/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "ColorField/States", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
   {
     story: "Composer/EmojiTokens",
     rule: "lone-word",
@@ -98,7 +92,6 @@ export const knownFindings: KnownFinding[] = [
   },
   { story: "Composer/Sending", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Composer/SendingOff", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "DatePicker/States", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
   {
     story: "Emoji/Placeholder",
     rule: "broken-image",
@@ -180,7 +173,6 @@ export const knownFindings: KnownFinding[] = [
   { story: "Reorderable/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "SegmentedControl/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Switch/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "SyncStatus/States", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
   { story: "Tabs/Vertical", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   {
     story: "ThreadRail/Playground",
@@ -207,7 +199,6 @@ export const knownFindings: KnownFinding[] = [
     reason: "The time and its status sit over the progress ring on purpose: the ring is the timer's face.",
   },
   { story: "Toggle/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Toggle/States", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
   { story: "ToggleGroup/Modes", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Toolbar/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   {
