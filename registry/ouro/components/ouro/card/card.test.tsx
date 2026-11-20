@@ -118,6 +118,78 @@ describe("Card", () => {
     expect(media.top).toBe(box.top + 1);
   });
 
+  it("lays a backdrop behind the whole card, edge to edge, clipping only the picture and not the card or its text", async () => {
+    const { card } = await render(
+      <Card
+        backdrop={<img src={pixel} alt="" data-picture="" />}
+        footer={<Button>Start cooking</Button>}
+        className="min-h-80"
+      >
+        <Text>On the counter</Text>
+      </Card>,
+    );
+    const backdrop = card.querySelector<HTMLElement>("[data-card-backdrop]")!;
+    const picture = card.querySelector<HTMLElement>("[data-picture]")!;
+    const box = card.getBoundingClientRect();
+    // It covers the card's border box, behind its content, and the picture fills it.
+    expect(backdrop.getBoundingClientRect().toJSON()).toEqual(box.toJSON());
+    expect(picture.getBoundingClientRect().toJSON()).toEqual(box.toJSON());
+    expect(getComputedStyle(picture).objectFit).toBe("cover");
+    expect(getComputedStyle(backdrop).zIndex).toBe("-1");
+    expect(getComputedStyle(backdrop).pointerEvents).toBe("none");
+    // The picture takes the card's corner and clips itself; the card and its text and controls don't clip.
+    expect(getComputedStyle(backdrop).borderTopLeftRadius).toBe(getComputedStyle(card).borderTopLeftRadius);
+    expect(parseFloat(getComputedStyle(backdrop).borderTopLeftRadius)).toBeGreaterThan(1);
+    expect(getComputedStyle(backdrop).overflow).toBe("clip");
+    expect(getComputedStyle(card).overflow).toBe("visible");
+    for (const part of [page.getByText("On the counter").element(), page.getByRole("button", { name: "Start cooking" }).element()]) {
+      for (let node: Element | null = part; node && node !== card; node = node.parentElement) {
+        expect(getComputedStyle(node).clipPath).toBe("none");
+        expect(backdrop.contains(node)).toBe(false);
+      }
+    }
+    const [x, y] = center(page.getByRole("button", { name: "Start cooking" }).element() as HTMLElement);
+    expect(document.elementFromPoint(x, y)?.closest("button")?.textContent).toBe("Start cooking");
+  });
+
+  it("rounds a plain card's backdrop itself, as plain media is rounded", async () => {
+    const { card } = await render(<Card variant="plain" backdrop={<img src={pixel} alt="" />} title="Cover" />);
+    const backdrop = card.querySelector<HTMLElement>("[data-card-backdrop]")!;
+    expect(parseFloat(getComputedStyle(backdrop).borderTopLeftRadius)).toBeGreaterThan(1);
+    expect(getComputedStyle(backdrop).overflow).toBe("clip");
+  });
+
+  it("tints a linked backdrop card on hover inside the picture's clip, not as a square over its corners", async () => {
+    const { card } = await render(<Card href="/recipes/1" title="Ribs" backdrop={<img src={pixel} alt="" />} className="min-h-40" />);
+    const backdrop = card.querySelector<HTMLElement>("[data-card-backdrop]")!;
+    const link = card.querySelector<HTMLElement>("[data-card-link]")!;
+    const clear = "rgba(0, 0, 0, 0)";
+    expect(getComputedStyle(backdrop, "::after").backgroundColor).toBe(clear);
+    await userEvent.hover(link);
+    await expect.poll(() => getComputedStyle(backdrop, "::after").backgroundColor).not.toBe(clear);
+    expect(getComputedStyle(link, "::after").backgroundColor).toBe(clear);
+    expect(getComputedStyle(backdrop).overflow).toBe("clip");
+    await commands.parkPointer();
+  });
+
+  it("keeps a plain card's backdrop inside the plain card, inside an outlined one", async () => {
+    await render(
+      <Card title="Outer">
+        <Card variant="plain" backdrop={<img src={pixel} alt="" />} className="min-h-20" data-inner="">
+          x
+        </Card>
+      </Card>,
+    );
+    const inner = document.querySelector<HTMLElement>("[data-inner]")!;
+    const backdrop = inner.querySelector<HTMLElement>("[data-card-backdrop]")!;
+    expect(backdrop.getBoundingClientRect().toJSON()).toEqual(inner.getBoundingClientRect().toJSON());
+  });
+
+  it("warns that backdrop and media are two pictures", async () => {
+    await render(<Card backdrop={<img src={pixel} alt="" />} media={<img src={pixel} alt="" />} title="Cover" />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Card: backdrop and media are two pictures; use one. Fix: <Card backdrop={<img src=… alt="" />}>.');
+  });
+
   it("is a bordered surface in the card colors, with 24px padding", async () => {
     const { card } = await render(
       <Card title="Pantry">

@@ -73,6 +73,16 @@ export interface CardOwnProps {
    * `<img>`, so the card keeps its shape while the image loads.
    */
   media?: ReactNode;
+  /**
+   * A picture behind the whole card, edge to edge, with the title, body and footer over it:
+   * usually an `<img alt="" />` (it fills the card, cropped to cover), and a shade of your own
+   * where the text needs it. Only the picture is clipped to the card's squircle, so its title,
+   * text and controls repaint without a clip, and where the engine has no corner-shape it takes
+   * the same squircle clip as an avatar's photo, at the card's radius.
+   * @claim "Only the picture is clipped to" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > lays a backdrop behind the whole card, edge to edge, clipping only the picture and not the card or its text)
+   * @claim "where the engine has no corner-shape" registry/ouro/theme/squircle-surface.test.tsx verify:testExists(registry/ouro/theme/squircle-surface.test.tsx::squircle surface where the engine has no corner-shape > clips a Card's backdrop, and only it, to the squircle at the card's radius)
+   */
+  backdrop?: ReactNode;
   /** The card's body, under the title. */
   children?: ReactNode;
   /** A row at the bottom for buttons or a timestamp. With `href`, controls here stay their own tab stops. */
@@ -153,6 +163,26 @@ const rootSizes = {
 } as const;
 const inset = { outline: { md: "px-6", sm: "px-4" }, plain: { md: "px-0", sm: "px-0" } } as const;
 const mediaPull = { outline: { md: "-mt-6", sm: "-mt-4" }, plain: { md: "rounded-ouro-xl", sm: "rounded-ouro-lg" } } as const;
+
+// The backdrop covers the card's border box and clips itself to the card's corner: the corner shape where the engine
+// draws it, and elsewhere ouro-base's avatar clip at the card's --ouro-sq-r, with no circular corner of its own.
+// An outlined card's backdrop takes the card's own corner; a plain card has none, so its backdrop rounds itself as plain media does.
+const backdropCorner = {
+  outline: { md: "rounded-[inherit]", sm: "rounded-[inherit]" },
+  plain: {
+    md: "rounded-ouro-xl [--ouro-sq-w:0px] [--ouro-sq-r:calc(var(--radius)*var(--ouro-radius-scale,1)*1.4)]",
+    sm: "rounded-ouro-lg [--ouro-sq-w:0px] [--ouro-sq-r:calc(var(--radius)*var(--ouro-radius-scale,1))]",
+  },
+} as const;
+const backdropClass =
+  "pointer-events-none absolute inset-[calc(var(--ouro-sq-w,0px)*-1)] -z-1 overflow-clip " +
+  "*:absolute *:inset-0 *:size-full *:object-cover";
+// A linked card's hover and press tint, which its stretched link draws as a plain rectangle, lies on the backdrop
+// instead, inside the picture's clip, since a card with a backdrop doesn't clip its corners.
+const backdropLinkClass = "[&_[data-card-link]]:after:bg-transparent!";
+const backdropTintClass =
+  "after:absolute after:inset-0 after:transition-colors after:duration-(--ouro-duration-fast) " +
+  "pointer-fine:group-has-[[data-card-link]:hover]/card:after:bg-foreground/[0.03] group-has-[[data-card-link]:active]/card:after:bg-foreground/[0.06]";
 
 // With href, the title's link stretches over the card (`stretchedLinkClass`), so the whole
 // card is one link with one tab stop, and every control in any slot (a share button over
@@ -256,6 +286,7 @@ export function Card(props: CardProps): JSX.Element {
     revealDescription,
     action,
     media,
+    backdrop,
     children,
     footer,
     stackBelow: stackBelowProp,
@@ -317,6 +348,7 @@ export function Card(props: CardProps): JSX.Element {
             revealDescription !== "rise" && [`revealDescription="${String(revealDescription)}" is not a reveal; use revealDescription or "rise"`, '<Card revealDescription="rise">'],
           (revealDescription === true || revealDescription === "rise") &&
             !reveal && ["revealDescription needs href, a title and a description", '<Card href="/path" title="…" description="…" revealDescription>'],
+          Boolean(backdrop) && Boolean(media) && ["backdrop and media are two pictures; use one", "<Card backdrop={<img src=… alt=\"\" />}>"],
           revealDescription === "rise" && reveal && !rise && ['revealDescription="rise" needs media to rise over', '<Card href="/path" title="…" description="…" media={…} revealDescription="rise">'],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
@@ -381,7 +413,10 @@ export function Card(props: CardProps): JSX.Element {
       "data-linked": linked ? "" : undefined,
       "data-follows-link": linked ? "" : undefined,
       className: cn(
-        "relative isolate flex min-w-0 list-none flex-col overflow-hidden",
+        // A card with a backdrop doesn't clip: the backdrop clips itself, so its text and controls repaint without a clip.
+        "relative isolate flex min-w-0 list-none flex-col",
+        backdrop ? "overflow-visible" : "overflow-hidden",
+        backdrop && linked && cn("group/card", backdropLinkClass),
         variants[variant],
         rootSizes[variant][size],
         linked && linkRoot,
@@ -391,6 +426,11 @@ export function Card(props: CardProps): JSX.Element {
       ),
     },
     variant === "outline" && <span data-ouro-surface="" aria-hidden="true" style={{ zIndex: -1 }} />,
+    backdrop && (
+      <div data-card-backdrop="" data-ouro-avatar-surface="" className={cn(backdropClass, backdropCorner[variant][size], linked && backdropTintClass)}>
+        {backdrop}
+      </div>
+    ),
     media && !rise && <div className={cn("relative overflow-hidden", mediaPull[variant][size], zoom && zoomMediaClass)}>{media}</div>,
     // The title stacked over the media in one grid cell, not positioned, so the link's layer still covers the whole
     // card; a cell grows to fit a title and description taller than the media rather than cutting the title off.

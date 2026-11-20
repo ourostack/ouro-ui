@@ -3,7 +3,7 @@ import WebKit
 
 // The squircle cost probe's browser: a WKWebView in a window of its own, as an app embeds it. It opens the probe page
 // (page.tsx) at the address given, and prints one JSON object:
-//   bench: how long each frame's rendering takes while the area around 270 squircle controls repaints, with the
+//   bench: how long each frame's rendering takes while the area around 285 squircle controls repaints, with the
 //          surfaces drawn (on), hidden (off) and drawn as before #1385 (ref), alternated over the rounds;
 //   typing: each key's time from keydown to painted, typing into the chat's composer at 120 words a minute (fast) and
 //           a key every 90 ms (slow) while a message arrives every 400 ms.
