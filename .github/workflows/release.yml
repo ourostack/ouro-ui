@@ -431,13 +431,17 @@ jobs:
     if: ${{ needs.release.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
-      actions: write # start Docs pin
+      actions: write # start Released and Docs pin
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: v${{ inputs.version }}
     steps:
+      # Released (released.yml) is the signal that a release is out, for what watches from outside this repository.
+      - name: Say the release is out
+        run: |
+          gh workflow run released.yml --ref main -f tag="$TAG"
       - name: Start Docs pin
         run: |
           gh workflow run docs-pin.yml --ref main -f tag="$TAG"

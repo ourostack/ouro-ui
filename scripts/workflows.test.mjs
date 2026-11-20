@@ -3419,6 +3419,11 @@ test("Release starts Docs pin once it has tagged, and no job waits for it", () =
   assert.match(jobs["docs-pin"], /^ {4}needs: release$/m);
   assert.match(jobs["docs-pin"], /if: \$\{\{ needs\.release\.result == 'success' \}\}/);
   assert.match(jobs["docs-pin"], /gh workflow run docs-pin\.yml --ref main -f tag="\$TAG"/);
+  assert.ok(jobs["docs-pin"].indexOf("gh workflow run released.yml --ref main -f tag=\"$TAG\"") < jobs["docs-pin"].indexOf("gh workflow run docs-pin.yml"), "Released, the signal that a release is out, starts first");
+  const released = workflow("released.yml");
+  assert.match(released, /^on:\n {2}workflow_dispatch:\n {4}inputs:\n {6}tag:\n/m, "only Release starts it");
+  assert.match(released, /^permissions:\n {2}contents: read$/m);
+  assert.doesNotMatch(released, /actions\/checkout|secrets\./, "it runs no code and holds no secret");
   for (const id of ["pages", "publish", "finish", "next"]) assert.doesNotMatch(jobs[id], /docs-pin/, id);
 });
 

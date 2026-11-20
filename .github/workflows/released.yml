@@ -1,0 +1,27 @@
+name: Released
+# A signal and nothing else: Release (release.yml) starts this the moment it has tagged and published a release, so
+# something outside this repository that can read its runs but can't be called from here learns of the release within
+# seconds, not after Pages: a consuming app's update bot hears it through a relay that watches this workflow's successful
+# runs. It checks that the tag is a published release and does nothing more.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release just published, such as v1.3.351"
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  released:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: The release is published
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::tag must be a release such as v1.3.351, not '$TAG'."; exit 1; }
+          gh release view "$TAG" --json tagName,publishedAt --jq '"\(.tagName) published at \(.publishedAt)"' | tee -a "$GITHUB_STEP_SUMMARY"
