@@ -89,6 +89,7 @@ export function splitBase(css: string): { inline: string; utilities: string[]; k
     .replace(inline[0], "")
     .replace(supportsPattern, "")
     .replace(/@utility\s+[\w-]+\s*\{[^{}]*\}/g, "")
+    .replace(/:root\[data-ouro-modality[^{}]*\{[^{}]*\}/g, "")
     .replace(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
   return { inline: inline[1]!, utilities, keyframes, supports, classes, blocks: parseBlocks(rest) };
 }

@@ -311,11 +311,9 @@
   corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
 }
 
-@utility ouro-field-cue {
-  :where(:root[data-ouro-modality="pointer"]) &:is(:focus, :has(:is(input, textarea):focus)):not([aria-invalid="true"], :has([aria-invalid="true"])) {
-    --ouro-bd: var(--ring);
-    border-color: var(--ring);
-  }
+:root[data-ouro-modality="pointer"] .ouro-field-cue:is(:focus, :has(:is(input, textarea):focus)):not([aria-invalid="true"], :has([aria-invalid="true"])) {
+  --ouro-bd: var(--ring);
+  border-color: var(--ring);
 }
 
 @utility press {
