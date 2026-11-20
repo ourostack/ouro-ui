@@ -61,7 +61,7 @@ In the listed arm Ouro was the most-picked toolkit for the agent work-state desk
 
 #### A2UI is the default format for agent cards, and models file Ouro's composed tree as an adapter for it.
 
-Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2299](https://github.com/ourostack/ouro-ui/issues/2299).
+Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2299](https://github.com/ourostack/ouro-ui/issues/2299). What changed: The guide now says plainly what Ouro is next to A2UI: the composed tree is Ouro's own contract, and every kit, web, Apple, Windows and Android, also reads A2UI messages into it, with each kit's limits listed. Ouro does not present itself as A2UI's own catalog, and the stale 'Windows and Android read no A2UI' lines are corrected.
 
 Sixteen of 32 chat decisions used A2UI, and every model used it at least once, for reasons Ouro's composed tree also meets: UI as validated data rather than code, a catalog the app owns, native renderers. All eight models called catalog-validated cards the answer to the chat app's hardest piece, yet none chose Ouro's tree for them. Ouro should present itself as the native A2UI renderer and catalog on every platform, rather than a rival format with an A2UI adapter.
 

@@ -740,8 +740,8 @@
         }
       ],
       "issue": 2299,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "The guide now says plainly what Ouro is next to A2UI: the composed tree is Ouro's own contract, and every kit, web, Apple, Windows and Android, also reads A2UI messages into it, with each kit's limits listed. Ouro does not present itself as A2UI's own catalog, and the stale 'Windows and Android read no A2UI' lines are corrected."
     },
     {
       "id": "fit-behind-existing-design-system",
