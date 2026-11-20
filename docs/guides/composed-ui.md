@@ -2,7 +2,13 @@
 
 Composed UI is the interface an agent composes for a person, drawn natively, with consent. When an agent shows a person something, a recipe card, an order to confirm or a summary to act on, it composes it as data in Ouro's composed tree, and Ouro HX draws it. The tree is interface as validated data: each node names one of Ouro HX's components, every prop is checked against the catalog, and every button is one of your app's declared actions, pressed with that action's consent.[^validate] A sender can't relabel a button, loosen its consent or add a component the catalog lacks: the validator refuses the tree and says which node and why.[^forged]
 
-The tree is Ouro's own. MCP Apps and A2UI are formats it speaks, not formats it depends on: an agent can send the tree itself, or send A2UI messages that the A2UI adapter turns into the same tree.[^formats]
+The tree is Ouro's own contract. MCP Apps and A2UI are formats it speaks, not formats it depends on: an agent can send the tree itself, or send A2UI messages that the A2UI adapter turns into the same tree.[^formats]
+
+## Ouro and A2UI
+
+[A2UI](https://a2ui.org/) is an open format for an agent to describe a card as data, checked against a catalog the app owns, which the app draws with its own components. Ouro does the same job with its own tree, and reads A2UI too, so an agent that already writes A2UI needs no translation step on any of Ouro's four kits.[^a2ui-all] What Ouro adds is the part past the format: every button is one of the app's declared actions and follows its consent class, and each kit draws the card with its own native components.[^either]
+
+What this page does not claim: Ouro is not an A2UI catalog of its own that other A2UI apps can adopt, and it reads one A2UI surface per card, refuses A2UI's functions and themes, and takes only the app's own catalog, not A2UI's basic one. Each kit's README lists these limits ([Windows](https://github.com/ourostack/ouro-ui-windows/blob/main/README.md), [Android](https://github.com/ourostack/ouro-ui-android/blob/main/README.md)).[^limits]
 
 ## What a tree is
 
@@ -63,13 +69,13 @@ An app whose catalog declares a component of its own (core's `ouro-a2ui-catalog.
 | The tree, from your own code or server | [ComposedSurface](../ComposedSurface.md) | `ComposedSurface`, from `ComposedTree` (1.1.0)[^apple-tree] | `OuroComposedSurface` | `OuroComposedSurface` |
 | The tree, in an MCP tool result's `structuredContent.ouro` | [OuroMcpApp](../OuroMcpApp.md), inside any MCP Apps host | `ComposedTree` (1.1.0), then `ComposedSurface`[^apple-tree] | `OuroComposedSurface`, from `OuroComposedResult.From` | `OuroComposedSurface`, from `OuroComposed.read` |
 | An update to the card it shows, in `structuredContent.ouro.update` | [OuroMcpApp](../OuroMcpApp.md)[^update] | `ComposedSurface(results:catalog:)` (1.2.0)[^apple-update] | `OuroComposedSurface` (v0.3.0), or its `Update`[^windows-update] | `OuroComposedState` (v0.3.0), with `receive` or `update`[^android-update] |
-| A2UI messages | [A2UISurface](../A2UISurface.md) | `OuroA2UI`, which draws the tree with `ComposedSurface` | Not read: send the tree | Not read: send the tree |
+| A2UI messages | [A2UISurface](../A2UISurface.md) | `OuroA2UI`, which draws the tree with `ComposedSurface` | `OuroComposedSurface.ShowA2UI` (v0.4.0)[^win-a2ui] | `OuroComposedState.receiveA2UI` (v0.4.0)[^android-a2ui] |
 
 Each draws the same tree with the same components and the same consent.[^draws] Core holds the tree, its validator and the adapters (`ouro-composed.mts`, `ouro-mcp-app.mts`, `ouro-a2ui.mts`), which your app vendors from a core release; [core's guide](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/a2ui.md) says how, and how to generate your catalog from your actions.[^vendor]
 
 ## Which platforms draw it
 
-Every kit draws the tree natively: web and Apple, and Windows and Android with `OuroComposedSurface`, which read the tree itself rather than A2UI messages.[^kits] Every renderer passes the same conformance cases from core, so a card looks and behaves alike wherever it is drawn.[^platforms]
+Every kit draws the tree natively, and every kit also reads A2UI messages into it: web with `A2UISurface`, Apple with `OuroA2UI`, and Windows and Android with `OuroComposedSurface` since v0.4.0.[^kits][^win-a2ui][^android-a2ui] Every renderer passes the same conformance cases from core, so a card looks and behaves alike wherever it is drawn.[^platforms]
 
 Ouro's kits are written in their platforms' own toolkits: React on the web, SwiftUI on Apple, WinUI 3 on Windows and Compose on Android.[^native] There is no Flutter, React Native or other cross-platform kit, on purpose: agents now write each platform's native app, so sharing one implementation no longer pays for the compromise in how it feels.[^native]
 
@@ -102,3 +108,8 @@ Ouro's kits are written in their platforms' own toolkits: React on the web, Swif
 [^apple-update]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.2.0; https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.2.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md)
 
 [^own]: test:registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws the app's own component with its renderer, children first, and keeps HX's drawing beside it verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws the app's own component with its renderer, children first, and keeps HX's drawing beside it) verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws Ouro HX's own names with HX, whatever the map holds) verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > shows nothing for an own component with no renderer, and the message names the fix)
+[^win-a2ui]: https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.4.0 verify:urlOk(https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.4.0)
+[^android-a2ui]: https://github.com/ourostack/ouro-ui-android/releases/tag/v0.4.0 verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/tag/v0.4.0)
+[^a2ui-all]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/guides/a2ui.md; test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/guides/a2ui.md) verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0)
+[^either]: test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm)
+[^limits]: https://github.com/ourostack/ouro-ui-windows/blob/5adcd329bc0ed4b0cdebd1e2dc10a77404b9682f/README.md; https://github.com/ourostack/ouro-ui-android/blob/6e86472264bfabb0c56af8e0dc77055dfb558b75/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-windows/blob/5adcd329bc0ed4b0cdebd1e2dc10a77404b9682f/README.md) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/6e86472264bfabb0c56af8e0dc77055dfb558b75/README.md)
