@@ -67,7 +67,7 @@ export const InContext: Story = {
         label="Docs"
         brand={
           <Text>
-            <strong>Lantern Docs</strong>
+            <strong style={{ fontWeight: 600 }}>Lantern Docs</strong>
           </Text>
         }
         items={[

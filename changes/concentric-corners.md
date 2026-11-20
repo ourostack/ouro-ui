@@ -1,0 +1,1 @@
+- Fixed: a quoted message's corners now run concentric with its bubble, through a new `rounded-ouro-inner` utility in ouro-base (the outer radius less the inset, floored at the sm step), and Lightbox clips the zoomed picture to its panel's corners in both themes.

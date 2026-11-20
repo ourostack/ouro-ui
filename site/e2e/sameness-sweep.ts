@@ -1,5 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { recordMatched } from "./waivers";
 import { describe, LOOK_SELECTOR, Looks, picture, quiet, routeGuard, routes, settled } from "./looks";
 
 // A component looks the same wherever it appears. Every page of the build is opened, in each colour mode, in
@@ -7,7 +7,10 @@ import { describe, LOOK_SELECTOR, Looks, picture, quiet, routeGuard, routes, set
 // its look (shape, box, padding, gap, colours, font, shadow, opacity, transform and the geometry of its
 // children) is compared across pages, and so is a picture of it with its text hidden. An instance that
 // differs from the one the rest share is a page-level rule changing a component. A part that must sit inside
-// its container (a switch's thumb in its track, a radio's dot in its circle) does.
+// its container (a switch's thumb in its track, a radio's dot in its circle) does. Each part saves its looks and
+// scripts/sweeps-compare.mjs compares the parts with each other, so the comparison covers every page whatever part it is in.
+
+const LOOKS_DIR = ".tmp/looks";
 
 export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webkit", part = 1, parts = 1) {
   test(`one look per component on every page, ${mode}, ${engine}${parts > 1 ? `, part ${part} of ${parts}` : ""}`, async ({ page, context, browserName }) => {
@@ -30,12 +33,12 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
       });
     }
     console.log(`${browserName} ${mode}: ${looks.keys} component states, ${looks.crops} pictures, over ${pages.length} pages`);
-    for (const f of [...escapes, ...looks.differences(), ...looks.pixelDifferences()]) console.log(`FINDING ${browserName} ${mode}: ${typeof f === "string" ? f : JSON.stringify(f)}`);
-    for (const side of looks.sides()) console.log(`SIDES ${browserName} ${mode}: ${side}`);
+    for (const f of escapes) console.log(`FINDING ${browserName} ${mode}: ${f}`);
+    // The looks are compared across every part by one job (scripts/sweeps-compare.mjs), so a route that moves a page to
+    // another part cannot change what is compared and this part judges only what it sees alone.
+    mkdirSync(LOOKS_DIR, { recursive: true });
+    writeFileSync(`${LOOKS_DIR}/sameness-${mode}-${engine}-${part}of${parts}.json`, JSON.stringify({ mode, engine, part, parts, looks: await looks.save() }));
     expect.soft(guard.skipped.length, `routes skipped as too slow: ${guard.skipped.join(", ")}`).toBeLessThanOrEqual(3);
-    recordMatched(`sameness-${mode}-${engine}${parts > 1 ? `-${part}` : ""}`);
     expect.soft(escapes, "a part leaves its container").toEqual([]);
-    expect.soft(looks.differences(), "a component's properties differ from page to page").toEqual([]);
-    expect.soft(looks.pixelDifferences(), "a component's picture differs from page to page").toEqual([]);
   });
 }

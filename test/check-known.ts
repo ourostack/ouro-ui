@@ -71,11 +71,7 @@ export function knownProblems(entries: readonly KnownFinding[]): string[] {
 const disabledReason =
   "A disabled control shows alone: the reason it is off is the app's words, which a story does not supply. An app gives one with a title or aria-describedby.";
 const repeatedControl = "The story lays the same control out in each variant or state, so its name repeats in view; the repetition is what the story shows.";
-const layoutWeights =
-  "The story's own page chrome uses four font weights (400 to 700); the rule keeps a page to three. The weights are the layout's, not a component's.";
 
-const aloneReason =
-  "The story shows the component alone on an empty page, so the page draws nothing else to read, press or wait for; its in-context story passes.";
 
 
 export const knownFindings: KnownFinding[] = [
@@ -109,7 +105,6 @@ export const knownFindings: KnownFinding[] = [
     issue: 1959,
     reason: "The story shows the picture that fails to load on purpose, to show the placeholder that stands in for it.",
   },
-  { story: "FamilyBar/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
   {
     story: "Heading/Display",
     rule: "narrow-heading",
@@ -163,30 +158,6 @@ export const knownFindings: KnownFinding[] = [
     sometimes: true,
   },
   {
-    story: "Message/Quote",
-    rule: "nested-frame",
-    issue: 1958,
-    reason: "The quote's inner corners (14px, and 2px for its bar) sit inside the bubble's 32px corner, so they nest at 23px and 8px by the rule. This is the bubble's squircle radius; a design decision to revisit, not a story bug.",
-  },
-  {
-    story: "Lightbox/Zoomed",
-    rule: "nested-frame",
-    issue: 1958,
-    reason: "In dark, the zoomed picture's square corners sit inside the viewer's 18px-cornered panel, which the rule reads as corners that do not nest. Found in dark only; whether the viewer clips the picture is for a look at the viewer.",
-  },
-  {
-    story: "Message/ReplyInThread",
-    rule: "nested-frame",
-    issue: 1958,
-    reason: "In dark, the reply's 2px quote bar sits inside its 14px-cornered blockquote and nests at 8px by the rule, as the bar in Message/Quote does.",
-  },
-  {
-    story: "MessageList/LongConversation",
-    rule: "nested-frame",
-    issue: 1958,
-    reason: "A quoted reply's inner corners sit inside the bubble's 32px corner and nest at 24px by the rule, as Message/Quote does: the bubble's squircle radius.",
-  },
-  {
     story: "MessageList/OpenedAtMessage",
     rule: "overlap",
     issue: 1957,
@@ -198,7 +169,6 @@ export const knownFindings: KnownFinding[] = [
     issue: 1957,
     reason: "The 'Jump to latest' button floats over the last message at this scroll position, as a floating control does by design.",
   },
-  { story: "Navbar/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
   {
     story: "NavigationRail/LongLabels",
     rule: "lone-word",
@@ -209,14 +179,6 @@ export const knownFindings: KnownFinding[] = [
   { story: "ReactionBar/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Reorderable/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "SegmentedControl/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  { story: "Sidebar/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "SidebarLayout/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "SidebarLayout/Playground", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "StackedLayout/Document", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "StackedLayout/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "StackedLayout/Playground", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "StackedLayout/Reader", rule: "type-scale", issue: 1956, reason: layoutWeights },
-  { story: "StackedLayout/WithToolbar", rule: "type-scale", issue: 1956, reason: layoutWeights },
   { story: "Switch/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "SyncStatus/States", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
   { story: "Tabs/Vertical", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
@@ -265,14 +227,5 @@ export const knownFindings: KnownFinding[] = [
     rule: "lone-word",
     issue: 1955,
     reason: "The description's last line is one word, 'follow.', at this width in a narrow pane; the copy is the story's.",
-  },
-  { story: "Skeleton/Playground", rule: "blank-pane", issue: 1998, reason: `${aloneReason} Skeleton/RecipeCard names its progress with a labelled busy region.` },
-  { story: "RouteProgress/Playground", rule: "blank-pane", issue: 1998, reason: `${aloneReason} The idle bar draws nothing until a navigation starts.` },
-  { story: "UnreadDot/Playground", rule: "blank-pane", issue: 1998, reason: `${aloneReason} The dot's word is for screen readers only.` },
-  {
-    story: "Lightbox/Zoomed",
-    rule: "dismissable-step",
-    issue: 1998,
-    reason: "The lightbox opens over a story page with nothing behind it, so putting it away leaves a blank page; in an app the gallery is behind it.",
   },
 ];

@@ -109,6 +109,41 @@ export const LATENCY = {
   loadWaitMs: 10_000,
 } as const;
 
+/** The host's CPU time since boot, in clock ticks, from the first line of Linux's /proc/stat: all of it, the part not idle, and the part stolen by the hypervisor. */
+export interface HostTicks {
+  total: number;
+  busy: number;
+  steal: number;
+}
+
+/**
+ * Reads the host's CPU ticks from /proc/stat's text (`cpu user nice system idle iowait irq softirq steal …`), or null when
+ * the text has no `cpu` line. Idle and iowait count as not busy; everything else, steal included, as busy.
+ */
+export function hostTicks(stat: string): HostTicks | null {
+  const line = stat.split("\n").find((row) => row.startsWith("cpu "));
+  if (!line) return null;
+  const fields = line.trim().split(/\s+/).slice(1).map(Number);
+  const total = fields.reduce((sum, value) => sum + value, 0);
+  return { total, busy: total - (fields[3] ?? 0) - (fields[4] ?? 0), steal: fields[7] ?? 0 };
+}
+
+/**
+ * How busy the host's CPUs were between two reads, as whole percentages of all of them: busy and stolen. Null when either
+ * read is missing (not Linux) or no tick passed. A press that answered slowly while the host was busy with something
+ * other than the press measures the runner, not the page (ourostack/ouro-ui#2114).
+ */
+export function hostBusy(before: HostTicks | null, after: HostTicks | null): { busy: number; steal: number } | null {
+  if (!before || !after || after.total <= before.total) return null;
+  const total = after.total - before.total;
+  return { busy: Math.round(((after.busy - before.busy) / total) * 100), steal: Math.round(((after.steal - before.steal) / total) * 100) };
+}
+
+/** The host's CPU ticks now, on Linux; null elsewhere. */
+function readHostTicks(): HostTicks | null {
+  return existsSync("/proc/stat") ? hostTicks(readFileSync("/proc/stat", "utf8")) : null;
+}
+
 /** Event Timing's duration step, in ms: every duration it reports is a multiple of this. */
 export const EVENT_TIMING_STEP = 8;
 
@@ -411,6 +446,8 @@ export async function measure(
   };
   const probeBefore = await probeRound();
   const samples: number[] = [];
+  // How busy the host was over each counted press, beside its sample (Linux only).
+  const hostReads: string[] = [];
   // Only the latency run's own projects: the rules spec's slow pages count presses by index from the usual warm-ups.
   const warmUps = !browserWarmed && test.info().project.name.startsWith("site-latency") ? LATENCY.firstWarmUps : LATENCY.warmUps;
   browserWarmed = true;
@@ -430,14 +467,17 @@ export async function measure(
     // press a beat later, rather than becoming the press's input delay.
     await settle();
     const before = await interactions();
+    const ticksBefore = readHostTicks();
     await press(indexFrom + index);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
+    const host = hostBusy(ticksBefore, readHostTicks());
     const entries = await page.evaluate(() => (window as unknown as { __latency: Array<[number, number, number, number, string]> }).__latency);
     const durations = entries.map(([duration]) => duration);
     const pressed = (await interactions()) > before;
     expect(durations.length > 0 || pressed, `${label}, press ${index}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
     if (index >= warmUps) {
       samples.push(durations.length > 0 ? Math.max(...durations) : 16);
+      if (host) hostReads.push(`${host.busy}%${host.steal > 0 ? ` (${host.steal}% stolen)` : ""}`);
       // Where an over-budget press's time went, so the next failure says whether it was the page's thread or the wait for the paint.
       const slowest = entries.find(([duration]) => duration === Math.max(...durations));
       if (slowest && slowest[0] > LATENCY.p95) {
@@ -448,7 +488,8 @@ export async function measure(
         const paint = splitPaint(press, frames);
         const holding = holdingFrame(press, frames);
         const paintPart = paint && holding ? `; of the wait, ${paint.mainThread} ms in the main thread's frame and ${paint.afterMainThread} ms after it; the frame: ${describeFrame(holding)}` : "; no long animation frame held it, so the main thread's part was under 50 ms";
-        const split = `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint (${slowest[4]} entry)${paintPart}`;
+        const hostPart = host ? `; the host's CPUs ${host.busy}% busy${host.steal > 0 ? `, ${host.steal}% stolen` : ""} over the press` : "";
+        const split = `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint (${slowest[4]} entry)${paintPart}${hostPart}`;
         test.info().annotations.push({ type: "latency-slow", description: split });
         console.log(`latency-slow ${split}`);
       }
@@ -466,6 +507,11 @@ export async function measure(
   const line = `${label}: median ${median(probe)} ms (quiet ${LATENCY.probeQuiet}), factor ${factor}; before ${probeBefore.join(", ")}; during ${probeDuring.join(", ")}; after ${probeAfter.join(", ")}`;
   test.info().annotations.push({ type: "latency-probe", description: line });
   console.log(`latency-probe ${line}`);
+  if (hostReads.length > 0) {
+    const hostLine = `${label}: the host's CPUs over each counted press, in order: ${hostReads.join(", ")} busy (${cpus().length} CPUs)`;
+    test.info().annotations.push({ type: "latency-host", description: hostLine });
+    console.log(`latency-host ${hostLine}`);
+  }
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
   return { samples, probe, rounds, factor, presses };
 }

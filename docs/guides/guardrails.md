@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.376 ourostack/ouro-ui/ouro-source-rules#v1.3.376
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.377 ourostack/ouro-ui/ouro-source-rules#v1.3.377
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -356,7 +356,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.376
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.377
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -440,7 +440,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.376
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.377
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -450,7 +450,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.376
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.377
         with:
           merge: "true"
 ```
@@ -470,7 +470,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.376
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.377
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -508,7 +508,7 @@ Fix the findings that fail first, so a session is spent on the task and not on a
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.376
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.377
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -519,7 +519,7 @@ Ouro check reads pages. A first run also needs a scripted session against the in
 
 | Part | What it does |
 | --- | --- |
-| `FirstRunSession` | Drives the path to signed in and synced (`toGoal`), judges every look, pushes each dialog away (`probe`), judges what an action left (`judgeAfter`), checks a signed-out app (`stranded`: each space, the menu bar item, the account button), runs a detour (`run`), and writes `gate/gate.json` with a picture and a tree of each state and each failure (`finish`, which is false when any step failed or the watch saw a violation).[^first-run-session] |
+| `FirstRunSession` | Drives the path to signed in and synced (`toGoal`), judges every look, pushes each dialog away (`probe`), judges what an action left (`judgeAfter`), checks a signed-out app (`stranded`: each space, the menu bar item, the account button, pressed once a window still starting has drawn it), runs a detour (`run`), and writes `gate/gate.json` with a picture and a tree of each state and each failure (`finish`, which is false when any step failed or the watch saw a violation).[^first-run-session] |
 | The judges | No blank pane, no dead end, no dismissable required step and no signed-out empty state, on an accessibility tree, with fixed limits: blank 5 s, dead end 10 s, a signed-out empty state 2.5 s, progress with no way forward 90 s.[^first-run-limits] |
 | `DETOURS` | What a person does off the path, as data an app extends: every dialog dismissed by Escape, its close button or a click outside; every control pressed before sign-in; quit, or close and reopen, at each step; No to every question; the sign-in cancelled; permissions denied; started offline.[^first-run-detours] |
 | `leftovers`, `reset` | What a Mac still holds of the app (its bundle, data folders, keychain items, a login item turned on): none on a fresh CI runner.[^first-run-machine] |
@@ -663,7 +663,7 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-opt-in]: test:scripts/check/check.test.mts::Ouro check > presses only what a page or the config lists, never a destructive control, as often as the config says; test:test/check-measure.test.ts::markPressables > marks nothing unless it is listed for pressing verify:testExists(scripts/check/check.test.mts::Ouro check > presses only what a page or the config lists, never a destructive control, as often as the config says) verify:testExists(test/check-measure.test.ts::markPressables > marks nothing unless it is listed for pressing)
 [^check-repeat]: test:scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number verify:testExists(scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number) verify:fileLine(registry/ouro/check/run.ts, /^const PRESS_REPEAT = 5;$/)
 [^check-budgets]: registry/ouro/check/run.ts verify:fileLine(registry/ouro/check/run.ts, /^const BUDGETS: Budgets = Object.freeze\(\{ inp: 200, "layout-shift": 0.1, "first-content": 2500, jank: 250 \}\);$/) verify:fileLine(registry/ouro/check/run.ts, /^const MAX_PRESSES = 24;$/) verify:fileLine(registry/ouro/check/run.ts, /^const INP_SIZE = "1440x900";$/)
-[^check-site]: .github/ouro-check.json verify:fileLine(.github/ouro-check.json, /"inp": "/) verify:fileLine(.github/workflows/screens.yml, /config: .github\/ouro-check.json/)
+[^check-site]: .github/ouro-check.json verify:fileLine(.github/ouro-check.json, /"first-content": "/) verify:fileLine(.github/workflows/screens.yml, /config: .github\/ouro-check.json/)
 [^check-pages]: test:test/check-in-page.test.ts::findSizeIssues: broken-image > finds a picture that loaded empty, named as a blurry one would be, unless allowed with a reason; test:scripts/check/check-pages.test.mts::Ouro check > fails a page that answers an error or does not answer, and checks nothing else on it; test:scripts/check/check-pages.test.mts::Ouro check > checks a page that never settles once its waits run out verify:testExists(test/check-in-page.test.ts::findSizeIssues: broken-image > finds a picture that loaded empty, named as a blurry one would be, unless allowed with a reason) verify:testExists(scripts/check/check-pages.test.mts::Ouro check > fails a page that answers an error or does not answer, and checks nothing else on it) verify:testExists(scripts/check/check-pages.test.mts::Ouro check > checks a page that never settles once its waits run out)
 [^check-allowances]: test:test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one, nor blurry-image, which no opt-out allows; test:scripts/check/check-pages.test.mts::Ouro check > records each opt-out once a page with its reason, plain aliases included, and keeps them through a merge verify:testExists(test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one, nor blurry-image, which no opt-out allows) verify:testExists(scripts/check/check-pages.test.mts::Ouro check > records each opt-out once a page with its reason, plain aliases included, and keeps them through a merge)
 [^check-aliases]: test:test/check-in-page.test.ts::aliases > counts a plain alias only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why; test:test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one, nor blurry-image, which no opt-out allows verify:testExists(test/check-in-page.test.ts::aliases > counts a plain alias only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why) verify:testExists(test/check-in-page.test.ts::aliases > lists every opt-out with a reason, and none without one, nor blurry-image, which no opt-out allows) verify:fileLine(registry/ouro/check/in-page.ts, /^  "data-size-ignore": "sideways-scroll clipped-text long-lines stretched-image",$/)

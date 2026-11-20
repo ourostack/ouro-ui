@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { afterEach, describe, expect, it } from "vitest";
+import { sliced } from "./slice.ts";
 import { cleanupStories, renderStoryFirstCommit, selectedStories, settle, stories } from "./stories.tsx";
 
 // The first frame. Content that is ready when it mounts is drawn at full opacity from its first frame: an arrival or an
@@ -8,9 +9,14 @@ import { cleanupStories, renderStoryFirstCommit, selectedStories, settle, storie
 // first frame. Ouro check's first-paint rules read controls only, and the conformance matrix reads the page at rest, so
 // this is the check that sees content fade in.
 //
-// Only Moment's stories are held to it for now. Seven other components fade content in on mount, most through a CSS
-// `starting:` entrance, and 18 of their stories fail this check in Chromium: Hero (10), Composer (2), Porthole (2),
-// Celebrate, Button's loading state, Emoji and MessageList (1 each). Each needs a fix or a declared reason before it joins.
+// Every story is held to it. A story that still fades something in is pinned in `firstFrameFindings` with the elements
+// and the reason; a new entrance fails, and a pinned entry that no longer fires fails too, so the list only shrinks.
+
+const describe_ = (element: Element) => {
+  const part = element.getAttribute("data-ouro-part");
+  const item = element.closest("[data-ouro]")?.getAttribute("data-ouro");
+  return `${element.localName}${item ? `[data-ouro=${item}]` : ""}${part ? `[data-ouro-part=${part}]` : ""}`;
+};
 
 /** The elements a story draws at opacity 0 or hidden on its first commit that are shown once the page settles. */
 async function fadedInAfterFirstFrame(Story: ComponentType): Promise<string[]> {
@@ -22,7 +28,7 @@ async function fadedInAfterFirstFrame(Story: ComponentType): Promise<string[]> {
       const box = element.getBoundingClientRect();
       return element.checkVisibility({ opacityProperty: true, visibilityProperty: true }) && box.width > 1 && box.height > 1;
     })
-    .map((element) => element.outerHTML.slice(0, 160));
+    .map(describe_);
 }
 
 afterEach(async () => {
@@ -40,17 +46,61 @@ describe("first frame guard", () => {
   });
 });
 
-// Every Moment story exists in every run; a pull request's reduced run renders only the selected folders' stories
-// (selectedStories), which may leave Moment out (#2021).
-const isMoment = (entry: { id: string }) => entry.id.startsWith("Moment/");
-const momentStories = selectedStories.filter(isMoment);
+/** A story that still fades content in on its first frame: the elements, exactly, and why the entrance stays. */
+interface FirstFrameFinding {
+  elements: string[];
+  reason: string;
+  /** The finding shows on some runs and not others with nothing changed (a delay against how long the page takes to settle). */
+  sometimes?: true;
+}
 
-describe("first frame, Moment's stories", () => {
-  it("finds Moment's stories to hold to it", () => {
-    expect(stories.filter(isMoment).length).toBeGreaterThan(0);
+const pin = (ids: string[], elements: string[], reason: string, sometimes?: true): Record<string, FirstFrameFinding> =>
+  Object.fromEntries(ids.map((id) => [id, { elements, reason, ...(sometimes && { sometimes }) }]));
+
+/**
+ * Findings by story id, each with its reason. A story listed here must fade in exactly these elements, no more and no
+ * fewer, so a new entrance fails and an entry goes with the fix that draws its content at full opacity (#1999).
+ */
+export const firstFrameFindings: Record<string, FirstFrameFinding> = {
+  ...pin(
+    ["Hero/Column", "Hero/Decorative", "Hero/FullWidth", "Hero/InContext", "Hero/LiveMedia", "Hero/LongLede", "Hero/Playground", "Hero/SmallPicture", "Hero/Stage", "Hero/TrailAndStatus"],
+    ["div[data-ouro=hero][data-ouro-part=media]"],
+    "Designed motion: the picture's page-load rise is documented and claim-tested, and the picture is not text a person needs at once. motion=\"none\" opts out.",
+  ),
+  ...pin(["Composer/Quoting"], ["div[data-ouro=composer]"], "Composer's quote strip fades in on mount, though it is ready at mount (#1999)."),
+  ...pin(["Composer/Sending"], ["span[data-ouro=button]"], "The Send button's loading mark fades in on mount, though the button is loading at mount (#1999)."),
+  ...pin(["Button/Loading"], ["span[data-ouro=button]"], "Button's loading mark fades in on mount, though the button is loading at mount (#1999)."),
+  ...pin(["Porthole/Narrow", "Porthole/Open"], ["div[data-ouro=porthole][data-ouro-part=panel]"], "Porthole's panel fades in on mount, though it is open at mount (#1999)."),
+  ...pin(["Celebrate/Playground"], ["span[data-ouro=celebrate][data-ouro-part=message]"], "Designed motion: the burst and its message are the moment itself, and they play only when the moment starts."),
+  ...pin(["Emoji/Placeholder"], ["img[data-ouro=emoji]"], "Designed motion: the picture is not ready at mount, since it decodes first, and fades in over its placeholder once it has."),
+  ...pin(["MessageList/LoadingOlder"], ["span[data-ouro=message-list]"], "MessageList's loading mark fades in on mount, though it is loading at mount (#1999)."),
+  ...pin(["Checklist/Ordered", "Checklist/Outlined"], ["span[data-ouro=checklist][data-ouro-part=note]"], "Checklist's out-of-order note fades in on mount, though it is ready at mount (#1999)."),
+  ...pin(
+    ["RouteProgress/Playground"],
+    ["div[data-ouro=route-progress][data-ouro-part=bar]"],
+    "RouteProgress waits 150ms after `active` before it shows, so a fast navigation shows nothing: the delay is its design, and whether the page has settled past it varies.",
+    true,
+  ),
+};
+
+describe("first frame, every story", () => {
+  it("finds the stories to hold to it", () => {
+    expect(stories.length).toBeGreaterThan(0);
   });
 
-  it.each(momentStories)("$id draws its content at full opacity from its first frame", async ({ Story }) => {
-    expect(await fadedInAfterFirstFrame(Story)).toEqual([]);
+  it.each(sliced(selectedStories, "first frame"))("$id draws its content at full opacity from its first frame, except what it pins", async ({ id, Story }) => {
+    const found = [...new Set(await fadedInAfterFirstFrame(Story))].sort();
+    const pinned = firstFrameFindings[id];
+    // a finding that shows only sometimes may be missing from a run, but never differ from its pin
+    const expected = pinned?.sometimes && found.every((name) => pinned.elements.includes(name)) ? found : (pinned?.elements.toSorted() ?? []);
+    expect(found.join(" ; "), `${id} fades in: ${found.join(" ; ")}`).toBe(expected.join(" ; "));
+  });
+
+  it("pins only stories that exist, each with a reason", () => {
+    const ids = new Set(stories.map((entry) => entry.id));
+    for (const [id, finding] of Object.entries(firstFrameFindings)) {
+      expect(ids.has(id), `${id} is no story`).toBe(true);
+      expect(finding.reason.trim(), `${id} has no reason`).not.toBe("");
+    }
   });
 });

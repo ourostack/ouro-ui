@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { type BrowserContext, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { majorityFirst, waived } from "./waivers.ts";
-import { siteReady } from "./ready";
+import { siteReady } from "./ready.ts";
 
 // The shared half of the site's cross-page checks (sameness-sweep.ts, states-sweep.ts): the routes of the
 // build, a description of how an Ouro element looks (its box, padding, gap, colours, font, shadow, opacity,
@@ -334,6 +334,11 @@ interface Sample {
   crop?: Crop & { id: string };
 }
 
+export interface SavedLooks {
+  groups: [string, { where: string; sig: string; label?: string }[]][];
+  pictures: [string, { where: string; width: number; height: number; scale: number; png: string }[]][];
+}
+
 export class Looks {
   private readonly groups = new Map<string, Sample[]>();
   private readonly pictures = new Map<string, Sample[]>();
@@ -356,6 +361,37 @@ export class Looks {
     const taken = this.pictures.get(`${look.key}|${look.size}|${look.behind}`)?.length ?? 0;
     const first = this.groups.get(look.key)?.[0];
     return taken < 3 || (taken < 5 && first !== undefined && first.sig !== look.sig);
+  }
+
+  /**
+   * What a sweep part found, as JSON: every sample of every key, and each picture as a PNG, so one job can compare the
+   * parts' looks with each other (scripts/sweeps-compare.mjs). A picture's PNG decodes to the same pixels.
+   */
+  async save(): Promise<SavedLooks> {
+    const pictures: SavedLooks["pictures"] = [];
+    for (const [id, samples] of this.pictures) {
+      const saved: SavedLooks["pictures"][number][1] = [];
+      for (const s of samples) {
+        const { data, width, height, scale } = s.crop!;
+        const png = await sharp(data, { raw: { width, height, channels: 4 } }).png().toBuffer();
+        saved.push({ where: s.where, width, height, scale, png: png.toString("base64") });
+      }
+      pictures.push([id, saved]);
+    }
+    return { groups: [...this.groups], pictures };
+  }
+
+  /** Adds what another part found after what this one holds, so a tie goes to the earlier part's look. */
+  async merge(saved: SavedLooks): Promise<void> {
+    for (const [key, samples] of saved.groups) this.groups.set(key, [...(this.groups.get(key) ?? []), ...samples]);
+    for (const [id, pics] of saved.pictures) {
+      const list = this.pictures.get(id) ?? [];
+      this.pictures.set(id, list);
+      for (const p of pics) {
+        const { data } = await sharp(Buffer.from(p.png, "base64")).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+        list.push({ where: p.where, sig: "", crop: { id, data, width: p.width, height: p.height, scale: p.scale } });
+      }
+    }
   }
 
   get keys(): number {

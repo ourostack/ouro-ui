@@ -740,8 +740,8 @@
         }
       ],
       "issue": 2299,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "The guide now says plainly what Ouro is next to A2UI: the composed tree is Ouro's own contract, and every kit, web, Apple, Windows and Android, also reads A2UI messages into it, with each kit's limits listed. Ouro does not present itself as A2UI's own catalog, and the stale 'Windows and Android read no A2UI' lines are corrected."
     },
     {
       "id": "fit-behind-existing-design-system",
@@ -937,8 +937,8 @@
         }
       ],
       "issue": 2304,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "A guide for teams with a shipping React Native or Flutter app says that Ouro AX and its X-ray work beside it with the steps that were run, and marks Ouro check on those toolkits and composed cards there as not yet. The measurement the finding asks for is still not made, so the issue stays open."
     },
     {
       "id": "native-kits-drift",
@@ -1471,8 +1471,8 @@
         }
       ],
       "issue": 2318,
-      "status": "in progress",
-      "change": null
+      "status": "changed",
+      "change": "The README now leads with what a person gets, each part backed by a story, test or component, and links the review-volume guide. The per-surface difference of one action is not yet measured."
     },
     {
       "id": "unknown-name-never-opened",

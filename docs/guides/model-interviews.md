@@ -61,7 +61,7 @@ In the listed arm Ouro was the most-picked toolkit for the agent work-state desk
 
 #### A2UI is the default format for agent cards, and models file Ouro's composed tree as an adapter for it.
 
-Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2299](https://github.com/ourostack/ouro-ui/issues/2299).
+Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2299](https://github.com/ourostack/ouro-ui/issues/2299). What changed: The guide now says plainly what Ouro is next to A2UI: the composed tree is Ouro's own contract, and every kit, web, Apple, Windows and Android, also reads A2UI messages into it, with each kit's limits listed. Ouro does not present itself as A2UI's own catalog, and the stale 'Windows and Android read no A2UI' lines are corrected.
 
 Sixteen of 32 chat decisions used A2UI, and every model used it at least once, for reasons Ouro's composed tree also meets: UI as validated data rather than code, a catalog the app owns, native renderers. All eight models called catalog-validated cards the answer to the chat app's hardest piece, yet none chose Ouro's tree for them. Ouro should present itself as the native A2UI renderer and catalog on every platform, rather than a rival format with an A2UI adapter.
 
@@ -160,7 +160,7 @@ Seven models cited the 8-against-125 component gap: no message list, composer, s
 
 #### Agent-first designs shortchange the person: reviewers rubber-stamp, and one declared action reads differently on each surface.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2318](https://github.com/ourostack/ouro-ui/issues/2318).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2318](https://github.com/ourostack/ouro-ui/issues/2318). What changed: The README now leads with what a person gets, each part backed by a story, test or component, and links the review-volume guide. The per-surface difference of one action is not yet measured.
 
 Seven models' top regret for the agent work tool was overload: agents produce reviewable state faster than people can read, so approvals become clicks, and Gemini and Opus said strict consent gates made that worse in their own Ouro picks. Seven also said 'the same action runs everywhere' hid real differences in confirmation, undo, retries and explanation, and six said they optimised for the agent sentence in each brief and neglected the ordinary human hour. Ouro positions itself agent-first, so this is its main positioning risk: it needs an answer for review volume (batching, decision budgets, a confirm sheet that shows the actual diff) and should lead with the human experience its kits deliver.
 
@@ -182,7 +182,7 @@ All eight models valued consent classes and typed person-only refusals on the ac
 
 #### Challenges the native decision: teams with a shipping cross-platform app read the no-Flutter, no-React-Native stance as a manifesto they will refuse.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2304](https://github.com/ourostack/ouro-ui/issues/2304).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2304](https://github.com/ourostack/ouro-ui/issues/2304). What changed: A guide for teams with a shipping React Native or Flutter app says that Ouro AX and its X-ray work beside it with the steps that were run, and marks Ouro check on those toolkits and composed cards there as not yet. The measurement the finding asks for is still not made, so the issue stays open.
 
 All eight models named the deliberate refusal of Flutter and React Native as a cost, and none accepted without data that coding agents make four native codebases cheap. Grok put it most sharply: a team with a shipping app is told to throw it away rather than integrate, and 'the manifesto is what a real team will refuse'. Ouro should prove the agent-maintained-native claim with measurements on a real product, and offer a path that layers Ouro AX and composed cards onto existing React Native, Flutter or Electron apps.
 

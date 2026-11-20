@@ -170,7 +170,13 @@ export const Zoomed: Story = {
       },
     },
   },
-  render: () => <OpenViewer />,
+  // The page the viewer opens over, as an app's gallery is behind it.
+  render: () => (
+    <div style={{ display: "grid", gap: 12, color: "var(--foreground)" }}>
+      <p style={{ margin: 0 }}>Photos from the walk along the coast.</p>
+      <OpenViewer />
+    </div>
+  ),
   play: async ({ canvasElement }) => {
     const page = canvasElement.ownerDocument;
     (await frameUntil(() => page.querySelector<HTMLButtonElement>('[data-ouro="dialog"] [data-ouro-part="zoom"]'))).click();
