@@ -1272,8 +1272,7 @@ export function MenuSub({ label, children, disabled, backLabel = "Back" }: MenuS
         disabled={disabled}
         openOnHover={!sheet}
         // Base UI leaves a mouse's press to the hover, which a held pointer does not give: a press opens the submenu itself.
-        onClick={(event) => {
-          if (open || event.detail === 0 || rest.current === undefined) return;
+        onClick={() => {
           rest.current = undefined;
           setOpen(true);
         }}

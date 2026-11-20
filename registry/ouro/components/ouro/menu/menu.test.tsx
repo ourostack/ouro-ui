@@ -666,9 +666,16 @@ describe("Menu items", () => {
       share.dispatchEvent(new MouseEvent("mouseenter", at));
       share.dispatchEvent(new MouseEvent("mousemove", { ...at, bubbles: true }));
     });
-    await userEvent.click(share, { position: { x: at.clientX - box.left, y: at.clientY - box.top } });
+    // A mouse's press, as a browser sends it: Base UI leaves a mouse's press on a hover trigger to the hover.
+    await act(async () => {
+      const mouse = { ...at, bubbles: true, cancelable: true, button: 0, pointerType: "mouse", pointerId: 1, isPrimary: true };
+      share.dispatchEvent(new PointerEvent("pointerdown", mouse));
+      share.dispatchEvent(new MouseEvent("mousedown", { ...mouse, detail: 1 }));
+      share.dispatchEvent(new PointerEvent("pointerup", mouse));
+      share.dispatchEvent(new MouseEvent("mouseup", { ...mouse, detail: 1 }));
+      share.dispatchEvent(new PointerEvent("click", { ...mouse, detail: 1 }));
+    });
     await expect.poll(() => share.getAttribute("aria-expanded")).toBe("true");
-    await commands.parkPointer();
   });
 
   it("opens a submenu with ArrowLeft in a right-to-left page, where it opens to the left, and closes it with ArrowRight", async () => {
