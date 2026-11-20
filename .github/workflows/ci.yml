@@ -675,11 +675,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: scripts (${{ matrix.shard }}/3)
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3]' || '[1,2]') }}
+    name: scripts (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
-      SHARD: ${{ matrix.shard }}/3
-      TIMINGS: .tmp/timings/scripts-${{ matrix.shard }}of3.json
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+      TIMINGS: .tmp/timings/scripts-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
       # Its newest release tag comes from origin's history, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -768,11 +768,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-    name: scripts (browser ${{ matrix.shard }}/4)
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4]' || '[1,2]') }}
+    name: scripts (browser ${{ matrix.shard }}/${{ strategy.job-total }})
     env:
-      SHARD: ${{ matrix.shard }}/4
-      TIMINGS: .tmp/timings/scripts-browser-${{ matrix.shard }}of4.json
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+      TIMINGS: .tmp/timings/scripts-browser-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

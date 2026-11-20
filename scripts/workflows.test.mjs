@@ -1589,7 +1589,7 @@ function checkNames(block, id) {
   for (const key of keys) combinations = combinations.flatMap((combination) => (matrixValues(block, key) ?? []).map((value) => ({ ...combination, [key]: value })));
   const excluded = [...(block.split(/^ {8}exclude:\n/m)[1] ?? "").matchAll(/^ {10}- (\w+): (\S+)\n {12}(\w+): (\S+)$/gm)].map(([, k1, v1, k2, v2]) => ({ [k1]: v1, [k2]: v2 }));
   combinations = combinations.filter((combination) => !excluded.some((exclusion) => Object.entries(exclusion).every(([key, value]) => combination[key] === value)));
-  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name).replace("${{ github.event_name == 'pull_request' && 6 || 3 }}", "6")); // a pull request's count: the names the ruleset requires
+  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name).replace("${{ github.event_name == 'pull_request' && 6 || 3 }}", "6").replace("${{ strategy.job-total }}", String(Math.max(...keys.map((key) => matrixValues(block, key).length))))); // a pull request's count: the names the ruleset requires
 }
 
 /** The condition of every job a push whose tree already passed skips (the plan's `tested`, scripts/ci-proof.mjs). */
@@ -1748,8 +1748,8 @@ test("each browser shard runs its share of every browser test, or of the reduced
 test("the script test shards run every file of pnpm test:scripts between them", async () => {
   const block = ciJobs().scripts;
   const count = shardCount(block);
-  assert.match(block, new RegExp(`^ {6}SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
-  assert.match(block, new RegExp(`^ {6}TIMINGS: \\.tmp/timings/scripts-\\$\\{\\{ matrix\\.shard \\}\\}of${count}\\.json$`, "m"));
+  assert.match(block, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
+  assert.match(block, /^ {6}TIMINGS: \.tmp\/timings\/scripts-\$\{\{ matrix\.shard \}\}of\$\{\{ strategy\.job-total \}\}\.json$/m);
   assert.match(stepScript(block, "Script tests"), /^node scripts\/run-script-tests\.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=\.\/scripts\/timings-node-reporter\.mjs --test-reporter-destination="\$TIMINGS" \$\(node scripts\/shard\.mjs scripts "\$SHARD"\)$/m);
   const { readTimings, shardKeys } = await import("./shard.mjs");
   const all = Array.from({ length: count }, (_, index) => shardKeys(scriptTestFiles(), { index: index + 1, count }, readTimings("scripts"))).flat();
