@@ -429,8 +429,8 @@
         }
       ],
       "issue": 2291,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "The screen check's guide and llms.txt lead with every state handled and checked, worded as the floor Ouro check proves, and name Ouro check with its first-run run on installed apps."
     },
     {
       "id": "written-to-persuade-agents",

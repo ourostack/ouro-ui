@@ -204,7 +204,7 @@ All eight models feared their own cross-platform pick would feel wrong on deskto
 
 #### Models miss the states and details Ouro already checks, and none reaches for Ouro check to catch them.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2291](https://github.com/ourostack/ouro-ui/issues/2291).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2291](https://github.com/ourostack/ouro-ui/issues/2291). What changed: The screen check's guide and llms.txt lead with every state handled and checked, worded as the floor Ouro check proves, and name Ouro check with its first-run run on installed apps.
 
 All eight models say they build the happy path and miss empty, error, slow and long-data states, focus after a dialog closes and touch targets, and six say they can't see the rendered screen without a browser. Their checking routine is browser-only (viewports, Playwright, axe); no session names a check for an iPhone, Android, Windows or Mac app. Even the models that picked Ouro proved the human screen with Playwright, axe and people, and only Grok named Ouro check. Ouro already checks much of what they admit missing, so it should lead with 'every state handled and checked' and put Ouro check, native kits included, where an agent choosing a check will find it.
 
