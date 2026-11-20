@@ -498,11 +498,14 @@ export function pastCap(probe: readonly number[]): boolean {
 
 /**
  * Whether the runner was loaded while a control was measured: the probe past the cap over all its rounds (pastCap), or in
- * any one round, before, during or after the presses. A load that comes and goes within the presses leaves the rounds
- * either side of it quiet, and moves their median little, so one round past the cap is enough (ourostack/ouro-ui#2114).
+ * any one round, before, during or after the presses, with every reading of that round past it. A load that comes and goes
+ * within the presses leaves the rounds either side of it quiet, and moves their median little, so one round is enough
+ * (ourostack/ouro-ui#2114). One round's median of three readings is not: a runner near the cap reads 64 to 96 ms round to
+ * round, and its rounds' medians crossed the cap on every measurement, failing a control as too loaded to judge though no
+ * reading over all its rounds was past the cap (ourostack/ouro-ui#716).
  */
 export function loaded(rounds: readonly (readonly number[])[]): boolean {
-  return pastCap(rounds.flat()) || rounds.some((round) => round.length > 0 && pastCap(round));
+  return pastCap(rounds.flat()) || rounds.some((round) => round.length > 0 && pastCapRead(Math.min(...round)));
 }
 
 /** Whether one probe median reads the runner past the cap (LATENCY.maxFactor). */
@@ -635,7 +638,7 @@ export async function expectPressesWithinBudget(page: Page, label: string, press
       expect(false, message).toBe(true);
     }
   } else if (reads.length > 1) {
-    expect(loaded(result.rounds), `${label}: runner too loaded to judge: probe ${reads.join(" ms, then ")} ms, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms), ${reads.length} times`).toBe(false);
+    expect(loaded(result.rounds), `${label}: runner too loaded to judge: probe ${reads.join(" ms, then ")} ms, and its last rounds ${result.rounds.map((round) => round.join(", ")).join("; ")}, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms), ${reads.length} times`).toBe(false);
   }
   const { p95 } = summarise(result.samples, baseline, result.factor);
   summary(`- ${label}: p95 ${p95} ms, bound ${p95Bound(result.factor)} ms (${LATENCY.p95 * result.factor} raw, rounded to Event Timing's 8 ms step)`);
