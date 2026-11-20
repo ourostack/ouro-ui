@@ -88,7 +88,7 @@ describe("ConversationList", () => {
     await userEvent.hover(away);
     await Promise.allSettled(rows.flatMap((row) => row.getAnimations()).map((animation) => animation.finished));
     const probe = document.createElement("span");
-    probe.style.color = "var(--accent)";
+    probe.style.color = "var(--ouro-row-selected)";
     host.append(probe);
     expect(getComputedStyle(rows[1]!).backgroundColor).toBe(getComputedStyle(probe).color);
     probe.remove();
@@ -97,7 +97,7 @@ describe("ConversationList", () => {
     expect(rows.some((row) => row.hasAttribute("aria-current"))).toBe(false);
   });
 
-  it("draws the row that opens in its accent on the first frame, and drops the one that closes at once, as hover changes at once", async () => {
+  it("draws the row that opens in its selected fill on the first frame, and drops the one that closes at once, as hover changes at once", async () => {
     const { host, rows, rerender } = await render(<ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />);
     const away = document.createElement("div");
     away.style.height = "40px";
@@ -105,7 +105,7 @@ describe("ConversationList", () => {
     await userEvent.hover(away);
     await Promise.allSettled(rows.flatMap((row) => row.getAnimations()).map((animation) => animation.finished));
     const probe = document.createElement("span");
-    probe.style.color = "var(--accent)";
+    probe.style.color = "var(--ouro-row-selected)";
     host.append(probe);
     const accent = getComputedStyle(probe).color;
     const easing = (row: HTMLElement) => row.getAnimations().filter((animation) => (animation as CSSTransition).transitionProperty === "background-color");
@@ -121,7 +121,7 @@ describe("ConversationList", () => {
     }
   });
 
-  it("keeps the open conversation highlighted under the pointer", async () => {
+  it("keeps the open conversation distinct under the pointer", async () => {
     const { host, rows } = await render(<ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />);
     const paint = (value: string) => {
       const probe = document.createElement("span");
@@ -135,22 +135,20 @@ describe("ConversationList", () => {
       await Promise.allSettled(row.getAnimations().map((animation) => animation.finished));
       return getComputedStyle(row).backgroundColor;
     };
-    // The open row stays exactly --accent under the pointer and while pressed, where the other rows
-    // take --muted. A theme that draws the two alike (shadcn's stock themes) cannot show the
-    // difference, but the row is still --accent there.
+    // The open row takes its own hover and pressed fills under the pointer, so it never reads as a hovered neighbour; the others take the row hover.
     await userEvent.hover(rows[1]!);
     expect(rows[1]!.matches(":hover")).toBe(true);
-    expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+    expect(await settled(rows[1]!)).toBe(paint("var(--ouro-row-selected-hover)"));
     await commands.pointerPress({ selector: '[data-ouro-control="conversation-list"][aria-current="true"]', action: "down" });
     try {
       expect(rows[1]!.matches(":active")).toBe(true);
-      expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+      expect(await settled(rows[1]!)).toBe(paint("var(--ouro-row-selected-pressed)"));
     } finally {
       await commands.pointerPress({ action: "up" });
     }
     await userEvent.hover(rows[0]!);
-    expect(await settled(rows[0]!)).toBe(paint("var(--muted)"));
-    expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+    expect(await settled(rows[0]!)).toBe(paint("var(--ouro-row-hover)"));
+    expect(await settled(rows[1]!)).toBe(paint("var(--ouro-row-selected)"));
   });
 
   it("moves focus with the arrow keys, Home and End", async () => {

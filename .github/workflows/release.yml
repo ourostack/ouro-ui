@@ -1,7 +1,9 @@
 name: Release
 # Cuts v<version> from a commit of main whose own push runs passed: CI and the other workflows
-# that report the checks main's rules require, and the screen-reader lane (screen-reader.yml, on
-# every push to main). Release auto (release-auto.yml) names the newest such commit; a run
+# that report the checks main's rules require. The screen-reader lane (screen-reader.yml, on every
+# push to main) is off the tag's path: it runs on the same commit right after, and when it fails,
+# screen-reader-revert.yml reverts the pull request behind it, and that revert is released in turn.
+# Release auto (release-auto.yml) names the newest such commit; a run
 # dispatched by hand takes main's head. Nothing runs twice: the suite that tested the commit on
 # main is the proof, and only release-only steps run here.
 # The tag points at a release commit that main never receives: a branch
@@ -123,13 +125,12 @@ jobs:
             github=$(awk -F '\t' '$1 == "install-github" { print $2; exit }' <<<"$jobs")
             [ "$github" = success ] || { echo "::error::install-github is '${github:-not in the run}' in main's own CI run $own ($sha), not success: the install a user runs today must pass before a release."; exit 1; }
           fi
-          # The screen-reader lane, which main runs on every push (screen-reader.yml), passed on this commit.
-          lane=$(gh run list --workflow screen-reader.yml --commit "$sha" --event push --json databaseId,conclusion --jq '[.[] | select(.conclusion == "success")][0].databaseId // empty')
-          [ -n "$lane" ] || { echo "::error::The screen-reader lane has not passed on main ($sha): VoiceOver and NVDA must pass on the commit that is released."; exit 1; }
+          # The screen-reader lane on this commit (screen-reader.yml, every push to main) runs after the tag, not before it; its run is named here.
+          lane=$(gh run list --workflow screen-reader.yml --commit "$sha" --event push --json databaseId --jq '.[0].databaseId // empty')
           {
             echo "Tagged from main's commit \`$sha\`, which main's own runs passed, so nothing ran twice:"
             for id in $runs; do echo "- CI run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$id"; done
-            echo "- Screen-reader lane (VoiceOver and NVDA): $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$lane"
+            if [ -n "$lane" ]; then echo "- Screen-reader lane (VoiceOver and NVDA), after the tag: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$lane"; fi
           } > "$RUNNER_TEMP/proof.md"
           cat "$RUNNER_TEMP/proof.md" >> "$GITHUB_STEP_SUMMARY"
           echo "MAIN_SHA=$sha" >> "$GITHUB_ENV"
@@ -431,13 +432,17 @@ jobs:
     if: ${{ needs.release.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
-      actions: write # start Docs pin
+      actions: write # start Released and Docs pin
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: v${{ inputs.version }}
     steps:
+      # Released (released.yml) is the signal that a release is out, for what watches from outside this repository.
+      - name: Say the release is out
+        run: |
+          gh workflow run released.yml --ref main -f tag="$TAG"
       - name: Start Docs pin
         run: |
           gh workflow run docs-pin.yml --ref main -f tag="$TAG"

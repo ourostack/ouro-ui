@@ -1,0 +1,1 @@
+- Claims lint: a commit named as `owner/repo@<sha>` reads as a commit, not a number, when its short SHA is digits only (#2286).

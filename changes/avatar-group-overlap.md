@@ -1,0 +1,1 @@
+- Changed: [AvatarGroup overlaps its avatars by a step that grows with their size](registry/ouro/components/ouro/avatar/avatar.test.tsx "verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::AvatarGroup > overlaps by a step that grows with the size)"), where every size overlapped by the same step.

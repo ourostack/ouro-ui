@@ -364,12 +364,18 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       const hostsFile = path.join(scratch, "hosts-unplayed");
       let ran: string[] = [];
       const run = async (say: Parameters<typeof mac>[2], platform = "darwin", hosts = [HOST], hold: typeof HOLD | { path: string } = HOLD) => {
-        fs.writeFileSync(hostsFile, "127.0.0.1 localhost\n");
-        const port = await freePort();
-        const dir = path.join(scratch, `unplayed-${port}`);
-        const made = mac(port, dir, say);
-        ran = made.ran;
-        const s = await ssoExtension({ hosts, hold }, dir, () => 0, undefined, { sys: made.sys, platform, hostsFile, port, upstream: { [HOST]: ["127.0.0.1"] }, upstreamPort, ca: path.join(certs.real, "ca.pem") });
+        let s: Awaited<ReturnType<typeof ssoExtension>>;
+        // A port freePort found free can be taken by another test file before the stand-in listens on it (#2469):
+        // that start is tried again on another port, and any other failure to start is returned as it was.
+        for (let attempt = 0; ; attempt++) {
+          fs.writeFileSync(hostsFile, "127.0.0.1 localhost\n");
+          const port = await freePort();
+          const dir = path.join(scratch, `unplayed-${port}`);
+          const made = mac(port, dir, say);
+          ran = made.ran;
+          s = await ssoExtension({ hosts, hold }, dir, () => 0, undefined, { sys: made.sys, platform, hostsFile, port, upstream: { [HOST]: ["127.0.0.1"] }, upstreamPort, ca: path.join(certs.real, "ca.pem") });
+          if (attempt === 2 || !/didn't start on port \d+ \(.*EADDRINUSE/.test(s.evidence)) break;
+        }
         s.lift();
         assert.equal(s.ok, false);
         assert.equal(fs.readFileSync(hostsFile, "utf8"), "127.0.0.1 localhost\n");
@@ -381,7 +387,7 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       assert.equal(await run({ tee: false }), "no SSO extension stand-in: it couldn't point the hosts at the stand-in (sudo -n tee /etc/hosts)");
       assert.equal(ran.filter((r) => r.startsWith("sudo -n tee ")).length, 1, "a hosts file it never wrote is not written back");
       // A keychain that keeps refusing the delete is asked five times, then left.
-      await run({ read: false, delete: false });
+      assert.equal(await run({ read: false, delete: false }), "no SSO extension stand-in: a read through Apple's networking never reached it");
       assert.equal(ran.filter((r) => r.startsWith("sudo -n security delete-certificate ")).length, 5);
       assert.equal(await run({ resolve: false }, "darwin", [HOST, OTHER]), `no SSO extension stand-in: ${HOST}, ${OTHER} don't resolve to the stand-in after /etc/hosts and a flush`);
       assert.ok(!ran.some((r) => r.startsWith("osascript")), "nothing is read through a stand-in the hosts don't reach");
