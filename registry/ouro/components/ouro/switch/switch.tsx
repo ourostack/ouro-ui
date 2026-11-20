@@ -85,6 +85,11 @@ const owner = { name: "Switch", data: "switch", layout: "inline" } as const;
 const markInput = controlRef("switch", "hidden-input");
 
 /** The track and thumb, inside the Field: they take their name, description and error ids from the field. */
+function mergeIds(...lists: (string | undefined)[]): string | undefined {
+  const ids = lists.flatMap((list) => list?.split(/\s+/) ?? []).filter(Boolean);
+  return ids.filter((id, at) => ids.indexOf(id) === at).join(" ") || undefined;
+}
+
 function SwitchTrack(props: {
   value: string | undefined;
   checked: boolean | undefined;
@@ -109,7 +114,7 @@ function SwitchTrack(props: {
       required={field.required}
       // Set here, not left to Base UI's effects, so the server HTML names and describes the switch.
       aria-labelledby={field.labelId}
-      aria-describedby={[...new Set([field.describedBy, describedBy].flatMap((ids) => ids?.split(/\s+/) ?? []).filter(Boolean))].join(" ") || undefined}
+      aria-describedby={mergeIds(field.describedBy, describedBy)}
       aria-invalid={field.invalid || undefined}
       className={trackClass}
     >

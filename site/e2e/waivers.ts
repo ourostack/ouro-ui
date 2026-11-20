@@ -27,6 +27,17 @@ export const WAIVERS: Waiver[] = [
     reason: "the hero's duel sits on the glow, so its quiet text, which the off switch's outline reads, takes a step toward the foreground",
     source: "site/src/apple/feel-reins.css: .feel-duel sets --muted-foreground to --apple-quiet-on-glow (apple.css)",
   },
+  {
+    component: "switch",
+    // The root: it carries no part name.
+    part: "",
+    variant: "",
+    state: "",
+    page: "/",
+    property: "gap",
+    reason: "a switch with a hidden label drops the gap that separates the label, so the stage's lights switch lines up with its row's end",
+    source: "site/src/voyage/stage/stage.tsx: <Switch label={STAGE_COPY.lights} hideLabel />",
+  },
 ];
 
 export const matched = new Set<number>();

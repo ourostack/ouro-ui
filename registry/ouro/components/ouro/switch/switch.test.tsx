@@ -617,4 +617,18 @@ describe("Switch in a row", () => {
     expect(host.querySelector(`#${CSS.escape(ids.find((id) => id !== "hint")!)}`)!.textContent).toBe("Uses the router.");
     expect(describeFindings(await audit({ include: [host] }))).toBe("");
   });
+
+  it("reads ids split by any whitespace, and adds no id when none is given", async () => {
+    const { track } = await render(
+      <>
+        <p id="a">A</p>
+        <p id="b">B</p>
+        <p id="c">C</p>
+        <Switch label="Wi-Fi" aria-describedby={" a\tb\n c  a "} />
+      </>,
+    );
+    expect(describedBy(track)).toEqual(["a", "b", "c"]);
+    const none = await render(<Switch label="Bluetooth" />);
+    expect(none.track.hasAttribute("aria-describedby")).toBe(false);
+  });
 });
