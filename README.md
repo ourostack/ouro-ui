@@ -10,7 +10,7 @@
 
 **At a glance.** The short version. The sections below have the detail, and the live site is https://ui.ouroboros.bot/.
 
-- **What it is:** a shadcn registry and design system of React components on Base UI and Tailwind CSS, with native kits for SwiftUI, WinUI and Jetpack Compose, for AI agents building interfaces, and it speaks A2UI and MCP Apps (the Model Context Protocol's interactive UI).
+- **What it is:** accessible React components on Base UI and Tailwind CSS, with SwiftUI, WinUI and Jetpack Compose kits, for agents building apps and A2UI and MCP Apps interfaces.[^glance-what] It installs with the shadcn CLI.
 - **Licence:** MIT ([LICENSE](LICENSE)). Maintained by Ari Mendelow, who holds its copyright.[^glance-licence]
 - **Web** (React, this repository): the components in [the catalog](#components).
 - **Apple** (SwiftUI, [ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple)): [20 components](site/src/apple/kit.json "verify:count(site/src/apple/kit.json#components)=20").[^glance-apple]
@@ -920,6 +920,7 @@ The rules:
 
 MIT
 
+[^glance-what]: test/stories.test.tsx verify:testExists(test/stories.test.tsx::at $width px > %s > $id has no axe violations, closed and with each overlay open)
 [^glance-licence]: LICENSE verify:fileLine(LICENSE, /^MIT License$/) verify:fileLine(LICENSE, /Copyright \(c\) 2026 Ari Mendelow/)
 [^glance-apple]: site/src/apple/kit.json verify:fileLine(site/src/apple/kit.json, /"components"/)
 [^glance-windows]: docs/platforms/windows.md verify:fileLine(docs/platforms/windows.md, /The kit has eight of core's components as WinUI 3 controls/)
