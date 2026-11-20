@@ -628,6 +628,7 @@ describe("Switch in a row", () => {
       </>,
     );
     expect(describedBy(track)).toEqual(["a", "b", "c"]);
+    expect(track.getAttribute("aria-describedby")).toBe("a b c");
     const none = await render(<Switch label="Bluetooth" />);
     expect(none.track.hasAttribute("aria-describedby")).toBe(false);
   });

@@ -84,7 +84,7 @@ const owner = { name: "Switch", data: "switch", layout: "inline" } as const;
 /** Marks the hidden input Base UI submits the switch with. */
 const markInput = controlRef("switch", "hidden-input");
 
-/** The ids in `lists`, each once, space-separated, or undefined when there are none. */
+/** Joins the ids of the given lists into one space-separated value, leaving out repeats and blanks. */
 function mergeIds(...lists: (string | undefined)[]): string | undefined {
   // Stryker disable next-line Regex: the empty strings a looser split leaves are deleted on the next line
   const ids = new Set(lists.join(" ").split(/\s+/));
