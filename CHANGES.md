@@ -1,0 +1,3 @@
+# Changes in this release
+
+- ConversationList: the row's More button draws an edge in forced colours, where its hover background is gone (#2489).
