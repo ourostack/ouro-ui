@@ -27,3 +27,13 @@ test("a kit's log becomes per-case results, and the table shows - where a kit na
   assert.deepEqual([...apple], [["a.json", true], ["b.json", false]]);
   assert.equal(caseTable(["a.json", "b.json"], { web, windows: win }), "| Case | web | windows |\n|---|---|---|\n| a.json | pass | pass |\n| b.json | - | FAIL |");
 });
+
+test("Android's component case lines become results keyed spec/case, and core's specs name the cases to look for", async () => {
+  const { parseComponentCases, componentCaseNames } = await import("./table.mjs");
+  const results = parseComponentCases("| tab-bar/two-tabs | pass |\n| sidebar/collapsed-rail | FAIL |\n| a2ui.json | pass |");
+  assert.deepEqual([...results], [["tab-bar/two-tabs", true], ["sidebar/collapsed-rail", false]]);
+  const dir = scratchDir("cross-kit-specs");
+  mkdirSync(join(dir, "standard/hx/components"), { recursive: true });
+  writeFileSync(join(dir, "standard/hx/components/tabs.spec.json"), JSON.stringify({ cases: [{ id: "recipe-sections" }] }));
+  assert.deepEqual(componentCaseNames(dir, ["tabs"]), ["tabs/recipe-sections"]);
+});

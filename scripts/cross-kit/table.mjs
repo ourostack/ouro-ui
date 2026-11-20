@@ -34,11 +34,22 @@ export function parseCases(kit, log) {
   return out;
 }
 
+/** Android's log names each component spec case as `| <spec>/<case id> | pass |`; no other kit's log names one yet, so its column is "-". */
+export function parseComponentCases(log) {
+  const out = new Map();
+  for (const m of log.matchAll(/\| ([a-z][a-z-]*\/[a-z][a-z0-9-]*) \| (pass|FAIL) \|/g)) out.set(m[1], (out.get(m[1]) ?? true) && m[2] === "pass");
+  return out;
+}
+
 /** One row per core case, one column per kit: pass, FAIL, or "-" where that kit's log names no such case. */
 export function caseTable(caseNames, results) {
   const names = Object.keys(results);
   return ["| Case | " + names.join(" | ") + " |", "|---|" + names.map(() => "---|").join(""),
     ...caseNames.map((c) => `| ${c} | ` + names.map((k) => (results[k].has(c) ? (results[k].get(c) ? "pass" : "FAIL") : "-")).join(" | ") + " |")].join("\n");
+}
+
+export function componentCaseNames(coreRoot, specs) {
+  return specs.flatMap((spec) => JSON.parse(readFileSync(join(coreRoot, "standard/hx/components", `${spec}.spec.json`), "utf8")).cases.map((c) => `${spec}/${c.id}`));
 }
 
 const gh = (...args) => JSON.parse(execFileSync("gh", args, { encoding: "utf8" }));
@@ -73,6 +84,18 @@ function latestCases(k) {
   }
 }
 
+function latestComponentCases(k) {
+  try {
+    const runs = gh("run", "list", "-R", k.repo, "-b", "main", "-w", "CI", "-L", "10", "--json", "databaseId,conclusion");
+    for (const run of runs.filter((r) => r.conclusion && r.conclusion !== "skipped")) {
+      const job = gh("run", "view", String(run.databaseId), "-R", k.repo, "--json", "jobs").jobs.find((j) => k.job.test(j.name));
+      const cases = job ? parseComponentCases(jobLog(k.repo, job.databaseId)) : new Map();
+      if (cases.size > 0) return cases;
+    }
+  } catch {}
+  return new Map();
+}
+
 function jobLog(repo, id) {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -102,4 +125,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const results = {};
   for (const k of kits) results[k.kit] = latestCases(k);
   console.log("\n" + caseTable(readdirSync(coreDir).filter((f) => f.endsWith(".json")).sort(), results));
+  const android = kits.find((k) => k.kit === "android");
+  const componentResults = { android: latestComponentCases(android) };
+  console.log("\n" + caseTable(componentCaseNames(coreRoot, ["tabs", "tab-bar", "sidebar"]), componentResults));
 }
