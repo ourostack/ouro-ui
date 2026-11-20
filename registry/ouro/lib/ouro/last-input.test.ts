@@ -21,3 +21,51 @@ it("counts a moving mouse or pen as in use again after a touch, but not a moving
   move("pen");
   expect(lastInput()).toBe("pen");
 });
+
+const modality = () => document.documentElement.getAttribute("data-ouro-modality");
+const key = (name: string) => document.dispatchEvent(new KeyboardEvent("keydown", { key: name }));
+
+it("marks the page's modality: pointer after a press, keyboard after a key, and not for a lone modifier", () => {
+  press("mouse");
+  expect(modality()).toBe("pointer");
+  key("Shift");
+  expect(modality()).toBe("pointer");
+  key("Control");
+  key("Alt");
+  key("Meta");
+  expect(modality()).toBe("pointer");
+  key("Tab");
+  expect(modality()).toBe("keyboard");
+  press("touch");
+  expect(modality()).toBe("pointer");
+  key("ArrowDown");
+  expect(modality()).toBe("keyboard");
+});
+
+it("leaves the attribute alone when the modality has not changed", () => {
+  key("a");
+  const seen: string[] = [];
+  const observer = new MutationObserver((records) => records.forEach((record) => seen.push(record.attributeName ?? "")));
+  observer.observe(document.documentElement, { attributes: true });
+  key("b");
+  return Promise.resolve().then(() => {
+    observer.disconnect();
+    expect(seen).toEqual([]);
+  });
+});
+
+it("sees a press or key that a handler below stops, because it listens in the capture phase", () => {
+  const target = document.body.appendChild(document.createElement("button"));
+  const stop = (event: Event) => event.stopPropagation();
+  target.addEventListener("pointerdown", stop);
+  target.addEventListener("keydown", stop);
+  try {
+    key("Tab");
+    target.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "mouse", bubbles: true }));
+    expect(modality()).toBe("pointer");
+    target.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    expect(modality()).toBe("keyboard");
+  } finally {
+    target.remove();
+  }
+});
