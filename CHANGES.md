@@ -1,0 +1,6 @@
+# Changes in this release
+
+- Fixed: [Docs pin leaves its open pull request alone](scripts/workflows.test.mjs "verify:testExists(scripts/workflows.test.mjs::Docs pin leaves an open pull request alone only when it holds the same docs and no check failed)") when it already holds the docs a push to main would generate, so a busy main no longer restarts its CI.
+- Fixed: [pull request checks finish sooner](scripts/workflows.test.mjs "verify:testExists(scripts/workflows.test.mjs::the e2e shards run every spec, or the selected components' and the site's, each shard its share by measured time, and the e2e check passes when they all did)"): the browser tests run in 22 shards, the end-to-end specs in 10 and the sweeps in 14, each with the same tests as before.
+- New: `ouro check --handoff` writes `handoff.md` beside `summary.md`, naming the floor Ouro check proves and what a person still has to judge, and lists the usability sessions declared as `usability` in `ouro-check.json`.
+- Changed: a focus ring shows for keyboard focus, including focus a script moves after a key press, and stays off after a press; a text field marks pointer focus with its border in the ring colour. Ouro tracks this as `data-ouro-modality` on the root element, set by the existing `last-input` listeners.
