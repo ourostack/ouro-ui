@@ -1,0 +1,1 @@
+- New: `ouro check --handoff` writes `handoff.md` beside `summary.md`, naming the floor Ouro check proves and what a person still has to judge, and lists the usability sessions declared as `usability` in `ouro-check.json`.
