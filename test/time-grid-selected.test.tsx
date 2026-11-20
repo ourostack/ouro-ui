@@ -113,6 +113,9 @@ describe("selected event focus and forced colours", () => {
     mounted.push(probe);
     expect(getComputedStyle(open).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
     expect(getComputedStyle(plain).backgroundColor).not.toBe(getComputedStyle(open).backgroundColor);
+    await userEvent.hover(open);
+    await Promise.allSettled(open.getAnimations().map((animation) => animation.finished));
+    expect(getComputedStyle(open).backgroundColor, "hovered").toBe(getComputedStyle(probe).backgroundColor);
   });
 });
 

@@ -346,7 +346,7 @@ const eventClass =
   "outline-ring outline-offset-2 focus-visible:z-30 focus-visible:outline-2 focus-visible:outline-solid " +
   "aria-[current=true]:z-20 " +
   "aria-expanded:z-20 aria-expanded:outline-2 aria-expanded:outline-solid aria-expanded:outline-primary " +
-  "forced-colors:border forced-colors:border-s-3 forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText]";
+  "forced-colors:border forced-colors:border-s-3 forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText] forced-colors:aria-[current=true]:pointer-fine:hover:bg-[Highlight] forced-colors:aria-[current=true]:active:bg-[Highlight]";
 
 /** A timed event fills its place in the day's column, over the now line. */
 const timedClass = "absolute inset-0 z-10 scroll-mt-(--ouro-time-grid-head) @container/event";
