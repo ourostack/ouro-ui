@@ -3,7 +3,8 @@ name: Screen reader lane
 # NVDA on Windows (Chromium), through Guidepup (playwright.screen-reader.config.ts, registry/ouro/e2e/screen-reader/).
 # Only a workflow_call starts it: screen-reader.yml calls it on every push to main, nightly, and by dispatch,
 # and ci.yml's screen-reader job calls it when its plan selects specs, which it does for no pull request today
-# (docs/guides/screen-reader-lane.md). release.yml tags a commit of main only when this passed on a push of that exact commit.
+# (docs/guides/screen-reader-lane.md). It runs on a commit of main right after release.yml tags it, off the tag's path;
+# screen-reader-revert.yml reverts a commit it fails twice on.
 # scripts/sr-classify.mjs sorts a failure into accessibility (an utterance missing or wrong: it blocks a release)
 # and infrastructure (the runner could not drive its screen reader: a release retries once, and a nightly run or a
 # push to main opens or updates one `screen-reader-infra` issue from screen-reader.yml's report job), and harness

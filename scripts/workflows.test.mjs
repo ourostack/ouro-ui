@@ -2312,7 +2312,7 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
 });
 
 // The screen-reader lane (screen-reader-lane.yml, which screen-reader.yml and ci.yml call): real VoiceOver and
-// NVDA through Guidepup, nightly, before every release, and on every push to main; ci.yml's plan selects it for no pull request.
+// NVDA through Guidepup, nightly, and on every push to main, right after a release tags it; ci.yml's plan selects it for no pull request.
 // Guidepup's setup rewrites VoiceOver and TCC settings, so the lane runs only what it is asked to, on throwaway
 // hosted runners, with nothing to leak. Only screen-reader.yml writes issues, on a schedule or a push: a pull
 // request's call never meets that job.
@@ -2537,8 +2537,30 @@ test("the lane runs the specs its input names before --project, or every spec wh
   assert.match(lane, /^ {4}timeout-minutes: 60$/m);
 });
 
-test("release reads only screen-reader.yml's push runs, which a pull request's call never is", () => {
-  for (const file of ["release.yml", "release-auto.yml"]) assert.match(workflow(file), /gh run list --workflow screen-reader\.yml --commit "\$sha" --event push/, file);
+test("release names only screen-reader.yml's push runs, which a pull request's call never is, and Release auto waits for none", () => {
+  assert.match(workflow("release.yml"), /gh run list --workflow screen-reader\.yml --commit "\$sha" --event push/);
+  assert.doesNotMatch(workflow("release-auto.yml"), /screen-reader\.yml|Screen reader/);
+});
+
+test("the screen-reader lane runs after the tag, and a commit that breaks it twice is reverted through a pull request that merges on green", () => {
+  const text = workflow("screen-reader-revert.yml");
+  const on = text.split("\non:\n")[1].split(/\n(?=\S)/)[0];
+  assert.match(on, /^ {2}workflow_run:\n {4}workflows: \[Screen reader\]\n {4}types: \[completed\]\n {4}branches: \[main\]$/m);
+  assert.doesNotMatch(on, /pull_request|workflow_dispatch|schedule/);
+  assert.match(text, /^permissions: \{\}$/m);
+  assert.match(text, /if: github\.event\.workflow_run\.event == 'push' && github\.event\.workflow_run\.conclusion == 'failure' && github\.event\.workflow_run\.head_repository\.full_name == github\.repository/);
+  assert.doesNotMatch(text, /actions\/checkout/, "it runs no code from the repository");
+  const decide = stepScript(text, "Did this commit break the lane?");
+  assert.ok(decide.indexOf("SR_CLASS=infrastructure") < decide.indexOf("gh run rerun"), "infrastructure reverts nothing, before any rerun");
+  assert.match(decide, /if \[ "\$ATTEMPT" = 1 \]; then\n\s+gh run rerun "\$RUN_ID" --failed\n/, "a first failure reruns the failed jobs once");
+  assert.match(decide, /gh run list --workflow screen-reader\.yml --commit "\$parent" --event push/, "only the first red commit is reverted");
+  assert.match(decide, /--label red-main-fix --search "Revert in:title #\$pr"/, "one open revert is enough");
+  const revert = stepScript(text, "Revert the pull request, and merge the revert on green");
+  assert.match(revert, /revertPullRequest\(input: \{ pullRequestId: \$id, body: \$body \}\)/);
+  assert.match(revert, /gh pr edit "\$revert" --add-label red-main-fix\n/);
+  assert.match(revert, /gh pr merge "\$revert" --auto --squash\n/);
+  assert.doesNotMatch(text, /@[a-z]|--reviewer|--assignee|gh pr comment|gh issue comment/i, "it mentions and asks no one");
+  assert.match(text, /GH_TOKEN: \$\{\{ steps\.app\.outputs\.token \}\}/, "the Ouro Current app opens the revert, so its checks run");
 });
 
 test("the screen-reader packages are pinned exactly, and test:sr runs its own config", () => {
@@ -3031,7 +3053,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
 });
 
-test("Release tags a commit of main whose push CI and screen-reader lane passed, and runs no rehearsal", () => {
+test("Release tags a commit of main whose push CI passed, names the screen-reader lane that runs after, and runs no rehearsal", () => {
   const release = workflow("release.yml");
   assert.match(release, /\n {6}sha:\n/);
   assert.doesNotMatch(release, /rehearsal-evidence|release-rehearsal/);
@@ -3043,13 +3065,12 @@ test("Release tags a commit of main whose push CI and screen-reader lane passed,
   assert.ok(!existsSync(join(root, ".github/workflows/release-rehearsal.yml")));
 });
 
-test("Release auto releases a commit once main's push CI and lane have ended, naming that commit and no other", () => {
+test("Release auto releases a commit once main's push CI has ended, naming that commit and no other", () => {
   const auto = workflow("release-auto.yml");
   const on = auto.split("\non:\n")[1].split(/\n(?=\S)/)[0];
-  assert.match(on, /workflows: \[CI, Screen reader\]/);
+  assert.match(on, /workflows: \[CI\]/);
   assert.match(on, /branches: \[main\]/);
   assert.match(auto, /gh workflow run release\.yml --ref main -f version="\$version" -f sha="\$sha"/);
-  assert.match(auto, /--workflow screen-reader\.yml --commit "\$sha" --event push/);
   assert.match(auto, /--workflow ci\.yml --commit "\$sha" --event push/);
   assert.match(auto, /\[ "\$RUN_EVENT" = push \]/);
 });

@@ -63,7 +63,7 @@ The `latency` check presses each control on the voyage (the stage and Chapters I
 
 ## Release a tested commit
 
-- **Release the commit main's CI already tested.** Release auto dispatches Release with the commit whose push CI and screen-reader lane passed, so nothing runs twice.[^release-commit]
+- **Release the commit main's CI already tested.** Release auto dispatches Release with the commit whose push CI passed, so nothing runs twice; the screen-reader lane runs after the tag, off its path.[^release-commit]
 - **Keep merging while it runs.** Later merges go out in the next release.
 
 ## Quarantine a test, on the record
@@ -77,5 +77,5 @@ The `latency` check presses each control on the voyage (the stage and Chapters I
 [^latency-gate]: site/e2e/latency.ts; site/e2e/stage.latency.spec.ts; site/e2e/chapter-one.latency.spec.ts; site/e2e/chapter-two.latency.spec.ts; site/e2e/chapter-three.latency.spec.ts verify:fileLine(site/e2e/stage.latency.spec.ts, /from "\.\/latency/) verify:fileLine(site/e2e/chapter-one.latency.spec.ts, /from "\.\/latency/) verify:fileLine(site/e2e/chapter-two.latency.spec.ts, /from "\.\/latency/) verify:fileLine(site/e2e/chapter-three.latency.spec.ts, /from "\.\/latency/) verify:fileLine(playwright.latency.config.ts, /testDir: "site\/e2e"/) verify:fileLine(site/e2e/latency.ts, /p95: 100,/) verify:fileLine(site/e2e/latency.ts, /throttle: 4,/) verify:fileLine(.github/workflows/ci.yml, /pnpm test:latency/)
 [^traces]: evidence:site/e2e/latency-evidence/2026-11-01-museum-organ-traces.txt verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-traces.txt, /Chromium traces/)
 [^museum]: evidence:site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 museum main: p95 88 median 72 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 museum pr: p95 72 median 56 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 organ main: p95 80 median 64 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 organ pr: p95 64 median 48 samples 520/)
-[^release-commit]: .github/workflows/release.yml verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI and screen-reader lane passed, and runs no rehearsal)
+[^release-commit]: .github/workflows/release.yml verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI passed, names the screen-reader lane that runs after, and runs no rehearsal)
 [^quarantine]: .github/quarantine.json; scripts/quarantine.mjs verify:testExists(scripts/workflows.test.mjs::every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test)

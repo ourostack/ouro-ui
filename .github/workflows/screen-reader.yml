@@ -1,6 +1,6 @@
 name: Screen reader
 # Runs the screen-reader lane (screen-reader-lane.yml) on every push to main, nightly, and by dispatch;
-# release.yml dispatches it for its release commit and tags only a commit whose push run passed here. This
+# release.yml tags a commit without waiting for it, and screen-reader-revert.yml reverts a commit whose push run fails here. This
 # file alone may write issues: its report job opens or updates one `screen-reader-infra` issue after an
 # infrastructure failure on a nightly run or a push to main (scripts/sr-classify.mjs), and its advisory job
 # one issue when the nightly run's advisory VoiceOver on macos-15 fails. ci.yml never calls

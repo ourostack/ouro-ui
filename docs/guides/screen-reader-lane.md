@@ -1,6 +1,6 @@
 # The screen-reader lane
 
-Ouro UI's components are read by real screen readers before every release: VoiceOver on macOS and NVDA on Windows, driven through [Guidepup](https://www.guidepup.dev/) in this repository's CI.[^sr-release][^sr-runners] This page lists what the lane checks, how a failure is classified, how to run it, and why it may change a runner's settings.
+Ouro UI's components are read by real screen readers on every commit of main that is released, right after its tag: VoiceOver on macOS and NVDA on Windows, driven through [Guidepup](https://www.guidepup.dev/) in this repository's CI.[^sr-release][^sr-runners] This page lists what the lane checks, how a failure is classified, how to run it, and why it may change a runner's settings.
 
 ## What it checks
 
@@ -46,7 +46,7 @@ A VoiceOver start that fails because VoiceOver cannot be started, or was not run
 ## When it runs
 
 - Nightly, on main (`.github/workflows/screen-reader.yml`).
-- Before every release: main's push runs the lane, and `release.yml` tags a commit only when that push run concluded `success` for that exact SHA.[^sr-release]
+- After every release's tag: main's push runs the lane on the commit `release.yml` tagged, which no longer waits for it.[^sr-release] When the lane fails twice on a commit after passing on the one before, `screen-reader-revert.yml` reverts the pull request behind it through a pull request that merges on green, and the next release carries the revert.[^sr-release]
 - By hand: `gh workflow run screen-reader.yml --ref <branch> -f source_sha=<the branch's tip SHA>`. The lane refuses any other commit.
 - Never on a pull request: the lane needs macOS and Windows runners, which are scarce, so ci.yml's plan selects no spec for a pull request and its `screen-reader` job is skipped. Main's push run is the gate, and a red one is the red-main alarm. The job stays, calling the lane's own read-only workflow, `.github/workflows/screen-reader-lane.yml`, for a plan that selects specs ([below](#on-a-pull-request)).[^sr-pr-none]
 
@@ -93,7 +93,7 @@ Guidepup's setup changes the operating system: on macOS it enables VoiceOver's A
 - runs from every push to main, its nightly schedule or a dispatch, which needs write access to the repository, and from ci.yml for a pull request from this repository, never a fork's;[^sr-triggers]
 - holds `contents: read` and no secrets, with every action pinned to a commit; only the job that files the infrastructure issue may write issues, and it runs no Guidepup.[^sr-permissions]
 
-[^sr-release]: .github/workflows/release.yml verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI and screen-reader lane passed, and runs no rehearsal) verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI and screen-reader lane passed, and runs no rehearsal)
+[^sr-release]: .github/workflows/release.yml verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI passed, names the screen-reader lane that runs after, and runs no rehearsal) verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI passed, names the screen-reader lane that runs after, and runs no rehearsal)
 [^sr-runners]: .github/workflows/screen-reader.yml verify:testExists(scripts/workflows.test.mjs::the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-2025, with VoiceOver on macos-15 advisory nightly, at the commit it was given)
 [^sr-stories]: registry/ouro/e2e/screen-reader/stories.sr.setup.ts verify:fileLine(registry/ouro/e2e/screen-reader/stories.sr.setup.ts, /request\.get\("index\.json"\)/)
 [^sr-nvda]: registry/ouro/e2e/screen-reader/nvda.ts verify:fileLine(registry/ouro/e2e/screen-reader/nvda.ts, /capture: "initial"/)
@@ -143,7 +143,7 @@ Guidepup's setup changes the operating system: on macOS it enables VoiceOver's A
 [^sr-triggers]: test:scripts/workflows.test.mjs::screen-reader.yml runs the lane on every push to main, nightly, and on dispatch with a required source_sha, and never for a pull request; test:scripts/workflows.test.mjs::ci.yml calls the lane for a pull request from this repository only, with its head commit and the specs its change reaches, after yielding to main's lane verify:testExists(scripts/workflows.test.mjs::screen-reader.yml runs the lane on every push to main, nightly, and on dispatch with a required source_sha, and never for a pull request) verify:testExists(scripts/workflows.test.mjs::ci.yml calls the lane for a pull request from this repository only, with its head commit and the specs its change reaches, after yielding to main's lane) verify:testExists(scripts/workflows.test.mjs::the screen-reader lane's guard stops a pull request from a fork)
 [^sr-pr-none]: .github/workflows/ci.yml verify:fileLine(.github/workflows/ci.yml, /No screen-reader lane for \$EVENT: it runs on main after the merge\./)
 [^sr-auto-revert]: .github/workflows/screen-reader-lane.yml; https://github.com/ourostack/.github/blob/31422b9b73c66b7df4820bd749f520b247c00c6d/tools/red-main/auto-revert.mjs#L158 verify:testExists(scripts/workflows.test.mjs::the screen-reader lane annotates every failed verdict but an accessibility finding title=infra, so main's auto-revert reverts only for a finding about the components) verify:urlOk(https://github.com/ourostack/.github/blob/31422b9b73c66b7df4820bd749f520b247c00c6d/tools/red-main/auto-revert.mjs#L158)
-[^sr-pr-why]: .github/workflows/screen-reader-lane.yml verify:fileLine(.github/workflows/screen-reader-lane.yml, /die with the ephemeral runner/) verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI and screen-reader lane passed, and runs no rehearsal)
+[^sr-pr-why]: .github/workflows/screen-reader-lane.yml verify:fileLine(.github/workflows/screen-reader-lane.yml, /die with the ephemeral runner/) verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI passed, names the screen-reader lane that runs after, and runs no rehearsal)
 [^sr-closure]: scripts/sr-impact.mjs verify:testExists(scripts/sr-impact.test.mjs::a change to a component selects the spec of every story that loads it, directly or through another component) verify:testExists(scripts/sr-impact.test.mjs::a component's own tests and stories count with its code, as a change to its files does)
 [^sr-each-spec]: scripts/sr-impact.mjs verify:testExists(scripts/sr-impact.test.mjs::a change to a component selects the spec of every story that loads it, directly or through another component) verify:testExists(scripts/sr-impact.test.mjs::a type-only import loads nothing, so a change to the type's folder does not select the importer's spec)
 [^sr-shared]: scripts/sr-impact.mjs verify:testExists(scripts/sr-impact.test.mjs::a change to anything the lane shares runs every spec: the harness, the library, the theme, the lane's workflow and scripts, the dependencies and the build)
