@@ -1058,5 +1058,13 @@
   "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.4.0": {
     "status": 200,
     "checked": "2026-11-20"
+  },
+  "https://github.com/BuilderIO/agent-native/blob/99491ba2c96f39df5ad36cc7ebbd53b7dabf5064/README.md": {
+    "status": 200,
+    "checked": "2026-11-20"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/d25221aa63f007763857fc76727a09e6fa35827b/docs/guides/actions.md": {
+    "status": 200,
+    "checked": "2026-11-20"
   }
 }

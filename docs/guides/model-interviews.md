@@ -259,7 +259,7 @@ All eight models rank watching representative people do the task as the stronges
 
 #### Agent-Native is the rival shared-action layer models pick when they want a bigger vendor or a built-in database.
 
-Signal: past-behavior. Raised by 7 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, MAI Code 2. Status: open. [#2298](https://github.com/ourostack/ouro-ui/issues/2298).
+Signal: past-behavior. Raised by 7 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, MAI Code 2. Status: changed. [#2298](https://github.com/ourostack/ouro-ui/issues/2298). What changed: A fair side-by-side with Agent-Native now sits in the guides: what each does, where each is stronger, when to pick which, and whether they combine, with Agent-Native's own README cited at a pinned commit.
 
 Seven models weighed Agent-Native (Builder.io), it was picked six times across all three jobs, and most other models borrowed its pattern; its pull is a better-resourced company and an integrated action and database layer. Ouro beat it only where outside agents arrive over a CLI or MCP and conformance checks matter. Ouro needs a plain 'Ouro AX or Agent-Native' page: what each covers, when to choose which, and whether they combine.
 
