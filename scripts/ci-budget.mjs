@@ -98,6 +98,9 @@ export function jobGraph(text) {
   });
 }
 
+/** A name with the whitespace and parentheses inside its expressions dropped: GitHub reports a skipped matrix job's expressions normalised (`(((a) && 12) || 6)` for `a && 12 || 6`). */
+const canonical = (name) => name.replace(/\$\{\{([^}]*)\}\}/g, (_, expression) => `\${{${expression.replace(/[\s()]/g, "")}}}`);
+
 const seconds = (from, to) => (from && to ? Math.max(0, (Date.parse(to) - Date.parse(from)) / 1000) : 0);
 
 /** A job's run time without its setup steps (`setupSteps`) and its waits for runners (`waitSteps`); a job reported without steps counts whole. */
@@ -127,7 +130,7 @@ export function criticalPath(jobs, graph, { work = false } = {}) {
   for (const job of jobs) {
     if (laneJob(job.name)) continue;
     // A matrix job its `if` skipped reports once, under its name with the expressions unexpanded.
-    const node = nodes.find((candidate) => candidate.pattern.test(job.name) || candidate.template === job.name);
+    const node = nodes.find((candidate) => candidate.pattern.test(job.name) || canonical(candidate.template) === canonical(job.name));
     if (!node) {
       if (!graph.some((candidate) => outside.has(candidate.id) && candidate.pattern.test(job.name))) unmatched.push(job.name);
       continue;
