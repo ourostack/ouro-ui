@@ -3,7 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { ToggleGroup, type ToggleGroupProps } from "@/registry/ouro/components/ouro/toggle/toggle-group";
+import { ToggleGroup, type ToggleGroupItem, type ToggleGroupProps } from "@/registry/ouro/components/ouro/toggle/toggle-group";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
@@ -87,6 +87,14 @@ describe("ToggleGroup", () => {
     expect(toggles[0]!.getAttribute("data-ouro-part")).toBe("item");
     expect(toggles[0]!.getAttribute("data-ouro-control")).toBe("toggle-group");
     expect(toggles[1]!.hasAttribute("data-testid")).toBe(false);
+  });
+
+  it("passes only data attributes through, not other props an item carries", async () => {
+    const item = { value: "bold", label: "Bold", "data-testid": "bold", title: "Leaks", id: "leaks" } as unknown as ToggleGroupItem;
+    const { toggles } = await render(<ToggleGroup label="Text style" items={[item]} />);
+    expect(toggles[0]!.getAttribute("data-testid")).toBe("bold");
+    expect(toggles[0]!.hasAttribute("title")).toBe(false);
+    expect(toggles[0]!.id).not.toBe("leaks");
   });
 
   it("names each toggle's variant in data-variant", async () => {
