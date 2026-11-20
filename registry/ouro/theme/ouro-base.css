@@ -192,6 +192,13 @@
   }
 }
 
+/* Keyboard-only focus rings. Ouro's last-input tracker puts data-ouro-modality="pointer" on <html> after a press and "keyboard" after a key, so a ring follows the keyboard, including focus a script moves after a key press, and never a press. A text field's own box is covered by ouro-field-cue, which marks it with a border tone instead. Outside any layer, so it beats the utilities that draw the ring; a borderless field (variant plain) keeps its ring, since it has no border to carry the cue. It never reaches a ring that a keyboard drew. */
+:root[data-ouro-modality="pointer"] :is([data-ouro], [data-ouro-control], [data-ouro-part], [data-ouro-input-group], [data-ouro-composer-frame], [data-ouro-number-field-group]):not([data-variant="plain"]):focus-visible,
+:root[data-ouro-modality="pointer"] :is([data-ouro], [data-ouro-control], [data-ouro-part], [data-ouro-input-group], [data-ouro-composer-frame], [data-ouro-number-field-group]):not([data-variant="plain"]):has(> :is(input, textarea):focus-visible),
+:root[data-ouro-modality="pointer"] :is([data-ouro], [data-ouro-control], [data-ouro-part], [data-ouro-input-group], [data-ouro-composer-frame], [data-ouro-number-field-group]):not([data-variant="plain"]):has(> * > :is(input, textarea):focus-visible) {
+  outline-style: none;
+}
+
 /* Where the engine has no corner-shape, a circular corner at 0.7 of the squircle's radius stays within 6% of it, so box-shadow, outline and the element's own box follow the squircle closely. */
 @supports not (corner-shape: squircle) {
   :root {
@@ -302,6 +309,13 @@
   --corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
   border-radius: var(--ouro-check-radius, calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.6));
   corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
+}
+
+@utility ouro-field-cue {
+  :where(:root[data-ouro-modality="pointer"]) &:is(:focus, :has(:is(input, textarea):focus)):not([aria-invalid="true"], :has([aria-invalid="true"])) {
+    --ouro-bd: var(--ring);
+    border-color: var(--ring);
+  }
 }
 
 @utility press {

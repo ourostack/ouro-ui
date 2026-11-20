@@ -1,0 +1,1 @@
+- Changed: a focus ring now shows only for keyboard focus, including focus a script moves after a key press, and a press shows none; a text field marks pointer focus with its border in the ring colour. Ouro tracks this as `data-ouro-modality` on the root element, set by the existing `last-input` listeners, and needs no app CSS or `OuroProvider`.

@@ -525,7 +525,12 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
     } else if (node.type === "atrule" && node.name === "theme" && node.params === "inline") {
       Object.assign(cssVars.theme, declarations(node, "@theme inline", true));
     } else if (node.type === "atrule" && node.name === "utility") {
-      css[`@utility ${node.params}`] = declarations(node, `@utility ${node.params}`, false);
+      const utility: CssTree = {};
+      node.each((child) => {
+        if (child.type === "rule") utility[clean(child.selector)] = declarations(child, `@utility ${node.params} ${child.selector}`, false);
+        else if (child.type === "decl") utility[child.prop] = clean(child.value);
+      });
+      css[`@utility ${node.params}`] = utility;
     } else if (node.type === "atrule" && node.name === "layer" && node.params === "base") {
       const rules: CssTree = {};
       node.each((rule) => {
@@ -545,6 +550,8 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
         if (rule.type === "rule") rules[rule.selector] = declarations(rule, `@${node.name} ${node.params} ${rule.selector}`, false);
       });
       css[`@${node.name} ${node.params}`] = rules;
+    } else if (node.type === "rule" && node.selector.startsWith(':root[')) {
+      css[clean(node.selector)] = declarations(node, node.selector, false);
     } else if (node.type === "atrule" && node.name === "keyframes") {
       const frames: CssTree = {};
       node.each((frame) => {

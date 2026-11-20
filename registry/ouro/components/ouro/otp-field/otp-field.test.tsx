@@ -284,7 +284,8 @@ describe("OtpField looks", () => {
     );
     const slots = [...host.querySelectorAll<HTMLInputElement>("input[data-ouro-otp-slot]")];
     expect(getComputedStyle(slots[6]!).borderTopColor).not.toBe(getComputedStyle(slots[0]!).borderTopColor);
-    await userEvent.click(slots[0]!);
+    await userEvent.keyboard("{ArrowDown}");
+    slots[0]!.focus();
     await expect.poll(() => getComputedStyle(slots[0]!).outlineStyle).toBe("solid");
   });
 });
