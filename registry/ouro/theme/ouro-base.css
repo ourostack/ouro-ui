@@ -311,6 +311,13 @@
   corner-shape: var(--ouro-control-corner-shape, var(--ouro-corner-shape));
 }
 
+/* The corner of a frame inside a frame: the outer radius less the room between the two, never under the sm step, so the
+   inner curve runs concentric with the outer one. The outer frame says its own with --ouro-frame-radius (a --radius-ouro-*
+   step) and --ouro-frame-inset (its padding and border); with neither set it is the md step. */
+@utility rounded-ouro-inner {
+  border-radius: max(var(--radius-ouro-sm), calc(var(--ouro-frame-radius, var(--radius-ouro-md)) - var(--ouro-frame-inset, 0px)));
+}
+
 @utility rounded-ouro-check {
   --corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
   border-radius: var(--ouro-check-radius, calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.6));

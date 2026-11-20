@@ -163,30 +163,6 @@ export const knownFindings: KnownFinding[] = [
     sometimes: true,
   },
   {
-    story: "Message/Quote",
-    rule: "nested-frame",
-    issue: 1958,
-    reason: "The quote's inner corners (14px, and 2px for its bar) sit inside the bubble's 32px corner, so they nest at 23px and 8px by the rule. This is the bubble's squircle radius; a design decision to revisit, not a story bug.",
-  },
-  {
-    story: "Lightbox/Zoomed",
-    rule: "nested-frame",
-    issue: 1958,
-    reason: "In dark, the zoomed picture's square corners sit inside the viewer's 18px-cornered panel, which the rule reads as corners that do not nest. Found in dark only; whether the viewer clips the picture is for a look at the viewer.",
-  },
-  {
-    story: "Message/ReplyInThread",
-    rule: "nested-frame",
-    issue: 1958,
-    reason: "In dark, the reply's 2px quote bar sits inside its 14px-cornered blockquote and nests at 8px by the rule, as the bar in Message/Quote does.",
-  },
-  {
-    story: "MessageList/LongConversation",
-    rule: "nested-frame",
-    issue: 1958,
-    reason: "A quoted reply's inner corners sit inside the bubble's 32px corner and nest at 24px by the rule, as Message/Quote does: the bubble's squircle radius.",
-  },
-  {
     story: "MessageList/OpenedAtMessage",
     rule: "overlap",
     issue: 1957,

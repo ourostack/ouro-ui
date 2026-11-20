@@ -42,6 +42,7 @@ import {
   titleClass,
   zoomedImageClass,
   zoomOrigin,
+  zoomFrameClass,
   zoomViewClass,
 } from "@/registry/ouro/components/ouro/lightbox/lightbox-styles";
 
@@ -499,22 +500,24 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel, priority
         </figcaption>
       )}
       {zoomed && (
-        <div
-          ref={view}
-          role="group"
-          aria-label={zoomLabel}
-          tabIndex={0}
-          data-ouro-lightbox-zoom-view=""
-          data-ouro-control="lightbox"
-          data-ouro-part="zoom-view"
-          className={zoomViewClass}
-        >
-          <img
-            src={image.src}
-            alt={image.alt}
-            className={zoomedImageClass}
-            style={{ width: fitted.width * scale, height: fitted.height * scale }}
-          />
+        <div className={zoomFrameClass}>
+          <div
+            ref={view}
+            role="group"
+            aria-label={zoomLabel}
+            tabIndex={0}
+            data-ouro-lightbox-zoom-view=""
+            data-ouro-control="lightbox"
+            data-ouro-part="zoom-view"
+            className={zoomViewClass}
+          >
+            <img
+              src={image.src}
+              alt={image.alt}
+              className={zoomedImageClass}
+              style={{ width: fitted.width * scale, height: fitted.height * scale }}
+            />
+          </div>
         </div>
       )}
     </figure>
