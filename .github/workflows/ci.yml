@@ -298,17 +298,30 @@ jobs:
             echo "Design check run: $EVENT."
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
-      # No screen-reader lane on a pull request: it needs macOS and Windows runners, which are scarce, so a pull request waits for
-      # none. Main's own lane runs are screen-reader.yml's push and schedule runs, and release.yml tags only a commit whose push
-      # run passed (docs/guides/screen-reader-lane.md). The screen-reader job below stays for a plan that selects specs.
+      # The screen-reader lane on a pull request into main from this repository runs only when the change touches the lane
+      # itself: a spec, its harness, its Playwright configuration, its workflows or its scripts (laneFiles in
+      # scripts/sr-impact.mjs, whose `pr` command then picks the specs), so a spec is proven on VoiceOver and NVDA before it
+      # merges (#666). If the script fails, every spec runs. Any other change, and every other event, waits for main's own
+      # lane runs, screen-reader.yml's push and schedule runs: macOS and Windows runners are scarce (docs/guides/screen-reader-lane.md).
       - id: lane
         name: Which screen-reader specs can the change reach?
         env:
           EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
         run: |
-          echo "No screen-reader lane for $EVENT: it runs on main after the merge."
-          echo "screen_reader=none" >> "$GITHUB_OUTPUT"
-          echo "screen_reader_specs=" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [ "$HEAD_REPO" = "$REPO" ]; then
+            if ! node scripts/sr-impact.mjs pr HEAD^1 HEAD; then
+              echo "The lane's selection failed: every spec runs."
+              echo "screen_reader=all" >> "$GITHUB_OUTPUT"
+              echo "screen_reader_specs=all" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "No screen-reader lane for $EVENT${BASE_REF:+ into $BASE_REF}: it runs on main after the merge."
+            echo "screen_reader=none" >> "$GITHUB_OUTPUT"
+            echo "screen_reader_specs=" >> "$GITHUB_OUTPUT"
+          fi
   sr-yield:
     # Waits while main's screen-reader lane holds or waits for a macOS runner (scripts/sr-yield.mjs), so a pull request's
     # lane takes the runners after it. It fails open and never fails: at worst the lane starts after 10 minutes.
@@ -662,11 +675,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: scripts (${{ matrix.shard }}/3)
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3]' || '[1,2]') }}
+    name: scripts (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
-      SHARD: ${{ matrix.shard }}/3
-      TIMINGS: .tmp/timings/scripts-${{ matrix.shard }}of3.json
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+      TIMINGS: .tmp/timings/scripts-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
       # Its newest release tag comes from origin's history, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -755,11 +768,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-    name: scripts (browser ${{ matrix.shard }}/4)
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4]' || '[1,2]') }}
+    name: scripts (browser ${{ matrix.shard }}/${{ strategy.job-total }})
     env:
-      SHARD: ${{ matrix.shard }}/4
-      TIMINGS: .tmp/timings/scripts-browser-${{ matrix.shard }}of4.json
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+      TIMINGS: .tmp/timings/scripts-browser-${{ matrix.shard }}of${{ strategy.job-total }}.json
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
