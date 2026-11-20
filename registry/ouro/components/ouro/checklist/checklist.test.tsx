@@ -865,8 +865,12 @@ describe("Checklist development messages", () => {
     const guessed = { variant: "card" } as unknown as Partial<ChecklistProps>;
     const { row } = await render(<Checklist label="Steps" items={tea} onCheckedChange={() => {}} {...guessed} />);
     await expect.poll(messages).toEqual(['[ouro-ui] Checklist: variant="card" is not a variant; use "plain" or "outline". Fix: <Checklist variant="outline">.']);
-    // The plain box keeps its check corner, not the outline's full round.
-    expect(Number.parseFloat(getComputedStyle(partOf(row("Boil the water"), "box")).borderTopLeftRadius)).toBeLessThan(100);
+    // Plain, not outline: no card around the row, and the box at its start. (Not the box's corner: a
+    // theme such as Cookbook rounds the plain box too, through --ouro-check-radius.)
+    const boil = row("Boil the water");
+    const box = partOf(boil, "box");
+    expect(getComputedStyle(box.closest("label")!.parentElement!).borderTopWidth).toBe("0px");
+    expect(box.getBoundingClientRect().right).toBeLessThanOrEqual(partOf(boil, "label").getBoundingClientRect().left);
   });
 
   it("names media for an item's icon", async () => {
