@@ -2224,7 +2224,7 @@ jobs:
       fail-fast: false
       matrix:
         # Half as many shards, twice as long each, for a run that is not a pull request's: main has no one waiting on it, and fewer jobs leave runners for the pull requests.
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6]' || '[1,2,3]') }}
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8]' || '[1,2,3]') }}
     name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}

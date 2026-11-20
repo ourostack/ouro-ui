@@ -2039,7 +2039,7 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   const block = jobs["e2e-shard"];
   const count = shardCount(block);
   assert.match(block, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
-  assert.match(block, /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6\]' \|\| '\[1,2,3\]'\)/);
+  assert.match(block, /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8\]' \|\| '\[1,2,3\]'\)/);
   const script = stepScript(block, "End-to-end specs");
   // A full run: the spec files the shard's measured share holds (the stand-in for node prints two).
   const full = runStep(script, { FULL: "true", SHARD: "1/3" });
