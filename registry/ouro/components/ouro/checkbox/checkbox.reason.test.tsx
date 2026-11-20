@@ -2,6 +2,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
+import { CheckboxGroup } from "@/registry/ouro/components/ouro/checkbox/checkbox-group";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
@@ -47,6 +48,29 @@ describe("Checkbox disabledReason", () => {
     const mint = document.querySelectorAll<HTMLElement>('button[role="checkbox"]')[1]!;
     expect(mint.getAttribute("aria-readonly")).toBe("true");
     expect(mint.hasAttribute("aria-disabled")).toBe(false);
+  });
+
+  it("Checkbox with a value and a reason works inside a CheckboxGroup", async () => {
+    await render(
+      <CheckboxGroup legend="Herbs">
+        <Checkbox label="Basil" value="basil" disabledReason="Not yet" />
+      </CheckboxGroup>,
+    );
+    expect(control().getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("Checkbox in a CheckboxGroup without a value names the fix", async () => {
+    const note = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await render(
+        <CheckboxGroup legend="Herbs">
+          <Checkbox label="Basil" disabledReason="Not yet" />
+        </CheckboxGroup>,
+      );
+      expect(note.mock.calls.map((c) => String(c[0])).join("\n")).toContain("needs a value");
+    } finally {
+      note.mockRestore();
+    }
   });
 
   it("Checkbox ignores a click and Space while it has a reason", async () => {
