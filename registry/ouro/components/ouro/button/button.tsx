@@ -635,8 +635,14 @@ export function Button(props: ButtonProps): JSX.Element {
       aria-busy={loading || buttonProps["aria-busy"]}
       aria-describedby={reason.describedBy}
     >
-      {content}
-      {reason.note}
+      {reason.note ? (
+        <>
+          {content}
+          {reason.note}
+        </>
+      ) : (
+        content
+      )}
     </BaseButton>
   );
   return reason.wrapped ? <Tooltip content={reason.reason}>{button}</Tooltip> : button;

@@ -76,5 +76,6 @@ describe("Menu item disabledReason", () => {
     expect(paste.getAttribute("aria-disabled")).not.toBe("true");
     await userEvent.click(paste);
     expect(onClick).toHaveBeenCalledTimes(1);
+    await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
   });
 });

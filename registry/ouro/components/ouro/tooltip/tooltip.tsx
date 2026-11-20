@@ -297,7 +297,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
       ...(open ? { "data-popup-open": "" } : {}),
       // Marks the trigger as Base UI's own tooltip trigger did, so a nested trigger and tests still find it.
       // Stryker disable next-line StringLiteral: read by the attribute alone.
-      "data-base-ui-tooltip-trigger": "",
+      ...(content === undefined || content === null || content === "" ? {} : { "data-base-ui-tooltip-trigger": "" }),
       onPointerEnter: (event: { pointerType: string; timeStamp: number }) => {
         if (event.pointerType === "touch") return;
         setArmed(true);

@@ -300,6 +300,7 @@ export function Accordion(props: AccordionProps): JSX.Element {
         <BaseAccordion.Item
           key={values[index]}
           value={values[index]}
+          // Stryker disable next-line BooleanLiteral: a Base UI item that is disabled still opens nothing and the reason's trigger sets its own aria-disabled, so the two read the same.
           disabled={item.disabledReason ? false : item.disabled === true}
           onOpenChange={item.disabledReason ? (_open, details) => details.cancel() : undefined}
           className={itemClass}

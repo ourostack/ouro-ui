@@ -76,8 +76,10 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * Then 1 KiB more (281 KiB) for the hand-off as HX's AgentHandoff (#2356; Ari: the site's improvements reach every app
  * through Ouro), whose look moved from the voyage's stylesheet into the component's classes: home measured 286,820 bytes
  * with it, on CI at 372a0256.
+ * Then 1 KiB more (282 KiB) for the disabled reason: Button now carries Tooltip's wrapper for a button with a reason (#1953),
+ * with which home measured 288,389 bytes on CI.
  */
-const CEILINGS = { voyage: 281 * 1024, docs: 167_396 + 1024 } as const;
+const CEILINGS = { voyage: 282 * 1024, docs: 167_396 + 1024 } as const;
 
 /**
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's
