@@ -663,7 +663,16 @@ describe("Inspector", () => {
           </select>
           <textarea placeholder="Notes" />
           <div role="switch" aria-checked="false" tabIndex={0}>Dark mode</div>
-          <button type="button" role="tab presentation">Overview</button>
+          <button type="button" role="tab  presentation">Overview</button>
+          <input type="reset" value="Clear" />
+          <input type="button" value="Plain" />
+          <input type="image" alt="Go" style={{ width: 24, height: 24 }} />
+          <input type="text" placeholder="Hint" defaultValue="typed" />
+          <input id="two" type="text" />
+          <label htmlFor="two">One</label>
+          <label htmlFor="two">Two</label>
+          <div data-ax-action="div-action" style={{ width: 24, height: 24 }} />
+          <button type="button" aria-label="Narrow" style={{ width: 1, height: 24, padding: 0, border: 0 }} />
           <button type="button" title="Titled" style={{ width: 24, height: 24 }} />
           <button type="button" data-ax-action="only-action" style={{ width: 24, height: 24 }} />
           <button type="button" aria-label="   Spaced   out   ">z</button>
@@ -673,7 +682,7 @@ describe("Inspector", () => {
         </div>
       </Page>,
     );
-    await drawn(15);
+    await drawn(22);
     const text = tags().slice(3).map((tag) => tag.textContent);
     expect(text).toEqual([
       "checkbox: Agree",
@@ -685,11 +694,18 @@ describe("Inspector", () => {
       "textbox: Notes",
       "switch: Dark mode",
       "tab: Overview",
+      "button: Clear",
+      "button: Plain",
+      "button",
+      "textbox: Hint",
+      "textbox: One Two",
+      "button: div-action → div-action",
+      "button: Narrow",
       "button: Titled",
       "button: only-action → only-action",
       "button: Spaced out",
     ]);
-    await userEvent.click(page.getByRole("button", { name: "15 components" }));
+    await userEvent.click(page.getByRole("button", { name: "22 components" }));
     const sheet = page.getByRole("dialog", { name: "X-ray" });
     await expect.element(sheet).toBeVisible();
     const rows = [...sheet.element().querySelectorAll("[data-ouro-inspector-list] li")];
@@ -697,6 +713,31 @@ describe("Inspector", () => {
     expect(rows.slice(3).every((row) => !row.querySelector("a"))).toBe(true);
     expect(sheet.element().textContent).toContain("Every Ouro HX component and every other control on this page, in order.");
   }, 15_000);
+
+  it("leaves the page's own controls behind an open modal, and keeps its component links out of the tab order", async () => {
+    await page.viewport(390, 844);
+    await render(
+      <Page inspector={{ controls: true }}>
+        <button type="button">Outside</button>
+        <Dialog title="Share" trigger={<Button>Share</Button>}>
+          <Button>Copy link</Button>
+        </Dialog>
+      </Page>,
+    );
+    await drawn(5);
+    expect(tags()[0]!.getAttribute("tabindex")).toBe("-1");
+    await userEvent.click(page.getByRole("button", { name: "Share" }));
+    await expect.poll(() => tags().map((tag) => tag.textContent)).toEqual(["sheet", "button"]);
+  }, 15_000);
+
+  it("says in the sheet that it lists only Ouro components when controls is off", async () => {
+    await render(<Page />);
+    await drawn(3);
+    await userEvent.click(page.getByRole("button", { name: "3 components" }));
+    const sheet = page.getByRole("dialog", { name: "X-ray" });
+    await expect.element(sheet).toBeVisible();
+    expect(sheet.element().textContent).toContain("Every Ouro HX component on this page, in order.");
+  });
 
   it("shows an unnamed control by its role alone", async () => {
     await render(

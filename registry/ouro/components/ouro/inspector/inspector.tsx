@@ -163,11 +163,13 @@ function nameOf(element: Element): string {
   const text = (value: string | null | undefined) => (value ?? "").replace(/\s+/g, " ").trim();
   const by = element.getAttribute("aria-labelledby");
   if (by) {
+    // Stryker disable next-line Regex: an empty id names no element, so splitting on each space or on runs of them joins the same text.
     const joined = text(by.split(/\s+/).map((id) => document.getElementById(id)?.textContent).join(" "));
     if (joined) return joined;
   }
   const labelled = text(element.getAttribute("aria-label"));
   if (labelled) return labelled;
+  // Stryker disable next-line ArrayDeclaration: a form-less element has no labels, and a stand-in text node has no textContent, so it joins to nothing either way.
   const fromLabel = text([...((element as HTMLInputElement).labels ?? [])].map((label) => label.textContent).join(" "));
   return fromLabel || text(element.textContent) || text(element instanceof HTMLInputElement && ["submit", "reset", "button"].includes(element.type) ? element.value : "") || text(element.getAttribute("title")) || text(element.getAttribute("placeholder")) || text(element.getAttribute("data-ax-action"));
 }
@@ -418,6 +420,7 @@ function tagPlace(box: DOMRect, part: Edges, rtl: boolean, size: [number, number
   return null;
 }
 
+// Stryker disable next-line all: it only decides whether to set the list again, and the next frame reads the same elements either way.
 const sameComponents = (a: Found[], b: Found[]) =>
   a.length === b.length && a.every((entry, index) => entry.key === b[index]!.key && entry.item === b[index]!.item && entry.control?.name === b[index]!.control?.name && entry.control?.action === b[index]!.control?.action);
 
