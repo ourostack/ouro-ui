@@ -1,0 +1,1 @@
+- Fixed: precise failure copy, in the source rules and Ouro AX, rejects a cause that names nothing, such as "Couldn't save: it broke" or "Upload failed: there was a problem" ([test](registry/ouro/ax/precise-copy.test.mts "verify:testExists(registry/ouro/ax/precise-copy.test.mts::finds each vague phrase and a bare failure, and lets precise copy and allowed text through)")).
