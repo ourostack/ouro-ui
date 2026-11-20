@@ -344,11 +344,14 @@ function sizeWarning(size: string): readonly [string, string] {
   return [`size="${size}" is not a size`, fix];
 }
 
-function Spinner(): JSX.Element {
+function Spinner({ fadeIn }: { fadeIn: boolean }): JSX.Element {
   return (
     <span
       aria-hidden="true"
-      className="absolute inset-0 flex items-center justify-center transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0"
+      className={cn(
+        "absolute inset-0 flex items-center justify-center transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out)",
+        fadeIn && "starting:opacity-0",
+      )}
     >
       <svg
         data-ouro-spinner=""
@@ -472,6 +475,11 @@ export function Button(props: ButtonProps): JSX.Element {
   // Speak the busy state when loading turns on. The shared region sits outside the
   // button, so the button's accessible name stays exactly its label.
   const wasLoading = useRef(loading);
+  // A button that mounts already loading draws its spinner on the first frame; it fades in only when loading turns on later.
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+  }, []);
   useEffect(() => {
     if (loading && !wasLoading.current) announce(loadingLabel);
     wasLoading.current = loading;
@@ -535,7 +543,7 @@ export function Button(props: ButtonProps): JSX.Element {
         {children}
       </span>
       {EndIcon && <EndIcon aria-hidden="true" className={cn(iconClass, fade, "-me-0.5")} />}
-      {loading && <Spinner />}
+      {loading && <Spinner fadeIn={mounted.current} />}
     </>
   );
 
