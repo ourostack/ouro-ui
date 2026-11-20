@@ -1,0 +1,2 @@
+- TimeGrid: a hovered event that is not busy fills with --ouro-time-grid-hover, falling back to the accent colour.
+- MessageList: a hovered Jump to latest pill fills with --ouro-jump-hover, falling back to the accent colour.
