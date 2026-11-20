@@ -2,7 +2,7 @@
 
 # AvatarGroup
 
-Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. Its `label` names the group for screen readers, and its `size` applies to every avatar in it.
+Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. Its `label` names the group for screen readers, and its `size` applies to every avatar in it. The overlap grows with the size: 4px for avatars from 24 to 47px, 8px from 48 to 95px and 12px from 96px.
 
 ```tsx
 import { AvatarGroup } from "@/registry/ouro/components/ouro/avatar/avatar";
