@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Keyboard-only focus rings: a field's frame reads `data-ouro-pressed-within`, which the last-input tracker puts on the elements around focus that came from a press, and Ouro check's `focus-ring` rule takes that mark off too, as it does `data-ouro-pressed-focus` (#2524).
