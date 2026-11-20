@@ -2079,12 +2079,12 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   // ci-budget reaches sweeps-compare through the e2e gate, which waits on it.
   // The sweeps run in shards of their own, so between the e2e and sweep shards every spec runs once.
   const { sweepFiles } = await import("./shard.mjs");
-  const sweeps = Array.from({ length: 8 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 8 }, readTimings("e2e")));
+  const sweeps = Array.from({ length: 14 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 14 }, readTimings("e2e")));
   assert.deepEqual(sweeps.flat().sort(), sweepFiles());
   assert.ok(sweeps.every((share) => share.length > 0));
   assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
-  assert.deepEqual(matrixValues(jobs["sweep-shard"], "shard"), ["1", "2", "3", "4", "5", "6", "7", "8"]);
-  assert.match(jobs["sweep-shard"], /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8\]' \|\| '\[1,2,3,4\]'\)/);
+  assert.deepEqual(matrixValues(jobs["sweep-shard"], "shard"), ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"]);
+  assert.match(jobs["sweep-shard"], /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14\]' \|\| '\[1,2,3,4\]'\)/);
 });
 
 test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {
