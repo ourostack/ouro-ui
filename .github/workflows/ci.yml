@@ -1402,18 +1402,19 @@ jobs:
     # --stems holds only their maps complete (the ci job's `stems`).
     # When the plan skipped the browser shards (nothing they read changed), no motion was recorded
     # and no map changed, so it passes without reading any.
-    needs: [ci]
-    # ci passes after skipped fallback shards, which would skip this job by default: run it whenever ci passed.
-    if: ${{ !cancelled() && needs.ci.result == 'success' }}
+    # It reads the coverage job's outputs and the shards' artifacts directly, so it runs beside the ci check, not after it;
+    # the ci check still holds every part, and a failed shard fails that check. Skipped fallback shards are no failure.
+    needs: [plan, browser, coverage, browser-fallback]
+    if: ${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.browser.result) && contains(fromJSON('["success","skipped"]'), needs.browser-fallback.result) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       MOTION_PARTITIONS: ouro-chromium:22,ouro-webkit:22,ouro-touch:22,site:22
       FULL_SUITE_PARTITIONS: ouro-chromium:28,ouro-webkit:28,ouro-touch:28,site:28
-      REDUCED: ${{ needs.ci.outputs.reduced }}
-      STEMS: ${{ needs.ci.outputs.stems }}
-      FALLBACK: ${{ needs.ci.outputs.fallback }}
-      BROWSER_RUN: ${{ needs.ci.outputs.browser != 'false' && needs.ci.outputs.fallback == 'true' }}
+      REDUCED: ${{ needs.coverage.outputs.reduced }}
+      STEMS: ${{ needs.coverage.outputs.stems }}
+      FALLBACK: ${{ needs.coverage.outputs.fallback }}
+      BROWSER_RUN: ${{ needs.plan.outputs.browser != 'false' && needs.coverage.outputs.fallback == 'true' }}
     steps:
       - if: env.BROWSER_RUN == 'false'
         run: echo "Nothing to read here, since the browser shards did not run, or the coverage job held their motion evidence itself."
@@ -1463,7 +1464,7 @@ jobs:
       - if: env.BROWSER_RUN == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: ${{ needs.ci.outputs.fallback == 'true' && 'motion-fallback-*' || 'motion-browser-*' }}
+          pattern: ${{ needs.coverage.outputs.fallback == 'true' && 'motion-fallback-*' || 'motion-browser-*' }}
           path: ${{ runner.temp }}/motion
       - if: env.BROWSER_RUN == 'true'
         name: Motion coverage

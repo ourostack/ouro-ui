@@ -1513,7 +1513,7 @@ test("a push to main whose tree already passed runs only install-github", () => 
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
   const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, designRuns, laneRuns].includes(condition(jobs[id])));
   assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof"].includes(id)).sort());
-  assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
+  assert.match(jobs["motion-coverage"], /^ {4}needs: \[plan, browser, coverage, browser-fallback\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
   for (const id of skipping) assert.match(jobs[id], /^ {4}needs: \[plan[\],]/m, `${id} needs the plan`);
@@ -1628,8 +1628,8 @@ test("every required check is still a job that reports, under the name the rules
     // most it runs whatever its needs did, and skips only on a push whose tree already passed.
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
     // browser-fallback is no required check: it runs only when the coverage job asks, and the ci check fails when it then did not pass.
-    // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
-    if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
+    // motion-coverage runs beside ci once the coverage job and the shards it reads passed or were skipped.
+    if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser.result) && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser-fallback.result) }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
     else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
@@ -2229,7 +2229,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.match(some.stdout, /^npx playwright test --fully-parallel --reporter=list --pass-with-no-tests --shard=1\/3 e2e\/ouro\/checkbox\.spec\.ts e2e\/ouro\/checkbox-group\.spec\.ts$/m);
 });
 
-test("motion coverage runs after the ci check, over the partitions the browser shards upload, expecting every project in every shard", async () => {
+test("motion coverage runs beside the ci check, over the partitions the browser shards upload, expecting every project in every shard", async () => {
   const jobs = ciJobs();
   // A browser test job runs Vitest and uploads the partitions it wrote as its next step, before
   // any other Vitest run in the job can rewrite them.
@@ -2242,10 +2242,10 @@ test("motion coverage runs after the ci check, over the partitions the browser s
   );
   const coverage = jobs["motion-coverage"];
   assert.ok(coverage, "ci.yml has a motion-coverage job");
-  assert.match(coverage, /^ {4}needs: \[ci\]$/m, "motion-coverage runs after the ci check, which waits on every browser shard");
-  assert.match(coverage, /- if: env\.BROWSER_RUN == 'true'\n {8}uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: \$\{\{ needs\.ci\.outputs\.fallback == 'true' && 'motion-fallback-\*' \|\| 'motion-browser-\*' \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/motion\n/);
+  assert.match(coverage, /^ {4}needs: \[plan, browser, coverage, browser-fallback\]$/m, "motion-coverage waits on the shards and the coverage job, not on the ci check");
+  assert.match(coverage, /- if: env\.BROWSER_RUN == 'true'\n {8}uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: \$\{\{ needs\.coverage\.outputs\.fallback == 'true' && 'motion-fallback-\*' \|\| 'motion-browser-\*' \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/motion\n/);
   // When the plan skipped the browser shards, no motion was recorded: every step but a notice is skipped.
-  assert.match(coverage, /^ {6}BROWSER_RUN: \$\{\{ needs\.ci\.outputs\.browser != 'false' && needs\.ci\.outputs\.fallback == 'true' \}\}$/m);
+  assert.match(coverage, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' && needs\.coverage\.outputs\.fallback == 'true' \}\}$/m);
   const steps = coverage.slice(coverage.indexOf("    steps:")).split(/\n {6}- /).slice(1);
   assert.match(steps[0], /^if: env\.BROWSER_RUN == 'false'\n {8}run: echo /);
   for (const step of steps.slice(1)) assert.match(step, /^if: env\.BROWSER_RUN == 'true'$/m, step);
@@ -2257,7 +2257,7 @@ test("motion coverage runs after the ci check, over the partitions the browser s
   assert.match(runStep(check, { ...env, REDUCED: "", FALLBACK: "" }).calls, /^CALL node scripts\/motion-coverage\.mts --dir \/r\/motion --expect p:6$/m);
   // The full suite decided in the browser-fallback shards: their partitions.
   assert.match(runStep(check, { ...env, REDUCED: "false", FALLBACK: "true" }).calls, /^CALL node scripts\/motion-coverage\.mts --dir \/r\/motion --expect p:12$/m);
-  assert.match(coverage, /^ {6}REDUCED: \$\{\{ needs\.ci\.outputs\.reduced \}\}\n {6}STEMS: \$\{\{ needs\.ci\.outputs\.stems \}\}\n {6}FALLBACK: \$\{\{ needs\.ci\.outputs\.fallback \}\}$/m);
+  assert.match(coverage, /^ {6}REDUCED: \$\{\{ needs\.coverage\.outputs\.reduced \}\}\n {6}STEMS: \$\{\{ needs\.coverage\.outputs\.stems \}\}\n {6}FALLBACK: \$\{\{ needs\.coverage\.outputs\.fallback \}\}$/m);
   assert.match(
     jobs["browser-fallback"],
     /^ {8}name: Browser tests\n(?: {8}timeout-minutes: \d+\n)? {8}run: \|\n(?: {10}.*\n)+^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: motion-fallback-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/motion\/\n {10}include-hidden-files: true\n {10}if-no-files-found: error\n/m,
@@ -2320,7 +2320,7 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget" && id !== "tree-proof").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
   // tree-proof, the proof a push to main reads, runs beside it on what it waits on.
   const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && id !== "fail-fast" && id !== "tree-proof" && !needed.has(id));
-  assert.deepEqual([...needs].sort(), [...ends, "plan", "ci"].sort());
+  assert.deepEqual([...needs].sort(), [...new Set([...ends, "plan", "ci"])].sort());
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
   for (const [id, block] of Object.entries(jobs)) {
