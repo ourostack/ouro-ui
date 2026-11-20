@@ -634,6 +634,21 @@ describe("Inspector", () => {
     expect(tags().slice(3).every((tag) => !tag.hasAttribute("href"))).toBe(true);
   });
 
+  it("names a page's own control from the elements aria-labelledby points to, and falls back when they are empty", async () => {
+    await render(
+      <Page inspector={{ controls: true }}>
+        <div>
+          <span id="first-part">Save</span>
+          <span id="second-part">draft</span>
+          <button type="button" aria-labelledby="first-part second-part">x</button>
+          <button type="button" aria-labelledby="missing-part" aria-label="Fallback name">y</button>
+        </div>
+      </Page>,
+    );
+    await drawn(5);
+    expect(tags().slice(3).map((tag) => tag.textContent)).toEqual(["button: Save draft", "button: Fallback name"]);
+  });
+
   it("starts and stops outlining a page's own controls when controls changes while X-ray is open", async () => {
     function Toggle() {
       const [on, setOn] = useState(false);
