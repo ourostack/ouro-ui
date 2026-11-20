@@ -198,21 +198,28 @@ describe("Ouro AX page", () => {
 
   it("walks the three asks in the page, keeps the keyboard on the reply during a wait, and lets start over end it", async () => {
     await renderPage("/ax/");
+    // The page scrolls smoothly, and its header sticks: a click that scrolls a button into view can land it under the
+    // header, whose link takes the press, and find it still moving (#757). Each press brings its button to the middle first.
+    const press = async (name: string) => {
+      const button = page.getByRole("button", { name });
+      button.element().scrollIntoView({ block: "center", behavior: "instant" });
+      await button.click();
+    };
     const asks = page.getByTestId("ax-asks");
     const log = page.getByRole("log", { name: "What you, the agent, see" });
     await expect.element(asks).toHaveAttribute("data-asks-done", "0");
-    await page.getByRole("button", { name: "Wait for a reply" }).click();
+    await press("Wait for a reply");
     await expect.poll(() => log.element().textContent).toMatch(/Waiting inside the tool/);
     expect(document.activeElement?.textContent).toBe("Reply as someone in the room");
-    await page.getByRole("button", { name: "Start over" }).click();
+    await press("Start over");
     await expect.poll(() => log.element().textContent).not.toMatch(/Waiting inside the tool/);
-    await page.getByRole("button", { name: "Post it" }).click();
+    await press("Post it");
     await expect.element(asks).toHaveAttribute("data-asks-done", "1");
-    await page.getByRole("button", { name: "Wait for a reply" }).click();
+    await press("Wait for a reply");
     await expect.poll(() => log.element().textContent).toMatch(/Waiting inside the tool/);
-    await page.getByRole("button", { name: "Reply as someone in the room" }).click();
+    await press("Reply as someone in the room");
     await expect.element(asks).toHaveAttribute("data-asks-done", "2");
-    await page.getByRole("button", { name: "Add a private note" }).click();
+    await press("Add a private note");
     await expect.element(asks).toHaveAttribute("data-asks-done", "3");
     await expect.poll(() => asks.element().textContent).toContain(ASKS[2]!.answer({ posted: true, heard: null, noted: true }));
     expect(asks.element().querySelectorAll(".ax-avatar-agent svg").length, "each reply carries the agent's mark").toBe(ASKS.length);
