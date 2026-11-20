@@ -151,6 +151,9 @@ test("a probe round past the cap during the presses calls for a re-measure, thou
   expect(loaded([[quiet, quiet, quiet], [quiet, busy, quiet], [quiet, quiet, quiet]])).toBe(false);
   expect(loaded([[busy, busy, busy], [], [busy, busy, busy]])).toBe(true);
   expect(loaded([[quiet, quiet, quiet], [], [quiet, quiet, quiet]])).toBe(false);
+  // The lights run in ourostack/ouro-ui#716: a runner near the cap, a round's median past it, no round past it whole, and the
+  // median over all its rounds within it.
+  expect(loaded([[72, 96, 64], [80, 88, 72], [64, 88, 64]])).toBe(false);
 });
 
 test("a probe that reads past the cap every time, within one Event Timing step, is steady; spiky or within the cap is not", () => {
