@@ -148,6 +148,7 @@ const inputRoles: Record<string, string> = { checkbox: "checkbox", radio: "radio
 
 /** A control's role: the one it declares, or the one its element has. */
 function roleOf(element: Element): string {
+  // Stryker disable next-line Regex: only the first word is kept, and it is the same whether the split is on each space or on a run of them.
   const declared = element.getAttribute("role")?.split(/\s+/)[0];
   if (declared) return declared;
   const tag = element.tagName.toLowerCase();

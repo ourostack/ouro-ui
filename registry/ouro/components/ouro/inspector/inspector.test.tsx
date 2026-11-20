@@ -673,6 +673,7 @@ describe("Inspector", () => {
           <label htmlFor="two">Two</label>
           <div data-ax-action="div-action" style={{ width: 24, height: 24 }} />
           <button type="button" aria-label="Narrow" style={{ width: 1, height: 24, padding: 0, border: 0 }} />
+          <button type="button" aria-label="Flat" style={{ width: 24, height: 1, padding: 0, border: 0 }} />
           <button type="button" title="Titled" style={{ width: 24, height: 24 }} />
           <button type="button" data-ax-action="only-action" style={{ width: 24, height: 24 }} />
           <button type="button" aria-label="   Spaced   out   ">z</button>
@@ -682,7 +683,7 @@ describe("Inspector", () => {
         </div>
       </Page>,
     );
-    await drawn(22);
+    await drawn(23);
     const text = tags().slice(3).map((tag) => tag.textContent);
     expect(text).toEqual([
       "checkbox: Agree",
@@ -701,11 +702,12 @@ describe("Inspector", () => {
       "textbox: One Two",
       "button: div-action → div-action",
       "button: Narrow",
+      "button: Flat",
       "button: Titled",
       "button: only-action → only-action",
       "button: Spaced out",
     ]);
-    await userEvent.click(page.getByRole("button", { name: "22 components" }));
+    await userEvent.click(page.getByRole("button", { name: "23 components" }));
     const sheet = page.getByRole("dialog", { name: "X-ray" });
     await expect.element(sheet).toBeVisible();
     const rows = [...sheet.element().querySelectorAll("[data-ouro-inspector-list] li")];
