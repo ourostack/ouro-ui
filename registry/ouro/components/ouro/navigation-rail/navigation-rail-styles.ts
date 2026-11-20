@@ -45,12 +45,12 @@ const itemClass = {
   labels:
     "press group/navigation-rail relative m-0 box-border flex min-h-14 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-ouro-md border-0 bg-transparent px-0.5 py-1.5 " +
     "font-[inherit] no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-    "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground data-selected:text-foreground " +
+    "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] pointer-fine:hover:bg-[var(--ouro-row-hover,var(--accent))] pointer-fine:hover:text-foreground data-selected:text-foreground " +
     "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:border forced-colors:border-solid",
   icons:
     "press group/navigation-rail relative m-0 box-border flex min-h-11 w-full cursor-pointer flex-col items-center justify-center rounded-ouro-md border-0 bg-transparent p-0 " +
     "font-[inherit] no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-    "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground data-selected:text-foreground " +
+    "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] pointer-fine:hover:bg-[var(--ouro-row-hover,var(--accent))] pointer-fine:hover:text-foreground data-selected:text-foreground " +
     "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:border forced-colors:border-solid",
 } as const;
 
