@@ -907,6 +907,26 @@ describe("Message chat", () => {
     expect(bubble.color).toBe("rgb(250, 250, 250)");
   });
 
+  it("fills the user's own bubble from --ouro-bubble-user and its text from --ouro-bubble-user-foreground before the action colors", async () => {
+    const { host } = await render(
+      <div
+        style={{
+          ["--ouro-bubble-user" as string]: "rgb(120, 30, 60)",
+          ["--ouro-bubble-user-foreground" as string]: "rgb(255, 240, 240)",
+          ["--ouro-action" as string]: "rgb(10, 20, 120)",
+          ["--ouro-action-foreground" as string]: "rgb(250, 250, 250)",
+        }}
+      >
+        <Message variant="chat" role="user" name="Priya Okafor">
+          Hi Mara
+        </Message>
+      </div>,
+    );
+    const bubble = getComputedStyle(bubbleOf(host.querySelector<HTMLElement>('[data-ouro="message"]')!));
+    expect(bubble.backgroundColor).toBe("rgb(120, 30, 60)");
+    expect(bubble.color).toBe("rgb(255, 240, 240)");
+  });
+
   it("keeps a link in the primary color at 4.5:1 or more on others' muted bubble", async () => {
     const { host } = await render(
       <Message variant="chat" role="assistant" name="Mara Quill">
