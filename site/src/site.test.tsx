@@ -115,10 +115,9 @@ describe("home page", () => {
     expect(document.querySelector("[data-site-demo]")).toBeNull();
   });
 
-  it("titles the home page with Ouro UI's name and what it is, short enough for a search result to show whole", () => {
-    const title = routes.find((route) => route.path === "/")!.title;
-    expect(title).toMatch(/^Ouro UI: /);
-    expect(title.length).toBeLessThanOrEqual(60);
+  it("titles the home page with Ouro UI's name and the six-word story, which a search result shows", () => {
+    expect(routes.find((route) => route.path === "/")?.title).toBe(`Ouro UI: ${VOYAGE_HERO.title.join(" ")}`);
+    expect(VOYAGE_HERO.title.join(" ").split(" ")).toHaveLength(6);
   });
 
   it("counts no components anywhere a visitor reads, and no longer says under construction", async () => {
@@ -1124,11 +1123,12 @@ describe("head tags", () => {
     expect(homeStructuredData({ path: "/", title: "t", description: "a </script> b" })).not.toContain("</script>");
     expect(headTags(routes.find((route) => route.path === "/ax/")!, true).some((t) => t.includes("ld+json"))).toBe(false);
   });
-  it("give the home page the words a search for a shadcn registry, A2UI or MCP Apps would use", () => {
-    const home = routes.find((route) => route.path === "/")!;
-    for (const term of ["shadcn", "React", "SwiftUI", "A2UI", "MCP"]) {
-      expect(`${home.title} ${home.description}`).toContain(term);
+  it("give the home page's description the words a search for it would use, without calling it a shadcn registry", () => {
+    const { description } = routes.find((route) => route.path === "/")!;
+    for (const term of ["React", "Base UI", "Tailwind", "SwiftUI", "A2UI", "MCP"]) {
+      expect(description).toContain(term);
     }
+    expect(description).not.toMatch(/shadcn registry/i);
   });
   it("end a card's title with a full stop before its scene in the alt text, when the title has none", () => {
     const tags = headTags({ path: "/ax/", title: "Ouro AX", description: "A morning with an agent" }, true).join("\n");
