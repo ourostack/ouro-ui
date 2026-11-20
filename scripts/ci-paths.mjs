@@ -20,7 +20,8 @@ export const scoped = [
     components: false,
     reason: "a CI or release helper that only the workflows and the Node script tests run",
   },
-  { pattern: /^scripts\/(model-reviews\/|claims-urls\.json$)/, tiers: [], components: false, reason: "the model review pages and the claim URL list, which only the Node script tests and the docs build read" },
+  { pattern: /^scripts\/claims-urls\.json$/, tiers: [], components: false, reason: "the claim URL list, which only the Node script tests read" },
+  { pattern: /^scripts\/model-reviews\//, tiers: ["screens"], components: false, reason: "the model reviews and their pages, which the Node script tests read and the site renders at install (#2600)" },
   { pattern: /^scripts\/latency-shards\.mjs$/, tiers: ["heavy"], components: false, reason: "the latency shard table, which only the heavy tier's latency shards read" },
   { pattern: /^scripts\/(shard\.mjs|shard-timings\.json|vitest-shards\.mts)$/, tiers: ["browser"], components: false, reason: "how the browser shards split their tests, which changes no test" },
   {
