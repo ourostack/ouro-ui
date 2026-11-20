@@ -21,7 +21,7 @@ Your app already has a backend, and an agent that uses your product will call it
 2. **Run it on your interface, as it is.** For a CLI: `node ax/xray.ts --cli "node tool.mjs" --home .xray-home`. For an MCP server: `--mcp "node server.mjs"`. For an HTTP API: `--http <url> --routes routes.json`.[^kinds] The report lists the claims, what the calls returned and the fix.
 3. **Fix the first `must`, and run it again,** then gate CI on `--conformance`, which needs an `--inventory` generated from your command table ([make your CLI conformant](ax-adopt.md#4-generate-the-inventory-and-ask-for-conformance) has the full command).
 
-The copy and run steps were run for this page in that bare folder, without React, Tailwind or shadcn, against a plain Node CLI and a plain MCP server: the X-ray ran, printed its report and named the fix for the failing claims. It ran on Node 22.23.4. The HTTP path and a Flutter-repository layout were not run for this page.
+The copy and run steps were run for this page in that bare folder, without React, Tailwind or shadcn, against a plain Node CLI and a plain MCP server: the X-ray ran, printed its report and named the fix for the failing claims. The HTTP path and a Flutter-repository layout were not run for this page.
 
 The X-ray makes no call that other people would see until a guard proves the target is a mock, so point it at made-up data ([the X-ray](ax-conformance.md)).[^safety]
 
