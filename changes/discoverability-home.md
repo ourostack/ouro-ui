@@ -1,0 +1,1 @@
+- Changed: the home page's description now says what Ouro UI is and who it is for: React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits, for agents building A2UI and MCP Apps interfaces.

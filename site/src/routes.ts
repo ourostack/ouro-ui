@@ -55,7 +55,21 @@ export const guessedAddresses: Array<{ from: string; to: string; note?: string }
 /** Old and guessed addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
 export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, ...guessedAddresses];
 
-const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline}`;
+// The words a person or an agent searches with: what it is (React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits), who it is for (agents building A2UI and MCP Apps interfaces) and how it installs.
+const DESCRIPTION = claim("Accessible React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits, for agents building A2UI and MCP Apps. Installs with the shadcn CLI.", {
+  source: [{ file: "test/stories.test.tsx" }, { file: "package.json" }, { file: "docs/platforms/windows.md" }, { file: "docs/platforms/android.md" }, { file: "docs/platforms/apple.md" }, { file: "scripts/install-test.sh" }],
+  verify: [
+    { testExists: "test/stories.test.tsx::at $width px > %s > $id has no axe violations, closed and with each overlay open" },
+    { fileLine: "package.json", pattern: "\"@base-ui/react\"" },
+    { fileLine: "docs/platforms/apple.md", pattern: "Swift" },
+    { fileLine: "docs/platforms/windows.md", pattern: "WinUI" },
+    { fileLine: "docs/platforms/android.md", pattern: "Compose" },
+    { fileLine: "package.json", pattern: "\"tailwindcss\"" },
+    { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+    { testExists: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > draws a composed tree in structuredContent.ouro with ComposedSurface" },
+    { fileLine: "scripts/install-test.sh", pattern: "shadcn@4\\.21\\.1" },
+  ],
+});
 // NAUTILUS_PAGE.intro (voyage/copy.ts), written out so the docs, which import this file, do not load the voyage's words.
 const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret, on a far-off island. Help him get her ready, then sail with him. A story told with Ouro HX components: build the Nautilus, plan her voyage, and meet a very friendly squid.`;
 
@@ -63,7 +77,7 @@ const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret, on
 const AX_DESCRIPTION = "Ouro AX is for the tools agents use: a command line, an HTTP API, an MCP server. Spend a morning with a person and their agent, seen from both sides, then be the agent yourself.";
 
 export const routes: Route[] = [
-  // The home page's title is what a search result shows: the name and the six-word story, which says what it is for.
+  // The home page's title is what a search result shows: the name and the six-word story.
   { path: "/", title: `Ouro UI: ${VOYAGE_HERO.title.join(" ")}`, description: DESCRIPTION },
   { path: "/nautilus/", title: "The Nautilus · Ouro UI", description: NAUTILUS_DESCRIPTION },
   { path: "/ax/", title: "A morning with an agent · Ouro AX", description: AX_DESCRIPTION },
