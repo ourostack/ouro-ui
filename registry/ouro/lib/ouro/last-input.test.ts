@@ -136,3 +136,24 @@ it("marks and unmarks focus that a handler below stops, because it listens to fo
     target.remove();
   }
 });
+
+it("marks the elements around pressed focus, up to the body, and unmarks them after a key that moves focus or when focus leaves", () => {
+  const outer = document.body.appendChild(document.createElement("div"));
+  const field = outer.appendChild(document.createElement("label"));
+  const input = field.appendChild(document.createElement("input"));
+  const within = () => [outer, field, document.body].map((element) => element.hasAttribute("data-ouro-pressed-within"));
+  try {
+    press("mouse");
+    input.focus();
+    expect(within()).toEqual([true, true, false]);
+    expect(input.hasAttribute("data-ouro-pressed-within")).toBe(false);
+    key("Tab");
+    expect(within()).toEqual([false, false, false]);
+    press("mouse");
+    expect(within()).toEqual([true, true, false]);
+    input.blur();
+    expect(within()).toEqual([false, false, false]);
+  } finally {
+    outer.remove();
+  }
+});

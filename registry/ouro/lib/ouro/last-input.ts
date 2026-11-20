@@ -3,19 +3,23 @@ export { lastInput };
 // The keys that move focus, as in Fluent's keyborg. Shift+Tab is Tab with a modifier.
 const focusKeys = new Set(["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"]);
 
-/** The mark ouro-base's keyboard-only focus rings read: on the focused element, while its focus came from a press. */
+/** The marks ouro-base's keyboard-only focus rings read, while focus came from a press: on the focused element, and on the elements around it. */
 const PRESSED_FOCUS = "data-ouro-pressed-focus";
+const PRESSED_WITHIN = "data-ouro-pressed-within";
 
 // The modality of the last press or key that moves focus, once there has been one.
 let current: "keyboard" | "pointer" | undefined;
 
-// Marks an element that has focus after a press, and unmarks it after a key that moves focus: one element's attribute, so a switch
-// between keyboard and pointer restyles the element that has focus, not every element a rule on <html> reaches (#2524).
-function mark(element: EventTarget | null): void {
+// Marks an element that has focus after a press, and the elements around it, and unmarks them after a key that moves
+// focus: attributes on the focused element and its ancestors, so a switch between keyboard and pointer restyles them, not
+// every element a rule on <html> reaches (#2524). The fields' rules read the ancestors' mark rather than a :has() on the
+// focused one, because a :has() on an attribute that changes restyles far more than its subjects (an open X-ray's outlines).
+function mark(element: EventTarget | null, pressed = current === "pointer"): void {
   // The page itself holds focus when nothing does; it is no control and draws no ring.
   if (!(element instanceof Element) || element === document.body) return;
-  // Forced, toggleAttribute writes only when the mark changes, so a press on an element already marked restyles nothing.
-  element.toggleAttribute(PRESSED_FOCUS, current === "pointer");
+  // Forced, toggleAttribute writes only when a mark changes, so a press on an element already marked restyles nothing.
+  element.toggleAttribute(PRESSED_FOCUS, pressed);
+  for (let around = element.parentElement; around && around !== document.body; around = around.parentElement) around.toggleAttribute(PRESSED_WITHIN, pressed);
 }
 
 // Written to <html> only when it changes, and only after the first press or key: the server HTML and the
@@ -83,7 +87,7 @@ if (typeof document !== "undefined") {
   document.addEventListener(
     "focusout",
     (event) => {
-      if (event.target instanceof Element) event.target.removeAttribute(PRESSED_FOCUS);
+      mark(event.target, false);
     },
     true,
   );
