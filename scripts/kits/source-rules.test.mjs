@@ -33,6 +33,7 @@ describe("findOffendersInSource: each category", () => {
             "hand-drawn-corner",
             "hand-drawn-switch",
             "vague-failure-copy",
+            "vague-failure-escape",
             "hand-drawn-avatar",
             "hand-drawn-presence-dot",
             "hand-drawn-unread-dot",
@@ -593,6 +594,23 @@ describe("vague-failure-copy", () => {
     const vague = (source, options) => findOffendersInSource("app/routes/fixture.tsx", source, options)
         .filter((offender) => offender.category === "vague-failure-copy")
         .map((offender) => offender.fingerprint.split("::").slice(3).join("::"));
+    it("counts a copy kept by an ouro-allow comment with a reason as an escape, and flags one without a reason", () => {
+        const scan = (source) => findOffendersInSource("app/routes/fixture.tsx", source).map((offender) => offender.category);
+        expect(scan(`export function A() {
+  // ouro-allow vague-failure-copy: the protocol's own wording
+  return <p>Could not parse</p>;
+}`)).toEqual(["vague-failure-escape"]);
+        expect(scan(`export function A() { return <p>Could not parse</p>; } // ouro-allow vague-failure-copy: wording is the protocol's`)).toEqual(["vague-failure-escape"]);
+        expect(scan(`export function A() {
+  // ouro-allow vague-failure-copy:
+  return <p>Could not parse</p>;
+}`)).toEqual(["vague-failure-copy"]);
+        expect(scan(`// ouro-allow vague-failure-copy: far away
+
+export function A() {
+  return <p>Could not parse</p>;
+}`)).toEqual(["vague-failure-copy"]);
+    });
     it("keeps the detector Ouro AX shares: six phrases and the bare failure pattern", () => {
         expect(VAGUE_FAILURE_PHRASES.map(([name]) => name)).toEqual(["couldn't", "could not", "something went wrong", "unable to", "failed to load", "an error occurred"]);
         const samples = {
