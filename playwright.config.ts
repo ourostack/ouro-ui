@@ -35,9 +35,10 @@ export default defineConfig({
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
     // The stage's latency spec runs alone (playwright.latency.config.ts). The site's specs run
     // against the build served as GitHub Pages serves it (site/scripts/serve-pages.mjs: HTTP/2, TLS,
-    // gzip with a length), so they check what people get; its certificate is self-signed.
-    { name: "site-chromium", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Chrome"], baseURL: SITE, ignoreHTTPSErrors: true } },
-    { name: "site-webkit", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Safari"], baseURL: SITE, ignoreHTTPSErrors: true } },
+    // gzip with a length), so they check what people get; its certificate is self-signed. With no retry to record on, a failed
+    // test keeps its trace: each step and how long it took, no screenshots or DOM snapshots, which cost time on every test (#2685).
+    { name: "site-chromium", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Chrome"], baseURL: SITE, ignoreHTTPSErrors: true, trace: { mode: "retain-on-failure", screenshots: false, snapshots: false } } },
+    { name: "site-webkit", testDir: "site/e2e", testIgnore: /\.latency\.spec\.ts$/, retries: 0, use: { ...devices["Desktop Safari"], baseURL: SITE, ignoreHTTPSErrors: true, trace: { mode: "retain-on-failure", screenshots: false, snapshots: false } } },
   ],
   webServer: [
     {
