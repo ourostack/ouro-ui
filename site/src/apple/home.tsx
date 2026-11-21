@@ -227,6 +227,13 @@ export default function AppleHome(): JSX.Element {
               { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0" },
               { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/d8d336c19d3bc8216571d3163c596532130cc130/README.md#whats-in-the-box" },
             ],
+          })}{" "}
+          {claim("Since 1.4.0 every corner is a squircle, and the checkbox moves like web Ouro's: its box fills, then its tick draws along its path.", {
+            source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0" },
+            verify: [
+              { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0" },
+              { equals: "site/src/apple/kit.json#release", is: "1.4.0" },
+            ],
           })}
         </p>
         <p className="apple-fine">
