@@ -95,8 +95,9 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; PreviewBar sets its own look from the theme`
-    // Stryker disable next-line StringLiteral: the fallback is for production builds, which never run this check
+      // Stryker disable StringLiteral: the fallback is for production builds, which never run this check
       : /* istanbul ignore next @preserve -- production only */ "",
+      // Stryker restore StringLiteral
   );
   useDevWarnings(
     "PreviewBar",
@@ -129,13 +130,14 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
       latest.current.onCompareChange(comparing);
     }
   }, [comparing]);
-  // Stryker disable next-line ArrayDeclaration: a constant dependency list and an empty one both run the cleanup only on unmount
+  // Stryker disable ArrayDeclaration: a constant dependency list and an empty one both run the cleanup only on unmount
   useEffect(
     () => () => {
       if (told.current) latest.current.onCompareChange(false);
     },
     [],
   );
+  // Stryker restore ArrayDeclaration
 
   // Said once for each proposal, after the action that brought it (a menu item's own announcement).
   const words = announcement ?? (seconds === undefined ? label : `${label}. Reverts in ${seconds} seconds unless you keep it.`);

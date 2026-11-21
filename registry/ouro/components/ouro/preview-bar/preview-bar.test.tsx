@@ -427,6 +427,8 @@ describe("PreviewBar", () => {
         await key(el, "keydown", { key: "c" });
         expect(part("compare").getAttribute("aria-pressed")).toBe("true");
         await key(el, "keyup", { key: "c" });
+        await act(() => part("compare").click());
+        expect(part("compare").getAttribute("aria-pressed")).toBe("false");
       }
     });
 
