@@ -64,7 +64,8 @@ export function webComponents(dir = join(root, COMPONENTS_DIR)) {
  * ouro<Name>( modifier (OuroSheet), and every other public struct Ouro<Other> that is a View, since one file can hold a
  * family (OuroLoading.swift: OuroSkeleton, OuroSpinner and OuroProgress), under web's name. Support types (OuroTone's
  * enum, a palette, OuroSegment) are not components.
- * WebNames.swift's renamed aliases (`typealias OuroEmpty… = OuroEmptyState…`) say where the names differ.
+ * WebNames.swift's renamed aliases (`typealias OuroEmpty… = OuroEmptyState…`) say where the names differ. A view that is a
+ * part of another component (APPLE_PARTS) is not one either.
  */
 export function appleComponents(files) {
   const webName = new Map();
@@ -78,8 +79,16 @@ export function appleComponents(files) {
     if (new RegExp(`public struct Ouro${name}\\b`).test(text) || new RegExp(`public func ouro${name}\\b`).test(text)) views.add(name);
     for (const match of text.matchAll(/public struct Ouro(\w+)(?:<[^{]*?>)?\s*:[^{]*\bView\b/g)) views.add(match[1]);
   }
-  return [...views].sort().map((name) => ({ name: `Ouro${name}`, web: webName.get(name) ?? kebab(name) }));
+  return [...views].filter((name) => !APPLE_PARTS.has(name)).sort().map((name) => ({ name: `Ouro${name}`, web: webName.get(name) ?? kebab(name) }));
 }
+
+/**
+ * Apple views that are parts of a component, not components: ouro-ui-apple's Components.md lists each inside its
+ * component's row, and web draws the same thing inside that component. A name alone can't tell a part from a component
+ * declared beside another (OuroItemGroup lives in OuroItem.swift and is web's item-group), so the parts are named here.
+ * OuroCheckboxMark (v1.4.0) is Checkbox's box on its own, for an app's own rows.
+ */
+const APPLE_PARTS = new Set(["CheckboxMark"]);
 
 /**
  * Windows's components from the files of src/Ouro.UI.Windows: each Ouro<Name>.cs whose public class Ouro<Name> derives from a

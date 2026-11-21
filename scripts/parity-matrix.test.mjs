@@ -60,6 +60,18 @@ test("Apple's file that declares several views counts each, and not its support 
   ]);
 });
 
+test("Apple's view that is a part of a component (OuroCheckboxMark, Checkbox's box) is not a component, and a component beside another still is", () => {
+  const files = {
+    "Sources/OuroHX/Components/OuroCheckbox.swift": "public struct OuroCheckbox: View {}\npublic struct OuroCheckboxMark: View {}\npublic struct OuroCheckboxPressStyle: ButtonStyle {}",
+    "Sources/OuroHX/Components/OuroItem.swift": "public struct OuroItem<Media: View, Actions: View>: View {}\npublic struct OuroItemGroup<Content: View>: View {}",
+  };
+  assert.deepEqual(appleComponents(files), [
+    { name: "OuroCheckbox", web: "checkbox" },
+    { name: "OuroItem", web: "item" },
+    { name: "OuroItemGroup", web: "item-group" },
+  ]);
+});
+
 test("Windows's components are the Ouro<Name> controls that derive from a XAML control, under web's name", () => {
   const files = {
     "src/Ouro.UI.Windows/OuroButton.cs": "public sealed partial class OuroButton : Button\n{\n}",
