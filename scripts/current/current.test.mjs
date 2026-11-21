@@ -1830,11 +1830,13 @@ const hits = (n) => n === 0 ? "export const none = 0;\n" : `import { createEleme
 const lintedApp = (before, { baseline = true } = {}) => {
   const files = {
     "package.json": JSON.stringify({ devDependencies: { oxlint: "1.86.0" } }, null, 2),
-    ".oxlintrc.json": JSON.stringify({ plugins: ["react"], rules: { "react/no-children-prop": "error" } }, null, 2),
+    // As spoonjoy's: a JavaScript plugin of the app's own, which Ouro Current never runs.
+    ".oxlintrc.json": JSON.stringify({ plugins: ["react"], jsPlugins: ["./scripts/lint/comments.mjs"], rules: { "react/no-children-prop": "error", "comments/no-orphan-doc": "error" } }, null, 2),
+    "scripts/lint/comments.mjs": 'throw new Error("Ouro Current ran the repository\'s own lint plugin");\n',
     [VENDORED]: before,
     "tools/ouro-actions/dist-manifest.json": JSON.stringify({ coreTag: "v1.1.0", files: { "dist/actions/ouro-actions.mts": sha256(before) } }),
   };
-  if (baseline) files["oxlint.baseline.json"] = `${JSON.stringify({ "app/root.tsx": { "react(only-export-components)": 1 }, [VENDORED]: { "react(no-children-prop)": 3, "unused-disable-directive": 1 } }, null, 2)}\n`;
+  if (baseline) files["oxlint.baseline.json"] = `${JSON.stringify({ "app/root.tsx": { "react(only-export-components)": 1 }, [VENDORED]: { "comments(no-orphan-doc)": 2, "react(no-children-prop)": 3, "unused-disable-directive": 1 } }, null, 2)}\n`;
   return files;
 };
 const lintedRelease = (after) => distAsset({ "dist-manifest.json": JSON.stringify({ coreTag: "v0.15.0", files: { "dist/actions/ouro-actions.mts": sha256(after) } }), "actions/ouro-actions.mts": after });
@@ -1842,15 +1844,19 @@ const lintedRelease = (after) => distAsset({ "dist-manifest.json": JSON.stringif
 test("an update that leaves fewer lint hits in the files it vendors lowers the app's oxlint baseline, counted with the oxlint and config the app pins", async () => {
   const fewer = fakeRepo(lintedApp(`// oxlint-disable-next-line no-console\n${hits(3)}`));
   assert.equal((await keepRepo(fewer.gh, "o/r", RELEASES, lintedRelease(hits(1)))).state, "pr");
-  assert.equal(fewer.fileAt(BRANCH, "oxlint.baseline.json"), `${JSON.stringify({ "app/root.tsx": { "react(only-export-components)": 1 }, [VENDORED]: { "react(no-children-prop)": 1 } }, null, 2)}\n`, "a count that falls is lowered, one that reaches 0 goes, and the rest is as it was");
+  assert.equal(fewer.fileAt(BRANCH, "oxlint.baseline.json"), `${JSON.stringify({ "app/root.tsx": { "react(only-export-components)": 1 }, [VENDORED]: { "comments(no-orphan-doc)": 2, "react(no-children-prop)": 1 } }, null, 2)}\n`, "a count that falls is lowered, one that reaches 0 goes, and the rest is as it was");
   const body = fewer.pulls[0].body;
-  assert.match(body, /Lowers `oxlint\.baseline\.json` to the hits left in the files this update changes, counted with oxlint `1\.86\.0` and `\.oxlintrc\.json`, as the repository pins them: `tools\/ouro-actions\/ouro-actions\.mts` `react\(no-children-prop\)` `3` to `1`, `unused-disable-directive` `1` to `0`\./);
+  assert.match(body, /Lowers `oxlint\.baseline\.json` to the hits left in the files this update changes, counted with oxlint `1\.86\.0` and `\.oxlintrc\.json`, as the repository pins them \(the rules of its JavaScript plugins, `comments`, are its own code, which Ouro Current does not run, so their counts stay as they were\): `tools\/ouro-actions\/ouro-actions\.mts` `react\(no-children-prop\)` `3` to `1`, `unused-disable-directive` `1` to `0`\./);
   assert.deepEqual(lintMarkdown(body, { file: "pull request body" }), []);
 
   // A file with none left loses its entry.
   const none = fakeRepo(lintedApp(`// oxlint-disable-next-line no-console\n${hits(3)}`));
   await keepRepo(none.gh, "o/r", RELEASES, lintedRelease(hits(0)));
-  assert.deepEqual(JSON.parse(none.fileAt(BRANCH, "oxlint.baseline.json")), { "app/root.tsx": { "react(only-export-components)": 1 } });
+  assert.deepEqual(JSON.parse(none.fileAt(BRANCH, "oxlint.baseline.json")), { "app/root.tsx": { "react(only-export-components)": 1 }, [VENDORED]: { "comments(no-orphan-doc)": 2 } }, "a JavaScript plugin's count stays, as Ouro Current cannot count it");
+  // A file with no count left at all loses its entry.
+  const gone = fakeRepo({ ...lintedApp(hits(3)), "oxlint.baseline.json": `${JSON.stringify({ [VENDORED]: { "react(no-children-prop)": 3 } }, null, 2)}\n` });
+  await keepRepo(gone.gh, "o/r", RELEASES, lintedRelease(hits(0)));
+  assert.equal(gone.fileAt(BRANCH, "oxlint.baseline.json"), "{}\n");
 });
 
 test("an update that raises a lint count in the files it vendors leaves the baseline alone and says which file, rule and count went up", async () => {

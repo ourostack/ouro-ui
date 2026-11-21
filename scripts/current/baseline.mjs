@@ -22,6 +22,28 @@ const byCodeUnit = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 /** A hit's rule as the baseline names it: oxlint's code, or the unused directive a lint run that reports them counts. */
 const ruleOf = (diagnostic) => diagnostic.code ?? (UNUSED_DIRECTIVE.test(diagnostic.message) ? "unused-disable-directive" : "oxlint");
 
+/**
+ * oxlint's own plugins. A rule named for any other plugin comes from one of the app's JavaScript plugins (`jsPlugins`),
+ * which are the app's own code: Ouro Current never runs a repository's code, so it drops them from the config it lints
+ * with and leaves their counts as they are.
+ */
+const BUILT_IN = new Set(["eslint", "react", "react-perf", "react_perf", "typescript", "unicorn", "oxc", "import", "jsdoc", "jest", "vitest", "jsx-a11y", "jsx_a11y", "nextjs", "promise", "node", "vue", "regex"]);
+const pluginOf = (rule) => (/^([\w@/.-]+?)[/(]/.exec(rule)?.[1] ?? "eslint");
+
+/** The app's config without its JavaScript plugins or their rules, and the plugins it dropped. */
+function withoutJsPlugins(text) {
+  const config = JSON.parse(text);
+  const dropped = new Set();
+  const keep = (rules = {}) => Object.fromEntries(Object.entries(rules).filter(([rule]) => BUILT_IN.has(pluginOf(rule)) || !dropped.add(pluginOf(rule))));
+  delete config.jsPlugins;
+  if (config.rules) config.rules = keep(config.rules);
+  for (const override of config.overrides ?? []) {
+    delete override.jsPlugins;
+    if (override.rules) override.rules = keep(override.rules);
+  }
+  return { text: JSON.stringify(config), dropped };
+}
+
 /** The oxlint version the app pins: an exact version in package.json, or the one its lockfile resolved. */
 async function pinnedOxlint(ctx) {
   const manifest = JSON.parse((await ctx.consumerFile("package.json"))?.toString("utf8") ?? "{}");
@@ -94,23 +116,26 @@ export async function lowerBaseline(files, ctx) {
     notes.push(`Leaves ${code(BASELINE)} as it was: Ouro Current could not tell which oxlint the repository pins (package.json and its lockfile), so it could not count the hits left in the files this update changes. If the lint fails on a count that fell, run it with --write-baseline and commit the result.`);
     return { files: out, notes };
   }
-  const config = (await ctx.consumerFile(CONFIG)) ?? null;
-  const counted = `counted with oxlint ${code(version)} and ${config ? code(CONFIG) : "oxlint's default rules"}`;
+  const raw = (await ctx.consumerFile(CONFIG)) ?? null;
+  let config = null;
+  let dropped = new Set();
   let now;
   try {
+    if (raw) ({ text: config, dropped } = withoutJsPlugins(raw.toString("utf8")));
     now = await count(paths, files, config, version);
   } catch (error) {
     const why = String(error.stderr || error.message).trim().split("\n")[0];
     notes.push(`Leaves ${code(BASELINE)} as it was: counting the hits left in the files this update changes, with oxlint ${code(version)}, failed: ${why.replace(/`/g, "'")}.`);
     return { files: out, notes };
   }
+  const counted = `counted with oxlint ${code(version)} and ${raw ? code(CONFIG) : "oxlint's default rules"}, as the repository pins them${dropped.size ? ` (the rules of its JavaScript plugins, ${[...dropped].sort().map(code).join(", ")}, are its own code, which Ouro Current does not run, so their counts stay as they were)` : ""}`;
   const baseline = JSON.parse(before.toString("utf8"));
   const rose = [];
   const fell = [];
   for (const path of paths) {
     const was = baseline[path] ?? {};
     const is = now[path] ?? {};
-    for (const rule of [...new Set([...Object.keys(was), ...Object.keys(is)])].sort(byCodeUnit)) {
+    for (const rule of [...new Set([...Object.keys(was), ...Object.keys(is)])].filter((rule) => !dropped.has(pluginOf(rule))).sort(byCodeUnit)) {
       const from = was[rule] ?? 0;
       const to = is[rule] ?? 0;
       if (to > from) rose.push({ path, rule, from, to });
@@ -130,6 +155,6 @@ export async function lowerBaseline(files, ctx) {
   }
   out[BASELINE] = `${JSON.stringify(baseline, null, 2)}\n`;
   const byFile = [...new Set(fell.map(({ path }) => path))].map((path) => `${code(path)} ${fell.filter((one) => one.path === path).map(({ rule, from, to }) => `${code(rule)} ${code(from)} to ${code(to)}`).join(", ")}`);
-  notes.push(`Lowers ${code(BASELINE)} to the hits left in the files this update changes, ${counted}, as the repository pins them: ${byFile.join("; ")}.`);
+  notes.push(`Lowers ${code(BASELINE)} to the hits left in the files this update changes, ${counted}: ${byFile.join("; ")}.`);
   return { files: out, notes };
 }
