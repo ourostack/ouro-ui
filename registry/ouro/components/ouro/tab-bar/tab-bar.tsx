@@ -127,19 +127,37 @@ function keyboardUp(): boolean {
   return field && layout.height - innerHeight > KEYBOARD;
 }
 
+// Reading the visual viewport lays the page out in WebKit, and React asks for this answer on every render. So it is kept, but only
+// while a bar listens: each event that can change it clears it, and nothing else would.
+let keyboard: boolean | undefined;
+let listeners = 0;
+
+function keyboardUpNow(): boolean {
+  if (listeners === 0) return keyboardUp();
+  keyboard ??= keyboardUp();
+  return keyboard;
+}
+
 function subscribeKeyboard(listener: () => void): () => void {
   const viewport = window.visualViewport;
+  const changed = () => {
+    keyboard = undefined;
+    listener();
+  };
   // Focus moving from one field to the next leaves nothing focused for a moment; the focusin that follows reports it.
   const left = (event: FocusEvent) => {
-    if (event.relatedTarget === null) listener();
+    if (event.relatedTarget === null) changed();
   };
-  viewport?.addEventListener("resize", listener);
-  document.addEventListener("focusin", listener);
+  viewport?.addEventListener("resize", changed);
+  document.addEventListener("focusin", changed);
   document.addEventListener("focusout", left);
+  listeners += 1;
   return () => {
-    viewport?.removeEventListener("resize", listener);
-    document.removeEventListener("focusin", listener);
+    viewport?.removeEventListener("resize", changed);
+    document.removeEventListener("focusin", changed);
     document.removeEventListener("focusout", left);
+    listeners -= 1;
+    if (listeners === 0) keyboard = undefined;
   };
 }
 
@@ -257,7 +275,7 @@ export function TabBar(props: TabBarProps): JSX.Element {
   }
   const isCurrent = (index: number) => (index === current ? ("page" as const) : undefined);
   // The server cannot know, so the bar renders in place and steps aside after hydration if the keyboard is up.
-  const aside = useSyncExternalStore(subscribeKeyboard, keyboardUp, serverFalse);
+  const aside = useSyncExternalStore(subscribeKeyboard, keyboardUpNow, serverFalse);
 
   return (
     <div data-ouro="tab-bar" className={cn(rootClass, breakpoints[hideFrom], className)}>
