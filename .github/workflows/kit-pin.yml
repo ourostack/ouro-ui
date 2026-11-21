@@ -3,8 +3,9 @@ name: Kit pin
 # ouro-ui-android), so a release there lands on its own and no pull request has to bump the pins by hand. One job per kit,
 # each on its own branch, docs/point-at-<kit>, with its own pull request and auto-merge, so one kit's broken release holds up
 # no other kit's pin. `node scripts/kit-pin.mjs --check <kit>` reads the kit's newest release and the release versions.json
-# pins; when main is behind, `node scripts/platform-versions.mjs --<kit> <tag>` pins it, `node scripts/parity-matrix.mjs --write`
-# reads the Apple components (Apple's job only), and `node scripts/kit-pin.mjs --bump <kit>` moves each statement of the old
+# pins; when main is behind, `node scripts/platform-versions.mjs --<kit> <tag>` pins it, `node scripts/parity-matrix.mjs --write
+# --kit <kit>` records that kit's components and tag in platforms.json (the parity page cites it) and leaves the other kits as
+# they are, and `node scripts/kit-pin.mjs --bump <kit>` moves each statement of the old
 # release and keeps the claim cache in step. A pull request's claims check verifies each version statement against the
 # pages and GitHub, so a wrong citation fails it rather than merging. Windows and Android have no release check that holds
 # main to their newest release, so their pins wait for this workflow alone. It runs hourly, since a release in another
@@ -87,7 +88,7 @@ jobs:
         run: |
           code=0
           node scripts/platform-versions.mjs "--$KIT" "$TAG" || code=$?
-          if [ "$code" = 0 ] && [ "$KIT" = apple ]; then node scripts/parity-matrix.mjs --write || code=$?; fi
+          if [ "$code" = 0 ]; then node scripts/parity-matrix.mjs --write --kit "$KIT" || code=$?; fi
           if [ "$code" = 2 ]; then
             echo "::notice::$NAME's $TAG could not be read, so main keeps its pin."
             echo "result=unreadable" >> "$GITHUB_OUTPUT"
