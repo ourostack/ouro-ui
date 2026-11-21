@@ -1,5 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
+import { useState } from "react";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
@@ -112,5 +113,56 @@ describe("an overlay opened while the one before it is still closing", () => {
   it("keeps Tab inside the second dialog, centered, and the page behind it hidden, after Escape on the first", async () => {
     await page.viewport(1280, 800);
     await openSecondWhileFirstCloses("dialog");
+  });
+});
+
+describe("a centered dialog's focus when it closes", () => {
+  it("returns focus to its trigger on Escape, when the trigger was clicked and did not take focus", async () => {
+    await page.viewport(1280, 800);
+    host = document.body.appendChild(document.createElement("div"));
+    root = createRoot(host);
+    await act(async () =>
+      root!.render(
+        <Dialog title="Edit" trigger={<Button>Open edit</Button>}>
+          <Button>Inside</Button>
+        </Dialog>,
+      ),
+    );
+    trigger("Open edit").click();
+    await settledOpen("Edit");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(trigger("Open edit"));
+  });
+
+  it("keeps focus in a controlled dialog opened after one that is closing", async () => {
+    await page.viewport(1280, 800);
+    host = document.body.appendChild(document.createElement("div"));
+    root = createRoot(host);
+    function Controlled() {
+      const [firstOpen, setFirstOpen] = useState(false);
+      const [secondOpen, setSecondOpen] = useState(false);
+      return (
+        <>
+          <Button onClick={() => setFirstOpen(true)}>Open first</Button>
+          <Button onClick={() => setSecondOpen(true)}>Open second</Button>
+          <Dialog title="First" open={firstOpen} onOpenChange={setFirstOpen}>
+            <Button>First action</Button>
+          </Dialog>
+          <Dialog title="Second" open={secondOpen} onOpenChange={setSecondOpen}>
+            <Button>Second action</Button>
+          </Dialog>
+        </>
+      );
+    }
+    await act(async () => root!.render(<Controlled />));
+    await userEvent.click(trigger("Open first"));
+    await settledOpen("First");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => overlay("First")?.hasAttribute("data-open")).toBe(false);
+    trigger("Open second").click();
+    const second = await settledOpen("Second");
+    // The first dialog unmounts when its exit transition ends; focus must still be in the second then.
+    await expect.poll(() => overlay("First")).toBeNull();
+    expect(second.contains(document.activeElement)).toBe(true);
   });
 });
