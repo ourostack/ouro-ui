@@ -20,7 +20,6 @@ interface FindOptions {
 // Full case folding (Unicode CaseFolding.txt, status F) for what lowercasing leaves alone.
 const expansions: Record<string, string> = {
   ß: "ss",
-  ẞ: "ss",
   ς: "σ",
   ſ: "s",
   ŉ: "ʼn",
