@@ -596,7 +596,10 @@ describe("Menu items", () => {
     await expect.poll(() => menus().length).toBe(1);
   });
 
-  it("keeps a submenu the keyboard closed shut under a pointer resting where it was, and opens it once the pointer moves", async () => {
+  it.each([
+    ["across", 4, 0],
+    ["down", 0, 4],
+  ])("keeps a submenu the keyboard closed shut under a pointer resting where it was, and opens it once the pointer moves %s", async (_, dx, dy) => {
     await render(
       <Menu trigger={<Button>Actions</Button>}>
         <MenuItem>Edit</MenuItem>
@@ -618,27 +621,48 @@ describe("Menu items", () => {
     const box = share.getBoundingClientRect();
     const [x, y] = [Math.round(box.left + box.width / 2), Math.round(box.top + box.height / 2)];
     // What a browser sends to a pointer that stayed still while the submenu, which lay under it, closed: the item it now rests on is entered.
-    const pointerAt = (left: number) => {
-      share.dispatchEvent(new MouseEvent("mouseenter", { clientX: left, clientY: y }));
-      share.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: left, clientY: y }));
+    const pointerAt = (left: number, top: number) => {
+      share.dispatchEvent(new MouseEvent("mouseenter", { clientX: left, clientY: top }));
+      share.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: left, clientY: top }));
     };
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       await act(async () => {
-        pointerAt(x);
-        pointerAt(x);
+        pointerAt(x, y);
+        pointerAt(x, y);
         vi.advanceTimersByTime(2000);
       });
       expect(share.getAttribute("aria-expanded")).toBe("false");
       expect(menus().length).toBe(1);
       await act(async () => {
-        pointerAt(x + 4);
+        pointerAt(x + dx, y + dy);
         vi.advanceTimersByTime(2000);
       });
     } finally {
       vi.useRealTimers();
     }
     await expect.poll(() => share.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("opens a submenu the keyboard closed again from the keyboard", async () => {
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+        <MenuSub label="Share">
+          <MenuItem>Copy link</MenuItem>
+        </MenuSub>
+      </Menu>,
+    );
+    trigger().focus();
+    await userEvent.keyboard("{Enter}");
+    await settled();
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Copy link");
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => menus().length).toBe(1);
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Copy link");
   });
 
   it("opens a submenu the keyboard closed when its item is clicked where the pointer rests", async () => {

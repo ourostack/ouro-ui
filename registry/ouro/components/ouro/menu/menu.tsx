@@ -1249,19 +1249,24 @@ export function MenuSub({ label, children, disabled, backLabel = "Back" }: MenuS
   // undefined: not held; null: held, the pointer's place not known yet; else where the pointer rests.
   const rest = useRef<{ x: number; y: number } | null | undefined>(undefined);
   const onOpenChange = (next: boolean, details: BaseMenu.SubmenuRoot.ChangeEventDetails) => {
-    if (next && details.reason === "trigger-hover" && rest.current !== undefined) {
+    if (!next) {
+      // Stryker disable next-line ConditionalExpression,StringLiteral: a pointer that left the item and comes back has moved, so holding after the pointer closed the submenu only waits for one more of its events, which no one can tell.
+      rest.current = details.reason === "trigger-hover" ? undefined : null;
+      setOpen(false);
+      return;
+    }
+    if (details.reason === "trigger-hover" && rest.current !== undefined) {
       const { clientX: x, clientY: y } = details.event as globalThis.MouseEvent;
       const moved = rest.current !== null && (rest.current.x !== x || rest.current.y !== y);
       if (!moved) {
         rest.current = { x, y };
-        // Canceled, not just ignored: Base UI then keeps no record of a hover open, so a press on the item still opens it.
+        // Stryker disable next-line CallExpression: the submenu stays shut either way, as its open is this component's; canceled, Base UI also keeps no record of a hover open it did not make.
         details.cancel();
         return;
       }
     }
-    // Stryker disable next-line ConditionalExpression,LogicalOperator: a pointer that left the item and comes back has moved, so holding after the pointer closed the submenu, or while it is open, only waits for one more of its events, which no one can tell.
-    rest.current = next || details.reason === "trigger-hover" ? undefined : null;
-    setOpen(next);
+    rest.current = undefined;
+    setOpen(true);
   };
   return (
     <BaseMenu.SubmenuRoot open={open} onOpenChange={onOpenChange} disabled={disabled}>
