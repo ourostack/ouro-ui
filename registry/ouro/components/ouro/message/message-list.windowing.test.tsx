@@ -1535,6 +1535,35 @@ describe("MessageList windowing", () => {
     await settle(scroller);
   });
 
+  it("sizes the rows not drawn at the average of the rows drawn, so equal rows are as tall before the reader scrolls through them", async () => {
+    let commits = 0;
+    const Equal = ({ ids }: { ids: number[] }) => (
+      <Profiler id="equal" onRender={() => void commits++}>
+        <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+          {ids.map((id) => (
+            <Message key={String(id)} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 20, boxSizing: "border-box" }}>
+              {`Message ${id}`}
+            </Message>
+          ))}
+        </MessageList>
+      </Profiler>
+    );
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    flushSync(() => root.render(<Equal ids={span(0, 300)} />));
+    // The mount and the measure of the rows drawn render four times in the task, the measure's render among them.
+    expect(commits).toBe(4);
+    const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    await settle(scroller);
+    const opened = scroller.scrollHeight;
+    while (scroller.scrollTop > 0) await scrollTo(scroller, Math.max(0, scroller.scrollTop - 400));
+    await settle(scroller);
+    expect(opened).toBe(scroller.scrollHeight);
+  });
+
   it("does not spend a second chunk on rows the first chunk has not drawn yet, when a frame runs before React commits it", async () => {
     let commits = 0;
     const list = (from: number, count: number) => (

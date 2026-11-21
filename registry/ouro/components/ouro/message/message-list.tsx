@@ -1998,6 +1998,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
             for (const [key, size] of moved) kept.set(key, size);
             // Stryker disable next-line ConditionalExpression,CallExpression: keeping a gone child's height only holds memory: a key that comes back is measured again as it draws.
             for (const key of kept.keys()) if (!present.has(key)) kept.delete(key);
+            // Stryker disable next-line UpdateOperator: the counter only has to change, which an increment and a decrement both do.
             heightsKept.current++;
           } else {
             const heights = new Map(measured.heights);
@@ -2167,6 +2168,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     }
     // The keyboard's marks for the messages that come into the page go in first: a mark is a write, and a read of the layout
     // after the write flushes the styles again. The counts they place by are the children's now.
+    // Stryker disable next-line CallExpression: the window counts the children again just after this, and the observer that follows marks each message by those counts, so the marks end the same without this.
     for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) counts.current.set(slot.getAttribute(SLOT)!, topItems(slot).length);
     keyboardMark.current?.();
     windowSync.current(false);
