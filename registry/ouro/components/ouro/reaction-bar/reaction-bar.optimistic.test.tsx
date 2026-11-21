@@ -10,12 +10,13 @@ const initial: Reaction[] = [{ key: "like", label: "Like", emoji: "👍", count:
 
 let settle: { resolve: () => void; reject: (error: unknown) => void };
 
-function App() {
+function App({ describeError }: { describeError?: (error: unknown) => string }) {
   const [list, setList] = useState(initial);
   return (
     <ReactionBar
       reactions={list}
       optimistic
+      describeError={describeError}
       onReact={() =>
         new Promise<void>((resolve, reject) => {
           settle = {
@@ -31,13 +32,13 @@ function App() {
   );
 }
 
-async function mount() {
+async function mount(describeError?: (error: unknown) => string) {
   const host = document.createElement("div");
   document.body.append(host);
   nodes.push(host);
   const root = createRoot(host);
   roots.push(root);
-  await act(async () => root.render(<App />));
+  await act(async () => root.render(<App describeError={describeError} />));
   const bar = host.querySelector<HTMLElement>('[data-ouro="reaction-bar"]')!;
   return { bar, button: bar.querySelector("button")! };
 }
@@ -99,6 +100,7 @@ describe("ReactionBar optimistic", () => {
   it("shows a press at once, marks the group pending, and keeps it once the promise settles", async () => {
     const { bar, button } = await mount();
     expect(bar.hasAttribute("data-ouro-pending")).toBe(false);
+    expect(bar.hasAttribute("aria-busy")).toBe(false);
     await act(async () => button.click());
     expect(button.getAttribute("aria-pressed")).toBe("true");
     expect(button.textContent).toContain("4");
@@ -106,6 +108,7 @@ describe("ReactionBar optimistic", () => {
     expect(bar.getAttribute("aria-busy")).toBe("true");
     await act(async () => settle.resolve());
     expect(bar.hasAttribute("data-ouro-pending")).toBe(false);
+    expect(bar.hasAttribute("aria-busy")).toBe(false);
     expect(button.getAttribute("aria-pressed")).toBe("true");
     expect(button.textContent).toContain("4");
   });
@@ -119,5 +122,12 @@ describe("ReactionBar optimistic", () => {
     const status = bar.querySelector('[role="status"]')!;
     expect(status.textContent).toBe("You can't react here");
     expect(bar.hasAttribute("data-ouro-pending")).toBe(false);
+  });
+
+  it("says a refusal in the app's words when describeError gives them", async () => {
+    const { bar, button } = await mount(() => "Sign in to react");
+    await act(async () => button.click());
+    await act(async () => settle.reject(new Error("403")));
+    expect(bar.querySelector('[role="status"]')!.textContent).toBe("Sign in to react");
   });
 });
