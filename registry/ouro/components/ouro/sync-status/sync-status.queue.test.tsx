@@ -65,6 +65,14 @@ describe("SyncStatus queue", () => {
     expect(host.querySelector('[data-ouro-part="cancel"]')!.textContent).toBe("Annuler Rename trail");
   });
 
+  it("moves focus to the status line when the app empties the queue while a Cancel has focus", async () => {
+    const onCancel = vi.fn();
+    const { host, rerender } = await render(<SyncStatus status="saving" queue={writes} onCancel={onCancel} />);
+    host.querySelector<HTMLButtonElement>('[data-ouro-part="cancel"]')!.focus();
+    await rerender(<SyncStatus status="saved" queue={[]} onCancel={onCancel} />);
+    expect(document.activeElement).toBe(host.querySelector('[data-ouro="sync-status"] > p:not([aria-hidden])'));
+  });
+
   it("hands focus to the next write's Cancel when a middle one is cancelled, and to the line after the last", async () => {
     function Queue() {
       const [queue, setQueue] = useState<QueuedWrite[]>([...writes]);

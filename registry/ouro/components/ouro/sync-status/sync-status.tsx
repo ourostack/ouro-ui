@@ -272,11 +272,13 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
 
   const waiting = queue?.length ?? 0;
   const waitingText = word.waiting.replace("{count}", String(waiting));
-  const cancel = (id: string) => {
-    // The last write's Cancel goes away with the list: the line takes focus, and a write among others hands it on as it leaves.
-    if (waiting === 1) line.current!.focus();
-    onCancel!(id);
-  };
+  // The list goes when the last write leaves, cancelled or sent: if it held focus, the status line takes it.
+  const listRef = useCallback((list: HTMLUListElement | null) => {
+    if (list === null) return undefined;
+    return () => {
+      if (list.contains(list.ownerDocument.activeElement)) line.current?.focus();
+    };
+  }, []);
 
   return (
     <div {...rest} data-ouro="sync-status" data-status={status} data-ouro-queued={waiting > 0 ? waiting : undefined} className={cn("grid min-w-0 text-sm leading-5", className)}>
@@ -295,9 +297,9 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
         {waiting > 0 ? <span className="ms-2">{waitingText}</span> : null}
       </p>
       {waiting > 0 ? (
-        <ul aria-label={waitingText} className="m-0 grid list-none gap-1 p-0 pt-1">
+        <ul ref={listRef} aria-label={waitingText} className="m-0 grid list-none gap-1 p-0 pt-1">
           {queue!.map((item) => (
-            <QueuedItem key={item.id} item={item} cancel={onCancel ? word.cancel : undefined} onCancel={cancel} />
+            <QueuedItem key={item.id} item={item} cancel={onCancel ? word.cancel : undefined} onCancel={onCancel!} />
           ))}
         </ul>
       ) : null}
