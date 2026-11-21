@@ -2217,17 +2217,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const resized = new ResizeObserver(() => windowSync.current!(false));
     resized.observe(scroller);
     resized.observe(content);
-    // A variant change re-renders the message's children, which the child list shows, so the observer needs no attribute. The
-    // mark that moves is the next slot's, the only one a slot's mark reads (the slot before it).
-    const posts = new MutationObserver((records) => {
-      for (const record of records) {
-        const next = (record.target as Element).closest(`[${SLOT}]`)?.nextElementSibling;
-        if (next) markPostAfter(next);
-      }
-    });
-    posts.observe(content, { childList: true, subtree: true });
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (resized.disconnect(), posts.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer), cancelAnimationFrame(dripping.current));
+    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer), cancelAnimationFrame(dripping.current));
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);
@@ -2697,6 +2688,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     sync(true);
     keyboardMark.current = markItems;
     const observer = new MutationObserver((records) => {
+      // A message that changes its variant without the list rendering re-renders its children, which the child list shows, so
+      // no attribute is watched. The mark that moves is the next slot's, the only one that reads this slot.
+      for (const record of records) {
+        const next = (record.target as Element).closest(`[${SLOT}]`)?.nextElementSibling;
+        if (next) markPostAfter(next);
+      }
       // Stryker disable next-line ConditionalExpression,MethodExpression,BooleanLiteral: after only the bar moved, syncing finds and marks the same messages again; skipping it only spares the work.
       if (!records.every(barOnly)) sync(records.some(touchesItems));
     });
