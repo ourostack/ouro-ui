@@ -75,7 +75,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [kbd](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/kbd) | 2 | 0 | none yet |
 | [level-meter](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/level-meter) | 3 | 0 | none yet |
 | [lightbox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/lightbox) | 8 | 1 | none yet |
-| [link](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/link) | 5 | 0 | none yet |
+| [link](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/link) | 6 | 0 | none yet |
 | [live-captions](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/live-captions) | 9 | 0 | none yet |
 | [local-date](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/local-date) | 4 | 0 | none yet |
 | [mcp-app](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/mcp-app) | 2 | 0 | none yet |
