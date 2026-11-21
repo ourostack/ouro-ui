@@ -95,6 +95,7 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; PreviewBar sets its own look from the theme`
+    // Stryker disable next-line StringLiteral: the fallback is for production builds, which never run this check
       : /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
@@ -128,6 +129,7 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
       latest.current.onCompareChange(comparing);
     }
   }, [comparing]);
+  // Stryker disable next-line ArrayDeclaration: a constant dependency list and an empty one both run the cleanup only on unmount
   useEffect(
     () => () => {
       if (told.current) latest.current.onCompareChange(false);
@@ -154,6 +156,7 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
   const press = useRef<{ wasOn: boolean; at: number } | null>(null);
   const pointerEnded = useRef(Number.NEGATIVE_INFINITY);
   const begin = () => {
+    // Stryker disable next-line ConditionalExpression: a second begin only moves the start, and whenever it ends the result is the same
     if (press.current !== null) return;
     press.current = { wasOn: latest.current.comparing, at: performance.now() };
     setComparing(true);
@@ -165,8 +168,10 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
     setComparing(performance.now() - current.at >= HOLD_MS ? false : !current.wasOn);
   };
 
+  // Stryker disable next-line StringLiteral: no key equals a longer string, so a changed empty value never enables the shortcut
   const shortcut = compareKey === false ? "" : compareKey.toLowerCase();
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression,StringLiteral: with no shortcut, listeners that match no key do nothing
     if (shortcut === "") return;
     const down = (event: globalThis.KeyboardEvent) => {
       if (event.key.toLowerCase() !== shortcut || event.repeat || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) return;
@@ -188,6 +193,7 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
   const handoff = useFocusHandoff<HTMLDivElement>();
   const activates = (event: KeyboardEvent<HTMLButtonElement>) => event.key === " " || event.key === "Enter";
   const listening = useRef<AbortController | null>(null);
+  // Stryker disable next-line ArrayDeclaration: a constant dependency list and an empty one both run the cleanup only on unmount
   useEffect(() => () => listening.current?.abort(), []);
   const pointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return;

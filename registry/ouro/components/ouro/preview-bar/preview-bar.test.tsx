@@ -417,6 +417,81 @@ describe("PreviewBar", () => {
     });
   });
 
+  describe("edges", () => {
+    it("treats typing in a text control as no Compare key, and a custom element named like one as no typing", async () => {
+      const { part } = await render(<PreviewBar {...props()} />);
+      for (const name of ["x-input", "input-x"]) {
+        const el = document.createElement(name);
+        document.body.append(el);
+        mounted.push(el);
+        await key(el, "keydown", { key: "c" });
+        expect(part("compare").getAttribute("aria-pressed")).toBe("true");
+        await key(el, "keyup", { key: "c" });
+      }
+    });
+
+    it("announces after the action's own message, with the label alone when there is no countdown", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      const announced = watchAnnouncements();
+      try {
+        await render(<PreviewBar {...props()} />);
+        await act(() => vi.advanceTimersByTimeAsync(1000));
+        expect(announced.changes).toHaveLength(0);
+        await act(() => vi.advanceTimersByTimeAsync(600));
+        expect(announced.changes.map((change) => change.text)).toEqual(["Trying the Ocean theme"]);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("lets go of the document's keys when it goes away, and follows a new Compare key", async () => {
+      const remove = vi.spyOn(document, "removeEventListener");
+      const p = props();
+      const { part, rerender } = await render(<PreviewBar {...p} />);
+      await rerender(<PreviewBar {...p} compareKey="d" />);
+      await key(document.body, "keydown", { key: "d" });
+      expect(part("compare").getAttribute("aria-pressed")).toBe("true");
+      await key(document.body, "keyup", { key: "d" });
+      await rerender(<div />);
+      expect(remove.mock.calls.map((call) => call[0])).toEqual(expect.arrayContaining(["keydown", "keyup"]));
+    });
+
+    it("counts a press of exactly the hold time as a hold, and a click exactly after the press as its own", async () => {
+      const tick = clock();
+      const { part } = await render(<PreviewBar {...props()} />);
+      await key(part("compare"), "keydown", { key: " " });
+      tick(350);
+      await key(part("compare"), "keyup", { key: " " });
+      expect(part("compare").getAttribute("aria-pressed")).toBe("false");
+      await pointer(part("compare"), "pointerdown");
+      tick(10);
+      await pointer(window, "pointerup");
+      expect(part("compare").getAttribute("aria-pressed")).toBe("true");
+      tick(200);
+      await act(async () => part("compare").click());
+      expect(part("compare").getAttribute("aria-pressed")).toBe("true");
+    });
+
+    it("hears the pointer's release and cancel once, and stops listening after", async () => {
+      const tick = clock();
+      const { part } = await render(<PreviewBar {...props()} />);
+      await pointer(part("compare"), "pointerdown");
+      tick(500);
+      await pointer(window, "pointercancel");
+      expect(part("compare").getAttribute("aria-pressed")).toBe("false");
+      await pointer(part("compare"), "pointerdown");
+      tick(10);
+      await pointer(window, "pointerup");
+      tick(1000);
+      await pointer(window, "pointerup");
+      await pointer(window, "pointercancel");
+      tick(1);
+      await act(async () => part("compare").click());
+      expect(part("compare").getAttribute("aria-pressed")).toBe("false");
+    });
+  });
+
   describe("development messages", () => {
     it("names the fix for onAccept and for timeout", async () => {
       await render(<PreviewBar {...props()} {...({ onAccept: () => {}, timeout: 5 } as unknown as object)} />);
@@ -427,7 +502,7 @@ describe("PreviewBar", () => {
 
     it("names the prop for an appearance class", async () => {
       await render(<PreviewBar {...props({ className: "bg-red-500" })} />);
-      expect(warn.mock.calls.some((call) => String(call[0]).includes('remove "bg-red-500"'))).toBe(true);
+      expect(warn.mock.calls.some((call) => String(call[0]).includes('[ouro-ui] PreviewBar: "bg-red-500" sets appearance') && String(call[0]).includes('Fix: remove "bg-red-500"; PreviewBar sets'))).toBe(true);
     });
   });
 
