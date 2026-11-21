@@ -709,7 +709,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     };
     page.on("request", onRequest);
     try {
-      const mark = () => page.evaluate(markPressables, { limit: config.pressLimit ?? MAX_PRESSES, press: config.press ?? [], never: NEVER_PRESS, auto: config.pressAll ? AUTO_PRESS : "" });
+      const mark = () => page.evaluate(markPressables, { limit: config.pressLimit ?? MAX_PRESSES, press: [...(config.press ?? []), ...(config.pressAll ? [AUTO_PRESS] : [])], never: NEVER_PRESS });
       let controls = await mark();
       const reopen = async () => {
         await reach(page, target);

@@ -244,7 +244,7 @@ const AUTO_PRESS = '[data-ouro-control]:is(button, input[type="checkbox"], [role
 // Marks the first `limit` controls listed for pressing, shown and enabled, and names each: the ones ouro-check.json's
 // "press" selectors match, and the ones marked data-ouro-check-press. Pressing is opt-in because a press does what it
 // says, on whatever server the app talks to. Never one that `never` (NEVER_PRESS) matches, or inside one.
-function markPressables({ limit, press, never, auto }: { limit: number; press: string[]; never: string; auto?: string }): Pressable[] {
+function markPressables({ limit, press, never }: { limit: number; press: string[]; never: string }): Pressable[] {
   const counter = window as unknown as { __ouroCheckRef?: number };
   // Whether an element, or one around it, opts out of inp with a reason. A reason of spaces is no reason; the page's
   // attributes are read, never rewritten.
@@ -266,7 +266,7 @@ function markPressables({ limit, press, never, auto }: { limit: number; press: s
     const r = el.getBoundingClientRect();
     return r.width >= 2 && r.height >= 2 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
   };
-  return [...document.querySelectorAll([...press, "[data-ouro-check-press]", ...(auto ? [auto] : [])].join(", "))]
+  return [...document.querySelectorAll([...press, "[data-ouro-check-press]"].join(", "))]
     .filter(pressable)
     .slice(0, limit)
     .map((el) => {
