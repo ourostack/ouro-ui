@@ -52,6 +52,7 @@ function Chat({
   onQuote?: (id: number) => void;
   initialAnchor?: string;
   conversation?: string;
+  hasOlder?: boolean;
   windowing?: boolean;
   springy?: boolean;
   /** What to put before the message with this id, such as a day's heading. */
@@ -1255,6 +1256,29 @@ describe("MessageList windowing", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("resets following the end, the room for older history and a carried translate when another conversation opens, as a fresh list would", async () => {
+    const { scroller, rerender } = await render(<Chat conversation="a" items={conversation(500)} hasOlder />);
+    await scrollTo(scroller, 3000);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const reading = firstVisible(scroller);
+    const above = Number(reading.message.id.slice(1)) - 1;
+    // The reader's clock, so the wheel still turns when the list opens: what it carries is not yet written to the scroll position.
+    const now = 1_000_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    await rerender(
+      <Chat conversation="a" hasOlder items={conversation(500).map((item) => (item.id === above ? { ...item, text: item.text + " more words".repeat(120) } : item))} />,
+    );
+    expect(content.style.translate).not.toBe("");
+    expect(scroller.querySelector("[data-ouro-message-list-older-room]")).not.toBeNull();
+    await rerender(<Chat conversation="b" items={conversation(300, 1000)} />);
+    expect(content.style.translate).toBe("");
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await expect.poll(() => scroller.querySelector("[data-ouro-message-list-older-room]")).toBeNull();
+    expect(inView(scroller, "m1299")).toBe(true);
+  });
+
   it("holds the reader's place as a message above them grows, after the space above the first message went and they scrolled on, in a conversation drawn whole", async () => {
     const { scroller, content, clock, space, change } = await spaceAboveWhole();
     await restWheel(scroller, clock);
@@ -2110,6 +2134,131 @@ describe("MessageList windowing", () => {
     expect(Math.abs(firstCommit[0]! - known)).toBeLessThanOrEqual(1);
   }, 60_000);
 
+  it("reads the heightCache that comes with another conversation from its first commit, as tall as that conversation's list was, and writes only to its own", async () => {
+    // Rows of one conversation are 60 to 140px tall, the other's 30px: the estimate each list takes for the rows it has not measured differs.
+    const heightOf = (name: string, id: number) => (name === "b" ? 60 + ((id * 37) % 81) : 30);
+    // The scroll height as the newest row's layout effect finds it, in the commit that draws it, before the list's own effects run.
+    const firstCommit: number[] = [];
+    function Newest({ name }: { name: string }) {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        firstCommit.push(ref.current!.closest<HTMLElement>("[data-ouro-message-list-scroller]")!.scrollHeight);
+      }, [name]);
+      return <div ref={ref} style={{ height: 80 }} />;
+    }
+    const list = (name: string, cache: Map<string, number>) => (
+      <MessageList conversation={name} label="Conversation" style={{ height: 400, width: 360 }} heightCache={cache}>
+        {Array.from({ length: 400 }, (_, id) => (
+          <Message key={`${name}${id}`} id={`m${name}${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: heightOf(name, id), boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        ))}
+        <Newest key={`newest-${name}`} name={name} />
+      </MessageList>
+    );
+    const cacheB = new Map<string, number>();
+    const earlier = await render(list("b", cacheB));
+    const known = earlier.scroller.scrollHeight;
+    await act(async () => earlier.root.unmount());
+    earlier.host.remove();
+    const cacheA = new Map<string, number>();
+    const { scroller, rerender } = await render(list("a", cacheA));
+    const before = cacheB.size;
+    firstCommit.length = 0;
+    await rerender(list("b", cacheB));
+    expect(firstCommit).toHaveLength(1);
+    expect(Math.abs(firstCommit[0]! - known)).toBeLessThanOrEqual(1);
+    // Rows it has not drawn before are measured into the map it was handed, and none of its rows into the one before.
+    await scrollTo(scroller, 1200);
+    expect(cacheB.size).toBeGreaterThan(before);
+    expect([...cacheA.keys()].filter((key) => key.startsWith("b"))).toEqual([]);
+  }, 60_000);
+
+  it("opens a switch to a conversation whose heightCache is still empty as a list that mounts with an empty one does, not with the estimate of the one before", async () => {
+    // Rows of one conversation are 30px, the other's 60 to 140px: the list learns an estimate from the first that the second's must not take.
+    const heightOf = (name: string, id: number) => (name === "b" ? 60 + ((id * 37) % 81) : 30);
+    const firstCommit: number[] = [];
+    function Newest({ name }: { name: string }) {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        firstCommit.push(ref.current!.closest<HTMLElement>("[data-ouro-message-list-scroller]")!.scrollHeight);
+      }, [name]);
+      return <div ref={ref} style={{ height: 80 }} />;
+    }
+    const list = (name: string, cache: Map<string, number>) => (
+      <MessageList conversation={name} label="Conversation" style={{ height: 400, width: 360 }} heightCache={cache}>
+        {Array.from({ length: 400 }, (_, id) => (
+          <Message key={`${name}${id}`} id={`m${name}${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: heightOf(name, id), boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        ))}
+        <Newest key={`newest-${name}`} name={name} />
+      </MessageList>
+    );
+    firstCommit.length = 0;
+    const fresh = await render(list("b", new Map()));
+    const mounted = firstCommit[0]!;
+    await act(async () => fresh.root.unmount());
+    fresh.host.remove();
+    const cacheA = new Map<string, number>();
+    const { rerender } = await render(list("a", cacheA));
+    expect(cacheA.size).toBeGreaterThan(0);
+    firstCommit.length = 0;
+    await rerender(list("b", new Map()));
+    expect(firstCommit).toHaveLength(1);
+    // The two draw a different number of the newest rows in that commit, so they differ by part of a view; the estimate of the
+    // conversation before, 30px for rows the default takes at 96, would put the switch thousands of pixels short.
+    expect(Math.abs(firstCommit[0]! - mounted)).toBeLessThan(400);
+  }, 60_000);
+
+  it("moves nothing when a heightCache comes with the same conversation mid-conversation: the heights measured stay, and so does the reader's place", async () => {
+    // Rows of 140px from 300 on, of 60 to 78px before: the estimate the list takes is that of the newest rows, far from theirs.
+    const heightOf = (id: number) => (id >= 300 ? 140 : 60 + ((id * 7) % 7) * 3);
+    // The newest row's key changes in place with its height, so the list looks at its messages without a switch.
+    const list = (cache: Map<string, number>, newest: string) => (
+      <MessageList conversation="a" label="Conversation" style={{ height: 400, width: 360 }} heightCache={cache}>
+        {Array.from({ length: 400 }, (_, id) => (
+          <Message key={id === 399 ? newest : id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: heightOf(id), boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list(new Map(), "399"));
+    // Every row measured, then the reader scrolled up through the middle.
+    for (let top = scroller.scrollHeight; top > 0; top -= 1200) await scrollTo(scroller, top);
+    await scrollTo(scroller, 4000);
+    const reading = firstVisible(scroller);
+    const height = scroller.scrollHeight;
+    const top = scroller.scrollTop;
+    await rerender(list(new Map(), "newest"));
+    expect(scroller.scrollHeight).toBe(height);
+    expect(scroller.scrollTop).toBe(top);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+  }, 60_000);
+
+  it("keeps a switch to a conversation of the same heights as tall as the one before, under the heightCache it keeps, after a resize", async () => {
+    const heightOf = (id: number) => (id >= 300 ? 140 : 60 + ((id * 7) % 7) * 3);
+    const cache = new Map<string, number>();
+    // The newest three rows of the second conversation have keys of their own, so it is a switch; the rest share the first's keys.
+    const list = (name: string, width: number) => (
+      <MessageList conversation={name} label="Conversation" style={{ height: 400, width }} heightCache={cache}>
+        {Array.from({ length: 400 }, (_, id) => (
+          <Message key={id < 397 ? `k${id}` : `${name}${id}`} id={`${name}${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: heightOf(id), boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list("a", 360));
+    // Every row measured at the first width, then the list is resized: the rows not drawn keep the heights they were measured at.
+    for (let top = scroller.scrollHeight; top > 0; top -= 1200) await scrollTo(scroller, top);
+    await rerender(list("a", 440));
+    const first = scroller.scrollHeight;
+    await rerender(list("b", 440));
+    expect(Math.abs(scroller.scrollHeight - first)).toBeLessThanOrEqual(1);
+  }, 60_000);
+
   it("estimates the rows not drawn from the heightCache at the width the list has now, once it is resized", async () => {
     const cache = new Map<string, number>();
     for (let id = 0; id < 400; id++) cache.set(`.$${id}\0${440}`, 50);
@@ -2501,6 +2650,32 @@ describe("MessageList windowing", () => {
     const { scroller } = await render(<Chat items={conversation(2000, 0, true)} initialAnchor="m0" />);
     expect(inView(scroller, "m0")).toBe(true);
     expect(scroller.scrollTop).toBeLessThanOrEqual(ROUNDING);
+  });
+
+  it("re-opens at the initialAnchor that comes with another conversation, with no remount, and at its newest without one", async () => {
+    const { host, scroller, rerender } = await render(<Chat conversation="a" items={conversation(2000, 0, true)} />);
+    await scrollTo(scroller, 8000);
+    // What the switch's first draw shows: the anchor, in the list's view, before the browser paints.
+    let first = Number.NaN;
+    let around = false;
+    const observer = new MutationObserver(() => {
+      if (!Number.isNaN(first) || !document.getElementById("m2200")) return;
+      first = Math.abs(offCentre(scroller, "m2200"));
+      const view = scroller.getBoundingClientRect();
+      const drawn = messages(scroller).map((node) => node.getBoundingClientRect());
+      around = drawn[0]!.top <= view.top && drawn.filter((box) => box.top < view.bottom).at(-1)!.bottom >= view.bottom;
+    });
+    observer.observe(host, { childList: true, subtree: true });
+    await rerender(<Chat conversation="b" items={conversation(2000, 2000, true)} initialAnchor="m2200" />);
+    observer.disconnect();
+    expect(host.querySelector("[data-ouro-message-list-scroller]")).toBe(scroller);
+    expect(first).toBeLessThanOrEqual(ROUNDING);
+    expect(around).toBe(true);
+    expect(Math.abs(offCentre(scroller, "m2200"))).toBeLessThanOrEqual(ROUNDING);
+    expect(distanceFromBottom(scroller)).toBeGreaterThan(10_000);
+    await rerender(<Chat conversation="c" items={conversation(300, 4000)} />);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(inView(scroller, "m4299")).toBe(true);
   });
 
   it("moves focus to the first message with Home and back to the newest with End, drawing the message it reaches", async () => {

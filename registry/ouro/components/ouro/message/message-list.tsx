@@ -29,12 +29,14 @@ export interface MessageListOwnProps {
    * it (the message's own id, where a row component of yours takes no `id`). The list opens
    * with that message in the middle of its view, before it first draws, so the newest is never shown
    * first, and it follows new messages only once the reader reaches the end. The list reads it when
-   * it first has messages, so it can come with them; a message it does not hold, or the newest,
-   * opens at the end, and a later change moves nothing.
+   * it first has messages, so it can come with them, and again at each switch to another `conversation`, which opens that
+   * conversation at it the same way. A message it does not hold, or the newest, opens at the end, and while the conversation
+   * stays the same a later change moves nothing.
    * @claim "or the `key` of the child that holds it" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reveals a row component that takes no id by its key, and opens at one by its key, resolving once it is in place)
    * @claim "The list opens with that message in" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at the message initialAnchor names, never drawing the newest first, and stops following new messages)
    * @claim "The list reads it when it first" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at initialAnchor when it comes with the first messages, after the list mounted empty)
-   * @claim "a message it does not hold" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at the newest message when initialAnchor names no message in the list, or the newest itself)
+   * @claim "A message it does not hold" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at the newest message when initialAnchor names no message in the list, or the newest itself)
+   * @claim "which opens that conversation at it the same way" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > re-opens at the initialAnchor that comes with another conversation, with no remount, and at its newest without one)
    */
   initialAnchor?: string | undefined;
   /**
@@ -48,7 +50,9 @@ export interface MessageListOwnProps {
    * messages carry exactly the last one's keys (keyed by place, as many of them) can't be told from it until they change,
    * so key messages by their own ids. Without it, the list takes messages that share no `key` with the ones it held for
    * another conversation, so it misses a switch between conversations whose messages share keys, and takes a conversation whose
-   * every message gets a new key at once for another one, at any length.
+   * every message gets a new key at once for another one, at any length. An app can give `conversation` instead of keying the
+   * list by it: a switch opens the other conversation at its `initialAnchor` if it holds that message, else at its newest, and
+   * reads the other conversation's `heightCache`.
    * @claim "While it stays the same, nothing the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.switching.test.tsx::MessageList switching conversations > takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not)
  * @claim "While it stays the same, nothing the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.switching.test.tsx::MessageList switching conversations > takes removing the newest five, as a regenerated turn does, for the same conversation)
  * @claim "Change it with the other conversation's" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.switching.test.tsx::MessageList switching conversations > switches when the conversation is named before its messages come, as an app that keeps the last messages while it fetches does)
@@ -57,6 +61,8 @@ export interface MessageListOwnProps {
    * @claim "Messages that come before their conversation" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.switching.test.tsx::MessageList switching conversations > adopts a name that comes after its messages, so switching back in one commit opens the last conversation at its newest)
    * @claim "Messages that come before their conversation" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.switching.test.tsx::MessageList switching conversations > takes messages that come before their conversation is named for the last one's, and opens nothing when it is named after them)
    * @claim "Without it, the list takes messages that" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.switching.test.tsx::MessageList switching conversations > keeps the reader's place, the messages and focus when the newest three get new keys in place, while scrolled up)
+   * @claim "An app can give `conversation` instead of keying" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > re-opens at the initialAnchor that comes with another conversation, with no remount, and at its newest without one)
+   * @claim "and reads the other conversation's `heightCache`" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reads the heightCache that comes with another conversation from its first commit, as tall as that conversation's list was, and writes only to its own)
    */
   conversation?: Key | undefined;
   /**
@@ -173,7 +179,11 @@ export interface MessageListOwnProps {
    * to a multiple of `BUCKET`, and reads before it measures. Keep one in your app, by conversation, and hand it to each list that shows the conversation:
    * a list that mounts again with it is as tall, from its first commit, as the list before it was, so it opens
    * with no row moving. It keeps the height the list took for a row not measured yet too, which the next list opens with, unless
-   * it is given `estimatedItemHeight`. Leave it out and the list keeps its own for as long as it lives.
+   * it is given `estimatedItemHeight`. Leave it out and the list keeps its own for as long as it lives. A switch to another
+   * `conversation` that comes with its own map reads that map from its first commit, as a list that mounts with it does, so it
+   * opens as tall as that conversation's list was, and writes what it measures into that map, not the one before.
+   * @claim "reads that map from its first commit" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reads the heightCache that comes with another conversation from its first commit, as tall as that conversation's list was, and writes only to its own)
+   * @claim "writes what it measures into that map" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reads the heightCache that comes with another conversation from its first commit, as tall as that conversation's list was, and writes only to its own)
    * @claim "It keeps the height the list took" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens with the estimate a heightCache kept from the list before it, for the rows neither measured)
    * @claim "a list that mounts again with it is" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the height of every row in a heightCache the app hands in, so a list that mounts again with it is as tall, in its first commit, as it was)
    */
@@ -892,11 +902,12 @@ interface Spoken {
  * the list's own children, each with a `key`).
  * Switching to another conversation is opening one: key the list by the conversation, or give it
  * the other conversation's messages with its `conversation` (or, without one, messages that share no
- * `key` with those it held), even after it held none for a while. Either way it
- * opens at the other's newest message, wherever the reader was, with nothing announced; focus that
- * was on a message moves to the newest one in view. A scroll up from the end stops the list following
- * new messages at once, before the browser reports it. The list follows by how far it is from the
- * bottom, not which way it last scrolled, so your code going to a message (`scrollIntoView`) stops
+ * `key` with those it held), even after it held none for a while. Either way it opens at the other's
+ * `initialAnchor` if it comes with one the list holds, else at its newest message, wherever the reader
+ * was, with nothing announced; focus that was on a message moves to the newest one in view. It reads
+ * the other conversation's `heightCache` from its first commit, as a list that mounts with it does.
+ * A scroll up from the end stops the list following new messages at once, before the browser reports it. The list follows by
+ * how far it is from the bottom, not which way it last scrolled, so your code going to a message (`scrollIntoView`) stops
  * it too, even as the first messages arrive. Scrolling is never announced.
  *
  * While older history may load, set `hasOlder`, and `loadingOlder` while it loads: the list keeps
@@ -1013,6 +1024,8 @@ interface Spoken {
  * @claim "A page of many older messages goes in 20" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > puts pages of older messages in a few at a time, holding the reader's message in place in every frame)
  * @claim "A page of many older messages goes in 20" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > puts a few older messages in at once)
  * @claim "Switching to another conversation is opening" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.switching.test.tsx::MessageList switching conversations > switches a list %s to another conversation of a thousand at its newest, in its first frame, from anywhere in the one before)
+ * @claim "Either way it opens at the other's" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > re-opens at the initialAnchor that comes with another conversation, with no remount, and at its newest without one)
+ * @claim "from its first commit, as a list that mounts with it does" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > reads the heightCache that comes with another conversation from its first commit, as tall as that conversation's list was, and writes only to its own)
  * @claim "focus that was on a message moves" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.switching.test.tsx::MessageList switching conversations > moves focus on a message of the conversation before to the newest in view of the next, without scrolling)
  * @claim "A scroll up from the end" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > stops following the newest message once the list is scrolled up, even before the scroll event comes)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces the first messages that fill an empty list, such as history fetched after mount)
@@ -1292,6 +1305,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The keys in order, as the heights measured for them are keyed: what a full re-key carries over by position.
     order: keys,
     conversation,
+    // The heightCache the heights measured for this conversation were read from.
+    cache,
     pending: null as { conversation: Key | undefined; keys: ReadonlySet<Key | null> } | null,
     // The keys it held when its conversation was last confirmed: what a wholesale change under the same name leaves alone.
     confirmed: new Set(all.map(keyOf)) as ReadonlySet<Key | null>,
@@ -1342,6 +1357,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       });
       setMeasured({ ...measured, heights: carried });
     }
+    // A conversation that comes with another heightCache map reads its heights from that map from this render, as a fresh list
+    // does: the heights measured for the one before are dropped, with the estimate and width the map keeps for this one.
+    if (fresh && cache !== track.cache) setMeasured({ heights: new Map(), gap: measured.gap, estimate: cache.get(CACHED_ESTIMATE) ?? ESTIMATE, bucket: cache.get(CACHED_WIDTH) ?? null });
     const opening = fresh && track.held;
     if (opening) {
       // The other conversation draws from its newest, whatever of the one before was drawn.
@@ -1361,6 +1379,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       keys: keySet(all),
       order: keys,
       conversation: named,
+      cache: fresh ? cache : track.cache,
       pending,
       // Confirmed again by a new name or switch, and by any change under the same name but a wholesale one, which may be the
       // next conversation's messages come ahead of its name.
@@ -1602,16 +1621,27 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // Whether the list has opened: at its first messages, at `initialAnchor` if it holds that message, else at the newest.
     let opened = false;
-    const open = () => {
-      if (content.querySelector(items) === null) return;
-      opened = true;
+    // The message `initialAnchor` names, if the list draws it: by id, else the first message of the child with that key.
+    const anchored = (): HTMLElement | undefined => {
       const id = anchorFor.current;
-      // By id, else the first message of the child with that key.
+      if (!id) return undefined;
       const keyed = (name: string) => {
         const slot = [...content.querySelectorAll(`:scope > [${SLOT}]`)].find((node) => keyIs(node.getAttribute(SLOT)!, name));
         return slot && topItems(slot)[0];
       };
-      const target = id ? (topItems(content).find((item) => item.id === id) ?? keyed(id)) : undefined;
+      return topItems(content).find((item) => item.id === id) ?? keyed(id);
+    };
+    // Scrolls the message to the middle of the view, or its top to the top when it is taller.
+    const centre = (target: HTMLElement) => {
+      const view = scroller.getBoundingClientRect();
+      const box = boxOf(target);
+      scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
+      ownTop.current = scroller.scrollTop;
+    };
+    const open = () => {
+      if (content.querySelector(items) === null) return;
+      opened = true;
+      const target = anchored();
       // None: the list stays at the end, as it opened, and follows the messages there: it goes there now, with messages that came
       // after it mounted empty, before the browser draws them, unless code already scrolled it to one of them.
       if (!target) {
@@ -1619,11 +1649,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (pinned.current) followEnd();
         return keepAnchor();
       }
-      const view = scroller.getBoundingClientRect();
-      const box = boxOf(target);
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
-      scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
-      ownTop.current = scroller.scrollTop;
+      centre(target);
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
@@ -1640,6 +1667,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Another conversation opens at its end: space the one before kept above its first message goes with it.
       setSlack(0);
       followEnd();
+      // At the message `initialAnchor` names when the switch brings it, as the list opened at it; else at the end, as before.
+      const target = anchored();
+      if (target) {
+        centre(target);
+        pinned.current = atBottom();
+      }
       // Stryker disable next-line CallExpression: the observer's hold in the microtask after the commit takes the anchors and the end, before any frame or event; at the end of the new conversation, the next message is then followed.
       keepAnchor();
       setShowJump(false);
