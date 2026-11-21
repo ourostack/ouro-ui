@@ -42,7 +42,10 @@ function rememberPicture(src: string, image: HTMLImageElement): void {
  */
 function markPicturesReady(images: Iterable<HTMLImageElement>): void {
   for (const image of images) {
-    const src = image.getAttribute("src") ?? image.src;
-    if (src && image.complete && image.naturalWidth > 0) rememberPicture(src, image);
+    // The string the app set as the image's src, which it gives Avatar too (an image's src property is the resolved URL).
+    const src = image.getAttribute("src");
+    // Stryker disable next-line ConditionalExpression: an image with no src attribute (srcset alone) would be kept under null, which no avatar looks up.
+    if (src === null) continue;
+    if (image.complete && image.naturalWidth > 0) rememberPicture(src, image);
   }
 }
