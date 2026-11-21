@@ -1,1 +1,1 @@
-- Fixed: a Table row header cell that holds its own link no longer wraps it in the row link, so the server render and the client render match and no link nests in another.
+- Fixed: a Table row header cell that holds a link of its own is left as written, instead of being wrapped in the row link.
