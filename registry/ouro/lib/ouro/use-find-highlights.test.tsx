@@ -102,7 +102,7 @@ describe("useFindHighlights", () => {
     await act(async () => root.render(<Harness query="one" current={0} tall />));
     expect(scrollTo).toHaveBeenCalledTimes(1);
     const [options] = scrollTo.mock.calls[0] as unknown as [ScrollToOptions];
-    const match = [...CSS.highlights.get(CURRENT_MATCH)!][0]!.getBoundingClientRect();
+    const match = ([...CSS.highlights.get(CURRENT_MATCH)!][0] as Range).getBoundingClientRect();
     expect(options.top).toBeCloseTo(view.scrollTop + match.top - view.getBoundingClientRect().top - 48, 0);
   });
 
