@@ -99,13 +99,13 @@ describe("Lightbox mosaic", () => {
     expect(size((await render(mosaic([shot(1600, 1000)], { className: "max-w-none" }), 800)).host)).toEqual([800, 500]);
   });
 
-  it("draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown", async () => {
+  it("draws one picture at its own shape, whole, and 4:3 when its size is unknown", async () => {
     const own = await render(mosaic([offsite[0]!]));
     expect(ratio(list(own.host))).toBeCloseTo(3 / 2, 1);
     const tall = await render(mosaic([{ ...offsite[0]!, width: 400, height: 2000 }]));
-    expect(ratio(list(tall.host))).toBeCloseTo(3 / 4, 1);
+    expect(ratio(list(tall.host))).toBeCloseTo(1 / 5, 1);
     const wide = await render(mosaic([{ ...offsite[0]!, width: 4000, height: 400 }]));
-    expect(ratio(list(wide.host))).toBeCloseTo(3, 1);
+    expect(ratio(list(wide.host))).toBeCloseTo(10, 0);
     const unknown = await render(mosaic([offsite[1]!]));
     expect(ratio(list(unknown.host))).toBeCloseTo(4 / 3, 1);
     // The picture fills its frame, cropped to it, and keeps the frame's shape before it loads.

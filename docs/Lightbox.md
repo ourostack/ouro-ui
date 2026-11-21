@@ -131,7 +131,7 @@ interface LightboxImage {
   href?: string | undefined;
   /**
    * The image's own width and height, in any unit. With `layout="mosaic"` and one image, its
-   * thumbnail keeps this shape (between 3:4 and 3:1), so the page holds its place before it loads.
+   * thumbnail keeps this shape, so the page holds its place before it loads.
    */
   width?: number | undefined;
   /** The image's own height; see `width`. */

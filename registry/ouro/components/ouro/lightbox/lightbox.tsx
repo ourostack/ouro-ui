@@ -66,9 +66,9 @@ export interface LightboxImage {
   href?: string | undefined;
   /**
    * The image's own width and height, in any unit. With `layout="mosaic"` and one image, its
-   * thumbnail keeps this shape (between 3:4 and 3:1), so the page holds its place before it loads.
+   * thumbnail keeps this shape, so the page holds its place before it loads.
    *
-   * @claim "its thumbnail keeps this shape" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
+   * @claim "its thumbnail keeps this shape" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, whole, and 4:3 when its size is unknown)
    */
   width?: number | undefined;
   /** The image's own height; see `width`. */
@@ -151,7 +151,7 @@ export type LightboxWithThumbnailsProps = LightboxBaseProps & {
    *
    * @claim "at most 25rem wide and 17.5rem" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width)
    * @claim "as many 4:3 thumbnails in a row" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox thumbnails > lays the thumbnails out in as many columns of at least 8rem as fit)
-   * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
+   * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, whole, and 4:3 when its size is unknown)
    * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid)
    * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > shows four of more pictures, the last saying how many more follow, to sight and to screen readers)
    * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > opens the viewer on the picture pressed, steps on past the four shown, and gives focus back to the last one shown)
@@ -770,7 +770,7 @@ function LightboxViewer({
  * @claim "an image drawn smaller than its" registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx::Lightbox zoom > zooms at a double-tap's point and back with another)
  * @claim "an image drawn smaller than its" registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx verify:fileLine(registry/ouro/components/ouro/lightbox/lightbox.zoom.test.tsx, /chromiumOnly\(\"pinches\sbetween\sthe\sfitted\ssize\sand\sthe\simage's\sown\ssize,\sholding\sthe\spoint\sbetween\sthe\sfingers\"/)
  * @claim "zoomed, a swipe moves around the" registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx::Lightbox zoom on a touch screen > zooms with a real double-tap, and then pans with a swipe instead of turning the page)
- * @claim "one frame that shows one picture" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
+ * @claim "one frame that shows one picture" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, whole, and 4:3 when its size is unknown)
  * @claim "two side by side, three as" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid)
  * @claim "four or more as a 2 by" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > shows four of more pictures, the last saying how many more follow, to sight and to screen readers)
  * @claim "at most 25rem wide and 17.5rem" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width)
