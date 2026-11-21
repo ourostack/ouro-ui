@@ -324,6 +324,8 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
       const drawn = [...new Set(reads)].filter((file) => previews.has(file));
       const previewGzip = drawn.reduce((sum, file) => sum + distGzip(file, hashes), 0);
       report["docs previews"] = { gzip: previewGzip, ceiling: PREVIEWS_CEILING, files: drawn.length };
+      // In the job's log on every run, so a ceiling is set from what CI measures, not from a local build's gzip (#2724).
+      console.log(`script-size docs-previews ${previewGzip} of ${PREVIEWS_CEILING}`);
       expect(drew.length, "the index draws previews once it is live").toBeGreaterThan(0);
       expect(previewGzip, `the index's previews, gzip bytes: ${drawn.join(", ")}`).toBeLessThanOrEqual(PREVIEWS_CEILING);
     }
@@ -335,6 +337,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     const gzip = expected.reduce((sum, file) => sum + distGzip(file, hashes), 0);
     const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     report[name] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILINGS[kind] };
+    console.log(`script-size ${name} ${gzip} of ${CEILINGS[kind]}`);
     expect(gzip, `${name} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
     expect(styles.length, `${name} loads its stylesheets`).toBeGreaterThan(0);
     sheets[name] = [...new Set(styles)];
