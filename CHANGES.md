@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: `--ouro-size-*` tokens in ouro-base for fixed sizes, which `--spacing` (density) does not change; Avatar, AvatarGroup and ConversationList read them, so a compact density keeps avatars their size (#417).
