@@ -40,11 +40,11 @@ export default function AppleHx(): JSX.Element {
         title="Feel it before you read about it."
         description={
           <>
-            {claim("The foundations ship today in 1.4.0: one spring, one press, eight named haptic moments and six themes.", {
-              source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0" },
+            {claim("The foundations ship today in 1.5.0: one spring, one press, eight named haptic moments and six themes.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.5.0" },
               verify: [
-                { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0" },
-                { equals: "site/src/apple/kit.json#release", is: "1.4.0" },
+                { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.5.0" },
+                { equals: "site/src/apple/kit.json#release", is: "1.5.0" },
                 { count: "site/src/apple/kit.json#haptics", is: 8 },
                 { count: "site/src/apple/kit.json#themes", is: 6 },
               ],
@@ -159,7 +159,14 @@ export default function AppleHx(): JSX.Element {
               source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Sources/OuroHX/Tokens/OuroTokens.swift#L9-L14" },
               verify: { equals: "site/src/apple/kit.json#themes.5", is: "coral" },
             })}{" "}
-            Open the theme picker up top and repaint the whole ship. OuroColor checks contrast for you and picks a readable label for any fill, in light, dark and Increase Contrast.
+            Open the theme picker up top and repaint the whole ship. OuroColor checks contrast for you and picks a readable label for any fill, in light, dark and Increase Contrast.{" "}
+            {claim("Since 1.5.0 an app can give its solid primary buttons its own main-action colours with .ouroAction, as web Ouro's --ouro-action does.", {
+              source: [{ spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.5.0" }, { file: "registry/ouro/components/ouro/button/button.tsx" }],
+              verify: [
+                { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.5.0" },
+                { fileLine: "registry/ouro/components/ouro/button/button.tsx", pattern: "\\[--ouro-bg:var\\(--ouro-action,var\\(--primary\\)\\)\\]" },
+              ],
+            })}
           </p>
         }
       >

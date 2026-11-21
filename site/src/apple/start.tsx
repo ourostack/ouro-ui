@@ -90,9 +90,15 @@ export default function AppleStart(): JSX.Element {
               source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0" },
               verify: [
                 { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0" },
-                { equals: "site/src/apple/kit.json#release", is: "1.4.0" },
               ],
-            })}
+            })}{" "}
+            {claim("Since 1.5.0 an app can give its solid primary buttons its own main-action colours with .ouroAction, as web Ouro's --ouro-action does.", {
+                source: [{ spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.5.0" }, { file: "registry/ouro/components/ouro/button/button.tsx" }],
+                verify: [
+                  { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.5.0" },
+                  { fileLine: "registry/ouro/components/ouro/button/button.tsx", pattern: "\\[--ouro-bg:var\\(--ouro-action,var\\(--primary\\)\\)\\]" },
+                ],
+              })}
           </p>
         }
       >
