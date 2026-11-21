@@ -3,7 +3,7 @@
 import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
-import type { MessageFindLayer } from "@/registry/ouro/components/ouro/message/message-find";
+import type { MessageFindLayer } from "@/registry/ouro/components/ouro/message/message-list-parts";
 import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -614,7 +614,7 @@ type FindModule = { Layer: typeof MessageFindLayer; marks: string };
 let findPromise: Promise<FindModule> | undefined;
 let findLoaded: FindModule | undefined;
 const loadFind = () =>
-  (findPromise ??= import("@/registry/ouro/components/ouro/message/message-find").then((module) => (findLoaded = { Layer: module.MessageFindLayer, marks: module.findMarks })));
+  (findPromise ??= import("@/registry/ouro/components/ouro/message/message-list-parts").then((module) => (findLoaded = { Layer: module.MessageFindLayer, marks: module.findMarks })));
 
 /** A child's key, from `Children.toArray`, or null for one that is not an element. */
 function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): Key | null {

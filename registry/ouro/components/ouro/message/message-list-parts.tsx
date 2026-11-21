@@ -12,6 +12,8 @@ export { MessageFindLayer, findMarks };
 /**
  * How matches are drawn, by the highlight names `ouro-find` and `ouro-find-current`: the theme's primary, tinted for the others and solid
  * for the current one, with the paired text colour so a link inside a match stays readable, and the system colours when colours are forced.
+ *
+ * @internal
  */
 const findMarks =
   "[&::highlight(ouro-find)]:bg-[color-mix(in_oklab,var(--primary)_22%,var(--background))] [&::highlight(ouro-find)]:text-foreground " +
