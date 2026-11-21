@@ -124,4 +124,60 @@ describe("usePrefetchIntent", () => {
     await touch();
     expect(prefetch).toHaveBeenCalledTimes(3);
   });
+
+  it("prefetches again once exactly staleAfter has passed", async () => {
+    const prefetch = vi.fn();
+    const get = await mount(prefetch);
+    const focus = () => act(async () => get("a").dispatchEvent(new FocusEvent("focusin", { bubbles: true })));
+    await focus();
+    vi.setSystemTime(Date.now() + 1000);
+    await focus();
+    expect(prefetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("prefetches when the browser reports no connection information", async () => {
+    vi.stubGlobal("navigator", Object.create(navigator, { connection: { value: undefined } }));
+    const prefetch = vi.fn();
+    const get = await mount(prefetch);
+    await act(async () => get("a").dispatchEvent(new Event("touchstart", { bubbles: true })));
+    expect(prefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rests again from the latest pointer entry, and leaving cancels every pending rest", async () => {
+    const prefetch = vi.fn();
+    const get = await mount(prefetch);
+    await act(async () => pointer(get("a"), "pointerover"));
+    await act(async () => void vi.advanceTimersByTime(30));
+    await act(async () => pointer(get("a"), "pointerover"));
+    await act(async () => void vi.advanceTimersByTime(10));
+    await act(async () => pointer(get("a"), "pointerout"));
+    await act(async () => void vi.advanceTimersByTime(200));
+    expect(prefetch).not.toHaveBeenCalled();
+  });
+
+  it("cancels a pending rest when the target unmounts", async () => {
+    const prefetch = vi.fn();
+    const get = await mount(prefetch);
+    await act(async () => pointer(get("a"), "pointerover"));
+    for (const root of roots.splice(0)) await act(async () => root.unmount());
+    await act(async () => void vi.advanceTimersByTime(200));
+    expect(prefetch).not.toHaveBeenCalled();
+  });
+
+  it("follows a changed key and a changed function", async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Target id="a" prefetch={first} />));
+    await act(async () => root.render(<Target id="b" prefetch={first} />));
+    await act(async () => host.querySelector("button")!.dispatchEvent(new Event("touchstart", { bubbles: true })));
+    expect(first).toHaveBeenCalledExactlyOnceWith("b");
+    await act(async () => root.render(<Target id="b" prefetch={second} />));
+    await act(async () => host.querySelector("button")!.dispatchEvent(new Event("touchstart", { bubbles: true })));
+    expect(second).toHaveBeenCalledExactlyOnceWith("b");
+  });
 });

@@ -30,6 +30,7 @@ interface Gate {
 const gates = new WeakMap<(key: string) => unknown, Gate>();
 
 function saveData(): boolean {
+  // Stryker disable next-line ConditionalExpression,StringLiteral: the typeof guard only matters where there is no navigator (server rendering), which no browser test reaches
   return typeof navigator !== "undefined" && (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
 }
 
@@ -37,6 +38,7 @@ function prefetchOnce(prefetch: (key: string) => unknown, key: string, maxInflig
   let gate = gates.get(prefetch);
   if (!gate) gates.set(prefetch, (gate = { inflight: 0, fetched: new Map() }));
   const at = gate.fetched.get(key);
+  // Stryker disable next-line ConditionalExpression: with no earlier fetch the age is NaN and compares false, so the undefined guard cannot change the outcome
   if (saveData() || gate.inflight >= maxInflight || (at !== undefined && Date.now() - at < staleAfter)) return;
   gate.fetched.set(key, Date.now());
   gate.inflight++;
