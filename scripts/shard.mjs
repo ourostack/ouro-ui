@@ -100,23 +100,15 @@ export function balance(keys, count, timings, groupOf) {
 export const shardKeys = (keys, { index, count }, timings, groupOf) => balance(keys, count, timings, groupOf)[index - 1].keys;
 
 /**
- * The browser shards: the test files (but not the sliced suites, which every shard runs) and the
- * installed-subset checks (scripts/subset-coverage.mjs), weighed by their recorded times, in one
- * longest-first split, so each shard's tests and subset checks add up evenly. `extra` are files
- * with no recorded time, each added to the lightest shard at the median. The subset checks come
- * from the recorded times alone, so the browser job and the subset step agree whatever files a
- * run selects.
+ * The browser shards: the test files (but not the sliced suites, which every shard runs), weighed
+ * by their recorded times, in one longest-first split. `extra` are files with no recorded time,
+ * each added to the lightest shard at the median. The installed-subset checks
+ * (scripts/subset-coverage.mjs) run in their own jobs and take no part in this split.
  */
-export const subsetWeight = 1.4;
-
 export function browserBalance(count, extra = [], file = timingsFile) {
   const vitest = readTimings("vitest", file);
-  const subset = readTimings("subset", file);
-  // A subset check runs serially after a shard's tests, whose recorded times add up over parallel workers
-  // (about 1.4 of them, calibrated on measured shard times), so it weighs that much more than its own wall time against them.
-  const scaled = Object.fromEntries(Object.entries(subset).map(([key, ms]) => [key, ms * subsetWeight]));
-  const timings = { ...vitest, ...scaled };
-  const shards = balance([...Object.keys(vitest).filter((key) => !isSliced(key)), ...Object.keys(subset)], count, timings, projectOf);
+  const timings = vitest;
+  const shards = balance(Object.keys(vitest).filter((key) => !isSliced(key)), count, timings, projectOf);
   const fallback = median(Object.values(timings).filter((value) => typeof value === "number"));
   for (const key of [...new Set(extra)].filter((key) => !(key in timings)).sort()) {
     const lightest = shards.reduce((best, shard) => (shard.weight < best.weight ? shard : best), shards[0]);

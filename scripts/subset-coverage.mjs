@@ -12,7 +12,7 @@
 //                                               items (a pull request's reduced run in CI)
 //   node scripts/subset-coverage.mjs [--touching <items>] --shard 2/6
 //                                               checks every 6th of those sets, from the 2nd
-//                                               (CI's browser test shards share them out)
+//                                               (CI's subsets jobs share them out)
 //
 // For a set of components it reads registry.json as the shadcn CLI does: the install is the
 // closure of each `<name>-tests` item. It runs only the test files in that closure, in the
@@ -22,7 +22,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { browserBalance, parseShard } from "./shard.mjs";
+import { balance, parseShard, readTimings } from "./shard.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -65,13 +65,13 @@ export function setsTouching(registry, items) {
 export const setKey = (set) => set.join(",");
 
 /**
- * The sets shard `index` (from 1) of `count` checks: the browser tests' own longest-first split
- * (scripts/shard.mjs browserBalance) places each set by its recorded time. A set with no time goes
- * to every `count`th shard.
+ * The sets shard `index` (from 1) of `count` checks, each placed by its recorded time in a
+ * longest-first split (CI's `subsets` jobs). A set with no time goes to every `count`th shard.
  */
 export function shardSets(chosen, { index, count }) {
-  const placed = browserBalance(count);
-  const known = new Set(placed.flatMap((shard) => shard.keys));
+  const times = readTimings("subset");
+  const placed = balance(Object.keys(times), count, times);
+  const known = new Set(Object.keys(times));
   const mine = new Set(placed[index - 1].keys);
   return chosen.filter((set, position) => (known.has(setKey(set)) ? mine.has(setKey(set)) : (position % count) + 1 === index));
 }

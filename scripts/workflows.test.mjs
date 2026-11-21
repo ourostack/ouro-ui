@@ -463,7 +463,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-checks", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "sweep-shard", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-checks", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "subsets", "sweep-shard", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -481,7 +481,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   // The script tests that drive a browser run in the image; the others need none.
   assert.doesNotMatch(jobs.scripts, /container:|playwright-browsers/);
   assert.match(jobs["scripts-browser"], /\$\(node scripts\/shard\.mjs scripts-browser "\$SHARD"\)/);
-  assert.match(jobs.ci, /needs: \[plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback, screen-reader\]/);
+  assert.match(jobs.ci, /needs: \[plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, coverage, browser-fallback, screen-reader\]/);
   assert.match(jobs.ci, /"design=\$DESIGN"/);
   assert.match(jobs.ci, /"scripts-browser=\$SCRIPTS_BROWSER"/);
 });
@@ -1569,10 +1569,10 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   const jobs = ciJobs();
   // ci-budget reads it too, in its step's env (the budget job's own test).
   const readers = Object.keys(jobs).filter((name) => /^ {6}FULL: \$\{\{ needs\.plan\.outputs\.full/m.test(jobs[name]));
-  assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "themes"]);
+  assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "subsets", "themes"]);
   for (const name of readers) {
     // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
-    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : [...heavyJobs.filter((id) => id !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(name) ? heavyRuns : untested;
+    const condition = name === "install-shard" ? queuedInstalls : name === "browser" || name === "subsets" ? browserRuns : [...heavyJobs.filter((id) => id !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(name) ? heavyRuns : untested;
     const needs = jobs[name].match(new RegExp(`^ {4}needs: \\[([^\\]]*)\\]\\n {4}if: ${condition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"))?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
@@ -1643,7 +1643,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs beside ci once the coverage job and the shards it reads passed or were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser.result) && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser-fallback.result) }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -1734,7 +1734,7 @@ function shardCount(block) {
   return shards.length;
 }
 
-test("each browser shard runs its share of every browser test, or of the reduced run, then its share of the installed subsets", () => {
+test("each browser shard runs its share of every browser test, or of the reduced run, and the subsets jobs share out the installed subsets", () => {
   const block = ciJobs().browser;
   const count = shardCount(block);
   assert.match(block, new RegExp(`^ {4}name: browser \\(\\$\\{\\{ matrix\\.shard \\}\\}/${count}\\)$`, "m"));
@@ -1746,9 +1746,14 @@ test("each browser shard runs its share of every browser test, or of the reduced
   const reduced = runStep(script, { FULL: "false", COMPONENTS: "checkbox,checkbox-group", SHARD: "2/6" });
   assert.match(reduced.calls, /^CALL node scripts\/test-impact\.mjs vitest checkbox,checkbox-group --shard 2\/6$/m);
   assert.doesNotMatch(reduced.calls, /CALL pnpm/);
-  const subsets = stepScript(block, "Coverage of installed subsets");
-  assert.match(runStep(subsets, { FULL: "true", SHARD: "2/6" }).calls, /^CALL node scripts\/subset-coverage\.mjs --shard 2\/6$/m);
-  assert.match(runStep(subsets, { FULL: "false", COMPONENTS: "checkbox", SHARD: "2/6" }).calls, /^CALL node scripts\/subset-coverage\.mjs --touching checkbox --shard 2\/6$/m);
+  assert.doesNotMatch(block, /Coverage of installed subsets/);
+  const sub = ciJobs().subsets;
+  assert.equal(shardCount(sub), 5);
+  assert.match(sub, /^ {4}name: subsets \(\$\{\{ matrix\.shard \}\}\/5\)$/m);
+  assert.match(sub, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/5$/m);
+  const subsets = stepScript(sub, "Coverage of installed subsets");
+  assert.match(runStep(subsets, { FULL: "true", SHARD: "2/5" }).calls, /^CALL node scripts\/subset-coverage\.mjs --shard 2\/5$/m);
+  assert.match(runStep(subsets, { FULL: "false", COMPONENTS: "checkbox", SHARD: "2/5" }).calls, /^CALL node scripts\/subset-coverage\.mjs --touching checkbox --shard 2\/5$/m);
   // Its coverage and timings go up for the ci job and the next split.
   assert.match(block, /^ {10}name: coverage-browser-\$\{\{ matrix\.shard \}\}\n {10}path: coverage\/coverage-final\.json\n/m);
   assert.match(block, /^ {10}name: timings-browser-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/timings\/\n/m);
@@ -1820,7 +1825,7 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   // The ci check counts their skip as a pass only when the plan asked for it.
   assert.match(jobs.ci, /^ {6}DESIGN_RUN: \$\{\{ needs\.plan\.outputs\.design != 'false' \}\}$/m);
   const parts = stepScript(jobs.ci, "Every part passed");
-  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "skipped", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "" };
+  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "skipped", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "" };
   assert.equal(runStep(parts, { ...ok, DESIGN_RUN: "false" }).status, 0);
   for (const [run, result] of [["true", "skipped"], ["false", "failure"], ["false", "cancelled"]]) assert.equal(runStep(parts, { ...ok, DESIGN_RUN: run, DESIGN: result }).status, 1, `${run} ${result}`);
   // Each waiver gives its reason.
@@ -1832,12 +1837,12 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
 test("the ci check passes only when its parts passed and the browser shards' merged coverage reaches 100%, or the full suite decides", () => {
   const jobs = ciJobs();
   const block = jobs.ci;
-  assert.match(block, /^ {4}needs: \[plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback, screen-reader\]$/m);
+  assert.match(block, /^ {4}needs: \[plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, coverage, browser-fallback, screen-reader\]$/m);
   const parts = stepScript(block, "Every part passed");
-  const passed = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "false" };
+  const passed = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "false" };
   assert.equal(runStep(parts, passed).status, 0);
   assert.equal(runStep(parts, { ...passed, FALLBACK: "true", BROWSER_FALLBACK: "success" }).status, 0);
-  for (const failed of [{ BROWSER: "failure" }, { CHECKS: "cancelled" }, { ATTRIBUTION: "failure" }, { ATTRIBUTION: "skipped" }, { DESIGN: "failure" }, { DESIGN: "skipped" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }, { COVERAGE: "failure" }, { SCREEN_READER: "failure" }, { SCREEN_READER_RUN: "true", SCREEN_READER: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "cancelled" }]) {    const result = runStep(parts, { ...passed, ...failed });
+  for (const failed of [{ BROWSER: "failure" }, { SUBSETS: "failure" }, { SUBSETS: "skipped" }, { CHECKS: "cancelled" }, { ATTRIBUTION: "failure" }, { ATTRIBUTION: "skipped" }, { DESIGN: "failure" }, { DESIGN: "skipped" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }, { COVERAGE: "failure" }, { SCREEN_READER: "failure" }, { SCREEN_READER_RUN: "true", SCREEN_READER: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "cancelled" }]) {    const result = runStep(parts, { ...passed, ...failed });
     assert.equal(result.status, 1, JSON.stringify(failed));
     assert.match(result.stdout, /^::error::The [\w-]+ jobs did not pass/m);
   }
@@ -2430,7 +2435,7 @@ test("ci.yml calls the lane for a pull request from this repository only, with i
   assert.deepEqual(failed.output, { screen_reader: "all", screen_reader_specs: "all" });
   // The ci check passes the lane's skip only when the plan selected no spec, and counts every other result.
   const parts = stepScript(ci.ci, "Every part passed");
-  const passing = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false" };
+  const passing = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false" };
   assert.match(ci.ci, /^ {6}SCREEN_READER_RUN: \$\{\{ needs\.plan\.outputs\.screen_reader != 'none' \}\}$/m);
   assert.equal(runStep(parts, passing).status, 0);
   assert.equal(runStep(parts, { ...passing, SCREEN_READER_RUN: "true" }).status, 1, "a selected lane that was skipped fails ci");
@@ -2829,7 +2834,7 @@ test("a pull request that changes nothing the browser tests read skips the brows
   assert.match(jobs.ci, /^ {6}browser: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   assert.match(jobs.ci, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   const parts = stepScript(jobs.ci, "Every part passed");
-  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "" };
+  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "skipped", SUBSETS: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "" };
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false" }).status, 0);
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "true" }).status, 1);
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false", BROWSER: "failure" }).status, 1);
