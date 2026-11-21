@@ -470,6 +470,14 @@ test("Ouro HX moves a stylesheet that holds ouro-base's rules to an import of ou
   assert.ok(update.notes.some((note) => note.includes("`src/ouro/ouro-base.css`") && note.includes("imports")));
   assert.ok(update.notes.some((note) => note.includes("`--ouro-layer` in `:root`")), "the pull request names the values the app keeps");
   assert.ok(update.notes.some((note) => note.includes("`--ouro-corner-fallback` in `:root` in `@supports not (corner-shape: squircle)`")), "and what the file brings back");
+  // The notes pass the claims check a repository may run on its pull requests, as spoonjoy-v2's (#831): the move is
+  // cited to the import line it writes, which a fileLine check finds in the update's stylesheet.
+  const prBody = body([{ file: pin.file, follows: "web", current: "v1.3.247" }], { web: release }, update.notes);
+  assert.deepEqual(lintMarkdown(prBody, { file: "pull request body" }), []);
+  const moveNote = update.notes.find((note) => note.startsWith("Moves ouro-base"));
+  const check = /verify:fileLine\(src\/index\.css, \/(.+)\/\)/.exec(moveNote);
+  assert.ok(check, `the move names its import line: ${moveNote}`);
+  assert.match(css, new RegExp(check[1], "m"), "and the update's stylesheet has that line");
 
   // The import resolves in Tailwind, ouro-base's rules apply, and the app's value wins.
   const { compile } = await import("tailwindcss");
