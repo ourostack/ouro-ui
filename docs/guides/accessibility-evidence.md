@@ -80,7 +80,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [local-date](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/local-date) | 4 | 0 | none yet |
 | [mcp-app](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/mcp-app) | 2 | 0 | none yet |
 | [media-tile](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/media-tile) | 9 | 0 | none yet |
-| [menu](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/menu) | 6 | 0 | [menu.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/menu.sr.spec.ts): 1 test on `menus-menu--playground` |
+| [menu](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/menu) | 6 | 0 | [menu.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/menu.sr.spec.ts): 2 tests on `menus-menu--playground` |
 | [message](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/message) | 39 | 0 | none yet |
 | [moment](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/moment) | 8 | 0 | none yet |
 | [navbar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/navbar) | 3 | 0 | none yet |
@@ -137,6 +137,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 
 Screen-reader specs that cover a pattern rather than one component:
 
+- [menu-bar.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/menu-bar.sr.spec.ts): MenuBar opens File from the keyboard on its first item, reads the next item, and returns to File on Escape
 - [patterns.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/patterns.sr.spec.ts): a row is heard by its title, its entry's heading as the detail takes the list's place, and the row again after Back; a search that finds nothing says so; its chart and its table's scrolling region are heard by their names
 
 ## What each screen-reader test says it proves
@@ -161,6 +162,7 @@ The test titles, in the words of the specs, so a reader sees the claim before op
   - An Item with href is heard as a link by its title, then its description
 - **menu**
   - Menu is announced from its trigger, reads each item the arrow keys reach, and returns to the trigger on Escape
+  - Menu's submenu opens from the keyboard on its first item, and the left arrow returns to its trigger
 - **reorderable**
   - A disabled Reorderable's handles are heard as unavailable buttons, described by its reason, without the pick-up instructions
 - **route-progress**

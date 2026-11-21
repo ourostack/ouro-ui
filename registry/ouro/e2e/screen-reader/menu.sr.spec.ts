@@ -32,3 +32,30 @@ test("Menu is announced from its trigger, reads each item the arrow keys reach, 
   await expect(page.getByRole("menu")).toBeHidden();
   await expect(trigger).toBeFocused();
 });
+
+test("Menu's submenu opens from the keyboard on its first item, and the left arrow returns to its trigger", async ({ page, sr }) => {
+  await startReading(sr, page);
+  const trigger = page.getByRole("button", { name: "Actions" });
+  await heard(sr, () => trigger.focus(), (phrase) => inOneSentence(phrase, nameAndRole("Actions", "button")), '"Actions", button');
+  const menu = page.getByRole("menu").first();
+  await said(sr, async () => {
+    await page.keyboard.press("Enter");
+    await expect(menu.getByRole("menuitem", { name: /^Edit/ })).toBeFocused();
+  }, "as the menu opens on Edit");
+  await menu.evaluate((element) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)));
+  const share = page.getByRole("menuitem", { name: "Share" });
+  // Focus moves to Share directly, as the end-to-end spec moves it: a key press made as the menu settles can be dropped.
+  await heard(sr, () => share.focus(), (phrase) => inOneSentence(phrase, /\bshare\b/i), '"Share", the submenu\'s trigger');
+  await expect(share).toBeFocused();
+  const copyLink = page.getByRole("menuitem", { name: "Copy link" });
+  const openShare = async () => {
+    await page.keyboard.press("ArrowRight");
+    await expect(copyLink).toBeFocused();
+  };
+  if (onOlderMacOS()) await said(sr, openShare, "as Share opens on Copy link");
+  else await heard(sr, openShare, (phrase) => inOneSentence(phrase, /\bcopy link\b/i), '"Copy link", the first item, as Share opens');
+  await heard(sr, () => page.keyboard.press("ArrowLeft"), (phrase) => inOneSentence(phrase, /\bshare\b/i), '"Share" as focus returns');
+  // Closed, and still closed under a pointer that rests where the submenu lay (ourostack/ouro-ui#2652).
+  await expect(share).toHaveAttribute("aria-expanded", "false");
+  await expect(share).toBeFocused();
+});
