@@ -589,6 +589,10 @@ async function updateHxInstalled(pin, text, release, ctx) {
   const edited = [];
   const gone = [];
   const dropped = [];
+  // A file is deleted only when no file of the release's registry has its name: one this cannot place (an app without
+  // components.json, as factory's site/src/ouro/ theme) may still be shipped, and deleting it broke factory#1138's build.
+  const shippedNames = new Set([...next.keys()].filter((key) => key.startsWith("registry/")).map((key) => posix.basename(key)));
+  const shipsName = (path) => shippedNames.has(posix.basename(path));
   const moves = [];
   const blocked = [];
   const items = new Set();
@@ -597,7 +601,7 @@ async function updateHxInstalled(pin, text, release, ctx) {
     const now = consumer.get(path);
     const old = before.get(path);
     const wrote = old && rewrite(previous.get(old.path));
-    if (now && !old && !after.has(path) && sha256(now) === record.files[path]) {
+    if (now && !old && !after.has(path) && sha256(now) === record.files[path] && !shipsName(path)) {
       // A copy an earlier update kept after the release dropped or renamed its source, before Ouro Current deleted
       // such files (spoonjoy-v2#828): its bytes are still the source the record names, so it is unedited, and it goes.
       delete hashes[path];
@@ -633,7 +637,7 @@ async function updateHxInstalled(pin, text, release, ctx) {
       // the unedited file moves there, unless the app already has a file at the new path.
       // So has a file the release renamed (Ouro AX's `command.ts`, now `ax-command.ts`): it moves to the new name.
       const moved = nextByPath.get(old.path) ?? nextByPath.get(MOVED_SOURCES[old.path]);
-      if (!moved) {
+      if (!moved && !shipsName(path)) {
         // The release no longer ships the file, under any name: the unedited copy goes, so the vendored folder mirrors
         // the release (ouroboros-website's CI diffs it against the release's, and failed on a copy left behind: #466).
         delete hashes[path];

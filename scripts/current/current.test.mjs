@@ -543,6 +543,20 @@ test("an install record mirrors the release: a file the release no longer ships 
   assert.deepEqual(update.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
 });
 
+test("an install record keeps a file it cannot place in the release when the release still ships its source (ourostack/factory#1138)", async () => {
+  // As factory: no components.json, its Ouro check in lib/ouro/check/ while the registry targets ~/scripts/ouro/check/,
+  // and the theme's stylesheets copied to site/src/ouro/, which no registry item targets. The release still ships both.
+  const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
+  const registry = JSON.stringify({ items: [{ name: "ouro-check", files: [{ path: "registry/ouro/check/fades.ts", target: "~/scripts/ouro/check/fades.ts" }] }] });
+  const shipped = (v) => files({ "registry.json": registry, "registry/ouro/check/fades.ts": `fades ${v}\n`, "registry/ouro/theme/ouro-base.css": `base ${v}\n` });
+  const record = { tag: "v1.3.242", tagCommit: "old", files: { "lib/ouro/check/fades.ts": sha256("fades v1\n"), "site/src/ouro/ouro-base.css": sha256("base v1\n") } };
+  const consumer = files({ "package.json": JSON.stringify({ name: "factory", type: "module" }), "lib/ouro/check/fades.ts": "fades v1\n", "site/src/ouro/ouro-base.css": "base v1\n" });
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, { tarball: async (follows, tag) => shipped(tag === "v1.3.242" ? "v1" : "v2"), consumerFiles: async () => consumer });
+  for (const path of Object.keys(record.files)) assert.notEqual(update.files[path], null, `${path}, which the release still ships, is not deleted`);
+  assert.ok(!update.notes.some((note) => note.startsWith("Deletes")));
+});
+
 test("an install record deletes a copy an earlier update kept after the release dropped it, when its bytes are still the recorded source (spoonjoy/spoonjoy-v2#829)", async () => {
   // As spoonjoy-v2 after #828: the record lists both the old and the new name, at a tag that ships only the new one.
   const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
