@@ -72,6 +72,7 @@ test("the base's report is the newest artifact named for the size check and the 
         { id: 3, expired: false, created_at: "2026-11-21T08:00:00Z" },
       ] });
     }
+    if (url.includes("/actions/artifacts?name=")) return Response.json({ total_count: 0, artifacts: [] });
     if (url.endsWith("/actions/artifacts/2/zip")) return new Response(zip("closure.json", JSON.stringify(docs(191_889))));
     return new Response("not found", { status: 404 });
   };
