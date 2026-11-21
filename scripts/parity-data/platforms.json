@@ -89,8 +89,8 @@
   },
   "android": {
     "repo": "ourostack/ouro-ui-android",
-    "tag": "v0.9.0",
-    "commit": "ed5ad0f74837fea89d87502e9a2ffc4e7bd17033",
+    "tag": "v0.10.0",
+    "commit": "883c2db5f51dd92af2c1e3b72f529a53cdac4c4f",
     "components": [
       {
         "name": "OuroBadge",
@@ -117,6 +117,10 @@
         "web": "confirm-dialog"
       },
       {
+        "name": "OuroConversationList",
+        "web": "conversation-list"
+      },
+      {
         "name": "OuroDescriptionList",
         "web": "description-list"
       },
@@ -135,6 +139,10 @@
       {
         "name": "OuroItemGroup",
         "web": "item-group"
+      },
+      {
+        "name": "OuroReorderable",
+        "web": "reorderable"
       },
       {
         "name": "OuroSelect",
@@ -174,6 +182,7 @@
       }
     ],
     "claims": [
+      "announce.urgency",
       "contrast.text",
       "dismiss.reachable",
       "motion.reduced",
@@ -184,8 +193,8 @@
   },
   "windows": {
     "repo": "ourostack/ouro-ui-windows",
-    "tag": "v0.8.0",
-    "commit": "93dbd1401a7f28b36f4fa66c4bff8a02f4ad41af",
+    "tag": "v0.9.0",
+    "commit": "b81dcc640dcfef12e4f4a172ab058c9b544a9a8f",
     "components": [
       {
         "name": "OuroBadge",
@@ -210,6 +219,10 @@
       {
         "name": "OuroConfirmDialog",
         "web": "confirm-dialog"
+      },
+      {
+        "name": "OuroConversationList",
+        "web": "conversation-list"
       },
       {
         "name": "OuroDescriptionList",
@@ -240,6 +253,10 @@
         "web": "nav-button"
       },
       {
+        "name": "OuroReorderable",
+        "web": "reorderable"
+      },
+      {
         "name": "OuroSelect",
         "web": "select"
       },
@@ -258,6 +275,10 @@
       {
         "name": "OuroSidebarButton",
         "web": "sidebar-button"
+      },
+      {
+        "name": "OuroSwipeActions",
+        "web": "swipe-actions"
       },
       {
         "name": "OuroSwitch",
