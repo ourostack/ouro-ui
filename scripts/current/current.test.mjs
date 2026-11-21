@@ -1957,6 +1957,20 @@ test("an update that leaves fewer lint hits in the files it vendors lowers the a
   assert.equal(gone.fileAt(BRANCH, "oxlint.baseline.json"), "{}\n");
 });
 
+test("an update that deletes a file, as a renamed Ouro file's old name, drops its baseline entry and lints nothing it deleted", async () => {
+  // As spoonjoy-v2 after #2766 renamed Ouro AX's command.ts: the old file's entry held its hits (#2777).
+  const { lowerBaseline } = await import("./baseline.mjs");
+  const baseline = { "app/lib/ouro/ax/command.ts": { "comments(no-orphan-doc)": 1 }, "app/root.tsx": { "react(only-export-components)": 1 } };
+  const consumer = { "oxlint.baseline.json": `${JSON.stringify(baseline, null, 2)}\n`, "package.json": JSON.stringify({ devDependencies: { oxlint: "1.86.0" } }), "app/lib/ouro/ax/command.ts": "export const old = 1;\n" };
+  const ctx = { consumerFile: async (path) => (path in consumer ? Buffer.from(consumer[path]) : null) };
+  const { files, notes } = await lowerBaseline({ "app/lib/ouro/ax/command.ts": null }, ctx);
+  assert.deepEqual(JSON.parse(files["oxlint.baseline.json"]), { "app/root.tsx": { "react(only-export-components)": 1 } });
+  assert.deepEqual(notes, ["Drops `app/lib/ouro/ax/command.ts` from `oxlint.baseline.json`: the update deletes that file."]);
+  assert.deepEqual(notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+  // A deleted file with no entry changes nothing.
+  assert.deepEqual(await lowerBaseline({ "app/lib/ouro/ax/claims.ts": null }, ctx), { files: {}, notes: [] });
+});
+
 test("an update that raises a lint count in the files it vendors leaves the baseline alone and says which file, rule and count went up", async () => {
   const more = fakeRepo(lintedApp(`// oxlint-disable-next-line no-console\n${hits(3)}`));
   assert.equal((await keepRepo(more.gh, "o/r", RELEASES, lintedRelease(hits(5)))).state, "pr");

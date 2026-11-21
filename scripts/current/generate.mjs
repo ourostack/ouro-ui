@@ -118,7 +118,7 @@ async function generateOnce(step, files, ctx) {
  */
 export async function regenerate(files, ctx) {
   const generators = [];
-  for (const path of Object.keys(files).filter((path) => GENERATOR.test(path)).sort()) {
+  for (const path of Object.keys(files).filter((path) => GENERATOR.test(path) && files[path] !== null).sort()) {
     const before = await ctx.consumerFile(path);
     if (!before || !before.equals(Buffer.from(files[path]))) generators.push(path);
   }

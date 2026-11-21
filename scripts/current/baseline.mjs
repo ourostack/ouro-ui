@@ -17,6 +17,7 @@ const LINTED = /\.[cm]?[jt]sx?$/;
 const UNUSED_DIRECTIVE = /^Unused (?:eslint|oxlint)-disable directive/;
 const ourRoot = join(import.meta.dirname, "..", "..");
 const code = (text) => `\`${text}\``;
+const list = (paths) => paths.map(code).join(", ");
 const byCodeUnit = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 /** A hit's rule as the baseline names it: oxlint's code, or the unused directive a lint run that reports them counts. */
@@ -106,11 +107,25 @@ export async function lowerBaseline(files, ctx) {
   const before = await ctx.consumerFile(BASELINE);
   if (!before) return { files: out, notes };
   const paths = [];
+  // A file the update deletes (a renamed Ouro file's old name, #2777) has no hits left: its entry goes whole.
+  const deleted = [];
   for (const path of Object.keys(files).filter((path) => LINTED.test(path) && !/(^|\/)node_modules\//.test(path)).sort()) {
+    if (files[path] === null) {
+      deleted.push(path);
+      continue;
+    }
     const was = await ctx.consumerFile(path);
     if (!was || !was.equals(Buffer.from(files[path]))) paths.push(path);
   }
-  if (!paths.length) return { files: out, notes };
+  const baselineBefore = JSON.parse(before.toString("utf8"));
+  const cleared = deleted.filter((path) => path in baselineBefore);
+  if (!paths.length && !cleared.length) return { files: out, notes };
+  if (!paths.length) {
+    for (const path of cleared) delete baselineBefore[path];
+    out[BASELINE] = `${JSON.stringify(baselineBefore, null, 2)}\n`;
+    notes.push(`Drops ${list(cleared)} from ${code(BASELINE)}: the update deletes ${cleared.length === 1 ? "that file" : "those files"}.`);
+    return { files: out, notes };
+  }
   const version = await pinnedOxlint(ctx);
   if (!version) {
     notes.push(`Leaves ${code(BASELINE)} as it was: Ouro Current could not tell which oxlint the repository pins (package.json and its lockfile), so it could not count the hits left in the files this update changes. If the lint fails on a count that fell, run it with --write-baseline and commit the result.`);
@@ -129,7 +144,8 @@ export async function lowerBaseline(files, ctx) {
     return { files: out, notes };
   }
   const counted = `counted with oxlint ${code(version)} and ${raw ? code(CONFIG) : "oxlint's default rules"}, as the repository pins them${dropped.size ? ` (the rules of its JavaScript plugins, ${[...dropped].sort().map(code).join(", ")}, are its own code, which Ouro Current does not run, so their counts stay as they were)` : ""}`;
-  const baseline = JSON.parse(before.toString("utf8"));
+  const baseline = baselineBefore;
+  for (const path of cleared) delete baseline[path];
   const rose = [];
   const fell = [];
   for (const path of paths) {
@@ -147,13 +163,15 @@ export async function lowerBaseline(files, ctx) {
     notes.push(`Leaves ${code(BASELINE)} as it was: this update raises ${said}, ${counted}. That hit is new in what Ouro UI ships, so the repository's lint stays red on it until Ouro UI fixes it.`);
     return { files: out, notes };
   }
-  if (!fell.length) return { files: out, notes };
+  if (!fell.length && !cleared.length) return { files: out, notes };
+  if (cleared.length) notes.push(`Drops ${list(cleared)} from ${code(BASELINE)}: the update deletes ${cleared.length === 1 ? "that file" : "those files"}.`);
   for (const { path, rule, to } of fell) {
     if (to > 0) baseline[path][rule] = to;
     else delete baseline[path][rule];
     if (Object.keys(baseline[path]).length === 0) delete baseline[path];
   }
   out[BASELINE] = `${JSON.stringify(baseline, null, 2)}\n`;
+  if (!fell.length) return { files: out, notes };
   const byFile = [...new Set(fell.map(({ path }) => path))].map((path) => `${code(path)} ${fell.filter((one) => one.path === path).map(({ rule, from, to }) => `${code(rule)} ${code(from)} to ${code(to)}`).join(", ")}`);
   notes.push(`Lowers ${code(BASELINE)} to the hits left in the files this update changes, ${counted}: ${byFile.join("; ")}.`);
   return { files: out, notes };
