@@ -55,6 +55,7 @@ function findInMessages(entries: readonly { key: string; text: string }[], find:
 
 /** The message and place of the match at `index`, wrapped into range, or null when the result is empty. */
 function locateMatch(result: MessageFindResult, index: number): MessageFindTarget | null {
+  // Stryker disable next-line ConditionalExpression: with no matches the order holds no count above zero, so the loop below finds nothing and falls to the same null.
   if (result.total === 0) return null;
   let left = ((Math.trunc(index) % result.total) + result.total) % result.total;
   for (const { key, count } of result.order) {

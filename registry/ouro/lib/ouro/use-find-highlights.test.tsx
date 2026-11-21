@@ -96,6 +96,14 @@ describe("useFindHighlights", () => {
     expect(CSS.highlights.has(ALL_MATCHES)).toBe(false);
   });
 
+  it("draws again when only the characters of a text node change", async () => {
+    const { host } = await mount({ query: "fox", current: 0 });
+    expect(drawn(ALL_MATCHES)).toHaveLength(2);
+    const node = host.querySelector("[data-key=a] [data-ouro-message-content]")!.firstChild as Text;
+    node.data = "fox fox fox fox";
+    await expect.poll(() => drawn(ALL_MATCHES).length + drawn(CURRENT_MATCH).length).toBe(5);
+  });
+
   it("puts the current highlight on the occurrence the index names", async () => {
     const { host } = await mount({ query: "fox", current: 1 });
     const current = [...CSS.highlights.get(CURRENT_MATCH)!][0]!;
