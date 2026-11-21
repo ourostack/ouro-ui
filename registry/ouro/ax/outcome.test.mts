@@ -112,3 +112,11 @@ test("an action for other people that names no one is warned about", () => {
   assert.deepEqual(generic.warnings, ['audience.who is "other people", which names no one: say who will see it, as the text does (everyone in "Design sync", Jo Park)']);
   assert.deepEqual(validateOutcome(outcome({ action: "note", state: "done", summary: "Noted.", audience: { only: false, who: "someone" }, postcondition: { checked: true, holds: true, how: "read back" } })).warnings, []);
 });
+
+test("validateOutcome rejects a preciseFailure on an error or human that gives no reason", () => {
+  const failed = (error: object) => ({ ...outcome({ action: "x", state: "failed", summary: "s", next: [look] }), error: { ...err, message: "m", ...error } });
+  assert.ok(validateOutcome(failed({ preciseFailure: "names the service and its answer" })).ok);
+  assert.ok(validateOutcome(failed({ preciseFailure: "  " })).errors.includes("error.preciseFailure needs a reason in words"));
+  const waiting = { ...outcome({ action: "x", state: "needs-human", summary: "s", human: { reason: "r", resume: look } }), human: { reason: "r", resume: look, preciseFailure: 1 } };
+  assert.ok(validateOutcome(waiting).errors.includes("human.preciseFailure needs a reason in words"));
+});
