@@ -721,6 +721,15 @@ describe("first-run harness: the detours", () => {
     assert.ok(w.calls.includes("act Inbox") && w.calls.includes("key escape"));
   });
 
+  test("controls: the app is activated again after each control, before its Escape, so the Escape goes to the app", async () => {
+    const w = new World();
+    w.screen = signIn();
+    const { s } = session(w, { controls: [{ name: "Inbox", act: async () => void w.calls.push("act Inbox") }] });
+    await detour("controls").run!(s, "sign-in: email", snapOf(signIn()));
+    const between = w.calls.slice(w.calls.indexOf("act Inbox"), w.calls.indexOf("key escape"));
+    assert.ok(between.includes("activate"), `calls between the control and Escape: ${between.join(", ")}`);
+  });
+
   test("quit: quits and opens again, saying when it couldn't quit or the app didn't open", async () => {
     const w = new World();
     w.screen = signIn();
