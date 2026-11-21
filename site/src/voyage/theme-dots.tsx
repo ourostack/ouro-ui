@@ -3,7 +3,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ByPreset, choiceList, Swatch } from "./presets";
 import { originOf, useSiteTheme } from "./theme-store";
 import { SKY_WORDS } from "./sky-words";
-import { rovingDots } from "../components/use-roving-dots";
+import { rovingRow } from "@/registry/ouro/lib/ouro/roving-row";
 
 /**
  * The looks as a row of dots, Live first, with the chosen one's name and mood beside them. A press
@@ -12,7 +12,7 @@ import { rovingDots } from "../components/use-roving-dots";
  */
 export function ThemeDots({ label = "Theme", size = "lg", describe = true, nameClassName = "", groupClassName = "" }: { label?: string; size?: "md" | "lg"; describe?: boolean; nameClassName?: string; groupClassName?: string }): JSX.Element {
   const { preset, sky, setPreset } = useSiteTheme();
-  const roving = rovingDots(choiceList.map((item) => item.name), preset);
+  const roving = rovingRow(choiceList.map((item) => item.name), preset);
   return (
     <div>
       <div role="group" aria-label={label} onKeyDown={roving.onKeyDown} className={`flex flex-wrap gap-1.5 ${groupClassName}`}>

@@ -1,10 +1,10 @@
 import type { KeyboardEvent } from "react";
 
 /**
- * One Tab stop for a row of look dots, with the arrow keys moving between them: the pressed dot is the stop
- * (the first when none is), and Home and End jump to the ends. Arrows move focus only; a press chooses.
+ * One Tab stop for a row of pressable dots, with the arrow keys moving between them: the pressed dot is the stop
+ * (the first when the pressed name is not in the row), and Home and End jump to the ends. Arrows move focus only; a press chooses. `ThemePicker` uses it.
  */
-export function rovingDots(names: readonly string[], pressed: string): { tabIndex: (name: string) => 0 | -1; onKeyDown: (event: KeyboardEvent<HTMLElement>) => void } {
+export function rovingRow(names: readonly string[], pressed: string): { tabIndex: (name: string) => 0 | -1; onKeyDown: (event: KeyboardEvent<HTMLElement>) => void } {
   const stop = names.includes(pressed) ? pressed : names[0];
   return {
     tabIndex: (name) => (name === stop ? 0 : -1),

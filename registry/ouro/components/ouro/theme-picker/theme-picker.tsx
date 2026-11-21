@@ -5,6 +5,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useThemePreset, type ThemePresetOptions } from "@/registry/ouro/lib/ouro/theme-preset";
+import { rovingRow } from "@/registry/ouro/lib/ouro/roving-row";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 
 /** One look an app ships, for {@link ThemePicker}. */
@@ -37,7 +38,7 @@ const DOT_PAINT = {
 
 /**
  * The look chooser: a row of dots, one per preset, painted with the preset's page and primary
- * colour, with the chosen look's name and mood under them. A press switches the whole app at
+ * colour, with the chosen look's name and mood under them. The row is one Tab stop, on the chosen dot: the arrow keys, Home and End move focus along it, and a press chooses. A press switches the whole app at
  * once, as `data-theme` on `<html>`, and keeps the choice in `localStorage`; `themePresetScript()`
  * inline in `<head>` applies it before first paint. A preset is CSS that keys on
  * `[data-theme="<name>"]`.
@@ -76,11 +77,17 @@ export function ThemePicker(props: ThemePickerProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  const roving = rovingRow(presets.map((item) => item.name), preset);
   const chosen = presets.find((item) => item.name === preset);
 
   return (
     <div ref={ref} data-ouro="theme-picker" className={cn("grid gap-2", className)}>
-      <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
+      <div
+        role="group"
+        aria-label={label}
+        onKeyDown={roving.onKeyDown}
+        className="flex flex-wrap gap-1.5 [&_button:focus-visible]:outline-none [&_button:focus-visible>span]:outline-2 [&_button:focus-visible>span]:outline-offset-2 [&_button:focus-visible>span]:outline-ring [&_button:focus-visible>span]:outline-solid"
+      >
         {presets.map((item) => (
           <Button
             key={item.name}
@@ -90,6 +97,7 @@ export function ThemePicker(props: ThemePickerProps): JSX.Element {
             tone="secondary"
             aria-label={item.label}
             aria-pressed={item.name === preset}
+            tabIndex={roving.tabIndex(item.name)}
             onClick={() => setPreset(item.name)}
             className="h-auto p-1 forced-colors:aria-pressed:forced-color-adjust-none forced-colors:aria-pressed:[background-color:Highlight]"
           >

@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { choiceList, Swatch } from "../voyage/presets";
-import { rovingDots } from "./use-roving-dots";
+import { rovingRow } from "@/registry/ouro/lib/ouro/roving-row";
 import { originOf, useSiteTheme } from "../voyage/theme-store";
 
 // The looks under a component page's live demo, loaded once the page answers (phone-demo.tsx): press one and the whole
@@ -10,7 +10,7 @@ import { originOf, useSiteTheme } from "../voyage/theme-store";
 /** A row of the site's looks, Live first, each a dot that repaints the page from where it was pressed. */
 export default function DemoLooks(): JSX.Element {
   const { preset, setPreset } = useSiteTheme();
-  const roving = rovingDots(choiceList.map((item) => item.name), preset);
+  const roving = rovingRow(choiceList.map((item) => item.name), preset);
   return (
     // The ring on the chosen dot's swatch, from the group, so each Button keeps only layout classes.
     <div
