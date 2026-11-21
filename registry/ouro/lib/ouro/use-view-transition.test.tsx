@@ -128,6 +128,20 @@ describe("useViewTransition", () => {
     expect(finished.catch).toHaveBeenCalledTimes(1);
   });
 
+  it("swallows the rejections of a skipped transition", async () => {
+    const unhandled = vi.fn();
+    window.addEventListener("unhandledrejection", unhandled);
+    setStart((update: () => void | Promise<void>) =>
+      fakeTransition(Promise.resolve().then(update), Promise.reject(new Error("skipped")), Promise.reject(new Error("skipped"))),
+    );
+    let run!: (swap: ViewSwap) => Promise<void>;
+    await mount(<App onRun={(r) => (run = r)} />);
+    await run(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    window.removeEventListener("unhandledrejection", unhandled);
+    expect(unhandled).not.toHaveBeenCalled();
+  });
+
   it("follows a change of motion setting on the same mounted hook", async () => {
     const start = vi.fn((update: () => void | Promise<void>) => fakeTransition(Promise.resolve().then(update)));
     setStart(start);
