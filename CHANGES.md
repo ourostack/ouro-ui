@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [ouro-base's scroll-fade masks say why they fade](scripts/check/fades.test.mts "verify:testExists(scripts/check/fades.test.mts::the fade check > gives each of Ouro HX's masks that takes its value from a var() its reason too, as ouroboros-website's check asks (ourostack/ouroboros-website#469))"), with a `fade-ok:` reason, so a site whose fade check asks a `var()` mask for one passes `ouro-base.css` once Ouro Current writes it into the site's source.
