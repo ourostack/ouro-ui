@@ -207,7 +207,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
       {icon === undefined || icon === null || icon === false ? (
         <FileIcon kind={kind} />
       ) : (
-        <span aria-hidden="true" data-ouro-attachment-icon={kind} className="flex size-5 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-5">
+        <span aria-hidden="true" data-ouro-attachment-icon={kind} className="flex size-ouro-5 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-ouro-5">
           {icon}
         </span>
       )}
@@ -225,7 +225,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
       )}
     </>
   );
-  const inner = "flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 pointer-fine:min-h-9";
+  const inner = "flex min-h-ouro-11 min-w-0 flex-1 items-center gap-2 px-3 pointer-fine:min-h-9";
   const openableClass = "press rounded-[inherit] text-inherit no-underline pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale)";
   // A remove button that removes the attachment hands its focus to the next one, or the one before.
   const merged = useMergedRef(ref, useFocusHandoff<HTMLDivElement>());
@@ -274,13 +274,13 @@ export function Attachment(props: AttachmentProps): JSX.Element {
           data-ouro-part="remove"
           onClick={onRemove}
           className={cn(
-            "press relative m-0 box-border inline-flex size-11 shrink-0 pointer-fine:me-1.5 pointer-fine:size-7 items-center justify-center rounded-ouro-md border-0 bg-transparent p-0",
+            "press relative m-0 box-border inline-flex size-ouro-11 shrink-0 pointer-fine:me-1.5 pointer-fine:size-ouro-7 items-center justify-center rounded-ouro-md border-0 bg-transparent p-0",
             "cursor-pointer text-muted-foreground touch-manipulation pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground",
             "motion-safe:active:scale-(--ouro-press-scale)",
             focusRing,
           )}
         >
-          <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4">
+          <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-ouro-4">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
         </button>
@@ -333,7 +333,7 @@ function FileIcon({ kind }: { kind: AttachmentKind }): JSX.Element {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn("size-5 shrink-0", kindToneClass[kind])}
+      className={cn("size-ouro-5 shrink-0", kindToneClass[kind])}
     >
       <path d={glyphs[kind]} />
     </svg>

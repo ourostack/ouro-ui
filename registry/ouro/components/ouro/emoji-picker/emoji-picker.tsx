@@ -865,7 +865,7 @@ function ToneChoice({ tone, setTone, label, names, glyph, onDone }: { tone: Emoj
       ref={group}
       role="radiogroup"
       aria-label={label}
-      className="flex min-h-9 min-w-0 flex-1 items-center justify-between gap-1 pointer-coarse:min-h-11"
+      className="flex min-h-9 min-w-0 flex-1 items-center justify-between gap-1"
       // Keeps focus on the checked tone while another is pressed: Safari does not focus a
       // pressed button, and the row would close on the blur before the press lands.
       onMouseDown={(event) => event.preventDefault()}

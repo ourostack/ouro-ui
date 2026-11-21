@@ -141,11 +141,11 @@ const quickClass =
  *
  * @claim "a 40px square, 44px" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker on the page > lines its eight columns up across the panel's width)
  * @claim "a 40px square, 44px" registry/ouro/components/ouro/emoji-picker/emoji-picker.touch.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.touch.test.tsx::EmojiPicker on a phone > is a bottom sheet whose emoji, categories and tones are 44px touch targets, and a tap chooses)
- * @claim "a 40px square, 44px" registry/ouro/components/ouro/emoji-picker/emoji-picker-styles.ts verify:fileLine(registry/ouro/components/ouro/emoji-picker/emoji-picker-styles.ts, /size-10 shrink-0.*pointer-coarse:size-11 rounded-ouro-md border-0 bg-transparent text-2xl/)
+ * @claim "a 40px square, 44px" registry/ouro/components/ouro/emoji-picker/emoji-picker-styles.ts verify:fileLine(registry/ouro/components/ouro/emoji-picker/emoji-picker-styles.ts, /size-ouro-10 shrink-0.*pointer-coarse:size-ouro-11 rounded-ouro-md border-0 bg-transparent text-2xl/)
  */
 const cellClass =
-  "press relative box-border flex size-10 shrink-0 cursor-pointer items-center justify-center m-0 p-0 " +
-  "pointer-coarse:size-11 rounded-ouro-md border-0 bg-transparent text-2xl leading-none [-webkit-tap-highlight-color:transparent] " +
+  "press relative box-border flex size-ouro-10 shrink-0 cursor-pointer items-center justify-center m-0 p-0 " +
+  "pointer-coarse:size-ouro-11 rounded-ouro-md border-0 bg-transparent text-2xl leading-none [-webkit-tap-highlight-color:transparent] " +
   "pointer-fine:hover:bg-accent motion-safe:active:scale-(--ouro-press-scale) scroll-mt-6 scroll-mb-1 " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
@@ -154,9 +154,9 @@ const cellClass =
  * or under a mouse. @internal
  */
 const barButtonClass =
-  "press relative box-border flex size-8 shrink-0 cursor-pointer items-center justify-center m-0 p-0 " +
-  "pointer-coarse:size-11 rounded-ouro-md border-0 bg-transparent text-lg leading-none text-muted-foreground [-webkit-tap-highlight-color:transparent] " +
-  "[&_svg]:size-4 pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale) " +
+  "press relative box-border flex size-ouro-8 shrink-0 cursor-pointer items-center justify-center m-0 p-0 " +
+  "pointer-coarse:size-ouro-11 rounded-ouro-md border-0 bg-transparent text-lg leading-none text-muted-foreground [-webkit-tap-highlight-color:transparent] " +
+  "[&_svg]:size-ouro-4 pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale) " +
   "aria-current:bg-accent aria-current:text-accent-foreground " +
   "[&:not([aria-current])>*]:grayscale [&:not([aria-current])>*]:opacity-70 pointer-fine:hover:[&>*]:grayscale-0 pointer-fine:hover:[&>*]:opacity-100 " +
   "[&>*]:transition-opacity [&>*]:duration-(--ouro-duration-fast) [&>*]:ease-(--ouro-ease-out) " +
@@ -165,8 +165,8 @@ const barButtonClass =
 
 /** A skin tone choice: the emoji in that tone, ringed while it is the chosen one. @internal */
 const toneOptionClass =
-  "press relative box-border flex size-9 shrink-0 cursor-pointer items-center justify-center m-0 p-0 " +
-  "pointer-coarse:size-11 rounded-full border-2 border-solid border-transparent bg-transparent text-xl leading-none [-webkit-tap-highlight-color:transparent] " +
+  "press relative box-border flex size-ouro-9 shrink-0 cursor-pointer items-center justify-center m-0 p-0 " +
+  "pointer-coarse:size-ouro-11 rounded-full border-2 border-solid border-transparent bg-transparent text-xl leading-none [-webkit-tap-highlight-color:transparent] " +
   "pointer-fine:hover:bg-accent motion-safe:active:scale-(--ouro-press-scale) " +
   "aria-checked:border-primary forced-colors:aria-checked:border-[Highlight] " +
   "outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid";

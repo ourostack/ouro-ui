@@ -61,3 +61,12 @@ it("gives the open button a 44px target and 16px text, like the link", async () 
   expect(open.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
   expect(getComputedStyle(open).fontSize).toBe("16px");
 });
+
+it("keeps the row and the remove button 44px to a finger at a compact --spacing", async () => {
+  const attachment = await render();
+  const remove = attachment.querySelector<HTMLElement>('[data-ouro-part="remove"]')!;
+  const measure = () => [attachment.firstElementChild!.getBoundingClientRect().height, remove.getBoundingClientRect().width, remove.getBoundingClientRect().height];
+  expect(measure()).toEqual([44, 44, 44]);
+  attachment.style.setProperty("--spacing", "0.2rem");
+  expect(measure()).toEqual([44, 44, 44]);
+});

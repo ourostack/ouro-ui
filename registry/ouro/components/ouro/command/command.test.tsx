@@ -189,6 +189,23 @@ describe("Command motion", () => {
 describe("Command", () => {
   beforeEach(() => Object.values(actions).forEach((action) => action.mockClear()));
 
+  it("keeps its fixed sizes at a compact --spacing: an item's icon column and glyph, and the search's glyph", async () => {
+    await openPalette({ items: [{ label: "Settings", onSelect: () => {}, icon: <svg viewBox="0 0 16 16" /> }] } as object);
+    const settings = page.getByRole("option", { name: /^Settings/ }).element();
+    const measure = () => [
+      settings.querySelector("[data-ouro-command-icon]")!.getBoundingClientRect().width,
+      settings.querySelector("[data-ouro-command-icon] svg")!.getBoundingClientRect().width,
+      document.querySelector("[data-ouro-command-search] svg")!.getBoundingClientRect().width,
+    ];
+    expect(measure()).toEqual([24, 16, 16]);
+    document.body.style.setProperty("--spacing", "0.2rem");
+    try {
+      expect(measure()).toEqual([24, 16, 16]);
+    } finally {
+      document.body.style.removeProperty("--spacing");
+    }
+  });
+
   it("opens a dialog named by its title, with the search input focused and every group listed", async () => {
     const element = await openPalette();
     await expect.element(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();

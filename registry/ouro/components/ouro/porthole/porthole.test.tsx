@@ -145,6 +145,24 @@ describe("Porthole", () => {
     expect(view.state).toBe("action");
   });
 
+  it("keeps its fixed sizes at a compact --spacing: a progress ring, a light, and a dismiss button and its glyph", async () => {
+    const view = await render(base(fixed([item("sync", "working", { progress: 0.4 })])));
+    const both = (expected: number[], read: () => number[]) => {
+      expect(read()).toEqual(expected);
+      view.host.style.setProperty("--spacing", "0.2rem");
+      expect(read()).toEqual(expected);
+      view.host.style.removeProperty("--spacing");
+    };
+    const width = (selector: string) => view.host.querySelector(selector)!.getBoundingClientRect().width;
+    both([16], () => [width('[data-porthole-part="progress"]')]);
+    await view.rerender(base(fixed([item("sync", "working")])));
+    both([16], () => [width('[data-porthole-part="progress"]')]);
+    await view.rerender(base(fixed([item("current", "rest")])));
+    both([8], () => [width('[data-porthole-part="light"]')]);
+    await view.rerender(base(fixed([item("current", "rest", { label: "Updated to version 2.4", dismissable: true })]), { onDismiss: () => {} }));
+    both([24, 14], () => [width('[data-ouro-part="dismiss"]'), width('[data-ouro-part="dismiss"] svg')]);
+  });
+
   it("shows a working item's progress as a ring, and turns while the amount is unknown", async () => {
     const view = await render(base(fixed([item("sync", "working", { progress: 0.4 })])));
     const ring = view.host.querySelector('[data-porthole-part="progress"]')!;

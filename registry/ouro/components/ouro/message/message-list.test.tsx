@@ -1222,6 +1222,17 @@ describe("MessageList", () => {
     tops().forEach((top, index) => near(top, before[index]!));
   });
 
+  it("keeps its fixed sizes at a compact --spacing: the loading spinner and the jump button's arrow", async () => {
+    const items = history(20);
+    const { host, scroller } = await render(<Chat items={items} hasOlder loadingOlder />);
+    await wheel(scroller, -400);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+    const sizes = () => [parseFloat(getComputedStyle(host.querySelector("[data-ouro-message-list-older] svg")!).width), host.querySelector("[data-ouro-message-list-jump] svg")!.getBoundingClientRect().width];
+    expect(sizes()).toEqual([16, 16]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(sizes()).toEqual([16, 16]);
+  });
+
   it("takes a translated label for older messages loading", async () => {
     await render(<Chat items={history(3)} loadingOlder loadingOlderLabel="Cargando mensajes anteriores" />);
     await expect.element(page.getByText("Cargando mensajes anteriores")).toBeVisible();

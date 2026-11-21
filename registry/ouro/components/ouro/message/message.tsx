@@ -496,7 +496,7 @@ const bubbleLooks = ["filled", "raised"] as const;
 // A post's line after its name line: one each, in order after the name line (and an unanswered post's Reply beside it).
 const postRow = "order-3 basis-full";
 
-// A post or a reply: the avatar's column (w-8) and the gap after it (gap-3), where the text starts.
+// A post or a reply: the avatar's column (w-ouro-8) and the gap after it (gap-3), where the text starts.
 const peopleGutter = "2.75rem";
 
 // Between two posts, a hairline from the text's start to the end, midway between them as MessageList spaces them (16px,
@@ -764,7 +764,7 @@ export function Message(props: MessageProps): JSX.Element {
   const sending = (place: string) =>
     showing && (
       <span data-ouro-message-pending="" className={cn(pendingClass, place)}>
-        <PendingIcon aria-hidden="true" className="size-3.5 shrink-0" />
+        <PendingIcon aria-hidden="true" className="size-ouro-3_5 shrink-0" />
         <span id={pendingId} className="sr-only">
           {pendingLabel}
         </span>
@@ -773,7 +773,7 @@ export function Message(props: MessageProps): JSX.Element {
   const notSent = failed !== false && (
     <div data-ouro-message-failed="" className={cn("flex max-w-full flex-wrap items-center gap-x-1 text-xs", variant === "post" && postRow)}>
       <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive">
-        <NotSentIcon aria-hidden="true" className="size-3.5 shrink-0" />
+        <NotSentIcon aria-hidden="true" className="size-ouro-3_5 shrink-0" />
         {failedLabel}
       </span>
       <Button data-ouro-control="message" data-ouro-part="retry" tone="primary" variant="plain" size="sm" onClick={() => ((retried.current = true), failed.onRetry())}>
@@ -812,7 +812,7 @@ export function Message(props: MessageProps): JSX.Element {
   // The box the bar sits in: the bubble's own, or a post's body. In a MessageList, the list puts its one bar there.
   const slot = useRef<HTMLDivElement | null>(null);
   // Beside the bubble: a chat or reply message's own layout, with the room before the bubble that the
-  // avatar's column takes when it is at the start (w-8, and the row's gap-2 in a chat or gap-3 in a reply).
+  // avatar's column takes when it is at the start (w-ouro-8, and the row's gap-2 in a chat or gap-3 in a reply).
   const beside =
     placement === "beside" && (variant === "chat" || variant === "reply") && role !== "system"
       ? avatar === false || (shape === "chat" && role === "user")
@@ -898,7 +898,7 @@ export function Message(props: MessageProps): JSX.Element {
           className,
         )}
       >
-        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : avatarSlot(avatar, nameLoading ? null : name, presence, presenceLabel, "mb-0.5"))}
+        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-ouro-8 shrink-0" /> : avatarSlot(avatar, nameLoading ? null : name, presence, presenceLabel, "mb-0.5"))}
         <div
           className={cn(
             "relative flex max-w-[min(85%,42rem)] min-w-0 flex-col gap-1",
@@ -1022,11 +1022,11 @@ export function Message(props: MessageProps): JSX.Element {
       )}
     >
       {!end && avatar !== false && (
-        <span data-ouro-message-gutter="" className="flex w-8 shrink-0 justify-center">
+        <span data-ouro-message-gutter="" className="flex w-ouro-8 shrink-0 justify-center">
           {continued ? (
             showing ? (
               // A continued reply's line holds its text, so its clock sits in the gutter, where its time shows on hover.
-              <PendingIcon data-ouro-message-pending-gutter="" aria-hidden="true" className={cn(pendingClass, "mt-1.5 size-3.5")} />
+              <PendingIcon data-ouro-message-pending-gutter="" aria-hidden="true" className={cn(pendingClass, "mt-1.5 size-ouro-3_5")} />
             ) : (
               time !== undefined && (
               <time
@@ -1105,7 +1105,7 @@ const quoteButtonClass =
 function quoteBox(quote: MessageQuote): JSX.Element {
   const body = (
     <>
-      <span aria-hidden="true" data-ouro-message-quote-bar="" className="w-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
+      <span aria-hidden="true" data-ouro-message-quote-bar="" className="w-ouro-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
       {quote.avatar}
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="sr-only">{quote.label ?? `Quoting ${quote.author}`}: </span>
@@ -1183,7 +1183,7 @@ function NotSentIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
 }
 
 // Forced colours paint every background as the page, so the dots take the text's system colour there.
-const typingDot = "size-1.5 animate-[ouro-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current forced-colors:bg-[CanvasText]";
+const typingDot = "size-ouro-1_5 animate-[ouro-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current forced-colors:bg-[CanvasText]";
 
 /**
  * Three dots that pulse in turn (opacity only, so reduced motion keeps them), with a spoken label.

@@ -127,6 +127,24 @@ async function settled() {
 }
 
 describe("Sidebar", () => {
+  it("keeps its fixed sizes at a compact --spacing: the current bar, a group's chevron and the collapse button's icon", async () => {
+    const { host } = await render(
+      <Sidebar label="Main" sections={[{ items: [{ label: "Recipes", href: "/recipes" }, { label: "Library", items: [{ label: "Cookbooks", href: "/cookbooks" }] }] }]} currentPath="/recipes" />,
+    );
+    const current = host.querySelector<HTMLElement>('[aria-current="page"]')!;
+    const group = host.querySelector<HTMLElement>('[data-ouro-part="group"]')!;
+    const collapse = host.querySelector<HTMLElement>('[data-ouro-part="collapse"]')!;
+    const measure = () => [
+      getComputedStyle(current, "::before").width,
+      group.querySelector("svg")!.getBoundingClientRect().width,
+      collapse.querySelector<HTMLElement>('span[aria-hidden="true"]')!.getBoundingClientRect().width,
+      collapse.querySelector("span[aria-hidden] svg")!.getBoundingClientRect().width,
+    ];
+    expect(measure()).toEqual(["2px", 16, 20, 20]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(measure()).toEqual(["2px", 16, 20, 20]);
+  });
+
   it("keeps each row's edge under forced colours, which drop its fill", async () => {
     await render(<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", href: "/recipes" }] }]} />);
     await commands.emulateMedia({ forcedColors: "active" });

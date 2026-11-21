@@ -183,6 +183,14 @@ describe("ThreadSummary", () => {
     expect(label().getBoundingClientRect().left - faces).toBeLessThan(8);
   });
 
+  it("keeps the Reply label tucked over the faces at a compact --spacing", async () => {
+    const { host, summary } = await render(<ThreadSummary count={2} repliers={repliers.slice(0, 2)} onOpen={() => {}} />);
+    const label = () => summary.querySelector("button")!;
+    expect(getComputedStyle(label()).marginLeft).toBe("-4px");
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(getComputedStyle(label()).marginLeft).toBe("-4px");
+  });
+
   it("renders in server HTML and hydrates without a warning", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const node = <ThreadSummary count={2} repliers={repliers} lastReply="7:44 AM" onOpen={() => {}} />;
