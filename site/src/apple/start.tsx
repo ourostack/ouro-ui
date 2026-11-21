@@ -80,7 +80,22 @@ export default function AppleStart(): JSX.Element {
         </div>
       </AppleBand>
 
-      <AppleBand id="box" eyebrow="In the box" title="What you can import.">
+      <AppleBand
+        id="box"
+        eyebrow="In the box"
+        title="What you can import."
+        lede={
+          <p>
+            {claim("Since 1.4.0 every corner is a squircle, and OuroCheckbox moves like web Ouro's: its box fills, then its tick draws along its path. OuroCheckboxMark and OuroCheckboxPressStyle draw the same box in an app's own rows.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0" },
+              verify: [
+                { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0" },
+                { equals: "site/src/apple/kit.json#release", is: "1.4.0" },
+              ],
+            })}
+          </p>
+        }
+      >
         <ul className="apple-products">
           {PRODUCTS.map((product) => (
             <li key={product.name} className="apple-product">
