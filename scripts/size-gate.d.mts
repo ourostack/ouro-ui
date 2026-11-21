@@ -1,0 +1,10 @@
+export type Size = { bytes: number; ceiling: number; budget: number };
+export type Sizes = Record<string, Size>;
+export const reportDir: string;
+export function reportName(check: string, tree: string): string;
+export function gateMode(env?: Record<string, string | undefined>): "pull" | "main" | "local";
+export function readBase(check: string, dir?: string): Sizes | null;
+export function writeReport(check: string, sizes: Sizes, dir?: string): void;
+export function mainBreaches(sizes: Sizes): string[];
+export function judgeSizes(sizes: Sizes, options: { mode: "pull" | "main" | "local"; base: Sizes | null }): { ok: boolean; failures: string[]; lines: string[] };
+export function readZipEntry(zip: Buffer): string;

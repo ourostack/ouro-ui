@@ -40,6 +40,23 @@ export const CEILINGS = {
   "settings-page": { js: 104_027 + 1024, css: 13_737 + 512 },
 };
 
+/**
+ * The most one pull request may add to what a pattern adds, gzip bytes: on a pull request the size check judges that
+ * pull request's growth over its base (scripts/size-gate.mjs), and a ceiling is enforced on main.
+ */
+export const BUDGET = { js: 1024, css: 512 };
+
+/** Each pattern's JavaScript and CSS as the size gate reads them, with its ceiling and budget. */
+export function patternSizes(results, ceilings = CEILINGS) {
+  const sizes = {};
+  for (const [name, result] of Object.entries(results)) {
+    if (name === BARE || !ceilings[name]) continue;
+    sizes[`${name} JavaScript`] = { bytes: result.addedJs, ceiling: ceilings[name].js, budget: BUDGET.js };
+    sizes[`${name} CSS`] = { bytes: result.addedCss, ceiling: ceilings[name].css, budget: BUDGET.css };
+  }
+  return sizes;
+}
+
 /** The name of the bare app, built beside the patterns. */
 export const BARE = "bare-app";
 
