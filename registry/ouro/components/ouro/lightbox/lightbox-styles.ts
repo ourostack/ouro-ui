@@ -142,10 +142,10 @@ const mosaicMoreClass =
 
 /**
  * How a mosaic lays out `count` pictures, as Teams and other chat apps do: one at its own shape
- * (between 3:4 and 3:1, 4:3 when its size is unknown); two side by side in a 2:1 frame; three as
+ * (whole, never cropped, 4:3 when its size is unknown); two side by side in a 2:1 frame; three as
  * one large and two small in a 3:2 frame; four or more as a 2 by 2 grid in a 4:3 frame. @internal
  *
- * @claim "How a mosaic lays out `count` pictures" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
+ * @claim "How a mosaic lays out `count` pictures" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, whole, and 4:3 when its size is unknown)
  * @claim "How a mosaic lays out `count` pictures" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws two side by side, three as one large and two small, and four or more as a 2 by 2 grid)
  */
 function mosaicLayout(count: number, width?: number, height?: number): { ratio: number; grid?: string } {
@@ -153,7 +153,7 @@ function mosaicLayout(count: number, width?: number, height?: number): { ratio: 
     const [w, h] = [width ?? 0, height ?? 0];
     const own = w > 0 && h > 0 ? w / h : 4 / 3;
     // One cell needs no tracks of its own: the grid's single implicit one fills the frame.
-    return { ratio: Math.min(3, Math.max(3 / 4, own)) };
+    return { ratio: own };
   }
   if (count === 2) return { ratio: 2, grid: "grid-cols-2 grid-rows-1" };
   if (count === 3) return { ratio: 3 / 2, grid: "grid-cols-[3fr_2fr] grid-rows-2" };

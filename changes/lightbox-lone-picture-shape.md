@@ -1,0 +1,1 @@
+- Lightbox: a mosaic of one picture keeps the picture's own shape, so a very wide or very tall one is no longer cropped to between 3:4 and 3:1.
