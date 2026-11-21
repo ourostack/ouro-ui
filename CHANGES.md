@@ -1,0 +1,4 @@
+# Changes in this release
+
+- New: `markPicturesReady(images)` lets an app mark pictures it has already loaded and decoded as ready, so an Avatar with that `src` draws the picture on its first frame (#2741).
+- Accordion, AgentPresence, AppWindow, Autocomplete, Calendar, Chart, Celebrate, Collapsible, ChoiceCard, ColorField, ColorSchemeToggle, Composer, Cover, Empty, FamilyBar, FileField, HoverCard, ImageField, Inspector, Lightbox, Link, Moment, NumberField, OtpField, Progress, ReadReceipt, RouteProgress, SegmentedControl, SkipLink, Slider, Spinner, SnapPip, SwipeActions, SyncStatus, TabBar, ThemePicker, ThreadLayout, ThreadRail, Timer, TypingIndicator, UnreadDot: fixed sizes (icons, dots, swatches, thumbs, touch floors and popup widths) read `--ouro-size-*` tokens, so a compact `--spacing` no longer shrinks them (#417).
