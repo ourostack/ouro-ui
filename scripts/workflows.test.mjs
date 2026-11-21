@@ -654,6 +654,11 @@ for (const [event, ref, expected] of [
   });
 }
 
+test("install-upgrade's adds resolve GitHub refs through fetch, where the raw-fetch preload sees them: GH_TOKEN makes shadcn use its token path, not the gh CLI", () => {
+  const ci = rawWorkflows.find(({ file }) => file === "ci.yml").text;
+  assert.match(ci, /^ {6}- run: scripts\/install-test\.sh upgrade "\$RUNNER_TEMP\/app"\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n/m);
+});
+
 test("install-github runs no install at the root: the harness installs the release tag's dependencies, and reads its registry.json (#2194)", () => {
   const job = ciJobs()["install-github"];
   assert.doesNotMatch(job, /^ {8}run: pnpm i\b/m);

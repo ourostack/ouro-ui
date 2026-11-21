@@ -1,4 +1,5 @@
-// Retries a fetch from raw.githubusercontent.com on its own, so one dropped request costs one retry.
+// Retries a fetch from raw.githubusercontent.com on its own, so one dropped request costs one retry, and
+// answers shadcn's GitHub ref lookup for a tag (withTagFallback).
 // shadcn add fetches each file of a release with the global fetch; the preload
 // (raw-fetch-retry-preload.mjs) wraps it for that shadcn process only.
 import { setTimeout as sleepFor } from "node:timers/promises";
@@ -7,6 +8,8 @@ import { URL } from "node:url";
 const { Response } = globalThis;
 
 export const RAW_HOST = "raw.githubusercontent.com";
+const API_HOST = "api.github.com";
+const BRANCH_LOOKUP = /^\/repos\/[^/]+\/[^/]+\/commits\/heads\//;
 
 /** Waits before the 2nd, 3rd and 4th tries. */
 export const RETRY_DELAYS_MS = [500, 1500, 4000];
@@ -24,6 +27,25 @@ function urlOf(input) {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Wraps `fetchImpl` for shadcn's ref lookup. When `git ls-remote` fails, shadcn resolves `owner/repo#ref` through
+ * GitHub's API and reads the branch lookup (commits/heads/<ref>) first, reading the tag only after a 404. GitHub
+ * answers 422, not 404, for a tag looked up as a branch, so that lookup failed for every tag whatever GitHub's
+ * state. A 422 on a branch lookup is therefore answered by the tag lookup. A ref that is neither still gets 422.
+ * Every other request and answer passes through.
+ */
+export function withTagFallback(fetchImpl) {
+  return async function tagFallbackFetch(input, init) {
+    const response = await fetchImpl(input, init);
+    const url = urlOf(input);
+    if (response.status !== 422 || url?.hostname !== API_HOST || !BRANCH_LOOKUP.test(url.pathname)) return response;
+    response.body?.cancel().catch(() => {});
+    const tag = new URL(url.href);
+    tag.pathname = url.pathname.replace("/commits/heads/", "/commits/tags/");
+    return fetchImpl(tag.href, init);
+  };
 }
 
 /**
