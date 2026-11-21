@@ -572,7 +572,10 @@ export function stylesheetUpdate(previous, next, found, read, tag, owned = () =>
             files[at] = source;
             hashes[at] = sha256(source);
             const named = (entry) => (entry.prop ? `\`${entry.prop}\` in ${entry.where}` : entry.where);
-            notes.push(`Moves ouro-base out of \`${path}\` into \`${at}\`, which \`${path}\` imports before its own rules, and which Ouro Current replaces whole on each release.`);
+            // Cited, so a repository that lints its pull requests' claims passes the note: the release's file is the
+            // source, and the import line this update writes is the check, found in the stylesheet once it merges.
+            const release = `https://github.com/ourostack/ouro-ui/blob/${tag}/${BASE_SOURCE}`;
+            notes.push(`Moves ouro-base out of \`${path}\` into \`${at}\`, [which \`${path}\` imports before its own rules, and which Ouro Current replaces whole on each release](${release} "verify:fileLine(${path}, /@import .*ouro-base\\.css/)").`);
             if (moved.kept.length) notes.push(`Keeps the app's own values after the import, where they win over ouro-base's: ${moved.kept.map(named).join(", ")}. Delete any that only copied an older ouro-base.`);
             if (moved.restored.length) notes.push(`ouro-base's file brings back what \`${path}\` lacked: ${moved.restored.map(named).join(", ")}.`);
             continue;
