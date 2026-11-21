@@ -277,9 +277,20 @@ const firstView = 1000;
 // Stryker disable next-line ArrowFunction: the window's height is read once and never subscribed to, so an empty unsubscribe changes nothing a test can see.
 const subscribeNothing = () => () => {};
 const firstViewNow = () => firstView;
-// The window's height bounds the list's: the visual viewport's, which the browser answers without laying the page out (`innerHeight` makes it).
+// The window's height bounds the list's: the visual viewport's. Chromium answers it without laying the page out (`innerHeight` makes it).
 // Stryker disable next-line OptionalChaining: every browser tests run in has a visual viewport, so the fallback to innerHeight is unreachable there.
 const windowHeightNow = () => Math.max(1, Math.min(firstView, Math.ceil(window.visualViewport?.height ?? /* istanbul ignore next @preserve -- every browser tests run in has a visual viewport */ innerHeight)));
+// WebKit lays the page out to answer a visual viewport read, and React reads the snapshot on every render, so the height is kept
+// until the viewport resizes. Adding the same listener again adds nothing.
+let keptHeight: number | undefined;
+const dropHeight = () => void (keptHeight = undefined);
+const keptWindowHeight = () => {
+  if (keptHeight === undefined) {
+    (window.visualViewport ?? /* istanbul ignore next @preserve -- every browser tests run in has a visual viewport */ window).addEventListener("resize", dropHeight);
+    keptHeight = windowHeightNow();
+  }
+  return keptHeight;
+};
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
 // A header's height on the first frame, at most: headers are shorter than a row, and guessing them as tall would leave the view's bottom unfilled.
@@ -615,7 +626,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const [range, setRange] = useState<readonly [number, number] | null>(null);
   const [reach, setReach] = useState<string | null>(null);
   // Server HTML and a hydrating client use `firstView`; a client-only mount sizes the first frame from the window, with no layout read and no second render.
-  const windowHeight = useSyncExternalStore(subscribeNothing, windowHeightNow, firstViewNow);
+  const windowHeight = useSyncExternalStore(subscribeNothing, keptWindowHeight, firstViewNow);
   const firstHeight = firstViewHeight === undefined ? windowHeight : Math.max(1, firstViewHeight);
   const controls = useRef(new Map<string, HTMLButtonElement>());
   const latest = useRef<Laid | null>(null);

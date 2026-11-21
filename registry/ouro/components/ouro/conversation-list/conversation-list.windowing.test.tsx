@@ -274,6 +274,22 @@ describe("ConversationList windowing", () => {
     expect(second()).toBeGreaterThan(before);
   });
 
+  it("reads the visual viewport's height once, and again only after the viewport resizes, however often the list renders", async () => {
+    const list = (selectedId: string) => <ConversationList label="Conversations" items={many(200)} selectedId={selectedId} onSelect={() => {}} />;
+    const view = await render(list("c0"));
+    const viewport = window.visualViewport!;
+    // A resize drops the height kept from before, so the next render reads it once.
+    await act(async () => viewport.dispatchEvent(new Event("resize")));
+    const reads = vi.spyOn(VisualViewport.prototype, "height", "get");
+    await view.rerender(list("c1"));
+    expect(reads).toHaveBeenCalledTimes(1);
+    for (const selectedId of ["c2", "c3", "c4"]) await view.rerender(list(selectedId));
+    expect(reads).toHaveBeenCalledTimes(1);
+    await act(async () => viewport.dispatchEvent(new Event("resize")));
+    await view.rerender(list("c5"));
+    expect(reads).toHaveBeenCalledTimes(2);
+  });
+
   it("renders only the rows near the view of a long list, in a list as tall as all of them", async () => {
     const { list, rows, ids, pane } = await render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />);
     await scrollPane(pane, 0);
