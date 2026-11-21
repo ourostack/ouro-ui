@@ -202,7 +202,7 @@ function ChartLabel({ x, y, anchor, className, fontSize, fontWeight, halo = fals
     <foreignObject className={className} x={box.x} y={box.y} width={box.width} height={box.height} fontSize={fontSize} fontWeight={fontWeight}>
       <div style={{ ...labelStyle, textAlign: box.align }}>
         {/* A patch of the card's colour behind the name or number, so it reads across coasts, the route and the mark's ring. */}
-        {halo ? <span style={{ background: "var(--card)", borderRadius: 2, padding: "1px 2px", boxShadow: "0 0 0 2px var(--card)" }}>{children}</span> : children}
+        {halo ? <span className="site-halo" style={{ background: "var(--card)", borderRadius: 2, padding: "1px 2px", boxShadow: "0 0 0 2px var(--card)" }}>{children}</span> : children}
       </div>
     </foreignObject>
   );
