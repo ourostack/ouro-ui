@@ -1993,8 +1993,10 @@ test("the conformance shards run only the checks' proofs on the first shard when
   assert.match(block, /^ {8}name: The checks prove they can fail\n {8}run: pnpm conformance -t "can fail"$/m);
   // The shard is the matrix entry over the matrix's size, and the job's name says the same count.
   assert.match(block, /^ {10}OURO_CONFORMANCE_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
-  // Three shards where every story is checked (main, the merge queue, a full plan) and one on a reduced pull request.
-  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && \(github\.event_name == 'pull_request' && '\[1,2,3\]' \|\| '\[1,2\]'\) \|\| '\[1\]'\) \}\}$/m);
+  // Three shards where every story is checked (main, the merge queue, a full plan); on a reduced pull request, the plan's
+  // count (one for a few stories, three for most: scripts/test-impact.mjs conformanceShards), else one.
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && \(github\.event_name == 'pull_request' && '\[1,2,3\]' \|\| '\[1,2\]'\) \|\| needs\.plan\.outputs\.conformance_shards \|\| '\[1\]'\) \}\}$/m);
+  assert.match(ciJobs().plan, /^ {6}conformance_shards: \$\{\{ steps\.plan\.outputs\.conformance_shards \}\}$/m);
   assert.match(block, /^ {4}name: conformance \(\$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}\)$/m);
 });
 

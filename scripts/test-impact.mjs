@@ -254,6 +254,16 @@ function foldersFor(components, root) {
 /** OURO_STORIES: the folders whose stories the shared suites in test/ render (test/stories.tsx). */
 export const storyFolders = (components, root = repoRoot) => foldersFor(components, root).join(",");
 
+/**
+ * The conformance shards a reduced run needs, as the matrix's JSON list: one while it renders the stories of a third of the
+ * component folders or fewer, else three, as a full run on a pull request has. A change to a component nearly every story
+ * renders (Button) selects most stories, which one shard took 17.6 minutes to check, past the CI budget (#2774).
+ */
+export function conformanceShards(rendered, root = repoRoot) {
+  const total = new Set(readFolders(root).keys()).size;
+  return foldersFor(rendered, root).length * 3 > total ? "[1,2,3]" : "[1]";
+}
+
 /** The Vitest projects every run has (vitest.config.ts; scripts/workflows.test.mjs checks the list). */
 const projects = ["ouro-chromium", "ouro-webkit", "ouro-touch", "site"];
 
@@ -417,7 +427,7 @@ async function main([command, ...args]) {
     const impact = testImpact(diff.stdout.split("\n").filter(Boolean));
     console.log(impact.full ? "Everything runs:" : `Reduced run: the tests of ${impact.components.join(", ") || "no component"}; the stories of ${impact.rendered.join(", ") || "no component"}`);
     for (const reason of impact.reasons) console.log(`- ${reason}`);
-    if (process.env["GITHUB_OUTPUT"]) appendFileSync(process.env["GITHUB_OUTPUT"], `full=${impact.full}\ncomponents=${impact.full ? "" : impact.components.join(",")}\nrendered=${impact.full ? "" : impact.rendered.join(",")}\n`);
+    if (process.env["GITHUB_OUTPUT"]) appendFileSync(process.env["GITHUB_OUTPUT"], `full=${impact.full}\ncomponents=${impact.full ? "" : impact.components.join(",")}\nrendered=${impact.full ? "" : impact.rendered.join(",")}\nconformance_shards=${impact.full ? "" : conformanceShards(impact.rendered)}\n`);
     return 0;
   }
   if (command === "vitest") {
