@@ -95,7 +95,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [porthole](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/porthole) | 13 | 0 | none yet |
 | [progress](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/progress) | 4 | 0 | none yet |
 | [radio-group](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/radio-group) | 4 | 0 | none yet |
-| [reaction-bar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/reaction-bar) | 6 | 0 | none yet |
+| [reaction-bar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/reaction-bar) | 7 | 0 | none yet |
 | [read-receipt](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/read-receipt) | 1 | 0 | none yet |
 | [relative-time](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/relative-time) | 3 | 0 | none yet |
 | [reorderable](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/reorderable) | 4 | 0 | [reorderable.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/reorderable.sr.spec.ts): 1 test on `lists-reorderable--disabled` |
