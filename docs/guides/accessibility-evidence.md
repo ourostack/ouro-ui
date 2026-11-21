@@ -17,7 +17,7 @@ Some specs pass a step through a fallback or only log it, and the lane's advisor
 
 ## Per component
 
-Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 18 of 113 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
+Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 18 of 114 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
 
 | Component | Stories | Conformance declarations | Screen-reader spec (VoiceOver and NVDA) |
 | --- | --- | --- | --- |
@@ -65,6 +65,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [field](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/field) | 7 | 0 | none yet |
 | [file-field](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/file-field) | 5 | 0 | none yet |
 | [form](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/form) | 6 | 0 | none yet |
+| [freshness](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/freshness) | 3 | 0 | none yet |
 | [hero](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/hero) | 11 | 0 | none yet |
 | [hover-card](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/hover-card) | 2 | 0 | none yet |
 | [image-cropper](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/image-cropper) | 3 | 0 | none yet |

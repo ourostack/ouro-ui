@@ -456,6 +456,7 @@ Components:
 `fieldset`,
 `file-field`,
 `form`,
+`freshness`,
 `heading`,
 `hero`,
 `hover-card`,
@@ -767,6 +768,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **createChimeContext** — Makes an audio context for `chime`, or returns `null` where the browser has no Web Audio. [Docs](docs/createChimeContext.md)
 - **formatDuration** — Seconds as a clock reads them: `9:05`, or `1:02:03` from an hour up. [Docs](docs/formatDuration.md)
 - **formatPortholeAge** — An age in ms as short English words, rounded down so it never claims more recent than it is: `"less than a minute"`, `"4 min"`, `"3 hr"`, `"1 day"`, `"2 days"`. [Docs](docs/formatPortholeAge.md)
+- **Freshness** — How old the data on screen is, and whether the app's cache is fetching it again: "Updated 3 minutes ago", with a small icon that turns while it refreshes. [Docs](docs/Freshness.md)
 - **InstallPrompt** — A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now. [Docs](docs/InstallPrompt.md)
 - **LevelMeter** — A small live input level: a row of bars that light from the start edge as a microphone picks up sound, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a "test your microphone" row). [Docs](docs/LevelMeter.md)
 - **Moment** — A moment in an app's life, shown in the space it is given: nothing here yet, on its way, something failed, a first run, or something finished. [Docs](docs/Moment.md)

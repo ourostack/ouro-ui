@@ -1,0 +1,1 @@
+- New: `Freshness` draws how old the data on screen is and whether the app's cache is refreshing it, with `data-ouro-refreshing` for agents; the app's data layer still fetches and stores.
