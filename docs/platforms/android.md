@@ -29,7 +29,7 @@ AppFunctions need compileSdk 37 and AGP 9.1 or later, and Google still calls the
 
 - **A real device.** Only emulators so far, and the X-ray runs on Google's API 37 test image, because the full Google APIs image crashes its compositor under software rendering.[^ci]
 - **Components.** Web has every component in the catalog, which [the parity matrix](parity.md) counts, and this kit has twenty-six.[^decision] On a Sheet whose body scrolls, a drag inside the body scrolls instead of dismissing; the handle and the padding still dismiss.
-- **Table's linked rows.** A linked row is one button instead of a link. CI reads the table's agent tree on an emulator, whose test image lacks TalkBack, so what TalkBack says is unchecked.[^talkback-image] Tracked in [ourostack/ouro-ui-android#90](https://github.com/ourostack/ouro-ui-android/issues/90).
+- **Table's linked rows.** A linked row is one button instead of a link. CI proves what TalkBack itself speaks for a column header, the sorted column and a row, once focus is on each node, on an emulator with TalkBack built from source.[^talkback-proof] A press on the row staying one press is read from the agent tree, not from speech, and TalkBack's own swipe navigation is unproven: injected touches and swipes did not move its focus there. Tracked in [ourostack/ouro-ui-android#90](https://github.com/ourostack/ouro-ui-android/issues/90).
 - **Maven Central.** It needs a Sonatype account, so the kit uses GitHub Pages for now.[^releasing]
 
 ## What to use meanwhile
@@ -61,4 +61,4 @@ A new platform starts from [the guide for platform builders](contributing.md) in
 [^confirm]: https://github.com/ourostack/ouro-ui-android/releases/tag/v0.5.0; https://github.com/ourostack/ouro-ui-android/blob/e38acea984aa202707f6a0c8ea9c6fd889aabf1f/README.md#L85-L104 verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/tag/v0.5.0) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/e38acea984aa202707f6a0c8ea9c6fd889aabf1f/README.md#L85-L104)
 [^appfunctions]: https://developer.android.com/ai/appfunctions verify:urlOk(https://developer.android.com/ai/appfunctions)
 
-[^talkback-image]: https://github.com/ourostack/ouro-ui-android/pull/89 verify:urlOk(https://github.com/ourostack/ouro-ui-android/pull/89)
+[^talkback-proof]: https://github.com/ourostack/ouro-ui-android/pull/94 verify:urlOk(https://github.com/ourostack/ouro-ui-android/pull/94)
