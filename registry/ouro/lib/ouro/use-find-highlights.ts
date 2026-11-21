@@ -44,6 +44,7 @@ function useFindHighlights(options: {
   const drawn = useRef<Range | undefined>(undefined);
   useLayoutEffect(
     () => () => {
+      /* istanbul ignore else @preserve -- the effect below never draws without the API, so there is nothing to delete */
       if (typeof CSS !== "undefined" && "highlights" in CSS) {
         CSS.highlights.delete(ALL_MATCHES);
         CSS.highlights.delete(CURRENT_MATCH);

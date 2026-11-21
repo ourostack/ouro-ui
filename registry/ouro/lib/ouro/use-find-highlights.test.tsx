@@ -20,12 +20,12 @@ const rows = [
   { key: "c", text: "a last fox" },
 ];
 
-function Harness({ query, current, reduced = false, tall = false, roomy = false }: { query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean }) {
+function Harness({ query, current, reduced = false, tall = false, roomy = false, none = false, fold, locale }: { none?: boolean; fold?: "none" | "case" | "accents" | "all"; locale?: string; query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean }) {
   const scroller = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
-  const find = { query };
+  const find = { query, ...(fold ? { fold } : {}), ...(locale ? { locale } : {}) };
   const result = findInMessages(rows, find);
-  useFindHighlights({ scroller, content, slot: "data-key", find, result, current, reduced });
+  useFindHighlights({ scroller, content, slot: "data-key", find: none ? undefined : find, result, current, reduced });
   return (
     <div ref={scroller} data-testid="scroller" style={{ height: roomy ? 300 : 80, overflow: "auto" }}>
       <div ref={content}>
@@ -54,6 +54,15 @@ async function mount(props: Parameters<typeof Harness>[0]) {
 const drawn = (name: string) => [...(CSS.highlights.get(name) ?? [])].map((range) => range.toString());
 
 describe("useFindHighlights", () => {
+  it("draws nothing for a list with no find, and takes the fold and locale a find names", async () => {
+    await mount({ query: "fox", current: 0, none: true });
+    expect(drawn(ALL_MATCHES)).toEqual([]);
+    await mount({ query: "FOX", current: 0, fold: "none" });
+    expect(drawn(CURRENT_MATCH)).toEqual([]);
+    await mount({ query: "FOX", current: 0, fold: "case", locale: "en" });
+    expect(drawn(CURRENT_MATCH)).toEqual(["fox"]);
+  });
+
   it("draws the current match apart from the others, and clears both when the query empties or the list goes", async () => {
     const { root } = await mount({ query: "fox", current: 3 });
     expect(drawn(CURRENT_MATCH)).toEqual(["fox"]);
@@ -109,6 +118,13 @@ describe("useFindHighlights", () => {
     expect(scrollTo).not.toHaveBeenCalled();
     await act(async () => root.render(<Harness query="foxes" current={0} tall reduced />));
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "instant" }));
+  });
+
+  it("leaves the scroll alone for a match already well inside the view", async () => {
+    const scrollTo = vi.spyOn(HTMLElement.prototype, "scrollTo").mockImplementation(() => undefined);
+    await mount({ query: "last", current: 0, roomy: true });
+    expect(drawn(CURRENT_MATCH)).toEqual(["last"]);
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it("scrolls up to a match above the view, leaving room above it", async () => {

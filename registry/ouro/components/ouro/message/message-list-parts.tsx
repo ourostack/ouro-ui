@@ -15,7 +15,7 @@ export { MessageFindLayer };
  *
  * @internal
  */
-const findMarks =
+const findMarkClasses =
   "[&::highlight(ouro-find)]:bg-[color-mix(in_oklab,var(--primary)_22%,var(--background))] [&::highlight(ouro-find)]:text-foreground " +
   "[&::highlight(ouro-find-current)]:bg-primary [&::highlight(ouro-find-current)]:text-primary-foreground " +
   "forced-colors:[&::highlight(ouro-find)]:bg-[Mark] forced-colors:[&::highlight(ouro-find)]:text-[MarkText] " +
@@ -48,7 +48,8 @@ function MessageFindLayer({
   onFindMatches: ((report: MessageListFindReport) => void) | undefined;
   onMarks: (marks: string) => void;
 }): null {
-  useLayoutEffect(() => onMarks(findMarks), [onMarks]);
+  // Stryker disable next-line ArrayDeclaration: the callback is a state setter, which never changes, so its dependencies make no difference.
+  useLayoutEffect(() => onMarks(findMarkClasses), [onMarks]);
   const reduced = useReducedMotion();
   const { query, fold, locale } = find;
   const found = useMemo(

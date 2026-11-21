@@ -51,6 +51,23 @@ describe("MessageList find", () => {
     await expect.poll(() => report.mock.lastCall?.[0]).toEqual({ count: 3, current: 2, partial: false });
   });
 
+  it("counts the matches before the current one's message, wherever it is", async () => {
+    const report = vi.fn();
+    await render(<Chat find={{ query: "lunch", current: 0 }} onFindMatches={report} />);
+    await expect.poll(() => report.mock.lastCall?.[0]).toEqual({ count: 3, current: 0, partial: false });
+  });
+
+  it("reports to the latest onFindMatches, and carries the highlight classes on the list", async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const { host, root } = await render(<Chat find={{ query: "lunch" }} onFindMatches={first} />);
+    await expect.poll(() => first.mock.calls.length).toBeGreaterThan(0);
+    await act(async () => root.render(<Chat find={{ query: "ahead" }} onFindMatches={second} />));
+    await expect.poll(() => second.mock.lastCall?.[0]).toEqual({ count: 1, current: 0, partial: false });
+    expect(first.mock.lastCall?.[0]).toEqual({ count: 3, current: 0, partial: false });
+    expect(host.querySelector("[data-ouro=message-list]")!.className).toContain("[&::highlight(ouro-find-current)]:bg-primary");
+  });
+
   it("wraps the current match round, and reports none for an empty query", async () => {
     const report = vi.fn();
     const { root } = await render(<Chat find={{ query: "lunch", current: -1 }} onFindMatches={report} />);
