@@ -334,9 +334,11 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
       className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}
     >
       {buttons}
-      <span role="status" data-ouro-part="reason" className="text-foreground empty:hidden text-sm">
-        {optimistic ? settled.reason : undefined}
-      </span>
+      {optimistic ? (
+        <span role="status" data-slot="reaction-bar-reason" className="text-foreground empty:hidden text-sm">
+          {settled.reason}
+        </span>
+      ) : null}
     </div>
   );
 }
