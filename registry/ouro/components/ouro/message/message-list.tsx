@@ -401,6 +401,14 @@ const KEEP_ARRIVED = 20;
  * @claim "What marks each child's slot" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > puts each child in a slot that draws no box, keeping a continued message's spacing, in a list of any length)
  */
 const SLOT = "data-ouro-message-list-slot";
+/**
+ * Marks a slot whose previous slot holds a post, so the post in this slot draws its hairline by a rule with no sibling
+ * combinator, which WebKit restyles slots for.
+ * @claim "draws its hairline by a rule with no sibling combinator" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws the hairline between posts in a list with no :has() or sibling rule over its slots, which WebKit restyles for)
+ */
+const POST_AFTER = "data-ouro-message-list-after-post";
+/** Sets a slot's mark from the child of the slot before it, as it is now. */
+const markPostAfter = (slot: Element) => void slot.toggleAttribute(POST_AFTER, slot.previousElementSibling?.firstElementChild?.getAttribute("data-variant") === "post");
 
 /**
  * Each child's height as last measured, by key, with its margins and without the gap before it; the gap; and the height
@@ -2154,6 +2162,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
         setBand((now) => (now?.id === id ? now : { id, from: keys[from]!, to: keys[to]!, held: new Set(inBand) }));
       }
     };
+    // The post marks go in before the early return below, since a child's variant can change on a render that reads nothing
+    // else. A mark that already holds writes nothing, and reading attributes and siblings forces no layout.
+    for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) markPostAfter(slot);
     const now = viewRef.current;
     const last = synced.current;
     synced.current = now;
@@ -2206,8 +2217,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const resized = new ResizeObserver(() => windowSync.current!(false));
     resized.observe(scroller);
     resized.observe(content);
+    // A variant change re-renders the message's children, which the child list shows, so the observer needs no attribute. The
+    // mark that moves is the next slot's, the only one a slot's mark reads (the slot before it).
+    const posts = new MutationObserver((records) => {
+      for (const record of records) {
+        const next = (record.target as Element).closest(`[${SLOT}]`)?.nextElementSibling;
+        if (next) markPostAfter(next);
+      }
+    });
+    posts.observe(content, { childList: true, subtree: true });
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer), cancelAnimationFrame(dripping.current));
+    return () => (resized.disconnect(), posts.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer), cancelAnimationFrame(dripping.current));
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);
