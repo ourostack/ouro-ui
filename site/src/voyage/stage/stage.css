@@ -847,7 +847,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: var(--frame-radius);
+  border-radius: var(--frame-radius); corner-shape: var(--ouro-corner-shape);
   box-shadow: var(--frame-shadow);
   will-change: transform;
 }
@@ -887,7 +887,7 @@
   position: absolute;
   /* Its soft edge is in the gradient, not a blur, so it is not blurred again each frame the fish move over it. */
   inset: calc(6% - 22px) calc(4% - 22px) -22px;
-  border-radius: 999px;
+  border-radius: 999px; corner-shape: round;
   /* --porthole-glow is its strength at the centre; a theme sets only that. The stops match the old blur within 2/255. */
   background: radial-gradient(
     closest-side,
@@ -1420,7 +1420,7 @@
   content: "";
   position: absolute;
   inset: -5px;
-  border-radius: calc(var(--radius-lg) + 4px);
+  border-radius: calc(var(--radius-lg) + 4px); corner-shape: var(--ouro-corner-shape);
   box-shadow: 0 0 0 4px color-mix(in oklab, var(--lantern) 55%, transparent);
   opacity: 0;
   pointer-events: none;
@@ -1714,7 +1714,7 @@
   position: absolute;
   inset: 6px;
   border: 1px solid color-mix(in oklab, var(--chart-3) 55%, transparent);
-  border-radius: calc(var(--radius) * 2.2 - 6px);
+  border-radius: calc(var(--radius) * 2.2 - 6px); corner-shape: var(--ouro-corner-shape);
   pointer-events: none;
   --screw: radial-gradient(circle at 40% 35%, color-mix(in oklab, var(--chart-3) 45%, white) 0 1.5px, color-mix(in oklab, var(--chart-3) 80%, black) 4px, transparent 4.5px);
   background:

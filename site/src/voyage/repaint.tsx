@@ -276,7 +276,7 @@ export function Repaint(): JSX.Element {
           <div className="grid justify-items-start gap-4">
             <h3 className="m-0 font-heading text-xl font-semibold">Or mix your own paint</h3>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-              <div role="group" aria-label="Accent" className="flex gap-1.5">
+              <div role="radiogroup" aria-label="Accent" className="flex gap-1.5">
                 {ACCENTS.map((item) => (
                   <Button
                     key={item.name}
@@ -284,7 +284,8 @@ export function Repaint(): JSX.Element {
                     tone="secondary"
                     size="sm"
                     aria-label={item.name}
-                    aria-pressed={made && item === accent}
+                    role="radio"
+                    aria-checked={made && item === accent}
                     className="site-dot h-auto p-1"
                     style={{ "--accent-dot": mode === "dark" ? item.dark[0] : item.light[0] } as CSSProperties}
                     onClick={() => {

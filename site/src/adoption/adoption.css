@@ -289,7 +289,7 @@
     height: 0.5rem;
     margin-left: calc(var(--spacing) * 2);
     vertical-align: 0.1em;
-    border-radius: 50%;
+    border-radius: 50%; corner-shape: round;
     background: var(--adoption-green);
   }
   .adoption-marks {

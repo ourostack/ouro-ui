@@ -30,7 +30,7 @@
 
 @layer base {
   /* The site's own rounded elements take the corner shape too (ouro-base.css gives it only to Ouro components); a circle, a switch or a dot stays round by setting corner-shape: round. */
-  [class*="rounded"], [class*="site-"], [class*="stage-"], [class*="ax-"], [class*="apple-"], [class*="story-world"], [class*="current-"] {
+  [class*="rounded"], [class*="site-"], [class*="stage-"], [class*="ax-"], [class*="apple-"], [class*="story-world"], [class*="current-"], [class*="adoption-"], [class*="feel-"], [class*="reins-"], [class*="dive-"], [class*="egg-"] {
     corner-shape: var(--ouro-corner-shape);
   }
   html {
