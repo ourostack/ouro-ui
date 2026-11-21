@@ -28,6 +28,13 @@ afterEach(async () => {
 });
 
 describe("ThemePicker", () => {
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const host = await render(<ThemePicker presets={presets} />);
+    const swatch = () => getComputedStyle(host.querySelector<HTMLElement>("span[data-theme]")!);
+    expect([swatch().width, swatch().height]).toEqual(["24px", "24px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([swatch().width, swatch().height]).toEqual(["24px", "24px"]);
+  });
   it("switches the page, keeps the choice and presses the chosen dot", async () => {
     const el = await render(<ThemePicker presets={presets} />);
     const pearl = el.querySelector<HTMLButtonElement>('[aria-label="Pearl"]')!;

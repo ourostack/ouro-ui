@@ -48,6 +48,13 @@ afterEach(async () => {
 });
 
 describe("SyncStatus", () => {
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const { host, status } = await render(<SyncStatus status="saving" />);
+    const icon = () => getComputedStyle(status.querySelector<SVGElement>("svg")!);
+    expect([icon().width, icon().height]).toEqual(["16px", "16px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([icon().width, icon().height]).toEqual(["16px", "16px"]);
+  });
   it.each([
     ["saved", "Saved"],
     ["saving", "Saving…"],

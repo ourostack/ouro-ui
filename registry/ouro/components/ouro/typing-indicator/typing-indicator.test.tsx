@@ -51,9 +51,10 @@ describe("TypingIndicator", () => {
       return Math.round(first!.right - second!.left);
     };
     const height = () => Math.round(line.getBoundingClientRect().height);
-    expect([overlap(), height()]).toEqual([6, 24]);
+    const dots = () => [...line.querySelectorAll<HTMLElement>("span.bg-current")].map((dot) => getComputedStyle(dot).width);
+    expect([overlap(), height(), dots()]).toEqual([6, 24, ["4px", "4px", "4px"]]);
     host.style.setProperty("--spacing", "0.2rem");
-    expect([overlap(), height()]).toEqual([6, 24]);
+    expect([overlap(), height(), dots()]).toEqual([6, 24, ["4px", "4px", "4px"]]);
   });
 
   it("shows who is writing as faces and words, three faces at most", async () => {

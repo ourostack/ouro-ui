@@ -60,6 +60,13 @@ afterEach(async () => {
 });
 
 describe("OtpField", () => {
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const { host, root } = await render(<OtpField label="Verification code" name="code" groupSize={3} />);
+    const dash = () => getComputedStyle(root.querySelector<HTMLElement>("[data-ouro-otp-separator]")!);
+    expect([dash().width, dash().height]).toEqual(["8px", "2px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([dash().width, dash().height]).toEqual(["8px", "2px"]);
+  });
   it("is a labeled group of six slots on the Field contract", async () => {
     const { root, group, slots } = await render(<OtpField label="Verification code" name="code" />);
     expect(root.getAttribute("data-ouro")).toBe("otp-field");

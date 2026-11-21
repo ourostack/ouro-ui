@@ -63,6 +63,13 @@ afterEach(async () => {
 });
 
 describe("ColorField", () => {
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const { host } = await render(<ColorField label="Accent color" name="accent" defaultValue="#3366FF" />);
+    const swatch = () => getComputedStyle(host.querySelector<HTMLInputElement>('input[type="color"]')!.closest("label")!);
+    expect([swatch().width, swatch().height]).toEqual(["28px", "28px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([swatch().width, swatch().height]).toEqual(["28px", "28px"]);
+  });
   it("is a labeled hex text input with a native color picker, on the Field contract", async () => {
     const { root, text, picker } = await render(<ColorField label="Accent color" name="accent" defaultValue="#3366FF" />);
     expect(root.getAttribute("data-ouro")).toBe("color-field");

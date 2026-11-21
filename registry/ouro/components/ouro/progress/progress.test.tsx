@@ -63,6 +63,15 @@ const filled = (indicator: HTMLElement, track: HTMLElement) =>
 const warnings = () => warn.mock.calls.map((call: unknown[]) => String(call[0]));
 
 describe("Progress", () => {
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const { host, track } = await render(<Progress label="Uploading photos" value={40} />);
+    const thin = await render(<Progress label="Uploading photos" value={40} size="thin" />);
+    const heights = () => [getComputedStyle(track).height, getComputedStyle(thin.host.querySelector<HTMLElement>("[data-ouro-progress-track]")!).height];
+    expect(heights()).toEqual(["8px", "2px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    thin.host.style.setProperty("--spacing", "0.2rem");
+    expect(heights()).toEqual(["8px", "2px"]);
+  });
   it("is a progressbar named by its visible label, with its value", async () => {
     const { root, bar, indicator, track } = await render(<Progress label="Uploading photos" value={40} />);
     await expect.element(page.getByRole("progressbar", { name: "Uploading photos" })).toBeVisible();

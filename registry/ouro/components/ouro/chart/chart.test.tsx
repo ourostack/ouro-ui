@@ -89,6 +89,13 @@ afterEach(async () => {
 });
 
 describe("Chart", () => {
+  it("keeps its legend markers 12px at a compact --spacing", async () => {
+    const { host } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+    const marker = () => getComputedStyle(host.querySelector<SVGElement>("[data-ouro-chart-marker]")!);
+    expect([marker().width, marker().height]).toEqual(["12px", "12px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([marker().width, marker().height]).toEqual(["12px", "12px"]);
+  });
   it("draws its plot with the page, in the frame the figure first shows, and nothing under it moves", async () => {
     // Frames counted from before the mount, and the frame each of the figure and its plot was put in the page.
     let frames = 0;

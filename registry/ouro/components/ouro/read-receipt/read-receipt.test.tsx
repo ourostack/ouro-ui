@@ -58,9 +58,10 @@ describe("ReadReceipt", () => {
       const [first, second] = [...receipt!.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((face) => face.getBoundingClientRect());
       return Math.round(first!.right - second!.left);
     };
-    expect(overlap()).toBe(4);
+    const faces = () => [...receipt!.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((face) => getComputedStyle(face).width);
+    expect([overlap(), faces()]).toEqual([4, ["16px", "16px"]]);
     host.style.setProperty("--spacing", "0.2rem");
-    expect(overlap()).toBe(4);
+    expect([overlap(), faces()]).toEqual([4, ["16px", "16px"]]);
   });
 
   it("says who has seen it, by name for up to three and with a count past that", async () => {

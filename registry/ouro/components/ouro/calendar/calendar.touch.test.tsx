@@ -8,6 +8,17 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 let root: Root | undefined;
 const nodes: Element[] = [];
+it("keeps each day's 44px target at a compact --spacing", async () => {
+  const host = await render(<Calendar label="Delivery date" defaultValue="2026-10-11" />);
+  const day = () => {
+    const style = getComputedStyle(host.querySelector<HTMLElement>('[data-ouro-part="day"]')!);
+    return [style.width, style.height];
+  };
+  expect(day()).toEqual(["44px", "44px"]);
+  host.style.setProperty("--spacing", "0.2rem");
+  expect(day()).toEqual(["44px", "44px"]);
+});
+
 afterEach(async () => {
   await act(async () => root?.unmount());
   for (const node of nodes.splice(0)) node.remove();

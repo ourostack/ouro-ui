@@ -101,6 +101,13 @@ afterEach(async () => {
 });
 
 describe("ImageField", () => {
+  it("keeps its placeholder icon 32px and its circle 128px at a compact --spacing", async () => {
+    const { host } = await render(<ImageField label="Profile photo" description="PNG or JPG." name="photo" shape="circle" />);
+    const sizes = () => [getComputedStyle(host.querySelector<SVGElement>("svg")!).width, getComputedStyle(host.querySelector<HTMLElement>("[style*='aspect-ratio']")!).width];
+    expect(sizes()).toEqual(["32px", "128px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(sizes()).toEqual(["32px", "128px"]);
+  });
   it("is a group named by its label, with a placeholder, Choose photo and a hidden file input", async () => {
     const { input, preview } = await render(<ImageField label="Profile photo" description="PNG or JPG." name="photo" />);
     await expect.element(page.getByRole("group", { name: "Profile photo" })).toHaveAccessibleDescription("PNG or JPG.");

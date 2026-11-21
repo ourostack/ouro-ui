@@ -90,6 +90,13 @@ afterEach(async () => {
 });
 
 describe("Moment", () => {
+  it("keeps its sparkles 12px at a compact --spacing", async () => {
+    const { host } = await render(<Moment kind="success" art={<Art />} title="Saved" />);
+    const sparkle = () => getComputedStyle(host.querySelector<SVGElement>('[data-ouro-part="sparkle"]')!);
+    expect([sparkle().width, sparkle().height]).toEqual(["12px", "12px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([sparkle().width, sparkle().height]).toEqual(["12px", "12px"]);
+  });
   it("renders the art, an <h3> title, the line and up to two actions", async () => {
     const { moment, art } = await render(
       <Moment

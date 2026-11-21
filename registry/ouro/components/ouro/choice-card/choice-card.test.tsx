@@ -69,9 +69,13 @@ describe("ChoiceCard", () => {
   it("keeps the room its check mark takes at a compact --spacing", async () => {
     const { host, cards } = await render(<ChoiceCard legend="Cover" items={items} />);
     const padded = () => cards()[0]!.querySelector<HTMLElement>(":scope > .grid")!;
-    expect(parseFloat(getComputedStyle(padded()).paddingInlineEnd)).toBe(40);
+    const check = () => {
+      const mark = cards()[0]!.querySelector<HTMLElement>('span[aria-hidden="true"]')!;
+      return [getComputedStyle(mark).width, getComputedStyle(mark.querySelector("svg")!).width];
+    };
+    expect([parseFloat(getComputedStyle(padded()).paddingInlineEnd), check()]).toEqual([40, ["24px", "14px"]]);
     host.style.setProperty("--spacing", "0.2rem");
-    expect(parseFloat(getComputedStyle(padded()).paddingInlineEnd)).toBe(40);
+    expect([parseFloat(getComputedStyle(padded()).paddingInlineEnd), check()]).toEqual([40, ["24px", "14px"]]);
   });
 
   it("does not clip its cards: a picture rounds its own top corners to the card's radius less its border", async () => {

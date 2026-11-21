@@ -66,6 +66,14 @@ afterEach(async () => {
 });
 
 describe("ThreadLayout", () => {
+  it("keeps its thread panel 320px wide once the layout is wide enough, at a compact --spacing", async () => {
+    const { host } = await render(<ThreadLayout conversation={<p>Replies</p>} thread={<p data-thread="">Thread</p>} />);
+    host.style.width = "800px";
+    const panel = () => getComputedStyle(host.querySelector<HTMLElement>("[data-thread]")!.parentElement!);
+    expect(panel().maxWidth).toBe("320px");
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(panel().maxWidth).toBe("320px");
+  });
   it("is marked with data-ouro and draws no control of its own", async () => {
     const { layout } = await render(<ThreadLayout conversation={<p>Replies</p>} thread={null} />);
     expect(layout.getAttribute("data-ouro")).toBe("thread-layout");
