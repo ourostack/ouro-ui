@@ -67,6 +67,6 @@ describe("Freshness", () => {
     const said = [...error.mock.calls, ...warn.mock.calls].map((c) => String(c[0])).join("\n");
     expect(said).toContain("[ouro-ui] Freshness: lastUpdated is not a prop. Fix: <Freshness updatedAt={query.dataUpdatedAt} />");
     expect(said).toContain("[ouro-ui] Freshness: isFetching is not a prop. Fix: <Freshness updatedAt={at} refreshing={isFetching} />");
-    expect(said).toContain('[ouro-ui] Freshness: remove "text-red-500"');
+    expect(said).toContain('[ouro-ui] Freshness: "text-red-500" sets appearance');
   });
 });
