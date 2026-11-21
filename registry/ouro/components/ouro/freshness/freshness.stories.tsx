@@ -32,7 +32,7 @@ function InContextDemo() {
       <Freshness updatedAt={updatedAt} refreshing={refreshing} />
       <p style={{ margin: 0 }}>3 trails open</p>
       <Button
-        disabled={refreshing}
+        loading={refreshing}
         onClick={() => {
           setRefreshing(true);
           setTimeout(() => {
