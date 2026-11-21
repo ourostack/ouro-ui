@@ -141,6 +141,14 @@ describe("useFindHighlights", () => {
     expect(drawn(ALL_MATCHES)).toEqual(["fox"]);
   });
 
+  it("draws every match of a message other than the current one's as an ordinary match, the second included", async () => {
+    await mount({ query: "fox", current: 2 });
+    expect(drawn(CURRENT_MATCH)).toHaveLength(1);
+    expect(drawn(ALL_MATCHES)).toHaveLength(2);
+    await mount({ query: "fox", current: 0, roomy: true });
+    expect(drawn(ALL_MATCHES)).toHaveLength(2);
+  });
+
   it("puts the current highlight on the occurrence the index names", async () => {
     const { host } = await mount({ query: "fox", current: 1 });
     const current = [...CSS.highlights.get(CURRENT_MATCH)!][0]!;
