@@ -28,6 +28,36 @@ afterEach(async () => {
 const button = () => document.querySelector("button")!;
 const tooltip = () => document.querySelector('[data-ouro="tooltip"]');
 
+describe("Button disabledReason looks off", () => {
+  it.each(["solid", "soft", "outline", "plain"] as const)("looks as a disabled %s button does, and is marked only when off", async (variant) => {
+    await render(
+      <>
+        <Button variant={variant} disabled>
+          Save
+        </Button>
+        <Button variant={variant} disabledReason="Saving">
+          Save
+        </Button>
+        <Button variant={variant}>Save</Button>
+      </>,
+    );
+    const [disabled, reasoned, on] = Array.from(document.querySelectorAll<HTMLElement>("button"));
+    expect(getComputedStyle(disabled!).opacity).not.toBe("1");
+    expect(getComputedStyle(reasoned!).opacity).toBe(getComputedStyle(disabled!).opacity);
+    expect(getComputedStyle(reasoned!).cursor).toBe(getComputedStyle(disabled!).cursor);
+    expect(reasoned!.getAttribute("data-ouro-off")).toBe("");
+    expect(getComputedStyle(on!).opacity).toBe("1");
+    expect(on!.hasAttribute("data-ouro-off")).toBe(false);
+  });
+
+  it("is not dimmed while loading, and keeps its progress cursor", async () => {
+    await render(<Button loading>Save</Button>);
+    expect(button().hasAttribute("data-ouro-off")).toBe(false);
+    expect(getComputedStyle(button()).opacity).toBe("1");
+    expect(getComputedStyle(button()).cursor).toBe("progress");
+  });
+});
+
 describe("Button disabledReason", () => {
   it("turns the button off with aria-disabled, keeps it focusable and describes it by the reason", async () => {
     await render(<Button disabledReason="Add an item first">Check out</Button>);
