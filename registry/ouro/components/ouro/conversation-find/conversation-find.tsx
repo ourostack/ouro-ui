@@ -163,7 +163,6 @@ export function ConversationFind({
         label={label}
         hideLabel
         type="search"
-        size="sm"
         placeholder={placeholder}
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
