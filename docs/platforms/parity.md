@@ -8,13 +8,13 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 | | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| Kit | this repository | [ourostack/ouro-ui-apple v1.3.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.3.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.3.0") | [ourostack/ouro-ui-android v0.7.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.7.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.7.0") | [ourostack/ouro-ui-windows v0.6.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.6.0") |
+| Kit | this repository | [ourostack/ouro-ui-apple v1.4.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.4.0") | [ourostack/ouro-ui-android v0.10.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.10.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.10.0") | [ourostack/ouro-ui-windows v0.9.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.9.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.9.0") |
 
-Components: Web has 132 of 135, Apple has 20 of 135, Android has 14 of 135, Windows has 18 of 135.[^matrix]
+Components: Web has 132 of 135, Apple has 20 of 135, Android has 22 of 135, Windows has 25 of 135.[^matrix]
 
-Claims covered: Web 7 of 13, Apple 13 of 13, Android 6 of 13, Windows 6 of 13.[^matrix]
+Claims covered: Web 7 of 13, Apple 13 of 13, Android 7 of 13, Windows 6 of 13.[^matrix]
 
-Gap cells: 376.[^matrix]
+Gap cells: 360.[^matrix]
 
 ### Components
 
@@ -26,7 +26,7 @@ Gap cells: 376.[^matrix]
 | [sheet](https://ui.ouroboros.bot/docs/sheet/) | `sheet` | `OuroSheet` | `OuroSheet` | `OuroSheet` |
 | [dialog](https://ui.ouroboros.bot/docs/dialog/) | `dialog` | Not yet | `OuroDialog` | `OuroDialog` |
 | [confirm-dialog](https://ui.ouroboros.bot/docs/confirm-dialog/) | `confirm-dialog` | Not yet | `OuroConfirmDialog` | `OuroConfirmDialog` |
-| [field](https://ui.ouroboros.bot/docs/field/) | `field` | Not yet | Not yet | Not yet |
+| [field](https://ui.ouroboros.bot/docs/field/) | `field` | Not yet | `OuroField` | `OuroField` |
 | [fieldset](https://ui.ouroboros.bot/docs/fieldset/) | `fieldset` | Not yet | Not yet | Not yet |
 | [link](https://ui.ouroboros.bot/docs/link/) | `link` | Not yet | Not yet | Not yet |
 | [text-field](https://ui.ouroboros.bot/docs/text-field/) | `text-field` | `OuroTextField` | `OuroTextField` | `OuroTextField` |
@@ -34,10 +34,10 @@ Gap cells: 376.[^matrix]
 | [checkbox](https://ui.ouroboros.bot/docs/checkbox/) | `checkbox` | `OuroCheckbox` | `OuroCheckbox` | `OuroCheckbox` |
 | [checkbox-group](https://ui.ouroboros.bot/docs/checkbox-group/) | `checkbox-group` | Not yet | Not yet | Not yet |
 | [radio-group](https://ui.ouroboros.bot/docs/radio-group/) | `radio-group` | Not yet | Not yet | Not yet |
-| [switch](https://ui.ouroboros.bot/docs/switch/) | `switch` | Not yet | Not yet | Not yet |
+| [switch](https://ui.ouroboros.bot/docs/switch/) | `switch` | Not yet | `OuroSwitch` | `OuroSwitch` |
 | [form](https://ui.ouroboros.bot/docs/form/) | `form` | Not yet | Not yet | Not yet |
 | [edit-sheet](https://ui.ouroboros.bot/docs/edit-sheet/) | `edit-sheet` | Not yet | Not yet | Not yet |
-| [select](https://ui.ouroboros.bot/docs/select/) | `select` | Not yet | Not yet | Not yet |
+| [select](https://ui.ouroboros.bot/docs/select/) | `select` | Not yet | `OuroSelect` | `OuroSelect` |
 | [native-select](https://ui.ouroboros.bot/docs/native-select/) | `native-select` | Not yet | Not yet | Not yet |
 | [number-field](https://ui.ouroboros.bot/docs/number-field/) | `number-field` | Not yet | Not yet | Not yet |
 | [slider](https://ui.ouroboros.bot/docs/slider/) | `slider` | Not yet | Not yet | Not yet |
@@ -63,14 +63,14 @@ Gap cells: 376.[^matrix]
 | [show-more](https://ui.ouroboros.bot/docs/show-more/) | `show-more` | Not yet | Not yet | Not yet |
 | [card](https://ui.ouroboros.bot/docs/card/) | `card` | `OuroCard` | `OuroCard` | `OuroCard` |
 | [item](https://ui.ouroboros.bot/docs/item/) | `item` | `OuroItem` | `OuroItem` | `OuroItem` |
-| [item-group](https://ui.ouroboros.bot/docs/item-group/) | `item-group` | `OuroItemGroup` | Not yet | Not yet |
+| [item-group](https://ui.ouroboros.bot/docs/item-group/) | `item-group` | `OuroItemGroup` | `OuroItemGroup` | `OuroItemGroup` |
 | [empty](https://ui.ouroboros.bot/docs/empty/) | `empty` | `OuroEmptyState` | Not yet | Not yet |
 | [scroll-area](https://ui.ouroboros.bot/docs/scroll-area/) | `scroll-area` | Not yet | Not yet | Not yet |
 | [aspect-ratio](https://ui.ouroboros.bot/docs/aspect-ratio/) | `aspect-ratio` | Not yet | Not yet | Not yet |
 | [stack](https://ui.ouroboros.bot/docs/stack/) | `stack` | Not yet | Not yet | Not yet |
 | [row](https://ui.ouroboros.bot/docs/row/) | `row` | Not yet | Not yet | Not yet |
 | [navbar](https://ui.ouroboros.bot/docs/navbar/) | `navbar` | Not yet | Not yet | Not yet |
-| [sidebar](https://ui.ouroboros.bot/docs/sidebar/) | `sidebar` | Not yet | Not yet | `OuroSidebar` |
+| [sidebar](https://ui.ouroboros.bot/docs/sidebar/) | `sidebar` | Not yet | `OuroSidebar` | `OuroSidebar` |
 | [sidebar-layout](https://ui.ouroboros.bot/docs/sidebar-layout/) | `sidebar-layout` | Not yet | Not yet | Not yet |
 | [stacked-layout](https://ui.ouroboros.bot/docs/stacked-layout/) | `stacked-layout` | Not yet | Not yet | Not yet |
 | [auth-layout](https://ui.ouroboros.bot/docs/auth-layout/) | `auth-layout` | Not yet | Not yet | Not yet |
@@ -85,8 +85,8 @@ Gap cells: 376.[^matrix]
 | [otp-field](https://ui.ouroboros.bot/docs/otp-field/) | `otp-field` | Not yet | Not yet | Not yet |
 | [file-field](https://ui.ouroboros.bot/docs/file-field/) | `file-field` | Not yet | Not yet | Not yet |
 | [color-field](https://ui.ouroboros.bot/docs/color-field/) | `color-field` | Not yet | Not yet | Not yet |
-| [swipe-actions](https://ui.ouroboros.bot/docs/swipe-actions/) | `swipe-actions` | Not yet | Not yet | Not yet |
-| [reorderable](https://ui.ouroboros.bot/docs/reorderable/) | `reorderable` | Not yet | Not yet | Not yet |
+| [swipe-actions](https://ui.ouroboros.bot/docs/swipe-actions/) | `swipe-actions` | Not yet | `OuroSwipeActions` | `OuroSwipeActions` |
+| [reorderable](https://ui.ouroboros.bot/docs/reorderable/) | `reorderable` | Not yet | `OuroReorderable` | `OuroReorderable` |
 | [calendar](https://ui.ouroboros.bot/docs/calendar/) | `calendar` | Not yet | Not yet | Not yet |
 | [date-picker](https://ui.ouroboros.bot/docs/date-picker/) | `date-picker` | Not yet | Not yet | Not yet |
 | [carousel](https://ui.ouroboros.bot/docs/carousel/) | `carousel` | Not yet | Not yet | Not yet |
@@ -116,7 +116,7 @@ Gap cells: 376.[^matrix]
 | [local-date](https://ui.ouroboros.bot/docs/local-date/) | `local-date` | Not yet | Not yet | Not yet |
 | [relative-time](https://ui.ouroboros.bot/docs/relative-time/) | `relative-time` | Not yet | Not yet | Not yet |
 | [install-prompt](https://ui.ouroboros.bot/docs/install-prompt/) | `install-prompt` | Not yet | Not yet | Not yet |
-| [conversation-list](https://ui.ouroboros.bot/docs/conversation-list/) | `conversation-list` | Not yet | Not yet | Not yet |
+| [conversation-list](https://ui.ouroboros.bot/docs/conversation-list/) | `conversation-list` | Not yet | `OuroConversationList` | `OuroConversationList` |
 | [attention-card](https://ui.ouroboros.bot/docs/attention-card/) | `attention-card` | Not yet | Not yet | Not yet |
 | [reaction-bar](https://ui.ouroboros.bot/docs/reaction-bar/) | `reaction-bar` | Not yet | Not yet | Not yet |
 | [lightbox](https://ui.ouroboros.bot/docs/lightbox/) | `lightbox` | Not yet | Not yet | Not yet |
@@ -165,7 +165,7 @@ Gap cells: 376.[^matrix]
 | `name.spoken` | must | component | Partly | Covered | Covered | Covered |
 | `text.reflows` | must | component | Not yet | Covered | Covered | Covered |
 | `contrast.text` | must | component | Partly | Covered | Covered | Covered |
-| `announce.urgency` | should | component | Partly | Covered | Not yet | Not yet |
+| `announce.urgency` | should | component | Partly | Covered | Covered | Not yet |
 | `toast.action-stays` | must | component | Covered | Covered | Not yet | Not yet |
 | `dismiss.reachable` | must | component | Covered | Covered | Covered | Covered |
 | `action.one-declaration` | should | action | Covered | Covered | Not yet | Not yet |
