@@ -331,6 +331,9 @@ export const appleAppIntents = {
     const lines = readline.createInterface({ input: child.stdout })[Symbol.asyncIterator]();
     let infraError = null;
     child.stdin.on("error", () => {});
+    child.on("error", (error) => {
+      infraError = infraError ?? `The App Intents host did not start: ${error.message}`;
+    });
     child.on("exit", (code) => {
       infraError = infraError ?? `The App Intents host exited with ${code}.`;
     });

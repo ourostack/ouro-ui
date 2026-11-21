@@ -50,7 +50,7 @@ jobs:
         run: |
           set -euo pipefail
           args=(--oracle --arms apple-app-intents --output-dir "$RUNNER_TEMP/agent-benchmark/oracle")
-          if [ -n "$TASKS" ]; then args+=(--tasks "$TASKS"); fi
+          args+=(--tasks "${TASKS:-add-item,recipe-to-list,check-off,place-order}")
           node scripts/agent-benchmark/run.mjs "${args[@]}"
       - name: The models
         if: inputs.models != 'none' && inputs.models != ''
@@ -71,7 +71,7 @@ jobs:
           npm i --prefix "$RUNNER_TEMP/copilot-sdk" --no-save --no-audit --no-fund @github/copilot-sdk@1.0.13
           export OURO_MODEL_REVIEWS_SDK="$RUNNER_TEMP/copilot-sdk"
           args=(--models "$MODELS" --arms apple-app-intents --trials "$TRIALS" --concurrency 2 --label "$LABEL" --output-dir "$RUNNER_TEMP/agent-benchmark/$(date -u +%Y-%m-%d)-$LABEL")
-          if [ -n "$TASKS" ]; then args+=(--tasks "$TASKS"); fi
+          args+=(--tasks "${TASKS:-add-item,recipe-to-list,check-off,place-order}")
           node scripts/agent-benchmark/run.mjs "${args[@]}"
       - name: The page these runs render
         if: always()

@@ -205,6 +205,9 @@ test("the Apple arm counts a typed refusal from the host, and reports a host tha
   } finally {
     await gone.close();
   }
+  const notExecutable = fakeHost("");
+  fs.chmodSync(notExecutable, 0o644);
+  await assert.rejects(armById("apple-app-intents").open({ store: createStore(), host: notExecutable }), /did not start|closed its output/);
   assert.ok(!ARMS.includes(armById("apple-app-intents")));
   assert.ok(fs.existsSync(path.join(here, "fixture/generated/OuroActions.swift")));
 });
