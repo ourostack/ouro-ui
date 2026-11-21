@@ -519,6 +519,17 @@ describe("docs", () => {
     expect(nightPhone.srcset).toContain("phone/ouro-ui-core-dark-768.");
   });
 
+  it("on a phone, the home page's hand-off sits above the scene, with its Copy button on the first screen", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/");
+    const hero = document.querySelector<HTMLElement>(".site-voyage-hero")!;
+    const more = hero.querySelector<HTMLElement>('[data-slot="more"]')!;
+    const media = hero.querySelector<HTMLElement>('[data-slot="media"]')!;
+    await expect.poll(() => more.getBoundingClientRect().bottom).toBeLessThanOrEqual(844);
+    expect(more.getBoundingClientRect().bottom).toBeLessThanOrEqual(media.getBoundingClientRect().top);
+    expect(getComputedStyle(hero.querySelector("h1")!).fontSize).toBe("32px");
+  });
+
   it("on a phone, the menu's search says what another kit's name is called here", async () => {
     await page.viewport(390, 844);
     await renderPage("/docs/button/");
