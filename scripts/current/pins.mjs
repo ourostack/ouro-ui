@@ -579,7 +579,7 @@ async function updateHxInstalled(pin, text, release, ctx) {
   // record has them (a root `lib/ouro/ax/` beside a `src/lib/`), and only an app that has none yet takes its lib folder;
   // the import this adds points there, so the two always agree.
   const pkgPath = found ? `${found.dir}package.json` : null;
-  const pkgText = pkgPath && consumer.get(pkgPath)?.toString("utf8");
+  const pkgText = pkgPath ? consumer.get(pkgPath)?.toString("utf8") : undefined;
   const declaredAx = axImportOf(pkgText);
   const recordedAx = Object.entries(Object.groupBy([...before].filter(([, entry]) => entry.target.startsWith(KIT)), ([path, entry]) => path.slice(0, path.length - (entry.target.length - KIT.length)))).sort((a, b) => b[1].length - a[1].length)[0]?.[0];
   const axDir = found && declaredAx ? `${found.dir}${declaredAx}` : recordedAx ?? (nextRoots["@lib"] ? `${nextRoots["@lib"]}ouro/ax/` : null);
@@ -622,8 +622,9 @@ async function updateHxInstalled(pin, text, release, ctx) {
     if (!entry) {
       // The registry still has the file at this tag, but its target moved (Node-only tools now install under scripts/):
       // the unedited file moves there, unless the app already has a file at the new path.
-      const moved = nextByPath.get(old.path);
-      const to = moved && installPath(moved.target, found, nextRoots);
+      // So has a file the release renamed (Ouro AX's `command.ts`, now `ax-command.ts`): it moves to the new name.
+      const moved = nextByPath.get(old.path) ?? nextByPath.get(MOVED_SOURCES[old.path]);
+      const to = moved && (kitPath(moved.target) ?? installPath(moved.target, found, nextRoots));
       if (!to || to === path) {
         gone.push(path);
         continue;
@@ -632,13 +633,13 @@ async function updateHxInstalled(pin, text, release, ctx) {
         blocked.push({ from: path, to });
         continue;
       }
-      const source = next.get(old.path);
+      const source = next.get(moved.path);
       delete hashes[path];
       out[path] = null;
       hashes[to] = sha256(source);
       out[to] = rewrite(source);
       items.add(moved.item);
-      moves.push({ from: path, to, target: moved.target });
+      moves.push({ from: path, to, target: moved.target, source: old.path });
       continue;
     }
     items.add(entry.item);
@@ -689,9 +690,16 @@ async function updateHxInstalled(pin, text, release, ctx) {
   });
   const refs = rewriteReferences(consumer, moves, { skip, app: [...new Set(appFolders)], ouro: [...new Set(ouroFolders)], packageDir: found?.dir ?? "", installed });
   Object.assign(out, refs.files);
+  // An import of a renamed AX file by its `#ouro-ax/` name follows it too; a relative one is a path, which the above followed.
+  const renamed = moves.filter((move) => MOVED_SOURCES[move.source]);
+  if (renamed.length) {
+    const current = new Map([...consumer].map(([path, bytes]) => [path, Buffer.isBuffer(out[path]) ? out[path] : bytes]));
+    Object.assign(out, followMovedImports(current, renamed, new Set([...skip, ...renamed.map((move) => move.to)]), { relative: false }));
+  }
   const forwarded = [];
-  for (const { from, to } of moves) {
-    if (!/\.[cm]?[jt]s$/.test(from) || !Buffer.isBuffer(out[to])) continue;
+  for (const { from, to, source } of moves) {
+    // A renamed file leaves nothing at its old name, which shared a name with another of Ouro's files (#2757).
+    if (MOVED_SOURCES[source] || !/\.[cm]?[jt]s$/.test(from) || !Buffer.isBuffer(out[to])) continue;
     if (!refs.named.has(from) && !out[to].includes("process.argv[1]")) continue;
     out[from] = Buffer.from(forwarder(from, to), "utf8");
     forwarded.push({ from, to });
@@ -704,7 +712,7 @@ async function updateHxInstalled(pin, text, release, ctx) {
   const notes = [];
   // No counts or bare versions: a repository that runs Ouro UI's claims check on pull requests reads them as claims.
   const one = (paths, single, several) => (paths.length === 1 ? single : several);
-  for (const { from, to, target } of moves) notes.push(target.startsWith("~/") ? `Moves \`${from}\` to \`${to}\`, outside the app's TypeScript project.` : target.startsWith(KIT) ? `Moves \`${from}\` to \`${to}\`, where \`#ouro-ax/*\` resolves.` : `Moves \`${from}\` to \`${to}\`.`);
+  for (const { from, to, target, source } of moves) notes.push(MOVED_SOURCES[source] ? `Renames \`${from}\` to \`${to}\`, as the release renamed it.` : target.startsWith("~/") ? `Moves \`${from}\` to \`${to}\`, outside the app's TypeScript project.` : target.startsWith(KIT) ? `Moves \`${from}\` to \`${to}\`, where \`#ouro-ax/*\` resolves.` : `Moves \`${from}\` to \`${to}\`.`);
   if (pkg.imports) notes.push(`Adds \`#ouro-ax/*\` to \`imports\` in \`${pkgPath}\`, which the moved files resolve the shared Ouro AX files through.`);
   if (pkg.scripts) notes.push(`Points the \`scripts\` in \`${pkgPath}\` at the moved files.`);
   for (const { path, shown } of refs.fixed) notes.push(`Points \`${path}\` at ${listAnd(shown)}, where ${one(shown, "it", "they")} moved.`);
@@ -893,6 +901,52 @@ function nextRelease(value, release) {
 }
 
 /**
+ * Registry files a release renamed, by their old path: a vendored copy follows its source to the new path, under the new
+ * name beside the old copy, which goes, and the consumer's own imports of the old copy follow it (#2757, #2777).
+ */
+export const MOVED_SOURCES = {
+  "registry/ouro/ax/command.ts": "registry/ouro/ax/ax-command.ts",
+  "registry/ouro/ax/command.test.mts": "registry/ouro/ax/ax-command.test.mts",
+  "registry/ouro/ax/claims.ts": "registry/ouro/ax/ax-claims.ts",
+  "registry/ouro/ax/claims.test.mts": "registry/ouro/ax/ax-claims.test.mts",
+  "registry/ouro/check/register.ts": "registry/ouro/check/check-register.ts",
+  "registry/ouro/ax/fixtures/images.mts": "registry/ouro/ax/fixtures/images-cli.mts",
+};
+
+const IMPORT_SPECIFIER = /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(["'])([^"'\n]+)\2/g;
+
+/**
+ * The consumer's own files that import a vendored copy a release renamed, by a relative path or as `#ouro-ax/<name>`,
+ * rewritten to the new name. The vendored files themselves come from the release, which already imports the new names.
+ */
+function followMovedImports(consumer, moves, vendored, { relative = true } = {}) {
+  const out = {};
+  // `#ouro-ax/<name>` reaches a file at the top of the AX kit's folder, whatever the repository vendors it as.
+  const axNames = new Map(moves.filter((move) => /^registry\/ouro\/ax\/[^/]+$/.test(move.source)).map((move) => [posix.basename(move.source), posix.basename(MOVED_SOURCES[move.source])]));
+  const byPath = new Map(moves.map((move) => [move.from, move.to]));
+  const target = (path) => byPath.get(path) ?? byPath.get(`${path}.ts`) ?? byPath.get(`${path}.mts`);
+  for (const [path, bytes] of consumer) {
+    if (vendored.has(path) || byPath.has(path) || !/\.[cm]?[jt]sx?$/.test(path)) continue;
+    const text = bytes.toString("utf8");
+    if (!text.includes("import")) continue;
+    const next = text.replace(IMPORT_SPECIFIER, (whole, lead, quote, spec) => {
+      if (spec.startsWith("#ouro-ax/")) {
+        const name = axNames.get(spec.slice("#ouro-ax/".length));
+        return name ? `${lead}${quote}#ouro-ax/${name}${quote}` : whole;
+      }
+      if (!relative || !spec.startsWith(".")) return whole;
+      const to = target(posix.normalize(posix.join(posix.dirname(path), spec)));
+      if (!to) return whole;
+      // The specifier keeps its own folder and its way of writing the extension; only the file's name changes.
+      const name = posix.extname(spec) === "" ? posix.basename(to, posix.extname(to)) : posix.basename(to);
+      return `${lead}${quote}${spec.slice(0, spec.lastIndexOf("/") + 1)}${name}${quote}`;
+    });
+    if (next !== text) out[path] = Buffer.from(next, "utf8");
+  }
+  return out;
+}
+
+/**
  * Files vendored from a commit (`upstream-sources.lock.json`: each source path, where it is written, and its sha256).
  * A source that follows core reads its `dist/` files from the release's dist asset, since core commits no `dist/`.
  */
@@ -919,8 +973,20 @@ async function updateVendorLock(pin, text, release, ctx) {
     source[key] = nextRelease(source[key], release);
     named[key] = source[key];
   }
+  const moves = [];
   for (const file of source.files) {
-    const bytes = read(file.sourcePath);
+    let bytes = read(file.sourcePath);
+    const moved = MOVED_SOURCES[file.sourcePath];
+    if (!bytes && moved && read(moved)) {
+      // The release renamed the source: the copy takes the new name beside the old one, which goes.
+      const from = file.generatedPath;
+      const source = file.sourcePath;
+      file.sourcePath = moved;
+      file.generatedPath = posix.join(posix.dirname(from), posix.basename(moved));
+      files[from] = null;
+      moves.push({ from, to: file.generatedPath, source });
+      bytes = read(moved);
+    }
     if (!bytes) {
       missing.push(file.sourcePath);
       continue;
@@ -939,6 +1005,8 @@ async function updateVendorLock(pin, text, release, ctx) {
   const added = asset ? [] : followImports(source.files, files, read);
   const axFix = asset || !ctx.consumerFile ? { files: {}, notes: [] } : await axImportFix(async (path) => (await ctx.consumerFile(path)) ?? undefined, source.files, files);
   Object.assign(files, axFix.files);
+  const followed = moves.length && ctx.consumerFiles ? followMovedImports(await ctx.consumerFiles(), moves, new Set(source.files.map((file) => file.generatedPath))) : {};
+  Object.assign(files, followed);
   // Only this source's values change; the edit is kept when it reads back as the lock this run means to write.
   const edited = editLock(text, pin.source, release.sha, shas, named, added);
   const same = (value) => {
@@ -950,6 +1018,7 @@ async function updateVendorLock(pin, text, release, ctx) {
   };
   files[pin.file] = edited !== null && same(edited) ? edited : `${JSON.stringify(lock, null, 2)}\n`;
   const notes = [];
+  if (moves.length) notes.push(`Follows the files ${REPOS[pin.follows]} renamed: ${moves.map((move) => `\`${move.from}\` is now \`${move.to}\``).join(", ")}${Object.keys(followed).length ? `, and so do the imports in ${list(Object.keys(followed))}` : ""}.`);
   if (added.length) notes.push(`Vendors what the updated files now import: ${list(added.map((file) => file.generatedPath))}.`);
   notes.push(...axFix.notes);
   // The entry added above resolves the vendored files' `#ouro-ax/*`; otherwise the pull request says what is missing.

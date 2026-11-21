@@ -507,6 +507,25 @@ function apartFixture({ imports, kit = true } = {}) {
   return { record, ctx, consumer, pin: { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" } };
 }
 
+test("an install record with Ouro AX and no components.json updates across a renamed kit file, without reading a components.json it lacks", async () => {
+  // As ourostack/factory: the kit in lib/ouro/ax/, a root package.json, and no components.json (#2777).
+  const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
+  const registry = (name) => JSON.stringify({ items: [{ name: "ax-command", files: [{ path: `registry/ouro/ax/${name}`, target: `@lib/ouro/ax/${name}` }] }] });
+  const previous = files({ "registry.json": registry("command.ts"), "registry/ouro/ax/command.ts": "command v1\n" });
+  const next = files({ "registry.json": registry("ax-command.ts"), "registry/ouro/ax/ax-command.ts": "command v2\n" });
+  const record = { tag: "v1.3.242", tagCommit: "old", files: { "lib/ouro/ax/command.ts": sha256("command v1\n") } };
+  const consumer = files({ "package.json": JSON.stringify({ name: "factory", type: "module" }), "lib/ouro/ax/command.ts": "command v1\n", "bin/factory.mts": 'import { defineCli } from "../lib/ouro/ax/command.ts";\nimport { Cli } from "#ouro-ax/command.ts";\n' });
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, { tarball: async (follows, tag) => (tag === "v1.3.242" ? previous : next), consumerFiles: async () => consumer });
+  assert.equal(update.files["lib/ouro/ax/ax-command.ts"]?.toString(), "command v2\n");
+  assert.deepEqual(Object.keys(JSON.parse(update.files[pin.file]).files), ["lib/ouro/ax/ax-command.ts"]);
+  assert.equal(update.files["lib/ouro/ax/command.ts"], null, "the old file goes");
+  assert.equal(update.files["bin/factory.mts"]?.toString(), 'import { defineCli } from "../lib/ouro/ax/ax-command.ts";\nimport { Cli } from "#ouro-ax/ax-command.ts";\n');
+  assert.ok(update.notes.includes("Renames `lib/ouro/ax/command.ts` to `lib/ouro/ax/ax-command.ts`, as the release renamed it."));
+  assert.deepEqual(update.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+  assert.equal("package.json" in update.files, false, "with no components.json there is no package to edit beside it");
+});
+
 /** The folder each Ouro AX shared file sits in after the update, and the one the package's `#ouro-ax/*` resolves to. */
 function kitAndImport(update, consumer, pin) {
   const recorded = Object.keys(JSON.parse(update.files[pin.file]).files);
@@ -814,6 +833,56 @@ test("a vendored source moves to the release's commit with each file's new bytes
   const written = JSON.parse(update.files["upstream-sources.lock.json"]);
   assert.equal(written.sources[0].commit, RELEASES.web.sha);
   assert.equal(written.sources[0].files[0].sha256, sha256("cli v2"));
+});
+
+test("a vendored source the release renamed follows it: the copy takes the new name, the old copy goes, and the repository's own imports of it follow", async () => {
+  // As ourostack/desk vendors Ouro AX before #2766 renamed command.ts and claims.ts (#2777).
+  const entry = (name) => ({ sourcePath: `registry/ouro/ax/${name}`, generatedPath: `tools/ax/${name}`, sha256: "old" });
+  const lock = { schemaVersion: 1, sources: [{ id: "ax", repository: "ourostack/ouro-ui", commit: "old", files: [entry("command.ts"), entry("claims.ts"), entry("cli.ts")] }] };
+  const tarball = new Map(Object.entries({
+    "registry/ouro/ax/ax-command.ts": "export const defineCli = 2;\n",
+    "registry/ouro/ax/ax-claims.ts": "export const CLAIM_SET = 2;\n",
+    "registry/ouro/ax/cli.ts": 'import { defineCli } from "./ax-command.ts";\n',
+  }).map(([k, v]) => [k, Buffer.from(v)]));
+  const consumer = new Map(Object.entries({
+    "tools/tasks.mts": 'import { defineCli } from "./ax/command.ts";\nimport { CLAIM_SET } from "#ouro-ax/claims.ts";\nconst later = await import("./ax/command");\n',
+    "src/other.ts": 'import { Command } from "./components/ouro/command/command";\nimport { x } from "#ouro-ax/cli.ts";\n',
+    "tools/ax/command.ts": "export const defineCli = 1;\n",
+  }).map(([k, v]) => [k, Buffer.from(v)]));
+  const pin = { kind: "vendor-lock", file: "upstream-sources.lock.json", follows: "web", source: "ax" };
+  const update = await UPDATERS["vendor-lock"](pin, JSON.stringify(lock), RELEASES.web, { tarball: async () => tarball, consumerFiles: async () => consumer });
+  assert.equal(update.files["tools/ax/ax-command.ts"].toString(), "export const defineCli = 2;\n");
+  assert.equal(update.files["tools/ax/ax-claims.ts"].toString(), "export const CLAIM_SET = 2;\n");
+  assert.equal(update.files["tools/ax/command.ts"], null, "the old copy goes");
+  assert.equal(update.files["tools/ax/claims.ts"], null);
+  const written = JSON.parse(update.files["upstream-sources.lock.json"]);
+  assert.deepEqual(written.sources[0].files.map((file) => [file.sourcePath, file.generatedPath]), [
+    ["registry/ouro/ax/ax-command.ts", "tools/ax/ax-command.ts"],
+    ["registry/ouro/ax/ax-claims.ts", "tools/ax/ax-claims.ts"],
+    ["registry/ouro/ax/cli.ts", "tools/ax/cli.ts"],
+  ]);
+  assert.equal(written.sources[0].files[0].sha256, sha256("export const defineCli = 2;\n"));
+  assert.equal(
+    update.files["tools/tasks.mts"].toString(),
+    'import { defineCli } from "./ax/ax-command.ts";\nimport { CLAIM_SET } from "#ouro-ax/ax-claims.ts";\nconst later = await import("./ax/ax-command");\n',
+  );
+  assert.equal("src/other.ts" in update.files, false, "Command's own command and an AX file that kept its name are left alone");
+  assert.ok(update.notes.some((note) => note.includes("`tools/ax/command.ts` is now `tools/ax/ax-command.ts`") && note.includes("`tools/tasks.mts`")));
+  assert.deepEqual(update.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+  // A source the release dropped with no new path still stops the update and names it.
+  const gone = { ...lock, sources: [{ ...lock.sources[0], files: [entry("gone.ts")] }] };
+  await assert.rejects(UPDATERS["vendor-lock"](pin, JSON.stringify(gone), RELEASES.web, { tarball: async () => tarball, consumerFiles: async () => consumer }), /registry\/ouro\/ax\/gone\.ts is not in ourostack\/ouro-ui/);
+});
+
+test("an update pull request for a renamed vendored source deletes the old copy in its commit", async () => {
+  const lock = { schemaVersion: 1, sources: [{ id: "ax", repository: "ourostack/ouro-ui", commit: "old", files: [{ sourcePath: "registry/ouro/ax/command.ts", generatedPath: "tools/ax/command.ts", sha256: "old" }] }] };
+  const repo = fakeRepo({ "upstream-sources.lock.json": JSON.stringify(lock, null, 2), "tools/ax/command.ts": "export const defineCli = 1;\n", "tools/run.mts": 'import { defineCli } from "./ax/command.ts";\n', ".github/ouro-current.json": "{}" });
+  const release = new Map([["registry/ouro/ax/ax-command.ts", Buffer.from("export const defineCli = 2;\n")]]);
+  const kept = await keepRepo(repo.gh, "o/r", RELEASES, { tarball: async () => release });
+  assert.equal(kept.state, "pr");
+  assert.equal(repo.fileAt(BRANCH, "tools/ax/command.ts"), undefined);
+  assert.equal(repo.fileAt(BRANCH, "tools/ax/ax-command.ts"), "export const defineCli = 2;\n");
+  assert.equal(repo.fileAt(BRANCH, "tools/run.mts"), 'import { defineCli } from "./ax/ax-command.ts";\n');
 });
 
 test("a vendored file that imports the shared Ouro AX files as #ouro-ax gets the import in the package.json Node resolves it through, or a package.json of its own when none is above it", async () => {
