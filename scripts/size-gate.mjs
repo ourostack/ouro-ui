@@ -13,6 +13,7 @@
 //
 //   node scripts/size-gate.mjs base <check>   fetch the base commit's report (CI, on a pull request or in the merge queue)
 //   node scripts/size-gate.mjs main <check>…  list the sizes over their ceilings in this commit's tree (CI, on main)
+import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

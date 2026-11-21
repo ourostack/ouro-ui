@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 import { deflateRawSync } from "node:zlib";
 import { test } from "node:test";
 import { baseReport, judgeSizes, mainBreaches, readZipEntry, reportName, treeBreaches } from "./size-gate.mjs";
@@ -81,18 +82,18 @@ test("the base's report is the newest artifact named for the size check and the 
   const asked = [];
   const fetch = async (url) => {
     asked.push(url);
-    if (url.endsWith("/commits/merge")) return Response.json({ parents: [{ sha: "base" }] });
-    if (url.endsWith("/commits/base")) return Response.json({ commit: { tree: { sha: "basetree" } } });
+    if (url.endsWith("/commits/merge")) return globalThis.Response.json({ parents: [{ sha: "base" }] });
+    if (url.endsWith("/commits/base")) return globalThis.Response.json({ commit: { tree: { sha: "basetree" } } });
     if (url.includes("/actions/artifacts?name=size-closure-basetree")) {
-      return Response.json({ artifacts: [
+      return globalThis.Response.json({ artifacts: [
         { id: 1, expired: true, created_at: "2026-11-21T10:00:00Z" },
         { id: 2, expired: false, created_at: "2026-11-21T09:00:00Z" },
         { id: 3, expired: false, created_at: "2026-11-21T08:00:00Z" },
       ] });
     }
-    if (url.includes("/actions/artifacts?name=")) return Response.json({ total_count: 0, artifacts: [] });
-    if (url.endsWith("/actions/artifacts/2/zip")) return new Response(zip("closure.json", JSON.stringify(docs(191_889))));
-    return new Response("not found", { status: 404 });
+    if (url.includes("/actions/artifacts?name=")) return globalThis.Response.json({ total_count: 0, artifacts: [] });
+    if (url.endsWith("/actions/artifacts/2/zip")) return new globalThis.Response(zip("closure.json", JSON.stringify(docs(191_889))));
+    return new globalThis.Response("not found", { status: 404 });
   };
   const found = await baseReport({ check: "closure", sha: "merge", repo: "o/r", api: "https://api", token: "t", fetch });
   assert.deepEqual(found, { report: docs(191_889), from: "size-closure-basetree", artifact: 2 });
@@ -105,11 +106,11 @@ test("the base's report is the newest artifact named for the size check and the 
 
 test("on main, the sizes a commit's tree measured are read from its artifacts, and a check that measured nothing is named", async () => {
   const fetch = async (url) => {
-    if (url.endsWith("/commits/main")) return Response.json({ commit: { tree: { sha: "maintree" } } });
-    if (url.includes("/actions/artifacts?name=size-closure-maintree")) return Response.json({ artifacts: [{ id: 7, expired: false, created_at: "2026-11-21T13:30:00Z" }] });
-    if (url.includes("/actions/artifacts?name=")) return Response.json({ artifacts: [] });
-    if (url.endsWith("/actions/artifacts/7/zip")) return new Response(zip("closure.json", JSON.stringify(docs(192_051))));
-    return new Response("not found", { status: 404 });
+    if (url.endsWith("/commits/main")) return globalThis.Response.json({ commit: { tree: { sha: "maintree" } } });
+    if (url.includes("/actions/artifacts?name=size-closure-maintree")) return globalThis.Response.json({ artifacts: [{ id: 7, expired: false, created_at: "2026-11-21T13:30:00Z" }] });
+    if (url.includes("/actions/artifacts?name=")) return globalThis.Response.json({ artifacts: [] });
+    if (url.endsWith("/actions/artifacts/7/zip")) return new globalThis.Response(zip("closure.json", JSON.stringify(docs(192_051))));
+    return new globalThis.Response("not found", { status: 404 });
   };
   const found = await treeBreaches({ checks: ["closure", "patterns"], sha: "main", repo: "o/r", api: "https://api", token: "t", fetch });
   assert.deepEqual(found, { breaches: ["docs initial JavaScript: 192051 bytes, over its ceiling of 192003"], missing: ["size-patterns-maintree"] });
