@@ -9,7 +9,7 @@ What this is not: a restyle, or a verdict on your screens. The X-ray here (`ax-x
 ## 1. Install only the AX items
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.391
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.392
 npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"
 ```
 
