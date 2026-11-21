@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: [findMatches, the folding and match finding behind find in a conversation](registry/ouro/lib/ouro/find-text.ts "verify:testExists(registry/ouro/lib/ouro/find-text.test.ts::findMatches > returns ranges of the original text, in order)"), which ignores case and accents as asked and returns ranges of the original text that never split a letter from its combining marks.
