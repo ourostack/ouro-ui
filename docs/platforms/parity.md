@@ -8,13 +8,13 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 | | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| Kit | this repository | [ourostack/ouro-ui-apple v1.4.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.4.0") | [ourostack/ouro-ui-android v0.9.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.9.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.9.0") | [ourostack/ouro-ui-windows v0.8.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.8.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.8.0") |
+| Kit | this repository | [ourostack/ouro-ui-apple v1.4.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.4.0") | [ourostack/ouro-ui-android v0.10.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.10.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.10.0") | [ourostack/ouro-ui-windows v0.9.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.9.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.9.0") |
 
-Components: Web has 132 of 135, Apple has 20 of 135, Android has 20 of 135, Windows has 22 of 135.[^matrix]
+Components: Web has 132 of 135, Apple has 20 of 135, Android has 22 of 135, Windows has 25 of 135.[^matrix]
 
-Claims covered: Web 7 of 13, Apple 13 of 13, Android 6 of 13, Windows 6 of 13.[^matrix]
+Claims covered: Web 7 of 13, Apple 13 of 13, Android 7 of 13, Windows 6 of 13.[^matrix]
 
-Gap cells: 366.[^matrix]
+Gap cells: 360.[^matrix]
 
 ### Components
 
@@ -85,8 +85,8 @@ Gap cells: 366.[^matrix]
 | [otp-field](https://ui.ouroboros.bot/docs/otp-field/) | `otp-field` | Not yet | Not yet | Not yet |
 | [file-field](https://ui.ouroboros.bot/docs/file-field/) | `file-field` | Not yet | Not yet | Not yet |
 | [color-field](https://ui.ouroboros.bot/docs/color-field/) | `color-field` | Not yet | Not yet | Not yet |
-| [swipe-actions](https://ui.ouroboros.bot/docs/swipe-actions/) | `swipe-actions` | Not yet | `OuroSwipeActions` | Not yet |
-| [reorderable](https://ui.ouroboros.bot/docs/reorderable/) | `reorderable` | Not yet | Not yet | Not yet |
+| [swipe-actions](https://ui.ouroboros.bot/docs/swipe-actions/) | `swipe-actions` | Not yet | `OuroSwipeActions` | `OuroSwipeActions` |
+| [reorderable](https://ui.ouroboros.bot/docs/reorderable/) | `reorderable` | Not yet | `OuroReorderable` | `OuroReorderable` |
 | [calendar](https://ui.ouroboros.bot/docs/calendar/) | `calendar` | Not yet | Not yet | Not yet |
 | [date-picker](https://ui.ouroboros.bot/docs/date-picker/) | `date-picker` | Not yet | Not yet | Not yet |
 | [carousel](https://ui.ouroboros.bot/docs/carousel/) | `carousel` | Not yet | Not yet | Not yet |
@@ -116,7 +116,7 @@ Gap cells: 366.[^matrix]
 | [local-date](https://ui.ouroboros.bot/docs/local-date/) | `local-date` | Not yet | Not yet | Not yet |
 | [relative-time](https://ui.ouroboros.bot/docs/relative-time/) | `relative-time` | Not yet | Not yet | Not yet |
 | [install-prompt](https://ui.ouroboros.bot/docs/install-prompt/) | `install-prompt` | Not yet | Not yet | Not yet |
-| [conversation-list](https://ui.ouroboros.bot/docs/conversation-list/) | `conversation-list` | Not yet | Not yet | Not yet |
+| [conversation-list](https://ui.ouroboros.bot/docs/conversation-list/) | `conversation-list` | Not yet | `OuroConversationList` | `OuroConversationList` |
 | [attention-card](https://ui.ouroboros.bot/docs/attention-card/) | `attention-card` | Not yet | Not yet | Not yet |
 | [reaction-bar](https://ui.ouroboros.bot/docs/reaction-bar/) | `reaction-bar` | Not yet | Not yet | Not yet |
 | [lightbox](https://ui.ouroboros.bot/docs/lightbox/) | `lightbox` | Not yet | Not yet | Not yet |
@@ -165,7 +165,7 @@ Gap cells: 366.[^matrix]
 | `name.spoken` | must | component | Partly | Covered | Covered | Covered |
 | `text.reflows` | must | component | Not yet | Covered | Covered | Covered |
 | `contrast.text` | must | component | Partly | Covered | Covered | Covered |
-| `announce.urgency` | should | component | Partly | Covered | Not yet | Not yet |
+| `announce.urgency` | should | component | Partly | Covered | Covered | Not yet |
 | `toast.action-stays` | must | component | Covered | Covered | Not yet | Not yet |
 | `dismiss.reachable` | must | component | Covered | Covered | Covered | Covered |
 | `action.one-declaration` | should | action | Covered | Covered | Not yet | Not yet |
