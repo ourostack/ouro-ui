@@ -1,0 +1,51 @@
+name: Size ceilings
+# The absolute size ceilings, on main (scripts/size-gate.mjs). On a pull request and in the merge queue the size checks
+# judge only the change's own growth over its base (site/e2e/catalog.spec.ts for the pages' JavaScript,
+# scripts/pattern-size.test.mjs for the page patterns), so a ceiling main has crept over fails no one's pull request. It is
+# caught here instead: after each CI run on a push to main, this reads the sizes that commit's tree measured (the
+# artifacts size-closure-<tree> and size-patterns-<tree>, from that run or, when the push passed by proof, from the run
+# that proved the tree) and opens or comments on one issue, "A size is over its ceiling on main", for any over its
+# ceiling. Main stays green: the fix is a smaller change or a raise with its new measurement and reason.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read # the size reports, artifacts of the run that measured the tree
+  issues: write # the issue for a size over its ceiling (scripts/scheduled-failure.sh)
+concurrency:
+  group: size-ceilings
+  cancel-in-progress: false
+jobs:
+  ceilings:
+    name: Check main's sizes against their ceilings
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'push' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - id: sizes
+        name: Read the sizes this commit's tree measured
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SIZE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: node scripts/size-gate.mjs main closure patterns
+      - name: Open or comment on the issue for a size over its ceiling
+        if: steps.sizes.outputs.breaches != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BREACHES: ${{ steps.sizes.outputs.breaches }}
+          SIZE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          scripts/scheduled-failure.sh "$RUN" "A size is over its ceiling on main" "Main is over a size ceiling at ${SIZE_SHA::9} ($BREACHES)" "Still over at ${SIZE_SHA::9} ($BREACHES): $RUN"

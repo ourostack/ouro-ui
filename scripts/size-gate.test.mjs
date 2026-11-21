@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 import { test } from "node:test";
-import { baseReport, judgeSizes, mainBreaches, readZipEntry, reportName } from "./size-gate.mjs";
+import { baseReport, judgeSizes, mainBreaches, readZipEntry, reportName, treeBreaches } from "./size-gate.mjs";
 
 // The docs page's JavaScript as #2747 found it: main had crept to 191,889 bytes, 114 under a ceiling of 192,003, and
 // #2747 grew it by 162 bytes without touching site/ (its e2e job 136857850020 read 192,051).
@@ -101,4 +101,16 @@ test("the base's report is the newest artifact named for the size check and the 
   const none = await baseReport({ check: "patterns", sha: "merge", repo: "o/r", api: "https://api", token: "t", fetch });
   assert.equal(none.report, null);
   assert.match(none.why, /no artifact named size-patterns-basetree/);
+});
+
+test("on main, the sizes a commit's tree measured are read from its artifacts, and a check that measured nothing is named", async () => {
+  const fetch = async (url) => {
+    if (url.endsWith("/commits/main")) return Response.json({ commit: { tree: { sha: "maintree" } } });
+    if (url.includes("/actions/artifacts?name=size-closure-maintree")) return Response.json({ artifacts: [{ id: 7, expired: false, created_at: "2026-11-21T13:30:00Z" }] });
+    if (url.includes("/actions/artifacts?name=")) return Response.json({ artifacts: [] });
+    if (url.endsWith("/actions/artifacts/7/zip")) return new Response(zip("closure.json", JSON.stringify(docs(192_051))));
+    return new Response("not found", { status: 404 });
+  };
+  const found = await treeBreaches({ checks: ["closure", "patterns"], sha: "main", repo: "o/r", api: "https://api", token: "t", fetch });
+  assert.deepEqual(found, { breaches: ["docs initial JavaScript: 192051 bytes, over its ceiling of 192003"], missing: ["size-patterns-maintree"] });
 });
