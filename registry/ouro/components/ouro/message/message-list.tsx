@@ -1130,8 +1130,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // With messages, a message is the Tab stop and the region is not; without, the region is while it scrolls.
   // Stryker disable next-line ArrowFunction,ConditionalExpression,EqualityOperator: a first guess only; the keyboard effect counts the messages before the first paint.
   const [hasItems, setHasItems] = useState(() => Children.count(children) > 0);
-  // The value the state last took, so a sync that finds it unchanged sets nothing: a set to the same value still renders the list.
-  const hasItemsSet = useRef(hasItems);
 
   // A page of older messages that comes at once goes in a chunk a frame, those nearest the reader first: each frame's
   // work stays short, and the reader's place is kept as each chunk goes in. A few go in at once.
@@ -2511,10 +2509,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (!current?.isConnected) place(list);
       // A switch has its messages in (an empty commit is not one: "does not switch on an empty commit"), so there is a Tab stop.
       if (refocus) focusOn(current!);
-      if (hasItemsSet.current !== list.length > 0) {
-        hasItemsSet.current = list.length > 0;
-        setHasItems(hasItemsSet.current);
-      }
+      setHasItems(list.length > 0);
     };
 
     const focusIn = (event: FocusEvent) => {
