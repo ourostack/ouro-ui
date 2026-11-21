@@ -1826,7 +1826,7 @@ test("Ouro UI for Apple waits while an ourostack package the app resolves does n
 // update that leaves fewer hits in the files it vendors lowers the baseline, or the app's lint fails on the update
 // (spoonjoy-v2#814: react(no-children-prop) fell to 0 in 18 vendored type tests).
 const VENDORED = "tools/ouro-actions/ouro-actions.mts";
-const hits = (n) => `import { createElement } from "react";\nconst Item = (props: { children?: string }) => props.children;\n${Array.from({ length: n }, (_, i) => `export const hit${i} = createElement(Item, { children: "${i}" });\n`).join("")}`;
+const hits = (n) => n === 0 ? "export const none = 0;\n" : `import { createElement } from "react";\nconst Item = (props: { children?: string }) => props.children;\n${Array.from({ length: n }, (_, i) => `export const hit${i} = createElement(Item, { children: "${i}" });\n`).join("")}`;
 const lintedApp = (before, { baseline = true } = {}) => {
   const files = {
     "package.json": JSON.stringify({ devDependencies: { oxlint: "1.86.0" } }, null, 2),
@@ -1844,7 +1844,7 @@ test("an update that leaves fewer lint hits in the files it vendors lowers the a
   assert.equal((await keepRepo(fewer.gh, "o/r", RELEASES, lintedRelease(hits(1)))).state, "pr");
   assert.equal(fewer.fileAt(BRANCH, "oxlint.baseline.json"), `${JSON.stringify({ "app/root.tsx": { "react(only-export-components)": 1 }, [VENDORED]: { "react(no-children-prop)": 1 } }, null, 2)}\n`, "a count that falls is lowered, one that reaches 0 goes, and the rest is as it was");
   const body = fewer.pulls[0].body;
-  assert.match(body, /Lowers `oxlint\.baseline\.json` to the hits left in the files this update changes, counted with oxlint 1\.86\.0 and `\.oxlintrc\.json`, as the repository pins them: `tools\/ouro-actions\/ouro-actions\.mts` `react\(no-children-prop\)` 3 to 1, `unused-disable-directive` 1 to 0\./);
+  assert.match(body, /Lowers `oxlint\.baseline\.json` to the hits left in the files this update changes, counted with oxlint `1\.86\.0` and `\.oxlintrc\.json`, as the repository pins them: `tools\/ouro-actions\/ouro-actions\.mts` `react\(no-children-prop\)` `3` to `1`, `unused-disable-directive` `1` to `0`\./);
   assert.deepEqual(lintMarkdown(body, { file: "pull request body" }), []);
 
   // A file with none left loses its entry.
@@ -1858,7 +1858,7 @@ test("an update that raises a lint count in the files it vendors leaves the base
   assert.equal((await keepRepo(more.gh, "o/r", RELEASES, lintedRelease(hits(5)))).state, "pr");
   assert.equal(more.fileAt(BRANCH, "oxlint.baseline.json"), more.fileAt("main", "oxlint.baseline.json"), "a baseline is never raised, and not lowered either when a count rises");
   const body = more.pulls[0].body;
-  assert.match(body, /Leaves `oxlint\.baseline\.json` as it was: this update raises `tools\/ouro-actions\/ouro-actions\.mts` `react\(no-children-prop\)` from 3 to 5, counted with oxlint 1\.86\.0/);
+  assert.match(body, /Leaves `oxlint\.baseline\.json` as it was: this update raises `tools\/ouro-actions\/ouro-actions\.mts` `react\(no-children-prop\)` from `3` to `5`, counted with oxlint `1\.86\.0`/);
   assert.deepEqual(lintMarkdown(body, { file: "pull request body" }), []);
 });
 
