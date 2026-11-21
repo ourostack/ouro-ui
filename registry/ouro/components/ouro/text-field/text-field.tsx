@@ -3,7 +3,7 @@
 import "@/registry/ouro/lib/ouro/last-input";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import type { JSX, KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
+import type { JSX, MouseEvent, ReactNode, Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl, type FieldControlProps } from "@/registry/ouro/components/ouro/field/field-parts";
@@ -340,7 +340,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
     onChange?.(event);
   };
   // Escape empties a search field in every browser: Chromium does it natively, WebKit and Firefox do not.
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown: NonNullable<FieldControlProps["onKeyDown"]> = (event) => {
     onKeyDown?.(event);
     if (event.defaultPrevented || event.key !== "Escape" || type !== "search" || event.nativeEvent.isComposing || event.currentTarget.value === "") return;
     event.preventDefault();
