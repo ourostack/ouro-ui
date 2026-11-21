@@ -2,12 +2,23 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { URL } from "node:url";
-import { generate, specifiers } from "./page-css.mts";
+import { generate, generateDocsShell, specifiers } from "./page-css.mts";
 
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 test("the voyage's CSS sources are current: run node site/scripts/page-css.mts when this fails", () => {
   assert.equal(read("site/src/voyage/voyage-sources.generated.css"), generate());
+});
+
+test("the docs' shell sources are current: run node site/scripts/page-css.mts when this fails", () => {
+  assert.equal(read("site/src/docs/shell-sources.generated.css"), generateDocsShell());
+});
+
+test("the docs' shell leaves out the demos and the components only a demo renders, and keeps the shell's own", () => {
+  const css = generateDocsShell();
+  assert.match(css, /@source not "demos";/);
+  assert.match(css, /@source not "\.\.\/\.\.\/\.\.\/registry\/ouro\/components\/ouro\/porthole";/);
+  assert.doesNotMatch(css, /components\/ouro\/(button|link|text)";/);
 });
 
 test("the voyage's Tailwind build leaves out what the voyage never renders, and keeps what it does", () => {

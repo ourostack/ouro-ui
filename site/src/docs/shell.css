@@ -1,0 +1,8 @@
+/*
+ * The docs' shared stylesheet: Tailwind's build without the components only a component's own
+ * page renders (shell-sources.generated.css, written from the docs' import graph by
+ * site/scripts/page-css.mts). Every docs page links it once, so the browser keeps it across pages.
+ * A component's page adds the classes its demo needs in a <style> in its head (site/scripts/docs-css.mts).
+ */
+@import "../styles.css";
+@import "./shell-sources.generated.css";

@@ -1,5 +1,3 @@
-// First, so the page's own rules come after Tailwind's and win.
-import "../styles.css";
 // The presets the shared header's theme picker switches between, as on the voyage pages.
 import "../themes/presets.generated.css";
 import "../themes/by-preset.css";
@@ -28,6 +26,10 @@ import spoonjoy from "../docs/spoonjoy.json";
 import shipComponents from "../docs/ship-components.json";
 import { SHIP_PAGES } from "../docs/ships";
 import itemSources from "../docs/sources.json";
+
+// The prerender links each page's Tailwind sheet in its head, the shared shell or the whole build (site/scripts/prerender.mts).
+// The dev server has no prerender, so it loads the whole build here.
+if (import.meta.env.DEV) void import("../styles.css");
 
 /** A page's first words, under its scene: what it is for, in one paragraph. */
 function Lead({ children }: { children: ReactNode }): JSX.Element {
