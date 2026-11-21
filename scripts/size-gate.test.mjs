@@ -44,17 +44,35 @@ test("on main a size over its ceiling is a breach to report, not a failed run, a
   assert.equal(judgeSizes(docs(192_051), { mode: "local", base: null }).ok, false);
 });
 
-// A zip as GitHub serves an artifact: one stored or deflated file.
+// A zip as upload-artifact writes one: a stream, so the file's own header records no sizes (flag bit 3), and the central
+// directory at the end does.
 function zip(name, text) {
   const data = Buffer.from(text);
   const packed = deflateRawSync(data);
-  const header = Buffer.alloc(30);
-  header.writeUInt32LE(0x04034b50, 0);
-  header.writeUInt16LE(8, 8);
-  header.writeUInt32LE(packed.length, 18);
-  header.writeUInt32LE(data.length, 22);
-  header.writeUInt16LE(name.length, 26);
-  return Buffer.concat([header, Buffer.from(name), packed]);
+  const local = Buffer.alloc(30);
+  local.writeUInt32LE(0x04034b50, 0);
+  local.writeUInt16LE(0x0008, 6);
+  local.writeUInt16LE(8, 8);
+  local.writeUInt16LE(name.length, 26);
+  const descriptor = Buffer.alloc(16);
+  descriptor.writeUInt32LE(0x08074b50, 0);
+  descriptor.writeUInt32LE(packed.length, 8);
+  descriptor.writeUInt32LE(data.length, 12);
+  const central = Buffer.alloc(46);
+  central.writeUInt32LE(0x02014b50, 0);
+  central.writeUInt16LE(0x0008, 8);
+  central.writeUInt16LE(8, 10);
+  central.writeUInt32LE(packed.length, 20);
+  central.writeUInt32LE(data.length, 24);
+  central.writeUInt16LE(name.length, 28);
+  const body = Buffer.concat([local, Buffer.from(name), packed, descriptor]);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(1, 8);
+  end.writeUInt16LE(1, 10);
+  end.writeUInt32LE(46 + name.length, 12);
+  end.writeUInt32LE(body.length, 16);
+  return Buffer.concat([body, central, Buffer.from(name), end]);
 }
 
 test("the base's report is the newest artifact named for the size check and the base commit's tree", async () => {

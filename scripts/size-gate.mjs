@@ -82,19 +82,19 @@ export function judgeSizes(sizes, { mode, base }) {
   return { ok: failures.length === 0, failures, lines };
 }
 
-/** The one file in a zip as GitHub serves an artifact (stored or deflated), as text. */
+/**
+ * The one file in a zip as GitHub serves an artifact (stored or deflated), as text. Its sizes are read from the central
+ * directory at the end, since a zip written as a stream records none in the file's own header.
+ */
 export function readZipEntry(zip) {
-  if (zip.readUInt32LE(0) !== 0x04034b50) throw new Error("not a zip file");
-  const method = zip.readUInt16LE(8);
-  const nameLength = zip.readUInt16LE(26);
-  const extraLength = zip.readUInt16LE(28);
-  const start = 30 + nameLength + extraLength;
-  // A zip written as a stream records its sizes after the data, so the data runs to the next header.
-  let size = zip.readUInt32LE(18);
-  if (size === 0) {
-    const next = zip.indexOf(Buffer.from([0x50, 0x4b]), start);
-    size = (next === -1 ? zip.length : next) - start;
-  }
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  if (end === -1) throw new Error("not a zip file");
+  const central = zip.readUInt32LE(end + 16);
+  if (zip.readUInt32LE(central) !== 0x02014b50) throw new Error("a zip without its central directory");
+  const method = zip.readUInt16LE(central + 10);
+  const size = zip.readUInt32LE(central + 20);
+  const local = zip.readUInt32LE(central + 42);
+  const start = local + 30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28);
   const data = zip.subarray(start, start + size);
   if (method === 0) return data.toString("utf8");
   if (method === 8) return inflateRawSync(data).toString("utf8");
