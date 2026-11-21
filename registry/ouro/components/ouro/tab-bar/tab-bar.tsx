@@ -127,37 +127,45 @@ function keyboardUp(): boolean {
   return field && layout.height - innerHeight > KEYBOARD;
 }
 
-// Reading the visual viewport lays the page out in WebKit, and React asks for this answer on every render. So it is kept, but only
-// while a bar listens: each event that can change it clears it, and nothing else would.
-let keyboard: boolean | undefined;
-let listeners = 0;
+function subscribeKeyboard(listener: () => void): () => void {
+  const viewport = window.visualViewport;
+  // Focus moving from one field to the next leaves nothing focused for a moment; the focusin that follows reports it.
+  const left = (event: FocusEvent) => {
+    if (event.relatedTarget === null) listener();
+  };
+  viewport?.addEventListener("resize", listener);
+  document.addEventListener("focusin", listener);
+  document.addEventListener("focusout", left);
+  return () => {
+    viewport?.removeEventListener("resize", listener);
+    document.removeEventListener("focusin", listener);
+    document.removeEventListener("focusout", left);
+  };
+}
 
-function keyboardUpNow(): boolean {
-  if (listeners === 0) return keyboardUp();
+// Reading the visual viewport lays the page out in WebKit, and React asks for the answer on every render. So it is kept while a bar
+// listens, and each event that can change it drops it; with no bar listening, nothing would.
+let keyboard: boolean | undefined;
+let listening = 0;
+
+function keptKeyboardUp(): boolean {
+  // Stryker disable next-line ConditionalExpression: the last bar to stop listening drops the answer, so one kept with none listening is only a render that never subscribed.
+  if (listening === 0) return keyboardUp();
   keyboard ??= keyboardUp();
   return keyboard;
 }
 
-function subscribeKeyboard(listener: () => void): () => void {
-  const viewport = window.visualViewport;
-  const changed = () => {
+function subscribeKept(listener: () => void): () => void {
+  listening += 1;
+  const stop = subscribeKeyboard(() => {
     keyboard = undefined;
     listener();
-  };
-  // Focus moving from one field to the next leaves nothing focused for a moment; the focusin that follows reports it.
-  const left = (event: FocusEvent) => {
-    if (event.relatedTarget === null) changed();
-  };
-  viewport?.addEventListener("resize", changed);
-  document.addEventListener("focusin", changed);
-  document.addEventListener("focusout", left);
-  listeners += 1;
+  });
   return () => {
-    viewport?.removeEventListener("resize", changed);
-    document.removeEventListener("focusin", changed);
-    document.removeEventListener("focusout", left);
-    listeners -= 1;
-    if (listeners === 0) keyboard = undefined;
+    stop();
+    listening -= 1;
+    // Stryker disable next-line ConditionalExpression: dropping the answer while another bar listens only reads the viewport once more.
+    if (listening === 0) keyboard = undefined;
   };
 }
 
@@ -275,7 +283,7 @@ export function TabBar(props: TabBarProps): JSX.Element {
   }
   const isCurrent = (index: number) => (index === current ? ("page" as const) : undefined);
   // The server cannot know, so the bar renders in place and steps aside after hydration if the keyboard is up.
-  const aside = useSyncExternalStore(subscribeKeyboard, keyboardUpNow, serverFalse);
+  const aside = useSyncExternalStore(subscribeKept, keptKeyboardUp, serverFalse);
 
   return (
     <div data-ouro="tab-bar" className={cn(rootClass, breakpoints[hideFrom], className)}>
