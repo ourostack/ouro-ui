@@ -74,6 +74,7 @@ interface AxRead {
   summary?: string;
   fields: readonly string[];
   consent: ReadConsent;
+  notSpeech?: string;
   push?: "filtered";
 }
 ```
