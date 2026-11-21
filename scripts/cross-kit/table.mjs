@@ -136,5 +136,5 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log("\n" + caseTable(readdirSync(coreDir).filter((f) => f.endsWith(".json")).sort(), results));
   const componentResults = {};
   for (const k of kits.filter((k) => k.kit in componentJobs)) componentResults[k.kit] = latestComponentCases(k);
-  console.log("\n" + caseTable(componentCaseNames(coreRoot, ["tabs", "tab-bar", "sidebar", "checkbox", "text-field", "switch", "select", "field"]), componentResults));
+  console.log("\n" + caseTable(componentCaseNames(coreRoot, ["tabs", "tab-bar", "sidebar", "checkbox", "text-field", "switch", "select", "field", "message", "reaction-bar", "message-list", "composer"]), componentResults));
 }

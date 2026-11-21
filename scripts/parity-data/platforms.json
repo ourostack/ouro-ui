@@ -89,8 +89,8 @@
   },
   "android": {
     "repo": "ourostack/ouro-ui-android",
-    "tag": "v0.10.0",
-    "commit": "883c2db5f51dd92af2c1e3b72f529a53cdac4c4f",
+    "tag": "v0.11.0",
+    "commit": "2f1f3ce2fd3497a0bb91a99be65ef4b8ffd07ed1",
     "components": [
       {
         "name": "OuroBadge",
@@ -111,6 +111,10 @@
       {
         "name": "OuroComposedSurface",
         "web": "composed-surface"
+      },
+      {
+        "name": "OuroComposer",
+        "web": "composer"
       },
       {
         "name": "OuroConfirmDialog",
@@ -139,6 +143,18 @@
       {
         "name": "OuroItemGroup",
         "web": "item-group"
+      },
+      {
+        "name": "OuroMessage",
+        "web": "message"
+      },
+      {
+        "name": "OuroMessageList",
+        "web": "message-list"
+      },
+      {
+        "name": "OuroReactionBar",
+        "web": "reaction-bar"
       },
       {
         "name": "OuroReorderable",
@@ -193,8 +209,8 @@
   },
   "windows": {
     "repo": "ourostack/ouro-ui-windows",
-    "tag": "v0.9.0",
-    "commit": "b81dcc640dcfef12e4f4a172ab058c9b544a9a8f",
+    "tag": "v0.10.0",
+    "commit": "7fca1243b3dbc87868e82df53f642309ae350c60",
     "components": [
       {
         "name": "OuroBadge",
@@ -215,6 +231,10 @@
       {
         "name": "OuroComposedSurface",
         "web": "composed-surface"
+      },
+      {
+        "name": "OuroComposer",
+        "web": "composer"
       },
       {
         "name": "OuroConfirmDialog",
@@ -249,8 +269,20 @@
         "web": "list-button"
       },
       {
+        "name": "OuroMessage",
+        "web": "message"
+      },
+      {
+        "name": "OuroMessageList",
+        "web": "message-list"
+      },
+      {
         "name": "OuroNavButton",
         "web": "nav-button"
+      },
+      {
+        "name": "OuroReactionBar",
+        "web": "reaction-bar"
       },
       {
         "name": "OuroReorderable",
@@ -289,6 +321,10 @@
         "web": "tab-bar"
       },
       {
+        "name": "OuroTable",
+        "web": "table"
+      },
+      {
         "name": "OuroTabs",
         "web": "tabs"
       },
@@ -298,6 +334,7 @@
       }
     ],
     "claims": [
+      "announce.urgency",
       "contrast.text",
       "dismiss.reachable",
       "motion.reduced",
