@@ -273,13 +273,13 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
   const waiting = queue?.length ?? 0;
   const waitingText = word.waiting.replace("{count}", String(waiting));
   // The list goes when the last write leaves, cancelled or sent: if it held focus, the status line takes it.
-  const listRef = useCallback((list: HTMLUListElement | null) => {
-    // Stryker disable next-line ConditionalExpression: React 19 never calls a ref that returned a cleanup with null; this guard serves React 18
-    if (list === null) return undefined;
-    return () => {
-      if (list.contains(list.ownerDocument.activeElement)) line.current?.focus();
-    };
-  }, []);
+  const listFocused = useRef(false);
+  useLayoutEffect(() => {
+    if (waiting === 0 && listFocused.current) {
+      listFocused.current = false;
+      line.current!.focus();
+    }
+  }, [waiting]);
 
   return (
     <div {...rest} data-ouro="sync-status" data-status={status} data-ouro-queued={waiting > 0 ? waiting : undefined} className={cn("grid min-w-0 text-sm leading-5", className)}>
@@ -298,7 +298,7 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
         {waiting > 0 ? <span className="ms-2">{waitingText}</span> : null}
       </p>
       {waiting > 0 ? (
-        <ul ref={listRef} aria-label={waitingText} className="m-0 grid list-none gap-1 p-0 pt-1">
+        <ul onFocus={() => (listFocused.current = true)} onBlur={() => (listFocused.current = false)} aria-label={waitingText} className="m-0 grid list-none gap-1 p-0 pt-1">
           {queue!.map((item) => (
             <QueuedItem key={item.id} item={item} cancel={onCancel ? word.cancel : undefined} onCancel={onCancel!} />
           ))}
