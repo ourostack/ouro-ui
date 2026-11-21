@@ -8,6 +8,7 @@ import { checkOwner, defineCli, defineCommand, parse, type Cli, type Input, type
 import { commandManifest } from "#ouro-ax/help.ts";
 import { exampleCli as cli, exits, postMessage, resetRooms, rooms, setClock } from "#ouro-ax/example-cli.ts";
 import { nextStep, outcome } from "#ouro-ax/outcome.ts";
+import { wait } from "#ouro-ax/wait.ts";
 import { hasAnsi, stripAnsi } from "#ouro-ax/terminal.ts";
 
 async function run(argv: string[], stdin?: string) {
@@ -300,6 +301,23 @@ test("a voice line follows the fact it adds to: a done outcome, an empty list, t
   let out = "";
   assert.equal(printResult(tool, tool.commands[0]!, {}, [], false, { stdout: { write: (s) => (out += s) }, stderr: { write: () => undefined } }), 0);
   assert.equal(out, "Nothing listed.\n");
+});
+
+test("a satisfied wait gets the voice's waited line after its events, and a wait that is still open gets none", async () => {
+  const tool = defineCli({
+    name: "t",
+    about: ["t."],
+    voice: { waited: ["It came."] },
+    commands: [
+      defineCommand({ name: "got", summary: "G.", effect: "private", readOnly: true, run: () => wait({ for: "a reply", state: "satisfied", since: "2026-01-01T00:00:00Z", events: [{ cursor: "1", type: "reply", at: "2026-01-01T00:01:00Z", by: "Priya", target: null, summary: "replied" }] }), }),
+      defineCommand({ name: "open", summary: "O.", effect: "private", readOnly: true, run: () => wait({ for: "a reply", state: "gone", since: "2026-01-01T00:00:00Z", reason: "closed" }) }),
+    ],
+  });
+  const got = (await onTerminal(tool, ["got"])).out.trimEnd().split("\n");
+  assert.equal(got.at(-1), "It came.");
+  assert.ok(got[0]!.startsWith("Happened: a reply."));
+  assert.ok(!(await onTerminal(tool, ["open"])).out.includes("It came."));
+  assert.ok(!(await onTerminal(tool, ["got", "--json"])).out.includes("It came."));
 });
 
 test("voice variants rotate from the memory a tool keeps between runs", async () => {

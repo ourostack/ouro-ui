@@ -1,0 +1,1 @@
+- New: the AX voice takes a `waited` line, printed after a satisfied wait on a terminal only, like the other voice slots.
