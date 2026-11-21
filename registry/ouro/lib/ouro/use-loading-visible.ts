@@ -38,6 +38,7 @@ export function useLoadingVisible(loading: boolean, options: LoadingVisibleOptio
       }, delay);
       return () => clearTimeout(timer);
     }
+    // Stryker disable next-line ConditionalExpression: without the guard an idle placeholder schedules a hide that sets false over false, which changes nothing
     if (!visible) return;
     const timer = setTimeout(() => setVisible(false), Math.max(0, minVisible - (Date.now() - shownAt.current)));
     return () => clearTimeout(timer);
