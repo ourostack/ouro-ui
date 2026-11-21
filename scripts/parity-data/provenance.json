@@ -1,10 +1,10 @@
 {
   "$comment": "Copies of core files, byte for byte, at one core release. scripts/platform-parity.mjs --pins checks them against the release's dist-manifest.json (the two claims files) and against parity.json at the tag. The Pages build replaces them with core's newest release (node scripts/platform-versions.mjs --write); never edit them.",
   "coreRepo": "ourostack/ouro-ui-core",
-  "coreTag": "v1.4.1",
-  "coreCommit": "952b3aa17b9a8bc2c2c2cd78b943393158650673",
+  "coreTag": "v1.6.0",
+  "coreCommit": "bdb114f5fbbefa9ae5eb820ad314998d214981f8",
   "files": {
-    "components.claims.json": "67fb182b1c403ffc1ac5dc4c3325a2619ef2ab977aa5a34e4328b6e56f2ae88f",
+    "components.claims.json": "7d0915c065229041e195f043ee2cad7b8a52df7aedcbdcc896c29d5fa616a2da",
     "actions.claims.json": "944f48be5f9409dd70e0774dfe4976fef9cc3ba3f4ab4b9231df428700523f1a",
     "parity.json": "bfbe50d9e6b7857cf2febaf29e552a5bba04b5cf4be51fdcba9ed02e6d2bcd9a"
   }
