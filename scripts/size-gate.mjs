@@ -7,7 +7,7 @@
 // On a pull request or in the merge queue, CI first fetches the report of the commit it merges into (the merge commit's
 // first parent) to .tmp/size/base-<check>.json. A size then fails only when this change grew it by more than its budget
 // (or by more than that plus what the change raised its ceiling by). A size over its ceiling that the base was over too is
-// reported, not failed: it is main's to fix, and main's size job opens or updates the issue "A size is over its ceiling on
+// reported, not failed: it is main's to fix, and size-ceilings.yml, after CI on main, opens or updates the issue "A size is over its ceiling on
 // main". With no base measurement (the base's run measured nothing, or its artifact expired), the ceiling decides, as it
 // does on a run by hand.
 //
@@ -157,7 +157,7 @@ export async function treeBreaches({ checks, sha, repo, api, token, fetch = glob
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const [command, ...checks] = process.argv.slice(2);
-  const github = { repo: process.env.GITHUB_REPOSITORY, api: process.env.GITHUB_API_URL ?? "https://api.github.com", token: process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN, sha: process.env.GITHUB_SHA };
+  const github = { repo: process.env.GITHUB_REPOSITORY, api: process.env.GITHUB_API_URL ?? "https://api.github.com", token: process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN, sha: process.env.SIZE_SHA || process.env.GITHUB_SHA };
   if (command === "base") {
     // Never fails the job: without a base, the size check falls back to its ceilings and says so.
     for (const check of checks) {
