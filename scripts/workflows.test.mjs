@@ -1393,6 +1393,15 @@ test("the release runs the public-registry tests with the script tests", () => {
   assert.ok(scriptTestFiles().includes("scripts/public-registry.test.mjs"));
 });
 
+test("every ci.yml job that runs npm or npx resolves packages as published a day ago, as install-test.sh does", () => {
+  const runsNpm = (job) => job.split("\n").some((line) => !/^\s*#/.test(line) && !/\becho\b/.test(line) && /(?:^|[\s;&|(])(?:npx|npm) /.test(line));
+  const jobs = Object.entries(ciJobs()).filter(([, job]) => runsNpm(job));
+  assert.deepEqual(jobs.map(([id]) => id).sort(), ["lighthouse", "registry"]);
+  for (const [id, job] of jobs) assert.match(job, /^ {6}- [&*]npm-day-old$/m, id);
+  assert.match(workflow("ci.yml"), /^ {8}run: echo "npm_config_before=\$\(date -u -d '1 day ago' \+%Y-%m-%dT%H:%M:%SZ\)" >> "\$GITHUB_ENV"$/m);
+  assert.match(readFileSync(join(root, "scripts/install-test.sh"), "utf8"), /^export npm_config_before="\$\{npm_config_before:-\$\(date -u -d '1 day ago' /m);
+});
+
 /** ci.yml's jobs, by name, each the text of its block. */
 const ciJobs = () =>
   Object.fromEntries(
@@ -2032,6 +2041,13 @@ test("the mutation job merges the shards' results and keeps them under the plan'
   assert.match(block, /^ {6}KEY: \$\{\{ needs\.mutation-plan\.outputs\.count != '0' && needs\.mutation-plan\.outputs\.key \|\| '' \}\}$/m);
   assert.match(block, /run: node scripts\/mutation\/cache\.mjs merge \.tmp\/stryker-incremental\.json \.tmp\/shards\/\*\/stryker-incremental\.json/);
   assert.match(block, /uses: actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ env\.KEY \}\}\$\{\{ github\.sha \}\}$/m);
+});
+
+test("ci-budget reads the sweep timings only when the sweeps ran, so a run that skipped them has no download to check", () => {
+  const block = ciJobs()["ci-budget"];
+  const steps = block.split("\n      - ").filter((step) => /timings-sweeps-\*|scripts\/waivers\.mjs \.tmp/.test(step));
+  assert.equal(steps.length, 2);
+  for (const step of steps) assert.match(step, /if: \$\{\{ needs\.e2e\.result == 'success' && needs\.plan\.outputs\.tested != 'true' && needs\.plan\.outputs\.heavy != 'skip' \}\}/);
 });
 
 test("the e2e shards run every spec, or the selected components' and the site's, each shard its share by measured time, and the e2e check passes when they all did", async () => {

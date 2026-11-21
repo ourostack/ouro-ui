@@ -107,13 +107,13 @@ export const shardKeys = (keys, { index, count }, timings, groupOf) => balance(k
  * from the recorded times alone, so the browser job and the subset step agree whatever files a
  * run selects.
  */
-export const subsetWeight = 3.7;
+export const subsetWeight = 1.4;
 
 export function browserBalance(count, extra = [], file = timingsFile) {
   const vitest = readTimings("vitest", file);
   const subset = readTimings("subset", file);
   // A subset check runs serially after a shard's tests, whose recorded times add up over parallel workers
-  // (about 3.7 of them), so it weighs that much more than its own wall time against them.
+  // (about 1.4 of them, calibrated on measured shard times), so it weighs that much more than its own wall time against them.
   const scaled = Object.fromEntries(Object.entries(subset).map(([key, ms]) => [key, ms * subsetWeight]));
   const timings = { ...vitest, ...scaled };
   const shards = balance([...Object.keys(vitest).filter((key) => !isSliced(key)), ...Object.keys(subset)], count, timings, projectOf);

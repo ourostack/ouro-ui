@@ -105,6 +105,10 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 # (#487): npm retries each such fetch itself, with backoff, as scripts/retry.sh does for the browser downloads. A real
 # install error (a version that doesn't exist) still fails at once: npm retries only the network.
 export npm_config_fetch_retries=5 npm_config_fetch_retry_mintimeout=2000 npm_config_fetch_retry_maxtimeout=60000
+# npm and npx resolve each range as the registry stood a day ago (npm's `before`), as CI's own npx steps do: a package
+# published minutes ago can name a dependency version the registry doesn't serve yet (ETARGET), and the day is a minimum
+# release age for what an add installs. So SHADCN_VERSION=latest is the newest shadcn published a day or more ago.
+export npm_config_before="${npm_config_before:-$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-1d +%Y-%m-%dT%H:%M:%SZ)}"
 ref=${3:-$(git -C "$root" rev-parse HEAD)}
 # The pinned CLI, or SHADCN_VERSION (CI's install-latest job sets "latest" on a release branch,
 # so a release is tagged only when every item also installs with the newest shadcn).

@@ -4,7 +4,8 @@
 // release branches always run everything, and so does any change this cannot map to components.
 //
 //   node scripts/test-impact.mjs plan <base> <head>   the plan job: prints the plan and writes
-//                                                     `full` and `components` to $GITHUB_OUTPUT
+//                                                     `full`, `components` and `rendered` to
+//                                                     $GITHUB_OUTPUT
 //   node scripts/test-impact.mjs vitest <components> --shard <index>/<count>
 //                                                     a browser test shard: its share of the
 //                                                     browser tests of those components
@@ -73,6 +74,12 @@ function readFolders(root) {
 
 /** A component's tests, type tests, stories and specs: files that ship in its `-tests` item, not in the component. */
 const devFile = /\.test\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
+
+/** A component's type test: only tsc reads it, in `pnpm typecheck`, which every run runs in full. */
+const typeTest = /\.test-d\.ts$/;
+
+/** A component's test: it runs that folder's tests, and no story renders it. */
+const unitTest = /\.test\.tsx?$/;
 
 /** A docs demo, named after its component: test/text-size.touch.test.tsx scans it with the component's stories. */
 const demo = /^site\/src\/docs\/demos\/(?:.*\/)?([\w-]+)\.demo\.tsx$/;
@@ -146,8 +153,12 @@ function siteFilesDemosLoad(root) {
  * theme, lib/, the test setup, scripts, configuration, dependencies, workflows) or cannot be
  * mapped; otherwise `components` is the stem of every component whose folder or end-to-end spec
  * changed, plus every component that imports one of them: through its own code, directly or
- * through another component, or from its tests, stories and docs demo. With
- * `full`, `components` lists every component. `reasons` says why, one line per file or importer.
+ * through another component, or from its tests, stories and docs demo, plus every component one
+ * of whose tests changed (`*.test.ts(x)`: its own tests run, and nothing else). `rendered` is
+ * `components` without those test-only ones: the components whose stories can render differently,
+ * for the jobs that render stories or run specs (themes, conformance, e2e). A type test
+ * (`*.test-d.ts`) selects nothing: only tsc reads it. With `full`, `components` and `rendered`
+ * list every component. `reasons` says why, one line per file or importer.
  */
 export function testImpact(changedFiles, root = repoRoot) {
   const folders = readFolders(root);
@@ -156,6 +167,7 @@ export function testImpact(changedFiles, root = repoRoot) {
   let full = changedFiles.length === 0;
   if (full) reasons.push("no changed file was found, so nothing can be ruled out");
   const changed = new Set();
+  const tested = new Set();
   const demoLoads = siteFilesDemosLoad(root);
   for (const path of changedFiles) {
     const scope = classify(path);
@@ -167,7 +179,12 @@ export function testImpact(changedFiles, root = repoRoot) {
       reasons.push(`${path}: ${shared[1]}, so everything runs`);
     } else if (path.startsWith(componentsDir)) {
       const folder = path.slice(componentsDir.length).split("/")[0];
-      if (folders.has(folder)) {
+      if (folders.has(folder) && typeTest.test(path)) {
+        reasons.push(`${path}: a type test, which only tsc reads (pnpm typecheck, on every run), no component's tests`);
+      } else if (folders.has(folder) && unitTest.test(path)) {
+        tested.add(folder);
+        reasons.push(`${path}: a test in the ${folder} folder (${folders.get(folder).join(", ")}), which runs that folder's tests and renders no story`);
+      } else if (folders.has(folder)) {
         changed.add(folder);
         reasons.push(`${path}: the ${folder} folder (${folders.get(folder).join(", ")})`);
       } else {
@@ -197,7 +214,7 @@ export function testImpact(changedFiles, root = repoRoot) {
       reasons.push(`${path}: not mapped to components, so everything runs`);
     }
   }
-  if (full) return { full: true, reasons, components: all };
+  if (full) return { full: true, reasons, components: all, rendered: all };
 
   // A component whose own code imports a changed one changes with it, and so on outward; a
   // component whose tests or stories render any of those is affected too, but no further: its
@@ -222,7 +239,10 @@ export function testImpact(changedFiles, root = repoRoot) {
     selected.add(importer);
     reasons.push(`${importer}: its tests, stories or docs demo import ${used.join(", ")}`);
   }
-  return { full: false, reasons, components: [...selected].flatMap((folder) => folders.get(folder)).sort() };
+  // A changed test runs its folder's tests and nothing else: no component's code changed, so no
+  // story renders differently and no importer's tests can.
+  const stems = (set) => [...set].flatMap((folder) => folders.get(folder)).sort();
+  return { full: false, reasons, components: stems(new Set([...selected, ...tested])), rendered: stems(selected) };
 }
 
 /** The folders that hold `components` (stems), sorted. */
@@ -395,9 +415,9 @@ async function main([command, ...args]) {
     const diff = spawnSync("git", ["diff", "--no-renames", "--name-only", base, head], { cwd: repoRoot, encoding: "utf8" });
     if (diff.status !== 0) throw new Error(`git diff ${base} ${head} failed: ${diff.stderr}`);
     const impact = testImpact(diff.stdout.split("\n").filter(Boolean));
-    console.log(impact.full ? "Everything runs:" : `Reduced run: ${impact.components.join(", ") || "no component"}`);
+    console.log(impact.full ? "Everything runs:" : `Reduced run: the tests of ${impact.components.join(", ") || "no component"}; the stories of ${impact.rendered.join(", ") || "no component"}`);
     for (const reason of impact.reasons) console.log(`- ${reason}`);
-    if (process.env["GITHUB_OUTPUT"]) appendFileSync(process.env["GITHUB_OUTPUT"], `full=${impact.full}\ncomponents=${impact.full ? "" : impact.components.join(",")}\n`);
+    if (process.env["GITHUB_OUTPUT"]) appendFileSync(process.env["GITHUB_OUTPUT"], `full=${impact.full}\ncomponents=${impact.full ? "" : impact.components.join(",")}\nrendered=${impact.full ? "" : impact.rendered.join(",")}\n`);
     return 0;
   }
   if (command === "vitest") {
