@@ -49,6 +49,12 @@ describe("rangesIn", () => {
     expect(rangesIn(root, { query: "cafe", fold: "case" }).map((range) => range.toString())).toEqual(["CAFE"]);
     const turkish = document.createElement("div");
     turkish.textContent = "ıi İ";
+    const plain = document.createElement("div");
+    plain.textContent = "see";
+    expect(rangesIn(plain, { query: "e" }).map((range) => [range.startOffset, range.endOffset])).toEqual([
+      [1, 2],
+      [2, 3],
+    ]);
     expect(rangesIn(turkish, { query: "i", fold: "case", locale: "tr" })).toHaveLength(2);
   });
 });

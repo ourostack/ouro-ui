@@ -50,13 +50,14 @@ function useFindHighlights(options: {
         CSS.highlights.delete(CURRENT_MATCH);
       }
     },
+    // Stryker disable next-line ArrayDeclaration: the cleanup reads nothing from the render, so a different list still runs it only on unmount.
     [],
   );
 
   useLayoutEffect(() => {
     const root = content.current!;
     drawn.current = undefined;
-    if (typeof CSS === "undefined" || !("highlights" in CSS)) return;
+    if (!("highlights" in CSS)) return;
     if (query === "") {
       CSS.highlights.delete(ALL_MATCHES);
       CSS.highlights.delete(CURRENT_MATCH);
@@ -100,7 +101,7 @@ function useFindHighlights(options: {
     if (currentRange) {
       const match = currentRange.getBoundingClientRect();
       const edge = view.getBoundingClientRect();
-      const move = match.top < edge.top + MARGIN ? match.top - edge.top - MARGIN : match.bottom > edge.bottom - MARGIN ? match.bottom - edge.bottom + MARGIN : 0;
+      const move = Math.min(0, match.top - edge.top - MARGIN) || Math.max(0, match.bottom - edge.bottom + MARGIN);
       if (move !== 0) view.scrollTo({ top: view.scrollTop + move, behavior: latest.current.reduced ? "instant" : "smooth" });
     }
   }, [scroller, query, fold, locale, target?.key, target?.occurrence]);

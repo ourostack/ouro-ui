@@ -104,6 +104,26 @@ describe("useFindHighlights", () => {
     await expect.poll(() => drawn(ALL_MATCHES).length + drawn(CURRENT_MATCH).length).toBe(5);
   });
 
+  it("scrolls by exactly what brings a match back 48px inside the view, and not at all from that line inward", async () => {
+    const scrollTo = vi.spyOn(HTMLElement.prototype, "scrollTo").mockImplementation(() => undefined);
+    const rect = (top: number, bottom: number) => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top, toJSON: () => ({}) }) as DOMRect;
+    const { root } = await mount({ query: "zzz", current: 0, roomy: true });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(() => rect(100, 300));
+    const place = vi.spyOn(Range.prototype, "getBoundingClientRect");
+    const moveFor = async (top: number, bottom: number) => {
+      place.mockImplementation(() => rect(top, bottom));
+      scrollTo.mockClear();
+      await act(async () => root.render(<Harness query="zzz" current={0} roomy />));
+      await act(async () => root.render(<Harness query="last" current={0} roomy />));
+      return scrollTo.mock.calls.length === 0 ? 0 : (scrollTo.mock.calls[0]![0] as ScrollToOptions).top;
+    };
+    expect(await moveFor(140, 160)).toBe(-8);
+    expect(await moveFor(148, 168)).toBe(0);
+    expect(await moveFor(160, 200)).toBe(0);
+    expect(await moveFor(240, 252)).toBe(0);
+    expect(await moveFor(250, 270)).toBe(18);
+  });
+
   it("puts the current highlight on the occurrence the index names", async () => {
     const { host } = await mount({ query: "fox", current: 1 });
     const current = [...CSS.highlights.get(CURRENT_MATCH)!][0]!;

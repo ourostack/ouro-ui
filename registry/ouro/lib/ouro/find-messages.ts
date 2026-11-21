@@ -40,15 +40,13 @@ function findInMessages(entries: readonly { key: string; text: string }[], find:
   const counts = new Map<string, number>();
   const order: { key: string; count: number }[] = [];
   let total = 0;
-  if (find.query !== "") {
-    const options = { ...(find.fold === undefined ? {} : { fold: find.fold }), ...(find.locale === undefined ? {} : { locale: find.locale }) };
-    for (const { key, text } of entries) {
-      const count = findMatches(text, find.query, options).length;
-      if (count === 0) continue;
-      counts.set(key, count);
-      order.push({ key, count });
-      total += count;
-    }
+  const options = { ...(find.fold === undefined ? {} : { fold: find.fold }), ...(find.locale === undefined ? {} : { locale: find.locale }) };
+  for (const { key, text } of entries) {
+    const count = findMatches(text, find.query, options).length;
+    if (count === 0) continue;
+    counts.set(key, count);
+    order.push({ key, count });
+    total += count;
   }
   return { total, counts, order };
 }
