@@ -70,12 +70,13 @@ interface VoiceDef {
   summary?: readonly string[];
   empty?: readonly string[];
   healthy?: readonly string[];
+  waited?: readonly string[];
 }
 ```
 
 ### `voiceLines`
 
-The fixed voice lines (banner, summary, empty and healthy), as `help --json` lists them for a checker.
+The fixed voice lines (banner, summary, empty, healthy and waited), as `help --json` lists them for a checker.
 
 ```ts
 function voiceLines(voice: VoiceDef): string[]
@@ -118,5 +119,5 @@ interface VoiceOptions {
 A tool's voice: an optional line of character after the facts, for a person at a terminal, never where an agent parses. The kit prints a voice line only when stdout is a terminal, not under `--json` or `--quiet`, and not when the `CI` environment variable is set; never on stderr and never in an error. Each line is one line of plain ASCII, at most 72 characters, and comes after the fact it follows. Variants rotate, and a process celebrates (`done`) at most once.
 
 ```ts
-type VoiceSlot = "banner" | "done" | "summary" | "empty" | "healthy";
+type VoiceSlot = "banner" | "done" | "summary" | "empty" | "healthy" | "waited";
 ```
