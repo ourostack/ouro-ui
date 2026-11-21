@@ -3,7 +3,8 @@
   "components": ["sync-status"],
   "controls": {
     "sync-status": [
-      {"part": "retry", "role": "button", "portal": false}
+      {"part": "retry", "role": "button", "portal": false},
+      {"part": "cancel", "role": "button", "portal": false}
     ]
   }
 }
