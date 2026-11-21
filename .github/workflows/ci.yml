@@ -549,10 +549,7 @@ jobs:
     # pull request, the selected components' tests, the shared suites over their stories and the
     # site's tests, still in every Vitest project (scripts/test-impact.mjs vitest). Each shard
     # uploads its motion evidence, its coverage (the ci job merges it and holds it to 100%) and how
-    # long each file took (`node scripts/shard.mjs refresh`), then checks its share of the installed
-    # subsets: an app that installs some components with their tests reaches 100% of what it
-    # installed (the button, the dialog, the sheet and the forms set, each alone and together; on a
-    # reduced pull request, the sets that install a selected component). Part of the ci check. A
+    # long each file took (`node scripts/shard.mjs refresh`). Part of the ci check. A
     # pull request that changes nothing they read skips them (the plan's `browser`).
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}
@@ -653,13 +650,98 @@ jobs:
           path: coverage/coverage-final.json
           if-no-files-found: ignore
           retention-days: 7
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timings-browser-${{ matrix.shard }}
+          path: .tmp/timings/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
+  subsets:
+    # An app that installs some components with their tests reaches 100% of what it installed (the
+    # button, the dialog, the sheet and the forms set, each alone and together; on a reduced pull
+    # request, the sets that install a selected component): one job per set, beside the browser
+    # shards instead of after their tests, so no browser shard waits for one (scripts/subset-coverage.mjs).
+    # Part of the ci check. Skipped with the browser shards (the plan's `browser`).
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}
+    runs-on: ubuntu-24.04
+    # A hang ends the job in minutes rather than an hour (#671). The step's limit below ends it first.
+    timeout-minutes: 15
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5]
+    name: subsets (${{ matrix.shard }}/5)
+    env:
+      FULL: ${{ needs.plan.outputs.full != 'false' }}
+      COMPONENTS: ${{ needs.plan.outputs.components }}
+      SHARD: ${{ matrix.shard }}/5
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-tarball
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - name: Coverage of installed subsets
+        timeout-minutes: 12
         run: |
           if [ "$FULL" = true ]; then node scripts/subset-coverage.mjs --shard "$SHARD"; else node scripts/subset-coverage.mjs --touching "$COMPONENTS" --shard "$SHARD"; fi
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: timings-browser-${{ matrix.shard }}
+          name: timings-subsets-${{ matrix.shard }}
           path: .tmp/timings/
           include-hidden-files: true
           if-no-files-found: ignore
@@ -1290,7 +1372,7 @@ jobs:
     # when the plan skipped the browser shards, the design shards or the screen-reader lane because nothing they read changed,
     # without them. Its
     # outputs tell motion-coverage which shards' motion evidence to read, if any.
-    needs: [plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback, screen-reader]
+    needs: [plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, coverage, browser-fallback, screen-reader]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1312,6 +1394,7 @@ jobs:
           ATTRIBUTION: ${{ needs.attribution.result }}
           DESIGN: ${{ needs.design.result }}
           BROWSER: ${{ needs.browser.result }}
+          SUBSETS: ${{ needs.subsets.result }}
           SCRIPTS: ${{ needs.scripts.result }}
           SCRIPTS_BROWSER: ${{ needs.scripts-browser.result }}
           COVERAGE: ${{ needs.coverage.result }}
@@ -1321,11 +1404,12 @@ jobs:
           failed=0
           # Skipped by the plan, the browser shards count as passed; skipped for any other reason, they do not.
           if [ "$BROWSER_RUN" = false ] && [ "$BROWSER" = skipped ]; then BROWSER=success; fi
+          if [ "$BROWSER_RUN" = false ] && [ "$SUBSETS" = skipped ]; then SUBSETS=success; fi
           # So do the design shards, skipped by the plan when nothing the site build or Ouro check reads changed.
           if [ "$DESIGN_RUN" = false ] && [ "$DESIGN" = skipped ]; then DESIGN=success; fi
           # And the screen-reader lane, which the plan skipped when no screen-reader spec can see the change, or for a fork.
           if [ "$SCREEN_READER_RUN" = false ] && [ "$SCREEN_READER" = skipped ]; then SCREEN_READER=success; fi
-          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE" "screen-reader=$SCREEN_READER"; do
+          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "subsets=$SUBSETS" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE" "screen-reader=$SCREEN_READER"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
               failed=1
