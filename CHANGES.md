@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: when an event on any day shown runs across the time TimeGrid would open at, it opens at that event's start, so the event shows whole.
