@@ -543,6 +543,22 @@ test("an install record mirrors the release: a file the release no longer ships 
   assert.deepEqual(update.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
 });
 
+test("an install record deletes a copy an earlier update kept after the release dropped it, when its bytes are still the recorded source (spoonjoy/spoonjoy-v2#829)", async () => {
+  // As spoonjoy-v2 after #828: the record lists both the old and the new name, at a tag that ships only the new one.
+  const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
+  const registry = JSON.stringify({ items: [{ name: "ax-command", files: [{ path: "registry/ouro/ax/ax-command.ts", target: "@lib/ouro/ax/ax-command.ts" }] }] });
+  const previous = files({ "registry.json": registry, "registry/ouro/ax/ax-command.ts": "command v1\n" });
+  const next = files({ "registry.json": registry, "registry/ouro/ax/ax-command.ts": "command v2\n" });
+  const record = { tag: "v1.3.242", tagCommit: "old", files: { "lib/ouro/ax/ax-command.ts": sha256("command v1\n"), "lib/ouro/ax/command.ts": sha256("command v0\n"), "lib/ouro/ax/claims.ts": sha256("claims v0\n") } };
+  const consumer = files({ "package.json": JSON.stringify({ name: "app", type: "module" }), "lib/ouro/ax/ax-command.ts": "command v1\n", "lib/ouro/ax/command.ts": "command v0\n", "lib/ouro/ax/claims.ts": "claims v0, edited here\n" });
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, { tarball: async (follows, tag) => (tag === "v1.3.242" ? previous : next), consumerFiles: async () => consumer });
+  assert.equal(update.files["lib/ouro/ax/command.ts"], null, "the unedited leftover goes");
+  assert.equal("lib/ouro/ax/claims.ts" in update.files, false, "an edited leftover is the app's own");
+  assert.deepEqual(Object.keys(JSON.parse(update.files[pin.file]).files).sort(), ["lib/ouro/ax/ax-command.ts", "lib/ouro/ax/claims.ts"]);
+  assert.ok(update.notes.includes("Deletes what the release no longer ships: `lib/ouro/ax/command.ts`."));
+});
+
 test("an install record keeps a file the release no longer ships when it was edited here", async () => {
   const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
   const registry = (...names) => JSON.stringify({ items: [{ name: "ax-command", files: names.map((name) => ({ path: `registry/ouro/ax/${name}`, target: `@lib/ouro/ax/${name}` })) }] });
