@@ -231,6 +231,14 @@ test("parseShard reads --shard as a 1-based index and a count", () => {
   assert.throws(() => parseShard("4/3"), /--shard/);
 });
 
+test("parseTestSeconds reads a touch test file's time from its ouro-touch line, which the mutation runner runs", () => {
+  const log = [
+    "2026-11-21T08:18:26.8450286Z  ✓  ouro-touch (chromium)  registry/ouro/components/ouro/item/item.touch.test.tsx (9 tests) 4210ms",
+    "2026-11-21T08:18:27.0000000Z  ✓  ouro-touch (chromium)  registry/ouro/components/ouro/item/item.test.tsx (3 tests) 900ms",
+  ].join("\n");
+  assert.deepEqual(parseTestSeconds(log), { "registry/ouro/components/ouro/item/item.touch.test.tsx": 4.21 });
+});
+
 test("parseTestSeconds reads each ouro-chromium test file's time from a CI log, colour codes and timestamps dropped", () => {
   const log = [
     "2026-10-21T08:18:26.8450286Z  \x1b[32m✓\x1b[39m \x1b[30m\x1b[45m ouro-chromium (chromium) \x1b[49m\x1b[39m registry/ouro/components/ouro/select/select.test.tsx \x1b[2m(\x1b[22m\x1b[2m32 tests\x1b[22m\x1b[2m)\x1b[22m\x1b[33m 6886\x1b[2mms\x1b[22m\x1b[39m",
