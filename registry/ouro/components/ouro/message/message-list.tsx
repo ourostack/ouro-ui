@@ -1905,10 +1905,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     if (dripping.current !== 0) return;
     dripping.current = requestAnimationFrame(() => {
       dripping.current = 0;
-      if (setting.current !== null) {
-        drip();
-        return;
-      }
+      // The band the last sync set is not drawn yet, and a frame that syncs now would read the DOM without its rows. The commit
+      // that draws it runs the sync that asks for the next frame while rows still wait, so this frame waits.
+      if (setting.current !== null) return;
       budget.current = OLDER_CHUNK;
       // Stryker disable next-line BooleanLiteral: measuring here finds the heights the commit before it measured, and changes nothing.
       windowSync.current!(true);
