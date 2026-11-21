@@ -718,7 +718,8 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
           continue;
         }
         const at = middle(box);
-        const reach = Math.min(Math.max(anchor.top - at, at - anchor.bottom, 0) / REACH, 1);
+        // From the message's nearer edge, so the message the pointer is in has none, wherever in it the pointer is.
+        const reach = Math.min(Math.max(anchor.top - box.bottom, box.top - anchor.bottom, 0) / REACH, 1);
         // A message that comes near mid-scroll starts where its nearest moving neighbour is, so no gap opens at the band's edge.
         // Stryker disable next-line EqualityOperator: of two neighbours exactly as near, either is as near.
         const neighbour = seen.has(item) ? undefined : known.reduce<(typeof known)[number] | undefined>((best, other) => (best === undefined || Math.abs(other.at - at) < Math.abs(best.at - at) ? other : best), undefined);
@@ -1729,7 +1730,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       carriedRef.current = 0;
       content.style.removeProperty("translate");
       const before = scroller.scrollTop;
-      const applied = scrollOwn(by);
+      // In whole pixels: WebKit drops the fraction of a scroll position written to it, so a carry of 3,499.99 px moved the
+      // reader's place a whole pixel there (ourostack/ouro-ui#2648).
+      const applied = scrollOwn(Math.round(by));
       // What the list's start stops, the part of the move past it, goes above the content instead, so the content stays where the
       // reader sees it.
       setSlack(slack + Math.max(0, -(before + by)));

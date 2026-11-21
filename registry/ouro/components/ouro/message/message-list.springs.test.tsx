@@ -109,8 +109,9 @@ function expectFirstFrame(messages: HTMLElement[], from: number | { top: number;
   const span = typeof from === "number" ? { top: from, bottom: from } : from;
   let moved = 0;
   for (const message of messages) {
-    const at = laidOut(message).middle;
-    const reach = Math.min(Math.max(span.top - at, at - span.bottom, 0) / REACH, 1);
+    // From the message's nearer edge: the message the pointer is in has no reach.
+    const box = laidOut(message);
+    const reach = Math.min(Math.max(span.top - box.bottom, box.top - span.bottom, 0) / REACH, 1);
     const want = springFor(reach, kick, push, ms);
     if (Math.abs(want.value) < 0.25 && Math.abs(want.velocity) < 0.01) expect(message.style.transform).toBe("");
     else {
@@ -374,17 +375,21 @@ describe("MessageList springs", () => {
     for (const message of above) expect(shiftOf(message)).toBeCloseTo(shiftOf(first), 3);
   });
 
-  it("leaves the message under the pointer where it is while the others trail", async () => {
+  it("leaves the message under the pointer where it is while the others trail, wherever in it the pointer is", async () => {
     const { scroller, messages } = await render(<Chat count={40} />);
     await scrollInCode(scroller, 600);
     const frames = holdFrames();
     const view = scroller.getBoundingClientRect();
     const under = messages().find((message) => laidOut(message).top > view.top + view.height / 3)!;
-    for (let frame = 0; frame < 3; frame++) {
-      wheel(scroller, 10, laidOut(under).middle);
-      frames.step(16);
-      expect(under.style.transform).toBe("");
-      expect(messages().some((message) => shiftOf(message) > 0)).toBe(true);
+    // Near its top and bottom too, not only at its middle (ourostack/ouro-ui#2648).
+    for (const at of [(box: ReturnType<typeof laidOut>) => box.middle, (box: ReturnType<typeof laidOut>) => box.top + 2, (box: ReturnType<typeof laidOut>) => box.bottom - 2]) {
+      for (let frame = 0; frame < 3; frame++) {
+        // Where the message will be once the step has scrolled it up.
+        wheel(scroller, 120, at(laidOut(under)) - 120);
+        frames.step(16);
+        expect(under.style.transform).toBe("");
+        expect(messages().some((message) => shiftOf(message) > 0)).toBe(true);
+      }
     }
   });
 
@@ -755,13 +760,13 @@ describe("MessageList springs", () => {
 
   it("picks the Tab stop by where messages are laid out while they spring", async () => {
     const { scroller, messages } = await render(<Chat count={40} />);
-    // Scroll so that, after the reader's 30px, a message ends 2px inside the list's bottom edge.
+    // Scroll so that, after the reader's 60px, a message ends 2px inside the list's bottom edge.
     const view = scroller.getBoundingClientRect();
     const edge = messages().find((message) => message.getBoundingClientRect().bottom - view.top + scroller.scrollTop > 900)!;
     const bottom = edge.getBoundingClientRect().bottom - view.top + scroller.scrollTop;
-    await scrollInCode(scroller, bottom - scroller.clientHeight + 2 - 30);
+    await scrollInCode(scroller, bottom - scroller.clientHeight + 2 - 60);
     const frames = holdFrames();
-    wheel(scroller, 30, view.top);
+    wheel(scroller, 60, view.top);
     frames.step(16);
     // Drawn, it trails past the edge; laid out, it is wholly in view, so it is the newest message wholly in view.
     expect(edge.getBoundingClientRect().bottom).toBeGreaterThan(view.bottom);
@@ -808,8 +813,8 @@ describe("MessageList springs", () => {
     await scrollInCode(scroller, 200);
     long.focus({ preventScroll: true });
     const frames = holdFrames();
-    // A wheel far from it: the tall message trails.
-    wheel(scroller, 20, scroller.getBoundingClientRect().bottom + 400);
+    // A wheel far from it, above its top: the tall message trails.
+    wheel(scroller, 20, scroller.getBoundingClientRect().top - 800);
     frames.step(16);
     expect(shiftOf(long)).toBeGreaterThan(0);
     // The down arrow scrolls through it without moving focus: it stops trailing at once.
