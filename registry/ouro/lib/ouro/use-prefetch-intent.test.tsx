@@ -6,7 +6,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 const roots: Root[] = [];
 const nodes: Element[] = [];
 
-function Target({ id, prefetch }: { id: string; prefetch: (key: string) => unknown }) {
+function Target({ id, prefetch }: { id: string; prefetch: ((key: string) => unknown) | undefined }) {
   const intent = usePrefetchIntent(prefetch, id, { delay: 50, maxInflight: 1, staleAfter: 1000 });
   return (
     <button data-id={id} {...intent}>
@@ -15,7 +15,7 @@ function Target({ id, prefetch }: { id: string; prefetch: (key: string) => unkno
   );
 }
 
-async function mount(prefetch: (key: string) => unknown, ids = ["a"]) {
+async function mount(prefetch: ((key: string) => unknown) | undefined, ids = ["a"]) {
   const host = document.createElement("div");
   document.body.append(host);
   nodes.push(host);
@@ -141,6 +141,12 @@ describe("usePrefetchIntent", () => {
     const get = await mount(prefetch);
     await act(async () => get("a").dispatchEvent(new Event("touchstart", { bubbles: true })));
     expect(prefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("does nothing, and does not throw, when the app gives no function", async () => {
+    const get = await mount(undefined);
+    await act(async () => get("a").dispatchEvent(new Event("touchstart", { bubbles: true })));
+    expect(get("a")).not.toBeNull();
   });
 
   it("rests again from the latest pointer entry, and leaving cancels every pending rest", async () => {
