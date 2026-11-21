@@ -309,7 +309,7 @@ test("a satisfied wait gets the voice's waited line after its events, and a wait
     about: ["t."],
     voice: { waited: ["It came."] },
     commands: [
-      defineCommand({ name: "got", summary: "G.", effect: "private", readOnly: true, run: () => wait({ for: "a reply", state: "satisfied", since: "2026-01-01T00:00:00Z", events: [{ at: "2026-01-01T00:01:00Z", by: "Priya", summary: "replied" }] }), }),
+      defineCommand({ name: "got", summary: "G.", effect: "private", readOnly: true, run: () => wait({ for: "a reply", state: "satisfied", since: "2026-01-01T00:00:00Z", events: [{ cursor: "1", type: "reply", at: "2026-01-01T00:01:00Z", by: "Priya", target: null, summary: "replied" }] }), }),
       defineCommand({ name: "open", summary: "O.", effect: "private", readOnly: true, run: () => wait({ for: "a reply", state: "gone", since: "2026-01-01T00:00:00Z", reason: "closed" }) }),
     ],
   });
