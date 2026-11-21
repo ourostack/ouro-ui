@@ -1,15 +1,14 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-21T09:30:06.805Z",
+  "generatedAt": "2026-11-21T10:29:05.214Z",
   "summary": {
     "total": 19,
     "confirmed": 19,
     "listed": 20,
     "unmeasuredCells": 29,
-    "releasesBehind": 11,
+    "releasesBehind": 17,
     "late": [],
     "order": [
-      "spoonjoy-web",
       "apple-distribution-kit",
       "desk-browser",
       "desk",
@@ -27,6 +26,7 @@
       "harness",
       "ouroboros-website",
       "spoonjoy-apple",
+      "spoonjoy-web",
       "ouro-ui"
     ]
   },
@@ -34,10 +34,10 @@
     "web": {
       "repo": "ourostack/ouro-ui",
       "name": "Ouro UI (web)",
-      "tag": "v1.3.398",
-      "at": "2026-11-21T08:17:13Z",
-      "url": "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.398",
-      "count": 431,
+      "tag": "v1.3.399",
+      "at": "2026-11-21T09:59:44Z",
+      "url": "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.399",
+      "count": 432,
       "error": null
     },
     "core": {
@@ -149,10 +149,10 @@
       {
         "key": "release-web",
         "label": "Ouro UI (web) latest release",
-        "value": "v1.3.398",
+        "value": "v1.3.399",
         "note": "Published 2026-11-21.",
-        "source": "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.398",
-        "measuredAt": "2026-11-21T09:30:04.970Z"
+        "source": "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.399",
+        "measuredAt": "2026-11-21T10:29:03.776Z"
       },
       {
         "key": "release-core",
@@ -160,7 +160,7 @@
         "value": "v1.8.0",
         "note": "Published 2026-11-21.",
         "source": "https://github.com/ourostack/ouro-ui-core/releases/tag/v1.8.0",
-        "measuredAt": "2026-11-21T09:30:04.970Z"
+        "measuredAt": "2026-11-21T10:29:03.776Z"
       },
       {
         "key": "release-apple",
@@ -168,7 +168,7 @@
         "value": "v1.5.0",
         "note": "Published 2026-11-21.",
         "source": "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.5.0",
-        "measuredAt": "2026-11-21T09:30:04.970Z"
+        "measuredAt": "2026-11-21T10:29:03.776Z"
       },
       {
         "key": "components",
@@ -176,15 +176,15 @@
         "value": 113,
         "note": "Folders under registry/ouro/components/ouro.",
         "source": "https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro",
-        "measuredAt": "2026-11-21T09:30:04.971Z"
+        "measuredAt": "2026-11-21T10:29:03.776Z"
       },
       {
         "key": "merged-prs",
         "label": "Merged pull requests across the three Ouro UI repositories",
-        "value": 2219,
+        "value": 2222,
         "note": "Counted from each repository's merged pull requests.",
         "source": "https://github.com/ourostack/ouro-ui/pulls?q=is%3Apr+is%3Amerged",
-        "measuredAt": "2026-11-21T09:30:04.971Z"
+        "measuredAt": "2026-11-21T10:29:03.776Z"
       },
       {
         "key": "give-back",
@@ -192,7 +192,7 @@
         "value": 146,
         "note": "Distinct pull requests counted by the give-back column.",
         "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-        "measuredAt": "2026-11-21T09:30:04.971Z"
+        "measuredAt": "2026-11-21T10:29:03.776Z"
       },
       {
         "key": "benchmark",
@@ -200,7 +200,7 @@
         "value": "Action model 179 of 182 done; browser driving 144 of 174 done; SDK-style bridge 173 of 174 done; plain MCP 150 of 182 done",
         "note": "Tasks done, checked on the app's state, across 712 trials by 10 models in the published runs. The page has steps, time, tokens and every transcript.",
         "source": "https://ui.ouroboros.bot/docs/agent-interfaces/",
-        "measuredAt": "2026-11-21T09:30:06.805Z"
+        "measuredAt": "2026-11-21T10:29:05.213Z"
       },
       {
         "key": "model-reviews",
@@ -208,7 +208,7 @@
         "value": null,
         "note": "not measured yet: the model-reviews headline step is not done.",
         "source": "https://github.com/ourostack/ouro-ui/issues/1011",
-        "measuredAt": "2026-11-21T09:30:06.805Z"
+        "measuredAt": "2026-11-21T10:29:05.214Z"
       }
     ],
     "source": "https://github.com/ourostack/ouro-ui/issues/1011",
@@ -467,9 +467,9 @@
             {
               "label": "Ouro HX",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/.github/ouro-hx-installed.json",
-              "tag": "v1.3.397",
+              "tag": "v1.3.398",
               "behind": 1,
               "late": 0,
               "note": null
@@ -487,25 +487,25 @@
           ],
           "note": null,
           "source": "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/.github/ouro-hx-installed.json",
-          "measuredAt": "2026-11-21T09:14:45.775Z"
+          "measuredAt": "2026-11-21T10:13:56.119Z"
         },
         "hx": {
-          "value": "full",
-          "note": "66 installed Ouro components; 589 files import them; 13 files mention the Ouro tokens or theme.",
-          "source": "https://github.com/search?q=components%2Fouro%2F%20repo%3Aspoonjoy%2Fspoonjoy-v2&type=code",
-          "measuredAt": "2026-11-21T09:19:31.838Z"
+          "value": null,
+          "note": "not measured: gh api -X GET: gh: try again in 51.541368523s (HTTP 429)",
+          "source": "https://github.com/spoonjoy/spoonjoy-v2",
+          "measuredAt": "2026-11-21T10:17:16.791Z"
         },
         "ax": {
-          "value": null,
-          "note": "not measured: gh api -X GET: gh: try again in 11.314985716s (HTTP 429)",
-          "source": "https://github.com/spoonjoy/spoonjoy-v2",
-          "measuredAt": "2026-11-21T09:27:36.012Z"
+          "value": "yes",
+          "note": "7 files use defineCommand, bindAx or ax-mcp outside the kit's own copy, its tests and fixtures.",
+          "source": "https://github.com/search?q=defineCommand%20OR%20bindAx%20OR%20ax-mcp%20repo%3Aspoonjoy%2Fspoonjoy-v2&type=code",
+          "measuredAt": "2026-11-21T10:21:15.307Z"
         },
         "actions": {
           "value": 42,
           "note": "Declared once and generated by ouro-actions: 42 in the \"spoonjoy\" set (actions/generated/actions.json, ouro-actions 0.15.0).",
           "source": "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:27:37.522Z"
+          "measuredAt": "2026-11-21T10:21:16.707Z"
         },
         "xray": {
           "value": {
@@ -519,28 +519,28 @@
             "tool": "ax-xray 1.7.0",
             "app": null,
             "commit": null,
-            "reportAt": "2026-11-21T08:43:22.914Z",
-            "run": "https://github.com/spoonjoy/spoonjoy-v2/actions/runs/44886158958",
+            "reportAt": "2026-11-21T09:57:49.807Z",
+            "run": "https://github.com/spoonjoy/spoonjoy-v2/actions/runs/44892001801",
             "reports": [
               {
                 "tool": "ax-xray 1.7.0",
                 "claimSet": "1.7.0",
                 "must": 2,
                 "mustHolding": 2,
-                "reportAt": "2026-11-21T08:43:22.914Z",
-                "run": "https://github.com/spoonjoy/spoonjoy-v2/actions/runs/44886158958"
+                "reportAt": "2026-11-21T09:57:49.807Z",
+                "run": "https://github.com/spoonjoy/spoonjoy-v2/actions/runs/44892001801"
               }
             ]
           },
           "note": null,
-          "source": "https://github.com/spoonjoy/spoonjoy-v2/actions/runs/44886158958",
-          "measuredAt": "2026-11-21T09:27:37.242Z"
+          "source": "https://github.com/spoonjoy/spoonjoy-v2/actions/runs/44892001801",
+          "measuredAt": "2026-11-21T10:21:16.498Z"
         },
         "giveBack": {
           "value": 32,
           "note": "Merged pull requests whose title, text or branch mentions \"spoonjoy-v2\" or \"spoonjoy/spoonjoy-v2\" or \"Spoonjoy web\".",
           "source": "https://github.com/search?q=spoonjoy-v2%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:27:37.533Z",
+          "measuredAt": "2026-11-21T10:21:16.717Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -780,7 +780,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:14:45.175Z"
+          "measuredAt": "2026-11-21T10:13:55.618Z"
         }
       },
       "conditions": {
@@ -828,25 +828,25 @@
           ],
           "note": null,
           "source": "https://github.com/spoonjoy/spoonjoy-apple/blob/HEAD/Package.swift",
-          "measuredAt": "2026-11-21T09:27:37.832Z"
+          "measuredAt": "2026-11-21T10:21:16.911Z"
         },
         "hx": {
           "value": null,
-          "note": "not measured: gh api -X GET: gh: try again in 5.907817671s (HTTP 429); code search's time budget ran out",
+          "note": "not measured: gh api -X GET: gh: try again in 367.690527765s (HTTP 429)",
           "source": "https://github.com/spoonjoy/spoonjoy-apple",
-          "measuredAt": "2026-11-21T09:29:18.834Z"
+          "measuredAt": "2026-11-21T10:24:45.093Z"
         },
         "ax": {
           "value": null,
-          "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
+          "note": "not measured: gh api -X GET: gh: try again in 180.800619927s (HTTP 429); code search's time budget ran out",
           "source": "https://github.com/spoonjoy/spoonjoy-apple",
-          "measuredAt": "2026-11-21T09:29:18.834Z"
+          "measuredAt": "2026-11-21T10:27:51.986Z"
         },
         "actions": {
           "value": 2,
           "note": "Declared once and generated by ouro-actions: 2 in the \"spoonjoy\" set (actions/generated/actions.json, ouro-actions 0.16.0).",
           "source": "https://github.com/spoonjoy/spoonjoy-apple/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:29:24.046Z"
+          "measuredAt": "2026-11-21T10:27:57.728Z"
         },
         "xray": {
           "value": {
@@ -883,13 +883,13 @@
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
           "source": "https://github.com/spoonjoy/spoonjoy-apple/actions/runs/44867936254",
-          "measuredAt": "2026-11-21T09:29:23.372Z"
+          "measuredAt": "2026-11-21T10:27:57.112Z"
         },
         "giveBack": {
           "value": 4,
           "note": "Merged pull requests whose title, text or branch mentions \"spoonjoy-apple\" or \"spoonjoy/spoonjoy-apple\" or \"Spoonjoy Apple\".",
           "source": "https://github.com/search?q=spoonjoy-apple%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:24.054Z",
+          "measuredAt": "2026-11-21T10:27:57.735Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -933,7 +933,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:27:37.533Z"
+          "measuredAt": "2026-11-21T10:21:16.717Z"
         }
       },
       "conditions": {
@@ -981,25 +981,25 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-md/blob/HEAD/Package.resolved",
-          "measuredAt": "2026-11-21T09:29:24.317Z"
+          "measuredAt": "2026-11-21T10:27:57.932Z"
         },
         "hx": {
           "value": null,
-          "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
+          "note": "not measured: gh api -X GET: gh: try again in 174.327410785s (HTTP 429); code search's time budget ran out",
           "source": "https://github.com/ourostack/ouro-md",
-          "measuredAt": "2026-11-21T09:29:24.317Z"
+          "measuredAt": "2026-11-21T10:27:58.457Z"
         },
         "ax": {
           "value": null,
-          "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
+          "note": "not measured: gh api -X GET: gh: try again in 167.851623861s (HTTP 429); code search's time budget ran out",
           "source": "https://github.com/ourostack/ouro-md",
-          "measuredAt": "2026-11-21T09:29:24.317Z"
+          "measuredAt": "2026-11-21T10:28:04.934Z"
         },
         "actions": {
           "value": 5,
           "note": "Declared once and generated by ouro-actions: 5 in the \"document\" set (Sources/OuroMD/Generated/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/ouro-md/blob/HEAD/Sources/OuroMD/Generated/actions.json",
-          "measuredAt": "2026-11-21T09:29:27.208Z"
+          "measuredAt": "2026-11-21T10:28:07.911Z"
         },
         "xray": {
           "value": {
@@ -1036,13 +1036,13 @@
           },
           "note": "Adds up the newest report of each checker: ax-xray and ouro-actions.",
           "source": "https://github.com/ourostack/ouro-md/actions/runs/44866977582",
-          "measuredAt": "2026-11-21T09:29:26.612Z"
+          "measuredAt": "2026-11-21T10:28:07.359Z"
         },
         "giveBack": {
           "value": 22,
           "note": "Merged pull requests whose title, text or branch mentions \"ouro-md\" or \"ourostack/ouro-md\" or \"Ouro MD\".",
           "source": "https://github.com/search?q=ouro-md%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:27.219Z",
+          "measuredAt": "2026-11-21T10:28:07.921Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -1212,7 +1212,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:24.054Z"
+          "measuredAt": "2026-11-21T10:27:57.735Z"
         }
       },
       "conditions": {
@@ -1260,25 +1260,25 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/gatefold/blob/HEAD/project.yml",
-          "measuredAt": "2026-11-21T09:29:27.461Z"
+          "measuredAt": "2026-11-21T10:28:08.126Z"
         },
         "hx": {
           "value": null,
-          "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
+          "note": "not measured: gh api -X GET: gh: try again in 161.357702819s (HTTP 429); code search's time budget ran out",
           "source": "https://github.com/ourostack/gatefold",
-          "measuredAt": "2026-11-21T09:29:27.461Z"
+          "measuredAt": "2026-11-21T10:28:11.427Z"
         },
         "ax": {
           "value": null,
-          "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
+          "note": "not measured: gh api -X GET: gh: try again in 154.82007083s (HTTP 429); code search's time budget ran out",
           "source": "https://github.com/ourostack/gatefold",
-          "measuredAt": "2026-11-21T09:29:27.461Z"
+          "measuredAt": "2026-11-21T10:28:17.964Z"
         },
         "actions": {
           "value": 3,
           "note": "Declared once and generated by ouro-actions: 3 in the \"gatefold\" set (actions/generated/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/gatefold/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:29:29.979Z"
+          "measuredAt": "2026-11-21T10:28:20.339Z"
         },
         "xray": {
           "value": {
@@ -1315,13 +1315,13 @@
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
           "source": "https://github.com/ourostack/gatefold/actions/runs/44867113579",
-          "measuredAt": "2026-11-21T09:29:29.372Z"
+          "measuredAt": "2026-11-21T10:28:19.811Z"
         },
         "giveBack": {
           "value": 24,
           "note": "Merged pull requests whose title, text or branch mentions \"gatefold\" or \"ourostack/gatefold\" or \"Gatefold\".",
           "source": "https://github.com/search?q=gatefold%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:29.991Z",
+          "measuredAt": "2026-11-21T10:28:20.348Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui-apple",
@@ -1505,7 +1505,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:27.219Z"
+          "measuredAt": "2026-11-21T10:28:07.921Z"
         }
       },
       "conditions": {
@@ -1543,45 +1543,45 @@
             {
               "label": "vendored AX kit files",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/ouroboros/blob/HEAD/upstream-sources.lock.json",
               "tag": "commit c8ceb1f",
-              "behind": 1,
+              "behind": 2,
               "late": 0,
               "note": "Vendored copy of ourostack/ouro-ui at c8ceb1f, committed 2026-11-21."
             },
             {
               "label": "Ouro HX (mailbox UI)",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/ouroboros/blob/HEAD/.github/ouro-hx-installed.json",
               "tag": "v1.3.398",
-              "behind": 0,
+              "behind": 1,
               "late": 0,
               "note": null
             }
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouroboros/blob/HEAD/upstream-sources.lock.json",
-          "measuredAt": "2026-11-21T09:29:30.906Z"
+          "measuredAt": "2026-11-21T10:28:21.388Z"
         },
         "hx": {
           "value": null,
-          "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
+          "note": "not measured: gh api -X GET: gh: try again in 148.291776745s (HTTP 429); code search's time budget ran out",
           "source": "https://github.com/ourostack/ouroboros",
-          "measuredAt": "2026-11-21T09:29:31.527Z"
+          "measuredAt": "2026-11-21T10:28:24.493Z"
         },
         "ax": {
           "value": null,
-          "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
+          "note": "not measured: gh api -X GET: gh: try again in 141.819871751s (HTTP 429); code search's time budget ran out",
           "source": "https://github.com/ourostack/ouroboros",
-          "measuredAt": "2026-11-21T09:29:31.527Z"
+          "measuredAt": "2026-11-21T10:28:30.966Z"
         },
         "actions": {
           "value": 3,
           "note": "Declared once and generated by ouro-actions: 3 in the \"ouro\" set (actions/generated/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/ouroboros/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:29:33.916Z"
+          "measuredAt": "2026-11-21T10:28:33.529Z"
         },
         "xray": {
           "value": {
@@ -1618,13 +1618,13 @@
           },
           "note": "Adds up the newest report of each checker: ax-xray and ouro-actions.",
           "source": "https://github.com/ourostack/ouroboros/actions/runs/44885241576",
-          "measuredAt": "2026-11-21T09:29:33.681Z"
+          "measuredAt": "2026-11-21T10:28:33.326Z"
         },
         "giveBack": {
           "value": 9,
           "note": "Merged pull requests whose title, text or branch mentions \"ourostack/ouroboros\" or \"ouroboros-agent-harness\" or \"@ouro.bot/cli\".",
           "source": "https://github.com/search?q=ourostack%2Fouroboros%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:33.925Z",
+          "measuredAt": "2026-11-21T10:28:33.537Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -1710,7 +1710,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:29.991Z"
+          "measuredAt": "2026-11-21T10:28:20.348Z"
         }
       },
       "conditions": {
@@ -1748,35 +1748,35 @@
             {
               "label": "vendored AX kit files",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/desk/blob/HEAD/upstream-sources.lock.json",
               "tag": "commit c8ceb1f",
-              "behind": 1,
+              "behind": 2,
               "late": 0,
               "note": "Vendored copy of ourostack/ouro-ui at c8ceb1f, committed 2026-11-21."
             }
           ],
           "note": null,
           "source": "https://github.com/ourostack/desk/blob/HEAD/upstream-sources.lock.json",
-          "measuredAt": "2026-11-21T09:29:34.556Z"
+          "measuredAt": "2026-11-21T10:28:34.208Z"
         },
         "hx": {
           "value": "n/a",
           "note": "An MCP server and plugin; its hosted pages are not an Ouro HX surface yet.",
           "source": "https://github.com/ourostack/desk",
-          "measuredAt": "2026-11-21T09:29:34.556Z"
+          "measuredAt": "2026-11-21T10:28:34.208Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/desk",
-          "measuredAt": "2026-11-21T09:29:34.556Z"
+          "measuredAt": "2026-11-21T10:28:34.208Z"
         },
         "actions": {
           "value": 8,
           "note": "Declared once and generated by ouro-actions: 2 in the \"desk-web\" set (plugins/desk/mcp/src/actions/generated/desk-web/actions.json, ouro-actions 1.8.0); 6 in the \"desk\" set (plugins/desk/mcp/src/actions/generated/desk/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/desk/blob/HEAD/plugins/desk/mcp/src/actions/generated/desk-web/actions.json",
-          "measuredAt": "2026-11-21T09:29:37.921Z"
+          "measuredAt": "2026-11-21T10:28:37.760Z"
         },
         "xray": {
           "value": {
@@ -1813,13 +1813,13 @@
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
           "source": "https://github.com/ourostack/desk/actions/runs/44888365731",
-          "measuredAt": "2026-11-21T09:29:36.936Z"
+          "measuredAt": "2026-11-21T10:28:37.093Z"
         },
         "giveBack": {
           "value": 8,
           "note": "Merged pull requests whose title, text or branch mentions \"ourostack/desk\" or \"Desk plugin\" or \"Desk MCP\".",
           "source": "https://github.com/search?q=ourostack%2Fdesk%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:37.932Z",
+          "measuredAt": "2026-11-21T10:28:37.771Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -1891,7 +1891,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:33.925Z"
+          "measuredAt": "2026-11-21T10:28:33.537Z"
         }
       },
       "conditions": {
@@ -1929,35 +1929,35 @@
             {
               "label": "vendored AX kit files",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/desk/blob/HEAD/upstream-sources.lock.json",
               "tag": "commit c8ceb1f",
-              "behind": 1,
+              "behind": 2,
               "late": 0,
               "note": "Vendored copy of ourostack/ouro-ui at c8ceb1f, committed 2026-11-21."
             }
           ],
           "note": null,
           "source": "https://github.com/ourostack/desk/blob/HEAD/upstream-sources.lock.json",
-          "measuredAt": "2026-11-21T09:29:38.553Z"
+          "measuredAt": "2026-11-21T10:28:38.216Z"
         },
         "hx": {
           "value": "n/a",
           "note": "An agent tool with no screen of its own.",
           "source": "https://github.com/ourostack/desk",
-          "measuredAt": "2026-11-21T09:29:38.553Z"
+          "measuredAt": "2026-11-21T10:28:38.216Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/desk",
-          "measuredAt": "2026-11-21T09:29:38.553Z"
+          "measuredAt": "2026-11-21T10:28:38.216Z"
         },
         "actions": {
           "value": 8,
           "note": "Declared once and generated by ouro-actions: 2 in the \"desk-web\" set (plugins/desk/mcp/src/actions/generated/desk-web/actions.json, ouro-actions 1.8.0); 6 in the \"desk\" set (plugins/desk/mcp/src/actions/generated/desk/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/desk/blob/HEAD/plugins/desk/mcp/src/actions/generated/desk-web/actions.json",
-          "measuredAt": "2026-11-21T09:29:39.684Z"
+          "measuredAt": "2026-11-21T10:28:39.073Z"
         },
         "xray": {
           "value": {
@@ -1994,13 +1994,13 @@
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
           "source": "https://github.com/ourostack/desk/actions/runs/44888365731",
-          "measuredAt": "2026-11-21T09:29:39.181Z"
+          "measuredAt": "2026-11-21T10:28:38.702Z"
         },
         "giveBack": {
           "value": 3,
           "note": "Merged pull requests whose title, text or branch mentions \"desk-web\" or \"Desk Browser\".",
           "source": "https://github.com/search?q=desk-web%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:39.691Z",
+          "measuredAt": "2026-11-21T10:28:39.080Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -2029,7 +2029,7 @@
           "value": [],
           "note": "No tracking issue yet: this product has no card.",
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:37.932Z"
+          "measuredAt": "2026-11-21T10:28:37.771Z"
         }
       },
       "conditions": {
@@ -2067,9 +2067,9 @@
             {
               "label": "Ouro HX",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/factory/blob/HEAD/.github/ouro-hx-installed.json",
-              "tag": "v1.3.398",
+              "tag": "v1.3.399",
               "behind": 0,
               "late": 0,
               "note": null
@@ -2077,37 +2077,37 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/factory/blob/HEAD/.github/ouro-hx-installed.json",
-          "measuredAt": "2026-11-21T09:29:39.951Z"
+          "measuredAt": "2026-11-21T10:28:39.349Z"
         },
         "hx": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/factory",
-          "measuredAt": "2026-11-21T09:29:40.384Z"
+          "measuredAt": "2026-11-21T10:28:39.696Z"
         },
         "ax": {
           "value": "n/a",
           "note": "A static site with an llms.txt; no CLI or MCP of its own.",
           "source": "https://github.com/ourostack/factory",
-          "measuredAt": "2026-11-21T09:29:40.384Z"
+          "measuredAt": "2026-11-21T10:28:39.696Z"
         },
         "actions": {
           "value": null,
           "note": "n/a: A static site with an llms.txt; no CLI or MCP of its own.",
           "source": "https://github.com/ourostack/factory",
-          "measuredAt": "2026-11-21T09:29:40.389Z"
+          "measuredAt": "2026-11-21T10:28:39.700Z"
         },
         "xray": {
           "value": null,
           "note": "n/a: A static site with an llms.txt; no CLI or MCP of its own.",
           "source": "https://github.com/ourostack/factory/actions",
-          "measuredAt": "2026-11-21T09:29:40.389Z"
+          "measuredAt": "2026-11-21T10:28:39.700Z"
         },
         "giveBack": {
           "value": 4,
           "note": "Merged pull requests whose title, text or branch mentions \"ourostack/factory\".",
           "source": "https://github.com/search?q=ourostack%2Ffactory%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:40.388Z",
+          "measuredAt": "2026-11-21T10:28:39.700Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -2151,7 +2151,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:39.691Z"
+          "measuredAt": "2026-11-21T10:28:39.080Z"
         }
       },
       "conditions": {
@@ -2189,9 +2189,9 @@
             {
               "label": "Ouro HX",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/ouroboros-website/blob/HEAD/.github/ouro-hx-installed.json",
-              "tag": "v1.3.398",
+              "tag": "v1.3.399",
               "behind": 0,
               "late": 0,
               "note": null
@@ -2199,37 +2199,37 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouroboros-website/blob/HEAD/.github/ouro-hx-installed.json",
-          "measuredAt": "2026-11-21T09:29:40.639Z"
+          "measuredAt": "2026-11-21T10:28:39.872Z"
         },
         "hx": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/ouroboros-website",
-          "measuredAt": "2026-11-21T09:29:41.005Z"
+          "measuredAt": "2026-11-21T10:28:40.131Z"
         },
         "ax": {
           "value": "n/a",
           "note": "A marketing site; no CLI or MCP.",
           "source": "https://github.com/ourostack/ouroboros-website",
-          "measuredAt": "2026-11-21T09:29:41.005Z"
+          "measuredAt": "2026-11-21T10:28:40.131Z"
         },
         "actions": {
           "value": null,
           "note": "n/a: A marketing site; no CLI or MCP.",
           "source": "https://github.com/ourostack/ouroboros-website",
-          "measuredAt": "2026-11-21T09:29:41.012Z"
+          "measuredAt": "2026-11-21T10:28:40.137Z"
         },
         "xray": {
           "value": null,
           "note": "n/a: A marketing site; no CLI or MCP.",
           "source": "https://github.com/ourostack/ouroboros-website/actions",
-          "measuredAt": "2026-11-21T09:29:41.012Z"
+          "measuredAt": "2026-11-21T10:28:40.137Z"
         },
         "giveBack": {
           "value": 12,
           "note": "Merged pull requests whose title, text or branch mentions \"ouroboros-website\" or \"ourostack/ouroboros-website\".",
           "source": "https://github.com/search?q=ouroboros-website%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:41.012Z",
+          "measuredAt": "2026-11-21T10:28:40.137Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -2329,7 +2329,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:40.389Z"
+          "measuredAt": "2026-11-21T10:28:39.700Z"
         }
       },
       "conditions": {
@@ -2367,9 +2367,9 @@
             {
               "label": "Ouro HX",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/arimendelow/mendelow.me/blob/HEAD/.github/ouro-hx-installed.json",
-              "tag": "v1.3.398",
+              "tag": "v1.3.399",
               "behind": 0,
               "late": 0,
               "note": null
@@ -2377,37 +2377,37 @@
           ],
           "note": null,
           "source": "https://github.com/arimendelow/mendelow.me/blob/HEAD/.github/ouro-hx-installed.json",
-          "measuredAt": "2026-11-21T09:29:41.245Z"
+          "measuredAt": "2026-11-21T10:28:40.453Z"
         },
         "hx": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/arimendelow/mendelow.me",
-          "measuredAt": "2026-11-21T09:29:41.612Z"
+          "measuredAt": "2026-11-21T10:28:40.765Z"
         },
         "ax": {
           "value": "n/a",
           "note": "A personal site; no CLI or MCP.",
           "source": "https://github.com/arimendelow/mendelow.me",
-          "measuredAt": "2026-11-21T09:29:41.612Z"
+          "measuredAt": "2026-11-21T10:28:40.766Z"
         },
         "actions": {
           "value": null,
           "note": "n/a: A personal site; no CLI or MCP.",
           "source": "https://github.com/arimendelow/mendelow.me",
-          "measuredAt": "2026-11-21T09:29:41.619Z"
+          "measuredAt": "2026-11-21T10:28:40.772Z"
         },
         "xray": {
           "value": null,
           "note": "n/a: A personal site; no CLI or MCP.",
           "source": "https://github.com/arimendelow/mendelow.me/actions",
-          "measuredAt": "2026-11-21T09:29:41.619Z"
+          "measuredAt": "2026-11-21T10:28:40.772Z"
         },
         "giveBack": {
           "value": 14,
           "note": "Merged pull requests whose title, text or branch mentions \"mendelow.me\" or \"arimendelow/mendelow.me\".",
           "source": "https://github.com/search?q=mendelow.me%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:41.619Z",
+          "measuredAt": "2026-11-21T10:28:40.772Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -2513,7 +2513,7 @@
           "value": [],
           "note": "No tracking issue yet: this product has no card.",
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:41.012Z"
+          "measuredAt": "2026-11-21T10:28:40.137Z"
         }
       },
       "conditions": {
@@ -2551,8 +2551,8 @@
             {
               "label": "itself",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
-              "tag": "v1.3.398",
+              "latestTag": "v1.3.399",
+              "tag": "v1.3.399",
               "behind": 0,
               "late": 0,
               "note": "This repository is the release."
@@ -2560,25 +2560,25 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui",
-          "measuredAt": "2026-11-21T09:29:41.619Z"
+          "measuredAt": "2026-11-21T10:28:40.773Z"
         },
         "hx": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/ouro-ui",
-          "measuredAt": "2026-11-21T09:29:41.620Z"
+          "measuredAt": "2026-11-21T10:28:40.773Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/ouro-ui",
-          "measuredAt": "2026-11-21T09:29:41.620Z"
+          "measuredAt": "2026-11-21T10:28:40.773Z"
         },
         "actions": {
           "value": 3,
           "note": "Declared once and generated by ouro-actions: 3 in the \"ouro-ui-registry\" set (actions/generated/actions.json, ouro-actions 1.2.0).",
           "source": "https://github.com/ourostack/ouro-ui/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:29:44.428Z"
+          "measuredAt": "2026-11-21T10:28:43.216Z"
         },
         "xray": {
           "value": {
@@ -2591,37 +2591,37 @@
             "claimSet": "0.1.0",
             "tool": "ouro-actions 1.2.0",
             "app": "Ouro UI",
-            "commit": "d04cbf3286930c98960fac00ace9f1095435cba7",
-            "reportAt": "2026-11-21T08:58:43.654Z",
-            "run": "https://github.com/ourostack/ouro-ui/actions/runs/44887325420",
+            "commit": "a4b80307a1a1b64f0b30f71b0aec8525d75efc4f",
+            "reportAt": "2026-11-21T10:11:05.367Z",
+            "run": "https://github.com/ourostack/ouro-ui/actions/runs/44893054134",
             "reports": [
               {
                 "tool": "ouro-actions 1.2.0",
                 "claimSet": "0.1.0",
                 "must": 3,
                 "mustHolding": 3,
-                "reportAt": "2026-11-21T08:58:43.654Z",
-                "run": "https://github.com/ourostack/ouro-ui/actions/runs/44887325420"
+                "reportAt": "2026-11-21T10:11:05.367Z",
+                "run": "https://github.com/ourostack/ouro-ui/actions/runs/44893054134"
               },
               {
                 "tool": "ax-xray 1.7.0",
                 "claimSet": "1.7.0",
                 "must": 2,
                 "mustHolding": 2,
-                "reportAt": "2026-11-21T08:58:42.497Z",
-                "run": "https://github.com/ourostack/ouro-ui/actions/runs/44887325420"
+                "reportAt": "2026-11-21T10:11:04.257Z",
+                "run": "https://github.com/ourostack/ouro-ui/actions/runs/44893054134"
               }
             ]
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
-          "source": "https://github.com/ourostack/ouro-ui/actions/runs/44887325420",
-          "measuredAt": "2026-11-21T09:29:43.408Z"
+          "source": "https://github.com/ourostack/ouro-ui/actions/runs/44893054134",
+          "measuredAt": "2026-11-21T10:28:42.469Z"
         },
         "giveBack": {
           "value": null,
           "note": "n/a: this is the upstream; it is where the others give back to.",
           "source": "https://github.com/search?q=ui.ouroboros.bot%20and%20the%20Ouro%20UI%20tools%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:44.428Z",
+          "measuredAt": "2026-11-21T10:28:43.216Z",
           "prs": []
         },
         "tracking": {
@@ -2643,7 +2643,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:41.619Z"
+          "measuredAt": "2026-11-21T10:28:40.773Z"
         }
       },
       "conditions": {
@@ -2681,35 +2681,35 @@
             {
               "label": "vendored AX kit files",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/housesitter/blob/HEAD/upstream-sources.lock.json",
-              "tag": "commit c8ceb1f",
+              "tag": "commit d4134cc",
               "behind": 1,
               "late": 0,
-              "note": "Vendored copy of ourostack/ouro-ui at c8ceb1f, committed 2026-11-21."
+              "note": "Vendored copy of ourostack/ouro-ui at d4134cc, committed 2026-11-21."
             }
           ],
           "note": null,
           "source": "https://github.com/ourostack/housesitter/blob/HEAD/upstream-sources.lock.json",
-          "measuredAt": "2026-11-21T09:29:45.047Z"
+          "measuredAt": "2026-11-21T10:28:43.686Z"
         },
         "hx": {
           "value": "n/a",
           "note": "A CLI only.",
           "source": "https://github.com/ourostack/housesitter",
-          "measuredAt": "2026-11-21T09:29:45.047Z"
+          "measuredAt": "2026-11-21T10:28:43.686Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/housesitter",
-          "measuredAt": "2026-11-21T09:29:45.047Z"
+          "measuredAt": "2026-11-21T10:28:43.686Z"
         },
         "actions": {
           "value": 2,
           "note": "Declared once and generated by ouro-actions: 2 in the \"housesitter\" set (actions/generated/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/housesitter/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:29:47.151Z"
+          "measuredAt": "2026-11-21T10:28:46.152Z"
         },
         "xray": {
           "value": {
@@ -2746,13 +2746,13 @@
           },
           "note": "Adds up the newest report of each checker: ax-xray and ouro-actions.",
           "source": "https://github.com/ourostack/housesitter/actions/runs/44885172822",
-          "measuredAt": "2026-11-21T09:29:46.616Z"
+          "measuredAt": "2026-11-21T10:28:45.505Z"
         },
         "giveBack": {
           "value": 7,
           "note": "Merged pull requests whose title, text or branch mentions \"housesitter\" or \"ourostack/housesitter\".",
           "source": "https://github.com/search?q=housesitter%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:47.163Z",
+          "measuredAt": "2026-11-21T10:28:46.161Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -2817,7 +2817,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:44.428Z"
+          "measuredAt": "2026-11-21T10:28:43.216Z"
         }
       },
       "conditions": {
@@ -2855,35 +2855,35 @@
             {
               "label": "vendored AX kit files",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/m365crawl/blob/HEAD/upstream-sources.lock.json",
               "tag": "commit c8ceb1f",
-              "behind": 1,
+              "behind": 2,
               "late": 0,
               "note": "Vendored copy of ourostack/ouro-ui at c8ceb1f, committed 2026-11-21."
             }
           ],
           "note": null,
           "source": "https://github.com/ourostack/m365crawl/blob/HEAD/upstream-sources.lock.json",
-          "measuredAt": "2026-11-21T09:29:47.838Z"
+          "measuredAt": "2026-11-21T10:28:46.837Z"
         },
         "hx": {
           "value": "n/a",
           "note": "A CLI only.",
           "source": "https://github.com/ourostack/m365crawl",
-          "measuredAt": "2026-11-21T09:29:47.838Z"
+          "measuredAt": "2026-11-21T10:28:46.837Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/m365crawl",
-          "measuredAt": "2026-11-21T09:29:47.838Z"
+          "measuredAt": "2026-11-21T10:28:46.837Z"
         },
         "actions": {
           "value": 96,
           "note": "Declared once and generated by ouro-actions: 96 in the \"m365crawl\" set (actions/generated/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/m365crawl/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:29:50.285Z"
+          "measuredAt": "2026-11-21T10:28:49.181Z"
         },
         "xray": {
           "value": {
@@ -2920,13 +2920,13 @@
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
           "source": "https://github.com/ourostack/m365crawl/actions/runs/44886068380",
-          "measuredAt": "2026-11-21T09:29:49.486Z"
+          "measuredAt": "2026-11-21T10:28:48.710Z"
         },
         "giveBack": {
           "value": 8,
           "note": "Merged pull requests whose title, text or branch mentions \"m365crawl\" or \"ourostack/m365crawl\".",
           "source": "https://github.com/search?q=m365crawl%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:50.293Z",
+          "measuredAt": "2026-11-21T10:28:49.187Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui-core",
@@ -2998,7 +2998,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:47.164Z"
+          "measuredAt": "2026-11-21T10:28:46.161Z"
         }
       },
       "conditions": {
@@ -3036,35 +3036,35 @@
             {
               "label": "vendored AX kit files",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/friends/blob/HEAD/upstream-sources.lock.json",
-              "tag": "commit c8ceb1f",
+              "tag": "commit d4134cc",
               "behind": 1,
               "late": 0,
-              "note": "Vendored copy of ourostack/ouro-ui at c8ceb1f, committed 2026-11-21."
+              "note": "Vendored copy of ourostack/ouro-ui at d4134cc, committed 2026-11-21."
             }
           ],
           "note": null,
           "source": "https://github.com/ourostack/friends/blob/HEAD/upstream-sources.lock.json",
-          "measuredAt": "2026-11-21T09:29:50.841Z"
+          "measuredAt": "2026-11-21T10:28:49.710Z"
         },
         "hx": {
           "value": "n/a",
           "note": "An MCP server only.",
           "source": "https://github.com/ourostack/friends",
-          "measuredAt": "2026-11-21T09:29:50.841Z"
+          "measuredAt": "2026-11-21T10:28:49.710Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/friends",
-          "measuredAt": "2026-11-21T09:29:50.841Z"
+          "measuredAt": "2026-11-21T10:28:49.710Z"
         },
         "actions": {
           "value": 32,
           "note": "Declared once and generated by ouro-actions: 32 in the \"friends\" set (actions/generated/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/friends/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:29:53.118Z"
+          "measuredAt": "2026-11-21T10:28:51.990Z"
         },
         "xray": {
           "value": {
@@ -3077,37 +3077,37 @@
             "claimSet": "0.1.0",
             "tool": "ouro-actions 1.8.0",
             "app": "friends",
-            "commit": "f1d4293963ef36f1827e55fcec146b6143a782bc",
-            "reportAt": "2026-11-21T08:27:46.499Z",
-            "run": "https://github.com/ourostack/friends/actions/runs/44884977313",
+            "commit": "18af2dea9224432d20b9df0b9ea8d3277e51c17d",
+            "reportAt": "2026-11-21T10:26:16.439Z",
+            "run": "https://github.com/ourostack/friends/actions/runs/44894319894",
             "reports": [
               {
                 "tool": "ouro-actions 1.8.0",
                 "claimSet": "0.1.0",
                 "must": 3,
                 "mustHolding": 3,
-                "reportAt": "2026-11-21T08:27:46.499Z",
-                "run": "https://github.com/ourostack/friends/actions/runs/44884977313"
+                "reportAt": "2026-11-21T10:26:16.439Z",
+                "run": "https://github.com/ourostack/friends/actions/runs/44894319894"
               },
               {
                 "tool": "ax-xray 1.7.0",
                 "claimSet": "1.7.0",
                 "must": 2,
                 "mustHolding": 2,
-                "reportAt": "2026-11-21T08:27:46.320Z",
-                "run": "https://github.com/ourostack/friends/actions/runs/44884977313"
+                "reportAt": "2026-11-21T10:26:16.257Z",
+                "run": "https://github.com/ourostack/friends/actions/runs/44894319894"
               }
             ]
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
-          "source": "https://github.com/ourostack/friends/actions/runs/44884977313",
-          "measuredAt": "2026-11-21T09:29:52.510Z"
+          "source": "https://github.com/ourostack/friends/actions/runs/44894319894",
+          "measuredAt": "2026-11-21T10:28:51.475Z"
         },
         "giveBack": {
           "value": 2,
           "note": "Merged pull requests whose title, text or branch mentions \"ourostack/friends\" or \"friends-relay\" or \"friends-mcp\".",
           "source": "https://github.com/search?q=ourostack%2Ffriends%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:53.129Z",
+          "measuredAt": "2026-11-21T10:28:52.000Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui-core",
@@ -3129,7 +3129,7 @@
           "value": [],
           "note": "No tracking issue yet: this product has no card.",
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:50.293Z"
+          "measuredAt": "2026-11-21T10:28:49.188Z"
         }
       },
       "conditions": {
@@ -3167,35 +3167,35 @@
             {
               "label": "vendored AX kit files",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/flow-review/blob/HEAD/upstream-sources.lock.json",
               "tag": "commit c8ceb1f",
-              "behind": 1,
+              "behind": 2,
               "late": 0,
               "note": "Vendored copy of ourostack/ouro-ui at c8ceb1f, committed 2026-11-21."
             }
           ],
           "note": null,
           "source": "https://github.com/ourostack/flow-review/blob/HEAD/upstream-sources.lock.json",
-          "measuredAt": "2026-11-21T09:29:53.698Z"
+          "measuredAt": "2026-11-21T10:28:52.539Z"
         },
         "hx": {
           "value": "n/a",
           "note": "A CLI only.",
           "source": "https://github.com/ourostack/flow-review",
-          "measuredAt": "2026-11-21T09:29:53.698Z"
+          "measuredAt": "2026-11-21T10:28:52.539Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/flow-review",
-          "measuredAt": "2026-11-21T09:29:53.698Z"
+          "measuredAt": "2026-11-21T10:28:52.539Z"
         },
         "actions": {
           "value": 8,
           "note": "Declared once and generated by ouro-actions: 8 in the \"flow-review\" set (actions/generated/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/flow-review/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:29:55.918Z"
+          "measuredAt": "2026-11-21T10:28:54.990Z"
         },
         "xray": {
           "value": {
@@ -3232,13 +3232,13 @@
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
           "source": "https://github.com/ourostack/flow-review/actions/runs/44885291357",
-          "measuredAt": "2026-11-21T09:29:55.336Z"
+          "measuredAt": "2026-11-21T10:28:54.475Z"
         },
         "giveBack": {
           "value": 7,
           "note": "Merged pull requests whose title, text or branch mentions \"flow-review\" or \"ourostack/flow-review\".",
           "source": "https://github.com/search?q=flow-review%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:55.926Z",
+          "measuredAt": "2026-11-21T10:28:54.997Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -3295,7 +3295,7 @@
           "value": [],
           "note": "No tracking issue yet: this product has no card.",
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:53.129Z"
+          "measuredAt": "2026-11-21T10:28:52.000Z"
         }
       },
       "conditions": {
@@ -3333,35 +3333,35 @@
             {
               "label": "vendored AX kit files",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/apple-distribution-kit/blob/HEAD/upstream-sources.lock.json",
-              "tag": "commit c8ceb1f",
+              "tag": "commit d4134cc",
               "behind": 1,
               "late": 0,
-              "note": "Vendored copy of ourostack/ouro-ui at c8ceb1f, committed 2026-11-21."
+              "note": "Vendored copy of ourostack/ouro-ui at d4134cc, committed 2026-11-21."
             }
           ],
           "note": null,
           "source": "https://github.com/ourostack/apple-distribution-kit/blob/HEAD/upstream-sources.lock.json",
-          "measuredAt": "2026-11-21T09:29:56.601Z"
+          "measuredAt": "2026-11-21T10:28:55.612Z"
         },
         "hx": {
           "value": "n/a",
           "note": "A CLI only.",
           "source": "https://github.com/ourostack/apple-distribution-kit",
-          "measuredAt": "2026-11-21T09:29:56.601Z"
+          "measuredAt": "2026-11-21T10:28:55.612Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/apple-distribution-kit",
-          "measuredAt": "2026-11-21T09:29:56.601Z"
+          "measuredAt": "2026-11-21T10:28:55.612Z"
         },
         "actions": {
           "value": 4,
           "note": "Declared once and generated by ouro-actions: 4 in the \"apple-distribution-kit\" set (actions/generated/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/apple-distribution-kit/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:29:58.718Z"
+          "measuredAt": "2026-11-21T10:28:57.639Z"
         },
         "xray": {
           "value": {
@@ -3374,37 +3374,37 @@
             "claimSet": "0.1.0",
             "tool": "ouro-actions 1.8.0",
             "app": "Apple distribution kit",
-            "commit": "1c56b7639cb1ec9628ecea3c1340629ae8022801",
-            "reportAt": "2026-11-21T08:28:02.887Z",
-            "run": "https://github.com/ourostack/apple-distribution-kit/actions/runs/44884989148",
+            "commit": "975c5d7a9806e8abb7335f092b056e02b869c6a4",
+            "reportAt": "2026-11-21T10:28:13.655Z",
+            "run": "https://github.com/ourostack/apple-distribution-kit/actions/runs/44894466052",
             "reports": [
               {
                 "tool": "ouro-actions 1.8.0",
                 "claimSet": "0.1.0",
                 "must": 3,
                 "mustHolding": 3,
-                "reportAt": "2026-11-21T08:28:02.887Z",
-                "run": "https://github.com/ourostack/apple-distribution-kit/actions/runs/44884989148"
+                "reportAt": "2026-11-21T10:28:13.655Z",
+                "run": "https://github.com/ourostack/apple-distribution-kit/actions/runs/44894466052"
               },
               {
                 "tool": "ax-xray 1.7.0",
                 "claimSet": "1.7.0",
                 "must": 13,
                 "mustHolding": 13,
-                "reportAt": "2026-11-21T08:28:02.724Z",
-                "run": "https://github.com/ourostack/apple-distribution-kit/actions/runs/44884989148"
+                "reportAt": "2026-11-21T10:28:13.536Z",
+                "run": "https://github.com/ourostack/apple-distribution-kit/actions/runs/44894466052"
               }
             ]
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
-          "source": "https://github.com/ourostack/apple-distribution-kit/actions/runs/44884989148",
-          "measuredAt": "2026-11-21T09:29:58.259Z"
+          "source": "https://github.com/ourostack/apple-distribution-kit/actions/runs/44894466052",
+          "measuredAt": "2026-11-21T10:28:57.244Z"
         },
         "giveBack": {
           "value": 4,
           "note": "Merged pull requests whose title, text or branch mentions \"apple-distribution-kit\".",
           "source": "https://github.com/search?q=apple-distribution-kit%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:29:58.723Z",
+          "measuredAt": "2026-11-21T10:28:57.645Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -3440,7 +3440,7 @@
           "value": [],
           "note": "No tracking issue yet: this product has no card.",
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:55.926Z"
+          "measuredAt": "2026-11-21T10:28:54.997Z"
         }
       },
       "conditions": {
@@ -3478,35 +3478,35 @@
             {
               "label": "vendored AX kit files",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/ouro-work-substrate/blob/HEAD/upstream-sources.lock.json",
-              "tag": "commit c8ceb1f",
+              "tag": "commit d4134cc",
               "behind": 1,
               "late": 0,
-              "note": "Vendored copy of ourostack/ouro-ui at c8ceb1f, committed 2026-11-21."
+              "note": "Vendored copy of ourostack/ouro-ui at d4134cc, committed 2026-11-21."
             }
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-work-substrate/blob/HEAD/upstream-sources.lock.json",
-          "measuredAt": "2026-11-21T09:29:59.326Z"
+          "measuredAt": "2026-11-21T10:28:58.167Z"
         },
         "hx": {
           "value": "n/a",
           "note": "Server apps with no screens of their own.",
           "source": "https://github.com/ourostack/ouro-work-substrate",
-          "measuredAt": "2026-11-21T09:29:59.326Z"
+          "measuredAt": "2026-11-21T10:28:58.167Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/ouro-work-substrate",
-          "measuredAt": "2026-11-21T09:29:59.326Z"
+          "measuredAt": "2026-11-21T10:28:58.167Z"
         },
         "actions": {
           "value": 3,
           "note": "Declared once and generated by ouro-actions: 3 in the \"mail-control\" set (actions/generated/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/ouro-work-substrate/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:30:01.569Z"
+          "measuredAt": "2026-11-21T10:29:00.283Z"
         },
         "xray": {
           "value": {
@@ -3519,37 +3519,37 @@
             "claimSet": "0.1.0",
             "tool": "ouro-actions 1.8.0",
             "app": "Ouro Work mail-control",
-            "commit": "52eb048da857b676213bb3a17b8113b8b09aa065",
-            "reportAt": "2026-11-21T08:28:26.919Z",
-            "run": "https://github.com/ourostack/ouro-work-substrate/actions/runs/44885022975",
+            "commit": "f0a27ba8337c8c2e6ef627ace6c9ecc9f09efe16",
+            "reportAt": "2026-11-21T10:26:47.576Z",
+            "run": "https://github.com/ourostack/ouro-work-substrate/actions/runs/44894363511",
             "reports": [
               {
                 "tool": "ouro-actions 1.8.0",
                 "claimSet": "0.1.0",
                 "must": 3,
                 "mustHolding": 3,
-                "reportAt": "2026-11-21T08:28:26.919Z",
-                "run": "https://github.com/ourostack/ouro-work-substrate/actions/runs/44885022975"
+                "reportAt": "2026-11-21T10:26:47.576Z",
+                "run": "https://github.com/ourostack/ouro-work-substrate/actions/runs/44894363511"
               },
               {
                 "tool": "ax-xray 1.7.0",
                 "claimSet": "1.7.0",
                 "must": 10,
                 "mustHolding": 10,
-                "reportAt": "2026-11-21T08:28:26.836Z",
-                "run": "https://github.com/ourostack/ouro-work-substrate/actions/runs/44885022975"
+                "reportAt": "2026-11-21T10:26:47.466Z",
+                "run": "https://github.com/ourostack/ouro-work-substrate/actions/runs/44894363511"
               }
             ]
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
-          "source": "https://github.com/ourostack/ouro-work-substrate/actions/runs/44885022975",
-          "measuredAt": "2026-11-21T09:30:00.969Z"
+          "source": "https://github.com/ourostack/ouro-work-substrate/actions/runs/44894363511",
+          "measuredAt": "2026-11-21T10:28:59.889Z"
         },
         "giveBack": {
           "value": 5,
           "note": "Merged pull requests whose title, text or branch mentions \"ouro-work-substrate\".",
           "source": "https://github.com/search?q=ouro-work-substrate%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:30:01.573Z",
+          "measuredAt": "2026-11-21T10:29:00.286Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -3592,7 +3592,7 @@
           "value": [],
           "note": "No tracking issue yet: this product has no card.",
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:29:58.723Z"
+          "measuredAt": "2026-11-21T10:28:57.645Z"
         }
       },
       "conditions": {
@@ -3629,44 +3629,44 @@
           "value": null,
           "note": "not measured: the repository is private, so a public run cannot read it",
           "source": null,
-          "measuredAt": "2026-11-21T09:30:01.573Z"
+          "measuredAt": "2026-11-21T10:29:00.286Z"
         },
         "hx": {
           "value": null,
           "note": "not measured: the repository is private, so a public run cannot read it",
           "source": null,
-          "measuredAt": "2026-11-21T09:30:01.573Z"
+          "measuredAt": "2026-11-21T10:29:00.286Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: the repository is private, so a public run cannot read it",
           "source": null,
-          "measuredAt": "2026-11-21T09:30:01.573Z"
+          "measuredAt": "2026-11-21T10:29:00.286Z"
         },
         "actions": {
           "value": null,
           "note": "not measured: the repository is private, so a public run cannot read it",
           "source": null,
-          "measuredAt": "2026-11-21T09:30:01.573Z"
+          "measuredAt": "2026-11-21T10:29:00.286Z"
         },
         "xray": {
           "value": null,
           "note": "not measured: the repository is private, so a public run cannot read it",
           "source": null,
-          "measuredAt": "2026-11-21T09:30:01.573Z"
+          "measuredAt": "2026-11-21T10:29:00.286Z"
         },
         "giveBack": {
           "value": 0,
           "note": "Merged pull requests whose title, text or branch mentions \"drift-remote\".",
           "source": "https://github.com/search?q=drift-remote%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:30:01.576Z",
+          "measuredAt": "2026-11-21T10:29:00.290Z",
           "prs": []
         },
         "tracking": {
           "value": [],
           "note": "No tracking issue yet: this product has no card.",
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:30:01.573Z"
+          "measuredAt": "2026-11-21T10:29:00.286Z"
         }
       },
       "conditions": {
@@ -3714,37 +3714,37 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-native-apple-app-shell/blob/HEAD/Package.swift",
-          "measuredAt": "2026-11-21T09:30:01.828Z"
+          "measuredAt": "2026-11-21T10:29:00.507Z"
         },
         "hx": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/ouro-native-apple-app-shell",
-          "measuredAt": "2026-11-21T09:30:01.828Z"
+          "measuredAt": "2026-11-21T10:29:00.507Z"
         },
         "ax": {
           "value": "n/a",
           "note": "A shell library for Ouro MD; the app exposes the intents.",
           "source": "https://github.com/ourostack/ouro-native-apple-app-shell",
-          "measuredAt": "2026-11-21T09:30:01.828Z"
+          "measuredAt": "2026-11-21T10:29:00.507Z"
         },
         "actions": {
           "value": null,
           "note": "n/a: A shell library for Ouro MD; the app exposes the intents.",
           "source": "https://github.com/ourostack/ouro-native-apple-app-shell",
-          "measuredAt": "2026-11-21T09:30:02.208Z"
+          "measuredAt": "2026-11-21T10:29:00.835Z"
         },
         "xray": {
           "value": null,
           "note": "n/a: A shell library for Ouro MD; the app exposes the intents.",
           "source": "https://github.com/ourostack/ouro-native-apple-app-shell/actions",
-          "measuredAt": "2026-11-21T09:30:02.208Z"
+          "measuredAt": "2026-11-21T10:29:00.835Z"
         },
         "giveBack": {
           "value": 4,
           "note": "Merged pull requests whose title, text or branch mentions \"ouro-native-apple-app-shell\".",
           "source": "https://github.com/search?q=ouro-native-apple-app-shell%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:30:02.208Z",
+          "measuredAt": "2026-11-21T10:29:00.835Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -3780,7 +3780,7 @@
           "value": [],
           "note": "No tracking issue yet: this product has no card.",
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:30:01.576Z"
+          "measuredAt": "2026-11-21T10:29:00.290Z"
         }
       },
       "conditions": {
@@ -3818,35 +3818,35 @@
             {
               "label": "vendored AX kit files",
               "latestOf": "ourostack/ouro-ui",
-              "latestTag": "v1.3.398",
+              "latestTag": "v1.3.399",
               "source": "https://github.com/ourostack/hackamore/blob/HEAD/upstream-sources.lock.json",
-              "tag": "commit c8ceb1f",
+              "tag": "commit d4134cc",
               "behind": 1,
               "late": 0,
-              "note": "Vendored copy of ourostack/ouro-ui at c8ceb1f, committed 2026-11-21."
+              "note": "Vendored copy of ourostack/ouro-ui at d4134cc, committed 2026-11-21."
             }
           ],
           "note": null,
           "source": "https://github.com/ourostack/hackamore/blob/HEAD/upstream-sources.lock.json",
-          "measuredAt": "2026-11-21T09:30:02.824Z"
+          "measuredAt": "2026-11-21T10:29:01.390Z"
         },
         "hx": {
           "value": "n/a",
           "note": "A CLI only.",
           "source": "https://github.com/ourostack/hackamore",
-          "measuredAt": "2026-11-21T09:30:02.824Z"
+          "measuredAt": "2026-11-21T10:29:01.390Z"
         },
         "ax": {
           "value": null,
           "note": "not measured: code search's time budget ran out (GitHub rate limited it)",
           "source": "https://github.com/ourostack/hackamore",
-          "measuredAt": "2026-11-21T09:30:02.824Z"
+          "measuredAt": "2026-11-21T10:29:01.390Z"
         },
         "actions": {
           "value": 8,
           "note": "Declared once and generated by ouro-actions: 8 in the \"hackamore\" set (actions/generated/actions.json, ouro-actions 1.8.0).",
           "source": "https://github.com/ourostack/hackamore/blob/HEAD/actions/generated/actions.json",
-          "measuredAt": "2026-11-21T09:30:04.961Z"
+          "measuredAt": "2026-11-21T10:29:03.767Z"
         },
         "xray": {
           "value": {
@@ -3859,37 +3859,37 @@
             "claimSet": "0.1.0",
             "tool": "ouro-actions 1.8.0",
             "app": "Hackamore",
-            "commit": "0c388e20589b5cb57ccee447a7c840ba6acbab70",
-            "reportAt": "2026-11-21T08:29:39.492Z",
-            "run": "https://github.com/ourostack/hackamore/actions/runs/44885108932",
+            "commit": "3ae48046a8b0b3b2a5e34fec23601f95e97ed716",
+            "reportAt": "2026-11-21T10:28:11.098Z",
+            "run": "https://github.com/ourostack/hackamore/actions/runs/44894460216",
             "reports": [
               {
                 "tool": "ouro-actions 1.8.0",
                 "claimSet": "0.1.0",
                 "must": 3,
                 "mustHolding": 3,
-                "reportAt": "2026-11-21T08:29:39.492Z",
-                "run": "https://github.com/ourostack/hackamore/actions/runs/44885108932"
+                "reportAt": "2026-11-21T10:28:11.098Z",
+                "run": "https://github.com/ourostack/hackamore/actions/runs/44894460216"
               },
               {
                 "tool": "ax-xray 1.7.0",
                 "claimSet": "1.7.0",
                 "must": 13,
                 "mustHolding": 13,
-                "reportAt": "2026-11-21T08:29:39.297Z",
-                "run": "https://github.com/ourostack/hackamore/actions/runs/44885108932"
+                "reportAt": "2026-11-21T10:28:10.896Z",
+                "run": "https://github.com/ourostack/hackamore/actions/runs/44894460216"
               }
             ]
           },
           "note": "Adds up the newest report of each checker: ouro-actions and ax-xray.",
-          "source": "https://github.com/ourostack/hackamore/actions/runs/44885108932",
-          "measuredAt": "2026-11-21T09:30:04.436Z"
+          "source": "https://github.com/ourostack/hackamore/actions/runs/44894460216",
+          "measuredAt": "2026-11-21T10:29:03.299Z"
         },
         "giveBack": {
           "value": 10,
           "note": "Merged pull requests whose title, text or branch mentions \"hackamore\" or \"ourostack/hackamore\".",
           "source": "https://github.com/search?q=hackamore%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
-          "measuredAt": "2026-11-21T09:30:04.968Z",
+          "measuredAt": "2026-11-21T10:29:03.774Z",
           "prs": [
             {
               "repo": "ourostack/ouro-ui",
@@ -3975,7 +3975,7 @@
           ],
           "note": null,
           "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
-          "measuredAt": "2026-11-21T09:30:02.208Z"
+          "measuredAt": "2026-11-21T10:29:00.835Z"
         }
       },
       "conditions": {
@@ -4001,7 +4001,7 @@
     }
   ],
   "previous": {
-    "generatedAt": "2026-11-20T08:34:37.309Z",
+    "generatedAt": "2026-11-20T09:31:52.021Z",
     "surfaces": [
       {
         "id": "spoonjoy-web",
