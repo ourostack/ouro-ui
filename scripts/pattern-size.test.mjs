@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { BARE, CEILINGS, breakdown, closure, grew, judge, measureAll, ownerOf, owners, pageExport, patternNames, recordedFile, stylesheet } from "./pattern-size.mjs";
+import { BARE, BUDGET, CEILINGS, breakdown, closure, grew, judge, measureAll, ownerOf, owners, pageExport, patternNames, patternSizes, recordedFile, stylesheet } from "./pattern-size.mjs";
+import { gateMode, judgeSizes, readBase, writeReport } from "./size-gate.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const registry = JSON.parse(readFileSync("registry.json", "utf8"));
@@ -84,5 +85,21 @@ test("every page pattern adds no more JavaScript and CSS than its ceiling, gzip 
   const results = await measureAll({ registry, work: scratchDir("ouro-pattern-size-") });
   const verdicts = judge(results, { modules });
   for (const verdict of verdicts) console.log(verdict.message);
-  assert.deepEqual(verdicts.filter((verdict) => !verdict.ok).map((verdict) => verdict.message), []);
+  // On a pull request, what each pattern adds is judged by the pull request's own growth over its base
+  // (scripts/size-gate.mjs); the ceiling is enforced on main. A failure carries what the pattern's JavaScript gained.
+  const sizes = patternSizes(results);
+  writeReport("patterns", sizes);
+  const gate = judgeSizes(sizes, { mode: gateMode(), base: readBase("patterns") });
+  for (const line of gate.lines) console.log(`pattern-size-gate ${line}`);
+  const failed = new Set(gate.failures.map((failure) => failure.split(" ")[0]));
+  const why = verdicts.filter((verdict) => failed.has(verdict.name)).map((verdict) => verdict.message);
+  assert.deepEqual([...gate.failures, ...why], []);
+});
+
+test("each pattern's sizes reach the size gate with their ceilings and the budget a pull request may add", () => {
+  const results = { [BARE]: { js: 1, css: 1 }, "settings-page": { addedJs: 104_500, addedCss: 13_000 } };
+  assert.deepEqual(patternSizes(results), {
+    "settings-page JavaScript": { bytes: 104_500, ceiling: CEILINGS["settings-page"].js, budget: BUDGET.js },
+    "settings-page CSS": { bytes: 13_000, ceiling: CEILINGS["settings-page"].css, budget: BUDGET.css },
+  });
 });

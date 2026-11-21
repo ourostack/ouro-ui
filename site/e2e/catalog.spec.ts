@@ -5,6 +5,7 @@ import { expect, test } from "@playwright/test";
 import { auditPage } from "./audit";
 import { assetHashes, distGzip, distHashes, stableGzip } from "./bytes";
 import { diagnostics } from "./diagnostics";
+import { gateMode, judgeSizes, readBase, type Sizes, writeReport } from "../../scripts/size-gate.mjs";
 
 interface BuildEntry {
   file: string;
@@ -94,7 +95,11 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * 192,051, #2749 at 192,073).
  */
 const MEASURED = { voyage: 288_772, docs: 191_884 } as const;
-/** How far a page may grow past what CI measured before its ceiling is raised. */
+/**
+ * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
+ * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
+ * fails only the change that crosses it by more than this (scripts/size-gate.mjs). The ceiling itself is enforced on main.
+ */
 const MARGIN = 512;
 const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGIN } as const;
 
@@ -294,6 +299,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   const hashes = distHashes();
   const report: Record<string, unknown> = {};
   const sheets: Record<string, string[]> = {};
+  const sizes: Sizes = {};
   for (const [name, kind, path, ready] of [
     ["home", "voyage", "./", page.locator("html[data-site-ready]")],
     ["nautilus", "voyage", "nautilus/", page.locator("html[data-site-ready]")],
@@ -359,11 +365,16 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     report[name] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILINGS[kind] };
     console.log(`script-size ${name} ${gzip} of ${CEILINGS[kind]}`);
-    expect(gzip, `${name} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
+    sizes[`${name} initial JavaScript, gzip bytes`] = { bytes: gzip, ceiling: CEILINGS[kind], budget: MARGIN };
     expect(styles.length, `${name} loads its stylesheets`).toBeGreaterThan(0);
     sheets[name] = [...new Set(styles)];
     expect(css, `${name} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILINGS[kind]);
   }
+  // On a pull request, each page's JavaScript is judged by what the pull request added over its base (scripts/size-gate.mjs).
+  writeReport("closure", sizes);
+  const verdict = judgeSizes(sizes, { mode: gateMode(), base: readBase("closure") });
+  for (const line of verdict.lines) console.log(`script-size-gate ${line}`);
+  expect(verdict.failures, "each page's initial JavaScript, gzip bytes").toEqual([]);
   // The voyage has a Tailwind build of its own (site/src/voyage/voyage-tailwind.css), without the
   // registry components and site files it never renders: it loads none of the docs' stylesheets but
   // the theme presets (themes/presets.generated.css), which the header's picker switches on both, and
