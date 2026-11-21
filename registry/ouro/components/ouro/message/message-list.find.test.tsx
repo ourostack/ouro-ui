@@ -113,6 +113,7 @@ describe("MessageList find", () => {
   it("styles matches from theme tokens, with system colours in forced colours", () => {
     const css = pageCss();
     expect(css).toContain("::highlight(ouro-find-current)");
+    expect(css).toMatch(/ouro-find\\\)\\\]\\:text-foreground/);
     expect(css).toMatch(/Highlight/);
     expect(css).toMatch(/MarkText/);
   });
