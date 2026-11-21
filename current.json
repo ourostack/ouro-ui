@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-21T15:55:47.260Z",
+  "generatedAt": "2026-11-21T16:27:08.596Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -23,20 +23,17 @@
   "repos": [
     {
       "repo": "arimendelow/mendelow.me",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.408",
+          "current": "v1.3.410",
           "latest": "v1.3.410",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 196,
-        "url": "https://github.com/arimendelow/mendelow.me/pull/196"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/apple-distribution-kit",
@@ -205,7 +202,7 @@
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.404",
+          "current": "v1.3.408",
           "latest": "v1.3.410",
           "behind": true
         },
@@ -218,8 +215,8 @@
         }
       ],
       "pr": {
-        "number": 827,
-        "url": "https://github.com/spoonjoy/spoonjoy-v2/pull/827"
+        "number": 828,
+        "url": "https://github.com/spoonjoy/spoonjoy-v2/pull/828"
       }
     }
   ]
