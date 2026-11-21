@@ -183,7 +183,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
         // a line of small type rather than a button's height, so a post keeps little room under it.
         className={cn(
           faces ? "-ms-ouro-1" : "-ms-(--ouro-button-px)",
-          replied ? "pointer-fine:h-6" : "[:where([data-ouro=message])_&]:-ms-1 [:where([data-ouro=message])_&]:h-5 [:where([data-ouro=message])_&]:px-1.5",
+          replied ? "pointer-fine:h-ouro-6" : "[:where([data-ouro=message])_&]:-ms-1 [:where([data-ouro=message])_&]:h-ouro-6 [:where([data-ouro=message])_&]:px-1.5",
         )}
       >
         {shown}

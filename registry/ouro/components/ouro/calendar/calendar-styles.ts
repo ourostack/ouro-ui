@@ -165,7 +165,7 @@ function monthGrid(month: string, firstDay: number): Array<Array<string | null>>
  * @claim "A day: 44px on a coarse" registry/ouro/components/ouro/calendar/calendar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.touch.test.tsx::gives Calendar's days and month buttons 44px touch targets)
  */
 const dayClass =
-  "press relative m-0 box-border inline-flex size-ouro-11 items-center justify-center pointer-fine:size-9 " +
+  "press relative m-0 box-border inline-flex size-ouro-11 items-center justify-center pointer-fine:size-ouro-9 " +
   "rounded-ouro-md border-0 bg-transparent p-0 font-[inherit] text-sm leading-none text-foreground tabular-nums " +
   "cursor-pointer select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:z-1 focus-visible:outline-2 focus-visible:outline-solid " +

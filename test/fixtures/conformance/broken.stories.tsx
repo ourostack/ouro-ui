@@ -196,3 +196,14 @@ function WrappedRing() {
  * wrapper's ring away, which is no cue on the second.
  */
 export const WrapperRingThenShadow: Story = { render: () => <WrappedRing /> };
+
+/** Density: an icon sized by the spacing scale (`calc(var(--spacing) * 4)`, what `size-4` compiles to), so a compact app shrinks it. */
+export const SpacingSizedIcon: Story = {
+  render: () => (
+    <div data-ouro="broken">
+      <svg aria-hidden="true" viewBox="0 0 16 16" style={{ width: "calc(var(--spacing) * 4)", height: "calc(var(--spacing) * 4)" }}>
+        <path d="M2 8h12" stroke="currentColor" />
+      </svg>
+    </div>
+  ),
+};

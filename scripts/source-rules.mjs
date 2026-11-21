@@ -28,6 +28,9 @@
 // - radiusSteps: a shadcn radius step (`rounded-lg`, `rounded-t-xl`, `var(--radius-lg)`) in a component or lib file.
 //   shadcn init writes shadcn's `--radius-*` steps into an app's theme and an add never replaces them, so Ouro's
 //   corners (the Safari fallback, --ouro-radius-scale) would not reach that app; components round with `rounded-ouro-lg`.
+// - numericSizes: a fixed size written as a spacing step (`size-4`, `[&_svg]:size-5`, `pointer-fine:size-9`).
+//   Spacing steps follow --spacing, so a compact app would shrink an icon or a thumb; fixed sizes are
+//   `size-ouro-*`, and `h-`/`w-` stay allowed for lengths that follow density (ourostack/ouro-ui#417).
 // - layoutAnimationAllowed: the layout-property animations (ouro-source-rules' `layout-animation`)
 //   that Ouro's own components keep, each with its reason; scripts/source-rules.test.mjs fails on
 //   any other, and on an allowance no longer used.
@@ -353,6 +356,29 @@ export function radiusSteps(path, text) {
       for (const token of node.text.split(/\s+/).filter(Boolean)) {
         const utility = token.split(/:(?![^[]*\])/).at(-1);
         if (shadcnRadiusClass.test(utility) || shadcnRadiusVariable.test(token)) found.push(`${line}: ${token}`);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
+}
+
+const numericSizeClass = /^!?size-\d+(?:\.\d+)?$/;
+
+/**
+ * The `size-<number>` classes in a file's string literals and template text, as "line: token",
+ * after any variants (`pointer-fine:size-9`, `[&_svg]:size-4`). `size-ouro-4`, `size-full` and
+ * `size-[…]` are not found.
+ */
+export function numericSizes(path, text) {
+  const source = parse(path, text);
+  const found = [];
+  const visit = (node) => {
+    if (ts.isStringLiteralLike(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+      const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+      for (const token of node.text.split(/\s+/).filter(Boolean)) {
+        if (numericSizeClass.test(token.split(/:(?![^[]*\])/).at(-1))) found.push(`${line}: ${token}`);
       }
     }
     ts.forEachChild(node, visit);

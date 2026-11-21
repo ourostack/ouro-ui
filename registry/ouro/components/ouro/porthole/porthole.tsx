@@ -422,7 +422,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
         ref={pill}
         data-porthole-part="pill"
         className={cn(
-          "group/pill inline-flex h-8 max-w-full min-w-0 items-center overflow-hidden rounded-full border border-border bg-card text-sm leading-5 text-card-foreground transition-[width,background-color,border-color] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none pointer-coarse:h-12",
+          "group/pill inline-flex h-ouro-8 max-w-full min-w-0 items-center overflow-hidden rounded-full border border-border bg-card text-sm leading-5 text-card-foreground transition-[width,background-color,border-color] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none pointer-coarse:h-ouro-12",
           // Forced colours would paint the transparent edge, so quiet hushes it in Canvas there and draws it as the words show.
           hushed &&
             "border-transparent bg-transparent focus-within:border-border focus-within:bg-card pointer-fine:hover:border-border pointer-fine:hover:bg-card forced-colors:border-[Canvas] forced-colors:focus-within:border-[CanvasText] forced-colors:pointer-fine:hover:border-[CanvasText]",
