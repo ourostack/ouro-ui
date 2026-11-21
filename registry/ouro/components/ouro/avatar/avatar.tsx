@@ -237,15 +237,16 @@ const sizes = {
 } as const;
 
 // How far each avatar after the first slides under the one before, by the group's size: 4px for 24 to 47px,
-// 8px for 48 to 95px and 12px from 96px, the common design-system scale.
+// 8px for 48 to 95px and 12px from 96px, the common design-system scale. A share of the avatar's fixed size, so
+// --spacing leaves the overlap where it is.
 const overlaps = {
-  xs: "*:not-first:-ms-1",
-  sm: "*:not-first:-ms-1",
-  md: "*:not-first:-ms-1",
-  lg: "*:not-first:-ms-2",
-  xl: "*:not-first:-ms-2",
-  "2xl": "*:not-first:-ms-2",
-  "3xl": "*:not-first:-ms-3",
+  xs: "*:not-first:-ms-(--ouro-size-1)",
+  sm: "*:not-first:-ms-(--ouro-size-1)",
+  md: "*:not-first:-ms-(--ouro-size-1)",
+  lg: "*:not-first:-ms-(--ouro-size-2)",
+  xl: "*:not-first:-ms-(--ouro-size-2)",
+  "2xl": "*:not-first:-ms-(--ouro-size-2)",
+  "3xl": "*:not-first:-ms-(--ouro-size-3)",
 } as const;
 
 const sizeNames = Object.keys(sizes).map((name) => `"${name}"`).join(", ");

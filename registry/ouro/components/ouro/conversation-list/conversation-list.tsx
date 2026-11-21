@@ -462,7 +462,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
               <span
                 className={cn(
                   "flex shrink-0 items-center gap-2",
-                  hasMenu(item) && "pointer-fine:min-w-(--ouro-size-7) pointer-fine:justify-end pointer-coarse:me-9 [&>:not([data-ouro-conversation-time])]:order-first",
+                  hasMenu(item) && "pointer-fine:min-w-(--ouro-size-7) pointer-fine:justify-end pointer-coarse:me-(--ouro-size-9) [&>:not([data-ouro-conversation-time])]:order-first",
                 )}
               >
                 {shown(item.time) && (

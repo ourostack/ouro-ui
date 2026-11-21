@@ -101,3 +101,26 @@ it("shows the more button on every row with a menu, a 44px target beside the tim
   expect(slot.left).toBeGreaterThanOrEqual(time.right - 1);
   expect(slot.right).toBeLessThanOrEqual(row.getBoundingClientRect().right);
 });
+
+it("keeps a row's time and title clear of its more button to a finger, at a compact density", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  const items = [{ id: "trail", title: "Trail crew and the engine notes group", time: "9:41", menu: [{ label: "Pin", onClick: () => {} }] }];
+  await act(async () => root!.render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />));
+  const row = host.querySelector<HTMLElement>('[data-ouro-part="row"]')!;
+  const more = host.querySelector<HTMLElement>('[data-ouro-part="more"]')!;
+  // The more button's reservation is a fixed size, so a smaller --spacing does not let the time run under it.
+  const runsUnder = () => {
+    const left = Math.round(more.getBoundingClientRect().left);
+    return [row.querySelector("[data-ouro-conversation-title]")!, row.querySelector("[data-ouro-conversation-time]")!].some(
+      (text) => Math.round(text.getBoundingClientRect().right) > left,
+    );
+  };
+  expect(runsUnder()).toBe(false);
+  for (const spacing of ["0.2rem", "0.1rem"]) {
+    host.style.setProperty("--spacing", spacing);
+    expect(runsUnder(), spacing).toBe(false);
+  }
+});
