@@ -1897,6 +1897,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // so it would spend another chunk on rows it takes for ordinary ones: it waits for the commit instead.
   const setting = useRef<string | null>(null);
   useLayoutEffect(() => {
+    // Stryker disable next-line ConditionalExpression: a commit of another band also draws the rows the sync stopped waiting for, since a band computed after the sync keeps them, so clearing there draws the same frames.
     if (band?.id === setting.current) setting.current = null;
   }, [band]);
   const drip = () => {
