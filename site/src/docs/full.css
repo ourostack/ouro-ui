@@ -1,0 +1,6 @@
+/*
+ * The whole docs build (styles.css, scanning every registry component), for the pages that show
+ * any component: the components index (its previews draw as they near the screen) and the live
+ * demo page (?name= picks one of them). Every other docs page links shell.css instead.
+ */
+@import "../styles.css";
