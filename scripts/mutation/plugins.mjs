@@ -7,7 +7,8 @@ import { createVitest } from "vitest/node";
 // does not support browser mode, and every test here runs in a browser, so:
 //
 // - `vitest-browser`, a test runner: one Vitest instance in this process (the `ouro-chromium`
-//   project, over the test files scripts/mutation.mjs names for each mutated file), rerun once per
+//   project, and `ouro-touch` for the `*.touch.test.tsx` files, so a `pointer-coarse:` class is tested
+//   under a coarse pointer), over the test files scripts/mutation.mjs names for each mutated file), rerun once per
 //   mutant, stopping at its first failing test (`bail`): the mutated file's own tests first, then,
 //   only for a mutant they let survive, the tests of what imports it. Stryker
 //   writes every mutant into the source at once (mutant schemata), each behind a check of
@@ -80,7 +81,7 @@ class VitestBrowserRunner {
 
   async init() {
     process.env["OURO_MUTATION"] = "1";
-    this.vitest = await createVitest("test", { watch: false, project: ["ouro-chromium"], coverage: { enabled: false }, reporters: [], bail: 1 });
+    this.vitest = await createVitest("test", { watch: false, project: ["ouro-chromium", "ouro-touch"], coverage: { enabled: false }, reporters: [], bail: 1 });
     const glob = async (files) => (files.length > 0 ? await this.vitest.globTestSpecifications(files) : []);
     this.byFile = new Map();
     for (const [file, { own, wider }] of Object.entries(testFiles())) {
