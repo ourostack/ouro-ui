@@ -86,7 +86,7 @@ export function ThemePicker(props: ThemePickerProps): JSX.Element {
         role="group"
         aria-label={label}
         onKeyDown={roving.onKeyDown}
-        className="flex flex-wrap gap-1.5 [&_button:focus-visible]:outline-none [&_button:focus-visible>span]:outline-2 [&_button:focus-visible>span]:outline-offset-2 [&_button:focus-visible>span]:outline-ring [&_button:focus-visible>span]:outline-solid"
+        className="flex flex-wrap gap-1.5 [&_button:focus-visible]:outline-none [&_button:focus-visible>span]:outline-2 [&_button:focus-visible>span]:outline-offset-2 [&_button:focus-visible>span]:outline-ring [&_button:focus-visible>span]:outline-solid forced-colors:[&_button:focus-visible>span]:outline-[CanvasText]"
       >
         {presets.map((item) => (
           <Button

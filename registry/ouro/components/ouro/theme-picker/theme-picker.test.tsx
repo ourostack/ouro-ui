@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { ThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -62,6 +62,20 @@ describe("ThemePicker", () => {
     expect(dots[2]!.getAttribute("aria-pressed")).toBe("false");
     const swatch = getComputedStyle(dots[2]!.querySelector("span")!);
     expect([getComputedStyle(dots[2]!).outlineStyle, swatch.outlineStyle, swatch.outlineWidth, swatch.outlineOffset]).toEqual(["none", "solid", "2px", "2px"]);
+  });
+  it("rings a focused dot in a system colour under forced colours, so the chosen dot's Highlight cannot hide it", async () => {
+    const el = await render(<ThemePicker presets={presets} />);
+    const dot = el.querySelector<HTMLButtonElement>("button")!;
+    await pressTab();
+    expect(document.activeElement).toBe(dot);
+    const ring = () => getComputedStyle(dot.querySelector("span")!).outlineColor;
+    const normal = ring();
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      await expect.poll(ring).not.toBe(normal);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
   it("switches the page, keeps the choice and presses the chosen dot", async () => {
     const el = await render(<ThemePicker presets={presets} />);
