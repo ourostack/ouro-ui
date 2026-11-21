@@ -107,7 +107,7 @@ function sourceBody(text: string): ReactNode[] {
     out.push(
       " ",
       <details key="checks" className="mt-1 text-sm text-muted-foreground">
-        <summary className="cursor-pointer">{checks.length === 1 ? "1 check" : `${checks.length} checks`}</summary>
+        <summary className="cursor-pointer">Checks</summary>
         <ul className="mt-1 space-y-1">
           {checks.map((check, index) => (
             <li key={index}>

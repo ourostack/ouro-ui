@@ -1276,9 +1276,9 @@ describe("guides and exports without an item", () => {
     // A source names its test or file as written, which may hold words the text rules look for.
     expect(first.getAttribute("data-ouro-allow")).toBe("leaked-value odd-timestamp");
     expect(first.href).toMatch(/^https:\/\/github\.com\/ourostack\/ouro-ui\/blob\/main\//);
-    // The checks sit behind a "N checks" summary, so a source reads as a link, not as machine text.
+    // The checks sit behind a "Checks" summary, so a source reads as a link, not as machine text.
     const checks = sources.querySelector("li details")!;
-    expect(checks.querySelector("summary")!.textContent).toMatch(/^\d+ checks?$/);
+    expect(checks.querySelector("summary")!.textContent).toBe("Checks");
     expect(checks.hasAttribute("open")).toBe(false);
     expect([...sources.querySelectorAll("code")].filter((code) => code.textContent!.startsWith("verify:") && !code.closest("details"))).toHaveLength(0);
     const ref = document.querySelector<HTMLAnchorElement>("sup a[href^='#source-']")!;
