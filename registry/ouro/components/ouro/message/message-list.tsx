@@ -1227,8 +1227,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [findModule, setFindModule] = useState<typeof MessageFindLayer | undefined>(() => findLoaded);
   const [findMarks, setFindMarks] = useState<string>();
   useEffect(() => {
-    // Stryker disable next-line ConditionalExpression,LogicalOperator: asking for the module when it is already held, or without a find, changes nothing a page can see.
-    if (hasFind && !findModule) void loadFind().then((layer) => setFindModule(() => layer));
+    if (!hasFind) return;
+    // Stryker disable next-line ConditionalExpression: asking again for a module already held returns the cached promise and changes nothing a page can see.
+    if (!findModule) void loadFind().then((layer) => setFindModule(() => layer));
   }, [hasFind, findModule]);
   const FindLayer = hasFind ? findModule : undefined;
 
