@@ -41,7 +41,7 @@ interface DevCommandFinding extends DevCommand {
 The first developer command or repository path in a message, or null. Pass `asCommand` for a field that holds one command, such as a next step's `command`.
 
 ```ts
-function devCommandIn(text: string, asCommand?: boolean): DevCommand | null
+function devCommandIn(text: string, asCommand?: boolean, own?: string | undefined): DevCommand | null
 ```
 
 Example:
@@ -72,6 +72,7 @@ devCommandsIn({ next: [{ command: "npm run writes -- on", why: "Turn writes on" 
 ```ts
 interface DevCommandsOptions {
   messagesOnly?: boolean;
+  own?: string;
 }
 ```
 
