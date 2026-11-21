@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Lightbox: a mosaic of one picture keeps the picture's own shape, so a very wide or very tall one is shown whole instead of cropped.
