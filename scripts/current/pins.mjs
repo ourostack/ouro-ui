@@ -597,6 +597,14 @@ async function updateHxInstalled(pin, text, release, ctx) {
     const now = consumer.get(path);
     const old = before.get(path);
     const wrote = old && rewrite(previous.get(old.path));
+    if (now && !old && !after.has(path) && sha256(now) === record.files[path]) {
+      // A copy an earlier update kept after the release dropped or renamed its source, before Ouro Current deleted
+      // such files (spoonjoy-v2#828): its bytes are still the source the record names, so it is unedited, and it goes.
+      delete hashes[path];
+      out[path] = null;
+      dropped.push(path);
+      continue;
+    }
     if (!now || !wrote || !wrote.equals(now)) {
       edited.push(path);
       continue;
