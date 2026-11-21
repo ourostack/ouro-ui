@@ -87,8 +87,13 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * kilobyte that later growth could hide in. CI's e2e log prints `script-size <page> <bytes> of <ceiling>` on every run, and
  * a raise records the new measurement there with its reason. Measured on CI at 1791bc71: home and the Nautilus's page
  * 288,772 bytes, the docs 191,491.
+ *
+ * The docs' measurement set again 2026-11-21 at 191,884 bytes, what CI measured on #2752's last run (44907852279, e2e job
+ * 136857298173), the tree main has at af01ed5b. Main had grown 393 bytes past 191,491 over several merges, so it sat
+ * 119 bytes under its ceiling, and component changes of under 200 bytes that do not touch site/ failed it (#2747 at
+ * 192,051, #2749 at 192,073).
  */
-const MEASURED = { voyage: 288_772, docs: 191_491 } as const;
+const MEASURED = { voyage: 288_772, docs: 191_884 } as const;
 /** How far a page may grow past what CI measured before its ceiling is raised. */
 const MARGIN = 512;
 const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGIN } as const;
