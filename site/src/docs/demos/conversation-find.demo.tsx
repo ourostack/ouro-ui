@@ -25,7 +25,7 @@ export default function ConversationFindDemo(): JSX.Element {
         onCurrentChange={setCurrent}
         onClose={() => setQuery("")}
       />
-      <MessageList label="Chat" className="h-60 rounded-lg border border-border" find={{ query, current: current ?? 0 }} onFindMatches={setReport}>
+      <MessageList label="Chat" className="h-60" find={{ query, current: current ?? 0 }} onFindMatches={setReport}>
         {lines.map((text, index) => (
           <Message key={index} id={`m${index}`} variant="chat" role={index % 2 ? "user" : "assistant"} name={index % 2 ? "You" : "Ana"}>
             {text}
