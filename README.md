@@ -577,6 +577,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-a2ui-core`,
 `lib-announce`,
 `lib-appearance-hints`,
+`lib-avatar-pictures`,
 `lib-celebration-cap`,
 `lib-claims`,
 `lib-class-name-check`,
@@ -799,6 +800,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
 - **Lightbox** — Thumbnails that open a full-screen image viewer. [Docs](docs/Lightbox.md)
 - **LiveCaptions** — A caption band for a live call or video: what people are saying, as they say it. [Docs](docs/LiveCaptions.md)
+- **markPicturesReady** — Marks pictures the app has already loaded and decoded as ready, so an `Avatar` with the same `src` draws the picture on its first frame instead of its initials. [Docs](docs/markPicturesReady.md)
 - **MediaTile** — A tile for one live picture in a call: a person's camera, their photo when the camera is off, or a shared screen. [Docs](docs/MediaTile.md)
 - **OuroMcpApp** — The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface, once it passes core's `validateTree` against the catalog, its fields starting from `structuredContent.ouro.data`, or A2UI messages in `structuredContent.a2ui` with `A2UISurface`. [Docs](docs/OuroMcpApp.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)

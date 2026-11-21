@@ -1,0 +1,1 @@
+- New: `markPicturesReady(images)` lets an app mark pictures it has already loaded and decoded as ready, so an Avatar with that `src` draws the picture on its first frame (#2741).

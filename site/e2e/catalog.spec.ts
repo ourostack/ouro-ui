@@ -93,8 +93,11 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * 136857298173), the tree main has at af01ed5b. Main had grown 393 bytes past 191,491 over several merges, so it sat
  * 119 bytes under its ceiling, and component changes of under 200 bytes that do not touch site/ failed it (#2747 at
  * 192,051, #2749 at 192,073).
+ *
+ * Raised to 192,559 by Avatar's `markPicturesReady` (#2741), which every docs page with an Avatar loads: CI measured it on
+ * #2749 (run 44912817700, e2e job 136872174945), on a main that had grown again since af01ed5b.
  */
-const MEASURED = { voyage: 288_772, docs: 191_884 } as const;
+const MEASURED = { voyage: 288_772, docs: 192_559 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
