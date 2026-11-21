@@ -54,7 +54,7 @@ describe("MessageList find", () => {
     expect(report).toHaveBeenLastCalledWith({ count: 3, current: 2, partial: false });
     report.mockClear();
     await act(async () => root.render(<Chat find={{ query: "" }} onFindMatches={report} />));
-    expect(report).not.toHaveBeenCalled();
+    expect(report).toHaveBeenLastCalledWith({ count: 0, current: null, partial: false });
     expect(highlighted("ouro-find")).toEqual([]);
   });
 
@@ -69,6 +69,24 @@ describe("MessageList find", () => {
     await render(<Chat find={{ query: "cafe" }} />);
     expect(highlighted("ouro-find-current")).toEqual(["Café"]);
     await act(async () => {});
+  });
+
+  it("leaves the scroll where the reader put it when the parent renders again", async () => {
+    const many = (find: MessageListFind) => (
+      <MessageList label="Chat" style={{ height: 200 }} find={find}>
+        {Array.from({ length: 12 }, (_, index) => (
+          <Message key={index} id={`s${index}`} variant="chat" role="assistant" name="Ana">
+            {index === 0 ? "needle" : `Filler ${index}`}
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const { host, root } = await render(many({ query: "needle" }));
+    const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    await act(async () => scroller.scrollTo({ top: scroller.scrollHeight, behavior: "instant" }));
+    const scrollTo = vi.spyOn(scroller, "scrollTo");
+    await act(async () => root.render(many({ query: "needle" })));
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it("clears the highlights when the list goes away", async () => {

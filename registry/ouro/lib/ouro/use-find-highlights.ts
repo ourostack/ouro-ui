@@ -40,9 +40,27 @@ function useFindHighlights(options: {
     latest.current = { result, target, reduced };
   });
 
+  const signature = result.order.map((entry) => `${entry.key}:${entry.count}`).join("|");
+  const drawn = useRef<Range | undefined>(undefined);
+  useLayoutEffect(
+    () => () => {
+      if (typeof CSS !== "undefined" && "highlights" in CSS) {
+        CSS.highlights.delete(ALL_MATCHES);
+        CSS.highlights.delete(CURRENT_MATCH);
+      }
+    },
+    [],
+  );
+
   useLayoutEffect(() => {
     const root = content.current!;
-    if (query === "" || typeof CSS === "undefined" || !("highlights" in CSS)) return;
+    drawn.current = undefined;
+    if (typeof CSS === "undefined" || !("highlights" in CSS)) return;
+    if (query === "") {
+      CSS.highlights.delete(ALL_MATCHES);
+      CSS.highlights.delete(CURRENT_MATCH);
+      return;
+    }
     const spec: MessageFind = { query, fold, locale };
     let currentRange: Range | undefined;
     const draw = () => {
@@ -60,6 +78,7 @@ function useFindHighlights(options: {
       if (currentRange) wanted.push(currentRange);
       CSS.highlights.set(ALL_MATCHES, new Highlight(...others));
       CSS.highlights.set(CURRENT_MATCH, new Highlight(...wanted));
+      drawn.current = currentRange;
     };
     draw();
     let frame = 0;
@@ -68,6 +87,14 @@ function useFindHighlights(options: {
       frame = requestAnimationFrame(draw);
     });
     observer.observe(root, { childList: true, subtree: true, characterData: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [content, slot, query, fold, locale, signature, target?.key, target?.occurrence]);
+
+  useLayoutEffect(() => {
+    const currentRange = drawn.current;
     const view = scroller.current!;
     if (currentRange) {
       const match = currentRange.getBoundingClientRect();
@@ -75,11 +102,5 @@ function useFindHighlights(options: {
       const move = match.top < edge.top + MARGIN ? match.top - edge.top - MARGIN : match.bottom > edge.bottom - MARGIN ? match.bottom - edge.bottom + MARGIN : 0;
       if (move !== 0) view.scrollTo({ top: view.scrollTop + move, behavior: latest.current.reduced ? "instant" : "smooth" });
     }
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      CSS.highlights.delete(ALL_MATCHES);
-      CSS.highlights.delete(CURRENT_MATCH);
-    };
-  }, [content, scroller, slot, query, fold, locale, result, target?.key, target?.occurrence]);
+  }, [scroller, query, fold, locale, target?.key, target?.occurrence]);
 }
