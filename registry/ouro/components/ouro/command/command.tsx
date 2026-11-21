@@ -816,7 +816,7 @@ export function Command(props: CommandProps): JSX.Element {
                         </span>
                       ) : (
                         shown(item.icon) && (
-                          <span data-ouro-command-icon="" aria-hidden="true" className={cn("flex w-6 shrink-0 items-center justify-center [&_svg]:size-4", quiet)}>
+                          <span data-ouro-command-icon="" aria-hidden="true" className={cn("flex w-ouro-6 shrink-0 items-center justify-center [&_svg]:size-ouro-4", quiet)}>
                             {item.icon}
                           </span>
                         )

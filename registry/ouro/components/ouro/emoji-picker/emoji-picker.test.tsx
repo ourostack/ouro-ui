@@ -161,6 +161,19 @@ afterEach(async () => {
 });
 
 describe("EmojiPicker content", () => {
+  it("keeps its fixed sizes at a compact --spacing: an emoji's square, a category's box and icon, and a skin tone's ring", async () => {
+    await open({ frequent, quick, onSkinToneChange: () => {} });
+    await userEvent.click(toneButton()!);
+    const measure = () => [cells()[0]!, categoryButtons()[1]!].map((element) => element.getBoundingClientRect().width).concat(categoryButtons()[0]!.querySelector("svg")!.getBoundingClientRect().width, toneOptions()[0]!.getBoundingClientRect().width);
+    expect(measure()).toEqual([40, 32, 16, 36]);
+    document.body.style.setProperty("--spacing", "0.2rem");
+    try {
+      expect(measure()).toEqual([40, 32, 16, 36]);
+    } finally {
+      document.body.style.removeProperty("--spacing");
+    }
+  });
+
   it("draws each emoji with renderEmoji in the skin tone in use, keeping its name for screen readers", async () => {
     const renderEmoji = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone) => <img alt="" data-art={`${item.name}/${skinTone}`} />;
     await open({ renderEmoji, quick, frequent, skinTone: "medium" });

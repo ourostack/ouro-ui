@@ -33,7 +33,7 @@ export {
  * @claim "over a hairline that takes the" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command search focus > draws the search row's line in the ring colour while the search input has keyboard focus)
  */
 const commandSearchClass =
-  "box-border flex shrink-0 items-center gap-2 border-0 border-b border-solid border-border has-[input:focus-visible]:border-ring px-4 text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0";
+  "box-border flex shrink-0 items-center gap-2 border-0 border-b border-solid border-border has-[input:focus-visible]:border-ring px-4 text-muted-foreground [&>svg]:size-ouro-4 [&>svg]:shrink-0";
 
 /**
  * The search row in the phone sheet: pinned to the top of the sheet's scrolling body, its field
@@ -42,7 +42,7 @@ const commandSearchClass =
  * @internal
  */
 const commandSheetSearchClass =
-  "sticky top-0 z-1 -mx-5 -mt-2 mb-1 box-border flex items-center gap-2 border-0 border-b border-solid border-border has-[input:focus-visible]:border-ring bg-popover ps-5 pe-14 text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0";
+  "sticky top-0 z-1 -mx-5 -mt-2 mb-1 box-border flex items-center gap-2 border-0 border-b border-solid border-border has-[input:focus-visible]:border-ring bg-popover ps-5 pe-14 text-muted-foreground [&>svg]:size-ouro-4 [&>svg]:shrink-0";
 
 /**
  * The search input: borderless, 48px tall, 16px text on a coarse pointer (so iOS does not
@@ -108,7 +108,7 @@ const commandGroupLabelClass = "box-border px-2 pt-2 pb-1 text-xs leading-4 font
  * @claim "One command: 44px tall with 16px" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > moves the highlight with the arrow keys)
  */
 const commandItemClass =
-  "relative box-border flex min-h-11 pointer-fine:min-h-9 cursor-default items-center gap-3 rounded-ouro-md px-2 py-1.5 " +
+  "relative box-border flex min-h-ouro-11 pointer-fine:min-h-9 cursor-default items-center gap-3 rounded-ouro-md px-2 py-1.5 " +
   "text-base leading-5 pointer-fine:text-sm text-popover-foreground outline-none select-none [-webkit-tap-highlight-color:transparent] " +
   "data-highlighted:bg-accent data-highlighted:text-accent-foreground active:bg-accent active:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 " +
   // Forced colours drop the fill, so the highlight takes the system's pair.
@@ -223,7 +223,7 @@ function matchesQuery(label: string, keywords: readonly string[], query: string)
  * @internal
  */
 const commandLoadingRowClass =
-  "box-border flex min-h-11 pointer-fine:min-h-9 items-center gap-3 px-2 py-1.5 text-base leading-5 pointer-fine:text-sm";
+  "box-border flex min-h-ouro-11 pointer-fine:min-h-9 items-center gap-3 px-2 py-1.5 text-base leading-5 pointer-fine:text-sm";
 
 /** A range of a text, from `start` up to, and not including, `end`. */
 type TextRange = readonly [start: number, end: number];

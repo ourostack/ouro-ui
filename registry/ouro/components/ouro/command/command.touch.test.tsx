@@ -39,6 +39,34 @@ async function openFromTap() {
 }
 
 describe("Command on a phone", () => {
+  it("keeps the commands and the loading rows 44px to a finger at a compact --spacing", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    root = createRoot(host);
+    const items = [{ label: "Recipes", items: [{ label: "Recipe 1", onSelect: () => {} }] }];
+    await act(() => root!.render(<Command title="Command palette" trigger={<Button>Search</Button>} items={items} loading loadingLabel="Loading" />));
+    await commands.tap('[data-ouro="button"]');
+    await expect
+      .poll(() => {
+        const element = popup();
+        return Boolean(element && !element.hasAttribute("data-starting-style") && element.getAnimations().length === 0);
+      })
+      .toBe(true);
+    const sizes = () => [
+      [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((option) => option.getBoundingClientRect().height),
+      [...document.querySelectorAll<HTMLElement>("[data-ouro-command-loading-rows] > div")].map((row) => row.getBoundingClientRect().height),
+      [document.querySelector<HTMLElement>("[data-ouro-command-search] svg")!.getBoundingClientRect().width],
+    ];
+    expect(sizes()).toEqual([[44], [44, 44, 44], [16]]);
+    document.body.style.setProperty("--spacing", "0.2rem");
+    try {
+      expect(sizes()).toEqual([[44], [44, 44, 44], [16]]);
+    } finally {
+      document.body.style.removeProperty("--spacing");
+    }
+  });
+
   it("opens from a tap as a full-height sheet focused on itself, with 44px commands and a 16px search input", async () => {
     const element = await openFromTap();
     expect(element.getAttribute("data-ouro-presentation")).toBe("sheet");

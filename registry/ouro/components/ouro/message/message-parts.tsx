@@ -91,7 +91,7 @@ function MessageMenuItems({ M, reactions, entries, label }: { M: MenuModule; rea
         >
           {shown.map((reaction) => (
             <M.MenuItem key={reaction.key} onClick={reaction.onClick} disabled={reaction.disabled} shortcut={reaction.shortcut}>
-              <span aria-hidden="true" data-ouro-message-menu-reaction={reaction.key} className="inline-flex size-5 items-center justify-center text-lg leading-none [&>svg]:size-5">
+              <span aria-hidden="true" data-ouro-message-menu-reaction={reaction.key} className="inline-flex size-ouro-5 items-center justify-center text-lg leading-none [&>svg]:size-ouro-5">
                 {reaction.icon}
               </span>
               <span className="sr-only">{reaction.label}</span>
@@ -187,7 +187,7 @@ export function MessageActionBar({
     if (key !== null) setCurrent({ row, key });
   };
   const iconButton = "w-(--ouro-button-h) px-0";
-  const more = <MoreIcon aria-hidden="true" className="size-4" />;
+  const more = <MoreIcon aria-hidden="true" className="size-ouro-4" />;
   const bar = (
     <div
       role="toolbar"
@@ -218,7 +218,7 @@ export function MessageActionBar({
             onClick={action.onClick}
             className={iconButton}
           >
-            <span aria-hidden="true" className="inline-flex size-4 items-center justify-center text-base leading-none [&>svg]:size-4">
+            <span aria-hidden="true" className="inline-flex size-ouro-4 items-center justify-center text-base leading-none [&>svg]:size-ouro-4">
               {action.icon}
             </span>
           </Button>

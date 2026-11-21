@@ -55,6 +55,22 @@ const sections = [
 ];
 
 describe("Sidebar on a phone", () => {
+  it("keeps the menu button, its icon and each row 44px to a finger at a compact --spacing", async () => {
+    const host = await render(<Sidebar label="Main" sections={sections} currentPath="/recipes" />);
+    const menu = host.querySelector<HTMLElement>("[data-ouro-sidebar-menu]")!;
+    menu.click();
+    await expect.poll(() => document.querySelector('[role="dialog"] a[href="/recipes"]')).not.toBeNull();
+    const row = () => [...document.querySelectorAll<HTMLElement>('a[href="/recipes"]')].find((link) => link.getBoundingClientRect().height > 0)!;
+    const measure = () => [menu.getBoundingClientRect().width, menu.querySelector("svg")!.getBoundingClientRect().width, row().getBoundingClientRect().height];
+    expect(measure()).toEqual([44, 20, 44]);
+    document.body.style.setProperty("--spacing", "0.2rem");
+    try {
+      expect(measure()).toEqual([44, 20, 44]);
+    } finally {
+      document.body.style.removeProperty("--spacing");
+    }
+  });
+
   it("opens the drawer on tap, with 44px rows in 16px text, and closes on a link", async () => {
     const host = await render(<Sidebar label="Main" sections={sections} currentPath="/recipes" />);
     const target = host.querySelector<HTMLElement>("[data-ouro-sidebar-menu] [data-ouro-touch-target]")!;

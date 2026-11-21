@@ -1050,6 +1050,57 @@ describe("Message chat", () => {
     expect(third!.querySelector("[data-ouro-message-gutter]")!.childElementCount).toBe(0);
   });
 
+  it("keeps its fixed sizes at a compact --spacing: the typing dots, the sending and failed icons, the gutter, a reply's column, and the bar's icons and reactions", async () => {
+    const quickReactions = [{ key: "like", label: "Like", icon: "👍", onClick: () => {} }];
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" streaming />
+        <Message variant="chat" role="user" name="Priya Okafor" failed={{ onRetry: () => {} }}>
+          Sent?
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" pending>
+          On my way
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" actions={actionsFor([])} menu={menu} quickReactions={quickReactions}>
+          Morning!
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" continued>
+          The venue confirmed.
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" continued pending>
+          Still sending.
+        </Message>
+        <Message role="assistant" name="Mara Quill" continued>
+          Default.
+        </Message>
+      </>,
+    );
+    const [typing, failed, pending, bar, continued, later, beside] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')] as HTMLElement[];
+    await expect.poll(() => pending!.querySelector("[data-ouro-message-pending] svg")).not.toBeNull();
+    await expect.poll(() => later!.querySelector("[data-ouro-message-pending-gutter]")).not.toBeNull();
+    await userEvent.hover(bubbleOf(bar!));
+    await expect.poll(() => barOf(bar!).querySelector<HTMLElement>('[data-ouro-message-action="reply"] svg')!.getBoundingClientRect().width).toBe(16);
+    await act(async () => barOf(bar!).querySelector<HTMLElement>('[data-ouro-part="menu"]')!.focus());
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelector('[data-ouro-message-menu-reaction="like"]')).not.toBeNull();
+    const width = (element: Element | null) => (element ? element.getBoundingClientRect().width : "missing");
+    const measure = () => [
+      width(typing!.querySelector("[data-ouro-message-typing] > [aria-hidden]")),
+      width(failed!.querySelector("[data-ouro-message-failed] svg")),
+      width(pending!.querySelector("[data-ouro-message-pending] svg")),
+      width(bar!.querySelector("[data-ouro-message-gutter]")),
+      width(barOf(bar!).querySelector('[data-ouro-part="menu"] svg')),
+      width(barOf(bar!).querySelector('[data-ouro-message-action="reply"] svg')),
+      width(document.querySelector('[data-ouro-message-menu-reaction="like"]')),
+      width(continued!.firstElementChild),
+      width(later!.querySelector("[data-ouro-message-pending-gutter]")),
+      width(beside!.firstElementChild),
+    ];
+    expect(measure()).toEqual([6, 14, 14, 32, 16, 16, 20, 32, 14, 32]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(measure()).toEqual([6, 14, 14, 32, 16, 16, 20, 32, 14, 32]);
+  });
+
   it("shows an Avatar element the app passes, and no avatar on the user's own chat messages", async () => {
     const { host } = await render(
       <>

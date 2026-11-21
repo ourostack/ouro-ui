@@ -2816,7 +2816,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         <div aria-live="polite">
           {loadingOlder && (
             <span className={cn(olderClass, mounted && olderFadeClass)}>
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4 animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-ouro-4 animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.25" />
                 <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
               </svg>
@@ -2830,7 +2830,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           <button type="button" data-ouro-message-list-jump="" data-ouro-control="message-list" data-ouro-part="jump" onClick={jump} className={jumpClass}>
             <TouchTarget />
             {jumpLabel}
-            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-ouro-4">
               <path d="M8 3v10M4 9l4 4 4-4" />
             </svg>
           </button>

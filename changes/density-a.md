@@ -1,0 +1,1 @@
+- Message, Skeleton, Sidebar, Combobox, EmojiPicker, Command and Porthole: fixed sizes (icons, avatars, dots, touch floors, rails and popups) read `--ouro-size-*` tokens, so a compact `--spacing` no longer shrinks them (#417).

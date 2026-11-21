@@ -57,6 +57,31 @@ describe("Attachment", () => {
     await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe(next);
   });
 
+  it("keeps its fixed sizes at a compact --spacing: its own icon, the app's icon and the remove button's glyph", async () => {
+    const appIcon = <svg viewBox="0 0 20 20" fill="none" stroke="currentColor"><circle cx="10" cy="10" r="8" /></svg>;
+    const { host } = await render(
+      <>
+        <Attachment name="menu.pdf" icon={appIcon} onRemove={() => {}} />
+        <Attachment name="menu.pdf" onRemove={() => {}} />
+      </>,
+    );
+    const measure = () => {
+      const [withIcon, drawn] = [...host.querySelectorAll<HTMLElement>('[data-ouro="attachment"]')];
+      const icon = withIcon!.querySelector<HTMLElement>("[data-ouro-attachment-icon]")!;
+      const remove = withIcon!.querySelector<HTMLElement>('[data-ouro-part="remove"]')!;
+      return [
+        icon.getBoundingClientRect().width,
+        icon.querySelector("svg")!.getBoundingClientRect().width,
+        remove.querySelector("svg")!.getBoundingClientRect().width,
+        remove.getBoundingClientRect().width,
+        drawn!.querySelector("[data-ouro-attachment-icon]")!.getBoundingClientRect().width,
+      ];
+    };
+    expect(measure()).toEqual([20, 20, 16, 28, 20]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(measure()).toEqual([20, 20, 16, 28, 20]);
+  });
+
   it("names the file and gives its size in readable units", async () => {
     const { attachment } = await render(<Attachment name="menu.pdf" size={1_258_291} />);
     expect(attachment.textContent).toBe("menu.pdf 1.2 MB");

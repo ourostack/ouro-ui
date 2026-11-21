@@ -28,6 +28,28 @@ afterEach(async () => {
 });
 
 describe("EmojiPicker on a phone", () => {
+  it("keeps each emoji, category and tone 44px to a finger at a compact --spacing", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    root = createRoot(host);
+    await act(async () => root!.render(<EmojiPicker label="Add a reaction" categories={categories} quick={[categories[0]!.emoji[0]!]} trigger={<Button aria-label="React">+</Button>} onSelect={() => {}} />));
+    await userEvent.click(host.querySelector("button")!);
+    const panel = () => document.querySelector<HTMLElement>('[data-ouro="emoji-picker"]');
+    await expect.poll(() => panel()?.closest('[data-ouro="sheet"]')).toBeTruthy();
+    const sheet = panel()!.closest<HTMLElement>('[data-ouro="sheet"]')!;
+    await expect.poll(() => !sheet.hasAttribute("data-starting-style") && sheet.getAnimations({ subtree: true }).length === 0).toBe(true);
+    await userEvent.click(panel()!.querySelector<HTMLElement>('[data-ouro-part="skin-tone"]')!);
+    const sizes = () => ["emoji", "category", "tone"].map((part) => [...panel()!.querySelectorAll<HTMLElement>(`[data-ouro-part="${part}"]`)].map((element) => element.getBoundingClientRect().height));
+    expect(sizes()).toEqual([[44, 44, 44], [44, 44], [44, 44, 44, 44, 44, 44]]);
+    document.body.style.setProperty("--spacing", "0.2rem");
+    try {
+      expect(sizes()).toEqual([[44, 44, 44], [44, 44], [44, 44, 44, 44, 44, 44]]);
+    } finally {
+      document.body.style.removeProperty("--spacing");
+    }
+  });
+
   it("is a bottom sheet whose emoji, categories and tones are 44px touch targets, and a tap chooses", async () => {
     const onSelect = vi.fn();
     const host = document.createElement("div");
