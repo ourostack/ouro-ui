@@ -95,4 +95,28 @@ describe("SheetFrame finalFocus", () => {
     await expect.poll(() => document.querySelectorAll('[role="dialog"]').length).toBe(1);
     await expect.poll(() => document.querySelector('[role="dialog"]')!.contains(document.activeElement)).toBe(true);
   });
+
+  it("returns focus to finalFocus when the sheet unmounts while it is open", async () => {
+    const outside = createRef<HTMLButtonElement>();
+    function Example({ open }: { open: boolean }) {
+      return (
+        <>
+          <button ref={outside} type="button">
+            Outside
+          </button>
+          {open && (
+            <SheetFrame title="Filters" closeLabel="Close" side="bottom" open onOpenChange={() => {}} finalFocus={outside}>
+              Body
+            </SheetFrame>
+          )}
+        </>
+      );
+    }
+    const host = document.body.appendChild(document.createElement("div"));
+    root = createRoot(host);
+    await act(async () => root!.render(<Example open />));
+    await expect.element(page.getByRole("dialog", { name: "Filters" })).toBeVisible();
+    await act(async () => root!.render(<Example open={false} />));
+    await expect.poll(() => document.activeElement).toBe(outside.current);
+  });
 });

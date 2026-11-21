@@ -116,6 +116,30 @@ describe("an overlay opened while the one before it is still closing", () => {
   });
 });
 
+describe("a dialog opened from inside another", () => {
+  it("returns focus on Escape to its trigger inside the outer dialog, which stays open", async () => {
+    await page.viewport(1280, 800);
+    host = document.body.appendChild(document.createElement("div"));
+    root = createRoot(host);
+    await act(async () =>
+      root!.render(
+        <Dialog title="Outer" trigger={<Button>Open outer</Button>}>
+          <Dialog title="Inner" trigger={<Button>Open inner</Button>}>
+            <Button>Inside inner</Button>
+          </Dialog>
+        </Dialog>,
+      ),
+    );
+    trigger("Open outer").click();
+    await settledOpen("Outer");
+    trigger("Open inner").click();
+    await settledOpen("Inner");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(trigger("Open inner"));
+    expect(overlay("Outer")?.hasAttribute("data-open")).toBe(true);
+  });
+});
+
 describe("a centered dialog's focus when it closes", () => {
   it("returns focus to its trigger on Escape, when the trigger was clicked and did not take focus", async () => {
     await page.viewport(1280, 800);
