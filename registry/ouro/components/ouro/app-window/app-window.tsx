@@ -120,7 +120,7 @@ export function AppWindow(props: AppWindowProps): JSX.Element {
       // corners to the window's radius less its border instead, and only an edge-to-edge body that ends the window clips.
       className={cn("min-w-0 rounded-ouro-xl border border-solid border-border bg-card text-card-foreground shadow-(--shadow-lg)", className)}
     >
-      <div data-slot="bar" className="flex min-h-11 items-center gap-3 rounded-t-[calc(var(--radius-ouro-xl)-1px)] border-0 border-b border-solid border-border bg-muted ps-4 pe-2">
+      <div data-slot="bar" className="flex min-h-ouro-11 items-center gap-3 rounded-t-[calc(var(--radius-ouro-xl)-1px)] border-0 border-b border-solid border-border bg-muted ps-4 pe-2">
         <span data-slot="title" className="min-w-0 truncate font-mono text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
           {title}
         </span>

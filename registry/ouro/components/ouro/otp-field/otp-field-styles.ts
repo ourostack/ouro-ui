@@ -53,7 +53,7 @@ const slotClass =
  *
  * @internal
  */
-const separatorClass = "m-0 box-border h-0.5 w-2 shrink-0 rounded-full border-0 bg-border";
+const separatorClass = "m-0 box-border h-ouro-0_5 w-ouro-2 shrink-0 rounded-full border-0 bg-border";
 
 /**
  * Each slot's name after the first, which takes the field's label.

@@ -15,7 +15,7 @@ import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
  * @internal
  */
 const familyLinkClass =
-  "relative m-0 box-border inline-flex min-h-11 min-w-11 pointer-fine:min-h-8 pointer-fine:min-w-0 items-center justify-center rounded-ouro-md px-2.5 whitespace-nowrap no-underline select-none touch-manipulation " +
+  "relative m-0 box-border inline-flex min-h-ouro-11 min-w-ouro-11 pointer-fine:min-h-8 pointer-fine:min-w-0 items-center justify-center rounded-ouro-md px-2.5 whitespace-nowrap no-underline select-none touch-manipulation " +
   "text-base pointer-fine:text-sm leading-5 font-normal text-muted-foreground [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:text-foreground active:text-foreground " +
   "aria-[current=true]:text-foreground aria-[current=true]:underline aria-[current=true]:decoration-primary aria-[current=true]:decoration-2 " +
@@ -66,7 +66,7 @@ const familyScrollerClass =
  */
 const familyFooterLinkClass =
   "underline decoration-border decoration-1 underline-offset-4 pointer-fine:not-aria-[current=true]:hover:decoration-current forced-colors:not-aria-[current=true]:no-underline " +
-  "max-sm:min-h-11 max-sm:pointer-fine:min-h-11 max-sm:max-w-full max-sm:justify-start max-sm:whitespace-normal max-sm:text-start";
+  "max-sm:min-h-ouro-11 max-sm:pointer-fine:min-h-ouro-11 max-sm:max-w-full max-sm:justify-start max-sm:whitespace-normal max-sm:text-start";
 
 /**
  * The FamilyFooter's list of links: even columns in a narrow footer, one row that wraps in a wide one.

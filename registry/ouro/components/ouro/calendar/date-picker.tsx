@@ -457,7 +457,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                           strokeWidth="1.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="size-4"
+                          className="size-ouro-4"
                         >
                           <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
                           <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" />

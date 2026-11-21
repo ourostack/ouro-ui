@@ -66,6 +66,14 @@ describe("ChoiceCard", () => {
     await expect.element(page.getByRole("group", { name: "Cover photo" })).toHaveAccessibleDescription("Shown on the card.");
   });
 
+  it("keeps the room its check mark takes at a compact --spacing", async () => {
+    const { host, cards } = await render(<ChoiceCard legend="Cover" items={items} />);
+    const padded = () => cards()[0]!.querySelector<HTMLElement>(":scope > .grid")!;
+    expect(parseFloat(getComputedStyle(padded()).paddingInlineEnd)).toBe(40);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(parseFloat(getComputedStyle(padded()).paddingInlineEnd)).toBe(40);
+  });
+
   it("does not clip its cards: a picture rounds its own top corners to the card's radius less its border", async () => {
     const { cards } = await render(<ChoiceCard legend="Cover" items={items} />);
     const card = cards()[0]!;

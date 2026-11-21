@@ -52,7 +52,7 @@ export interface CoverOwnProps {
 /** Props for {@link Cover}: its own props and the `<div>` attributes it passes through. */
 export type CoverProps = Omit<HTMLAttributes<HTMLDivElement>, keyof CoverOwnProps> & CoverOwnProps;
 
-const sizes = { sm: "size-10", md: "size-14", lg: "size-24", fill: "w-full aspect-square" } as const;
+const sizes = { sm: "size-ouro-10", md: "size-ouro-14", lg: "size-ouro-24", fill: "w-full aspect-square" } as const;
 
 /**
  * A thing's cover: its picture, or, without one, the first letter of its title in the theme's

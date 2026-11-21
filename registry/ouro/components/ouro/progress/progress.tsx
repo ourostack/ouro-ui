@@ -200,7 +200,7 @@ export function Progress(props: ProgressProps): JSX.Element {
           <BaseProgress.Value data-ouro-progress-value="" className="text-muted-foreground tabular-nums" />
         )}
       </div>
-      <BaseProgress.Track data-ouro-progress-track="" className={cn("relative block w-full overflow-hidden rounded-full bg-secondary", thin ? "h-0.5" : "h-2")}>
+      <BaseProgress.Track data-ouro-progress-track="" className={cn("relative block w-full overflow-hidden rounded-full bg-secondary", thin ? "h-ouro-0_5" : "h-ouro-2")}>
         <BaseProgress.Indicator
           data-ouro-progress-indicator=""
           className={cn(indicatorClass, tones[tone])}

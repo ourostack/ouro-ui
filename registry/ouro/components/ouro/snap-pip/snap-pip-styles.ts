@@ -162,7 +162,7 @@ export const frameClass = "block size-full overflow-hidden rounded-[inherit]";
  * without it closing. The component lines it up with the picture's outer edge.
  */
 export const hintClass = [
-  "pointer-events-none absolute z-10 w-max max-w-80 opacity-0",
+  "pointer-events-none absolute z-10 w-max max-w-ouro-80 opacity-0",
   "motion-safe:transition-opacity motion-safe:duration-(--ouro-duration-fast) motion-safe:ease-(--ouro-ease-out)",
   "data-[side=bottom]:top-full data-[side=bottom]:pt-2 data-[side=top]:bottom-full data-[side=top]:pb-2",
   "data-open:pointer-events-auto data-open:opacity-100",

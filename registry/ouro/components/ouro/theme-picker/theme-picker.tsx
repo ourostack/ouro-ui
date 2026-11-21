@@ -98,7 +98,7 @@ export function ThemePicker(props: ThemePickerProps): JSX.Element {
               aria-hidden="true"
               style={DOT_PAINT}
               className={cn(
-                "inline-block size-6 shrink-0 rounded-full border-2 sm:size-8",
+                "inline-block size-ouro-6 shrink-0 rounded-full border-2 sm:size-ouro-8",
                 item.name === preset ? "border-foreground" : "border-foreground/20",
               )}
             />

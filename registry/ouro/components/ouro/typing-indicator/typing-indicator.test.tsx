@@ -44,6 +44,18 @@ afterEach(async () => {
 });
 
 describe("TypingIndicator", () => {
+  it("keeps its faces' overlap and its line's height fixed at a compact --spacing", async () => {
+    const { host, line } = await render(<TypingIndicator people={crew.slice(0, 2)} />);
+    const overlap = () => {
+      const [first, second] = [...line.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((face) => face.getBoundingClientRect());
+      return Math.round(first!.right - second!.left);
+    };
+    const height = () => Math.round(line.getBoundingClientRect().height);
+    expect([overlap(), height()]).toEqual([6, 24]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([overlap(), height()]).toEqual([6, 24]);
+  });
+
   it("shows who is writing as faces and words, three faces at most", async () => {
     const { line } = await render(<TypingIndicator people={crew} />);
     const faces = [...line.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];

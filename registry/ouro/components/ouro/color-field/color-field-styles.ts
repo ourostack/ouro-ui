@@ -44,7 +44,7 @@ function toHex(color: string): string {
  */
 const boxClass =
   "relative m-0 box-border flex w-full min-w-0 items-center gap-2 h-(--ouro-control-h) ps-2 pe-3 py-0 " +
-  "[--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
+  "[--ouro-control-h:var(--ouro-size-11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
   "rounded-ouro-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
   "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
@@ -60,7 +60,7 @@ const boxClass =
  * @claim "The swatch's hit area: a 28px" registry/ouro/components/ouro/color-field/color-field.touch.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.touch.test.tsx::gives the swatch a 44px hit area that opens the picker)
  */
 const swatchClass =
-  "press relative flex size-7 shrink-0 cursor-pointer sm:pointer-fine:size-6 " +
+  "press relative flex size-ouro-7 shrink-0 cursor-pointer sm:pointer-fine:size-ouro-6 " +
   "motion-safe:not-has-[input:disabled]:active:scale-(--ouro-press-scale) has-[input:disabled]:cursor-not-allowed";
 
 /**
@@ -68,7 +68,7 @@ const swatchClass =
  * that takes it.
  * @claim "The swatch where the browser has" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > shows a plain swatch and keeps the hex text where the browser has no color picker)
  */
-const plainSwatchClass = "relative block size-7 shrink-0 rounded-ouro-sm border border-solid border-border sm:pointer-fine:size-6";
+const plainSwatchClass = "relative block size-ouro-7 shrink-0 rounded-ouro-sm border border-solid border-border sm:pointer-fine:size-ouro-6";
 
 /**
  * Whether the browser has a color picker. One without it treats `type="color"` as text, so the

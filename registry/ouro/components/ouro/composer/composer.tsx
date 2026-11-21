@@ -290,7 +290,7 @@ const quoteButtonClass =
 function QuoteBody({ quote, id }: { quote: ComposerQuote; id: string }): JSX.Element {
   return (
     <>
-      <span aria-hidden="true" data-ouro-composer-quote-bar="" className="w-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
+      <span aria-hidden="true" data-ouro-composer-quote-bar="" className="w-ouro-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
       {quote.avatar}
       <span className="flex min-w-0 flex-1 flex-col">
         <span id={`${id}-quote`} className="sr-only">
@@ -317,7 +317,7 @@ function QuoteBody({ quote, id }: { quote: ComposerQuote; id: string }): JSX.Ele
 /** A cross: remove. */
 function RemoveIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4 shrink-0">
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-ouro-4 shrink-0">
       <path d="M4 4l8 8M12 4l-8 8" />
     </svg>
   );
@@ -330,7 +330,7 @@ const growClasses = ["overflow-hidden", "transition-[height]", "duration-(--ouro
 /** Arrows: out to expand, in to collapse. */
 function ExpandIcon({ expanded }: { expanded: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-5 shrink-0">
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-ouro-5 shrink-0">
       <path d={expanded ? "M4 11h5v5M11 4v5h5M9 11l-5 5M11 9l5-5" : "M11 4h5v5M9 16H4v-5M16 4l-5 5M4 16l5-5"} />
     </svg>
   );
@@ -339,7 +339,7 @@ function ExpandIcon({ expanded }: { expanded: boolean }): JSX.Element {
 /** A paper plane. */
 function SendIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className="size-5 shrink-0 rtl:-scale-x-100">
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className="size-ouro-5 shrink-0 rtl:-scale-x-100">
       <path d="M3.5 3.2 17 10 3.5 16.8 5.6 10z" />
       <path d="M5.6 10h5.4" strokeLinecap="round" />
     </svg>

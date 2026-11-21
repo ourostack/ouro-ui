@@ -49,9 +49,9 @@ export interface HoverCardProps {
   /** How the card lines up with the link along that side. @default "center" */
   align?: FloatingAlign | (string & { 'Use "start", "center" or "end": left is "start", right is "end"': never }) | undefined;
   /**
-   * Layout only, applied to the card: width (18rem, `w-72`, by default) and padding. Your
+   * Layout only, applied to the card: width (18rem, `w-ouro-72`, by default) and padding. Your
    * classes win over Ouro UI's. Appearance classes warn in development.
-   * @claim "Layout only, applied to the card" registry/ouro/components/ouro/hover-card/hover-card.tsx verify:fileLine(registry/ouro/components/ouro/hover-card/hover-card.tsx, /"w-72\smax-w-\(--available-width\)\sp-4/)
+   * @claim "Layout only, applied to the card" registry/ouro/components/ouro/hover-card/hover-card.tsx verify:fileLine(registry/ouro/components/ouro/hover-card/hover-card.tsx, /"w-ouro-72\smax-w-\(--available-width\)\sp-4/)
    */
   className?: string | undefined;
 
@@ -241,7 +241,7 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
                 className={cn(
                   floatingSurfaceClass,
                   floatingMotionClass,
-                  "w-72 max-w-(--available-width) p-4 text-sm leading-5",
+                  "w-ouro-72 max-w-(--available-width) p-4 text-sm leading-5",
                   className,
                 )}
               >

@@ -38,7 +38,7 @@ export function UnreadDot(props: UnreadDotProps): JSX.Element {
     );
   return (
     <span {...rest} data-ouro="unread-dot" className={cn("flex shrink-0 items-center", className)}>
-      <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
+      <span aria-hidden="true" className="size-ouro-2 rounded-full bg-primary" />
       <span className="sr-only">{label}</span>
     </span>
   );
