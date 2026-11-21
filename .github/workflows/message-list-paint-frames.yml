@@ -45,7 +45,7 @@ jobs:
           CI: "true"
           PROJECT: ${{ matrix.project }}
           OURO_PROBE_RUNS: ${{ inputs.runs }}
-        run: pnpm exec playwright test --config playwright.probes.config.ts --project "$PROJECT" registry/ouro/e2e/probes/message-list-paint-frames.spec.ts
+        run: pnpm exec playwright test registry/ouro/e2e/probes/message-list-paint-frames.spec.ts --config playwright.probes.config.ts --project "$PROJECT"
       - if: always()
         env:
           PROJECT: ${{ matrix.project }}
