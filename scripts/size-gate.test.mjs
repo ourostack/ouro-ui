@@ -147,7 +147,7 @@ test("with no report for the commit a pull request merges into, the base is the 
   assert.ok(!asked.some((url) => url.includes("sidetree")), "a second parent's report is never used");
 });
 
-test(`beyond ${LOOKBACK} commits back no ancestor's report is used, and the ceilings decide`, async () => {
+test("beyond LOOKBACK commits back no ancestor's report is used, and the ceilings decide", async () => {
   assert.equal(LOOKBACK, 20);
   const chain = Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`m${i}`, [`m${i + 1}`]]));
   const { fetch } = history({ merge: ["m0"], ...chain }, [`m${LOOKBACK}`]);
