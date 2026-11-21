@@ -588,6 +588,7 @@ async function updateHxInstalled(pin, text, release, ctx) {
   const hashes = {};
   const edited = [];
   const gone = [];
+  const dropped = [];
   const moves = [];
   const blocked = [];
   const items = new Set();
@@ -624,7 +625,15 @@ async function updateHxInstalled(pin, text, release, ctx) {
       // the unedited file moves there, unless the app already has a file at the new path.
       // So has a file the release renamed (Ouro AX's `command.ts`, now `ax-command.ts`): it moves to the new name.
       const moved = nextByPath.get(old.path) ?? nextByPath.get(MOVED_SOURCES[old.path]);
-      const to = moved && (kitPath(moved.target) ?? installPath(moved.target, found, nextRoots));
+      if (!moved) {
+        // The release no longer ships the file, under any name: the unedited copy goes, so the vendored folder mirrors
+        // the release (ouroboros-website's CI diffs it against the release's, and failed on a copy left behind: #466).
+        delete hashes[path];
+        out[path] = null;
+        dropped.push(path);
+        continue;
+      }
+      const to = kitPath(moved.target) ?? installPath(moved.target, found, nextRoots);
       if (!to || to === path) {
         gone.push(path);
         continue;
@@ -727,6 +736,7 @@ async function updateHxInstalled(pin, text, release, ctx) {
   if (kitApart.length) notes.push(`${list(kitApart)} ${one(kitApart, "stays", "stay")} where ${one(kitApart, "it is", "they are")} because ${one(kitApart, "it was", "they were")} edited here, but \`#ouro-ax/*\` resolves to \`${axDir}\`: move ${one(kitApart, "it", "them")} there, or point the import at ${one(kitApart, "it", "them")}.`);
   for (const { from, to } of blocked) notes.push(`Leaves \`${from}\` where it is, because \`${to}\` already exists in the app and is not replaced.`);
   if (gone.length) notes.push(`Keeps what the registry no longer has: ${list(gone)}.`);
+  if (dropped.length) notes.push(`Deletes what the release no longer ships: ${list(dropped)}.`);
   // The rules this release adds, whether or not the app vendors Ouro check: a live-checked app gates on them (live.mjs).
   const brought = newCheckRules(previous, next, record.tag, release);
   // A repository that vendors Ouro check lists them in its pull request, and is told when it cannot read them.
