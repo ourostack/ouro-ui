@@ -39,6 +39,24 @@ function FindableChat(): JSX.Element {
   );
 }
 
+/** A 300-message conversation, windowed: stepping to the second match draws and shows a message that was not drawn. */
+function LongFindableChat(): JSX.Element {
+  const [current, setCurrent] = useState(0);
+  const [report, setReport] = useState<MessageListFindReport>({ count: 0, current: null, partial: false });
+  return (
+    <div style={{ display: "grid", gap: 8, maxWidth: 480, background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", padding: 8 }}>
+      <ConversationFind label="Find in conversation" query="lunch" onQueryChange={() => {}} count={report.count} current={report.current} partial={report.partial} onCurrentChange={setCurrent} onClose={() => {}} />
+      <MessageList label="Chat" style={{ height: 240 }} find={{ query: "lunch", current }} onFindMatches={setReport}>
+        {Array.from({ length: 300 }, (_, index) => (
+          <Message key={index} id={`m${index}`} variant="chat" role={index % 2 ? "user" : "assistant"} name={index % 2 ? "You" : "Ana"}>
+            {index === 12 || index === 250 ? `Lunch at ${index}?` : `Message ${index}`}
+          </Message>
+        ))}
+      </MessageList>
+    </div>
+  );
+}
+
 const meta = {
   title: "Chat/ConversationFind",
   component: ConversationFind,
@@ -61,4 +79,10 @@ export const NoMatches: Story = {
       <ConversationFind {...args} />
     </div>
   ),
+};
+
+/** A long conversation: the second match lies far below the messages drawn, and stepping to it draws it and scrolls it into view. */
+export const LongConversation: Story = {
+  args: { label: "Find in conversation", query: "lunch", onQueryChange: () => {}, count: 2, current: 0, onCurrentChange: () => {}, onClose: () => {} },
+  render: () => <LongFindableChat />,
 };

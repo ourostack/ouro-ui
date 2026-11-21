@@ -148,13 +148,11 @@ export function ConversationFind({
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.nativeEvent.isComposing) return;
-    if (event.key === "Escape") {
-      event.preventDefault();
-      close();
-    } else if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
-      event.preventDefault();
-      step(event.shiftKey ? -1 : 1);
-    }
+    const escape = event.key === "Escape";
+    if (!escape && !(event.key === "Enter" && event.target instanceof HTMLInputElement)) return;
+    event.preventDefault();
+    if (escape) close();
+    else step(event.shiftKey ? -1 : 1);
   };
 
   return (
