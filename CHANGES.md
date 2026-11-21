@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Alert, Badge, Button, Checkbox, Dialog, Field, Popover, Select (and NativeSelect), Sheet, Switch, Tabs, TextField, Toggle and Toolbar: fixed sizes (icons, dots, bars, thumbs, switch tracks, popup widths and touch floors) read `--ouro-size-*` tokens, so a compact `--spacing` no longer shrinks them, and controls [keep their icon plus 4px on a fine pointer](registry/ouro/components/ouro/button/button.test.tsx "verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::density > keeps its fixed sizes at a compact --spacing: a fine pointer keeps a 24px floor, and an icon-only button stays square)") (#417).
