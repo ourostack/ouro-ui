@@ -1229,6 +1229,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   // Find: matches counted in the children's own text, so a message not drawn counts, and drawn in the page as highlights.
   const reduced = useReducedMotion();
+  const hasFind = find !== undefined;
   const findQuery = find?.query ?? "";
   const findFold = find?.fold;
   const findLocale = find?.locale;
@@ -1248,8 +1249,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     currentIndex = found.order.slice(0, found.order.findIndex((entry) => entry.key === findTarget.key)).reduce((sum, entry) => sum + entry.count, 0) + findTarget.occurrence;
   }
   useEffect(() => {
-    if (findQuery !== "") reportRef.current?.({ count: found.total, current: currentIndex, partial: hasOlder });
-  }, [found.total, currentIndex, hasOlder, findQuery]);
+    if (hasFind) reportRef.current?.({ count: found.total, current: currentIndex, partial: hasOlder });
+  }, [found.total, currentIndex, hasOlder, hasFind]);
 
   // The window: which children draw, and the space kept for the others. Each child sits in a slot of its own that draws
   // no box, so the list's spacing and the continued messages' margins work as without one.
