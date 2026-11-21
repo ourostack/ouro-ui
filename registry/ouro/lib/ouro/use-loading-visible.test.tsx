@@ -6,19 +6,22 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 const roots: Root[] = [];
 const nodes: Element[] = [];
 
-function Probe({ loading }: { loading: boolean }) {
-  return <span data-visible={String(useLoadingVisible(loading, { delay: 100, minVisible: 300 }))} />;
+type Options = Parameters<typeof useLoadingVisible>[1];
+
+function Probe({ loading, options = { delay: 100, minVisible: 300 } }: { loading: boolean; options?: Options | null }) {
+  const visible = useLoadingVisible(loading, options ?? undefined);
+  return <span data-visible={String(visible)} />;
 }
 
-async function mount(loading: boolean) {
+async function mount(loading: boolean, options?: Options | null) {
   const host = document.createElement("div");
   document.body.append(host);
   nodes.push(host);
   const root = createRoot(host);
   roots.push(root);
-  await act(async () => root.render(<Probe loading={loading} />));
+  await act(async () => root.render(<Probe loading={loading} options={options} />));
   return {
-    set: (next: boolean) => act(async () => root.render(<Probe loading={next} />)),
+    set: (next: boolean) => act(async () => root.render(<Probe loading={next} options={options} />)),
     visible: () => host.firstElementChild!.getAttribute("data-visible"),
     tick: (ms: number) => act(async () => void vi.advanceTimersByTime(ms)),
   };
@@ -78,5 +81,33 @@ describe("useLoadingVisible", () => {
     await view.set(true);
     await view.tick(1000);
     expect(view.visible()).toBe("true");
+  });
+
+  it("waits 200 ms to show and holds 500 ms when no options are given", async () => {
+    const view = await mount(true, null);
+    await view.tick(199);
+    expect(view.visible()).toBe("false");
+    await view.tick(1);
+    expect(view.visible()).toBe("true");
+    await view.set(false);
+    await view.tick(499);
+    expect(view.visible()).toBe("true");
+    await view.tick(1);
+    expect(view.visible()).toBe("false");
+  });
+
+  it("takes each option on its own, the other keeping its default", async () => {
+    const delayed = await mount(true, { delay: 50 });
+    await delayed.tick(50);
+    expect(delayed.visible()).toBe("true");
+    await delayed.set(false);
+    await delayed.tick(499);
+    expect(delayed.visible()).toBe("true");
+    const held = await mount(true, { minVisible: 10 });
+    await held.tick(200);
+    expect(held.visible()).toBe("true");
+    await held.set(false);
+    await held.tick(10);
+    expect(held.visible()).toBe("false");
   });
 });
