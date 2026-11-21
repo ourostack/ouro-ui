@@ -213,8 +213,8 @@
   },
   "windows": {
     "repo": "ourostack/ouro-ui-windows",
-    "tag": "v0.11.0",
-    "commit": "9208de2f59e138886cb081493663a1ea9ae47919",
+    "tag": "v0.10.0",
+    "commit": "7fca1243b3dbc87868e82df53f642309ae350c60",
     "components": [
       {
         "name": "OuroBadge",
