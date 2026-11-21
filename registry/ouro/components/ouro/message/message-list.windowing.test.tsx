@@ -2174,6 +2174,43 @@ describe("MessageList windowing", () => {
     expect([...cacheA.keys()].filter((key) => key.startsWith("b"))).toEqual([]);
   }, 60_000);
 
+  it("opens a switch to a conversation whose heightCache is still empty as a list that mounts with an empty one does, not with the estimate of the one before", async () => {
+    // Rows of one conversation are 30px, the other's 60 to 140px: the list learns an estimate from the first that the second's must not take.
+    const heightOf = (name: string, id: number) => (name === "b" ? 60 + ((id * 37) % 81) : 30);
+    const firstCommit: number[] = [];
+    function Newest({ name }: { name: string }) {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        firstCommit.push(ref.current!.closest<HTMLElement>("[data-ouro-message-list-scroller]")!.scrollHeight);
+      }, [name]);
+      return <div ref={ref} style={{ height: 80 }} />;
+    }
+    const list = (name: string, cache: Map<string, number>) => (
+      <MessageList conversation={name} label="Conversation" style={{ height: 400, width: 360 }} heightCache={cache}>
+        {Array.from({ length: 400 }, (_, id) => (
+          <Message key={`${name}${id}`} id={`m${name}${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: heightOf(name, id), boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        ))}
+        <Newest key={`newest-${name}`} name={name} />
+      </MessageList>
+    );
+    firstCommit.length = 0;
+    const fresh = await render(list("b", new Map()));
+    const mounted = firstCommit[0]!;
+    await act(async () => fresh.root.unmount());
+    fresh.host.remove();
+    const cacheA = new Map<string, number>();
+    const { rerender } = await render(list("a", cacheA));
+    expect(cacheA.size).toBeGreaterThan(0);
+    firstCommit.length = 0;
+    await rerender(list("b", new Map()));
+    expect(firstCommit).toHaveLength(1);
+    // The two draw a different number of the newest rows in that commit, so they differ by part of a view; the estimate of the
+    // conversation before, 30px for rows the default takes at 96, would put the switch thousands of pixels short.
+    expect(Math.abs(firstCommit[0]! - mounted)).toBeLessThan(400);
+  }, 60_000);
+
   it("moves nothing when a heightCache comes with the same conversation mid-conversation: the heights measured stay, and so does the reader's place", async () => {
     // Rows of 140px from 300 on, of 60 to 78px before: the estimate the list takes is that of the newest rows, far from theirs.
     const heightOf = (id: number) => (id >= 300 ? 140 : 60 + ((id * 7) % 7) * 3);

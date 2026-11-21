@@ -901,7 +901,6 @@ interface Spoken {
  * nearest the reader first, so loading it never holds the page up for long (when the messages are
  * the list's own children, each with a `key`).
  * Switching to another conversation is opening one: key the list by the conversation, or give it
- * Switching to another conversation is opening one: key the list by the conversation, or give it
  * the other conversation's messages with its `conversation` (or, without one, messages that share no
  * `key` with those it held), even after it held none for a while. Either way it opens at the other's
  * `initialAnchor` if it comes with one the list holds, else at its newest message, wherever the reader
