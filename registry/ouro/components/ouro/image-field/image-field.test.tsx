@@ -316,6 +316,9 @@ describe("ImageField", () => {
     expect(parseFloat(getComputedStyle(round!).borderTopLeftRadius)).toBeGreaterThanOrEqual(64);
     const rect = wide!.getBoundingClientRect();
     expect(Math.round(rect.width / rect.height)).toBe(2);
+    // A rectangle keeps the field's width and its rounded corners, not the circle's 128px and round ends.
+    expect(rect.width).toBeGreaterThan(round!.getBoundingClientRect().width);
+    expect(parseFloat(getComputedStyle(wide!).borderTopLeftRadius)).toBeLessThan(rect.height / 2);
   });
 
   it("disables its buttons and input, marks the label when required, and hides it with hideLabel", async () => {

@@ -75,6 +75,13 @@ describe("SyncStatus", () => {
     expect(getComputedStyle(icon).animationName).toBe(reduced ? "none" : "ouro-spin");
   });
 
+  it("keeps its icon still in every state but saving", async () => {
+    for (const status of ["saved", "offline", "error"] as const) {
+      const { line } = await render(<SyncStatus status={status} />);
+      expect(getComputedStyle(line.querySelector("svg")!).animationName).toBe("none");
+    }
+  });
+
   it("colors a problem apart from the quiet states", async () => {
     const { line, rerender } = await render(<SyncStatus status="saved" />);
     const quiet = getComputedStyle(line).color;
