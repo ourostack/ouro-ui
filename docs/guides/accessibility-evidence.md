@@ -117,7 +117,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [stack](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/stack) | 4 | 0 | none yet |
 | [swipe-actions](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/swipe-actions) | 2 | 0 | none yet |
 | [switch](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/switch) | 3 | 0 | [switch.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/switch.sr.spec.ts): 1 test on `forms-switch--playground` |
-| [sync-status](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/sync-status) | 3 | 0 | [sync-status.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/sync-status.sr.spec.ts): 1 test on `feedback-syncstatus--in-context` |
+| [sync-status](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/sync-status) | 4 | 0 | [sync-status.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/sync-status.sr.spec.ts): 1 test on `feedback-syncstatus--in-context` |
 | [tab-bar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/tab-bar) | 2 | 0 | none yet |
 | [table](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/table) | 7 | 0 | none yet |
 | [tabs](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/tabs) | 6 | 0 | [tabs.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/tabs.sr.spec.ts): 1 test on `navigation-tabs--links` |

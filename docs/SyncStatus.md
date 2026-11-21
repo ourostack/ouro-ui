@@ -14,6 +14,10 @@ import { SyncStatus } from "@/registry/ouro/components/ouro/sync-status/sync-sta
 <SyncStatus status={navigator.onLine ? (pending ? "saving" : "saved") : "offline"} onRetry={flush} />
 ```
 
+## Usage
+
+Pass `queue` to show the writes that wait to be sent while the connection is away: the line counts them and a list of pending items sits under it, each with Cancel when `onCancel` is given. The app's data layer stores and sends the writes, including across a reload.
+
 ## Use instead when
 
 - Use `toast()` instead to confirm a single action, and `Alert` for a problem that blocks the page.
@@ -26,7 +30,9 @@ Type: `SyncStatusProps`.
 | --- | --- | --- |
 | `className` | `string` | Layout only: margins, placement (`mt-3`). Appearance classes warn in development. |
 | `labels` | `SyncStatusLabels` | The words for each state. |
+| `onCancel` | `((id: string) => void)` | Adds a Cancel button to the waiting writes and is called with the write's `id`. The app drops the write from its queue. |
 | `onRetry` | `(() => void)` | Shows Retry while `offline` or `error`, and is called when it is pressed. |
+| `queue` | `readonly QueuedWrite[]` | The writes that wait to be sent, which the app's data layer stores and sends. They show as a count in the line and as a list of pending items under it, and the root carries `data-ouro-queued` with the count, so an agent reads the same queue the person sees. |
 | `ref` | `Ref<HTMLDivElement>` | Reaches the rendered element. |
 | `status` (required) | `"error" \| "saved" \| "saving" \| "offline"` | `saved` once changes reached the server, `saving` while they travel, `offline` while they wait on this device, `error` when the server refused them. |
 
@@ -51,6 +57,19 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
 
+### `QueuedWrite`
+
+A write that waits to be sent.
+
+```ts
+interface QueuedWrite {
+  /** Names the write to `onCancel`. Unique within the queue. */
+  id: string;
+  /** What the write does, in the person's words (`Rename trail`). */
+  label: string;
+}
+```
+
 ### `SyncStatusLabels`
 
 The words for each state, for apps in other languages or to say what is saved.
@@ -67,6 +86,10 @@ interface SyncStatusLabels {
   error?: string | undefined;
   /** The retry button's label. @default "Retry" */
   retry?: string | undefined;
+  /** How many writes wait, with `{count}` where the number goes. @default "{count} waiting" */
+  waiting?: string | undefined;
+  /** A waiting write's cancel button, which also names the write. @default "Cancel" */
+  cancel?: string | undefined;
 }
 ```
 
