@@ -164,6 +164,30 @@ test("gather reads Apple's components at the recorded commit, and Windows's comp
   assert.equal(facts.android.claims, undefined);
 });
 
+test("gather with only one kit reads that kit from GitHub and keeps each other kit as platforms.json has it", async () => {
+  const stored = { apple: { repo: "o/apple", tag: "v1.0.0", components: [] }, android: { repo: "o/android", tag: "v0.9.0", components: [] }, windows: { repo: "o/windows", tag: "v0.10.0", components: [] } };
+  const asked = [];
+  const fetch = async (url) => {
+    asked.push(url);
+    const body = (value, status = 200) => ({ ok: status === 200, status, json: async () => value, text: async () => value });
+    if (url.endsWith("ouro-ui-windows")) return body({ name: "ouro-ui-windows" });
+    if (url.endsWith("ouro-ui-windows/releases/latest")) return body({ tag_name: "v0.12.0" });
+    if (url.endsWith("ouro-ui-windows/commits/v0.12.0")) return body({ sha: "def" });
+    if (url.includes("/git/trees/def")) return body({ tree: [{ path: "src/Ouro.UI.Windows/OuroBadge.cs" }] });
+    if (url.endsWith("/def/src/Ouro.UI.Windows/OuroBadge.cs")) return body("public sealed partial class OuroBadge : Control\n{\n}");
+    return body(null, 500);
+  };
+  const facts = await gather({ fetch, apple: { tag: "v1.0.0", commit: "abc" }, only: "windows", stored });
+  assert.equal(facts.windows.tag, "v0.12.0");
+  assert.deepEqual(facts.windows.components, [{ name: "OuroBadge", web: "badge" }]);
+  assert.equal(facts.apple, stored.apple);
+  assert.equal(facts.android, stored.android);
+  assert.deepEqual(Object.keys(facts), ["$comment", "apple", "android", "windows"]);
+  assert.ok(asked.every((url) => url.includes("ouro-ui-windows") || url.includes("/def/")), `asked only for Windows: ${asked.join(", ")}`);
+  const appleOnly = await gather({ fetch: async (url) => (asked.push(url), { ok: false, status: 500, json: async () => null, text: async () => null }), apple: { tag: "v1.0.0", commit: "abc" }, only: "apple", stored }).catch((error) => error);
+  assert.ok(appleOnly instanceof Error, "Apple alone is read from GitHub, which this fetch refuses");
+});
+
 test("no hand-written page states web's component count: the parity matrix holds it", async () => {
   // Two component pull requests that each wrote "127" merged into 128 and turned main red (#2372 after #2362). A page
   // links the parity matrix instead (docs/platforms/android.md, windows.md, #2382).

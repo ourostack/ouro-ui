@@ -3284,9 +3284,11 @@ test("Kit pin runs one job per sibling kit, each on its own branch and concurren
   assert.match(stepScript(pin, "Compare main's pin with the kit's newest release"), /^node scripts\/kit-pin\.mjs --check "\$KIT" \|\| code=\$\?$/m);
   assert.deepEqual(
     stepScript(pin, "Pin the release and move the statements of the old one").match(/node scripts\/[^\n|;]+/g).map((command) => command.trim()),
-    ["node scripts/platform-versions.mjs \"--$KIT\" \"$TAG\"", "node scripts/parity-matrix.mjs --write", "node scripts/kit-pin.mjs --bump \"$KIT\" \"$FROM\" \"${TAG#v}\""],
+    ["node scripts/platform-versions.mjs \"--$KIT\" \"$TAG\"", "node scripts/parity-matrix.mjs --write --kit \"$KIT\"", "node scripts/kit-pin.mjs --bump \"$KIT\" \"$FROM\" \"${TAG#v}\""],
   );
-  assert.match(stepScript(pin, "Pin the release and move the statements of the old one"), /if \[ "\$code" = 0 \] && \[ "\$KIT" = apple \]; then node scripts\/parity-matrix\.mjs --write/, "only Apple's components come from the parity matrix");
+  // Every kit's pin records the kit in platforms.json, which the parity page cites: Windows's v0.12.0 pin without it failed
+  // the parity page check (#2720).
+  assert.match(stepScript(pin, "Pin the release and move the statements of the old one"), /^ *if \[ "\$code" = 0 \]; then node scripts\/parity-matrix\.mjs --write --kit "\$KIT" \|\| code=\$\?; fi$/m, "each kit's job records its own kit, and only it");
   const open = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
   assert.match(open, /verify:urlOk\(https:\/\/github\.com\/ourostack\/ouro-ui-\$KIT\/releases\/tag\/\$TAG\) verify:equals\(scripts\/parity-data\/versions\.json#\$KIT\.tag\)=\$TAG/);
   assert.match(open, /gh pr merge "\$number" --auto --squash --subject "\$subject" --body "\$message"/);
