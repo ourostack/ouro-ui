@@ -2174,6 +2174,54 @@ describe("MessageList windowing", () => {
     expect([...cacheA.keys()].filter((key) => key.startsWith("b"))).toEqual([]);
   }, 60_000);
 
+  it("moves nothing when a heightCache comes with the same conversation mid-conversation: the heights measured stay, and so does the reader's place", async () => {
+    // Rows of 140px from 300 on, of 60 to 78px before: the estimate the list takes is that of the newest rows, far from theirs.
+    const heightOf = (id: number) => (id >= 300 ? 140 : 60 + ((id * 7) % 7) * 3);
+    // The newest row's key changes in place with its height, so the list looks at its messages without a switch.
+    const list = (cache: Map<string, number>, newest: string) => (
+      <MessageList conversation="a" label="Conversation" style={{ height: 400, width: 360 }} heightCache={cache}>
+        {Array.from({ length: 400 }, (_, id) => (
+          <Message key={id === 399 ? newest : id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: heightOf(id), boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list(new Map(), "399"));
+    // Every row measured, then the reader scrolled up through the middle.
+    for (let top = scroller.scrollHeight; top > 0; top -= 1200) await scrollTo(scroller, top);
+    await scrollTo(scroller, 4000);
+    const reading = firstVisible(scroller);
+    const height = scroller.scrollHeight;
+    const top = scroller.scrollTop;
+    await rerender(list(new Map(), "newest"));
+    expect(scroller.scrollHeight).toBe(height);
+    expect(scroller.scrollTop).toBe(top);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+  }, 60_000);
+
+  it("keeps a switch to a conversation of the same heights as tall as the one before, under the heightCache it keeps, after a resize", async () => {
+    const heightOf = (id: number) => (id >= 300 ? 140 : 60 + ((id * 7) % 7) * 3);
+    const cache = new Map<string, number>();
+    // The newest three rows of the second conversation have keys of their own, so it is a switch; the rest share the first's keys.
+    const list = (name: string, width: number) => (
+      <MessageList conversation={name} label="Conversation" style={{ height: 400, width }} heightCache={cache}>
+        {Array.from({ length: 400 }, (_, id) => (
+          <Message key={id < 397 ? `k${id}` : `${name}${id}`} id={`${name}${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: heightOf(id), boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list("a", 360));
+    // Every row measured at the first width, then the list is resized: the rows not drawn keep the heights they were measured at.
+    for (let top = scroller.scrollHeight; top > 0; top -= 1200) await scrollTo(scroller, top);
+    await rerender(list("a", 440));
+    const first = scroller.scrollHeight;
+    await rerender(list("b", 440));
+    expect(Math.abs(scroller.scrollHeight - first)).toBeLessThanOrEqual(1);
+  }, 60_000);
+
   it("estimates the rows not drawn from the heightCache at the width the list has now, once it is resized", async () => {
     const cache = new Map<string, number>();
     for (let id = 0; id < 400; id++) cache.set(`.$${id}\0${440}`, 50);
