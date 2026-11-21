@@ -644,6 +644,28 @@ describe("Menu items", () => {
     await expect.poll(() => share.getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("opens a submenu the pointer closed by leaving it as soon as the pointer comes back", async () => {
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+        <MenuSub label="Share">
+          <MenuItem>Copy link</MenuItem>
+        </MenuSub>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    const share = page.getByRole("menuitem", { name: "Share" });
+    await userEvent.hover(share);
+    await expect.element(share).toHaveAttribute("aria-expanded", "true");
+    // While the pointer heads for the submenu, Base UI marks the menu inert to the pointer; a pointer that moves on still reaches Edit.
+    await userEvent.hover(page.getByRole("menuitem", { name: "Edit" }), { force: true });
+    await expect.element(share).toHaveAttribute("aria-expanded", "false");
+    await userEvent.hover(share);
+    await expect.element(share).toHaveAttribute("aria-expanded", "true");
+    await commands.parkPointer();
+  });
+
   it("opens a submenu the keyboard closed again from the keyboard", async () => {
     await render(
       <Menu trigger={<Button>Actions</Button>}>
