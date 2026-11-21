@@ -254,9 +254,10 @@ const base =
 
 // Height and padding step down to desktop density at the `sm` breakpoint through two
 // variables, so the button has one unprefixed `h-*` and `px-*` class and the app's own
-// (`className="h-20"`) replaces it at every width. On a fine pointer the height never falls
-// below a 20px icon plus 4px, so a compact `--spacing` cannot shrink it under its icon.
-const density = "h-(--ouro-button-h) px-(--ouro-button-px) pointer-fine:min-h-ouro-6";
+// (`className="h-20"`) replaces it at every width. The height never falls below a 20px icon plus
+// 4px, so a compact `--spacing` cannot shrink it under its icon; the floor is part of the height
+// class, not a min-height, so an app's or a component's own `h-*` still sets a smaller button.
+const density = "h-[max(var(--ouro-button-h),var(--ouro-size-6))] px-(--ouro-button-px)";
 const sizes = {
   sm:
     `${density} gap-1.5 text-sm [--ouro-button-h:calc(var(--spacing)*9)] [--ouro-button-px:calc(var(--spacing)*3)] ` +

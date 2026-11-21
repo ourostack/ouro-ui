@@ -1007,8 +1007,13 @@ describe("className", () => {
   it("drops its own class when the app's className sets the same property", async () => {
     const { button } = await render(<Button className="h-20">Tall</Button>);
     expect(button.classList.contains("h-20")).toBe(true);
-    expect(button.classList.contains("h-(--ouro-button-h)")).toBe(false);
+    expect(button.classList.contains("h-[max(var(--ouro-button-h),var(--ouro-size-6))]")).toBe(false);
     expect(button.getBoundingClientRect().height).toBe(80);
+  });
+
+  it("takes a height class under its fine-pointer floor, as a compact row inside a message sets one", async () => {
+    const { button } = await render(<Button size="sm" variant="plain" className="h-5">Reply</Button>);
+    expect(button.getBoundingClientRect().height).toBe(20);
   });
 
   it("lets the app's height and padding win at desktop widths too", async () => {
