@@ -907,6 +907,10 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://github.com/shadcn-ui/ui/blob/45bbf9ba23c9c0f63d38887947e5fb06f59c7da3/apps/v4/registry/new-york-v4/ui/dialog.tsx": {
+    "status": 200,
+    "checked": "2026-11-21"
+  },
   "https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22": {
     "status": 200,
     "checked": "2026-11-06"

@@ -43,7 +43,7 @@ export const runsAll = {
     "generated-files.d.mts", "generated-files.mjs", "git-hooks/", "goto-timeout-reporter.mjs", "images/", "install-check.mjs", "install-folders.mts", "install-hooks.mjs",
     "kit-pin.mjs", "kits/", "latency-quiet.mjs", "latest-release.mjs", "layout-animation-allowed.json", "links.mjs", "lint/", "mcp-app.mts", "mcp-app/", "mirror/", 
     "motion-coverage.mts", "motion-reporter.mts", "motion-states.mts", "mutation.mjs", "mutation/", "namespace.sh", "ouro-actions/", "parity-data/", "parity-matrix.mjs",
-    "parity-rows.d.mts", "parity-rows.mjs", "pattern-size.json", "pattern-size.mjs", "physical-allowed.json", "pin-only.mjs", "platform-parity.mjs", "platform-versions.mjs",
+    "parity-rows.d.mts", "parity-rows.mjs", "part-names-baseline.json", "part-names.mts", "pattern-size.json", "pattern-size.mjs", "physical-allowed.json", "pin-only.mjs", "platform-parity.mjs", "platform-versions.mjs",
     "pre-push.mjs", "public-registry.mjs", "published-release.mjs", "radius-codemod.mjs", "read-stdin.mjs", "readme-steps.mjs", "real-clock-ratchet.mjs", "registry.mts",
     "safari-squircle.mjs", "sandbox.mjs", "scratch.mjs", "shard.d.mts", "source-rules.mjs", "squircle-cost/", "squircle-surface.mjs", "sr-classify.mjs", "sr-impact.mjs",
     "sr-lane-timings.mjs", "sr-yield.mjs", "stale-pages.mjs", "stall-reporter-default.mts", "stall-reporter.mts", "story-costs.mjs", "subset-coverage.mjs", "sweeps-compare.mjs",
