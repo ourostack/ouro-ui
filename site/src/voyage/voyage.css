@@ -511,11 +511,11 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
 [data-site-demo-looks] button:focus-visible {
   outline: none;
 }
-:root .site-dot.site-dot:focus-visible [data-theme],
-:root .site-dot.site-dot:focus-visible [data-site-accent],
+.site-dot:focus-visible [data-theme],
+.site-dot:focus-visible [data-site-accent],
 [data-site-demo-looks] button:focus-visible [data-theme] {
-  outline: 2px solid var(--ring);
-  outline-offset: 3px;
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 3px !important;
 }
 @media (forced-colors: active) {
   .site-dot [data-theme],
