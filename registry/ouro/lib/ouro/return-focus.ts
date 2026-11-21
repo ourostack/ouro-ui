@@ -7,12 +7,12 @@ export { returnFocusTo };
  * sit on a focus guard or on `<body>` while the newer dialog is open, so the check looks at the open dialogs instead.
  *
  * @internal Shared by Dialog and Sheet; apps don't need it. Pass it from `finalFocus` as a function that
- * reads the refs when the overlay closes: `finalFocus: () => returnFocusTo(triggerRef.current, popupRef.current)`.
+ * reads the ref when the overlay closes: `finalFocus: () => returnFocusTo(triggerRef.current)`.
  * @claim "Focus can sit on a focus guard or on `<body>` while the newer dialog is open" test:registry/ouro/components/ouro/dialog/dialog.sheet-overlap.test.tsx::an overlay opened while the one before it is still closing > keeps Tab inside the second sheet, and the page behind it hidden, after Escape on the first verify:testExists(registry/ouro/components/ouro/dialog/dialog.sheet-overlap.test.tsx::an overlay opened while the one before it is still closing > keeps Tab inside the second sheet, and the page behind it hidden, after Escape on the first)
  */
-function returnFocusTo(target: HTMLElement | null, popup: HTMLElement | null): HTMLElement | null | undefined {
+function returnFocusTo(target: HTMLElement | null): HTMLElement | null | undefined {
   const newer = [...document.querySelectorAll<HTMLElement>('[role="dialog"][data-open], [role="alertdialog"][data-open]')].some(
-    (dialog) => dialog !== popup && !dialog.contains(target),
+    (dialog) => !dialog.contains(target),
   );
   return newer ? undefined : target;
 }

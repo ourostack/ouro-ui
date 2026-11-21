@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type JSX, type ReactElement, type ReactNode } from "react";
+import type { JSX, ReactElement, ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { checkOpenMode, type TriggerOrOpen } from "@/registry/ouro/lib/ouro/open-mode";
 import { returnFocusTo } from "@/registry/ouro/lib/ouro/return-focus";
@@ -346,7 +346,6 @@ export function SheetFrame({
   // A non-modal sheet keeps its header row, which its close button sits in, even with the title hidden.
   const showHeader = !hideTitle || description !== undefined || !modal;
   const titleNode = <SheetTitle visuallyHidden={hideTitle}>{title}</SheetTitle>;
-  const popupRef = useRef<HTMLDivElement>(null);
 
   return (
     <SheetRoot
@@ -363,10 +362,9 @@ export function SheetFrame({
         {modal ? <SheetBackdrop /> : scrim && <SheetScrim />}
         <SheetViewport>
           <SheetPopupUnchecked
-            ref={popupRef}
             className={className}
             data-ouro-presentation={presentation}
-            {...(finalFocus ? { finalFocus: typeof finalFocus === "object" ? () => returnFocusTo(finalFocus.current, popupRef.current) : finalFocus } : {})}
+            {...(finalFocus ? { finalFocus: typeof finalFocus === "object" ? () => returnFocusTo(finalFocus.current) : finalFocus } : {})}
             initialFocus={initialFocus}
           >
             {side === "bottom" && <SheetHandle />}

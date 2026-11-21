@@ -469,7 +469,7 @@ export function DialogFrame({
   // sheet's frame makes that check for its own popup; the centered popup makes it here.
   const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
   // Stryker disable next-line ConditionalExpression: a dialog with no trigger differs from Base UI's own return only when focus sits outside it at close, which its modal focus trap prevents.
-  const centeredFinalFocus = trigger !== undefined ? { finalFocus: () => returnFocusTo(triggerRef.current, popupRef.current) } : {};
+  const centeredFinalFocus = trigger !== undefined ? { finalFocus: () => returnFocusTo(triggerRef.current) } : {};
   // Focus goes where firstFocus picks, never on a scrolling body. The centered dialog focuses
   // itself after a touch or pen open. A dialog without a trigger decides when it opens, from the
   // last press on the page. (The sheet always focuses itself, like a plain Sheet.)
