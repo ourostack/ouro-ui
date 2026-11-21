@@ -506,6 +506,16 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+/* Keyboard focus draws the chosen ring's own circle, the same 2px a hair outside the swatch, so focus and choice are one shape. */
+.site-dot:focus-visible,
+[data-site-demo-looks] button:focus-visible {
+  outline: none;
+}
+.site-dot:focus-visible [data-theme],
+[data-site-demo-looks] button:focus-visible [data-theme] {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
 @media (forced-colors: active) {
   .site-dot [data-theme] {
     outline-color: Highlight;
