@@ -51,6 +51,8 @@ const HOLD_MS = 350;
 /** How long after a pointer press the click it makes is still the same press. */
 const CLICK_AFTER_POINTER_MS = 200;
 
+const appearanceHint = (token: string) => `remove "${token}"; PreviewBar sets its own look from the theme`;
+
 /** Whether a key press on `target` is typing text. */
 function typing(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || /^(input|textarea|select)$/i.test(target.tagName));
@@ -93,11 +95,8 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
   useAppearanceClassNameCheck(
     "PreviewBar",
     className,
-    process.env.NODE_ENV !== "production"
-      ? (token: string) => `remove "${token}"; PreviewBar sets its own look from the theme`
-      // Stryker disable StringLiteral: the fallback is for production builds, which never run this check
-      : /* istanbul ignore next @preserve -- production only */ "",
-      // Stryker restore StringLiteral
+    // Stryker disable next-line ConditionalExpression,StringLiteral: the fallback is for production builds, which never run this check
+    process.env.NODE_ENV !== "production" ? appearanceHint : /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "PreviewBar",
@@ -130,14 +129,11 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
       latest.current.onCompareChange(comparing);
     }
   }, [comparing]);
-  // Stryker disable ArrayDeclaration: a constant dependency list and an empty one both run the cleanup only on unmount
-  useEffect(
-    () => () => {
-      if (told.current) latest.current.onCompareChange(false);
-    },
-    [],
-  );
-  // Stryker restore ArrayDeclaration
+  const tellOnUnmount = () => () => {
+    if (told.current) latest.current.onCompareChange(false);
+  };
+  // Stryker disable next-line ArrayDeclaration: a constant dependency list and an empty one both run the cleanup only on unmount
+  useEffect(tellOnUnmount, []);
 
   // Said once for each proposal, after the action that brought it (a menu item's own announcement).
   const words = announcement ?? (seconds === undefined ? label : `${label}. Reverts in ${seconds} seconds unless you keep it.`);
