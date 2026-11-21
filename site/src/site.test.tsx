@@ -10,7 +10,9 @@ import { finishReveal } from "./voyage/theme-store";
 import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
-import { phoneTime } from "./components/phone-status";
+import { PhoneStatus, phoneTime } from "./components/phone-status";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { createRoot } from "react-dom/client";
 import { SURPRISES, surpriseNav } from "./components/surprise-me";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { tries } from "./docs/tries";
@@ -886,6 +888,35 @@ describe("docs", () => {
         if (value === null) root.removeAttribute(name);
         else root.setAttribute(name, value);
       }
+    }
+  });
+
+  it("reads the phone bar's time once a minute, so a render as the reader's clock turns over reads one time throughout (#2679)", async () => {
+    // A clock that moves on a minute each time it is read: the worst case of a render that crosses a minute boundary.
+    const RealDate = Date;
+    let now = new RealDate(2026, 10, 18, 21, 41, 59, 999).getTime();
+    class Ticking extends RealDate {
+      constructor(...args: [] | [number]) {
+        if (args.length === 0) {
+          super(now);
+          now += 60_000;
+        } else super(args[0]);
+      }
+      static override now() {
+        return now;
+      }
+    }
+    globalThis.Date = Ticking as DateConstructor;
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    try {
+      await act(async () => root.render(<PhoneStatus />));
+      expect(host.querySelector("[data-site-phone-status]")!.textContent).toMatch(/^\d{1,2}:\d{2}$/);
+    } finally {
+      globalThis.Date = RealDate;
+      await act(async () => root.unmount());
+      host.remove();
     }
   });
 
