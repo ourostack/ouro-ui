@@ -118,16 +118,41 @@ describe("useViewTransition", () => {
   });
 
   it("is not stopped by a transition that is skipped or interrupted", async () => {
-    const skipped = Promise.reject(new Error("skipped"));
-    setStart((update: () => void | Promise<void>) => fakeTransition(Promise.resolve().then(update), skipped, skipped));
+    const ready = { catch: vi.fn() };
+    const finished = { catch: vi.fn() };
+    setStart((update: () => void | Promise<void>) => ({ updateCallbackDone: Promise.resolve().then(update), ready, finished }));
     let run!: (swap: ViewSwap) => Promise<void>;
-    const unhandled = vi.fn();
-    window.addEventListener("unhandledrejection", unhandled);
     await mount(<App onRun={(r) => (run = r)} />);
     await expect(run(() => {})).resolves.toBeUndefined();
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    window.removeEventListener("unhandledrejection", unhandled);
-    expect(unhandled).not.toHaveBeenCalled();
+    expect(ready.catch).toHaveBeenCalledTimes(1);
+    expect(finished.catch).toHaveBeenCalledTimes(1);
+  });
+
+  it("follows a change of motion setting on the same mounted hook", async () => {
+    const start = vi.fn((update: () => void | Promise<void>) => fakeTransition(Promise.resolve().then(update)));
+    setStart(start);
+    let run!: (swap: ViewSwap) => Promise<void>;
+    let enabled = true;
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const view = (motion: "full" | "reduced") => (
+      <OuroProvider motion={motion}>
+        <App onRun={(r, e) => ((run = r), (enabled = e))} />
+      </OuroProvider>
+    );
+    await act(() => root.render(view("full")));
+    await run(() => {});
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(enabled).toBe(true);
+    await act(() => root.render(view("reduced")));
+    await run(() => {});
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(enabled).toBe(false);
+    await act(() => root.render(view("full")));
+    expect(enabled).toBe(true);
   });
 
   it("passes a swap's failure on to the caller", async () => {
