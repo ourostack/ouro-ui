@@ -23,7 +23,7 @@ type ToggleIcon = ComponentType<SVGProps<SVGSVGElement>>;
  * @internal
  */
 const toggleBase =
-  "press relative isolate box-border inline-flex shrink-0 items-center justify-center align-middle " +
+  "press relative isolate box-border inline-flex shrink-0 items-center justify-center align-middle pointer-fine:min-h-ouro-6 " +
   "border border-solid whitespace-nowrap " +
   "no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
@@ -102,7 +102,7 @@ type ToggleShape = keyof typeof shapes;
  *
  * @internal
  */
-const squareClass = "aspect-square px-0";
+const squareClass = "aspect-square px-0 pointer-fine:min-w-ouro-6";
 
 /**
  * `plain` has no border until it is pressed; `outline` always has one, in the primary tone while pressed.

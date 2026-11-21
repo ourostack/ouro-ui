@@ -16,6 +16,8 @@ The fixed parts that use them today are an avatar's box, an avatar group's "+N" 
 
 A row or control a finger touches stays at least 44px tall at every density, so the target is the same size on a phone whatever the app's `--spacing` is.[^floor] It is set with `min-h-ouro-11`, which reads `--ouro-size-11`, not with spacing.
 
+On a fine pointer, a control whose height follows `--spacing` [stays at least its icon plus 4px tall](registry/ouro/components/ouro/button/button.test.tsx "verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::density > keeps its fixed sizes at a compact --spacing: a fine pointer keeps a 24px floor, and an icon-only button stays square)"), so a compact app never squeezes a button under its icon. The floor is one `pointer-fine:min-h-ouro-*` class per control, as Button sets it.
+
 ## Set density and a fixed size in your app
 
 Set `--spacing` in an unlayered `:root` rule after your theme, to make a screen compact:
