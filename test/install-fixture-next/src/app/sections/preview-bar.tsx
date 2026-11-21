@@ -1,6 +1,8 @@
+"use client";
+
 import { PreviewBar } from "@/components/ouro/preview-bar/preview-bar";
 
-// PreviewBar renders on the server with its buttons; its handlers are the app's.
+// PreviewBar needs handlers, so the app's section is a Client Component that the server still renders.
 // expect: aria-pressed="false"
 export default function PreviewBarSection() {
   return (

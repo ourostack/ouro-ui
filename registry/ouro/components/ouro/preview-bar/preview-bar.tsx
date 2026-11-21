@@ -113,6 +113,7 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
   const { comparing, left } = proposal;
   const setComparing = (next: boolean) => setProposal((current) => ({ ...current, comparing: next }));
 
+  // Stryker disable next-line ObjectLiteral: the layout effect below replaces this value before anything reads it
   const latest = useRef({ onDiscard, onCompareChange, comparing });
   useLayoutEffect(() => {
     latest.current = { onDiscard, onCompareChange, comparing };
@@ -209,13 +210,14 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
       role="group"
       aria-labelledby={id}
       data-ouro="preview-bar"
+      data-slot="preview-bar"
       data-ouro-comparing={comparing ? "" : undefined}
       className={cn("box-border flex flex-wrap items-center gap-x-3 gap-y-2 rounded-ouro-xl border border-border bg-card px-3 py-2 text-card-foreground", className)}
       onKeyDown={(event) => {
         if (event.key === "Escape" && !event.defaultPrevented) onDiscard();
       }}
     >
-      <span id={id} className="m-0 min-w-0 flex-1 basis-40 text-sm font-medium">
+      <span id={id} data-slot="preview-bar-label" className="m-0 min-w-0 flex-1 basis-40 text-sm font-medium">
         {label}
       </span>
       {left === undefined ? null : (
@@ -223,7 +225,7 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
           {`${left}s`}
         </span>
       )}
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div data-slot="preview-bar-actions" className="flex flex-wrap items-center justify-end gap-2">
         <Button
           data-ouro-control="preview-bar"
           data-ouro-part="compare"

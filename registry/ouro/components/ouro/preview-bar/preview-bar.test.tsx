@@ -77,10 +77,10 @@ describe("PreviewBar", () => {
     const { part } = await render(<PreviewBar {...p} />);
     await key(part("keep"), "keydown", { key: "Escape" });
     expect(p.onDiscard).toHaveBeenCalledTimes(1);
+    await key(part("keep"), "keydown", { key: "a" });
+    expect(p.onDiscard).toHaveBeenCalledTimes(1);
     part("keep").addEventListener("keydown", (event) => event.preventDefault());
     await key(part("keep"), "keydown", { key: "Escape" });
-    expect(p.onDiscard).toHaveBeenCalledTimes(1);
-    await key(part("keep"), "keydown", { key: "a" });
     expect(p.onDiscard).toHaveBeenCalledTimes(1);
   });
 
@@ -192,7 +192,7 @@ describe("PreviewBar", () => {
       const { part, bar } = await render(<PreviewBar {...p} />);
       await act(async () => part("compare").click());
       expect(part("compare").getAttribute("aria-pressed")).toBe("true");
-      expect(bar().hasAttribute("data-ouro-comparing")).toBe(true);
+      expect(bar().getAttribute("data-ouro-comparing")).toBe("");
       expect(p.onCompareChange).toHaveBeenLastCalledWith(true);
       await act(async () => part("compare").click());
       expect(part("compare").getAttribute("aria-pressed")).toBe("false");
@@ -255,6 +255,29 @@ describe("PreviewBar", () => {
       await key(part("compare"), "keydown", { key: "x" });
       await key(part("compare"), "keyup", { key: "x" });
       expect(part("compare").getAttribute("aria-pressed")).toBe("true");
+    });
+
+    it("takes only Space and Enter on the button: other keys do nothing, and a repeat after a hold ended does not start another", async () => {
+      const tick = clock();
+      const { part } = await render(<PreviewBar {...props()} />);
+      part("compare").focus();
+      await key(part("compare"), "keydown", { key: "x" });
+      expect(part("compare").getAttribute("aria-pressed")).toBe("false");
+      const down = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
+      await act(async () => void part("compare").dispatchEvent(down));
+      expect(down.defaultPrevented).toBe(true);
+      tick(800);
+      await key(part("compare"), "keyup", { key: "x" });
+      expect(part("compare").getAttribute("aria-pressed")).toBe("true");
+      const up = new KeyboardEvent("keyup", { key: " ", bubbles: true, cancelable: true });
+      await act(async () => void part("compare").dispatchEvent(up));
+      expect(up.defaultPrevented).toBe(true);
+      expect(part("compare").getAttribute("aria-pressed")).toBe("false");
+      await key(part("compare"), "keydown", { key: " " });
+      tick(800);
+      await act(async () => part("compare").blur());
+      await key(part("compare"), "keydown", { key: " ", repeat: true });
+      expect(part("compare").getAttribute("aria-pressed")).toBe("false");
     });
 
     it("ends a hold when focus leaves the button", async () => {
