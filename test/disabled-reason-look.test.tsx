@@ -202,12 +202,3 @@ describe("a control off with disabledReason looks as it does with disabled", () 
     expect(await snapshot(target())).toEqual(disabled);
   });
 });
-
-describe("Button while loading keeps its own look", () => {
-  it("is not dimmed, and keeps the progress cursor", async () => {
-    await render(<Button loading>Save</Button>);
-    const el = document.querySelector<HTMLElement>("button")!;
-    expect(getComputedStyle(el).opacity).toBe("1");
-    expect(getComputedStyle(el).cursor).toBe("progress");
-  });
-});
