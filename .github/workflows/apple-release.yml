@@ -7,8 +7,13 @@ name: Apple release
 # any other kit's: the same build writes the parity matrix's kits (scripts/parity-matrix.mjs --write). Only the
 # Apple components the matrix pins are held to GitHub (--live).
 # Hourly, since a release in another repository starts no workflow here, and on a change to the pages
-# that state a version. Behind on main opens, or comments on (at most daily), one "Apple pages are
+# that state a version. Behind on main warns for two hours after ouro-ui-apple's release came out, while the kit pin
+# (kit-pin.yml) catches main up; after that it opens, or comments on (at most daily), one "Apple pages are
 # behind" issue; an API error fails the run but is no drift.
+# On a pull request the check judges what the pull request changed (scripts/apple-release.mjs judge): a fresh
+# release that main is still behind on only warns, and the kit pin pull request (kit-pin.yml) catches main up.
+# It fails the pull request when main has been behind for more than two hours, or when the pull request itself
+# states a wrong version.
 on:
   schedule:
     - cron: "17 * * * *"
@@ -82,12 +87,27 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      - name: The base branch's pages
+        # On a pull request, the pages as the base branch states them, so the check can tell what the pull request changed.
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          sparse-checkout: |
+            site/src/apple/kit.json
+            docs/platforms/README.md
+            docs/platforms/apple.md
+          sparse-checkout-cone-mode: false
       - name: The pages state ouro-ui-apple's newest release
         # Exits 1 when a page names another version (behind=true), 2 when the API cannot be read, which is no drift.
+        # On a pull request, scripts/apple-release.mjs judges the pull request against the base's pages.
         id: compare
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/apple-release.mjs
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then node scripts/apple-release.mjs --base base; else node scripts/apple-release.mjs; fi
       - name: The parity tables' copies of core's files are core's, byte for byte
         # Core's release, read from GitHub: the claim files' hashes in its dist-manifest.json, and parity.json at its tag.
         if: ${{ !cancelled() }}

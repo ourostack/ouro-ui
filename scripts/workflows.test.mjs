@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL, URL } from "node:url";
 import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
+import { KITS } from "./kit-pin.mjs";
 import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
@@ -625,7 +626,7 @@ test("only the jobs that push, release.yml's release job, docs-pin.yml's pin job
       const step = lines.slice(index + 1, index + 4).join("\n");
       const persists = !/^\s+persist-credentials: false$/m.test(step);
       const job = lines.slice(0, index).findLast((above) => /^ {2}[\w-]+:$/.test(above))?.trim().slice(0, -1);
-      const pushes = (file === "release.yml" && job === "release") || ((file === "docs-pin.yml" || file === "core-pin.yml") && job === "pin") || (file === "sync-brand.yml" && job === "sync");
+      const pushes = (file === "release.yml" && job === "release") || ((file === "docs-pin.yml" || file === "core-pin.yml" || file === "kit-pin.yml") && job === "pin") || (file === "sync-brand.yml" && job === "sync");
       if (persists !== pushes) problems.push(`${file}:${index + 1}`);
     });
   }
@@ -3266,6 +3267,43 @@ test("Core pin points main's Platforms pages at core's newest release through it
   const open = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
   assert.match(open, /gh pr merge "\$number" --auto --squash --subject "\$subject" --body "\$message"/);
   assert.doesNotMatch(workflow("docs-pin.yml"), /platform-versions/, "a core release that breaks a test must not hold up Docs pin's pull request");
+});
+
+test("Kit pin runs one job per sibling kit, each on its own branch and concurrency group, through its own pull request with auto-merge on, hourly and by hand", () => {
+  const kitPin = workflow("kit-pin.yml");
+  assert.match(kitPin, /^permissions: \{\}$/m);
+  assert.match(kitPin, /^on:\n {2}schedule:\n {4}- cron: "\d+ \* \* \* \*"\n {2}workflow_dispatch:$/m);
+  assert.doesNotMatch(kitPin, /^concurrency:/m, "each kit's job has its own concurrency group, so one kit's run never waits for another's");
+  const pin = kitPin.split("\n  pin:\n")[1];
+  assert.match(pin, /^ {4}strategy:\n {6}fail-fast: false\n {6}matrix:\n {8}include:\n {10}- kit: apple\n {12}name: Apple\n {10}- kit: windows\n {12}name: Windows\n {10}- kit: android\n {12}name: Android\n/m);
+  assert.deepEqual([...kitPin.matchAll(/^ {10}- kit: (\w+)$/gm)].map((match) => match[1]), Object.keys(KITS), "the matrix names the kits the script knows");
+  assert.deepEqual(permissionsOf(pin), { actions: "write", contents: "write", "pull-requests": "write" });
+  assert.match(pin, /\n {4}concurrency:\n {6}group: kit-pin-\$\{\{ matrix\.kit \}\}\n {6}cancel-in-progress: false\n/);
+  assert.match(pin, /\n {6}BRANCH: docs\/point-at-\$\{\{ matrix\.kit \}\}\n/);
+  assert.match(pin, /\n {6}KIT: \$\{\{ matrix\.kit \}\}\n/);
+  assert.match(stepScript(pin, "Compare main's pin with the kit's newest release"), /^node scripts\/kit-pin\.mjs --check "\$KIT" \|\| code=\$\?$/m);
+  assert.deepEqual(
+    stepScript(pin, "Pin the release and move the statements of the old one").match(/node scripts\/[^\n|;]+/g).map((command) => command.trim()),
+    ["node scripts/platform-versions.mjs \"--$KIT\" \"$TAG\"", "node scripts/parity-matrix.mjs --write", "node scripts/kit-pin.mjs --bump \"$KIT\" \"$FROM\" \"${TAG#v}\""],
+  );
+  assert.match(stepScript(pin, "Pin the release and move the statements of the old one"), /if \[ "\$code" = 0 \] && \[ "\$KIT" = apple \]; then node scripts\/parity-matrix\.mjs --write/, "only Apple's components come from the parity matrix");
+  const open = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
+  assert.match(open, /verify:urlOk\(https:\/\/github\.com\/ourostack\/ouro-ui-\$KIT\/releases\/tag\/\$TAG\) verify:equals\(scripts\/parity-data\/versions\.json#\$KIT\.tag\)=\$TAG/);
+  assert.match(open, /gh pr merge "\$number" --auto --squash --subject "\$subject" --body "\$message"/);
+});
+
+test("Kit pin pushes a kit's branch only when main has moved since its last push, so an hourly run does not restart CI", () => {
+  const script = stepScript(workflow("kit-pin.yml").split("\n  pin:\n")[1], "Commit the pages and push their branch, unless the branch already holds this pin");
+  for (const [unchanged, pushed] of [[true, false], [false, true]]) {
+    const dir = scratchDir("ouro-kit-pin-");
+    const git = `git() {\n  printf 'git %s\\n' "$*" >> "$LOG"\n  case "$1" in\n    fetch) return 0 ;;\n    diff) return ${unchanged ? 0 : 1} ;;\n    rev-parse) echo abc123 ;;\n  esac\n}`;
+    const result = runStep(`${git}\n${script}`, { TAG: "v0.11.0", KIT: "windows", NAME: "Windows", BRANCH: "docs/point-at-windows", LOG: join(dir, "git.log") });
+    assert.equal(result.status, 0, result.stdout + result.calls);
+    const calls = readFileSync(join(dir, "git.log"), "utf8");
+    assert.equal(/^git push /m.test(calls), pushed, calls);
+    assert.match(calls, /commit -q -m Point the Windows pages at ouro-ui-windows v0\.11\.0/);
+    assert.equal(result.output.sha, "abc123");
+  }
 });
 
 test("Docs pin pushes as the Ouro Current app when it is installed here, so CI starts with no approval (#1610), and goes on without it", () => {

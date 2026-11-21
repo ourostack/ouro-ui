@@ -27,7 +27,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const URL_CACHE = "scripts/claims-urls.json";
 
 /** An address's HTTP status, as the claims check reads it: HEAD, then GET, three tries; 0 when nothing answers. */
-async function urlStatus(url) {
+export async function urlStatus(url) {
   let last = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
