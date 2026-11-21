@@ -12,9 +12,40 @@ import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
+import { findInMessages, locateMatch, messageText } from "@/registry/ouro/lib/ouro/find-messages";
+import type { FindFold } from "@/registry/ouro/lib/ouro/find-text";
+import { useFindHighlights } from "@/registry/ouro/lib/ouro/use-find-highlights";
+import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
 import { useOuro, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
+
+/**
+ * What a MessageList finds, and which match is the current one.
+ *
+ * @example
+ * <MessageList label="Chat" find={{ query: "lunch", current: 0 }}>{messages}</MessageList>
+ */
+export interface MessageListFind {
+  /** The text to look for. Nothing is found while it is empty. */
+  query: string;
+  /** What the match ignores: `"none"`, `"case"`, `"accents"` or `"all"`. @default "all" */
+  fold?: FindFold | undefined;
+  /** A language tag for case, such as `"tr"`, where `I` and `i` are different letters from the dotted İ and dotless ı. */
+  locale?: string | undefined;
+  /** Which match is the current one, counted through the whole list, oldest first, from the first. It wraps round past either end. @default 0 */
+  current?: number | undefined;
+}
+
+/** What a MessageList says about its find: how many matches there are, which is current, and whether more may lie in history not loaded yet. */
+export interface MessageListFindReport {
+  /** How many matches the messages in the list hold. */
+  count: number;
+  /** The index of the current match, or null when there is nothing to point at. */
+  current: number | null;
+  /** True while older messages may still load (`hasOlder`), so a match may lie above the ones counted. */
+  partial: boolean;
+}
 
 /** The props MessageList adds to the `<div>` attributes it passes through. */
 export interface MessageListOwnProps {
@@ -207,6 +238,19 @@ export interface MessageListOwnProps {
    */
   actionsRef?: Ref<MessageListActions> | undefined;
   /**
+   * Finds `find.query` in the messages and marks the matches in the text drawn, the current one in a stronger colour. It
+   * reads the text the children hold (strings, through elements, and a post's `subject`), so a message the window has not
+   * drawn counts as well as one that is. Highlights are the CSS Custom Highlight API's, so the text stays as it is and links
+   * keep working; where the browser lacks the API matches are counted but not drawn. Their colours follow the theme, in
+   * light, dark and forced colours. The current match scrolls into view when it changes, gently unless motion is reduced,
+   * and focus stays where it is, so a find box keeps the keys. Counts come back through `onFindMatches`.
+   * @example
+   * <MessageList label="Chat" find={{ query, current }} onFindMatches={({ count }) => setCount(count)}>{messages}</MessageList>
+   */
+  find?: MessageListFind | undefined;
+  /** Called with how many matches there are and which is current, whenever either changes, or `partial` does. See {@link MessageListFindReport}. */
+  onFindMatches?: ((report: MessageListFindReport) => void) | undefined;
+  /**
    * Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that
    * height, so give it one. Appearance classes warn in development.
    */
@@ -352,6 +396,16 @@ function slotKeyOf(item: Element): string {
 function topItems(content: Element): HTMLElement[] {
   return [...content.querySelectorAll<HTMLElement>(items)].filter((item) => !content.contains(item.parentElement!.closest(items)));
 }
+
+/**
+ * How matches are drawn, by the highlight names `ouro-find` and `ouro-find-current`: the theme's primary, tinted for the others and solid
+ * for the current one, with the paired text colour so a link inside a match stays readable, and the system colours when colours are forced.
+ */
+const findMarks =
+  "[&::highlight(ouro-find)]:bg-[color-mix(in_oklab,var(--primary)_22%,var(--background))] [&::highlight(ouro-find)]:text-foreground " +
+  "[&::highlight(ouro-find-current)]:bg-primary [&::highlight(ouro-find-current)]:text-primary-foreground " +
+  "forced-colors:[&::highlight(ouro-find)]:bg-[Mark] forced-colors:[&::highlight(ouro-find)]:text-[MarkText] " +
+  "forced-colors:[&::highlight(ouro-find-current)]:bg-[Highlight] forced-colors:[&::highlight(ouro-find-current)]:text-[HighlightText]";
 
 /** Space kept between a message brought into view by the keyboard and the list's edge, so its focus ring shows. */
 const EDGE = 8;
@@ -1067,6 +1121,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     heightCache,
     estimatedItemHeight,
     actionsRef,
+    find,
+    onFindMatches,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     autoScroll,
@@ -1170,6 +1226,31 @@ export function MessageList(props: MessageListProps): JSX.Element {
   if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > OLDER_CHUNK ? edge.drawn : top });
   const shown = windowed ? all : all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
   const keys = useMemo(() => all.map((child, index) => String(keyOf(child) ?? index)), [all]);
+
+  // Find: matches counted in the children's own text, so a message not drawn counts, and drawn in the page as highlights.
+  const reduced = useReducedMotion();
+  const hasFind = find !== undefined;
+  const findQuery = find?.query ?? "";
+  const findFold = find?.fold;
+  const findLocale = find?.locale;
+  const found = useMemo(
+    () => findInMessages(all.map((child, index) => ({ key: keys[index]!, text: messageText(child) })), { query: findQuery, fold: findFold, locale: findLocale }),
+    [all, keys, findQuery, findFold, findLocale],
+  );
+  const findCurrent = find?.current ?? 0;
+  useFindHighlights({ scroller: scrollerRef, content: contentRef, slot: SLOT, find: find === undefined ? undefined : { query: findQuery, fold: findFold, locale: findLocale }, result: found, current: findCurrent, reduced });
+  const findTarget = locateMatch(found, findCurrent);
+  const reportRef = useRef(onFindMatches);
+  useEffect(() => {
+    reportRef.current = onFindMatches;
+  });
+  let currentIndex: number | null = null;
+  if (findTarget !== null) {
+    currentIndex = found.order.slice(0, found.order.findIndex((entry) => entry.key === findTarget.key)).reduce((sum, entry) => sum + entry.count, 0) + findTarget.occurrence;
+  }
+  useEffect(() => {
+    if (hasFind) reportRef.current?.({ count: found.total, current: currentIndex, partial: hasOlder });
+  }, [found.total, currentIndex, hasOlder, hasFind]);
 
   // The window: which children draw, and the space kept for the others. Each child sits in a slot of its own that draws
   // no box, so the list's spacing and the continued messages' margins work as without one.
@@ -2764,7 +2845,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   };
 
   return (
-    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", className)}>
+    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", findMarks, className)}>
       {/* Holds the scroller and its focus ring, drawn over it, so content that sticks to an edge never covers the ring. */}
       <div className="relative flex min-h-0 flex-1 flex-col">
         {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. Positioned, so

@@ -1,0 +1,119 @@
+import { useRef } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { findInMessages } from "@/registry/ouro/lib/ouro/find-messages";
+import { ALL_MATCHES, CURRENT_MATCH, useFindHighlights } from "@/registry/ouro/lib/ouro/use-find-highlights";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+const roots: Root[] = [];
+const hosts: Element[] = [];
+
+afterEach(async () => {
+  for (const root of roots.splice(0)) await act(async () => root.unmount());
+  for (const host of hosts.splice(0)) host.remove();
+  vi.restoreAllMocks();
+});
+
+const rows = [
+  { key: "a", text: "one fox and two foxes" },
+  { key: "b", text: "no match here" },
+  { key: "c", text: "a last fox" },
+];
+
+function Harness({ query, current, reduced = false, tall = false, roomy = false }: { query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean }) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const find = { query };
+  const result = findInMessages(rows, find);
+  useFindHighlights({ scroller, content, slot: "data-key", find, result, current, reduced });
+  return (
+    <div ref={scroller} data-testid="scroller" style={{ height: roomy ? 300 : 80, overflow: "auto" }}>
+      <div ref={content}>
+        {rows.map((row, index) => (
+          <p key={row.key} data-key={row.key} style={{ margin: 0, height: tall ? 400 : roomy ? 60 : undefined }}>
+            <span data-ouro-message-content="" data-index={index}>
+              {row.text}
+            </span>
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function mount(props: Parameters<typeof Harness>[0]) {
+  const host = document.createElement("div");
+  document.body.append(host);
+  hosts.push(host);
+  const root = createRoot(host);
+  roots.push(root);
+  await act(async () => root.render(<Harness {...props} />));
+  return { host, root };
+}
+
+const drawn = (name: string) => [...(CSS.highlights.get(name) ?? [])].map((range) => range.toString());
+
+describe("useFindHighlights", () => {
+  it("draws the current match apart from the others, and clears both when the query empties or the list goes", async () => {
+    const { root } = await mount({ query: "fox", current: 3 });
+    expect(drawn(CURRENT_MATCH)).toEqual(["fox"]);
+    expect(drawn(ALL_MATCHES)).toEqual(["fox", "fox"]);
+    await act(async () => root.render(<Harness query="" current={0} />));
+    expect(CSS.highlights.has(ALL_MATCHES)).toBe(false);
+    expect(CSS.highlights.has(CURRENT_MATCH)).toBe(false);
+    await act(async () => root.render(<Harness query="fox" current={0} />));
+    expect(drawn(ALL_MATCHES)).toHaveLength(2);
+    await act(async () => root.unmount());
+    roots.length = 0;
+    expect(CSS.highlights.has(ALL_MATCHES)).toBe(false);
+    expect(CSS.highlights.has(CURRENT_MATCH)).toBe(false);
+  });
+
+  it("puts the current highlight on the occurrence the index names", async () => {
+    const { host } = await mount({ query: "fox", current: 1 });
+    const current = [...CSS.highlights.get(CURRENT_MATCH)!][0]!;
+    expect(current.startContainer.parentElement?.closest("[data-key]")?.getAttribute("data-key")).toBe("a");
+    expect(current.startOffset).toBe(current.startContainer.textContent!.indexOf("fox", 5));
+    expect(host.querySelectorAll("[data-key]")).toHaveLength(3);
+  });
+
+  it("scrolls a current match that is out of view to it, smoothly or at once under reduced motion, and leaves one in view", async () => {
+    const scrollTo = vi.spyOn(HTMLElement.prototype, "scrollTo").mockImplementation(() => undefined);
+    const { root } = await mount({ query: "last", current: 0, tall: true });
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    const [options] = scrollTo.mock.calls[0] as unknown as [ScrollToOptions];
+    expect(options.behavior).toBe("smooth");
+    expect(options.top).toBeGreaterThan(700);
+    await act(async () => root.render(<Harness query="last" current={0} tall reduced />));
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    scrollTo.mockClear();
+    await act(async () => root.render(<Harness query="last" current={0} roomy reduced />));
+    expect(scrollTo).not.toHaveBeenCalled();
+    await act(async () => root.render(<Harness query="foxes" current={0} tall reduced />));
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "instant" }));
+  });
+
+  it("scrolls up to a match above the view, leaving room above it", async () => {
+    const { host, root } = await mount({ query: "last", current: 0, tall: true });
+    const view = host.querySelector<HTMLElement>("[data-testid=scroller]")!;
+    await act(async () => root.render(<Harness query="zzz" current={0} tall />));
+    view.scrollTop = view.scrollHeight;
+    const scrollTo = vi.spyOn(view, "scrollTo").mockImplementation(() => undefined);
+    await act(async () => root.render(<Harness query="one" current={0} tall />));
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    const [options] = scrollTo.mock.calls[0] as unknown as [ScrollToOptions];
+    const match = ([...CSS.highlights.get(CURRENT_MATCH)!][0] as Range).getBoundingClientRect();
+    expect(options.top).toBeCloseTo(view.scrollTop + match.top - view.getBoundingClientRect().top - 48, 0);
+  });
+
+  it("does nothing where the browser has no highlight API", async () => {
+    const highlights = Object.getOwnPropertyDescriptor(CSS, "highlights");
+    Object.defineProperty(CSS, "highlights", { value: undefined, configurable: true });
+    delete (CSS as unknown as Record<string, unknown>)["highlights"];
+    try {
+      await mount({ query: "fox", current: 0 });
+    } finally {
+      if (highlights) Object.defineProperty(CSS, "highlights", highlights);
+    }
+  });
+});

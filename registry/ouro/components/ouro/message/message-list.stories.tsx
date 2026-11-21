@@ -675,6 +675,43 @@ export const LongConversation: Story = {
   render: () => <LongChat />,
 };
 
+const findLines = [
+  "Lunch at noon?",
+  "Nothing planned before that.",
+  "Café for lunch, or LUNCH at the market. Menu: https://example.com/lunch",
+  "Straße 12 is close to both.",
+];
+
+function FindChat() {
+  const [query, setQuery] = useState("lunch");
+  const [current, setCurrent] = useState(1);
+  const [count, setCount] = useState(0);
+  return (
+    <div style={{ display: "grid", gap: 8, maxWidth: 480 }}>
+      <label style={{ display: "grid", gap: 4 }}>
+        <span>Find</span>
+        <input data-test-harness value={query} onChange={(event) => setQuery(event.target.value)} />
+      </label>
+      <button data-test-harness type="button" onClick={() => setCurrent((index) => index + 1)}>
+        Next match ({count})
+      </button>
+      <MessageList label="Lunch plans" style={{ height: 300 }} find={{ query, current }} onFindMatches={(report) => setCount(report.count)}>
+        {findLines.map((text, index) => (
+          <Message key={index} id={`f${index}`} variant="chat" role="assistant" name="Ana">
+            {text}
+          </Message>
+        ))}
+      </MessageList>
+    </div>
+  );
+}
+
+/** Find in a conversation: every match is marked in the text, the current one in a stronger colour, ignoring case and accents. */
+export const Find: Story = {
+  args: { label: "Lunch plans", children: null },
+  render: () => <FindChat />,
+};
+
 /**
  * Two conversations to switch between, with pictures, files, reactions and an action bar on the
  * newest message. Each opens at its newest message in its first frame. Add `&messages=1200` to the frame's address for long ones.
