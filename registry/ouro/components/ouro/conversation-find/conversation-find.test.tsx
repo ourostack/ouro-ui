@@ -142,8 +142,13 @@ describe("ConversationFind", () => {
     expect(seen.closed).toBe(1);
     expect(document.activeElement).toBe(opener);
     box().focus();
-    await page.getByRole("button", { name: "Close find" }).click();
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    await act(async () => void box().dispatchEvent(escape));
+    expect(escape.defaultPrevented).toBe(true);
     expect(seen.closed).toBe(2);
+    box().focus();
+    await page.getByRole("button", { name: "Close find" }).click();
+    expect(seen.closed).toBe(3);
     expect(document.activeElement).toBe(opener);
   });
 
