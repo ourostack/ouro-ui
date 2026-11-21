@@ -82,8 +82,16 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * rule over the slots, which WebKit restyled every slot drawn for (#2714): home measured 288,775 bytes on CI with them.
  * The docs pages take 23,777 bytes more (191,197 on CI) plus 1 KiB: Button carries Tooltip for a button with a reason, so
  * Tooltip and its popup code come with every page that has a Button (#1953).
+ *
+ * From #2724 on, each ceiling is what CI measured plus one margin, not a round number: a whole-KiB step left up to a
+ * kilobyte that later growth could hide in. CI's e2e log prints `script-size <page> <bytes> of <ceiling>` on every run, and
+ * a raise records the new measurement there with its reason. Measured on CI at 1791bc71: home and the Nautilus's page
+ * 288,772 bytes, the docs 191,491.
  */
-const CEILINGS = { voyage: 283 * 1024, docs: 191_197 + 1024 } as const;
+const MEASURED = { voyage: 288_772, docs: 191_491 } as const;
+/** How far a page may grow past what CI measured before its ceiling is raised. */
+const MARGIN = 512;
+const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGIN } as const;
 
 /**
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's
@@ -137,7 +145,8 @@ const CSS_CEILINGS = { voyage: 47 * 1024, docs: 50 * 1024 } as const;
  * Ari, 2026-11-18: the catalog a first visitor shows someone). They are their own budget, not the docs' first load, which
  * they never join: each draws as it nears the screen, one at a time when the browser is idle. The first screen's measured
  * 14,779 bytes over 13 files at 1440 by 900, built locally over main at e4a295a5; 24 KiB leaves room for the rows a slower
- * network idle lets draw first.
+ * network idle lets draw first. It stays a round number with room: how many rows draw before the check depends on the
+ * network's idle, so what it measures moves from run to run, unlike a page's first load.
  */
 const PREVIEWS_CEILING = 24 * 1024;
 
@@ -324,6 +333,8 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
       const drawn = [...new Set(reads)].filter((file) => previews.has(file));
       const previewGzip = drawn.reduce((sum, file) => sum + distGzip(file, hashes), 0);
       report["docs previews"] = { gzip: previewGzip, ceiling: PREVIEWS_CEILING, files: drawn.length };
+      // In the job's log on every run, so a ceiling is set from what CI measures, not from a local build's gzip (#2724).
+      console.log(`script-size docs-previews ${previewGzip} of ${PREVIEWS_CEILING}`);
       expect(drew.length, "the index draws previews once it is live").toBeGreaterThan(0);
       expect(previewGzip, `the index's previews, gzip bytes: ${drawn.join(", ")}`).toBeLessThanOrEqual(PREVIEWS_CEILING);
     }
@@ -335,6 +346,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     const gzip = expected.reduce((sum, file) => sum + distGzip(file, hashes), 0);
     const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     report[name] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILINGS[kind] };
+    console.log(`script-size ${name} ${gzip} of ${CEILINGS[kind]}`);
     expect(gzip, `${name} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
     expect(styles.length, `${name} loads its stylesheets`).toBeGreaterThan(0);
     sheets[name] = [...new Set(styles)];
