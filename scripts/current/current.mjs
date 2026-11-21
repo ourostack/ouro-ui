@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
+import { lowerBaseline } from "./baseline.mjs";
 import { regenerate } from "./generate.mjs";
 import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, appleRequirement, asBytes, findPins, hxStylesheetBehind, isBehind, isCandidate, ourostackPackages, takes } from "./pins.mjs";
 import { CONFIG as CHECK_CONFIG, bringsCheck, checkConfigs, checkRulesSection, seedKnown } from "./known.mjs";
@@ -428,6 +429,10 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   const generated = await regenerate(files, ctx);
   Object.assign(files, generated.files);
   notes.push(...generated.notes);
+  // Fewer lint hits in what the update vendors lowers the app's oxlint baseline, which its lint holds every count to (spoonjoy-v2#814).
+  const linted = await lowerBaseline(files, ctx);
+  Object.assign(files, linted.files);
+  notes.push(...linted.notes);
   const named = live ? brought.rules : checkRules;
   // GitHub lets an app write under .github/workflows/ only with the `workflows` permission, which Ouro Current does not
   // ask for: it would need every installation approved again, and give the app write access to every repository's CI.
