@@ -286,7 +286,7 @@ let keptHeight: number | undefined;
 const dropHeight = () => void (keptHeight = undefined);
 const keptWindowHeight = () => {
   if (keptHeight === undefined) {
-    (window.visualViewport ?? window).addEventListener("resize", dropHeight);
+    (window.visualViewport ?? /* istanbul ignore next @preserve -- every browser tests run in has a visual viewport */ window).addEventListener("resize", dropHeight);
     keptHeight = windowHeightNow();
   }
   return keptHeight;
