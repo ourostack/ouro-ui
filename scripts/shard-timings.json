@@ -925,6 +925,7 @@
     "registry/ouro/e2e/ouro/fieldset.spec.ts": 3023,
     "registry/ouro/e2e/ouro/file-field.spec.ts": 3898,
     "registry/ouro/e2e/ouro/form.spec.ts": 7806,
+    "registry/ouro/e2e/ouro/freshness.spec.ts": 3000,
     "registry/ouro/e2e/ouro/heading.spec.ts": 6238,
     "registry/ouro/e2e/ouro/hero.spec.ts": 9453,
     "registry/ouro/e2e/ouro/hover-card.spec.ts": 10896,
