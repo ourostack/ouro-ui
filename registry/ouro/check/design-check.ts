@@ -128,6 +128,10 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   };
   const shown = (el: Element) => {
     if (el.closest("[hidden], template, .visually-hidden, .sr-only")) return false;
+    // A closed details draws only its summary, though its other children keep the boxes they would have.
+    for (let d = el.closest("details:not([open])"); d; d = d.parentElement?.closest("details:not([open])") ?? null) {
+      if (!el.closest("summary")?.parentElement?.isSameNode(d)) return false;
+    }
     const r = el.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) return false;
     for (let n: Element | null = el; n && n !== document.documentElement; n = n.parentElement) {
