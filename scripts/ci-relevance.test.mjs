@@ -246,6 +246,13 @@ test("a change to a CI helper, a Node script test or another workflow starts no 
   assert.equal(runs("browser", ["scripts/gen-docs.mts"]), true);
 });
 
+test("Ouro Current reaches the install test and no browser, design or heavy tier", () => {
+  for (const path of ["scripts/current/pins.mjs", "scripts/current/stylesheet.mjs", "scripts/current/current.mjs", "scripts/current/README.md", "scripts/current/fixtures/ouro-base-v1.3.244.json"]) {
+    assert.equal(runs("installs", [path]), true, path);
+    for (const target of ["browser", "screens", "heavy"]) assert.equal(runs(target, [path]), false, `${target} ${path}`);
+  }
+});
+
 test("the platform parity data reaches the site and the heavy tier but no install and no component's tests", () => {
   for (const path of ["scripts/parity-data/versions.json", "scripts/parity-data/platforms.json", "scripts/parity-data/provenance.json", "scripts/parity-data/components.claims.json"]) {
     assert.equal(runs("installs", [path]), false, path);
