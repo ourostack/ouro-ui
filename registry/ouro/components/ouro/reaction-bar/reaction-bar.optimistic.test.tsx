@@ -16,7 +16,7 @@ function App({ describeError }: { describeError?: (error: unknown) => string }) 
     <ReactionBar
       reactions={list}
       optimistic
-      describeError={describeError}
+      {...(describeError ? { describeError } : {})}
       onReact={() =>
         new Promise<void>((resolve, reject) => {
           settle = {
@@ -38,7 +38,7 @@ async function mount(describeError?: (error: unknown) => string) {
   nodes.push(host);
   const root = createRoot(host);
   roots.push(root);
-  await act(async () => root.render(<App describeError={describeError} />));
+  await act(async () => root.render(<App {...(describeError ? { describeError } : {})} />));
   const bar = host.querySelector<HTMLElement>('[data-ouro="reaction-bar"]')!;
   return { bar, button: bar.querySelector("button")! };
 }
