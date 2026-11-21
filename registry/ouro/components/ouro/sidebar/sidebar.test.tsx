@@ -659,7 +659,7 @@ describe("Sidebar items", () => {
 describe("Sidebar long labels", () => {
   it("cuts a label longer than the column with an ellipsis, inside the column's own edge", async () => {
     const label = "Add Ouro AX to an app you already have, in three short steps for a team";
-    const { nav } = await render(<Sidebar label="Main" sections={[{ title: "Guides", items: [{ label, href: "/long" }, { label: "Short", href: "/short" }] }]} currentPath="/short" />);
+    const { nav } = await render(<Sidebar label="Main" sections={[{ label: "Guides", items: [{ label, href: "/long" }, { label: "Short", href: "/short" }] }]} currentPath="/short" />);
     const link = page.getByRole("link", { name: label }).element();
     expect(link.getBoundingClientRect().right).toBeLessThanOrEqual(nav!.getBoundingClientRect().right);
     const text = link.querySelector<HTMLElement>("span:last-child")!;
