@@ -1223,9 +1223,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   // Find: loaded with the first list that has `find`; its layer counts the matches and draws them.
   const hasFind = find !== undefined;
+  // Stryker disable next-line ArrowFunction: starting empty only delays the layer by the effect below, which loads it at once.
   const [findModule, setFindModule] = useState<typeof MessageFindLayer | undefined>(() => findLoaded);
   const [findMarks, setFindMarks] = useState<string>();
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: asking for the module when it is already held, or without a find, changes nothing a page can see.
     if (hasFind && !findModule) void loadFind().then((layer) => setFindModule(() => layer));
   }, [hasFind, findModule]);
   const FindLayer = hasFind ? findModule : undefined;
