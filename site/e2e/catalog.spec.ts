@@ -103,8 +103,11 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  *
  * The docs' set again 2026-11-21 at 193,168 bytes, what CI measured on main at 22c2e5038 (run 44951374420), after
  * PreviewBar joined the catalog (#2803): its demo and page code load with the docs' first script (#2814).
+ *
+ * The home page's set again 2026-11-21 at 289,844 bytes, what CI measured on main at 8ec35db91 (run 44962422523), after the
+ * header's Search button took its name and a longer hidden label (#2839): about 540 bytes more of the first script (#2845).
  */
-const MEASURED = { voyage: 289_304, docs: 193_168 } as const;
+const MEASURED = { voyage: 289_844, docs: 193_168 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
