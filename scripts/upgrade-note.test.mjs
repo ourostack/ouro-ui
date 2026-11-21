@@ -309,3 +309,12 @@ test("coverage docs distinguish the measured sets from every item's test depende
     assert.ok(read("docs/guides/testing.md").includes(`\`${name}\``), `The measured forms set must name ${name}.`);
   }
 });
+
+test("each installed file a release renamed is named in the note, by its old and its new name, as a breaking change", async () => {
+  // An app's own imports, scripts and builds name installed files by path, so a rename breaks them (#466, #1138).
+  // Ouro Current follows the renames in MOVED_SOURCES; an app updated by hand learns them from this list.
+  const { MOVED_SOURCES } = await import("./current/pins.mjs");
+  const changes = note.slice(note.indexOf("#### What changed, by version"), note.indexOf("#### 0."));
+  const missing = Object.entries(MOVED_SOURCES).flatMap(([from, to]) => [from, to].map((path) => path.split("/").slice(-2).join("/")).filter((name) => !changes.includes(name)));
+  assert.deepEqual(missing, [], "add the rename to UPGRADING.md's \"What changed, by version\", naming the old and the new file");
+});
