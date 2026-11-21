@@ -173,7 +173,7 @@ export interface MediaTileOwnProps {
 export type MediaTileProps = Omit<HTMLAttributes<HTMLDivElement>, keyof MediaTileOwnProps | "role" | "aria-label" | "aria-labelledby"> & MediaTileOwnProps;
 
 const line = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" } as const;
-const glyphClass = "block size-3.5 shrink-0 @2xs/tile:size-4";
+const glyphClass = "block size-ouro-3_5 shrink-0 @2xs/tile:size-ouro-4";
 
 function MicOffGlyph(): JSX.Element {
   return (
@@ -491,9 +491,9 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
                 title={upperFirst(pausedWords)}
                 className={cn(
                   plateClass,
-                  "absolute flex size-7 items-center justify-center [--corner-shape:round] [corner-shape:round] rounded-full",
+                  "absolute flex size-ouro-7 items-center justify-center [--corner-shape:round] [corner-shape:round] rounded-full",
                   // On a photo of 48px or less the glyph would cover the initials, so it sits beside the photo.
-                  smallPhotos.includes(shownSize) ? "start-full bottom-0 ms-1" : "-end-1.5 -bottom-1.5",
+                  smallPhotos.includes(shownSize) ? "start-full bottom-0 ms-1" : "-end-ouro-1_5 -bottom-ouro-1_5",
                 )}
               >
                 <PauseGlyph />
@@ -505,7 +505,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
       {status && (
         <div aria-hidden="true" data-ouro-media-tile-status="" className="absolute start-2 top-2 z-20 flex gap-1">
           {handRaised && (
-            <span data-ouro-media-tile-hand="" title={upperFirst(labels.handRaised)} className={cn(plateClass, "flex size-7 items-center justify-center rounded-ouro-md")}>
+            <span data-ouro-media-tile-hand="" title={upperFirst(labels.handRaised)} className={cn(plateClass, "flex size-ouro-7 items-center justify-center rounded-ouro-md")}>
               <HandGlyph />
             </span>
           )}
@@ -513,7 +513,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
             <span
               data-ouro-media-tile-connection=""
               title={upperFirst(labels.poorConnection)}
-              className={cn(plateClass, "flex size-7 items-center justify-center rounded-ouro-md text-[color-mix(in_oklab,var(--warning)_70%,var(--foreground))]")}
+              className={cn(plateClass, "flex size-ouro-7 items-center justify-center rounded-ouro-md text-[color-mix(in_oklab,var(--warning)_70%,var(--foreground))]")}
             >
               <SignalGlyph />
             </span>

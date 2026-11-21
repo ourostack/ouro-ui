@@ -87,8 +87,13 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * kilobyte that later growth could hide in. CI's e2e log prints `script-size <page> <bytes> of <ceiling>` on every run, and
  * a raise records the new measurement there with its reason. Measured on CI at 1791bc71: home and the Nautilus's page
  * 288,772 bytes, the docs 191,491.
+ *
+ * The docs' measurement set again 2026-11-21 at 191,884 bytes, what CI measured on #2752's last run (44907852279, e2e job
+ * 136857298173), the tree main has at af01ed5b. Main had grown 393 bytes past 191,491 over several merges, so it sat
+ * 119 bytes under its ceiling, and component changes of under 200 bytes that do not touch site/ failed it (#2747 at
+ * 192,051, #2749 at 192,073).
  */
-const MEASURED = { voyage: 288_772, docs: 191_491 } as const;
+const MEASURED = { voyage: 288_772, docs: 191_884 } as const;
 /** How far a page may grow past what CI measured before its ceiling is raised. */
 const MARGIN = 512;
 const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGIN } as const;
@@ -137,7 +142,14 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // The voyage pages' rose to 47 KiB for ouro-base's text-wrap rules (pretty body copy, balanced headings): 47,147 bytes with them, on CI merged with main at 7c23ca8f.
 // The docs' rose to 50 KiB for Card's backdrop (a picture behind the whole card, its own corner clip and a linked card's
 // tint inside it), whose classes the docs' Tailwind build carries: 50,210 bytes with them, built locally over main at c7d1a1ad.
-const CSS_CEILINGS = { voyage: 47 * 1024, docs: 50 * 1024 } as const;
+// The docs' CSS is split (#2491). The components index and the live demo page link the whole Tailwind build, which they
+// always did: their previews, and the demo's ?name=, show any component. Every other docs page links the shared shell
+// (docs-shell, which the browser keeps across the docs) and inlines in its head only the classes its own demo adds
+// (site/scripts/docs-css.mts), so a new component moves its own page and the index, never the rest. CI prints each page's
+// bytes as `css-size <page> <bytes> of <ceiling>`, and a raise records its measurement there with its reason. Measured on
+// the split at 29751c13: the index 50,374 bytes with the theme presets, the shell alone 24,407, the badge page 29,424 and
+// the heaviest component page (composed-surface) 34,346.
+const CSS_CEILINGS = { voyage: 47 * 1024, docs: 50 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the
@@ -369,6 +381,130 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   }
   await info.attach("initial-js-by-page", { body: JSON.stringify(report, null, 2), contentType: "application/json" });
   expect(errors).toEqual([]);
+});
+
+/**
+ * The docs' stylesheets, read from the built pages (site/scripts/prerender.mts): each docs page links one Tailwind sheet first,
+ * the shared shell or, for the components index and the live demo page, the whole build; a component's page then inlines in its
+ * head the classes its own demo adds (site/scripts/docs-css.mts). Each such page renders only classes the shell or its inline
+ * block styles, its inline block repeats no declaration of the shell's, and no utility of its own sorts before a shell utility it
+ * shares a property with, so the split resolves every element as the whole build does.
+ */
+test("each docs page links the shared shell or the whole build, and inlines only its own demo's classes, within its budget", () => {
+  const built = (path: string) => readFileSync(resolve("site/dist", path), "utf8");
+  const gzip = (text: string) => gzipSync(text).byteLength;
+  const head = (html: string) => html.slice(0, html.indexOf("</head>"));
+  const sheetsOf = (html: string) => [...head(html).matchAll(/<link rel="stylesheet"[^>]*href="\/([^"]+)"/g)].map(([, file]) => file!);
+  const inlineOf = (html: string) => [...head(html).matchAll(/<style>([\s\S]*?)<\/style>/g)].map(([, css]) => css).join("");
+  // The class names a stylesheet's rules select, from its selectors (the at-rules' headers excluded).
+  const classNames = (css: string) => {
+    const names = new Set<string>();
+    for (const [, selector] of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{/g)) {
+      if (selector!.trimStart().startsWith("@")) continue;
+      for (const [, name] of selector!.matchAll(/\.((?:\\.|[\w-])+)/g)) names.add(name!.replace(/\\(.)/g, "$1"));
+    }
+    return names;
+  };
+  // Each declaration of a stylesheet keyed by the blocks it is in (their headers joined), as the build wrote them.
+  const declarationsOf = (css: string) => {
+    const blocks = new Map<string, Set<string>>();
+    const stack: string[] = [];
+    let text = "";
+    let quote = "";
+    for (let index = 0; index < css.length; index++) {
+      const char = css[index]!;
+      if (quote) {
+        text += char;
+        if (char === quote && css[index - 1] !== "\\") quote = "";
+      } else if (char === '"' || char === "'") {
+        quote = char;
+        text += char;
+      } else if (char === "{") {
+        stack.push(text.trim());
+        text = "";
+      } else if (char === "}") {
+        stack.pop();
+        text = "";
+      } else if (char === ";") {
+        const declaration = text.trim();
+        text = "";
+        // A descriptor (@property, @font-face) is not a declaration of a rule: the shell's copy of one is not a repeat.
+        if (declaration && !/^@(property|font-face|page)\b/.test(stack.at(-1) ?? "")) {
+          const key = stack.join("\n");
+          blocks.set(key, (blocks.get(key) ?? new Set()).add(declaration));
+        }
+      } else text += char;
+    }
+    return blocks;
+  };
+  const wholeSheet = sheetsOf(built("docs/index.html"))[0]!;
+  expect(wholeSheet, "the components index links the whole build").toMatch(/(^|\/)docs-full-/);
+  const shellSheet = sheetsOf(built("docs/badge/index.html"))[0]!;
+  expect(shellSheet, "a component's page links the shared shell first").toMatch(/(^|\/)docs-shell-/);
+  const shellCss = built(shellSheet);
+  const shellClasses = classNames(shellCss);
+  const shellDeclarations = declarationsOf(shellCss);
+  const shellGzip = gzip(shellCss);
+  console.log(`css-size docs-shell ${shellGzip} of ${CSS_CEILINGS.docsShell}`);
+  expect(shellGzip, "the docs' shared shell, gzip bytes").toBeLessThanOrEqual(CSS_CEILINGS.docsShell);
+  const wholeCss = built(wholeSheet);
+  const wholeClasses = classNames(wholeCss);
+  // The properties each plain one-class utility of a stylesheet sets, and where the whole build places each one.
+  const propertiesOf = (css: string) => {
+    const map = new Map<string, Set<string>>();
+    for (const [, name, body] of css.matchAll(/\.([A-Za-z][\w-]*)\{([^{}]*)\}/g)) {
+      const set = map.get(name!) ?? new Set<string>();
+      for (const declaration of body!.split(";")) {
+        const prop = declaration.split(":")[0]!.trim();
+        if (prop) set.add(prop);
+      }
+      map.set(name!, set);
+    }
+    return map;
+  };
+  const wholeProperties = propertiesOf(wholeCss);
+  const orderOf = (cls: string) => wholeCss.search(new RegExp(`(^|[{}])\\.${cls}\\{`));
+  const pages = [
+    { name: "docs", path: "docs/", kind: "docs", whole: true },
+    { name: "docs-demo", path: "docs/demo/", kind: "docs", whole: true },
+    { name: "badge", path: "docs/badge/", kind: "docsPage", whole: false },
+    { name: "message-list", path: "docs/message-list/", kind: "docsPage", whole: false },
+    { name: "composed-surface", path: "docs/composed-surface/", kind: "docsPage", whole: false },
+    { name: "accessibility-evidence", path: "docs/accessibility-evidence/", kind: "docsPage", whole: false },
+  ] as const;
+  for (const { name, path, kind, whole } of pages) {
+    const html = built(`${path}index.html`);
+    const sheets = sheetsOf(html);
+    const inline = inlineOf(html);
+    expect(sheets[0], `${name} links its Tailwind sheet first`).toMatch(whole ? /(^|\/)docs-full-/ : /(^|\/)docs-shell-/);
+    const bytes = sheets.reduce((sum, file) => sum + gzip(built(file)), 0) + (inline ? gzip(inline) : 0);
+    // In the job's log on every run, so a raise is set from what CI measures (#2724).
+    console.log(`css-size ${name} ${bytes} of ${CSS_CEILINGS[kind]}`);
+    expect(bytes, `${name} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILINGS[kind]);
+    if (whole) continue;
+    const own = declarationsOf(inline);
+    const repeated = [...own].flatMap(([block, declarations]) => [...declarations].filter((d) => shellDeclarations.get(block)?.has(d)).map((d) => `${block} { ${d} }`));
+    expect(repeated, `${name}'s inline CSS repeats declarations of the shell`).toEqual([]);
+    // Every class the page renders that the whole build styles, the shell or the page's own block styles.
+    const ownClasses = classNames(inline);
+    const ownProperties = propertiesOf(inline);
+    const rendered = new Set([...html.matchAll(/class="([^"]*)"/g)].flatMap(([, value]) => value!.split(/\s+/)).filter(Boolean));
+    const missing = [...rendered].filter((cls) => wholeClasses.has(cls) && !shellClasses.has(cls) && !ownClasses.has(cls));
+    expect(missing, `${name} renders classes its stylesheets lack`).toEqual([]);
+    // Utilities that set one property on one element resolve by their order in the build. The shell's come first here, so a
+    // page's utility that the whole build sorts before a shell utility it shares a property with would win in the build and lose here.
+    const reversed = [...html.matchAll(/class="([^"]*)"/g)].flatMap(([, value]) => {
+      const names = value!.split(/\s+/).filter(Boolean);
+      const fromShell = names.filter((cls) => shellClasses.has(cls) && wholeProperties.has(cls));
+      const fromPage = names.filter((cls) => !shellClasses.has(cls) && ownProperties.has(cls));
+      return fromShell.flatMap((shelled) =>
+        fromPage
+          .filter((own) => [...wholeProperties.get(shelled)!].some((prop) => wholeProperties.get(own)?.has(prop)) && orderOf(own) < orderOf(shelled))
+          .map((own) => `${own} before ${shelled}`),
+      );
+    });
+    expect(reversed, `${name}: a page utility the build sorts before a shell utility it shares a property with`).toEqual([]);
+  }
 });
 
 /** Chapter I's island: its chunk and everything it imports. */

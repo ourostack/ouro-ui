@@ -158,13 +158,13 @@ const READ_EVERY_MS = 500;
  * The row of bars at each size: its height and the gap between bars. @internal
  * @claim "The row of bars at each size:" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > draws bars 12, 16 and 24px high, md by default)
  */
-const rowSizes = { sm: "h-3 gap-0.5", md: "h-4 gap-1", lg: "h-6 gap-1" } as const;
+const rowSizes = { sm: "h-ouro-3 gap-0.5", md: "h-ouro-4 gap-1", lg: "h-ouro-6 gap-1" } as const;
 
 /**
  * One bar's width at each size. @internal
  * @claim "One bar's width at each size." registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > draws bars 12, 16 and 24px high, md by default)
  */
-const barSizes = { sm: "w-1", md: "w-1.5", lg: "w-2" } as const;
+const barSizes = { sm: "w-ouro-1", md: "w-ouro-1_5", lg: "w-ouro-2" } as const;
 
 /**
  * A bar: a pill the row's full height, filled in the input colour while unlit, a quiet track with

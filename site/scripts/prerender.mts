@@ -4,10 +4,12 @@
 // Reads the client build in site/dist and the server bundle in .tmp/site-ssr; writes
 // site/dist/<route>/index.html, site/dist/404.html and site/dist/docs/<name>.md and
 // docs/parts.md (the generated Markdown with installed paths, for agents that prefer it).
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+// A docs page's head links the docs' shared Tailwind sheet and inlines its demo's classes (docs-css.mts).
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { fragmentFocusScript } from "../../registry/ouro/lib/ouro/fragment-focus-script.ts";
+import { docsDelta } from "./docs-css.mts";
 import { pageHeadings } from "./headings.mts";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -107,11 +109,38 @@ function islandAssets(path: string): string[] {
   return [...css].map((file) => `<link rel="stylesheet" crossorigin href="/${file}" />`);
 }
 
+/**
+ * The docs pages that show any component, so link the whole Tailwind build: the components index (its previews draw as
+ * they near the screen) and the live demo page (its ?name= picks any demo). Every other docs page links the shared shell.
+ */
+const WHOLE_BUILD = new Set(["/docs/", "/docs/demo/"]);
+const demoDir = join(repo, "site/src/docs/demos");
+const demoNames = new Set(readdirSync(demoDir).flatMap((file) => (file.endsWith(".demo.tsx") ? [file.slice(0, -".demo.tsx".length)] : [])));
+
+/** A component's page is `/docs/<name>/` with a demo of that name: its head inlines the classes that demo adds to the shell. */
+function demoFile(path: string): string | undefined {
+  const name = /^\/docs\/([^/]+)\/$/.exec(path)?.[1];
+  return name && demoNames.has(name) ? join(demoDir, `${name}.demo.tsx`) : undefined;
+}
+
+/**
+ * A docs page's stylesheets, in the order a page imports them: the Tailwind sheet first (the shared shell, or the whole build),
+ * then the classes its own demo adds to the shell in a <style> (docs-css.mts), then its theme presets, so a page's theme rules come later and win.
+ */
+async function docsAssets(path: string): Promise<string[]> {
+  const whole = WHOLE_BUILD.has(path);
+  const sheet = manifest[whole ? "src/docs/full.css" : "src/docs/shell.css"];
+  if (!sheet) throw new Error(`The client build has no stylesheet for ${whole ? "src/docs/full.css" : "src/docs/shell.css"}`);
+  const inline = whole ? "" : await docsDelta(demoFile(path));
+  return [`<link rel="stylesheet" crossorigin href="/${sheet.file}" />`, ...(inline ? [`<style>${inline}</style>`] : []), ...pageAssets("docs")];
+}
+
 async function page(route: Route, path: string, canonical: boolean): Promise<string> {
   const html = await render(path);
   const head = headTags(route, canonical, showsMono(html)).join("\n    ");
+  const kind = pageKind(path);
   // Each page imports its own stylesheets (the entry has none), Tailwind's first, so a page's theme rules come later and win.
-  const assets = [...pageAssets(pageKind(path)), ...islandAssets(path)].join("\n    ");
+  const assets = (kind === "docs" ? await docsAssets(path) : [...pageAssets(kind), ...islandAssets(path)]).join("\n    ");
   return template
     .replace("<!--head-->", () => head)
     .replace("</head>", () => `  ${assets}\n  </head>`)

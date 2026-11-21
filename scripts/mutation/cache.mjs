@@ -31,13 +31,15 @@ export function runtimeSource(path) {
 }
 
 /**
- * Each test file's time in the `ouro-chromium` project, in seconds, from a Vitest run's output (a
- * CI `ci` job's log: colour codes and timestamps are dropped). The mutation runner runs that project.
+ * Each test file's time in the `ouro-chromium` project, and each touch test file's in `ouro-touch`, in seconds, from a
+ * Vitest run's output (a CI job's log: colour codes and timestamps are dropped). The mutation runner runs those projects.
  */
 export function parseTestSeconds(log) {
   const seconds = {};
   const plain = log.replace(new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g"), "");
   for (const [, file, ms] of plain.matchAll(/ ouro-chromium \(chromium\) +(\S+\.test\.tsx?) \([^)]*\) +(\d+)ms/g)) seconds[file] = Math.round(Number(ms)) / 1000;
+  // A component's touch tests run under `ouro-touch` in the mutation runner too (plugins.mjs).
+  for (const [, file, ms] of plain.matchAll(/ ouro-touch \(chromium\) +(\S+\.touch\.test\.tsx?) \([^)]*\) +(\d+)ms/g)) seconds[file] = Math.round(Number(ms)) / 1000;
   return Object.fromEntries(Object.entries(seconds).sort(([a], [b]) => (a < b ? -1 : 1)));
 }
 

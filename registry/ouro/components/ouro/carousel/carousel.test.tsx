@@ -135,6 +135,17 @@ describe("Carousel structure", () => {
     expect(three.slides[0]!.getBoundingClientRect().width).toBeCloseTo((three.viewport.clientWidth - 2 * gap) / 3, 0);
   });
 
+  it("mirrors the back chevron and leaves the forward one as drawn, and reverses both under dir rtl", async () => {
+    // Tailwind's -scale-x-100 sets the `scale` property, so a negative first value is a mirrored chevron.
+    const mirrored = (button: HTMLButtonElement) => parseFloat(getComputedStyle(button.querySelector("svg")!).scale) < 0;
+    const ltr = await render(<Carousel label="Recipe photos">{photos()}</Carousel>);
+    expect(mirrored(ltr.button("Previous slide"))).toBe(true);
+    expect(mirrored(ltr.button("Next slide"))).toBe(false);
+    const rtl = await render(<Carousel label="Recipe photos">{photos()}</Carousel>, { dir: "rtl" });
+    expect(mirrored(rtl.button("Previous slide"))).toBe(false);
+    expect(mirrored(rtl.button("Next slide"))).toBe(true);
+  });
+
   it("names its buttons and slides with the labels it is given", async () => {
     const screen = await render(
       <Carousel

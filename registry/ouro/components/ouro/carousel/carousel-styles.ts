@@ -49,9 +49,9 @@ const buttonsClass = "flex items-center justify-end gap-2";
 // so it differs by shape as well as colour, and takes the selection's colours under forced colours.
 const pagerClass = "me-auto flex flex-wrap items-center";
 const pageClass =
-  "relative grid size-6 pointer-coarse:size-11 place-items-center rounded-full outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "after:block after:h-2 after:w-2 after:rounded-full after:bg-muted-foreground after:content-[''] " +
-  "aria-[current=true]:after:w-4 aria-[current=true]:after:bg-primary " +
+  "relative grid size-ouro-6 pointer-coarse:size-ouro-11 place-items-center rounded-full outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
+  "after:block after:h-ouro-2 after:w-ouro-2 after:rounded-full after:bg-muted-foreground after:content-[''] " +
+  "aria-[current=true]:after:w-ouro-4 aria-[current=true]:after:bg-primary " +
   "forced-colors:after:bg-[CanvasText] forced-colors:aria-[current=true]:after:bg-[Highlight]";
 
 /**

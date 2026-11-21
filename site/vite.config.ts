@@ -117,6 +117,19 @@ export default defineConfig(({ isSsrBuild }) => ({
     modulePreload: {
       resolveDependencies: (file, deps) => (/(^|\/)(chapter-(one|two|three)|agents)-[\w-]+\.js$/.test(file) ? [] : deps.filter((dep) => !/(^|\/)entry-[\w-]+\.js$/.test(dep))),
     },
-    ...(isSsrBuild ? {} : { rollupOptions: { output: { entryFileNames: "assets/entry-[hash].js", codeSplitting: { groups: [voyageSmallModules()] } } } }),
+    // The docs' two Tailwind sheets are entries of their own (site/src/docs/shell.css and full.css), which the prerender
+    // links from each page's head, so no page's JavaScript loads one (the docs chunk imports neither).
+    ...(isSsrBuild
+      ? {}
+      : {
+          rollupOptions: {
+            input: {
+              index: fileURLToPath(new URL("./index.html", import.meta.url)),
+              "docs-shell": fileURLToPath(new URL("./src/docs/shell.css", import.meta.url)),
+              "docs-full": fileURLToPath(new URL("./src/docs/full.css", import.meta.url)),
+            },
+            output: { entryFileNames: "assets/entry-[hash].js", codeSplitting: { groups: [voyageSmallModules()] } },
+          },
+        }),
   },
 }));
