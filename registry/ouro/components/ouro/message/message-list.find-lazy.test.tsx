@@ -33,3 +33,22 @@ describe("MessageList find, loaded on demand", () => {
     await act(async () => root.unmount());
   });
 });
+
+describe("MessageList find, once the layer is loaded", () => {
+  it("still carries no find classes for a list without a find", async () => {
+    const warm = document.createElement("div");
+    document.body.append(warm);
+    hosts.push(warm);
+    const first = createRoot(warm);
+    await act(async () => first.render(list({ query: "lunch" })));
+    await expect.poll(() => CSS.highlights.get("ouro-find-current")?.size).toBe(1);
+    await act(async () => first.unmount());
+    const host = document.createElement("div");
+    document.body.append(host);
+    hosts.push(host);
+    const root = createRoot(host);
+    await act(async () => root.render(list()));
+    expect(host.querySelector("[data-ouro=message-list]")!.className).not.toContain("highlight(ouro-find");
+    await act(async () => root.unmount());
+  });
+});
