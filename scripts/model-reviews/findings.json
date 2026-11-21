@@ -660,7 +660,7 @@
       ],
       "issue": 2297,
       "status": "in progress",
-      "change": "The Windows and Android pages now say what to use on desktop and phones until the core set is native there (#2427). Windows v0.6.0 and Android v0.7.0 have fourteen components each, with Dialog, Sheet and ConfirmDialog (wave 1) and navigation proved in CI; the rest of the catalog is still to come."
+      "change": "The Windows and Android pages now say what to use on desktop and phones until the core set is native there (#2427). Windows v0.8.0 has eighteen components and Android v0.9.0 nineteen, with Dialog, Sheet and ConfirmDialog (wave 1), navigation (wave 3) and Checkbox, TextField, Switch, Select and Field (wave 4) proved in CI; the rest of the catalog is still to come."
     },
     {
       "id": "agent-native-rival",
