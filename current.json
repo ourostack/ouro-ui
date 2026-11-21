@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-20T23:56:09.354Z",
+  "generatedAt": "2026-11-21T00:44:48.654Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -310,20 +310,17 @@
     },
     {
       "repo": "ourostack/ouroboros-website",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.387",
+          "current": "v1.3.388",
           "latest": "v1.3.388",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 441,
-        "url": "https://github.com/ourostack/ouroboros-website/pull/441"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/shepherd",
