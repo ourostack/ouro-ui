@@ -1155,6 +1155,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [ownCache] = useState(() => new Map<string, number>());
   const cache = heightCache ?? ownCache;
   const [measured, setMeasured] = useState<Measured>(() => ({ heights: new Map(), gap: 16, estimate: cache.get(CACHED_ESTIMATE) ?? ESTIMATE, bucket: cache.get(CACHED_WIDTH) ?? null }));
+  // Counts the heights kept in place (see the window's measure), so the sizes read them again.
+  const heightsKept = useRef(0);
   const cacheRef = useRef(cache);
   useLayoutEffect(() => {
     cacheRef.current = cache;
@@ -1186,10 +1188,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The key of the child focus was last in, kept drawn so focus stays as the reader scrolls away.
   const [focusKey, setFocusKey] = useState<string | null>(null);
   // Each child's height, read again only when the children or the heights measured change: the window reads every child's on
-  // every scroll, and a cached height's key is text built from the child's key and the width.
+  // every scroll, and a cached height's key is text built from the child's key and the width. The heights a window keeps in
+  // place (see its measure) count in `heightsKept`, so they are read again too.
   const sizes = useMemo(
     () => keys.map((key) => measured.heights.get(key) ?? cache.get(`${key}\0${measured.bucket}`) ?? estimate ?? measured.estimate),
-    [keys, measured, cache, estimate],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- heightsKept is the count of heights written in place: a change of it is a change of the heights
+    [keys, measured, cache, estimate, heightsKept.current],
   );
   const sizeOf = (index: number) => sizes[index]!;
   // Each child's index by its key, built when the keys change, not on every render (the keys are text, so they compare by what they say).
@@ -1382,9 +1386,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Set as the list switches, for the keyboard effect: focus on a message that went goes to the new conversation's Tab stop.
   // Stryker disable next-line BooleanLiteral: the keyboard effect's first sync(true) sets it false, on mount, before any focus or switch can read it.
   const switched = useRef(false);
+  // Whether the list has switched to another conversation: the heights a list measured before it are kept in place only until then.
+  const everSwitched = useRef(false);
   useLayoutEffect(() => {
     if (track.switches === 0) return;
     switched.current = true;
+    everSwitched.current = true;
     // The next conversation opens as the list did: what its view shows, then the rest.
     wide.current = false;
     // A reveal on its way finds nothing in the conversation before.
@@ -1865,6 +1872,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // keeps the reader's place as their heights replace the estimates, brings a message asked for into view, and draws the
   // children the view and OVERSCAN reach.
   const windowSync = useRef<(scrolled: boolean) => void>(undefined);
+  // The keyboard's marks of the messages, run before the window reads the layout (see that effect).
+  const keyboardMark = useRef<(() => void) | undefined>(undefined);
   // Whether the rows past the view's edges draw: from the frame after the list opens, or another conversation opens in it.
   const wide = useRef(false);
   // Whether the estimate is fixed: once the rows past the view's edges are first measured.
@@ -1957,14 +1966,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (windowed && content.getClientRects().length === 0) return;
       if (windowed && !scrolled) {
         const contentTop = content.getBoundingClientRect().top;
-        let heights: Map<string, number> | undefined;
         const rounded = Math.round(scroller.clientWidth / BUCKET);
         // Stryker disable next-line ArithmeticOperator: the bucket only keys the cache, and any one number for each rounded width keys it alike.
         const bucket = rounded * BUCKET;
         cacheRef.current.set(CACHED_WIDTH, bucket);
         // At a new width the heights are those of the old: the rows not drawn keep them as estimates until they draw.
-        if (measured.bucket !== bucket) heights = new Map(measured.heights);
+        const bucketMoved = measured.bucket !== bucket;
         const found = new Map<string, { top: number; size: number }>();
+        // The heights measured that differ from those the list holds, by key.
+        const moved = new Map<string, number>();
         for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) {
           const key = slot.getAttribute(SLOT)!;
           const { top, size } = extentOf(slot);
@@ -1972,24 +1982,40 @@ export function MessageList(props: MessageListProps): JSX.Element {
           if (size > 0) found.set(key, { top: top - contentTop, size });
           counts.current.set(key, topItems(slot).length);
           cacheRef.current.set(`${key}\0${bucket}`, size);
-          if (measured.heights.get(key) !== size) (heights ??= new Map(measured.heights)).set(key, size);
+          if (measured.heights.get(key) !== size) moved.set(key, size);
         }
         tops.current = found;
-        if (heights !== undefined) {
+        if (bucketMoved || moved.size > 0) {
           // The heights of children gone are forgotten.
           const present = new Set(keys);
-          // Stryker disable next-line ConditionalExpression,CallExpression: keeping a gone child's height only holds memory: a key that comes back is measured again as it draws.
-          for (const key of heights.keys()) if (!present.has(key)) heights.delete(key);
-          // A render follows at once, which comes back here with the space kept at its new size. The gap is 1rem, so it
-          // changes only with the font size, which changes the heights too.
-          // The estimate is the average of the rows the list first draws past its view: those it opened with, and those drawn
-          // after, as the view alone may hold a few.
-          const estimate = estimated.current ? measured.estimate : averageOf(heights);
-          // Kept for the next list handed the cache, which opens with it.
-          cacheRef.current.set(CACHED_ESTIMATE, estimate);
-          setMeasured({ heights, gap: parseFloat(getComputedStyle(content).rowGap), estimate, bucket });
-          estimated.current = wide.current;
-          return;
+          const gap = parseFloat(getComputedStyle(content).rowGap);
+          // Once the estimate is fixed, a height measured for a row drawn changes no space the list keeps: the rows not drawn
+          // keep their own heights and the estimate. Those are kept in place, which the next render reads, so no render
+          // follows, and the window places the rows it draws as it would after one.
+          if (!everSwitched.current && !bucketMoved && estimated.current && Object.is(gap, measured.gap)) {
+            // Written in place, as the renders read them through `heightsKept`, which makes them read the heights again.
+            const kept = measured.heights as Map<string, number>;
+            for (const [key, size] of moved) kept.set(key, size);
+            // Stryker disable next-line ConditionalExpression,CallExpression: keeping a gone child's height only holds memory: a key that comes back is measured again as it draws.
+            for (const key of kept.keys()) if (!present.has(key)) kept.delete(key);
+            // Stryker disable next-line UpdateOperator: the counter only has to change, which an increment and a decrement both do.
+            heightsKept.current++;
+          } else {
+            const heights = new Map(measured.heights);
+            for (const [key, size] of moved) heights.set(key, size);
+            // Stryker disable next-line ConditionalExpression,CallExpression: keeping a gone child's height only holds memory: a key that comes back is measured again as it draws.
+            for (const key of heights.keys()) if (!present.has(key)) heights.delete(key);
+            // A render follows at once, which comes back here with the space kept at its new size. The gap is 1rem, so it
+            // changes only with the font size, which changes the heights too.
+            // The estimate is the average of the rows the list first draws past its view: those it opened with, and those drawn
+            // after, as the view alone may hold a few.
+            const estimate = estimated.current ? measured.estimate : averageOf(heights);
+            // Kept for the next list handed the cache, which opens with it.
+            cacheRef.current.set(CACHED_ESTIMATE, estimate);
+            setMeasured({ heights, gap, estimate, bucket });
+            estimated.current = wide.current;
+            return;
+          }
         }
         holdRef.current!();
       }
@@ -2140,6 +2166,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const before = now.windowed && last.keys !== now.keys ? new Set(last.keys) : null;
       if (before !== null) for (const key of now.keys) if (!before.has(key)) arriving.current.add(key);
     }
+    // The keyboard's marks for the messages that come into the page go in first: a mark is a write, and a read of the layout
+    // after the write flushes the styles again. The counts they place by are the children's now.
+    // Stryker disable next-line CallExpression: the window counts the children again just after this, and the observer that follows marks each message by those counts, so the marks end the same without this.
+    for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) counts.current.set(slot.getAttribute(SLOT)!, topItems(slot).length);
+    keyboardMark.current?.();
     windowSync.current(false);
   });
   useLayoutEffect(() => {
@@ -2347,7 +2378,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ConditionalExpression: the same message would take -1 and then 0 again, as it was.
       if (current !== item) current?.setAttribute("tabindex", "-1");
       current = item;
-      item?.setAttribute("tabindex", "0");
+      // Only a change writes: a scroll places the Tab stop again, and a write that changes nothing still lays the page out.
+      if (item) mark(item, "tabindex", "0");
     };
     // Scrolls the list, and only the list, until the element shows, with room for its focus ring:
     // its top when it is taller than the list.
@@ -2397,6 +2429,42 @@ export function MessageList(props: MessageListProps): JSX.Element {
       }
       setCurrent(showing ?? list.at(-1) ?? null);
     };
+    // The messages' marks: each Tab stop, the control and part they are, and their places. The window runs them before it
+    // reads the layout (see the effect that calls it), so each mark is written before a read flushes the styles.
+    const markItems = (): HTMLElement[] => {
+      const list = (tops = topItems(content));
+      // In a windowed list a message's place counts the children not drawn: one message each, until one is drawn and
+      // found to hold none (what starts the conversation) or more.
+      const { windowed, keys } = viewRef.current;
+      const before = new Map<string, number>();
+      let size = list.length;
+      if (windowed) {
+        size = 0;
+        for (const key of keys) {
+          before.set(key, size);
+          size += counts.current.get(key) ?? 1;
+        }
+      }
+      // How many messages of each child came before, in order.
+      const within = new Map<string, number>();
+      list.forEach((item, index) => {
+        // Focusable from code and by a click, in the Tab order only as the current message.
+        if (item !== current) mark(item, "tabindex", "-1");
+        mark(item, "data-ouro-control", "message-list");
+        mark(item, "data-ouro-part", "item");
+        const key = slotKeyOf(item);
+        const place = within.get(key) ?? 0;
+        within.set(key, place + 1);
+        const position = String(windowed ? before.get(key)! + place + 1 : index + 1);
+        // Only an article takes a position (ARIA allows it there), and one the app set stands.
+        const own = item.getAttribute("aria-posinset");
+        if (!item.matches('article:not([role]), [role="article"]') || (own !== null && own !== written.get(item))) return;
+        written.set(item, position);
+        mark(item, "aria-posinset", position);
+        mark(item, "aria-setsize", String(size));
+      });
+      return list;
+    };
     // After React's commit, so it reads no layout unless the Tab stop went: reading where messages
     // are here would lay the page out before the browser does, at every new message.
     const sync = (changed: boolean) => {
@@ -2438,37 +2506,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (refocus) [focused, waiting] = [null, false];
       switched.current = false;
       if (!changed) return;
-      const list = (tops = topItems(content));
-      // In a windowed list a message's place counts the children not drawn: one message each, until one is drawn and
-      // found to hold none (what starts the conversation) or more.
-      const { windowed, keys } = viewRef.current;
-      const before = new Map<string, number>();
-      let size = list.length;
-      if (windowed) {
-        size = 0;
-        for (const key of keys) {
-          before.set(key, size);
-          size += counts.current.get(key) ?? 1;
-        }
-      }
-      // How many messages of each child came before, in order.
-      const within = new Map<string, number>();
-      list.forEach((item, index) => {
-        // Focusable from code and by a click, in the Tab order only as the current message.
-        if (item !== current) mark(item, "tabindex", "-1");
-        mark(item, "data-ouro-control", "message-list");
-        mark(item, "data-ouro-part", "item");
-        const key = slotKeyOf(item);
-        const place = within.get(key) ?? 0;
-        within.set(key, place + 1);
-        const position = String(windowed ? before.get(key)! + place + 1 : index + 1);
-        // Only an article takes a position (ARIA allows it there), and one the app set stands.
-        const own = item.getAttribute("aria-posinset");
-        if (!item.matches('article:not([role]), [role="article"]') || (own !== null && own !== written.get(item))) return;
-        written.set(item, position);
-        mark(item, "aria-posinset", position);
-        mark(item, "aria-setsize", String(size));
-      });
+      const list = markItems();
       // Stryker disable next-line ConditionalExpression: placing it again picks the same message, since a scroll places it too; this only spares reading the layout.
       if (!current?.isConnected) place(list);
       // A switch has its messages in (an empty commit is not one: "does not switch on an empty commit"), so there is a Tab stop.
@@ -2637,6 +2675,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const scrolled = () => place(tops);
 
     sync(true);
+    keyboardMark.current = markItems;
     const observer = new MutationObserver((records) => {
       // Stryker disable next-line ConditionalExpression,MethodExpression,BooleanLiteral: after only the bar moved, syncing finds and marks the same messages again; skipping it only spares the work.
       if (!records.every(barOnly)) sync(records.some(touchesItems));

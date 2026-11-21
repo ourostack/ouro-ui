@@ -1495,6 +1495,75 @@ describe("MessageList windowing", () => {
     expect(moved).toBeLessThanOrEqual(1);
   });
 
+  it("commits at most twice a frame as a page of older messages draws in after it lands", async () => {
+    let commits = 0;
+    const list = (from: number, count: number) => (
+      <Profiler id="list" onRender={() => void commits++}>
+        <ShortRows ids={span(from, count)} />
+      </Profiler>
+    );
+    const { root, scroller } = await render(list(0, 200));
+    await scrollTo(scroller, 0);
+    const older = () => ids(scroller).filter((id) => id < 0).length;
+    await landInATask(
+      () => flushSync(() => root.render(list(-200, 400))),
+      () => {},
+    );
+    // Commits in each frame, counted from one frame's callback to the next, and the older rows drawn by each frame. One is the
+    // chunk's render; the other re-renders the avatars at scroll priority with no state change asking for it.
+    const perFrame: number[] = [];
+    const drawn: number[] = [];
+    let seen = commits;
+    for (let frames = 0; frames < 200; frames++) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      perFrame.push(commits - seen);
+      seen = commits;
+      drawn.push(older());
+      if (drawn.length >= 7 && drawn.slice(-6).every((count) => count === drawn.at(-1))) break;
+    }
+    expect(older()).toBeGreaterThan(OLDER_CHUNK);
+    expect(Math.max(...perFrame)).toBeLessThanOrEqual(2);
+  });
+
+  it("marks the messages a commit brings in, in that commit, before the observer that follows it runs", async () => {
+    const { root, scroller } = await render(<ShortRows ids={span(0, 5)} />);
+    flushSync(() => root.render(<ShortRows ids={span(-3, 8)} />));
+    // Read at once: the marks of the new messages are written by the commit, not by the mutation observer after it.
+    const added = document.getElementById("m-3")!;
+    expect(added.getAttribute("data-ouro-control")).toBe("message-list");
+    expect(added.getAttribute("tabindex")).toBe("-1");
+    await settle(scroller);
+  });
+
+  it("sizes the rows not drawn at the average of the rows drawn, so equal rows are as tall before the reader scrolls through them", async () => {
+    let commits = 0;
+    const Equal = ({ ids }: { ids: number[] }) => (
+      <Profiler id="equal" onRender={() => void commits++}>
+        <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+          {ids.map((id) => (
+            <Message key={String(id)} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 20, boxSizing: "border-box" }}>
+              {`Message ${id}`}
+            </Message>
+          ))}
+        </MessageList>
+      </Profiler>
+    );
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    flushSync(() => root.render(<Equal ids={span(0, 300)} />));
+    // The mount and the measure of the rows drawn render four times in the task, the measure's render among them.
+    expect(commits).toBe(4);
+    const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    await settle(scroller);
+    const opened = scroller.scrollHeight;
+    while (scroller.scrollTop > 0) await scrollTo(scroller, Math.max(0, scroller.scrollTop - 400));
+    await settle(scroller);
+    expect(opened).toBe(scroller.scrollHeight);
+  });
+
   it("does not spend a second chunk on rows the first chunk has not drawn yet, when a frame runs before React commits it", async () => {
     let commits = 0;
     const list = (from: number, count: number) => (
