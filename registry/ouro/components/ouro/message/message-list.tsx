@@ -408,7 +408,7 @@ const SLOT = "data-ouro-message-list-slot";
  */
 const POST_AFTER = "data-ouro-message-list-after-post";
 /** Sets a slot's mark from the child of the slot before it, as it is now. */
-const markPostAfter = (slot: Element) => void slot.toggleAttribute(POST_AFTER, slot.previousElementSibling?.firstElementChild?.getAttribute("data-variant") === "post");
+const markPostAfter = (slot?: Element | null) => void slot?.toggleAttribute(POST_AFTER, slot.previousElementSibling?.firstElementChild?.getAttribute("data-variant") === "post");
 
 /**
  * Each child's height as last measured, by key, with its margins and without the gap before it; the gap; and the height
@@ -2163,8 +2163,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
       }
     };
     // The post marks go in before the early return below, since a child's variant can change on a render that reads nothing
-    // else. A mark that already holds writes nothing, and reading attributes and siblings forces no layout.
-    for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) markPostAfter(slot);
+    // else, and the counts the keyboard's marks place by with them. A mark that already holds writes nothing, and reading
+    // attributes, siblings and children forces no layout.
+    for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) {
+      markPostAfter(slot);
+      // Stryker disable next-line CallExpression: the window counts the children again just after this, and the observer that follows marks each message by those counts, so the marks end the same without this.
+      counts.current.set(slot.getAttribute(SLOT)!, topItems(slot).length);
+    }
     const now = viewRef.current;
     const last = synced.current;
     synced.current = now;
@@ -2178,9 +2183,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (before !== null) for (const key of now.keys) if (!before.has(key)) arriving.current.add(key);
     }
     // The keyboard's marks for the messages that come into the page go in first: a mark is a write, and a read of the layout
-    // after the write flushes the styles again. The counts they place by are the children's now.
-    // Stryker disable next-line CallExpression: the window counts the children again just after this, and the observer that follows marks each message by those counts, so the marks end the same without this.
-    for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) counts.current.set(slot.getAttribute(SLOT)!, topItems(slot).length);
+    // after the write flushes the styles again. The counts they place by were taken above.
     keyboardMark.current?.();
     windowSync.current(false);
   });
@@ -2690,10 +2693,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const observer = new MutationObserver((records) => {
       // A message that changes its variant without the list rendering re-renders its children, which the child list shows, so
       // no attribute is watched. The mark that moves is the next slot's, the only one that reads this slot.
-      for (const record of records) {
-        const next = (record.target as Element).closest(`[${SLOT}]`)?.nextElementSibling;
-        if (next) markPostAfter(next);
-      }
+      for (const { target } of records) markPostAfter((target as Element).closest(`[${SLOT}]`)?.nextElementSibling);
       // Stryker disable next-line ConditionalExpression,MethodExpression,BooleanLiteral: after only the bar moved, syncing finds and marks the same messages again; skipping it only spares the work.
       if (!records.every(barOnly)) sync(records.some(touchesItems));
     });
