@@ -136,6 +136,13 @@ describe("findMatches", () => {
     expect(slices("שָׁלוֹם", "שלום", "accents")).toEqual([]);
   });
 
+  it("treats a Hangul syllable and its jamo as the same letter", () => {
+    expect(slices("\u1112\u1161\u11ab", "\ud55c", "none")).toEqual(["\u1112\u1161\u11ab"]);
+    expect(slices("\ud55c", "\u1112\u1161\u11ab", "none")).toEqual(["\ud55c"]);
+    expect(slices("\ud558\u11ab", "\ud55c", "none")).toEqual(["\ud558\u11ab"]);
+    expect(slices("\u1112\u1161\u11ab", "\u1112", "none")).toEqual([]);
+  });
+
   it("slices every match back to text that equals the query once both are folded", () => {
     const words = ["Café", "ÉCOLE", "straße", "ﬁnal", "ΣΊΣΥΦΟΣ", "İstanbul", "ıspanak", "e\u0301", "plain", "🙂", "Ǆ", "ǆ"];
     for (const fold of ["none", "case", "accents", "all"] as const) {

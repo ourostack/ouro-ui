@@ -57,11 +57,20 @@ function foldUnit(unit: string, fold: FindFold, locale: string | undefined): str
   return out;
 }
 
-/** Splits text into letters, a character together with the marks that follow it. */
+const inRange = (char: string, low: number, high: number) => char.codePointAt(0)! >= low && char.codePointAt(0)! <= high;
+
+/** Whether `char` continues the letter `before` ends: a combining mark, or a Hangul vowel or final jamo after a jamo or syllable. */
+function continues(before: string, char: string): boolean {
+  if (anyMark.test(char)) return true;
+  const last = [...before].pop()!;
+  return inRange(char, 0x1160, 0x11ff) && (inRange(last, 0x1100, 0x11ff) || inRange(last, 0xac00, 0xd7a3));
+}
+
+/** Splits text into letters, a character together with the marks that follow it, and a Hangul syllable's jamo together. */
 function units(text: string): string[] {
   const out: string[] = [];
   for (const char of text) {
-    if (out.length > 0 && anyMark.test(char)) out[out.length - 1] += char;
+    if (out.length > 0 && continues(out[out.length - 1]!, char)) out[out.length - 1] += char;
     else out.push(char);
   }
   return out;
