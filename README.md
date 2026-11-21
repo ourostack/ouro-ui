@@ -489,6 +489,7 @@ Components:
 `pagination`,
 `popover`,
 `porthole`,
+`preview-bar`,
 `progress`,
 `radio-group`,
 `reaction-bar`,
@@ -776,6 +777,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Porthole** — The status spot: a small round window with one line about how current the app's data is, which opens into the facts behind it. [Docs](docs/Porthole.md)
 - **portholeStatus** — The agent read of a view: the stable, versioned JSON an agent reads through the status spot's `status` read and a CLI status command prints, so a person, the window and an agent see one truth. [Docs](docs/portholeStatus.md)
 - **portholeView** — Decides what the status spot shows, as a pure function of the service's snapshot, its last heartbeat and this clock, so a window, a CLI and a test reach the same answer. [Docs](docs/portholeView.md)
+- **PreviewBar** — A bar for trying a change before keeping it: the app shows a proposal live (a theme, a layout, an edit), and the bar says what it is and offers Keep, Throw away and Compare with the original. [Docs](docs/PreviewBar.md)
 - **Progress** — A bar that shows how far along a task is, or that it is under way when you can't tell. [Docs](docs/Progress.md)
 - **resetTimer** — Cancels or dismisses a timer by its timerId, including when its screen is not mounted. [Docs](docs/resetTimer.md)
 - **restoreTimer** — Imports a saved countdown, leaving an existing native timer intact. [Docs](docs/restoreTimer.md)
