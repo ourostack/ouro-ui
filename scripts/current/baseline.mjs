@@ -108,11 +108,13 @@ export async function lowerBaseline(files, ctx) {
   const paths = [];
   for (const path of Object.keys(files).filter((path) => LINTED.test(path) && !/(^|\/)node_modules\//.test(path)).sort()) {
     const was = await ctx.consumerFile(path);
-    if (!was || !was.equals(Buffer.from(files[path]))) paths.push(path);
+    // A file the update deletes has no hits left; one that already did not exist has none to lower.
+    if (files[path] === null ? was : !was || !was.equals(Buffer.from(files[path]))) paths.push(path);
   }
   if (!paths.length) return { files: out, notes };
-  const version = await pinnedOxlint(ctx);
-  if (!version) {
+  const linted = paths.filter((path) => files[path] !== null);
+  const version = linted.length ? await pinnedOxlint(ctx) : null;
+  if (linted.length && !version) {
     notes.push(`Leaves ${code(BASELINE)} as it was: Ouro Current could not tell which oxlint the repository pins (package.json and its lockfile), so it could not count the hits left in the files this update changes. If the lint fails on a count that fell, run it with --write-baseline and commit the result.`);
     return { files: out, notes };
   }
@@ -122,13 +124,13 @@ export async function lowerBaseline(files, ctx) {
   let now;
   try {
     if (raw) ({ text: config, dropped } = withoutJsPlugins(raw.toString("utf8")));
-    now = await count(paths, files, config, version);
+    now = linted.length ? await count(linted, files, config, version) : {};
   } catch (error) {
     const why = String(error.stderr || error.message).trim().split("\n")[0];
     notes.push(`Leaves ${code(BASELINE)} as it was: counting the hits left in the files this update changes, with oxlint ${code(version)}, failed: ${why.replace(/`/g, "'")}.`);
     return { files: out, notes };
   }
-  const counted = `counted with oxlint ${code(version)} and ${raw ? code(CONFIG) : "oxlint's default rules"}, as the repository pins them${dropped.size ? ` (the rules of its JavaScript plugins, ${[...dropped].sort().map(code).join(", ")}, are its own code, which Ouro Current does not run, so their counts stay as they were)` : ""}`;
+  const counted = !linted.length ? "which it deletes" : `counted with oxlint ${code(version)} and ${raw ? code(CONFIG) : "oxlint's default rules"}, as the repository pins them${dropped.size ? ` (the rules of its JavaScript plugins, ${[...dropped].sort().map(code).join(", ")}, are its own code, which Ouro Current does not run, so their counts stay as they were)` : ""}`;
   const baseline = JSON.parse(before.toString("utf8"));
   const rose = [];
   const fell = [];
