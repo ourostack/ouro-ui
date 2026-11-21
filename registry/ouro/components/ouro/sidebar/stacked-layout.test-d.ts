@@ -1,6 +1,11 @@
-import { createElement, type ComponentProps } from "react";
+import { type ComponentProps } from "react";
 import { expectTypeOf } from "vitest";
 import { StackedLayout, type StackedLayoutProps } from "@/registry/ouro/components/ouro/sidebar/stacked-layout";
+
+// A call site's props, typed as the component takes them. A case below keeps children in the props object because it
+// checks the props a call passes, children among them, and a .ts file has no JSX to put children in; an app's lint
+// (react(no-children-prop)) flags children passed in createElement's props, so the check doesn't call createElement.
+const propsOf = <P>(value: P): P => value;
 
 // Type tests: `pnpm typecheck` compiles this file.
 
@@ -27,4 +32,4 @@ expectTypeOf<{ navbar: "x"; children: "Page"; sticky: false }>().not.toExtend<St
 expectTypeOf<{ navbar: "x"; children: "Page"; as: "div" }>().toExtend<StackedLayoutProps>();
 expectTypeOf<{ navbar: "x"; children: "Page"; as: "section" }>().not.toExtend<StackedLayoutProps>();
 // @ts-expect-error navbar is required.
-createElement(StackedLayout, { children: "Page" });
+propsOf<ComponentProps<typeof StackedLayout>>({ children: "Page" });

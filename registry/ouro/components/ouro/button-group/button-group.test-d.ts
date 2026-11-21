@@ -1,6 +1,11 @@
-import { createElement } from "react";
+import { type ComponentProps } from "react";
 import { expectTypeOf } from "vitest";
 import { ButtonGroup, type ButtonGroupProps } from "@/registry/ouro/components/ouro/button-group/button-group";
+
+// A call site's props, typed as the component takes them. A case below keeps children in the props object because it
+// checks the props a call passes, children among them, and a .ts file has no JSX to put children in; an app's lint
+// (react(no-children-prop)) flags children passed in createElement's props, so the check doesn't call createElement.
+const propsOf = <P>(value: P): P => value;
 
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
 // fails the check if the line below it stops being an error.
@@ -19,6 +24,6 @@ expectTypeOf<{ label: "Pagination"; children: "x"; orientation: "vertical" }>().
 expectTypeOf<{ label: "Pagination"; children: "x"; isAttached: true }>().not.toExtend<ButtonGroupProps>();
 
 // @ts-expect-error label is required.
-createElement(ButtonGroup, { children: "x" });
+propsOf<ComponentProps<typeof ButtonGroup>>({ children: "x" });
 // @ts-expect-error variant goes on each Button.
-createElement(ButtonGroup, { label: "Pagination", variant: "outline", children: "x" });
+propsOf<ComponentProps<typeof ButtonGroup>>({ label: "Pagination", variant: "outline", children: "x" });

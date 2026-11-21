@@ -1,0 +1,1 @@
+- Fixed: The shipped type tests check a call's props without passing children as a prop, so an app that lints for `react(no-children-prop)` [gets no hits from them](scripts/app-lint.test.mjs "verify:testExists(scripts/app-lint.test.mjs::no file an item installs passes children as a prop)"), and an update can't raise that count under its ratchet.

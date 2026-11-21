@@ -2,6 +2,11 @@ import { createElement, type ComponentProps, type RefObject } from "react";
 import { expectTypeOf } from "vitest";
 import { Toolbar, type ToolbarEntry, type ToolbarProps } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 
+// A call site's props, typed as the component takes them. A case below keeps children in the props object because it
+// checks the props a call passes, children among them, and a .ts file has no JSX to put children in; an app's lint
+// (react(no-children-prop)) flags children passed in createElement's props, so the check doesn't call createElement.
+const propsOf = <P>(value: P): P => value;
+
 // Type tests: `pnpm typecheck` compiles this file, and every `@ts-expect-error`
 // fails the check if the line below it stops being an error.
 
@@ -67,7 +72,7 @@ expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; visi
 // @ts-expect-error a Toolbar is a row.
 createElement(Toolbar, { label: "Formatting", items, orientation: "vertical" });
 // @ts-expect-error the controls come from items.
-createElement(Toolbar, { label: "Formatting", items, children: "Bold" });
+propsOf<ComponentProps<typeof Toolbar>>({ label: "Formatting", items, children: "Bold" });
 // @ts-expect-error autoHide takes the milliseconds of rest.
 createElement(Toolbar, { label: "Call controls", items, autoHide: true });
 // @ts-expect-error the bar is controlled with hidden.
