@@ -53,29 +53,34 @@ export function useOptimisticAction<T>(base: T, options: OptimisticActionOptions
     describe.current = options.describe;
   });
 
-  const run = useCallback((apply: (current: T) => T, commit: () => Promise<unknown>) => {
-    const id = next.current++;
-    setReason(undefined);
-    setChanges((current) => [...current, { id, apply }]);
-    const settle = () => setChanges((current) => current.filter((change) => change.id !== id));
-    let attempt: Promise<unknown>;
-    try {
-      attempt = Promise.resolve(commit());
-    } catch (error) {
-      attempt = Promise.reject(error);
-    }
-    return attempt.then(
-      () => {
-        settle();
-        return true;
-      },
-      (error: unknown) => {
-        settle();
-        setReason(describe.current ? describe.current(error) : error instanceof Error && error.message ? error.message : "That didn't go through");
-        return false;
-      },
-    );
-  }, []);
+  const run = useCallback(
+    (apply: (current: T) => T, commit: () => Promise<unknown>) => {
+      // Stryker disable next-line UpdateOperator: counting down gives ids just as unique, and only uniqueness is read
+      const id = next.current++;
+      setReason(undefined);
+      setChanges((current) => [...current, { id, apply }]);
+      const settle = () => setChanges((current) => current.filter((change) => change.id !== id));
+      let attempt: Promise<unknown>;
+      try {
+        attempt = Promise.resolve(commit());
+      } catch (error) {
+        attempt = Promise.reject(error);
+      }
+      return attempt.then(
+        () => {
+          settle();
+          return true;
+        },
+        (error: unknown) => {
+          settle();
+          setReason(describe.current ? describe.current(error) : error instanceof Error && error.message ? error.message : "That didn't go through");
+          return false;
+        },
+      );
+    },
+    // Stryker disable next-line ArrayDeclaration: the dependency list is empty or a constant; either way run keeps one identity
+    [],
+  );
 
   return { value: changes.reduce((current, change) => change.apply(current), base), pending: changes.length > 0, reason, run };
 }

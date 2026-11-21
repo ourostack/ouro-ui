@@ -105,4 +105,28 @@ describe("useOptimisticAction", () => {
     await act(async () => void (await state.current.run((n) => n, () => Promise.reject(undefined))));
     expect(state.current.reason).toBe("That didn't go through");
   });
+
+  it("resolves true when the commit succeeds", async () => {
+    const state = await probe(0);
+    let result: boolean | undefined;
+    await act(async () => void (await state.current.run((n) => n + 1, () => Promise.resolve()).then((ok) => (result = ok))));
+    expect(result).toBe(true);
+  });
+
+  it("describes a refusal with the describe the latest render gave", async () => {
+    const state = {} as { current: OptimisticAction<number> };
+    function Probe({ word }: { word: string }) {
+      state.current = useOptimisticAction(0, { describe: () => word });
+      return null;
+    }
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Probe word="first" />));
+    await act(async () => root.render(<Probe word="second" />));
+    await act(async () => void (await state.current.run((n) => n, () => Promise.reject(new Error("x")))));
+    expect(state.current.reason).toBe("second");
+  });
 });
