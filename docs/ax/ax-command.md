@@ -8,9 +8,9 @@ One definition of a command: its words, effect, arguments and flags, examples an
 npx shadcn@latest add ourostack/ouro-ui/ax-command#v1.3.405
 ```
 
-It installs `lib/ouro/ax/command.ts`, with `ax-effects`, `ax-exit-codes`, `ax-outcome`, `ax-problem`, `ax-voice`, `ax-wait`. Its tests are `ax-command-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/ax-command.ts` and `lib/ouro/ax/ax-moved.d.ts`, with `ax-effects`, `ax-exit-codes`, `ax-outcome`, `ax-problem`, `ax-voice`, `ax-wait`. Its tests are `ax-command-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
-## Exports
+## Exports of ax-command.ts
 
 ### `AGENT_FLAG`
 
@@ -241,7 +241,7 @@ type InputValue = string | number | boolean | readonly string[];
 The tool's name and the command's words, as a fix or a help line writes them: `ouro-images`, or `tasks assign`.
 
 ```ts
-function invocation(cli: Pick<Cli<RunContext>, "name" | "defaultCommand">, cmd: CommandDef<unknown, RunContext>): string
+function invocation(cli: Pick<Cli<RunContext>, "defaultCommand" | "name">, cmd: CommandDef<unknown, RunContext>): string
 ```
 
 ### `JsonSchema`

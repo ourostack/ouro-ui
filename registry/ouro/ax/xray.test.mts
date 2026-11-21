@@ -5,7 +5,7 @@ import { createServer, type Server } from "node:http";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CLAIM_SET } from "#ouro-ax/claims.ts";
+import { CLAIM_SET } from "#ouro-ax/ax-claims.ts";
 import { ui as callUi } from "./fixtures/call-components.mts";
 import {
   audienceWho,
@@ -792,7 +792,7 @@ test("a CLI that asks for developer commands fails cli.no-dev-commands once per 
 test("a tool with one command conforms: its reads take the folder with no command word, and its help names none", async () => {
   const inventory = join(scratch, "inventory-images.json");
   writeFileSync(inventory, JSON.stringify({ cli: ["sizes"] }));
-  const report = await xray(base({ cli: fixture("images.mts"), state: ["site/showcase"], samples: { folder: "site/showcase" }, inventory, conformance: true }));
+  const report = await xray(base({ cli: fixture("images-cli.mts"), state: ["site/showcase"], samples: { folder: "site/showcase" }, inventory, conformance: true }));
   const failing = report.claims.filter((c) => c.fail).map((c) => `${c.id}: ${c.failing.map((f) => f.note).join("; ")}`);
   assert.deepEqual(failing, []);
   assert.equal(report.conformant, true);

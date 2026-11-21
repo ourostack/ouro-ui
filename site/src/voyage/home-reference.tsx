@@ -194,9 +194,9 @@ export function OuroAx(): JSX.Element {
         </div>
         <p className="mt-4 mb-0 text-sm text-muted-foreground">
           {claim("The agent's first try is refused in one line that names the fix, and nothing reaches the room until it says who asked.", {
-            source: [{ test: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" }, { test: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" }],
+            source: [{ test: "registry/ouro/ax/ax-command.test.mts::every refusal names the exact command to run instead" }, { test: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" }],
             verify: [
-              { testExists: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" },
+              { testExists: "registry/ouro/ax/ax-command.test.mts::every refusal names the exact command to run instead" },
               { testExists: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" },
             ],
           })}

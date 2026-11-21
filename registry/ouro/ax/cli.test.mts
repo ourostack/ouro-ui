@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import { defineChecks } from "#ouro-ax/checks.ts";
 import { doctorReport } from "#ouro-ax/doctor.ts";
 import { dispatch, isEmptyResult, printResult, quietPipes, runCli } from "#ouro-ax/cli.ts";
-import { checkOwner, defineCli, defineCommand, parse, type Cli, type Input, type Parsed, type RunContext } from "#ouro-ax/command.ts";
+import { checkOwner, defineCli, defineCommand, parse, type Cli, type Input, type Parsed, type RunContext } from "#ouro-ax/ax-command.ts";
 import { commandManifest } from "#ouro-ax/help.ts";
 import { exampleCli as cli, exits, postMessage, resetRooms, rooms, setClock } from "#ouro-ax/example-cli.ts";
 import { nextStep, outcome } from "#ouro-ax/outcome.ts";

@@ -9,7 +9,7 @@
 // agent's listening, not only the caller's). Two agents listen: inbox-agent and research-agent.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { quietPipes, runCli } from "#ouro-ax/cli.ts";
-import { defineCli, defineCommand, type CommandDef, type Input } from "#ouro-ax/command.ts";
+import { defineCli, defineCommand, type CommandDef, type Input } from "#ouro-ax/ax-command.ts";
 import { AxError } from "#ouro-ax/problem.ts";
 import { nextStep, outcome } from "#ouro-ax/outcome.ts";
 

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { APP_MARKERS, BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, DISCLOSURE_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, STATE_CLASSES_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_PLAIN_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { APP_MARKERS, BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, DISCLOSURE_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, STATE_CLASSES_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_PLAIN_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findMovedImports, MOVED_AX_IMPORTS, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -2015,6 +2015,31 @@ describe("loadConfig", () => {
         })).toThrow(`${CONFIG_PATH}: EACCES`);
     });
 });
+describe("moved Ouro AX imports", () => {
+  const moved = (files) => findMovedImports(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)] });
+  it("finds the old path wherever a TypeScript file imports it: a static import, an export from and a dynamic import()", () => {
+    expect(moved({
+      "app/a.ts": `import { defineCli } from "#ouro-ax/command.ts";\nexport * from "#ouro-ax/claims.ts";\nconst b = import("#ouro-ax/command.ts");\n`,
+      "app/b.tsx": `export { parse } from "#ouro-ax/command.ts";\nimport type { Claim } from "#ouro-ax/claims.ts";\n`,
+    })).toEqual([
+      { file: "app/a.ts", from: "#ouro-ax/command.ts", to: "#ouro-ax/ax-command.ts" },
+      { file: "app/a.ts", from: "#ouro-ax/claims.ts", to: "#ouro-ax/ax-claims.ts" },
+      { file: "app/a.ts", from: "#ouro-ax/command.ts", to: "#ouro-ax/ax-command.ts" },
+      { file: "app/b.tsx", from: "#ouro-ax/command.ts", to: "#ouro-ax/ax-command.ts" },
+      { file: "app/b.tsx", from: "#ouro-ax/claims.ts", to: "#ouro-ax/ax-claims.ts" },
+    ]);
+  });
+  it("ignores the new paths, a string that only mentions an old one, and a stylesheet", () => {
+    expect(moved({
+      "app/a.ts": `import { defineCli } from "#ouro-ax/ax-command.ts";\nconst note = "#ouro-ax/command.ts";\n`,
+      "app/style.css": `@import "#ouro-ax/command.ts";\n`,
+    })).toEqual([]);
+  });
+  it("maps each moved path to the file that replaced it", () => {
+    expect(MOVED_AX_IMPORTS).toEqual({ "#ouro-ax/command.ts": "#ouro-ax/ax-command.ts", "#ouro-ax/claims.ts": "#ouro-ax/ax-claims.ts" });
+  });
+});
+
 describe("main", () => {
     const files = {
         "/repo/app/routes/a.tsx": `export function A() { return <button type="button" />; }`,
@@ -2047,6 +2072,21 @@ describe("main", () => {
     const A = "app/routes/a.tsx::A::raw-button::button::type=button";
     const B = "app/routes/b.tsx::B::raw-anchor::a::";
     const matching = `${JSON.stringify({ offenders: { "app/routes/a.tsx::A::raw-button::button::type=button": 1 } }, null, 2)}\n`;
+    it("stops on an app file that imports a moved Ouro AX file before the baseline is read, naming the file and the fix", () => {
+        const { deps, io, exit, writeFile } = setup(matching, { "/repo/app/routes/c.tsx": `import { defineCli } from "#ouro-ax/command.ts";\nexport const c = defineCli;\n` });
+        main([], deps);
+        expect(io.error).toHaveBeenCalledWith("app/routes/c.tsx imports #ouro-ax/command.ts, which moved. Fix: import from #ouro-ax/ax-command.ts.");
+        expect(io.error).not.toHaveBeenCalledWith(expect.stringContaining("New hand-rolled control"));
+        expect(exit).toHaveBeenCalledWith(1);
+        expect(writeFile).not.toHaveBeenCalled();
+    });
+    it("cannot baseline a moved Ouro AX import: --write-baseline with a reason still stops and writes nothing", () => {
+        const { deps, io, exit, writeFile } = setup(undefined, { "/repo/app/routes/c.tsx": `import { defineCli } from "#ouro-ax/claims.ts";\nexport const c = defineCli;\n` });
+        main(["--write-baseline", "--allow-regression", "moved"], deps);
+        expect(io.error).toHaveBeenCalledWith("app/routes/c.tsx imports #ouro-ax/claims.ts, which moved. Fix: import from #ouro-ax/ax-claims.ts.");
+        expect(exit).toHaveBeenCalledWith(1);
+        expect(writeFile).not.toHaveBeenCalled();
+    });
     it("passes when the scan equals the baseline", () => {
         const { deps, io, exit, writeFile } = setup(matching);
         main([], deps);

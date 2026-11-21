@@ -393,8 +393,10 @@ function axItem(rest: string): string {
   if (rest.startsWith("fixtures/flows-")) return "ax-flows-tests";
   if (rest.startsWith("fixtures/")) return "ax-xray-tests";
   if (rest === "example-cli.ts") return "ax-example";
+  if (rest === "ax-moved.d.ts") return "ax-command";
   const stem = rest.replace(/\.test\.mts$|\.kit\.mts$|\.ts$/, "");
-  const owner = stem === "help" ? "cli" : stem;
+  // ax-command.ts and ax-claims.ts keep the item names their old files had, so the prefix goes.
+  const owner = stem === "help" ? "cli" : stem.replace(/^ax-/, "");
   return rest.endsWith(".test.mts") ? `ax-${owner}-tests` : `ax-${owner}`;
 }
 
@@ -634,7 +636,7 @@ export function buildRegistry(root: string): Registry {
   const axTests = axNames.filter((name) => name.endsWith("-tests"));
   /** An ax item's purpose: the first sentence of the first JSDoc comment in its main file. */
   const axPurpose = (name: string) => {
-    const main = shipped(name).find((path) => path.endsWith(`/${name.slice(3)}.ts`)) ?? shipped(name)[0]!;
+    const main = shipped(name).find((path) => path.endsWith(`/${name.slice(3)}.ts`) || path.endsWith(`/${name}.ts`)) ?? shipped(name)[0]!;
     const comment = readFileSync(join(root, main), "utf8").match(/\/\*\*([\s\S]*?)\*\//)?.[1] ?? "";
     const text = comment.replace(/^\s*\* ?/gm, " ").replace(/\s+/g, " ").trim();
     const sentence = text.match(/^(.+?[.!?])(\s|$)/)?.[1];

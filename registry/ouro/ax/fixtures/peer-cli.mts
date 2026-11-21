@@ -1,7 +1,7 @@
 // A tool built from the kit whose commands share a first word with no group summary, for the X-ray's tests:
 // `node fixtures/peer-cli.mts <args>`. Its overview lists "peer inbox" and "peer send" by their whole names.
 import { quietPipes, runCli } from "#ouro-ax/cli.ts";
-import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { defineCli, defineCommand } from "#ouro-ax/ax-command.ts";
 
 const tool = defineCli({
   name: "pal",

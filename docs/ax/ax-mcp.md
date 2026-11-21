@@ -86,5 +86,5 @@ function serveMcp(options: McpOptions & { input: AsyncIterable<string | Uint8Arr
 "draft set" is the tool draft_set; the default command is word-less, so it is the tool itself, named after the tool.
 
 ```ts
-const toolName: (cli: Pick<Cli<RunContext>, "name" | "defaultCommand">, cmd: CommandDef<unknown, RunContext>) => string
+const toolName: (cli: Pick<Cli<RunContext>, "defaultCommand" | "name">, cmd: CommandDef<unknown, RunContext>) => string
 ```
