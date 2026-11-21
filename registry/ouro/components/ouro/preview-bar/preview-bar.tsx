@@ -185,18 +185,22 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
 
   const handoff = useFocusHandoff<HTMLDivElement>();
   const activates = (event: KeyboardEvent<HTMLButtonElement>) => event.key === " " || event.key === "Enter";
+  const listening = useRef<AbortController | null>(null);
+  useEffect(() => () => listening.current?.abort(), []);
   const pointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return;
     begin();
     // The press ends wherever the pointer is let go, even off the button.
+    listening.current?.abort();
+    const controller = new AbortController();
+    listening.current = controller;
     const release = () => {
+      controller.abort();
       pointerEnded.current = performance.now();
       end();
-      window.removeEventListener("pointerup", release);
-      window.removeEventListener("pointercancel", release);
     };
-    window.addEventListener("pointerup", release);
-    window.addEventListener("pointercancel", release);
+    window.addEventListener("pointerup", release, { signal: controller.signal });
+    window.addEventListener("pointercancel", release, { signal: controller.signal });
   };
 
   return (

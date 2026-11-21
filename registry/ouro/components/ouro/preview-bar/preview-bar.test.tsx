@@ -317,6 +317,21 @@ describe("PreviewBar", () => {
       expect(part("compare").getAttribute("aria-pressed")).toBe("false");
     });
 
+    it("stops listening for the pointer's release when the bar goes away mid-press, and when a second press starts", async () => {
+      const signals: AbortSignal[] = [];
+      const add = window.addEventListener.bind(window);
+      vi.spyOn(window, "addEventListener").mockImplementation(((type: string, listener: EventListener, options?: AddEventListenerOptions) => {
+        if (type === "pointerup" && options?.signal) signals.push(options.signal);
+        add(type, listener, options);
+      }) as typeof window.addEventListener);
+      const { part, rerender } = await render(<PreviewBar {...props()} />);
+      await pointer(part("compare"), "pointerdown");
+      await pointer(part("compare"), "pointerdown");
+      expect(signals.map((signal) => signal.aborted)).toEqual([true, false]);
+      await rerender(null);
+      expect(signals[1]!.aborted).toBe(true);
+    });
+
     it("stops listening for the key when the bar goes away, and tells the app the original is not shown", async () => {
       clock();
       const p = props();
