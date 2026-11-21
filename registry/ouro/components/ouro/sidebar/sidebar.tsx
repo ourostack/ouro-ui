@@ -174,7 +174,7 @@ const row =
   "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 const railRow = "justify-center px-0";
-const iconSlot = "flex size-ouro-5 shrink-0 items-center justify-center text-sm [&_svg]:shrink-0";
+const iconSlot = "flex size-ouro-5 shrink-0 items-center justify-center text-sm [&_svg]:size-ouro-5 [&_svg]:shrink-0";
 const list = "m-0 grid list-none gap-1 p-0";
 const example = '<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", href: "/recipes" }] }]}';
 
@@ -437,7 +437,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className={cn("size-ouro-4 shrink-0 rtl:-scale-x-100", item.badge === undefined && "ms-auto", open && "rotate-90 rtl:-rotate-90")}
+                    className={cn("size-ouro-4 shrink-0 rtl:-scale-x-100", open && "rotate-90 rtl:-rotate-90")}
                   >
                     <path d="m6 4 4 4-4 4" />
                   </svg>

@@ -145,6 +145,22 @@ describe("Sidebar", () => {
     expect(measure()).toEqual(["2px", 16, 20, 20]);
   });
 
+  it("puts a group's chevron at the row's end, after a badge when it has one, and turns it while the group is open", async () => {
+    const sections = [{ items: [{ label: "Library", items: [{ label: "Cookbooks", href: "/cookbooks" }] }, { label: "Shelves", badge: 3, items: [{ label: "Top", href: "/top" }] }] }];
+    const { host } = await render(<Sidebar label="Main" sections={sections} />);
+    const [plain, badged] = [...host.querySelectorAll<HTMLElement>('[data-ouro-part="group"]')];
+    const chevron = (group: HTMLElement) => group.querySelector<SVGElement>(":scope > svg")!;
+    const end = (group: HTMLElement) => group.getBoundingClientRect().right - parseFloat(getComputedStyle(group).paddingRight);
+    for (const group of [plain!, badged!]) expect(Math.abs(chevron(group).getBoundingClientRect().right - end(group))).toBeLessThanOrEqual(1);
+    const badge = badged!.querySelector<HTMLElement>("[data-ouro-sidebar-badge]")!;
+    expect(Math.abs(chevron(badged!).getBoundingClientRect().left - badge.getBoundingClientRect().right - parseFloat(getComputedStyle(badged!).columnGap))).toBeLessThanOrEqual(1);
+    expect(getComputedStyle(chevron(plain!)).rotate).toBe("none");
+    await userEvent.click(plain!);
+    expect(plain!.getAttribute("aria-expanded")).toBe("true");
+    expect(getComputedStyle(chevron(plain!)).rotate).toBe("90deg");
+    expect(getComputedStyle(chevron(badged!)).rotate).toBe("none");
+  });
+
   it("keeps each row's edge under forced colours, which drop its fill", async () => {
     await render(<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", href: "/recipes" }] }]} />);
     await commands.emulateMedia({ forcedColors: "active" });
