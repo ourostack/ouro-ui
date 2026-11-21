@@ -1,0 +1,54 @@
+name: MessageList paint frames
+# Probe: the Linux WebKit frame comparison of MessageList's OlderHistory and OlderHistoryDrawn stories across the carry
+# and slot variants (registry/ouro/e2e/probes/message-list-paint-frames.spec.ts, ourostack/ouro-ui#2735), which CI's e2e
+# shards do not run. Dispatched by hand only; reports its numbers in the job's log.
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Runs per variant, per story
+        required: false
+        default: "3"
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: message-list-paint-frames
+  cancel-in-progress: false
+jobs:
+  frames:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # In Playwright's image, as ci.yml's e2e shards are (see skeleton-frames.yml, which this probe follows).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      max-parallel: 1
+      matrix:
+        project: [webkit]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - id: measure
+        name: Measure
+        env:
+          CI: "true"
+          PROJECT: ${{ matrix.project }}
+          OURO_PROBE_RUNS: ${{ inputs.runs }}
+        run: pnpm exec playwright test --config playwright.probes.config.ts --project "$PROJECT" registry/ouro/e2e/probes/message-list-paint-frames.spec.ts
+      - if: always()
+        env:
+          PROJECT: ${{ matrix.project }}
+          OUTCOME: ${{ steps.measure.outcome }}
+        run: |
+          echo "MessageList paint frames probe, $PROJECT: $OUTCOME" >> "$GITHUB_STEP_SUMMARY"
