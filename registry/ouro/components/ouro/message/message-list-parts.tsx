@@ -22,8 +22,8 @@ const findMarks =
   "forced-colors:[&::highlight(ouro-find-current)]:bg-[Highlight] forced-colors:[&::highlight(ouro-find-current)]:text-[HighlightText]";
 
 /**
- * Counts the matches of a MessageList's `find` in its messages' own text, reports them, and draws them in the page. It renders
- * nothing, and loads only with the first list that has `find`, so a list without it carries none of this code.
+ * Counts the matches of a MessageList's `find` in its messages' own text, reports them, and draws them in the page. A list
+ * loads it when `find` is set.
  *
  * @internal
  */
