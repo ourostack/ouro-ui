@@ -20,7 +20,7 @@ const rows = [
   { key: "c", text: "a last fox" },
 ];
 
-function Harness({ query, current, reduced = false, tall = false, roomy = false, none = false, fold, locale }: { none?: boolean; fold?: "none" | "case" | "accents" | "all"; locale?: string; query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean }) {
+function Harness({ query, current, reduced = false, tall = false, roomy = false, none = false, stray = false, shortA = false, fold, locale }: { stray?: boolean; shortA?: boolean; none?: boolean; fold?: "none" | "case" | "accents" | "all"; locale?: string; query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean }) {
   const scroller = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const find = { query, ...(fold ? { fold } : {}), ...(locale ? { locale } : {}) };
@@ -32,10 +32,15 @@ function Harness({ query, current, reduced = false, tall = false, roomy = false,
         {rows.map((row, index) => (
           <p key={row.key} data-key={row.key} style={{ margin: 0, height: tall ? 400 : roomy ? 60 : undefined }}>
             <span data-ouro-message-content="" data-index={index}>
-              {row.text}
+              {shortA && row.key === "a" ? "one fox" : row.text}
             </span>
           </p>
         ))}
+        {stray ? (
+          <p data-key="z">
+            <span data-ouro-message-content="">a stray fox</span>
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -122,6 +127,18 @@ describe("useFindHighlights", () => {
     expect(await moveFor(160, 200)).toBe(0);
     expect(await moveFor(240, 252)).toBe(0);
     expect(await moveFor(250, 270)).toBe(18);
+  });
+
+  it("leaves out an element the result has no matches for, even when its text matches", async () => {
+    await mount({ query: "fox", current: 0, stray: true });
+    expect(drawn(ALL_MATCHES)).toEqual(["fox", "fox"]);
+    expect(drawn(CURRENT_MATCH)).toEqual(["fox"]);
+  });
+
+  it("falls back to the last drawn match of a message when the text drawn has fewer than the result counted", async () => {
+    await mount({ query: "fox", current: 1, shortA: true });
+    expect(drawn(CURRENT_MATCH)).toEqual(["fox"]);
+    expect(drawn(ALL_MATCHES)).toEqual(["fox"]);
   });
 
   it("puts the current highlight on the occurrence the index names", async () => {

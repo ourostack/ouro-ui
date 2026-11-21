@@ -74,6 +74,7 @@ function useFindHighlights(options: {
         const key = element.getAttribute(slot)!;
         if (!now.counts.has(key)) continue;
         const found = [...element.querySelectorAll("[data-ouro-message-content]")].flatMap((part) => rangesIn(part, spec));
+        // Stryker disable next-line OptionalChaining: goal is null only when the result has no matches, and then no element passes the counts check above.
         const place = goal?.key === key ? Math.min(goal.occurrence, found.length - 1) : -1;
         found.forEach((range, index) => (index === place ? (currentRange = range) : others.push(range)));
       }
