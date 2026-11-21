@@ -89,8 +89,8 @@
   },
   "android": {
     "repo": "ourostack/ouro-ui-android",
-    "tag": "v0.7.0",
-    "commit": "42378463d033f34b6610835e5247df29ea270343",
+    "tag": "v0.9.0",
+    "commit": "ed5ad0f74837fea89d87502e9a2ffc4e7bd17033",
     "components": [
       {
         "name": "OuroBadge",
@@ -125,8 +125,20 @@
         "web": "dialog"
       },
       {
+        "name": "OuroField",
+        "web": "field"
+      },
+      {
         "name": "OuroItem",
         "web": "item"
+      },
+      {
+        "name": "OuroItemGroup",
+        "web": "item-group"
+      },
+      {
+        "name": "OuroSelect",
+        "web": "select"
       },
       {
         "name": "OuroSeparator",
@@ -135,6 +147,18 @@
       {
         "name": "OuroSheet",
         "web": "sheet"
+      },
+      {
+        "name": "OuroSidebar",
+        "web": "sidebar"
+      },
+      {
+        "name": "OuroSwipeActions",
+        "web": "swipe-actions"
+      },
+      {
+        "name": "OuroSwitch",
+        "web": "switch"
       },
       {
         "name": "OuroTabBar",
@@ -160,8 +184,8 @@
   },
   "windows": {
     "repo": "ourostack/ouro-ui-windows",
-    "tag": "v0.6.0",
-    "commit": "9048aa47b7e4461dba21d35ff80ff38dde29439b",
+    "tag": "v0.8.0",
+    "commit": "93dbd1401a7f28b36f4fa66c4bff8a02f4ad41af",
     "components": [
       {
         "name": "OuroBadge",
@@ -196,8 +220,16 @@
         "web": "dialog"
       },
       {
+        "name": "OuroField",
+        "web": "field"
+      },
+      {
         "name": "OuroItem",
         "web": "item"
+      },
+      {
+        "name": "OuroItemGroup",
+        "web": "item-group"
       },
       {
         "name": "OuroListButton",
@@ -206,6 +238,10 @@
       {
         "name": "OuroNavButton",
         "web": "nav-button"
+      },
+      {
+        "name": "OuroSelect",
+        "web": "select"
       },
       {
         "name": "OuroSeparator",
@@ -222,6 +258,10 @@
       {
         "name": "OuroSidebarButton",
         "web": "sidebar-button"
+      },
+      {
+        "name": "OuroSwitch",
+        "web": "switch"
       },
       {
         "name": "OuroTabBar",
