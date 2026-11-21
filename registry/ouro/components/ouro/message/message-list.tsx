@@ -2125,6 +2125,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ConditionalExpression: the check before it already leaves the band drawn alone; this one only spares a render that draws the same rows, when two syncs in a task land on one band.
       if (band?.id !== id) {
         setting.current = id;
+        // Stryker disable next-line ConditionalExpression: when two syncs in a task land on one band, the band already set is returned, which spares a render that draws the same rows.
         setBand((now) => (now?.id === id ? now : { id, from: keys[from]!, to: keys[to]!, held: new Set(inBand) }));
       }
     };
