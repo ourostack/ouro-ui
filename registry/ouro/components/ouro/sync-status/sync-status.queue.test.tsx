@@ -73,6 +73,34 @@ describe("SyncStatus queue", () => {
     expect(document.activeElement).toBe(host.querySelector('[data-ouro="sync-status"] > p:not([aria-hidden])'));
   });
 
+  it("leaves focus where it is when the list goes, and while it stays", async () => {
+    const onCancel = vi.fn();
+    const { host, rerender } = await render(
+      <>
+        <SyncStatus status="saving" queue={writes} onCancel={onCancel} />
+        <button type="button" data-test-harness id="elsewhere">Elsewhere</button>
+      </>,
+    );
+    const cancel = host.querySelector<HTMLButtonElement>('[data-ouro-part="cancel"]')!;
+    cancel.focus();
+    await rerender(
+      <>
+        <SyncStatus status="offline" queue={writes} onCancel={onCancel} />
+        <button type="button" data-test-harness id="elsewhere">Elsewhere</button>
+      </>,
+    );
+    expect(document.activeElement).toBe(cancel);
+    const elsewhere = host.querySelector<HTMLButtonElement>("#elsewhere")!;
+    elsewhere.focus();
+    await rerender(
+      <>
+        <SyncStatus status="saved" queue={[]} onCancel={onCancel} />
+        <button type="button" data-test-harness id="elsewhere">Elsewhere</button>
+      </>,
+    );
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
   it("hands focus to the next write's Cancel when a middle one is cancelled, and to the line after the last", async () => {
     function Queue() {
       const [queue, setQueue] = useState<QueuedWrite[]>([...writes]);

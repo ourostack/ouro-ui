@@ -274,6 +274,7 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
   const waitingText = word.waiting.replace("{count}", String(waiting));
   // The list goes when the last write leaves, cancelled or sent: if it held focus, the status line takes it.
   const listRef = useCallback((list: HTMLUListElement | null) => {
+    // Stryker disable next-line ConditionalExpression: React 19 never calls a ref that returned a cleanup with null; this guard serves React 18
     if (list === null) return undefined;
     return () => {
       if (list.contains(list.ownerDocument.activeElement)) line.current?.focus();
