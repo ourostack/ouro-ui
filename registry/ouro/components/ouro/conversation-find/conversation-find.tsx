@@ -122,20 +122,23 @@ export function ConversationFind({
     opener?.focus();
   };
 
-  useEffect(() => {
-    const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.defaultPrevented || event.altKey) return;
-      const find = event.key === "F3" && !event.ctrlKey && !event.metaKey;
-      const again = event.code === "KeyG" && event.metaKey !== event.ctrlKey;
-      if (!find && !again) return;
-      event.preventDefault();
-      const next = stepFrom(latest.current.current, latest.current.count, event.shiftKey ? -1 : 1);
-      if (next !== null) latest.current.onCurrentChange(next);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  // Stryker disable next-line ArrayDeclaration: the effect reads only the latest ref, so its dependencies never change what it does
-  }, []);
+  useEffect(
+    () => {
+      const onKey = (event: globalThis.KeyboardEvent) => {
+        if (event.defaultPrevented || event.altKey) return;
+        const find = event.key === "F3" && !event.ctrlKey && !event.metaKey;
+        const again = event.code === "KeyG" && event.metaKey !== event.ctrlKey;
+        if (!find && !again) return;
+        event.preventDefault();
+        const next = stepFrom(latest.current.current, latest.current.count, event.shiftKey ? -1 : 1);
+        if (next !== null) latest.current.onCurrentChange(next);
+      };
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    },
+    // Stryker disable next-line ArrayDeclaration: the effect reads only the latest ref, so its dependencies never change what it does
+    [],
+  );
 
   const words = resultWords(current, count, noMatchesLabel, resultLabel);
   const said = query === "" ? "" : partial && current !== null ? `${words}+` : words;
