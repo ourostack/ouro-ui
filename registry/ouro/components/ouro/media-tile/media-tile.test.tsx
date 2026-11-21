@@ -336,7 +336,7 @@ describe("MediaTile", () => {
   it("grows the photo with the tile, 64px until the tile is measured", async () => {
     const html = renderToString(<MediaTile name="Mara Lind" />);
     const doc = new DOMParser().parseFromString(html, "text/html");
-    expect(doc.querySelector('[data-ouro="avatar"]')!.className).toContain("size-16");
+    expect(doc.querySelector('[data-ouro="avatar"]')!.className).toContain("size-ouro-16");
     for (const [tileWidth, photo] of [
       [120, 32],
       [240, 48],
