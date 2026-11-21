@@ -75,6 +75,7 @@ const componentFiles = [
   "registry/ouro/lib/ouro/share.ts",
   "registry/ouro/lib/ouro/use-install-prompt.ts",
   "registry/ouro/lib/ouro/use-prefetch-intent.ts",
+  "registry/ouro/lib/ouro/use-loading-visible.ts",
   "registry/ouro/lib/ouro/claims.ts",
   "registry/ouro/lib/ouro/people-cache.ts",
   "registry/ouro/lib/ouro/use-person.ts",
