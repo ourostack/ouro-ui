@@ -4,7 +4,7 @@
 // disagrees with its JSON; DOCTOR_SHARED=1 passes the share check.
 import { defineChecks } from "#ouro-ax/checks.ts";
 import { quietPipes, runCli } from "#ouro-ax/cli.ts";
-import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { defineCli, defineCommand } from "#ouro-ax/ax-command.ts";
 import { BASE_EXIT_CODES, defineExitCodes, FINDINGS_EXIT_CODE } from "#ouro-ax/exit-codes.ts";
 
 const exits = defineExitCodes([...BASE_EXIT_CODES, FINDINGS_EXIT_CODE]);

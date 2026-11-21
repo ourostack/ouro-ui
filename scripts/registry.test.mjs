@@ -334,6 +334,19 @@ test("every registry file ships in exactly one item, except the repository's own
   assert.throws(() => itemForFile("registry/ouro/components/ouro/unregistered/unregistered.tsx"), /unregistered\.tsx.*no item/);
 });
 
+test("no two files an item ships share a base name, so shadcn resolves each import to its own file", () => {
+  // shadcn 4.21.1 resolves an import by base name, so two files sharing one can each be installed as the other (#2757).
+  const byBase = new Map();
+  for (const entry of registry.items) {
+    for (const { path } of entry.files ?? []) {
+      const base = path.split("/").at(-1).replace(/\.[^.]+$/, "");
+      byBase.set(base, [...(byBase.get(base) ?? []), path]);
+    }
+  }
+  const clashes = [...byBase].filter(([, paths]) => paths.length > 1).map(([base, paths]) => `${paths.join(" and ")} share the base name "${base}". shadcn resolves an import by base name, so it can install one of them as the other. Fix: rename one of them so that no two shipped files share a base name.`);
+  assert.deepEqual(clashes, [], clashes.join("\n"));
+});
+
 test("registryDependencies are the same-repo items each item imports, as full unpinned addresses", () => {
   const notHelpers = (name) => item(name).registryDependencies.filter((dependency) => !dependency.startsWith(repo("lib-")));
   assert.deepEqual(notHelpers("dialog"), [repo("sheet")]);
@@ -353,7 +366,7 @@ test("registryDependencies are the same-repo items each item imports, as full un
 });
 
 test("Ouro AX items depend on the ax items they import", () => {
-  assert.equal(itemForFile("registry/ouro/ax/command.ts"), "ax-command");
+  assert.equal(itemForFile("registry/ouro/ax/ax-command.ts"), "ax-command");
   assert.equal(itemForFile("registry/ouro/ax/help.ts"), "ax-cli");
   assert.equal(itemForFile("registry/ouro/ax/help.test.mts"), "ax-cli-tests");
   assert.equal(itemForFile("registry/ouro/ax/example-cli.ts"), "ax-example");
@@ -407,7 +420,7 @@ test("npm dependencies are pinned to the ranges this repository tests", () => {
 
 test("Ouro check installs under scripts/ouro/check/, beside the Ouro AX items its imports name, as ouro-images does", () => {
   assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/check.ts").target, "~/scripts/ouro/check/check.ts");
-  assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/register.ts").type, "registry:file");
+  assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/check-register.ts").type, "registry:file");
   for (const name of ["ax-cli", "ax-command", "ax-exit-codes", "ax-outcome", "ax-problem"]) assert.ok(item("ouro-check").registryDependencies.includes(repo(name)), name);
   // images.kit.mts names the shared kit: the CLI rewrites a # import in a .ts file it installs, but not in an .mts file.
   assert.deepEqual(item("ouro-images").files.map((file) => file.target).sort(), ["~/scripts/ouro/images/images.kit.mts", "~/scripts/ouro/images/images.ts"]);

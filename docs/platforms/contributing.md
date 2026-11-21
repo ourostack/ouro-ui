@@ -38,5 +38,5 @@ Ouro AX's standard is a list of claims: rules a program can check from outside a
 
 [^core]: https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/README.md#whats-inside verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/README.md#whats-inside)
 [^pinning]: https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/README.md#pinning-a-core-release verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/README.md#pinning-a-core-release)
-[^admission]: test:registry/ouro/ax/claims.test.mts::the claim set follows its own admission rule: every must claim cites a run or states a hazard verify:testExists(registry/ouro/ax/claims.test.mts::the claim set follows its own admission rule: every must claim cites a run or states a hazard)
+[^admission]: test:registry/ouro/ax/ax-claims.test.mts::the claim set follows its own admission rule: every must claim cites a run or states a hazard verify:testExists(registry/ouro/ax/ax-claims.test.mts::the claim set follows its own admission rule: every must claim cites a run or states a hazard)
 [^trademark]: https://www.apple.com/legal/intellectual-property/guidelinesfor3rdparties.html verify:urlOk(https://www.apple.com/legal/intellectual-property/guidelinesfor3rdparties.html)

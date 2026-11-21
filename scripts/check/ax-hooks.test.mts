@@ -9,7 +9,7 @@ import { dir, root } from "./kit.mts";
 // The check's resolver (registry/ouro/check/ax-hooks.ts, registered by register.ts): #ouro-ax/<file> resolves to the app's
 // own kit when package.json has no imports entry for it, so the check runs in an app as the CLI installs it.
 
-const register = pathToFileURL(join(root, "registry/ouro/check/register.ts")).href;
+const register = pathToFileURL(join(root, "registry/ouro/check/check-register.ts")).href;
 const node = (cwd: string, args: string[]) => spawnSync(process.execPath, args, { cwd, encoding: "utf8" });
 const MOVED = ["xray.ts", "flows.ts", "surfaces.ts"];
 

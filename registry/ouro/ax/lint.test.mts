@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { defineCli, defineCommand } from "#ouro-ax/ax-command.ts";
 import { exampleCli } from "#ouro-ax/example-cli.ts";
 import { lintCli } from "#ouro-ax/lint.ts";
 

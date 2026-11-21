@@ -2,7 +2,7 @@ import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createMcpHandler as createRawHandler, mcpTools, PROTOCOL_VERSIONS, serveMcp } from "#ouro-ax/mcp.ts";
 import { AxError } from "#ouro-ax/problem.ts";
-import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { defineCli, defineCommand } from "#ouro-ax/ax-command.ts";
 import { exampleCli as cli, resetRooms, rooms } from "#ouro-ax/example-cli.ts";
 import { outcome } from "#ouro-ax/outcome.ts";
 import { wait } from "#ouro-ax/wait.ts";

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkInput, defineCli, defineCommand, exampleArgv, findCommand, inputSchema, invocation, parse, toArgv, usageOf, type Parsed } from "#ouro-ax/command.ts";
+import { checkInput, defineCli, defineCommand, exampleArgv, findCommand, inputSchema, invocation, parse, toArgv, usageOf, type Parsed } from "#ouro-ax/ax-command.ts";
 import { renderCommand } from "#ouro-ax/help.ts";
 import { AxError } from "#ouro-ax/problem.ts";
 import { DEFAULT_OUTCOME_EXITS } from "#ouro-ax/outcome.ts";

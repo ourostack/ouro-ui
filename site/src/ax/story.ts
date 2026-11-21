@@ -78,12 +78,12 @@ export const MORNING: Beat[] = [
     seen: LATE_SEEN,
     steps: TRANSCRIPTS.late,
     why: claim("The message goes in as an argument, not piped in. That is one of two rules we wrote from where agents in our runs went wrong, and together they took the same agent from 5 of 10 runs to 10 of 10. The refusal that names its fix already held before them, and agents recovered from it.", {
-      source: [{ evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md" }, { test: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" }],
+      source: [{ evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md" }, { test: "registry/ouro/ax/ax-command.test.mts::every refusal names the exact command to run instead" }],
       verify: [
         { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md", pattern: "Standard 0\\.2 adds them as `cli\\.text-as-argument` and `cli\\.wait-on-refs`" },
         { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md", pattern: "Fixing those two claims took the same agent from 5\\/10 to 10\\/10" },
         { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-probe.md", pattern: "recovered from one-line errors that name the fix" },
-        { testExists: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" },
+        { testExists: "registry/ouro/ax/ax-command.test.mts::every refusal names the exact command to run instead" },
       ],
     }),
     figure: {
@@ -153,9 +153,9 @@ export const MORNING: Beat[] = [
     ],
     steps: TRANSCRIPTS.edit,
     why: claim("A word that could mean two things does nothing. It answers with both meanings, so the agent asks its person instead of guessing.", {
-      source: [{ test: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" }, { file: "registry/ouro/ax/example-cli.ts" }],
+      source: [{ test: "registry/ouro/ax/ax-command.test.mts::every refusal names the exact command to run instead" }, { file: "registry/ouro/ax/example-cli.ts" }],
       verify: [
-        { testExists: "registry/ouro/ax/command.test.mts::every refusal names the exact command to run instead" },
+        { testExists: "registry/ouro/ax/ax-command.test.mts::every refusal names the exact command to run instead" },
         { fileLine: "registry/ouro/ax/example-cli.ts", pattern: "\\[\"edit\", \"delete\", \"remove\"\\]" },
       ],
     }),

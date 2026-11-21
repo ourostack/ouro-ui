@@ -249,7 +249,7 @@ export function checkSources(app, root, aliases) {
       .replace(specifier(aliases.components), '$1"@/registry/ouro/components/ouro/')
       .replace(specifier(aliases.lib), '$1"@/registry/ouro/lib/ouro/')
       .replace(at("@/registry/ouro/lib/ouro/ax"), '$1"@/registry/ouro/ax/');
-  // shadcn drops a TypeScript extension as it rewrites an import: `@/registry/ouro/ax/command.ts` installs as `~/lib/ouro/ax/command`.
+  // shadcn drops a TypeScript extension as it rewrites an import: `@/registry/ouro/ax/ax-command.ts` installs as `~/lib/ouro/ax/ax-command`.
   const extensionless = (text) => text.replace(new RegExp(`${at("@/registry/ouro").source}([^"\\n]*?)\\.tsx?"`, "gm"), '$1"@/registry/ouro/$2"');
   const sources = treeFiles(join(root, "registry/ouro")).map((file) => `registry/ouro/${file}`);
   for (const path of sources) {

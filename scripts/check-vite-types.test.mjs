@@ -35,7 +35,7 @@ function viteApp(files, broken) {
     cpSync(join(root, from), join(app, to));
   }
   mkdirSync(join(app, "src"), { recursive: true });
-  writeFileSync(join(app, "src/main.ts"), broken ? `import { defineCommand } from "./lib/ouro/ax/command.ts";\nexport const made: number = defineCommand;\n` : "export {};\n");
+  writeFileSync(join(app, "src/main.ts"), broken ? `import { defineCommand } from "./lib/ouro/ax/ax-command.ts";\nexport const made: number = defineCommand;\n` : "export {};\n");
   const config = JSON.parse(readFileSync(join(root, "test/install-fixture/tsconfig.app.json"), "utf8"));
   delete config.compilerOptions.tsBuildInfoFile;
   writeFileSync(join(app, "tsconfig.app.json"), JSON.stringify(config, null, 2));
@@ -60,7 +60,7 @@ test("a Vite app type-checks with the Ouro AX kit and its tests installed, and s
   const files = installed("ouro-ax", "ouro-ax-tests");
   assert.ok(files.some((file) => file.to === "scripts/ouro/ax/xray.ts"), "the X-ray installs outside src");
   assert.ok(files.some((file) => file.to === "scripts/ouro/ax/flows.test.mts"), "the flow runner's tests install outside src");
-  assert.ok(files.some((file) => file.to === "src/lib/ouro/ax/command.ts"), "the shared kit installs in src");
+  assert.ok(files.some((file) => file.to === "src/lib/ouro/ax/ax-command.ts"), "the shared kit installs in src");
   assert.equal(tsc(viteApp(files, false)).status, 0, "the app's tsc passes with the kit and its tests installed");
   const result = tsc(viteApp(files, true));
   assert.notEqual(result.status, 0, "an app's mistake with what it imports from the kit is still a type error");

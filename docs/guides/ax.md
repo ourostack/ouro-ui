@@ -22,7 +22,7 @@ This tool has a read and an action other people see. The kit gives it the rest:
 
 ```ts
 import { quietPipes, runCli } from "#ouro-ax/cli.ts";
-import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { defineCli, defineCommand } from "#ouro-ax/ax-command.ts";
 import { AxError } from "#ouro-ax/problem.ts";
 import { outcome } from "#ouro-ax/outcome.ts";
 
@@ -75,7 +75,7 @@ Receipt: a-t1
 - A refusal is one line that ends with `Fix:` and the command to run instead, and exits with the usage code.
 - `--json` prints the outcome: its state, who can see it, the postcondition the tool checked, the receipt and the next commands.
 
-A tool with one thing to do defines `command` instead of `commands`. That command [takes no command word](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)"), so every token is its own argument or flag: `images site/showcase --out x` runs it with `site/showcase`. `--help` shows the command, and `help` still gives the overview. A tool with `commands` still refuses a word it doesn't know.
+A tool with one thing to do defines `command` instead of `commands`. That command [takes no command word](registry/ouro/ax/ax-command.test.mts "verify:testExists(registry/ouro/ax/ax-command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)"), so every token is its own argument or flag: `images site/showcase --out x` runs it with `site/showcase`. `--help` shows the command, and `help` still gives the overview. A tool with `commands` still refuses a word it doesn't know.
 
 ```ts
 const cli = defineCli({
@@ -85,7 +85,7 @@ const cli = defineCli({
 });
 ```
 
-A tool can also define `command` beside `commands`. That default [runs when no command word leads](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a tool with a default command runs it for any leading word that is not a command word, and a command word goes after --)"): in a tool with a `sizes` command, `images site/showcase` runs the default and `images sizes site/showcase` runs `sizes`. A target named like a command word goes after `--`. A flag may [repeat](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a repeat flag collects each value in order, in either form, and is absent when not given)"), as `--ready a --ready b`, and then its values come as a list.
+A tool can also define `command` beside `commands`. That default [runs when no command word leads](registry/ouro/ax/ax-command.test.mts "verify:testExists(registry/ouro/ax/ax-command.test.mts::a tool with a default command runs it for any leading word that is not a command word, and a command word goes after --)"): in a tool with a `sizes` command, `images site/showcase` runs the default and `images sizes site/showcase` runs `sizes`. A target named like a command word goes after `--`. A flag may [repeat](registry/ouro/ax/ax-command.test.mts "verify:testExists(registry/ouro/ax/ax-command.test.mts::a repeat flag collects each value in order, in either form, and is absent when not given)"), as `--ready a --ready b`, and then its values come as a list.
 
 ## The items
 

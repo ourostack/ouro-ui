@@ -1,5 +1,5 @@
 import { quietPipes, runCli } from "#ouro-ax/cli.ts";
-import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { defineCli, defineCommand } from "#ouro-ax/ax-command.ts";
 import { AxError } from "#ouro-ax/problem.ts";
 import { outcome } from "#ouro-ax/outcome.ts";
 
