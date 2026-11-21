@@ -56,6 +56,13 @@ const full = (
 );
 
 describe("AppWindow", () => {
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const { frame } = await render(<AppWindow title="Recipes">Body</AppWindow>);
+    const bar = () => getComputedStyle(frame.querySelector<HTMLElement>('[data-slot="bar"]')!);
+    expect(bar().minHeight).toBe("44px");
+    frame.style.setProperty("--spacing", "0.2rem");
+    expect(bar().minHeight).toBe("44px");
+  });
   it("labels its bar with the title, small, muted, monospace and cut short, and puts the actions at the bar's end", async () => {
     const { part } = await render(
       <div style={{ width: 240 }}>

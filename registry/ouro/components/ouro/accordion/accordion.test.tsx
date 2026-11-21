@@ -57,6 +57,13 @@ async function settled(element: Element) {
 }
 
 describe("Accordion", () => {
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const { host } = await render(<Accordion items={items} />);
+    const chevron = () => getComputedStyle(host.querySelector<SVGElement>('[data-ouro="accordion"] svg')!);
+    expect([chevron().width, chevron().height]).toEqual(["16px", "16px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([chevron().width, chevron().height]).toEqual(["16px", "16px"]);
+  });
   it("renders each title as a button inside an h3, all closed", async () => {
     const { root, triggers } = await render(<Accordion items={items} />);
     expect(root.getAttribute("data-ouro")).toBe("accordion");

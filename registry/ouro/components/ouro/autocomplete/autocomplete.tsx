@@ -141,11 +141,11 @@ const sameMatch = (a: AutocompleteMatch | null, b: AutocompleteMatch | null) =>
 const popupClass = cn(
   floatingSurfaceClass,
   floatingMotionClass,
-  "relative max-h-[min(16rem,var(--available-height))] w-max min-w-56 max-w-[min(22rem,var(--available-width))] overflow-y-auto overscroll-contain p-1 scroll-py-1",
+  "relative max-h-[min(16rem,var(--available-height))] w-max min-w-ouro-56 max-w-[min(22rem,var(--available-width))] overflow-y-auto overscroll-contain p-1 scroll-py-1",
 );
 
 const optionClass =
-  "box-border flex min-h-11 cursor-default items-center gap-2 rounded-ouro-md px-2 py-1.5 text-base leading-5 outline-none select-none " +
+  "box-border flex min-h-ouro-11 cursor-default items-center gap-2 rounded-ouro-md px-2 py-1.5 text-base leading-5 outline-none select-none " +
   "sm:pointer-fine:min-h-9 sm:pointer-fine:text-sm " +
   "data-highlighted:bg-accent data-highlighted:text-accent-foreground " +
   // Forced colours drop the fill, so the active option takes the system's pair.
@@ -514,13 +514,13 @@ function OptionContent({ item, query, active }: { item: AutocompleteItem; query:
   return (
     <>
       {item.emoji ? (
-        <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center text-lg leading-none">
+        <span aria-hidden="true" className="inline-flex size-ouro-6 shrink-0 items-center justify-center text-lg leading-none">
           <Emoji item={item.emoji} skinTone={item.skinTone} play={active} />
         </span>
       ) : item.avatar ? (
         <Avatar name={item.label} alt="" size="xs" src={item.avatar.src} initials={item.avatar.initials} className="shrink-0" />
       ) : item.glyph !== undefined ? (
-        <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center text-lg leading-none">
+        <span aria-hidden="true" className="inline-flex size-ouro-6 shrink-0 items-center justify-center text-lg leading-none">
           {item.glyph}
         </span>
       ) : null}

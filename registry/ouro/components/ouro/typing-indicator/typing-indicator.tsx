@@ -40,7 +40,7 @@ export interface TypingIndicatorOwnProps {
 export type TypingIndicatorProps = Omit<HTMLAttributes<HTMLDivElement>, keyof TypingIndicatorOwnProps | "role"> & TypingIndicatorOwnProps;
 
 // Forced colours paint every background as the page, so the dots take the text's system colour there.
-const dot = "size-1 animate-[ouro-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current forced-colors:bg-[CanvasText]";
+const dot = "size-ouro-1 animate-[ouro-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current forced-colors:bg-[CanvasText]";
 
 /**
  * The line under a chat that says who is writing: their faces, pulsing dots and "Ned Land is writing…". It is a
@@ -93,11 +93,11 @@ export function TypingIndicator(props: TypingIndicatorProps): JSX.Element {
       role="status"
       data-ouro="typing-indicator"
       data-writing={people.length > 0 ? "" : undefined}
-      className={cn("box-border flex h-6 min-w-0 items-center gap-2 text-xs text-muted-foreground", className)}
+      className={cn("box-border flex h-ouro-6 min-w-0 items-center gap-2 text-xs text-muted-foreground", className)}
     >
       {people.length > 0 && (
         <>
-          <span aria-hidden="true" className="flex shrink-0 items-center *:shadow-[0_0_0_2px_var(--ouro-avatar-ring,var(--background))] *:not-first:-ms-1.5">
+          <span aria-hidden="true" className="flex shrink-0 items-center *:shadow-[0_0_0_2px_var(--ouro-avatar-ring,var(--background))] *:not-first:-ms-ouro-1_5">
             {people.slice(0, 3).map((person, index) => (
               <Avatar key={`${person.name}-${index}`} name={person.name} src={person.src} idForColor={person.idForColor} initials={[...(person.initials ?? person.name.trim().toUpperCase())][0]} size="xs" alt="" />
             ))}

@@ -50,6 +50,19 @@ afterEach(async () => {
 });
 
 describe("Cover", () => {
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const { host } = await render(
+      <>
+        <Cover title="lemon rice" size="sm" />
+        <Cover title="lemon rice" />
+        <Cover title="lemon rice" size="lg" />
+      </>,
+    );
+    const widths = () => [...host.querySelectorAll<HTMLElement>('[data-ouro="cover"]')].map((cover) => getComputedStyle(cover).width);
+    expect(widths()).toEqual(["40px", "56px", "96px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(widths()).toEqual(["40px", "56px", "96px"]);
+  });
   it("draws the title's first letter in the heading font, in the primary toward the foreground, on a wash from the muted color toward the primary, without a picture", async () => {
     const { cover } = await render(<Cover title="  lemon rice" />);
     const letter = cover.querySelector("span")!;

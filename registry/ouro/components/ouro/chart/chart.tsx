@@ -840,7 +840,7 @@ function MarkerPath({ shape, size }: { shape: ChartMarkerShape; size: number }):
 /** A legend or tooltip marker: the series' shape in its color. */
 function Marker({ item }: { item: Series }): JSX.Element {
   return (
-    <svg aria-hidden="true" data-ouro-chart-marker={item.shape} viewBox="-6 -6 12 12" className="size-3 shrink-0" style={{ color: item.color }}>
+    <svg aria-hidden="true" data-ouro-chart-marker={item.shape} viewBox="-6 -6 12 12" className="size-ouro-3 shrink-0" style={{ color: item.color }}>
       <MarkerPath shape={item.shape} size={10} />
     </svg>
   );
@@ -876,7 +876,7 @@ function TooltipContent({ active, payload, label }: { active: boolean; payload: 
       data-ouro-chart-tooltip=""
       role="status"
       aria-live="polite"
-      className="grid min-w-32 gap-1.5 rounded-ouro-lg border border-solid border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-(--shadow-lg)"
+      className="grid min-w-ouro-32 gap-1.5 rounded-ouro-lg border border-solid border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-(--shadow-lg)"
     >
       <div className="font-medium">{heading}</div>
       {entries.map(({ item, value }) => (

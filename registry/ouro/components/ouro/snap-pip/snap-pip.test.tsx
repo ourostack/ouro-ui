@@ -187,6 +187,18 @@ function watchSettling(element = pip()) {
 }
 
 describe("SnapPiP", () => {
+  it("keeps its hint 20rem wide at most at a compact --spacing", async () => {
+    await render(self());
+    const maxWidth = () => getComputedStyle(hint()).maxWidth;
+    expect(maxWidth()).toBe("320px");
+    document.documentElement.style.setProperty("--spacing", "0.2rem");
+    try {
+      expect(maxWidth()).toBe("320px");
+    } finally {
+      document.documentElement.style.removeProperty("--spacing");
+    }
+  });
+
   it("is a focusable group named by its label, described by its corner and hint, which shows beside it on keyboard focus", async () => {
     const element = await render(self({ id: "self-view" }));
     expect(element.getAttribute("role")).toBe("group");

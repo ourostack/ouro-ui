@@ -86,6 +86,14 @@ function Listening({ initial, withStopAll = true, onStopped }: { initial: Listen
 }
 
 describe("AgentPresence", () => {
+  it("keeps its unread dot 8px at a compact --spacing", async () => {
+    const { host } = await render(<AgentPresence {...base} agents={[inbox]} unread />);
+    const dot = () => getComputedStyle(host.querySelector<HTMLElement>("[data-ouro-agent-presence-unread]")!);
+    expect([dot().width, dot().height]).toEqual(["8px", "8px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([dot().width, dot().height]).toEqual(["8px", "8px"]);
+  });
+
   it("is a chip that names one agent, or counts several", async () => {
     const { host, rerender } = await render(<AgentPresence {...base} agents={[inbox]} />);
     expect(host.querySelector('[data-ouro="agent-presence"]')).not.toBeNull();

@@ -67,6 +67,13 @@ async function focusCalendar(props: Partial<CalendarProps> = {}) {
 }
 
 describe("Calendar", () => {
+  it("keeps its month chevrons 16px at a compact --spacing", async () => {
+    const { host } = await render(<Calendar label="Delivery date" defaultValue="2026-10-11" />);
+    const chevron = () => getComputedStyle(host.querySelector<SVGElement>("svg")!);
+    expect([chevron().width, chevron().height]).toEqual(["16px", "16px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([chevron().width, chevron().height]).toEqual(["16px", "16px"]);
+  });
   it("is a labeled grid of the month, with one Tab stop and each day named in full", async () => {
     await render(<Calendar label="Delivery date" defaultValue="2026-10-11" />);
     const group = page.getByRole("group", { name: "Delivery date" });

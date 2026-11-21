@@ -127,7 +127,7 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
         <div className="flex h-full min-h-0 min-w-0 flex-col">{conversation}</div>
       </div>
       {open && (
-        <div ref={threadBox} className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-80">
+        <div ref={threadBox} className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-ouro-80">
           {thread}
         </div>
       )}

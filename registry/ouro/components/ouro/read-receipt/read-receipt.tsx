@@ -90,7 +90,7 @@ export function ReadReceipt(props: ReadReceiptProps): JSX.Element | null {
       <span
         aria-hidden="true"
         // 16px faces, smaller than Avatar's smallest size: a receipt is a hint, not a face to read.
-        className="flex items-center *:size-4 *:text-[0.5rem] *:shadow-[0_0_0_1.5px_var(--ouro-avatar-ring,var(--background))] *:not-first:-ms-1"
+        className="flex items-center *:size-ouro-4 *:text-[0.5rem] *:shadow-[0_0_0_1.5px_var(--ouro-avatar-ring,var(--background))] *:not-first:-ms-ouro-1"
       >
         {readers.slice(0, 3).map((reader, index) => (
           <Avatar key={`${reader.name}-${index}`} name={reader.name} src={reader.src} idForColor={reader.idForColor} initials={[...(reader.initials ?? reader.name.trim().toUpperCase())][0]} size="xs" alt="" />

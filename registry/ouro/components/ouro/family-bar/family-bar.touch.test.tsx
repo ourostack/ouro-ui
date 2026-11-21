@@ -38,6 +38,13 @@ const sites: FamilyLink[] = [
 ];
 
 describe("FamilyBar and FamilyFooter on a phone", () => {
+  it("keeps each link's 44px floor at a compact --spacing", async () => {
+    const host = await render(<FamilyBar links={sites} current="docs" />);
+    const link = () => getComputedStyle(host.querySelector<HTMLElement>('[data-ouro-part="link"]')!);
+    expect([link().minHeight, link().minWidth]).toEqual(["44px", "44px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([link().minHeight, link().minWidth]).toEqual(["44px", "44px"]);
+  });
   it("keep 44px targets with 16px text, a two-letter name too, also in landscape, and the page never scrolls sideways", async () => {
     const host = await render(
       <>

@@ -540,6 +540,19 @@ describe("Lightbox navigation", () => {
 });
 
 describe("Lightbox viewer", () => {
+  it("keeps its zoom and close icons 16px at a compact --spacing", async () => {
+    const { host } = await render(lightbox());
+    await openAt(host, 0);
+    const icons = () => [popup()!.querySelector<SVGElement>('button[aria-label="Zoom"] svg')!, button("Close")!.querySelector<SVGElement>("svg")!].map((svg) => getComputedStyle(svg).width);
+    expect(icons()).toEqual(["16px", "16px"]);
+    document.documentElement.style.setProperty("--spacing", "0.2rem");
+    try {
+      expect(icons()).toEqual(["16px", "16px"]);
+    } finally {
+      document.documentElement.style.removeProperty("--spacing");
+    }
+  });
+
   it("shows the title and caption with the image, exactly as given", async () => {
     const { host } = await render(lightbox());
     await openAt(host, 0);

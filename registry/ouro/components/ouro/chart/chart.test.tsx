@@ -89,6 +89,28 @@ afterEach(async () => {
 });
 
 describe("Chart", () => {
+  it("keeps its tooltip 8rem wide at least at a compact --spacing", async () => {
+    const { chart } = await render(<Chart title="Spend" data={rows} categoryKey="month" config={config} />);
+    await drawn(chart);
+    await userEvent.hover(bars(chart, "cooked")[0]!);
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")).not.toBeNull();
+    const minWidth = () => getComputedStyle(chart.querySelector<HTMLElement>("[data-ouro-chart-tooltip]")!).minWidth;
+    expect(minWidth()).toBe("128px");
+    document.documentElement.style.setProperty("--spacing", "0.2rem");
+    try {
+      expect(minWidth()).toBe("128px");
+    } finally {
+      document.documentElement.style.removeProperty("--spacing");
+    }
+  });
+
+  it("keeps its legend markers 12px at a compact --spacing", async () => {
+    const { host } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+    const marker = () => getComputedStyle(host.querySelector<SVGElement>("[data-ouro-chart-marker]")!);
+    expect([marker().width, marker().height]).toEqual(["12px", "12px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([marker().width, marker().height]).toEqual(["12px", "12px"]);
+  });
   it("draws its plot with the page, in the frame the figure first shows, and nothing under it moves", async () => {
     // Frames counted from before the mount, and the frame each of the figure and its plot was put in the page.
     let frames = 0;
@@ -341,6 +363,10 @@ describe("Chart", () => {
     expect(getComputedStyle(bars(chart, "burnt")[0]!).fill).toBe(resolved("var(--destructive)"));
     expect(getComputedStyle(bars(chart, "fine")[0]!).fill).toBe(resolved("var(--chart-2)"));
     expect(getComputedStyle(bars(chart, "other")[0]!).fill).toBe(resolved("var(--chart-3)"));
+    // The legend's markers draw in their series' colors too.
+    await expect.poll(() => chart.querySelectorAll("[data-ouro-chart-legend] [data-ouro-chart-marker]").length).toBe(3);
+    const markers = [...chart.querySelectorAll<SVGElement>("[data-ouro-chart-legend] [data-ouro-chart-marker]")].map((marker) => getComputedStyle(marker).color);
+    expect(markers).toEqual([resolved("var(--destructive)"), resolved("var(--chart-2)"), resolved("var(--chart-3)")]);
   });
 
   it("follows a new config: its labels in the table and the legend, and its tones in the colors", async () => {

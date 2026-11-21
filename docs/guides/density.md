@@ -10,7 +10,7 @@ Gaps, padding and margins follow `--spacing`: `gap-3` and `py-2` are multiples o
 
 Fixed sizes read `--ouro-size-*` variables instead. They are defined in `ouro-base.css` in rem, a quarter rem per step: `--ouro-size-8` is `2rem`, and a dot in the step is written as an underscore, as in `--ouro-size-2_5`. Components size those parts with the named utilities ouro-base registers for them, such as `size-ouro-8`, which [read their tokens](registry/ouro/theme/theme.test.tsx "verify:testExists(registry/ouro/theme/theme.test.tsx::fixed sizes > lets an app theme a fixed size by its token, which the named utility reads)"). `--spacing` does not change them.[^tokens]
 
-The fixed parts that use them today are an avatar's box, an avatar group's "+N" count, a conversation row's icon, mark and more button, and the coarse pointer's 44px target.[^floor] Avatar, AvatarGroup and ConversationList read the tokens; other components still size some fixed parts with spacing classes until their own changes land.
+The fixed parts that use them today are an avatar's box, an avatar group's "+N" count, a conversation row's icon, mark and more button, and the coarse pointer's 44px target.[^floor] Avatar, AvatarGroup, ConversationList and the components converted since read the tokens; the others still size some fixed parts with spacing classes until their own changes land.
 
 ## Floors
 

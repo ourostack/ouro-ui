@@ -22,6 +22,13 @@ afterEach(async () => {
 });
 
 describe("UnreadDot", () => {
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const host = await render(<UnreadDot label="Unread" data-mark="" />);
+    const dot = () => getComputedStyle(host.querySelector<HTMLElement>('[data-ouro="unread-dot"] > span[aria-hidden="true"]')!);
+    expect([dot().width, dot().height]).toEqual(["8px", "8px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([dot().width, dot().height]).toEqual(["8px", "8px"]);
+  });
   it("draws a round primary dot that screen readers hear as its label", async () => {
     const host = await render(<UnreadDot label="Unread" data-mark="" />);
     const root = host.querySelector<HTMLElement>('[data-ouro="unread-dot"]')!;

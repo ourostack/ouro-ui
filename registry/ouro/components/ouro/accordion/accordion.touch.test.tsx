@@ -10,6 +10,14 @@ import { rotate } from "@/registry/ouro/lib/ouro/testing/rotate";
 
 let root: Root | undefined;
 const nodes: Element[] = [];
+it("keeps each trigger's 44px floor at a compact --spacing", async () => {
+  const host = await render(<Accordion items={[{ value: "a", title: "Keeps?", content: "Three days." }]} />);
+  const trigger = () => getComputedStyle(host.querySelector<HTMLElement>("button[aria-expanded]")!);
+  expect(trigger().minHeight).toBe("44px");
+  host.style.setProperty("--spacing", "0.2rem");
+  expect(trigger().minHeight).toBe("44px");
+});
+
 afterEach(async () => {
   await rotate(390, 844);
   await act(async () => root?.unmount());

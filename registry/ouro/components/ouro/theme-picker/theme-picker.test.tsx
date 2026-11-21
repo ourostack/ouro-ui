@@ -1,5 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { page } from "vitest/browser";
 import { ThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -28,6 +29,27 @@ afterEach(async () => {
 });
 
 describe("ThemePicker", () => {
+  it("keeps its swatches 32px from sm up, at a compact --spacing", async () => {
+    const [width, height] = [window.innerWidth, window.innerHeight];
+    await page.viewport(1024, 768);
+    try {
+      const host = await render(<ThemePicker presets={presets} />);
+      const swatch = () => getComputedStyle(host.querySelector<HTMLElement>("span[data-theme]")!);
+      expect([swatch().width, swatch().height]).toEqual(["32px", "32px"]);
+      host.style.setProperty("--spacing", "0.2rem");
+      expect([swatch().width, swatch().height]).toEqual(["32px", "32px"]);
+    } finally {
+      await page.viewport(width, height);
+    }
+  });
+
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const host = await render(<ThemePicker presets={presets} />);
+    const swatch = () => getComputedStyle(host.querySelector<HTMLElement>("span[data-theme]")!);
+    expect([swatch().width, swatch().height]).toEqual(["24px", "24px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([swatch().width, swatch().height]).toEqual(["24px", "24px"]);
+  });
   it("switches the page, keeps the choice and presses the chosen dot", async () => {
     const el = await render(<ThemePicker presets={presets} />);
     const pearl = el.querySelector<HTMLButtonElement>('[aria-label="Pearl"]')!;

@@ -61,7 +61,7 @@ function inPopup(target: Element, rail: Element): boolean {
 /** The close button's icon, a cross. */
 function CloseIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-4">
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-ouro-4">
       <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );

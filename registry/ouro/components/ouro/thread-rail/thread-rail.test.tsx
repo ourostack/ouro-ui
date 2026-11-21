@@ -83,6 +83,13 @@ function Stateful({ returnFocus }: { returnFocus?: RefObject<HTMLElement | null>
 }
 
 describe("ThreadRail", () => {
+  it("keeps its fixed sizes at a compact --spacing", async () => {
+    const { host, close } = await render(<ThreadRail label="Thread" onClose={noop} />);
+    const icon = () => getComputedStyle(close.querySelector<SVGElement>("svg")!);
+    expect([icon().width, icon().height]).toEqual(["16px", "16px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([icon().width, icon().height]).toEqual(["16px", "16px"]);
+  });
   it("is a complementary landmark named by its title", async () => {
     await render(
       <ThreadRail label="Thread" title="Ana's replies" onClose={noop}>

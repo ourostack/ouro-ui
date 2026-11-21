@@ -82,6 +82,14 @@ function submitted(form: HTMLFormElement): Record<string, FormDataEntryValue> {
 }
 
 describe("DatePicker", () => {
+  it("keeps its calendar icon 16px at a compact --spacing", async () => {
+    const { host } = await render(<DatePicker label="Delivery date" name="delivery" />);
+    const icon = () => getComputedStyle(trigger().querySelector<SVGElement>("svg")!);
+    expect([icon().width, icon().height]).toEqual(["16px", "16px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([icon().width, icon().height]).toEqual(["16px", "16px"]);
+  });
+
   it("is a labeled text box with a calendar button, on the Field contract", async () => {
     const { host, input } = await render(<DatePicker label="Delivery date" name="delivery" />);
     expect(host.querySelector('[data-ouro="date-picker"]')).not.toBeNull();

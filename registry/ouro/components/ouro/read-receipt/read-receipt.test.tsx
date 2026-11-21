@@ -52,6 +52,18 @@ describe("ReadReceipt", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it("keeps each face's overlap a fixed share of the face at a compact --spacing", async () => {
+    const { host, receipt } = await render(<ReadReceipt readers={crew.slice(0, 2)} />);
+    const overlap = () => {
+      const [first, second] = [...receipt!.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((face) => face.getBoundingClientRect());
+      return Math.round(first!.right - second!.left);
+    };
+    const faces = () => [...receipt!.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((face) => getComputedStyle(face).width);
+    expect([overlap(), faces()]).toEqual([4, ["16px", "16px"]]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([overlap(), faces()]).toEqual([4, ["16px", "16px"]]);
+  });
+
   it("says who has seen it, by name for up to three and with a count past that", async () => {
     const words = async (count: number) => said((await render(<ReadReceipt readers={crew.slice(0, count)} />)).receipt!);
     expect(await words(1)).toBe("Seen by Captain Nemo");

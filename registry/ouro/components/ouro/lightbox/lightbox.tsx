@@ -219,7 +219,7 @@ function ExternalIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
 
 function ZoomIcon({ out }: { out: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-4">
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-ouro-4">
       <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" />
       <path d={out ? "M5 7h4M10.5 10.5L14 14" : "M5 7h4M7 5v4M10.5 10.5L14 14"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
@@ -228,7 +228,7 @@ function ZoomIcon({ out }: { out: boolean }): JSX.Element {
 
 function CloseIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-4">
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-ouro-4">
       <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );

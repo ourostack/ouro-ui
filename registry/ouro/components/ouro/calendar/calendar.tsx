@@ -152,7 +152,7 @@ function ordered(a: string, b: string): DateRange {
 /**
  * Icons drawn in the text color at 16px, like the other Ouro icons.
  *
- * @claim "Icons drawn in the text color" registry/ouro/components/ouro/calendar/calendar.tsx verify:fileLine(registry/ouro/components/ouro/calendar/calendar.tsx, /className="size-4 rtl:-scale-x-100"/)
+ * @claim "Icons drawn in the text color" registry/ouro/components/ouro/calendar/calendar.tsx verify:fileLine(registry/ouro/components/ouro/calendar/calendar.tsx, /className="size-ouro-4 rtl:-scale-x-100"/)
  * @claim "Icons drawn in the text color" registry/ouro/components/ouro/calendar/calendar.tsx verify:fileLine(registry/ouro/components/ouro/calendar/calendar.tsx, /stroke="currentColor"/)
  */
 function Chevron({ children }: { children: ReactNode }): JSX.Element {
@@ -165,7 +165,7 @@ function Chevron({ children }: { children: ReactNode }): JSX.Element {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="size-4 rtl:-scale-x-100"
+      className="size-ouro-4 rtl:-scale-x-100"
     >
       {children}
     </svg>
