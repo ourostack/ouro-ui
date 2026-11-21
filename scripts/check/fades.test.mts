@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { dirname, extname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { EXIT } from "../../registry/ouro/check/run.ts";
@@ -269,6 +269,25 @@ describe("the fade check", () => {
 
   test("keeps Ouro HX's own masks, which fade text and controls, each with its reason", async () => {
     assert.deepEqual(await scan(["registry"], root), []);
+  });
+
+  test("gives each of Ouro HX's masks that takes its value from a var() its reason too, as ouroboros-website's check asks (ourostack/ouroboros-website#469)", () => {
+    // The scan cannot see the gradient a var() holds, so a site may ask such a mask for a reason as well, on its line or
+    // the line before. ouro-base.css lands in the app's own source as a file, where that check reads it.
+    const varMask = /(?<![\w-])(?:(?:-webkit-)?mask(?:-image)?|maskImage|WebkitMaskImage)\s*:\s*["'`]?var\(/g;
+    const reason = (line: string | undefined) => /fade-ok:\s*\p{L}/u.test(line ?? "");
+    const found: string[] = [];
+    const walk = (dir: string): string[] =>
+      readdirSync(join(root, dir), { withFileTypes: true }).flatMap((entry) => (entry.isDirectory() ? walk(join(dir, entry.name)) : [join(dir, entry.name)]));
+    for (const file of walk("registry").filter((path) => SCANNED.includes(extname(path)))) {
+      const text = readFileSync(join(root, file), "utf8");
+      const rows = text.split("\n");
+      for (const match of text.matchAll(varMask)) {
+        const line = text.slice(0, match.index).split("\n").length;
+        if (!reason(rows[line - 1]) && !reason(rows[line - 2])) found.push(`${file}:${line}: ${rows[line - 1].trim()}`);
+      }
+    }
+    assert.deepEqual(found, []);
   });
 });
 
