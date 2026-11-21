@@ -339,8 +339,11 @@ describe("Link", () => {
     const alone: number[] = [];
     for (let width = 60; width <= 260; width++) {
       p.style.width = `${width}px`;
-      const lines = [...words.getClientRects()];
-      if (Math.abs(icon.getBoundingClientRect().bottom - lines.at(-1)!.bottom) > 4) alone.push(width);
+      // The icon's middle sits within the last line of words, whatever the fonts' metrics.
+      const last = [...words.getClientRects()].at(-1)!;
+      const box = icon.getBoundingClientRect();
+      const middle = (box.top + box.bottom) / 2;
+      if (middle < last.top || middle > last.bottom) alone.push(width);
     }
     expect(alone).toEqual([]);
   });
