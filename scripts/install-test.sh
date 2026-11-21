@@ -224,10 +224,18 @@ if [ "$variant" = next ]; then
   exit 0
 fi
 
-# shadcn add fetches each file from raw.githubusercontent.com, and a fetch drops now and then. Two layers
-# retry it. The preload (scripts/raw-fetch-retry-preload.mjs) retries each such request inside the
-# shadcn process, so one dropped file costs one request. This function then reruns the whole add for a
-# failure the preload did not absorb, with a warning each time; any other failure stays red.
+# A dropped raw fetch as shadcn reports it: a component file it could not fetch, or the root registry.json
+# whose body ended early ("TypeError: terminated"). A missing file reports a 404 instead, and fails at once.
+raw_fetch_dropped() {
+  { grep -q 'RegistrySourceFileError' "$1" && grep -q 'could not fetch from raw.githubusercontent.com' "$1"; } ||
+    { grep -q 'Failed to read source registry file at' "$1" && grep -Eq 'TypeError: (terminated|fetch failed)|ECONNRESET|ETIMEDOUT|other side closed|socket hang up' "$1"; }
+}
+
+# shadcn add fetches each file, the root registry.json included, from raw.githubusercontent.com, and a fetch
+# drops now and then, sometimes after its headers, mid-body. Two layers retry it. The preload
+# (scripts/raw-fetch-retry-preload.mjs) retries each such request inside the shadcn process, so one dropped
+# file costs one request. This function then reruns the whole add for a failure the preload did not absorb,
+# with a warning each time; any other failure stays red.
 # Every add from GitHub goes through it (scripts/raw-fetch-retry.test.mjs holds that).
 # Usage: add_retrying_raw_fetch <shadcn package spec> <address>...
 add_retrying_raw_fetch() {
@@ -235,9 +243,9 @@ add_retrying_raw_fetch() {
   local preload="$root/scripts/raw-fetch-retry-preload.mjs"
   shift
   while ! NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--import=$preload" npx --yes "$pin" add --yes "$@" 2>&1 | tee "$log"; do
-    grep -q 'RegistrySourceFileError' "$log" && grep -q 'could not fetch from raw.githubusercontent.com' "$log" || return 1
+    raw_fetch_dropped "$log" || return 1
     [ "$attempt" -lt "${#delays[@]}" ] || return 1
-    file=$(sed -n 's/.*Failed to read GitHub source file "\([^"]*\)".*/\1/p' "$log" | head -n 1)
+    file=$(sed -n -e 's/.*Failed to read GitHub source file "\([^"]*\)".*/\1/p' -e 's/.*Failed to read source registry file at \([^ ]*\)\..*/\1/p' "$log" | head -n 1)
     echo "::warning::shadcn could not fetch ${file:-a file} from raw.githubusercontent.com (attempt $((attempt + 1)) of $((${#delays[@]} + 1)) failed); retrying the same add in ${delays[$attempt]}s"
     sleep "${delays[$attempt]}"
     attempt=$((attempt + 1))

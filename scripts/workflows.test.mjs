@@ -759,6 +759,31 @@ test("install-github fails once the raw fetch has dropped on every attempt", () 
   assert.ok(!log.includes("npx tsc -b"), "a failed add stops the install before the checks");
 });
 
+test("install-github retries a registry.json read that the raw fetch cut off mid-body, with a warning, then passes", () => {
+  const tag = latestRelease();
+  const { result, log } = runGithubInstall(failingAddNpx, {
+    FAILS: "1",
+    FAIL_TEXT: `Something went wrong. Please check the error below for more details.\n\nError:\nFailed to read source registry file at ourostack/ouro-ui#${tag}/registry.json.\n\nMessage:\nTypeError: terminated\n\nSuggestion:\nCheck that the repository has a registry.json file at its root.`,
+  });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const add = `npx --yes shadcn@9.8.7 add --yes ourostack/ouro-ui/ouro-base#${tag} ourostack/ouro-ui/dialog#${tag}`;
+  assert.deepEqual(log.filter((line) => line.includes(" add ")), [add, add], "the same add runs again");
+  assert.deepEqual(log.filter((line) => line.startsWith("sleep ")), ["sleep 5"]);
+  assert.match(result.stdout, new RegExp(`::warning::shadcn could not fetch ourostack/ouro-ui#${tag.replaceAll(".", "\\.")}/registry\\.json from raw\\.githubusercontent\\.com \\(attempt 1 of 3 failed\\)`));
+  assert.ok(log.includes("npx tsc -b"), "the install goes on to the type check once the add passes");
+});
+
+test("install-github does not retry a registry.json that is missing: its 404 fails at once", () => {
+  const tag = latestRelease();
+  const { result, log } = runGithubInstall(failingAddNpx, {
+    FAILS: "3",
+    FAIL_TEXT: `Something went wrong. Please check the error below for more details.\n\nError:\nFailed to read GitHub source file "registry.json" from ourostack/ouro-ui#${tag}.\n\nMessage:\nHTTP 404`,
+  });
+  assert.notEqual(result.status, 0);
+  assert.equal(log.filter((line) => line.includes(" add ")).length, 1, "a missing registry.json fails at once");
+  assert.ok(!log.some((line) => line.startsWith("sleep ")), "and waits for no retry");
+});
+
 test("install-github does not retry any other add failure", () => {
   const tag = latestRelease();
   const { result, log } = runGithubInstall(failingAddNpx, {
