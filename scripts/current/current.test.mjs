@@ -10,7 +10,7 @@ import { BRANCH, body, createSources, keepCurrent, keepRepo, main, publicView, t
 import { checkRulesSection } from "./known.mjs";
 import { appJwt, createGitHub, retryable } from "./github.mjs";
 import { UPDATERS, appleRequirement, findPins, isBehind, isCandidate, takes } from "./pins.mjs";
-import { applyItem } from "./stylesheet.mjs";
+import { applyItem, importBase } from "./stylesheet.mjs";
 import { readTarball } from "./tar.mjs";
 import { fakeRepo, tarball } from "./fake-github.mjs";
 import { scratchDir } from "../scratch.mjs";
@@ -407,6 +407,129 @@ test("a utility the app has from the previous tag gains a line the new tag adds 
   assert.equal(result.text, ":root {\n  --ouro-layer: 50;\n}\n\n@utility press {\n  transition: scale 120ms;\n  scale: 0.97;\n  will-change: scale;\n}\n");
   assert.deepEqual(result.added, [{ where: "`@utility press`", names: ["will-change"] }]);
   assert.equal(applyItem(result.text, item, previous).text, result.text, "a second run changes nothing");
+});
+
+test("rules added to the same block keep the item's order: a wider @media step after a narrower one, so the wider wins", () => {
+  const item = {
+    name: "ouro-base",
+    css: {
+      "@layer base": {
+        "[data-ouro-surface]": { display: "none" },
+        "@media (width >= 150rem)": { html: { "font-size": "112.5%" } },
+        "@media (width >= 200rem)": { html: { "font-size": "125%" } },
+      },
+    },
+  };
+  const css = ":root {\n  --ouro-layer: 50;\n}\n\n@layer base {\n  [data-ouro-surface] {\n    display: none;\n  }\n}\n";
+  const result = applyItem(css, item, { name: "ouro-base", css: { "@layer base": { "[data-ouro-surface]": { display: "none" } } } });
+  const at = (width) => result.text.indexOf(`@media (width >= ${width}rem)`);
+  assert.ok(at(150) > 0 && at(200) > at(150), `150rem comes before 200rem:\n${result.text}`);
+  // A last declaration with no semicolon still gets one before what is added after it.
+  const bare = applyItem(":root {\n  --ouro-layer: 50\n}\n", { name: "ouro-base", css: { ":root": { "--ouro-new": "1", "--ouro-next": "2" } } });
+  assert.equal(bare.text, ":root {\n  --ouro-layer: 50;\n  --ouro-new: 1;\n  --ouro-next: 2;\n}\n");
+});
+
+/**
+ * An app whose stylesheet holds ouro-base's rules, as `shadcn add` merged them at v1.3.244, with a raised `--ouro-layer`
+ * and its own theme. The registry has ouro-base's file at both tags, and v1.3.248's file gains a variable.
+ */
+function importFixture() {
+  const BASE = (extra = "") => `/* ouro-base */\n@theme inline {\n  --radius-ouro-md: calc(var(--radius) * 0.8);\n}\n\n:root {\n  --input: oklch(0.922 0 0);\n  --radius: 0.9375rem;\n  --ouro-layer: 50;\n  --ouro-press-scale: 0.97;${extra}\n}\n\n@layer base {\n  @media (width >= 150rem) {\n    html {\n      font-size: 112.5%;\n    }\n  }\n}\n\n@supports not (corner-shape: squircle) {\n  :root {\n    --ouro-corner-fallback: 0.7;\n  }\n}\n\n@utility press {\n  transition: scale 160ms;\n}\n\n@keyframes ouro-spin {\n  to {\n    rotate: 1turn;\n  }\n}\n`;
+  const BUTTON = "export const Button = 1;\n";
+  const sources = { "v1.3.244": BASE(), "v1.3.248": BASE("\n  --ouro-new: 1px;") };
+  const at = (version) => new Map(Object.entries({
+    "registry.json": JSON.stringify({ items: [{ name: "ouro-base", cssVars: {}, css: { ":root": { "--ouro-layer": "50" } } }, { name: "button", files: [{ path: "registry/ouro/components/ouro/button/button.tsx", target: "@components/ouro/button/button.tsx" }] }] }),
+    "registry/ouro/theme/ouro-base.css": sources[version],
+    "registry/ouro/components/ouro/button/button.tsx": BUTTON,
+  }).map(([k, v]) => [k, Buffer.from(v)]));
+  const css = `@import "tailwindcss";\n@import "tw-animate-css";\n\n@custom-variant dark (&:is(.dark *));\n\n:root {\n  --background: #fff;\n  --input: oklch(0.922 0 0);\n  --radius: 0.625rem;\n  --ouro-layer: 60; /* above the app's header */\n  --ouro-press-scale: 0.97;\n}\n\n@theme inline {\n  --color-background: var(--background);\n  --radius-ouro-md: calc(var(--radius) * 0.8);\n}\n\n@layer base {\n  body {\n    margin: 0;\n  }\n  @media (width >= 150rem) {\n    html {\n      font-size: 112.5%;\n    }\n  }\n}\n\n@utility press {\n  transition: scale 160ms;\n}\n\n@keyframes ouro-spin {\n  to {\n    rotate: 1turn;\n  }\n}\n`;
+  const files = {
+    "components.json": JSON.stringify({ tailwind: { css: "src/index.css" }, aliases: { components: "@/components", lib: "@/lib" } }),
+    "src/index.css": css,
+    "src/components/ouro/button/button.tsx": BUTTON,
+    ".github/ouro-hx-installed.json": JSON.stringify({ tag: "v1.3.244", tagCommit: "old", files: { "src/components/ouro/button/button.tsx": sha256(BUTTON) } }),
+  };
+  return { files, css, sources, tarball: async (follows, version) => at(version) };
+}
+
+test("Ouro HX moves a stylesheet that holds ouro-base's rules to an import of ouro-base's own file, keeps the app's own values after it, and tracks the file by hash", async () => {
+  const app = importFixture();
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const release = { ...RELEASES.web, tag: "v1.3.248" };
+  const consumer = new Map(Object.entries(app.files).map(([k, v]) => [k, Buffer.from(v)]));
+  const update = await UPDATERS["hx-installed"](pin, app.files[pin.file], release, { tarball: app.tarball, consumerFiles: async () => consumer });
+  const css = update.files["src/index.css"].toString();
+  assert.equal(
+    css,
+    `@import "tailwindcss";\n@import "./ouro/ouro-base.css";\n@import "tw-animate-css";\n\n@custom-variant dark (&:is(.dark *));\n\n:root {\n  --background: #fff;\n  --input: oklch(0.922 0 0);\n  --radius: 0.625rem;\n  --ouro-layer: 60; /* above the app's header */\n}\n\n@theme inline {\n  --color-background: var(--background);\n}\n\n@layer base {\n  body {\n    margin: 0;\n  }\n}\n`,
+    "ouro-base's copies go, the app's own theme and its raised --ouro-layer stay, after the import",
+  );
+  assert.equal(update.files["src/ouro/ouro-base.css"].toString(), app.sources["v1.3.248"], "the new tag's file, as it is");
+  const record = JSON.parse(update.files[pin.file]);
+  assert.equal(record.files["src/ouro/ouro-base.css"], sha256(app.sources["v1.3.248"]), "the install record tracks the file by its hash");
+  assert.ok(update.notes.some((note) => note.includes("`src/ouro/ouro-base.css`") && note.includes("imports")));
+  assert.ok(update.notes.some((note) => note.includes("`--ouro-layer` in `:root`")), "the pull request names the values the app keeps");
+  assert.ok(update.notes.some((note) => note.includes("`--ouro-corner-fallback` in `:root` in `@supports not (corner-shape: squircle)`")), "and what the file brings back");
+
+  // The import resolves in Tailwind, ouro-base's rules apply, and the app's value wins.
+  const { compile } = await import("tailwindcss");
+  const tailwind = join(import.meta.dirname, "../../node_modules/tailwindcss/index.css");
+  const sheets = { tailwindcss: { path: tailwind, base: dirname(tailwind), content: readFileSync(tailwind, "utf8") }, "./ouro/ouro-base.css": { path: "/app/src/ouro/ouro-base.css", base: "/app/src/ouro", content: app.sources["v1.3.248"] } };
+  const compiler = await compile(css.replace(/^@import "tw-animate-css";\n/m, ""), { base: "/app/src", loadStylesheet: async (id) => sheets[id] });
+  const out = compiler.build(["press", "rounded-ouro-md"]);
+  assert.match(out, /--ouro-new: 1px/);
+  assert.match(out, /--ouro-corner-fallback: 0\.7/);
+  assert.ok(out.lastIndexOf("--ouro-layer: 60") > out.lastIndexOf("--ouro-layer: 50"), "the app's --ouro-layer comes after ouro-base's");
+  assert.match(out, /\.press \{\s*transition: scale 160ms;\s*\}/);
+
+  // On: the stylesheet imports the file, so it is left alone, and the file follows each release by its hash.
+  for (const [path, bytes] of Object.entries(update.files)) consumer.set(path, Buffer.from(bytes));
+  const same = await UPDATERS["hx-installed"](pin, update.files[pin.file], release, { tarball: app.tarball, consumerFiles: async () => consumer });
+  assert.equal(same.files["src/index.css"], undefined, "a second run leaves the stylesheet");
+  assert.equal(same.files["src/ouro/ouro-base.css"], undefined, "and the file, already the tag's");
+  const later = { ...RELEASES.web, tag: "v1.3.250" };
+  const newer = async (follows, version) => (version === "v1.3.250" ? new Map([...(await app.tarball(follows, "v1.3.248")), ["registry/ouro/theme/ouro-base.css", Buffer.from(`${app.sources["v1.3.248"]}/* v1.3.250 */\n`)]]) : app.tarball(follows, version));
+  const next = await UPDATERS["hx-installed"](pin, update.files[pin.file], later, { tarball: newer, consumerFiles: async () => consumer });
+  assert.equal(next.files["src/ouro/ouro-base.css"].toString(), `${app.sources["v1.3.248"]}/* v1.3.250 */\n`, "the next release replaces the file whole");
+  assert.equal(next.files["src/index.css"], undefined);
+  consumer.set("src/ouro/ouro-base.css", Buffer.from(`${app.sources["v1.3.248"]}.mine { color: red; }\n`));
+  const edited = await UPDATERS["hx-installed"](pin, update.files[pin.file], later, { tarball: newer, consumerFiles: async () => consumer });
+  assert.equal(edited.files["src/ouro/ouro-base.css"], undefined, "a file the app edited is left as it is");
+  assert.ok(edited.notes.some((note) => note.includes("`src/ouro/ouro-base.css`") && note.includes("edited here")));
+});
+
+test("a plain-CSS copy of ouro-base older than the install record's tag gets a pull request that replaces it with the release's", async () => {
+  const STATIC = (v) => `/* Ouro HX base tokens as plain CSS, ${v} */\n:root {\n  --ouro-layer: 50;\n}\n`;
+  const BUTTON = "export const Button = 1;\n";
+  const tarball = async () => new Map(Object.entries({
+    "registry.json": JSON.stringify({ items: [{ name: "button", files: [{ path: "registry/ouro/components/ouro/button/button.tsx", target: "@components/ouro/button/button.tsx" }] }] }),
+    "registry/ouro/components/ouro/button/button.tsx": BUTTON,
+    "site/public/css/ouro-base.css": STATIC("v1.3.248"),
+  }).map(([k, v]) => [k, Buffer.from(v)]));
+  // The record names the release, but the copy is an older one's, recorded by its own hash.
+  const files = {
+    "components.json": JSON.stringify({ aliases: { components: "@/components", lib: "@/lib" } }),
+    "src/components/ouro/button/button.tsx": BUTTON,
+    "site/src/ouro/ouro-base.css": STATIC("v1.3.200"),
+    ".github/ouro-hx-installed.json": JSON.stringify({ tag: "v1.3.248", tagCommit: "old", files: { "site/src/ouro/ouro-base.css": sha256(STATIC("v1.3.200")), "src/components/ouro/button/button.tsx": sha256(BUTTON) } }),
+    ".github/ouro-current.json": "{}",
+  };
+  const releases = { ...RELEASES, web: { ...RELEASES.web, tag: "v1.3.248" } };
+  const repo = fakeRepo(files);
+  const kept = await keepRepo(repo.gh, "o/r", releases, { tarball });
+  assert.equal(kept.state, "pr");
+  assert.equal(repo.fileAt(BRANCH, "site/src/ouro/ouro-base.css"), STATIC("v1.3.248"));
+  assert.equal(JSON.parse(repo.fileAt(BRANCH, ".github/ouro-hx-installed.json")).files["site/src/ouro/ouro-base.css"], sha256(STATIC("v1.3.248")));
+  repo.setMain({ "site/src/ouro/ouro-base.css": STATIC("v1.3.248"), ".github/ouro-hx-installed.json": repo.fileAt(BRANCH, ".github/ouro-hx-installed.json") });
+  assert.equal((await keepRepo(repo.gh, "o/r", releases, { tarball })).state, "current", "once the copy is the release's, the repository is current");
+});
+
+test("moving to the import takes out a keyframes ouro-base wrote inside @theme inline, and keeps one the app changed", () => {
+  const base = "@keyframes ouro-spin {\n  to {\n    rotate: 1turn;\n  }\n}\n\n@keyframes ouro-pulse {\n  50% {\n    opacity: 0.4;\n  }\n}\n";
+  const css = '@import "tailwindcss";\n\n@theme inline {\n  --color-x: red;\n  @keyframes ouro-spin {\n  to {\n    rotate: 1turn;\n    }\n  }\n}\n\n@keyframes ouro-pulse {\n  50% {\n    opacity: 0.2;\n  }\n}\n';
+  const moved = importBase(css, base);
+  assert.equal(moved.text, '@import "tailwindcss";\n@import "./ouro/ouro-base.css";\n\n@theme inline {\n  --color-x: red;\n}\n\n@keyframes ouro-pulse {\n  50% {\n    opacity: 0.2;\n  }\n}\n');
+  assert.deepEqual(moved.kept, [{ where: "`@keyframes ouro-pulse`", prop: null, value: null }]);
 });
 
 /**

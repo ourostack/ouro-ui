@@ -500,6 +500,16 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
   const cssVars: Required<CssVars> = { light: {}, dark: {}, theme: {} };
   const css: CssTree = {};
   const clean = (value: string) => value.replace(/\s+/g, " ").trim();
+  // A file may open the same at-rule twice (`@supports not (corner-shape: squircle)` sets the 0.7 radius factor in one
+  // block and draws the surfaces in another): the second block joins the first, rule by rule, instead of replacing it,
+  // or the first block's rules never reach the item.
+  const put = (key: string, rules: CssTree) => {
+    const into = (css[key] ??= {}) as CssTree;
+    for (const [selector, body] of Object.entries(rules)) {
+      const had = into[selector];
+      into[selector] = had && typeof had === "object" && typeof body === "object" ? { ...had, ...body } : body;
+    }
+  };
   const declarations = (node: postcss.Container, where: string, customOnly: boolean) => {
     const out: Record<string, string> = {};
     node.each((child) => {
@@ -545,13 +555,13 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
           rules[`@media ${rule.params}`] = media;
         }
       });
-      css["@layer base"] = rules;
+      put("@layer base", rules);
     } else if (node.type === "atrule" && (node.name === "supports" || node.name === "container")) {
       const rules: CssTree = {};
       node.each((rule) => {
         if (rule.type === "rule") rules[rule.selector] = declarations(rule, `@${node.name} ${node.params} ${rule.selector}`, false);
       });
-      css[`@${node.name} ${node.params}`] = rules;
+      put(`@${node.name} ${node.params}`, rules);
     } else if (node.type === "rule" && node.selector.startsWith(':root[')) {
       css[clean(node.selector)] = declarations(node, node.selector, false);
     } else if (node.type === "atrule" && node.name === "keyframes") {

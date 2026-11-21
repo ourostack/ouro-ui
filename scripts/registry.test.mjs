@@ -250,6 +250,32 @@ test("theme items come from the repository's CSS, in shadcn's cssVars format", (
   assert.equal(theme.files, undefined);
 });
 
+test("every declaration in ouro-base.css reaches the ouro-base item, under the at-rules it sits in", async () => {
+  const { parseCss, itemTargets } = await import("./current/stylesheet.mjs");
+  const tree = parseCss(readFileSync(join(root, "registry/ouro/theme/ouro-base.css"), "utf8"));
+  const { rules, blocks } = itemTargets(item("ouro-base"));
+  const have = new Set(rules.flatMap((rule) => rule.decls.map(([prop]) => `${rule.wrappers.filter((w) => w !== "@layer base").join(" ")}|${rule.prelude.replace(/\s+/g, " ")}|${prop}`)));
+  const named = new Set(blocks.map((block) => block.prelude));
+  const missing = [];
+  const visit = (node, wrappers) => {
+    for (const child of node.children) {
+      const prelude = child.prelude;
+      if (prelude.startsWith("@keyframes")) {
+        if (!named.has(prelude)) missing.push(prelude);
+        continue;
+      }
+      const at = prelude.startsWith("@") && !prelude.startsWith("@utility") && !prelude.startsWith("@theme");
+      if (at) visit(child, prelude === "@layer base" ? wrappers : [...wrappers, prelude]);
+      for (const decl of child.decls) {
+        const key = `${wrappers.join(" ")}|${prelude}|${decl.prop}`;
+        if (!have.has(key)) missing.push(key);
+      }
+    }
+  };
+  visit(tree, []);
+  assert.deepEqual(missing, []);
+});
+
 test("cssToItem converts rules and rejects what shadcn's format can't carry", () => {
   const css = `/* c */ :root { --a: 1px; --ouro-x: 2ms; } .dark { --a: 2px; --ouro-x: 3ms; } @theme inline { --color-a: var(--a); }
     @utility tap { scale: 0.9; } @keyframes k { from { opacity: 0; } }`;
@@ -262,6 +288,11 @@ test("cssToItem converts rules and rejects what shadcn's format can't carry", ()
   });
   assert.deepEqual(cssToItem("@container style(--corner-shape: round) { [data-x] > [data-y] { clip-path: inset(0); } }").css, {
     "@container style(--corner-shape: round)": { "[data-x] > [data-y]": { "clip-path": "inset(0)" } },
+  });
+  // A second block of the same at-rule joins the first: before, it replaced it, and ouro-base's 0.7 Safari radius
+  // factor (its own `@supports not (corner-shape: squircle)` block) never reached an app's stylesheet.
+  assert.deepEqual(cssToItem("@supports not (corner-shape: squircle) { :root { --ouro-s: 0.7; } } @supports not (corner-shape: squircle) { [data-x] { display: block; } }").css, {
+    "@supports not (corner-shape: squircle)": { ":root": { "--ouro-s": "0.7" }, "[data-x]": { display: "block" } },
   });
   assert.throws(() => cssToItem(":root { color: red; }"), /:root.*only custom properties/);
   assert.throws(() => cssToItem("@import 'x.css';"), /@import/);

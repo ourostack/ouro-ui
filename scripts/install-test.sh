@@ -298,9 +298,9 @@ fi
 if [ "$variant" = current ]; then
   # An app on the newest release, updated to this commit by Ouro Current exactly as a product is: keepRepo opens its
   # pull request in a GitHub in memory holding the app (scripts/current/local-update.mjs), and its change is written
-  # back. Components alone are not an update: the app's stylesheet must gain what this commit's ouro-base adds (#1843's
-  # `--radius-ouro-*`, which `rounded-ouro-*` reads), and an app already on this commit whose stylesheet is behind must
-  # get it too.
+  # back. Components alone are not an update: the app's stylesheet moves to an import of this commit's ouro-base file,
+  # so it has what this commit's ouro-base adds (#1843's `--radius-ouro-*`, which `rounded-ouro-*` reads), and an app
+  # already on this commit whose stylesheet is behind must get it too.
   from=${OURO_CURRENT_FROM:-$(node "$root/scripts/latest-release.mjs")}
   git -C "$root" rev-parse -q --verify "refs/tags/$from^{commit}" >/dev/null || git -C "$root" fetch --quiet --depth=1 origin "refs/tags/$from:refs/tags/$from"
   harness="$registry/tag"
@@ -334,6 +334,9 @@ if [ "$variant" = current ]; then
 
   echo "::group::Ouro Current updates the app from $from to this commit"
   current_update
+  # The stylesheet now imports ouro-base's own file, which is this commit's, beside it.
+  grep -qF '@import "./ouro/ouro-base.css";' "$css" || { echo "Ouro Current did not move the stylesheet to an import of ouro-base's own file"; exit 1; }
+  cmp "$(dirname "$css")/ouro/ouro-base.css" "$root/registry/ouro/theme/ouro-base.css" || { echo "ouro-base's own file is not this commit's"; exit 1; }
   node "$root/scripts/install-check.mjs" --theme-item "$css" "$registry/registry.json" ouro-base
   node "$root/scripts/install-check.mjs" --sources "$app" "$root"
   echo "::endgroup::"
@@ -346,7 +349,9 @@ if [ "$variant" = current ]; then
     cp "$registry/stylesheet.updated.css" "$css"
   else
     current_update
-    cmp "$css" "$registry/stylesheet.updated.css" || { echo "the stylesheet's own update differs from the one the release update wrote"; diff "$registry/stylesheet.updated.css" "$css" || true; exit 1; }
+    # It moves to ouro-base's own file, as the release update did, and has everything this commit's ouro-base adds.
+    grep -qF '@import "./ouro/ouro-base.css";' "$css" || { echo "the stylesheet does not import ouro-base's own file"; exit 1; }
+    node "$root/scripts/install-check.mjs" --theme-item "$css" "$registry/registry.json" ouro-base
   fi
   echo "::endgroup::"
 

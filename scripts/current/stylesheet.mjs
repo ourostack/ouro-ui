@@ -2,6 +2,11 @@
 // its `cssVars` go to `:root`, `.dark` and `@theme inline`, and its `css` to the rules, at-rules, utilities and
 // keyframes it names. Only what the stylesheet lacks is added. A variable or declaration the app already has keeps its
 // value, and every other byte of the file stays as the app wrote it. No dependency: Ouro Current runs on plain Node.
+//
+// ouro-base can instead sit in a file of its own beside the stylesheet, which imports it (`@import
+// "./ouro/ouro-base.css"`) before the app's own rules: Ouro Current then replaces that file whole, like any installed
+// file, and moves a stylesheet that holds ouro-base's rules to the import (importBase).
+import { posix } from "node:path";
 
 /** The theme items Ouro Current keeps in an app's stylesheet. */
 export const THEME_ITEMS = ["ouro-base", "ouro-theme"];
@@ -17,7 +22,7 @@ function blankComments(text) {
  */
 export function parseCss(text) {
   const src = blankComments(text);
-  const root = { prelude: null, open: -1, close: text.length, decls: [], children: [], parent: null };
+  const root = { prelude: null, open: -1, close: text.length, decls: [], children: [], semis: [], parent: null };
   let node = root;
   let segment = 0;
   let quote = null;
@@ -25,7 +30,7 @@ export function parseCss(text) {
   const declaration = (from, to) => {
     const raw = src.slice(from, to);
     const match = /^\s*(-{0,2}[A-Za-z_][\w-]*)\s*:([\s\S]*)$/.exec(raw);
-    if (match && node !== root) node.decls.push({ prop: match[1], value: match[2].trim(), start: from + raw.length - raw.trimStart().length });
+    if (match && node !== root) node.decls.push({ prop: match[1], value: match[2].trim(), start: from + raw.length - raw.trimStart().length, end: to });
   };
   for (let index = 0; index < src.length; index += 1) {
     const char = src[index];
@@ -39,10 +44,11 @@ export function parseCss(text) {
     else if (char === ")") parens = Math.max(0, parens - 1);
     else if (parens > 0) continue;
     else if (char === ";") {
+      node.semis.push(index);
       declaration(segment, index);
       segment = index + 1;
     } else if (char === "{") {
-      const child = { prelude: src.slice(segment, index).trim().replace(/\s+/g, " "), open: index, close: -1, decls: [], children: [], parent: node };
+      const child = { prelude: src.slice(segment, index).trim().replace(/\s+/g, " "), open: index, close: -1, decls: [], children: [], semis: [], parent: node };
       node.children.push(child);
       node = child;
       segment = index + 1;
@@ -232,8 +238,10 @@ export function applyItem(text, item, previous = null) {
   const rules = wanted.map((target) => (isVariables(target) || missingUtility(target) || missingWrapper(target) ? target : { ...target, decls: target.decls.filter(([prop]) => !had.has(ruleKey(target, prop))) })).filter((target) => target.decls.length);
   const darkClass = [...walk(tree)].some(({ node }) => !node.prelude.startsWith("@") && selectors(node.prelude).includes(".dark"));
   const unit = indentUnit(text);
-  // Insertions are collected by position and applied from the end, so earlier indexes stay right.
+  // Insertions are collected by position and applied from the end, so earlier indexes stay right. Two at the same place
+  // land in the order they were pushed, so rules keep the item's order (`@media (width >= 150rem)` before 200rem).
   const inserts = [];
+  const insert = (at, text) => inserts.push({ at, text, order: inserts.length });
   const added = [];
   const skipped = unknown.map((key) => `\`${key}\`, which Ouro Current does not know how to write`);
   const appended = [];
@@ -250,11 +258,11 @@ export function applyItem(text, item, previous = null) {
     const lineStart = lastDecl ? text.lastIndexOf("\n", lastDecl.start - 1) : -1;
     const declIndent = lastDecl && lineStart > node.open && /^[ \t]*$/.test(text.slice(lineStart + 1, lastDecl.start)) ? text.slice(lineStart + 1, lastDecl.start) : null;
     const indent = declIndent ?? /\n([ \t]*)\S[^\n]*$/.exec(last)?.[1] ?? unit.repeat(levelOf(node) + 1);
-    // A last declaration written without its semicolon (`shadcn add` leaves one so) gets it, after its value.
+    // A last declaration written without its semicolon (`shadcn add` leaves one so) gets it, after its value and
+    // before what is added, so it is pushed first.
     const code = bare.slice(node.open + 1, node.close).trimEnd();
-    // Applied from the end, an insert pushed later at the same place lands before one pushed earlier.
-    inserts.push({ at: node.open + 1 + last.length, text: decls.map(([prop, value]) => `\n${indent}${prop}: ${value};`).join("") });
-    if (code && !/[;{}]$/.test(code)) inserts.push({ at: node.open + 1 + code.length, text: ";" });
+    if (code && !/[;{}]$/.test(code)) insert(node.open + 1 + code.length, ";");
+    insert(node.open + 1 + last.length, decls.map(([prop, value]) => `\n${indent}${prop}: ${value};`).join(""));
   };
   for (const target of rules) {
     if (target.prelude === ".dark" && !darkClass) {
@@ -285,7 +293,7 @@ export function applyItem(text, item, previous = null) {
     if (node === tree) appended.push(nested);
     else {
       const [[prelude, inner]] = Object.entries(nested);
-      inserts.push({ at: node.open + 1 + text.slice(node.open + 1, node.close).trimEnd().length, text: `\n${render(prelude, inner, unit.repeat(levelOf(node) + 1), unit)}` });
+      insert(node.open + 1 + text.slice(node.open + 1, node.close).trimEnd().length, `\n${render(prelude, inner, unit.repeat(levelOf(node) + 1), unit)}`);
     }
   }
   for (const target of blocks) {
@@ -294,7 +302,7 @@ export function applyItem(text, item, previous = null) {
     appended.push(target.wrappers.reduceRight((inner, wrapper) => ({ [wrapper]: inner }), { [target.prelude]: target.body }));
   }
   let out = text;
-  for (const { at, text: insert } of inserts.sort((a, b) => b.at - a.at)) out = `${out.slice(0, at)}${insert}${out.slice(at)}`;
+  for (const { at, text: piece } of inserts.sort((a, b) => b.at - a.at || b.order - a.order)) out = `${out.slice(0, at)}${piece}${out.slice(at)}`;
   if (appended.length) {
     // Blocks the file has no home for go at its end, together, as `shadcn add` appends them.
     const merged = {};
@@ -317,4 +325,141 @@ export function hasItem(text, item) {
   const light = item.cssVars?.light ?? {};
   const marks = ["primary", "ring", "border"].filter((key) => key in light);
   return marks.length > 0 && marks.every((key) => declared(`--${key}`).some((decl) => decl.value.toLowerCase() === String(light[key]).toLowerCase()));
+}
+
+/** ouro-base's source in the registry, which an app that imports it holds as a file of its own. */
+export const BASE_SOURCE = "registry/ouro/theme/ouro-base.css";
+/** The import an app's stylesheet names ouro-base by, relative to the stylesheet. */
+export const BASE_IMPORT = "./ouro/ouro-base.css";
+/** Where ouro-base's file sits for the stylesheet at `sheet`: an `ouro/` folder beside it. */
+export const basePath = (sheet) => posix.join(posix.dirname(sheet), BASE_IMPORT);
+
+/** The path the stylesheet imports ouro-base by (`./ouro/ouro-base.css`), or null when it imports no ouro-base. */
+export function baseImport(text) {
+  const match = /@import\s+(?:url\(\s*)?(["'])([^"']*\bouro-base\.css)\1/.exec(blankComments(text));
+  return match ? match[2] : null;
+}
+
+/**
+ * Variables ouro-base gives only an app whose theme lacks them: where the app has one it is the theme's, whatever its
+ * value, so it stays in the stylesheet.
+ */
+const THEME_OWNED = new Set(["--input", "--radius"]);
+
+const normal = (value) => value.replace(/\s+/g, " ").trim();
+/** A rule's key for matching: its at-rule prelude, or its selectors as one list. */
+const ruleName = (prelude) => (prelude.startsWith("@") ? collapse(prelude) : selectors(prelude).join(","));
+
+/** A block's body as plain data, to compare a `@keyframes` with the item's. */
+function bodyOf(node) {
+  const out = {};
+  for (const decl of node.decls) out[decl.prop] = normal(decl.value);
+  for (const child of node.children) out[collapse(child.prelude)] = bodyOf(child);
+  return out;
+}
+const canonical = (value) => (typeof value === "string" ? normal(value) : `{${Object.keys(value).sort().map((key) => `${collapse(key)}:${canonical(value[key])}`).join(";")}}`);
+
+/**
+ * A stylesheet's own rules as targets, in itemTargets' shape: each rule (its wrappers, its selector, its declarations)
+ * and each `@keyframes` whole. ouro-base's file read this way is what its item would be, without the item's losses.
+ */
+export function cssTargets(text) {
+  const tree = parseCss(text);
+  const rules = [];
+  const blocks = [];
+  const visit = (node, wrappers) => {
+    for (const child of node.children) {
+      const prelude = collapse(child.prelude);
+      if (atName(prelude) === "@keyframes") {
+        blocks.push({ wrappers, prelude, body: bodyOf(child) });
+        continue;
+      }
+      if (child.decls.length) rules.push({ wrappers, prelude, decls: child.decls.map((decl) => [decl.prop, normal(decl.value)]) });
+      if (prelude.startsWith("@") && atName(prelude) !== "@utility" && !isTheme(prelude)) visit(child, [...wrappers, prelude]);
+    }
+  };
+  if (tree) visit(tree, []);
+  return { rules, blocks };
+}
+
+/**
+ * The stylesheet moved to ouro-base's own file: the import goes in after `@import "tailwindcss"` (or the file's last
+ * leading `@import`, else at its top), so the app's rules come after ouro-base's and win; and every declaration and
+ * keyframes the stylesheet holds exactly as `previous` (ouro-base's file at the tag it was written from, or that tag's
+ * item) has it is taken out,
+ * with any block it leaves empty. What the app changed stays, after the import, as its own override, and is listed in
+ * `kept`; what `previous` has and the stylesheet left out is listed in `restored`, as the file now applies it. `--input`
+ * and `--radius` always stay: where an app has them they are its theme's. Null when the braces do not balance.
+ */
+export function importBase(text, previous) {
+  const tree = parseCss(text);
+  if (!tree) return null;
+  const { rules, blocks } = typeof previous === "string" ? cssTargets(previous) : itemTargets(previous);
+  const removed = new Set();
+  const kept = [];
+  const restored = [];
+  const all = [...walk(tree)];
+  for (const target of rules) {
+    const wanted = matchWrappers(target.wrappers);
+    const name = target.prelude === "@theme inline" ? "@theme inline" : ruleName(target.prelude);
+    const where = target.wrappers.length ? `\`${target.prelude.replace(/\s+/g, " ")}\` in \`${target.wrappers.join(" ")}\`` : `\`${target.prelude}\``;
+    const homes = all.filter(({ node, wrappers }) => sameWrappers(wrappers, wanted) && ruleName(node.prelude) === name).map(({ node }) => node);
+    for (const [prop, value] of target.decls) {
+      const found = homes.flatMap((node) => node.decls.filter((decl) => decl.prop === prop));
+      if (!found.length) {
+        if (!hasDecl(holders(tree, target), target, prop)) restored.push({ where, prop });
+        continue;
+      }
+      for (const decl of found) {
+        if (normal(decl.value) === normal(value) && !THEME_OWNED.has(prop)) removed.add(decl);
+        else kept.push({ where, prop, value: decl.value });
+      }
+    }
+  }
+  for (const target of blocks) {
+    // A keyframes counts wherever the app keeps it: older `shadcn add` wrote them inside `@theme inline`.
+    const same = all.filter(({ node }) => collapse(node.prelude) === target.prelude);
+    if (!same.length) restored.push({ where: `\`${target.prelude}\``, prop: null });
+    for (const { node } of same) {
+      if (canonical(bodyOf(node)) === canonical(target.body)) removed.add(node);
+      else kept.push({ where: `\`${target.prelude}\``, prop: null, value: null });
+    }
+  }
+  // A block whose every declaration and child went goes too, with its wrappers, once something in it was taken out.
+  const emptied = (node) => {
+    if (removed.has(node)) return true;
+    const touched = node.decls.some((decl) => removed.has(decl)) | node.children.map(emptied).some(Boolean);
+    const empty = node.decls.every((decl) => removed.has(decl)) && node.children.every((child) => removed.has(child));
+    if (touched && empty) removed.add(node);
+    return removed.has(node);
+  };
+  tree.children.forEach(emptied);
+  // Each piece goes from the end of what comes before it in its block (a `;`, a `}` or the block's `{`), so the
+  // comment above it goes too and the lines around it stay as they were.
+  const ranges = [];
+  // A comment after a declaration on its line is that declaration's: it goes with it, and stays when the next one goes.
+  const trailing = (at) => at + (/^[ \t]*\/\*[^\n]*?\*\//.exec(text.slice(at))?.[0].length ?? 0);
+  const visit = (node) => {
+    const marks = [node.open + 1, ...node.semis.map((at) => trailing(at + 1)), ...node.children.map((child) => child.close + 1)];
+    const before = (at) => Math.max(...marks.filter((mark) => mark <= at));
+    for (const decl of node.decls) if (removed.has(decl)) ranges.push([before(decl.start), text[decl.end] === ";" ? trailing(decl.end + 1) : decl.end]);
+    for (const child of node.children) {
+      if (removed.has(child)) ranges.push([before(child.open), child.close + 1]);
+      else visit(child);
+    }
+  };
+  visit(tree);
+  let out = text;
+  for (const [from, to] of ranges.sort((a, b) => b[0] - a[0])) {
+    const tail = out.slice(to);
+    // A top-level block taken out takes its blank line with it.
+    out = `${out.slice(0, from)}${/^\n\n/.test(tail) && /\n$/.test(out.slice(0, from)) ? tail.slice(1) : tail}`;
+  }
+  const bare = blankComments(out);
+  const leading = [...bare.matchAll(/@import\b[^;{}]*;/g)].filter((match) => !parseCss(out)?.children.some((child) => child.open < match.index && match.index < child.close));
+  const tailwind = leading.find((match) => /["']tailwindcss["']/.test(match[0]));
+  const after = tailwind ?? leading.at(-1);
+  const line = `@import "${BASE_IMPORT}";`;
+  out = after ? `${out.slice(0, after.index + after[0].length)}\n${line}${out.slice(after.index + after[0].length)}` : `${line}\n\n${out}`;
+  return { text: out, kept, restored };
 }
