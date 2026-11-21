@@ -67,6 +67,34 @@ afterEach(async () => {
   for (const node of nodes.splice(0)) node.remove();
 });
 
+describe("ReactionBar optimistic with an app that updates first", () => {
+  it("keeps the new reaction while the promise waits, though the app's list already has it", async () => {
+    function Early() {
+      const [list, setList] = useState(initial);
+      return (
+        <ReactionBar
+          reactions={list}
+          optimistic
+          onReact={() => {
+            setList([{ ...initial[0]!, count: 4, mine: true }]);
+            return new Promise<void>(() => {});
+          }}
+        />
+      );
+    }
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Early />));
+    const button = host.querySelector("button")!;
+    await act(async () => button.click());
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(button.textContent).toContain("4");
+  });
+});
+
 describe("ReactionBar optimistic", () => {
   it("shows a press at once, marks the group pending, and keeps it once the promise settles", async () => {
     const { bar, button } = await mount();

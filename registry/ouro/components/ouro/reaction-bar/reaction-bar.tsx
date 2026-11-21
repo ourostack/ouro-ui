@@ -275,7 +275,7 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
               aria-describedby={[described, reasoned && reasonId].filter(Boolean).join(" ") || undefined}
               {...softOff}
               disabled={reasoned ? undefined : disabled}
-              onClick={(event) => (reasoned ? undefined : optimistic ? void settled.run((list) => toggled(list, reaction), () => Promise.resolve(onReact(reaction.key, event))) : onReact(reaction.key, event))}
+              onClick={(event) => (reasoned ? undefined : optimistic ? void settled.run((list) => toggled(list, reaction, !reaction.mine), () => Promise.resolve(onReact(reaction.key, event))) : onReact(reaction.key, event))}
             >
               {emoji}
               {name}
@@ -341,9 +341,10 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
   );
 }
 
-/** The reactions with the person's reaction to `reaction` added, or taken back if it is already theirs. */
-function toggled(list: readonly Reaction[], reaction: Partial<Reaction> & ReactionOption): readonly Reaction[] {
+/** The reactions with the person's reaction to `reaction` made `mine` or not; a list that already says so comes back as it is, so a change stays right when the app updates its list first. */
+function toggled(list: readonly Reaction[], reaction: Partial<Reaction> & ReactionOption, mine: boolean): readonly Reaction[] {
   const found = list.find((entry) => entry.key === reaction.key);
+  if ((found?.mine ?? false) === mine) return list;
   if (!found) return [...list, { key: reaction.key, label: reaction.label, emoji: reaction.emoji, count: 1, mine: true }];
   const count = found.count + (found.mine ? -1 : 1);
   return list.flatMap((entry) => (entry.key !== reaction.key ? [entry] : count <= 0 ? [] : [{ ...entry, count, mine: !entry.mine }]));
