@@ -1002,7 +1002,7 @@ const floatingClass =
 const fadeClass = "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-hidden:pointer-events-none data-hidden:opacity-0";
 
 /** A vertical rule between controls, in the border color. */
-const separatorClass = "mx-1 h-5 w-px shrink-0 self-center bg-border forced-colors:bg-[CanvasText]";
+const separatorClass = "mx-1 h-ouro-5 w-px shrink-0 self-center bg-border forced-colors:bg-[CanvasText]";
 
 /** A control's tooltip: its label, then its shortcut. */
 function tip(label: string, shortcut: readonly string[] | undefined): JSX.Element {

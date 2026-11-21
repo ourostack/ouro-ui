@@ -102,6 +102,14 @@ function onPlatform(platform: "macOS" | "Windows") {
 }
 
 describe("Toolbar", () => {
+  it("keeps its fixed sizes at a compact --spacing: a 20px divider between its controls", async () => {
+    const { host } = await render(<Toolbar label="Formatting" items={[{ label: "Bold" }, { type: "separator" }, { label: "Italic" }]} />);
+    const divider = () => parseFloat(getComputedStyle(host.querySelector('[role="separator"]')!).height);
+    expect(divider()).toBeCloseTo(20);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(divider()).toBeCloseTo(20);
+  });
+
   it("is a labeled toolbar of Ouro Toggles and Buttons, groups and separators", async () => {
     const ref = createRef<HTMLDivElement>();
     const { toolbar, buttons } = await render(<Toolbar ref={ref} label="Formatting" items={formatting} />, 900);
