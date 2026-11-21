@@ -34,6 +34,7 @@ Type: `ReactionBarProps`.
 | --- | --- | --- | --- |
 | `catalogue` | `EmojiCatalogue` |  | An image emoji catalogue, the same as the app's `EmojiPicker`: reactions and quick reactions then go by emoji id, each showing the catalogue's image, named by the emoji's name, an animated one playing while its button is under the mouse or in focus. |
 | `className` | `string` |  | Layout only: margins, placement (`mt-1`). Appearance classes warn in development. |
+| `describeError` | `((error: unknown) => string)` | the error's message | Turns a refused press into the words shown beside the reactions, with `optimistic`. |
 | `disabled` | `boolean` |  | Keeps the counts but turns off reacting, for example while the app is offline. |
 | `disabledReason` | `string` |  | Turns reacting off and says why: `disabledReason="You're offline"`. The counts stay and the reaction buttons stay focusable; pressing one does nothing and its tooltip gives the reason. Use it instead of `disabled` whenever the person can be told why. It wins over `disabled`. |
 | `label` | `string` | `"Reactions"` | What screen readers hear for the group, for other languages. |
@@ -41,7 +42,8 @@ Type: `ReactionBarProps`.
 | `moreLabel` | `string` | `"Add reaction"` | The "Add reaction" button's name and tooltip, for other languages. |
 | `moreOpen` | `boolean` |  | Whether the picker that `onMore` opens is open, so the "Add reaction" button says so (`aria-expanded`). |
 | `onMore` | `((event: MouseEvent<HTMLElement>) => void)` |  | Called when the "Add reaction" button at the end is pressed, to open the app's own reaction picker. The button shows only with `onMore`. Anchor the picker to `event.currentTarget`, and pass `moreOpen` while it is open. |
-| `onReact` | `((key: string, event: MouseEvent<HTMLElement>) => void)` |  | Called with a reaction's key when it is pressed, to add the person's reaction or take it back. The click event comes second, so the app can check `event.isTrusted` before it acts. Without it the reactions are read-only. |
+| `onReact` | `((key: string, event: MouseEvent<HTMLElement>) => void \| Promise<unknown>)` |  | Called with a reaction's key when it is pressed, to add the person's reaction or take it back. The click event comes second, so the app can check `event.isTrusted` before it acts. Without it the reactions are read-only. |
+| `optimistic` | `boolean` |  | Shows a press at once, as the person's reaction added or taken back, and keeps it until the promise `onReact` returns settles; update `reactions` before it does. While one waits, the group carries `data-ouro-pending` and `aria-busy`. If the promise rejects, the press is undone and the reason (the error's message, or `describeError`'s words) shows beside the reactions, announced politely. Use it when the server may refuse; without it the app updates `reactions` itself. |
 | `quick` | `readonly (ReactionOption \| string)[]` |  | Reactions offered for a single press, after the counts: each with its own emoji, or, with `catalogue`, an emoji's id. One that is already in `reactions` shows there instead, and an id the catalogue lacks is left out. Shown only with `onReact`. |
 | `reactions` (required) | `readonly Reaction[] \| readonly CatalogueReaction[]` |  | The message's reactions, in the order they show: each with its own emoji, or, with `catalogue`, by emoji id. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |

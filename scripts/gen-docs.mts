@@ -81,6 +81,7 @@ const componentFiles = [
   "registry/ouro/lib/ouro/measure-interaction.ts",
   "registry/ouro/lib/ouro/porthole-view.ts",
   "registry/ouro/lib/ouro/use-counts.ts",
+  "registry/ouro/lib/ouro/use-optimistic-action.ts",
 ];
 /** Part files (`<folder>/<stem>-parts.tsx`), by the family their parts are named after (the stem in PascalCase). */
 const partFiles: Record<string, string> = Object.fromEntries(

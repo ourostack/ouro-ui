@@ -7,6 +7,7 @@ import { catalogueIndex } from "@/registry/ouro/components/ouro/emoji/emoji-styl
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useOptimisticAction } from "@/registry/ouro/lib/ouro/use-optimistic-action";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** A reaction someone can add: its key, its spoken name and what it shows. */
@@ -97,7 +98,20 @@ export interface ReactionBarOwnProps {
    * it back. The click event comes second, so the app can check `event.isTrusted` before
    * it acts. Without it the reactions are read-only.
    */
-  onReact?: ((key: string, event: MouseEvent<HTMLElement>) => void) | undefined;
+  onReact?: ((key: string, event: MouseEvent<HTMLElement>) => void | Promise<unknown>) | undefined;
+  /**
+   * Shows a press at once, as the person's reaction added or taken back, and keeps it until the promise `onReact` returns settles; update `reactions` before it does.
+   * While one waits, the group carries `data-ouro-pending` and `aria-busy`. If the promise rejects, the press is undone and the reason
+   * (the error's message, or `describeError`'s words) shows beside the reactions, announced politely. Use it when the server may refuse; without it the app updates `reactions` itself.
+   *
+   * @example
+   * <ReactionBar reactions={reactions} optimistic onReact={(key) => api.react(messageId, key)} />
+   * @claim "undone and the reason" registry/ouro/components/ouro/reaction-bar/reaction-bar.optimistic.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.optimistic.test.tsx::ReactionBar optimistic > shows a press at once, marks the group pending, and keeps it once the promise settles)
+   * @claim "the press is undone and the reason" registry/ouro/components/ouro/reaction-bar/reaction-bar.optimistic.test.tsx verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.optimistic.test.tsx::ReactionBar optimistic > undoes a refused press and says why, announced politely)
+   */
+  optimistic?: boolean | undefined;
+  /** Turns a refused press into the words shown beside the reactions, with `optimistic`. @default the error's message */
+  describeError?: ((error: unknown) => string) | undefined;
   /**
    * Called when the "Add reaction" button at the end is pressed, to open the app's own
    * reaction picker. The button shows only with `onMore`. Anchor the picker to
@@ -183,6 +197,8 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
     moreLabel = "Add reaction",
     disabled = false,
     disabledReason,
+    optimistic = false,
+    describeError,
     label = "Reactions",
     mineLabel = "including you",
     className,
@@ -194,7 +210,9 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
   } = props;
   const id = useId();
   const given: readonly (Reaction | CatalogueReaction)[] = reactions ?? [];
-  const shown = (catalogue ? given.map((reaction) => fromCatalogue(reaction, catalogue)) : given) as readonly Reaction[];
+  const base = (catalogue ? given.map((reaction) => fromCatalogue(reaction, catalogue)) : given) as readonly Reaction[];
+  const settled = useOptimisticAction<readonly Reaction[]>(base, { describe: describeError });
+  const shown = optimistic ? settled.value : base;
   const quickOptions = (quick ?? []).flatMap((option) =>
     typeof option !== "string" ? [option] : catalogue && catalogueIndex(catalogue).byId.has(option) ? [fromCatalogue({ key: option }, catalogue)] : [],
   );
@@ -257,7 +275,7 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
               aria-describedby={[described, reasoned && reasonId].filter(Boolean).join(" ") || undefined}
               {...softOff}
               disabled={reasoned ? undefined : disabled}
-              onClick={(event) => (reasoned ? undefined : onReact(reaction.key, event))}
+              onClick={(event) => (reasoned ? undefined : optimistic ? void settled.run((list) => toggled(list, reaction, !reaction.mine), () => Promise.resolve(onReact(reaction.key, event))) : onReact(reaction.key, event))}
             >
               {emoji}
               {name}
@@ -306,10 +324,36 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
     </>
   );
   return (
-    <div {...rest} role="group" aria-label={label} data-ouro="reaction-bar" className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}>
-      {buttons}
+    <div
+      {...rest}
+      role="group"
+      aria-label={label}
+      aria-busy={settled.pending || undefined}
+      data-ouro="reaction-bar"
+      data-ouro-pending={settled.pending ? "" : undefined}
+      className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}
+    >
+      {optimistic ? (
+        <>
+          {buttons}
+          <span role="status" data-slot="reaction-bar-reason" className="text-foreground empty:hidden text-sm">
+            {settled.reason}
+          </span>
+        </>
+      ) : (
+        buttons
+      )}
     </div>
   );
+}
+
+/** The reactions with the person's reaction to `reaction` made `mine` or not; a list that already says so comes back as it is, so a change stays right when the app updates its list first. */
+function toggled(list: readonly Reaction[], reaction: Partial<Reaction> & ReactionOption, mine: boolean): readonly Reaction[] {
+  const found = list.find((entry) => entry.key === reaction.key);
+  if ((found?.mine ?? false) === mine) return list;
+  if (!found) return [...list, { key: reaction.key, label: reaction.label, emoji: reaction.emoji, count: 1, mine: true }];
+  const count = found.count + (found.mine ? -1 : 1);
+  return list.flatMap((entry) => (entry.key !== reaction.key ? [entry] : count <= 0 ? [] : [{ ...entry, count, mine: !entry.mine }]));
 }
 
 /** A catalogue reaction as one with its own emoji: the catalogue's image and name, else the app's fallback or the id as a token. */
