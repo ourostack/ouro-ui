@@ -48,7 +48,7 @@ describe("Tabs tab looks off with a reason", () => {
     expect(getComputedStyle(disabled!).opacity).toBe("0.5");
     expect(getComputedStyle(reasoned!).opacity).toBe("0.5");
     expect(getComputedStyle(reasoned!).cursor).toBe("not-allowed");
-    expect(reasoned!.hasAttribute("data-disabled")).toBe(true);
+    expect(reasoned!.getAttribute("data-disabled")).toBe("");
     expect(on!.hasAttribute("data-disabled")).toBe(false);
     expect(getComputedStyle(on!).opacity).toBe("1");
   });
