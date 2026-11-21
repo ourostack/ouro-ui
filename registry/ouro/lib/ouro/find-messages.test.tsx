@@ -57,4 +57,14 @@ describe("rangesIn", () => {
     ]);
     expect(rangesIn(turkish, { query: "i", fold: "case", locale: "tr" })).toHaveLength(2);
   });
+
+  it("starts a range in the node its first letter is in and ends it in the node its last letter is in, at a node's edge too", () => {
+    const root = document.createElement("div");
+    root.innerHTML = "ab<b>cd</b>ef";
+    const [first] = rangesIn(root, { query: "ab" });
+    expect([first!.startContainer, first!.startOffset, first!.endContainer, first!.endOffset]).toEqual([root.firstChild, 0, root.firstChild, 2]);
+    const [second] = rangesIn(root, { query: "cd" });
+    const inner = root.querySelector("b")!.firstChild;
+    expect([second!.startContainer, second!.startOffset, second!.endContainer, second!.endOffset]).toEqual([inner, 0, inner, 2]);
+  });
 });

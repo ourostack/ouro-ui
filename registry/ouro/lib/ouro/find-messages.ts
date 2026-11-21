@@ -40,9 +40,8 @@ function findInMessages(entries: readonly { key: string; text: string }[], find:
   const counts = new Map<string, number>();
   const order: { key: string; count: number }[] = [];
   let total = 0;
-  const options = { ...(find.fold === undefined ? {} : { fold: find.fold }), ...(find.locale === undefined ? {} : { locale: find.locale }) };
   for (const { key, text } of entries) {
-    const count = findMatches(text, find.query, options).length;
+    const count = findMatches(text, find.query, find).length;
     if (count === 0) continue;
     counts.set(key, count);
     order.push({ key, count });
@@ -67,18 +66,18 @@ function locateMatch(result: MessageFindResult, index: number): MessageFindTarge
 /** The ranges of the matches in the text drawn inside `root`, in page order, across its text nodes. */
 function rangesIn(root: Element, find: MessageFind): Range[] {
   const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  // Stryker disable next-line ArrayDeclaration: a stand-in entry has no start, so every comparison with it is false and a match never reaches it.
   const nodes: { node: Text; start: number }[] = [];
   let text = "";
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     nodes.push({ node: node as Text, start: text.length });
     text += node.nodeValue;
   }
-  const options = { ...(find.fold === undefined ? {} : { fold: find.fold }), ...(find.locale === undefined ? {} : { locale: find.locale }) };
   const at = (offset: number, end: boolean) => {
     const found = nodes.findLast((entry) => (end ? entry.start < offset : entry.start <= offset))!;
     return { node: found.node, offset: offset - found.start };
   };
-  return findMatches(text, find.query, options).map(({ start, end }) => {
+  return findMatches(text, find.query, find).map(({ start, end }) => {
     const from = at(start, false);
     const to = at(end, true);
     const range = root.ownerDocument.createRange();
