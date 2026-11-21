@@ -159,7 +159,7 @@ function linkHint(token: string): string {
   return `tone="${toneFor(token)}"`;
 }
 
-/** A text split before its last word (trailing spaces kept with it), or null with no word to split off. @internal */
+/** A text split before its last word, trailing spaces kept with that word; null for a blank text. @internal */
 function lastWord(text: string): { head: string; last: string } | null {
   const at = text.search(/\S+\s*$/);
   return at < 0 ? null : { head: text.slice(0, at), last: text.slice(at) };
@@ -303,7 +303,7 @@ export function Link(props: LinkProps): JSX.Element {
         <>
           {glued.head}
           {/* The last word and the icon break together: the icon never wraps onto a line of its own. */}
-          <span className="whitespace-nowrap">
+          <span data-slot="link-last-word" className="whitespace-nowrap">
             {glued.last}
             {externalIcon}
           </span>
