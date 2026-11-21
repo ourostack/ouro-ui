@@ -1525,6 +1525,16 @@ describe("MessageList windowing", () => {
     expect(Math.max(...perFrame)).toBeLessThanOrEqual(2);
   });
 
+  it("marks the messages a commit brings in, in that commit, before the observer that follows it runs", async () => {
+    const { root, scroller } = await render(<ShortRows ids={span(0, 5)} />);
+    flushSync(() => root.render(<ShortRows ids={span(-3, 8)} />));
+    // Read at once: the marks of the new messages are written by the commit, not by the mutation observer after it.
+    const added = document.getElementById("m-3")!;
+    expect(added.getAttribute("data-ouro-control")).toBe("message-list");
+    expect(added.getAttribute("tabindex")).toBe("-1");
+    await settle(scroller);
+  });
+
   it("does not spend a second chunk on rows the first chunk has not drawn yet, when a frame runs before React commits it", async () => {
     let commits = 0;
     const list = (from: number, count: number) => (
