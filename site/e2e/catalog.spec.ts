@@ -78,10 +78,12 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * with it, on CI at 372a0256.
  * Then 1 KiB more (282 KiB) for the disabled reason: Button now carries Tooltip's wrapper for a button with a reason (#1953),
  * with which home measured 288,389 bytes on CI.
+ * Then 1 KiB more (283 KiB) for MessageList's post marks, which draw the hairline between posts with no `:has()` or sibling
+ * rule over the slots, which WebKit restyled every slot drawn for (#2714): home measured 288,775 bytes on CI with them.
  * The docs pages take 23,777 bytes more (191,197 on CI) plus 1 KiB: Button carries Tooltip for a button with a reason, so
  * Tooltip and its popup code come with every page that has a Button (#1953).
  */
-const CEILINGS = { voyage: 282 * 1024, docs: 191_197 + 1024 } as const;
+const CEILINGS = { voyage: 283 * 1024, docs: 191_197 + 1024 } as const;
 
 /**
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's

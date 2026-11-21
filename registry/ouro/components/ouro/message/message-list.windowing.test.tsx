@@ -1,4 +1,4 @@
-import { Fragment, Profiler, createRef, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type Ref } from "react";
+import { Fragment, Profiler, createRef, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -9,6 +9,7 @@ import { MessageList, type MessageListActions } from "@/registry/ouro/components
 import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
+import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -102,6 +103,17 @@ const messages = (scroller: HTMLElement) => [...scroller.querySelectorAll<HTMLEl
 const ids = (scroller: HTMLElement) => messages(scroller).map((message) => Number(message.id.slice(1)));
 const distanceFromBottom = (scroller: HTMLElement) => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
 const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+/** A post the app's own component draws, its variant set by the component's own state, not by the list's render. */
+function OwnPost({ expose }: { expose: (set: (variant: "post" | "chat") => void) => void }) {
+  const [variant, setVariant] = useState<"post" | "chat">("post");
+  useLayoutEffect(() => expose(setVariant), [expose]);
+  return (
+    <Message id="m1" variant={variant} role="assistant" name="Mara Quill">
+      Message 1
+    </Message>
+  );
+}
 
 /** Waits until the list has settled: the scroll position, its height and the messages drawn read the same across two frames. */
 async function settle(scroller: HTMLElement) {
@@ -352,6 +364,86 @@ describe("MessageList windowing", () => {
       if (count === 3) expect(line(first.id).content).toBe("none");
       await act(async () => roots.splice(0).forEach((root) => root.unmount()));
     }
+  });
+
+  it("draws a hairline between posts the app wraps in its own component, from the DOM and not the props", async () => {
+    function Post({ id }: { id: string }) {
+      return (
+        <Message id={id} variant="post" role="assistant" name="Mara Quill">
+          {`Message ${id}`}
+        </Message>
+      );
+    }
+    await render(
+      <MessageList label="Channel" style={{ height: 400, width: 360 }}>
+        {[0, 1, 2].map((id) => (
+          <Post key={id} id={`m${id}`} />
+        ))}
+      </MessageList>,
+    );
+    const line = (id: string) => getComputedStyle(document.getElementById(id)!.querySelector("[data-ouro-message-body]")!, "::before");
+    expect(line("m0").content).toBe("none");
+    expect(line("m1").content).not.toBe("none");
+    expect(line("m1").borderTopWidth).toBe("1px");
+    expect(line("m2").content).not.toBe("none");
+  });
+
+  it("takes a post's hairline away when the post before it stops being a post, and draws it back when it is one", async () => {
+    const list = (middle: "post" | "chat") => (
+      <MessageList label="Channel" style={{ height: 400, width: 360 }}>
+        {[0, 1, 2].map((id) => (
+          <Message key={id} id={`m${id}`} variant={id === 1 ? middle : "post"} role="assistant" name="Mara Quill">
+            {`Message ${id}`}
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const { rerender } = await render(list("post"));
+    const line = (id: string) => getComputedStyle(document.getElementById(id)!.querySelector("[data-ouro-message-body]")!, "::before");
+    expect(line("m2").content).not.toBe("none");
+    await rerender(list("chat"));
+    expect(line("m2").content).toBe("none");
+    await rerender(list("post"));
+    expect(line("m2").content).not.toBe("none");
+  });
+
+  it("takes a post's hairline away when the post before it changes variant with no render of the list", async () => {
+    let setOwn!: (variant: "post" | "chat") => void;
+    const { host } = await render(
+      <MessageList label="Channel" style={{ height: 400, width: 360 }}>
+        <Message key={0} id="m0" variant="post" role="assistant" name="Mara Quill">
+          Message 0
+        </Message>
+        <OwnPost key={1} expose={(set) => (setOwn = set)} />
+        <Message key={2} id="m2" variant="post" role="assistant" name="Mara Quill">
+          Message 2
+        </Message>
+      </MessageList>,
+    );
+    const line = () => getComputedStyle(host.querySelector("#m2 [data-ouro-message-body]")!, "::before");
+    expect(line().content).not.toBe("none");
+    await act(async () => setOwn("chat"));
+    await expect.poll(() => line().content).toBe("none");
+    await act(async () => setOwn("post"));
+    await expect.poll(() => line().content).not.toBe("none");
+  });
+
+  it("draws the hairline between posts in a list with no :has() or sibling rule over its slots, which WebKit restyles for", async () => {
+    await render(
+      <MessageList label="Channel" style={{ height: 400, width: 360 }}>
+        {conversation(3).map((item) => (
+          <Message key={item.id} id={`m${item.id}`} variant="post" role="assistant" name="Mara Quill">
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>,
+    );
+    const css = pageCss();
+    expect(css).toContain("data-ouro-message-list-after-post");
+    // Each rule of the page, by its selector: none may relate the list's slots by :has() or as siblings.
+    expect(css.split("}").filter((rule) => rule.includes("data-ouro-message-list-slot") && (rule.includes(":has(") || rule.includes("+[data-ouro-message-list-slot]")))).toEqual([]);
+    const body = document.getElementById("m2")!.querySelector("[data-ouro-message-body]")!;
+    expect(getComputedStyle(body, "::before").content).not.toBe("none");
   });
 
   it("keeps the reader's place when a short conversation that took a long one's place grows long", async () => {
