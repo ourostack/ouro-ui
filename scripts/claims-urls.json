@@ -311,6 +311,10 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://github.com/ourostack/ouro-ui-android/pull/89": {
+    "status": 200,
+    "checked": "2026-11-21"
+  },
   "https://github.com/ourostack/ouro-ui-android/releases/latest": {
     "status": 200,
     "checked": "2026-11-18"
