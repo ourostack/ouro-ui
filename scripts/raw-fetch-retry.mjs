@@ -4,6 +4,8 @@
 import { setTimeout as sleepFor } from "node:timers/promises";
 import { URL } from "node:url";
 
+const { Response } = globalThis;
+
 export const RAW_HOST = "raw.githubusercontent.com";
 
 /** Waits before the 2nd, 3rd and 4th tries. */
