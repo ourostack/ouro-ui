@@ -12,9 +12,9 @@ interface FindMatch {
 
 interface FindOptions {
   /** What to ignore when comparing. Default `"all"`, as a browser's find bar does. */
-  fold?: FindFold;
+  fold?: FindFold | undefined;
   /** A language tag for the case rules, such as `"tr"`, where `I` is the dotless ı and `İ` is a dotted i. Default: the language-neutral rules. */
-  locale?: string;
+  locale?: string | undefined;
 }
 
 // Full case folding (Unicode CaseFolding.txt, status F) for what lowercasing leaves alone.
