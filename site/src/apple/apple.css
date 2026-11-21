@@ -68,7 +68,7 @@
     align-items: center;
     min-height: 2.25rem;
     padding-inline: calc(var(--spacing) * 3);
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     color: var(--muted-foreground);
     font-size: 0.875rem;
     font-weight: 500;
@@ -221,7 +221,7 @@
     width: 2.25rem;
     height: 2.25rem;
     border: 0;
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     background: color-mix(in oklab, var(--foreground) 7%, transparent);
     color: var(--foreground);
     cursor: pointer;
@@ -612,7 +612,7 @@
     display: inline-block;
     margin-inline-end: calc(var(--spacing) * 1.5);
     padding: 0.1rem 0.5rem;
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     background: color-mix(in oklab, var(--primary) 14%, transparent);
     color: var(--foreground);
     font-size: 0.75rem;
@@ -634,7 +634,7 @@
     width: 0.5rem;
     height: 0.5rem;
     margin-top: -0.25rem;
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     background: color-mix(in oklab, var(--foreground) 18%, transparent);
   }
   .apple-twin-stop-start {
@@ -944,7 +944,7 @@
   .apple-dot {
     width: 14px;
     height: 14px;
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     border: 1.5px solid transparent;
     transition:
       background-color var(--ouro-duration-slow) var(--ouro-ease-out),

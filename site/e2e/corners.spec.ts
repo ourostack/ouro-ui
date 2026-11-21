@@ -39,6 +39,10 @@ async function roundCorners(page: Page): Promise<string[]> {
       const box = element.getBoundingClientRect();
       if (box.width === 0 || box.height === 0) continue;
       const shape = style.getPropertyValue("corner-shape") || "round";
+      // A dot or a pill is rounded all the way: its radius reaches half its short side, so it is a circle by its geometry.
+      const radius = style.borderTopLeftRadius;
+      const short = Math.min(box.width, box.height);
+      if ((radius.endsWith("%") ? (parseFloat(radius) / 100) * short : parseFloat(radius)) >= short / 2 - 0.5) continue;
       // Chromium computes a squircle as superellipse(2) and a round corner as superellipse(1).
       if (shape === "squircle" || shape === "superellipse(2)") continue;
       const tag = element.tagName.toLowerCase();

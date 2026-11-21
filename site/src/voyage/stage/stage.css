@@ -65,7 +65,7 @@
   top: calc(40 * 100% / 560);
   width: calc(480 * 100% / 560);
   height: calc(480 * 100% / 560);
-  border-radius: 50%;
+  border-radius: 50%; corner-shape: round;
   overflow: hidden;
 }
 :is(.stage-band, .stage-drift, .stage-react, .stage-surface-world, .stage-ship-ride, .stage-specks, .stage-bubbles, .stage-paint) {
@@ -478,7 +478,7 @@
 /* Each speck is a dot of its own (scene.tsx), so it twinkles on the compositor. */
 .stage-speck {
   position: absolute;
-  border-radius: 50%;
+  border-radius: 50%; corner-shape: round;
   background: color-mix(in oklab, var(--glow) 70%, white);
   animation: stage-twinkle 32s ease-in-out var(--twinkle-delay) infinite;
 }
@@ -542,7 +542,7 @@
   height: calc(90 * 100% / 480);
   box-sizing: border-box;
   border: calc(2 * 100cqi / 560) solid color-mix(in oklab, var(--glow) 70%, white);
-  border-radius: 50%;
+  border-radius: 50%; corner-shape: round;
   opacity: 0;
 }
 
@@ -877,7 +877,7 @@
   max-width: 400px;
   margin-inline: auto;
   padding: 0.75rem 1rem 0;
-  border-radius: 999px;
+  border-radius: 999px; corner-shape: round;
   /* Its own layer: a change in the console doesn't repaint the sea, nor the sea the console. */
   will-change: transform;
 }
@@ -1002,7 +1002,7 @@
   align-self: center;
   margin-inline-end: 0.5rem;
   padding: 0 0.5rem;
-  border-radius: 999px;
+  border-radius: 999px; corner-shape: round;
   background: color-mix(in oklab, var(--primary) 12%, transparent);
   color: var(--foreground);
   font-size: 0.875rem;
@@ -1090,7 +1090,7 @@
   z-index: 0;
   /* From the first glass's centre to the last's on a phone, on to Dive on a wide screen. */
   margin-inline: calc((100% - 1.5rem) / 6);
-  border-radius: 999px;
+  border-radius: 999px; corner-shape: round;
   /* A brass tube, lit from above; its water shows through a glass window along it. */
   height: 0.625rem;
   margin-top: calc(var(--glass) / 2 - 0.3125rem);
@@ -1305,7 +1305,7 @@
   flex: none;
   width: 1.5rem;
   height: 1.5rem;
-  border-radius: 50%;
+  border-radius: 50%; corner-shape: round;
   border: 3px solid var(--brass);
   background: radial-gradient(circle at 38% 32%, color-mix(in oklab, var(--dial) 60%, white), var(--dial) 55%, color-mix(in oklab, var(--dial) 70%, var(--brass-dark)));
   box-shadow:
@@ -1315,7 +1315,7 @@
 .stage-lamp-light {
   position: absolute;
   inset: -3px;
-  border-radius: 50%;
+  border-radius: 50%; corner-shape: round;
   background: radial-gradient(circle at 45% 40%, white, var(--lantern) 45%, color-mix(in oklab, var(--lantern) 70%, oklch(0.75 0.15 70)));
   box-shadow: 0 0 14px 4px color-mix(in oklab, var(--lantern) 60%, transparent);
   opacity: 0;

@@ -171,7 +171,7 @@
   bottom: var(--rest);
   width: var(--size);
   height: var(--size);
-  border-radius: 50%;
+  border-radius: 50%; corner-shape: round;
   border: 1.5px solid color-mix(in oklab, var(--dive-ink) 40%, white);
   background: radial-gradient(
     circle at 30% 30%,

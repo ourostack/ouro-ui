@@ -84,7 +84,7 @@
   .site-window-dots > span {
     width: 0.625rem;
     height: 0.625rem;
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     background: color-mix(in oklab, var(--foreground) 16%, transparent);
   }
   .site-mono {
@@ -191,7 +191,7 @@
     align-items: center;
     padding: 0.125rem 0.625rem;
     border: 1px solid color-mix(in oklab, var(--primary) 30%, var(--border));
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     background: color-mix(in oklab, var(--primary) 8%, var(--background));
     color: var(--foreground);
     font-weight: 600;
@@ -401,7 +401,7 @@
   display: block;
   width: 72%;
   height: 0.375rem;
-  border-radius: 999px;
+  border-radius: 999px; corner-shape: round;
   background: color-mix(in oklab, var(--foreground) 75%, transparent);
 }
 .site-specimen-ink-short {
@@ -424,7 +424,7 @@
   position: relative;
   width: 1.5rem;
   height: 0.875rem;
-  border-radius: 999px;
+  border-radius: 999px; corner-shape: round;
   background: color-mix(in oklab, var(--primary) 30%, var(--muted));
 }
 .site-specimen-switch::after {
@@ -440,7 +440,7 @@
   width: 0.875rem;
   height: 0.875rem;
   margin-inline-start: auto;
-  border-radius: 999px;
+  border-radius: 999px; corner-shape: round;
   background: var(--chart-3);
 }
 .site-specimen-name {

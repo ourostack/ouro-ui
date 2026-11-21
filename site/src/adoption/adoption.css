@@ -52,7 +52,7 @@
     aspect-ratio: 1;
     margin: calc(var(--spacing) * 6) auto calc(var(--spacing) * 5);
     border: 1px solid var(--adoption-hairline);
-    border-radius: 50%;
+    border-radius: 50%; corner-shape: round;
     color: var(--adoption-starlight);
     /* One solid colour, so the count's contrast can be measured. */
     background-color: var(--adoption-night);
