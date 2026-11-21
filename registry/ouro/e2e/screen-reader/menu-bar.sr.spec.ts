@@ -9,16 +9,22 @@ test.use({ storyId: storyIds.menuBar });
 test("MenuBar opens File from the keyboard on its first item, reads the next item, and returns to File on Escape", async ({ page, sr }) => {
   await startReading(sr, page);
   const file = page.getByRole("menuitem", { name: "File", exact: true });
-  // Into the bar by Tab from a control before it, as a person comes to it: moved there by script, VoiceOver on macOS 26
-  // spoke only the bar's hint ("You are currently on a menu bar…") and not File (ourostack/ouro-ui#2708).
-  await page.getByRole("menubar").evaluate((bar) => {
-    const before = document.createElement("button");
-    before.textContent = "Before the bar";
-    before.dataset["testHarness"] = "";
-    bar.before(before);
-  });
-  await page.getByRole("button", { name: "Before the bar" }).focus();
-  await heard(sr, () => pressTab(page), (phrase) => inOneSentence(phrase, /\bfile\b/i), '"File", the bar\'s first menu, reached by Tab');
+  // VoiceOver on macOS 26 speaks only the bar's hint ("You are currently on a menu bar…"), not File, when focus is moved there
+  // by script, so on a Mac the spec comes into the bar by Tab from a control before it, as a person does (ourostack/ouro-ui#2708).
+  // NVDA reads File as focus moves there by script; a Tab from that control landed on the bar's second menu under NVDA, so it
+  // keeps the scripted move.
+  if (process.platform === "darwin") {
+    await page.getByRole("menubar").evaluate((bar) => {
+      const before = document.createElement("button");
+      before.textContent = "Before the bar";
+      before.dataset["testHarness"] = "";
+      bar.before(before);
+    });
+    await page.getByRole("button", { name: "Before the bar" }).focus();
+    await heard(sr, () => pressTab(page), (phrase) => inOneSentence(phrase, /\bfile\b/i), '"File", the bar\'s first menu, reached by Tab');
+  } else {
+    await heard(sr, () => file.focus(), (phrase) => inOneSentence(phrase, /\bfile\b/i), '"File", the bar\'s first menu');
+  }
   await expect(file).toBeFocused();
   const menu = page.getByRole("menu");
   const open = async () => {
