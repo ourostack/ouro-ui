@@ -230,18 +230,18 @@ describe("Command", () => {
     await expect.poll(options).toEqual(["Switch theme"]);
   });
 
+  const slipItems = () => [
+    { label: "Dialog guide", onSelect: actions.newRecipe },
+    { label: "Edit sheet", onSelect: actions.import },
+    { label: "Dialog", onSelect: actions.theme },
+    { label: "Confirmation", onSelect: actions.signOut },
+    { label: "Opt-out", onSelect: actions.signOut },
+    { label: "Operator settings", onSelect: actions.signOut },
+    { label: "किताबें", onSelect: actions.signOut },
+  ];
+
   it("forgives one slip in a word of four letters or more: a letter dropped, added, changed, or two swapped", async () => {
-    await openPalette({
-      items: [
-        { label: "Dialog guide", onSelect: actions.newRecipe },
-        { label: "Edit sheet", onSelect: actions.import },
-        { label: "Dialog", onSelect: actions.theme },
-        { label: "Confirmation", onSelect: actions.signOut },
-        { label: "Opt-out", onSelect: actions.signOut },
-        { label: "Operator settings", onSelect: actions.signOut },
-        { label: "किताबें", onSelect: actions.signOut },
-      ],
-    });
+    await openPalette({ items: slipItems() });
     for (const typed of ["dialg", "dialogg", "dialig", "dailog"]) {
       await userEvent.clear(input());
       await userEvent.type(input(), typed);
@@ -253,6 +253,10 @@ describe("Command", () => {
       await userEvent.type(input(), typed);
       await expect.poll(options).toEqual([]);
     }
+  });
+
+  it("finds a slip in a later word, a word of four letters, a hyphenated word and Devanagari, and only one slip", async () => {
+    await openPalette({ items: slipItems() });
     // A word of four letters, after the first word of a label.
     await userEvent.clear(input());
     await userEvent.type(input(), "shet");
@@ -269,6 +273,10 @@ describe("Command", () => {
     await userEvent.clear(input());
     await userEvent.type(input(), "ouut");
     await expect.poll(options).toEqual(["Opt-out"]);
+  });
+
+  it("forgives a slip in the start of a longer word, and finds nothing for two slips or a word of three letters", async () => {
+    await openPalette({ items: slipItems() });
     // A slip in the start of a longer word: two letters swapped, one dropped, one added.
     for (const typed of ["confr", "confrim", "confrma", "confiirm"]) {
       await userEvent.clear(input());
