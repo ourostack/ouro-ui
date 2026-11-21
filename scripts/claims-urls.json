@@ -691,6 +691,14 @@
     "status": 200,
     "checked": "2026-11-20"
   },
+  "https://github.com/ourostack/ouro-ui-windows/blob/65dc6dce47d3e7e8f77164f63e617b9ee3e1b773/.github/workflows/ci.yml#L37-L48": {
+    "status": 200,
+    "checked": "2026-11-21"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/65dc6dce47d3e7e8f77164f63e617b9ee3e1b773/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-21"
+  },
   "https://github.com/ourostack/ouro-ui-windows/blob/7f62ae7a10e99669a81f0ac095430e030d7f947c/README.md#L11": {
     "status": 200,
     "checked": "2026-11-19"
@@ -698,14 +706,6 @@
   "https://github.com/ourostack/ouro-ui-windows/blob/7f62ae7a10e99669a81f0ac095430e030d7f947c/README.md#L131": {
     "status": 200,
     "checked": "2026-11-19"
-  },
-  "https://github.com/ourostack/ouro-ui-windows/blob/7fca1243b3dbc87868e82df53f642309ae350c60/.github/workflows/ci.yml#L37-L48": {
-    "status": 200,
-    "checked": "2026-11-21"
-  },
-  "https://github.com/ourostack/ouro-ui-windows/blob/7fca1243b3dbc87868e82df53f642309ae350c60/core-provenance.json": {
-    "status": 200,
-    "checked": "2026-11-21"
   },
   "https://github.com/ourostack/ouro-ui-windows/blob/93dbd1401a7f28b36f4fa66c4bff8a02f4ad41af/README.md": {
     "status": 200,
@@ -723,7 +723,7 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.10.0": {
+  "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.0": {
     "status": 200,
     "checked": "2026-11-21"
   },
