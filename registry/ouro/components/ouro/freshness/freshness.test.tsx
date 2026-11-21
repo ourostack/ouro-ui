@@ -41,7 +41,7 @@ describe("Freshness", () => {
 
   it("marks a refresh for agents and screen readers, and clears it", async () => {
     const { root, el } = await render(<Freshness updatedAt={Date.now()} refreshing />);
-    expect(el.hasAttribute("data-ouro-refreshing")).toBe(true);
+    expect(el.getAttribute("data-ouro-refreshing")).toBe("");
     expect(el.getAttribute("aria-busy")).toBe("true");
     expect(el.querySelector(".sr-only")!.textContent).toBe("Refreshing");
     expect(el.querySelector('[data-ouro-part="icon"]')!.getAttribute("class")).toContain("ouro-spin");
@@ -67,6 +67,6 @@ describe("Freshness", () => {
     const said = [...error.mock.calls, ...warn.mock.calls].map((c) => String(c[0])).join("\n");
     expect(said).toContain("[ouro-ui] Freshness: lastUpdated is not a prop. Fix: <Freshness updatedAt={query.dataUpdatedAt} />");
     expect(said).toContain("[ouro-ui] Freshness: isFetching is not a prop. Fix: <Freshness updatedAt={at} refreshing={isFetching} />");
-    expect(said).toContain('remove "text-red-500"');
+    expect(said).toContain('[ouro-ui] Freshness: remove "text-red-500"');
   });
 });

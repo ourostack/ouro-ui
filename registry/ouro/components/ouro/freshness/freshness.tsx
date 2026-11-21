@@ -62,7 +62,8 @@ export function Freshness(props: FreshnessProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; Freshness takes its colors from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: the production branch never runs under test
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "Freshness",
@@ -73,7 +74,7 @@ export function Freshness(props: FreshnessProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const [before = "", after = ""] = (labels?.updated ?? words.updated).split("{age}");
+  const [before, after] = (labels?.updated ?? words.updated).split("{age}");
   return (
     <span
       {...rest}
