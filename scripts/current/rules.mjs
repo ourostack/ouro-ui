@@ -4,6 +4,7 @@
 //   {
 //     "version": [{ "path": "Sources/App/Release.swift", "pattern": "static let version = \"([0-9]+\\.[0-9]+\\.[0-9]+)\"" }],
 //     "changelog": { "path": "changes/ouro-ui-{version}.md", "text": "Uses {releases}.\n" },
+//     "npm": "@acme/app",
 //     "ignore": ["scripts/agent-benchmark/vendor/"],
 //     "review": { "team": "acme/design-system" }
 //   }
@@ -12,6 +13,8 @@
 //   repository has a published release at or past that version, the update moves every one of them to the next
 //   version: the next patch, or for a prerelease such as `0.1.0-alpha.1183` the next number, `0.1.0-alpha.1184`. A
 //   file may be named more than once, with a pattern for each place it carries the version.
+// npm: the package the app publishes to npm. A version the registry already serves counts as released, whatever the
+//   repository's latest release says, so the update starts the next version rather than adding to the published one.
 // changelog: a fragment the update adds. {releases} is the releases it moves to ("Ouro UI v1.3.204"), {version} the
 //   newest release's tag without the `v`, {versionSlug} the same with dashes for dots (`1-3-204`), for a repository
 //   whose fragment names allow only letters, digits and dashes (ourostack/gatefold's changelog.d/). With "json": "versions", the path is instead a JSON changelog whose
@@ -50,7 +53,7 @@ const fill = (template, values) => template.replace(/\{(\w+)\}/g, (all, key) => 
  * changelog fragment. `read(path)` gives a file's text at the base commit (null when absent), `latestRelease()` the
  * repository's latest published release tag (null when it has none).
  */
-export async function applyRules(rules, { read, latestRelease, releases, newest }) {
+export async function applyRules(rules, { read, latestRelease, published = async () => false, releases, newest }) {
   const files = {};
   const notes = [];
   let version = null;
@@ -68,8 +71,9 @@ export async function applyRules(rules, { read, latestRelease, releases, newest 
     const current = texts[0].match[1];
     version = current;
     const latest = await latestRelease();
-    if (latest && !isAfter(current, latest)) {
-      const next = nextVersion(isAfter(latest, current) ? latest : current);
+    const behind = Boolean(latest) && !isAfter(current, latest);
+    if (behind || (typeof rules.npm === "string" && (await published(rules.npm, current)))) {
+      const next = nextVersion(latest && isAfter(latest, current) ? latest : current);
       version = next;
       // Each entry is applied to the file as the entries before it left it, so one file can carry the version twice.
       for (const { entry, pattern } of texts) {
@@ -78,7 +82,7 @@ export async function applyRules(rules, { read, latestRelease, releases, newest 
         const start = match.index + match[0].indexOf(match[1]);
         files[entry.path] = text.slice(0, start) + next + text.slice(start + match[1].length);
       }
-      notes.push(`The app's version moves to \`${next}\`, after its latest release \`${latest}\`, as this repository asks of a change to the app.`);
+      notes.push(`The app's version moves to \`${next}\`, after ${behind ? `its latest release \`${latest}\`` : `\`${current}\`, which the npm registry already serves`}, as this repository asks of a change to the app.`);
     }
   }
   if (rules.changelog?.path && typeof rules.changelog.text === "string") {
