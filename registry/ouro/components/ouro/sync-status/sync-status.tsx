@@ -116,19 +116,20 @@ const icons: Record<SyncState, JSX.Element> = {
 
 function QueuedItem({ item, cancel, onCancel }: { item: QueuedWrite; cancel: string | undefined; onCancel: (id: string) => void }): JSX.Element {
   return (
-    <li ref={useFocusHandoff<HTMLLIElement>()} data-ouro-pending="" className="m-0 flex min-w-0 items-baseline gap-2 text-muted-foreground">
-      <span className="min-w-0 break-words">{item.label}</span>
+    <li ref={useFocusHandoff<HTMLLIElement>()} data-slot="sync-status-queued" data-ouro-pending="" className="m-0 flex min-w-0 items-baseline gap-2 text-muted-foreground">
+      <span data-slot="sync-status-queued-label" className="min-w-0 break-words">{item.label}</span>
       {cancel !== undefined ? (
         <button
           type="button"
           data-ouro-control="sync-status"
           data-ouro-part="cancel"
+          data-slot="sync-status-cancel"
           onClick={() => onCancel(item.id)}
           className="relative cursor-pointer rounded-ouro-sm border-0 bg-transparent p-0 font-[inherit] text-[length:inherit] leading-[inherit] font-medium text-foreground underline underline-offset-4 outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:decoration-2"
         >
           <TouchTarget />
           {cancel}
-          <span className="sr-only"> {item.label}</span>
+          <span data-slot="sync-status-cancel-name" className="sr-only"> {item.label}</span>
         </button>
       ) : null}
     </li>
@@ -295,10 +296,10 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
         className={cn("m-0 rounded-ouro-sm outline-ring outline-offset-2 [grid-area:1/1] focus-visible:outline-2 focus-visible:outline-solid", tones[status])}
       >
         <Line state={status} label={word[status]} retry={word.retry} onRetry={onRetry} retryRef={retryRef} />
-        {waiting > 0 ? <span className="ms-2">{waitingText}</span> : null}
+        {waiting > 0 ? <span data-slot="sync-status-count" className="ms-2">{waitingText}</span> : null}
       </p>
       {waiting > 0 ? (
-        <ul onFocus={() => (listFocused.current = true)} onBlur={() => (listFocused.current = false)} aria-label={waitingText} className="m-0 grid list-none gap-1 p-0 pt-1">
+        <ul data-slot="sync-status-queue" onFocus={() => (listFocused.current = true)} onBlur={() => (listFocused.current = false)} aria-label={waitingText} className="m-0 grid list-none gap-1 p-0 pt-1">
           {queue!.map((item) => (
             <QueuedItem key={item.id} item={item} cancel={onCancel ? word.cancel : undefined} onCancel={onCancel!} />
           ))}
