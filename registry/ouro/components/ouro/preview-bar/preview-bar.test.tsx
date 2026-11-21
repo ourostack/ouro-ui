@@ -177,6 +177,19 @@ describe("PreviewBar", () => {
       await rerender(<PreviewBar {...p} label="Trying the Forest theme" />);
       expect(host.querySelector("[data-slot=preview-bar-countdown]")!.textContent).toBe("5s");
     });
+
+    it("stops comparing for a new label or a new countdown length", async () => {
+      const p = props({ seconds: 5 });
+      const { part, rerender } = await render(<PreviewBar {...p} />);
+      await act(async () => part("compare").click());
+      expect(part("compare").getAttribute("aria-pressed")).toBe("true");
+      await rerender(<PreviewBar {...p} label="Trying the Forest theme" />);
+      expect(part("compare").getAttribute("aria-pressed")).toBe("false");
+      await act(async () => part("compare").click());
+      expect(part("compare").getAttribute("aria-pressed")).toBe("true");
+      await rerender(<PreviewBar {...p} label="Trying the Forest theme" seconds={9} />);
+      expect(part("compare").getAttribute("aria-pressed")).toBe("false");
+    });
   });
 
   describe("compare", () => {

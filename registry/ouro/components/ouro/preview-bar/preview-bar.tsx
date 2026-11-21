@@ -108,6 +108,7 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
   );
   const id = useId();
   // A new label or countdown is a new proposal: comparing and the countdown start over, in the render that sees it.
+  // Stryker disable next-line ObjectLiteral: an empty first state differs from the props, so the next line sets the real one before the render is used
   const [proposal, setProposal] = useState({ label, seconds, left: seconds, comparing: false });
   if (proposal.label !== label || proposal.seconds !== seconds) setProposal({ label, seconds, left: seconds, comparing: false });
   const { comparing, left } = proposal;
