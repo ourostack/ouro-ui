@@ -238,6 +238,8 @@ module.exports = { chromium: { launch: async (options) => {
       [{ press: ["[role=tab]", " "] }, /"press" takes a list of CSS selectors/],
       [{ pressRepeat: 0 }, /"pressRepeat" takes a whole number of presses, 1 or more/],
       [{ pressRepeat: 2.5 }, /"pressRepeat" takes a whole number/],
+      [{ pressAll: "yes" }, /"pressAll" takes true or false/],
+      [{ pressLimit: 0 }, /"pressLimit" takes a whole number of controls, 1 or more/],
       [{ states: ["text=Open"] }, /"states" takes pages, each with its states' names/],
       [{ states: { "/": ["text=Open"] } }, /"states" takes pages/],
       [{ states: { "/": { open: "text=Open" } } }, /"states" takes pages/],

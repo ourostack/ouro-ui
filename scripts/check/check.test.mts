@@ -230,6 +230,31 @@ describe("Ouro check", () => {
     await assert.rejects(run({ press: ["[unclosed"] }), /ouro-check.json's "press" has a selector the browser refuses: /);
   });
 
+  test("pressAll presses each Ouro button, switch, checkbox, tab and menu item by name, with the page opened again after each, and never a link, a submit, a destructive or an opted-out one", async () => {
+    // Each control is slow; the first, once pressed, removes the second from the page, which a later control must not see.
+    const slow = '<script>for (const el of document.querySelectorAll("[data-ouro-control], #plain")) el.addEventListener("click", () => { const t = performance.now(); while (performance.now() - t < 400); });</script>';
+    const gone = '<script>document.getElementById("first").addEventListener("click", () => document.getElementById("second")?.remove());</script>';
+    const folder = site("press-all", {
+      "page.html": page(
+        `<h1>All</h1><button id="first" type="button" data-ouro-control="button">First</button><button id="second" type="button" data-ouro-control="button">Second</button>` +
+          `<div role="switch" aria-checked="false" tabindex="0" data-ouro-control="switch">Wi-Fi</div><div role="tab" tabindex="0" data-ouro-control="tabs">Inbox</div>` +
+          `<a href="#x" role="button" data-ouro-control="button">Away</a><form><button data-ouro-control="button">Send</button></form>` +
+          `<button type="button" data-ouro-control="button" class="bg-destructive">Delete</button>` +
+          `<button type="button" data-ouro-control="button" data-ouro-allow="inp" data-ouro-allow-why="opens a native picker">Pick</button>` +
+          `<button id="plain" type="button">Plain</button>${slow}${gone}`,
+      ),
+    });
+    const run = (config: Gate) => check({ targets: [folder], out: dir("press-all"), sizes: [[1440, 900]], themes: ["light"], config, chromium, log: quiet });
+    const inp = (result: { findings: Finding[] }) => result.findings.filter((f) => f.rule === "inp");
+    // Off unless set.
+    assert.deepEqual(inp(await run({})), []);
+    const all = inp(await run({ pressAll: true, pressRepeat: 2 }));
+    assert.deepEqual(all.map((f) => f.element), ['button#first "First"', 'button#second "Second"', 'div "Wi-Fi"', 'div "Inbox"']);
+    assert.ok(all.every((f) => f.samples!.length === 2 && f.budget === BUDGETS.inp && f.unit === "ms"));
+    // A cap on the controls a page presses.
+    assert.deepEqual(inp(await run({ pressAll: true, pressRepeat: 1, pressLimit: 1 })).map((f) => f.element), ['button#first "First"']);
+  });
+
   test("presses in a context of its own, so what a press saves reaches no other page", async () => {
     // The pages after the pressed one load slowly, so the tab that pressed takes the last page next.
     const slow = page("<h1>Slow</h1>", '<script>document.documentElement.setAttribute("data-app-ready", "false"); setTimeout(() => document.documentElement.setAttribute("data-app-ready", "true"), 2500);</script>');

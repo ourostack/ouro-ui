@@ -1,4 +1,4 @@
-export { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint };
+export { AUTO_PRESS, findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint };
 export type { LoadingBudgets, Measures, Painted, Pressable };
 
 import type { PageIssue } from "./size-check.ts";
@@ -237,10 +237,14 @@ const NEVER_PRESS = [
   'input[type="image"]',
 ].join(", ");
 
+// What pressAll presses without a list: each Ouro control (data-ouro-control) that is a button, switch, checkbox, tab or
+// menu item, by role or by element. NEVER_PRESS still keeps out links, submit buttons and destructive controls.
+const AUTO_PRESS = '[data-ouro-control]:is(button, input[type="checkbox"], [role="button"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"])';
+
 // Marks the first `limit` controls listed for pressing, shown and enabled, and names each: the ones ouro-check.json's
 // "press" selectors match, and the ones marked data-ouro-check-press. Pressing is opt-in because a press does what it
 // says, on whatever server the app talks to. Never one that `never` (NEVER_PRESS) matches, or inside one.
-function markPressables({ limit, press, never }: { limit: number; press: string[]; never: string }): Pressable[] {
+function markPressables({ limit, press, never, auto }: { limit: number; press: string[]; never: string; auto?: string }): Pressable[] {
   const counter = window as unknown as { __ouroCheckRef?: number };
   // Whether an element, or one around it, opts out of inp with a reason. A reason of spaces is no reason; the page's
   // attributes are read, never rewritten.
@@ -262,7 +266,7 @@ function markPressables({ limit, press, never }: { limit: number; press: string[
     const r = el.getBoundingClientRect();
     return r.width >= 2 && r.height >= 2 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
   };
-  return [...document.querySelectorAll([...press, "[data-ouro-check-press]"].join(", "))]
+  return [...document.querySelectorAll([...press, "[data-ouro-check-press]", ...(auto ? [auto] : [])].join(", "))]
     .filter(pressable)
     .slice(0, limit)
     .map((el) => {
