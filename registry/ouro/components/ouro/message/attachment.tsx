@@ -225,7 +225,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
       )}
     </>
   );
-  const inner = "flex min-h-ouro-11 min-w-0 flex-1 items-center gap-2 px-3 pointer-fine:min-h-9";
+  const inner = "flex min-h-ouro-11 min-w-0 flex-1 items-center gap-2 px-3 pointer-fine:min-h-ouro-9";
   const openableClass = "press rounded-[inherit] text-inherit no-underline pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale)";
   // A remove button that removes the attachment hands its focus to the next one, or the one before.
   const merged = useMergedRef(ref, useFocusHandoff<HTMLDivElement>());

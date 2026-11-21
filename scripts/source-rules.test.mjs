@@ -9,7 +9,7 @@ import postcss from "postcss";
 import { findOffendersInSource } from "../registry/ouro/source-rules/source-rules.mjs";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, namedRenderFunctions, needsClientDirective, layoutAnimationAllowed, physicalAllowed, physicalUtilities, pollTimeoutFiles, radiusSteps, realClockEscapeKeys, realClockEscapes, realClockProblems, shortPollTimeouts, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, namedRenderFunctions, needsClientDirective, numericSizes, layoutAnimationAllowed, physicalAllowed, physicalUtilities, pollTimeoutFiles, radiusSteps, realClockEscapeKeys, realClockEscapes, realClockProblems, shortPollTimeouts, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -688,6 +688,23 @@ test("no component or lib file rounds with a shadcn radius step, so every app ge
   );
   const offenders = runtime.map(read).flatMap(({ path, text }) => radiusSteps(path, text).map((found) => `${path}:${found}`));
   assert.deepEqual(offenders, [], "Round with Ouro's own step: rounded-ouro-lg (or var(--radius-ouro-lg) in a style). shadcn init's --radius-* steps keep shadcn's values in an app, so Ouro's corner shape and --ouro-radius-scale would not reach it.");
+});
+
+test("numericSizes finds a size step after its variants, and leaves Ouro's sizes, keywords, arbitrary values and comments alone", () => {
+  const source = [
+    '// size-4 in a comment',
+    'const a = "size-4 pointer-fine:size-9 [&_svg]:size-5 data-[x=y]:size-2.5 !size-6";',
+    'const b = "size-ouro-4 size-full size-[3px] size-px sm:size-ouro-8 h-9 w-4 size-4x";',
+  ].join("\n");
+  assert.deepEqual(numericSizes("x.tsx", source), ["2: size-4", "2: pointer-fine:size-9", "2: [&_svg]:size-5", "2: data-[x=y]:size-2.5", "2: !size-6"]);
+});
+
+test("no component or lib file sizes with a spacing step, so a compact density never shrinks an icon", () => {
+  const runtime = tracked("registry/ouro/components/**/*.ts", "registry/ouro/components/**/*.tsx", "registry/ouro/lib/ouro/**/*.ts", "registry/ouro/lib/ouro/**/*.tsx").filter(
+    (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),
+  );
+  const offenders = runtime.map(read).flatMap(({ path, text }) => numericSizes(path, text).map((found) => `${path}:${found}`));
+  assert.deepEqual(offenders, [], "Size with Ouro's fixed steps: size-ouro-4 (ouro-base's --spacing-ouro-*), which --spacing never changes. h-* and w-* stay for lengths that follow density.");
 });
 
 test("no component or theme file animates a layout property unless layoutAnimationAllowed says why, and every allowance is still used", () => {

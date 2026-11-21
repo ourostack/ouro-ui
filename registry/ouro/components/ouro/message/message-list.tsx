@@ -870,8 +870,8 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
  * @claim "pill: a raised quiet button over the newest" registry/ouro/components/ouro/message/message-list.touch.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.touch.test.tsx::keeps 16px message text on a landscape phone)
  */
 const jumpClass =
-  "press pointer-events-auto relative m-0 box-border inline-flex h-9 items-center gap-1.5 rounded-full border border-solid border-border " +
-  "bg-background px-3.5 text-base font-medium text-foreground shadow-(--shadow-md) pointer-fine:h-8 pointer-fine:text-sm whitespace-nowrap " +
+  "press pointer-events-auto relative m-0 box-border inline-flex h-ouro-9 items-center gap-1.5 rounded-full border border-solid border-border " +
+  "bg-background px-3.5 text-base font-medium text-foreground shadow-(--shadow-md) pointer-fine:h-ouro-8 pointer-fine:text-sm whitespace-nowrap " +
   "cursor-pointer touch-manipulation outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "pointer-fine:hover:bg-(--ouro-jump-hover,var(--accent)) pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale) " +
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0";
