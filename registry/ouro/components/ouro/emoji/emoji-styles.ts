@@ -390,7 +390,7 @@ const SPACE = /\s/u;
  * longest emoji text the catalogue lists that starts there, with a variation selector allowed after each character. A
  * scan of the text's characters with lookups, never one pattern of every emoji text: Chromium drops a compiled pattern at
  * each full garbage collection, and compiling the thousands of alternatives again took 95-270 ms of the next press that
- * drew an emoji's text (Tandem, B45). @internal
+ * drew an emoji's text, in a consuming app with a catalogue of thousands. @internal
  *
  * @claim "The next token or emoji text in `text` from `from`" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > splits text as one pattern of every token and emoji text did, for any text)
  * @claim "never one pattern of every emoji text" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > splits text as one pattern of every token and emoji text did, for any text)
