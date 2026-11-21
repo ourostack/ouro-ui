@@ -1495,6 +1495,35 @@ describe("MessageList windowing", () => {
     expect(moved).toBeLessThanOrEqual(1);
   });
 
+  it("does not spend a second chunk on rows the first chunk has not drawn yet, when a frame runs before React commits it", async () => {
+    let commits = 0;
+    const list = (from: number, count: number) => (
+      <Profiler id="list" onRender={() => void commits++}>
+        <ShortRows ids={span(from, count)} />
+      </Profiler>
+    );
+    const { root, scroller } = await render(list(0, 200));
+    await scrollTo(scroller, 0);
+    const older = () => ids(scroller).filter((id) => id < 0);
+    // The frames are held, so the test runs the drip frames itself: two in a row, with no task between them for React to commit the first chunk in.
+    const frames = holdFrames();
+    let landing = { commits: 0, older: -1 };
+    commits = 0;
+    await landInATask(
+      () => flushSync(() => root.render(list(-200, 400))),
+      () => void (landing = { commits, older: older().length }),
+    );
+    expect(landing).toEqual({ commits: 1, older: 0 });
+    frames.step();
+    frames.step();
+    await expect.poll(() => older().length).toBeGreaterThan(0);
+    expect(older().length).toBeLessThanOrEqual(OLDER_CHUNK);
+    frames.release();
+    await settle(scroller);
+    expectBand(scroller, [199]);
+    expect(older().length).toBeGreaterThan(OLDER_CHUNK);
+  });
+
   it("draws, in the task a page of older messages lands in, the rows of it the view shows, so no space kept for a row shows", async () => {
     const { root, scroller } = await render(<ShortRows ids={span(0, 200)} hasOlder />);
     // At the top, the view shows the room kept above the first message, where the page's newest rows land.

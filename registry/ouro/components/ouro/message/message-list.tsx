@@ -1893,11 +1893,21 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const arriving = useRef(new Set<string>());
   const budget = useRef(0);
   const dripping = useRef(0);
+  // The band the last sync set, until React draws it. A frame that syncs before then reads the DOM without that band's rows,
+  // so it would spend another chunk on rows it takes for ordinary ones: it waits for the commit instead.
+  const setting = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    // Stryker disable next-line ConditionalExpression: a commit of another band also draws the rows the sync stopped waiting for, since a band computed after the sync keeps them, so clearing there draws the same frames.
+    if (band?.id === setting.current) setting.current = null;
+  }, [band]);
   const drip = () => {
     // One request a frame: a second would spend a second chunk on rows the first has not committed yet.
     if (dripping.current !== 0) return;
     dripping.current = requestAnimationFrame(() => {
       dripping.current = 0;
+      // The band the last sync set is not drawn yet, and a frame that syncs now would read the DOM without its rows. The commit
+      // that draws it runs the sync that asks for the next frame while rows still wait, so this frame waits.
+      if (setting.current !== null) return;
       budget.current = OLDER_CHUNK;
       // Stryker disable next-line BooleanLiteral: measuring here finds the heights the commit before it measured, and changes nothing.
       windowSync.current!(true);
@@ -2112,7 +2122,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // The same band as drawn asks for no render: a state set to what it holds still renders the list again, in the same task
       // when set from a layout effect.
       // Stryker disable next-line ConditionalExpression: the check before it already leaves the band drawn alone; this one only spares a render that draws the same rows, when two syncs in a task land on one band.
-      if (band?.id !== id) setBand((now) => (now?.id === id ? now : { id, from: keys[from]!, to: keys[to]!, held: new Set(inBand) }));
+      if (band?.id !== id) {
+        setting.current = id;
+        // Stryker disable next-line ConditionalExpression: when two syncs in a task land on one band, the band already set is returned, which spares a render that draws the same rows.
+        setBand((now) => (now?.id === id ? now : { id, from: keys[from]!, to: keys[to]!, held: new Set(inBand) }));
+      }
     };
     const now = viewRef.current;
     const last = synced.current;
