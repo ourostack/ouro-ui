@@ -69,6 +69,24 @@ describe("useFindHighlights", () => {
     expect(CSS.highlights.has(CURRENT_MATCH)).toBe(false);
   });
 
+  it("draws again when the text in the list changes, once per burst of changes, and stops when it unmounts", async () => {
+    const cancel = vi.spyOn(window, "cancelAnimationFrame");
+    const { host, root } = await mount({ query: "fox", current: 0 });
+    expect(drawn(ALL_MATCHES)).toHaveLength(2);
+    const text = host.querySelector("[data-key=a] [data-ouro-message-content]")!;
+    text.textContent = "fox fox fox";
+    text.textContent = "fox fox fox fox";
+    await expect.poll(() => drawn(ALL_MATCHES).length + drawn(CURRENT_MATCH).length).toBe(5);
+    expect(cancel).toHaveBeenCalled();
+    cancel.mockClear();
+    await act(async () => root.unmount());
+    roots.length = 0;
+    expect(cancel).toHaveBeenCalled();
+    text.textContent = "fox";
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(CSS.highlights.has(ALL_MATCHES)).toBe(false);
+  });
+
   it("puts the current highlight on the occurrence the index names", async () => {
     const { host } = await mount({ query: "fox", current: 1 });
     const current = [...CSS.highlights.get(CURRENT_MATCH)!][0]!;

@@ -61,6 +61,7 @@ function locateMatch(result: MessageFindResult, index: number): MessageFindTarge
     if (left < count) return { key, occurrence: left };
     left -= count;
   }
+  /* istanbul ignore next @preserve -- the counts sum to the total, so the loop always returns */
   return null;
 }
 
