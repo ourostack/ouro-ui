@@ -956,6 +956,11 @@ describe("TimeGrid", () => {
     expect(await opensAt({ now: at(12, "03:30"), events: [standup] })).toBeCloseTo(2, 1);
     // An event that starts at now: now is not before it.
     expect(await opensAt({ now: at(12, "09:00"), events: [nine] })).toBeCloseTo(7.5, 1);
+    // Events on other days shown that run across where the grid would open open whole: the grid opens at the earliest start.
+    const morning: TimeGridEvent = { id: "morning", title: "Onboarding", start: at(13, "08:30"), end: at(13, "09:30") };
+    expect(await opensAt({ now: at(12, "10:41"), events: [{ ...morning, id: "later", start: at(14, "09:00"), end: at(14, "10:00") }, morning] })).toBeCloseTo(8.5, 1);
+    // One that ends at that line, or starts at it, doesn't move it.
+    expect(await opensAt({ now: at(12, "10:41"), events: [{ ...morning, end: at(13, "09:11") }] })).toBeCloseTo((641 - 90) / 60, 1);
     // Today's events fetched after the grid opened move it once, unless the reader has scrolled since.
     const { grid, rerender } = await render({ now: at(12, "03:30"), events: [] });
     const scroller = grid.querySelector<HTMLElement>("[data-scroll-viewport]")!;
