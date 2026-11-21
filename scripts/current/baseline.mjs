@@ -7,7 +7,7 @@ import { Buffer } from "node:buffer";
 import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, posix, relative, resolve } from "node:path";
+import { join, posix, relative, resolve } from "node:path";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
