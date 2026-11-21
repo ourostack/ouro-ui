@@ -938,7 +938,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       data-ouro="time-grid"
       data-view={view}
       className={cn(
-        "relative box-border flex h-144 min-h-0 min-w-0 flex-col text-foreground",
+        "relative box-border flex h-ouro-144 min-h-0 min-w-0 flex-col text-foreground",
         "[--ouro-time-grid-gutter:4rem] [--ouro-time-grid-hour:max(3rem,var(--ouro-time-grid-fill,0px))] [--ouro-time-grid-tint:14%] pointer-coarse:[--ouro-time-grid-hour:max(3.5rem,var(--ouro-time-grid-fill,0px))] dark:[--ouro-time-grid-tint:24%]",
         className,
       )}
@@ -962,7 +962,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               className="group/day @container/day min-w-0 border-0 border-s border-solid border-border"
             >
               <span className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2 py-1.5 @max-[4.5rem]/day:flex-col @max-[4.5rem]/day:gap-0.5 @max-[4.5rem]/day:px-0.5">
-              <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-base leading-none font-semibold tabular-nums group-data-today/day:bg-primary group-data-today/day:text-primary-foreground forced-colors:group-data-today/day:border-2 forced-colors:group-data-today/day:border-solid">
+              <span className="inline-flex size-ouro-7 shrink-0 items-center justify-center rounded-full text-base leading-none font-semibold tabular-nums group-data-today/day:bg-primary group-data-today/day:text-primary-foreground forced-colors:group-data-today/day:border-2 forced-colors:group-data-today/day:border-solid">
                 {
                   // Stryker disable next-line ConditionalExpression: in the locales tested the day comes first; the search is for one where it does not
                   formats.dayNumber.formatToParts(utcDate(day)).find((part) => part.type === "day")!.value
@@ -1070,7 +1070,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                     )}
                     style={{ top: nowTop }}
                   >
-                    {index === todayIndex ? <span className="absolute -start-1.5 -top-1.5 size-2.5 rounded-full bg-destructive forced-colors:bg-[CanvasText]" /> : null}
+                    {index === todayIndex ? <span className="absolute -start-ouro-1_5 -top-ouro-1_5 size-ouro-2_5 rounded-full bg-destructive forced-colors:bg-[CanvasText]" /> : null}
                   </div>
                 ) : null}
                 {timed[index]!.length > 0 ? (

@@ -429,7 +429,7 @@ const eventHitClass = "before:absolute before:top-0 before:start-0 before:-z-1 b
  * @claim "The slim bar a week draws" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > names a week's thin bars in a tooltip, and labels them in a day)
  */
 const backgroundBarFillClass =
-  "pointer-events-none absolute inset-y-0 start-0.5 box-border w-1 rounded-full border-solid pointer-fine:group-hover/bar:w-1.5 group-aria-expanded/bar:w-1.5 group-aria-[current=true]/bar:w-2";
+  "pointer-events-none absolute inset-y-0 start-0.5 box-border w-ouro-1 rounded-full border-solid pointer-fine:group-hover/bar:w-ouro-1_5 group-aria-expanded/bar:w-ouro-1_5 group-aria-[current=true]/bar:w-ouro-2";
 
 /**
  * Each tone as a solid swatch, the bar's colour: mixed toward the page so a column of bars stays quiet.

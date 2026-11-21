@@ -80,8 +80,8 @@ const hitAreaClass = {
 
 /** The grip on the handle, so it reads as something to drag. @internal */
 const gripClass = {
-  horizontal: "pointer-events-none relative h-6 w-1.5 shrink-0 rounded-full border border-solid border-border bg-background",
-  vertical: "pointer-events-none relative h-1.5 w-6 shrink-0 rounded-full border border-solid border-border bg-background",
+  horizontal: "pointer-events-none relative h-ouro-6 w-ouro-1_5 shrink-0 rounded-full border border-solid border-border bg-background",
+  vertical: "pointer-events-none relative h-ouro-1_5 w-ouro-6 shrink-0 rounded-full border border-solid border-border bg-background",
 } as const;
 
 /**

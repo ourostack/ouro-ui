@@ -123,7 +123,7 @@ const perViews = [1, 2, 3] as const;
 
 function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={cn("size-4 rtl:-scale-x-100", back && "-scale-x-100 rtl:scale-x-100")}>
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={cn("size-ouro-4 rtl:-scale-x-100", back && "-scale-x-100 rtl:scale-x-100")}>
       <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

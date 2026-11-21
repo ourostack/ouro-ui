@@ -1,0 +1,1 @@
+- Table, NavigationRail, TimeGrid, Menu, Pagination, Breadcrumb, NavigationMenu, Resizable, LevelMeter, Item, Checklist, Carousel, Toaster, Reorderable, RadioGroup, Navbar and MediaTile: fixed sizes (icons, thumbs, touch floors, bars and popup widths) read `--ouro-size-*` tokens, so a compact `--spacing` no longer shrinks them (#417).

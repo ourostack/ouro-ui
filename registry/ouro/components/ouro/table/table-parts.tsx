@@ -367,7 +367,7 @@ export function TableRow(props: TableRowProps): JSX.Element {
         data-follows-link={linked ? "" : undefined}
         className={cn(
           table.striped && kind === "body" && "even:bg-muted/50",
-          linked && "relative isolate cursor-pointer pointer-coarse:h-11",
+          linked && "relative isolate cursor-pointer pointer-coarse:h-ouro-11",
           linked && raiseControlsClass,
           className,
         )}
@@ -476,7 +476,7 @@ export function TableHead(props: TableHeadProps): JSX.Element {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="size-3.5 shrink-0"
+      className="size-ouro-3_5 shrink-0"
     >
       <path d={sortIconPaths[direction ?? "none"]} />
     </svg>
@@ -494,7 +494,7 @@ export function TableHead(props: TableHeadProps): JSX.Element {
         sectionCell[row.section],
         wrap && wrapClass,
         direction && "text-foreground",
-        onSort && "relative pointer-coarse:h-11",
+        onSort && "relative pointer-coarse:h-ouro-11",
         table.stickyHeader && row.section === "head" && stickyHead,
         className,
       )}
