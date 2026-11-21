@@ -1,0 +1,3 @@
+# Changes in this release
+
+- ouro-base registers the fixed sizes as named utilities, such as `size-ouro-8`, that [read their `--ouro-size-*` tokens](registry/ouro/theme/theme.test.tsx "verify:testExists(registry/ouro/theme/theme.test.tsx::fixed sizes > lets an app theme a fixed size by its token, which the named utility reads)"), so a component's class stays short and an app still themes the token (#417).
