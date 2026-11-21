@@ -1,0 +1,1 @@
+- New: `PreviewBar` offers Keep, Throw away and Compare for a change shown live, with a hold-to-compare key, one polite announcement per new proposal and an optional countdown that is shown and not read aloud; the app renders the change and the original.

@@ -17,7 +17,7 @@ Some specs pass a step through a fallback or only log it, and the lane's advisor
 
 ## Per component
 
-Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 18 of 114 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
+Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 18 of 115 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
 
 | Component | Stories | Conformance declarations | Screen-reader spec (VoiceOver and NVDA) |
 | --- | --- | --- | --- |
@@ -94,6 +94,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [pagination](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/pagination) | 4 | 0 | none yet |
 | [popover](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/popover) | 5 | 0 | none yet |
 | [porthole](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/porthole) | 13 | 0 | none yet |
+| [preview-bar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/preview-bar) | 3 | 0 | none yet |
 | [progress](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/progress) | 4 | 0 | none yet |
 | [radio-group](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/radio-group) | 4 | 0 | none yet |
 | [reaction-bar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/reaction-bar) | 7 | 0 | none yet |
