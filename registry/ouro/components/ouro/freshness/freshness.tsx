@@ -69,12 +69,16 @@ export function Freshness(props: FreshnessProps): JSX.Element {
     "Freshness",
     process.env.NODE_ENV !== "production"
       ? () => [
+          !fits && [`labels.updated="${requested}" needs {age} once; the default shows instead`, '<Freshness updatedAt={at} labels={{ updated: "Updated {age}" }} />'],
           lastUpdated !== undefined && ["lastUpdated is not a prop", "<Freshness updatedAt={query.dataUpdatedAt} />"],
           isFetching !== undefined && ["isFetching is not a prop", "<Freshness updatedAt={at} refreshing={isFetching} />"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const [before, after] = (labels?.updated ?? words.updated).split("{age}");
+  const requested = labels?.updated ?? words.updated;
+  const parts = requested.split("{age}");
+  const fits = parts.length === 2;
+  const [before, after] = fits ? parts : words.updated.split("{age}");
   return (
     <span
       {...rest}
@@ -102,7 +106,9 @@ export function Freshness(props: FreshnessProps): JSX.Element {
       >
         <path d="M21 12a9 9 0 1 1-6.22-8.56" />
       </svg>
-      {refreshing ? <span data-slot="freshness-status" className="sr-only">{labels?.refreshing ?? words.refreshing}</span> : null}
+      <span data-slot="freshness-status" role="status" className="sr-only">
+        {refreshing ? (labels?.refreshing ?? words.refreshing) : null}
+      </span>
     </span>
   );
 }

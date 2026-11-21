@@ -35,7 +35,7 @@ describe("Freshness", () => {
     const { el } = await render(<Freshness updatedAt={Date.now()} />);
     expect(el.hasAttribute("data-ouro-refreshing")).toBe(false);
     expect(el.hasAttribute("aria-busy")).toBe(false);
-    expect(el.querySelector(".sr-only")).toBeNull();
+    expect(el.querySelector('[role="status"]')!.textContent).toBe("");
     expect(el.querySelector('[data-ouro-part="icon"]')!.getAttribute("class")).toContain("invisible");
   });
 
@@ -43,11 +43,11 @@ describe("Freshness", () => {
     const { root, el } = await render(<Freshness updatedAt={Date.now()} refreshing />);
     expect(el.getAttribute("data-ouro-refreshing")).toBe("");
     expect(el.getAttribute("aria-busy")).toBe("true");
-    expect(el.querySelector(".sr-only")!.textContent).toBe("Refreshing");
+    expect(el.querySelector('[role="status"]')!.textContent).toBe("Refreshing");
     expect(el.querySelector('[data-ouro-part="icon"]')!.getAttribute("class")).toContain("ouro-spin");
     await act(async () => root.render(<Freshness updatedAt={Date.now()} />));
     expect(el.hasAttribute("data-ouro-refreshing")).toBe(false);
-    expect(el.querySelector(".sr-only")).toBeNull();
+    expect(el.querySelector('[role="status"]')!.textContent).toBe("");
   });
 
   it("takes the words in another language, with the age where {age} sits", async () => {
@@ -58,6 +58,15 @@ describe("Freshness", () => {
   it("reads the default words from a labels object that sets only one", async () => {
     const { el } = await render(<Freshness updatedAt={Date.now()} refreshing labels={{ refreshing: "Loading" }} />);
     expect(el.textContent).toMatch(/^Updated .*Loading$/);
+  });
+
+  it("falls back to the default words when labels.updated has no single {age}, and says so", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { el } = await render(<Freshness updatedAt={Date.now()} labels={{ updated: "Stale" }} />);
+    expect(el.textContent).toMatch(/^Updated /);
+    const said = [...error.mock.calls, ...warn.mock.calls].map((c) => String(c[0])).join("\n");
+    expect(said).toContain('[ouro-ui] Freshness: labels.updated="Stale" needs {age} once; the default shows instead. Fix: <Freshness updatedAt={at} labels={{ updated: "Updated {age}" }} />.');
   });
 
   it("names the fix for a prop an agent guesses, and for an appearance class", async () => {
