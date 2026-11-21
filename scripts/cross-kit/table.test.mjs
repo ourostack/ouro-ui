@@ -34,6 +34,8 @@ test("Android's component case lines become results keyed spec/case, and core's 
   assert.deepEqual([...results], [["tab-bar/two-tabs", true], ["sidebar/collapsed-rail", false]]);
   const win = parseComponentCases("windows", '2026-11-20T19:00:00Z Passed Ouro.Claims.Each_spec_case_holds(name: "tabs/two")\nFailed Ouro.Claims.Each_spec_case_holds(name: "sidebar/rail")');
   assert.deepEqual([...win], [["tabs/two", true], ["sidebar/rail", false]]);
+  const forms = parseComponentCases("windows", 'Passed Ouro.Claims.Each_spec_case_holds(name: "switch/wifi")\nPassed Ouro.Claims.Each_spec_case_holds(name: "select/course")');
+  assert.deepEqual([...forms], [["switch/wifi", true], ["select/course", true]]);
   const dir = scratchDir("cross-kit-specs");
   mkdirSync(join(dir, "standard/hx/components"), { recursive: true });
   writeFileSync(join(dir, "standard/hx/components/tabs.spec.json"), JSON.stringify({ cases: [{ id: "recipe-sections" }] }));
