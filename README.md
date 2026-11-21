@@ -651,7 +651,8 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-reduced-motion`,
 `lib-use-sheet-presentation`,
 `lib-use-timer`,
-`lib-use-until-found`.
+`lib-use-until-found`,
+`lib-use-view-transition`.
 No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.
 <!-- items:end -->
 
@@ -901,6 +902,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **measureInteraction** — Runs `fn` in an event handler and names the interaction it belongs to, so the reports `onInteraction` sends carry `name`. [Docs](docs/measureInteraction.md)
 - **onInteraction** — Sends the page's interactions to `sink`, measured from the input to the next paint, so an app can hold them to a budget. [Docs](docs/onInteraction.md)
 - **OuroProvider** — Optional app-level provider that routes internal `href`s through your router's link and groups tooltips: once one `Tooltip` shows, its neighbours open instantly instead of each waiting its own delay. [Docs](docs/OuroProvider.md)
+- **useViewTransition** — Runs a navigation as a same-document view transition, for a router adapter to call. [Docs](docs/useViewTransition.md)
 
 ### Parts
 
