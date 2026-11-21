@@ -1966,6 +1966,18 @@ test("an update that raises a lint count in the files it vendors leaves the base
   assert.deepEqual(lintMarkdown(body, { file: "pull request body" }), []);
 });
 
+test("an update that deletes a vendored file drops its baseline entry, and runs no generator it deletes (spoonjoy/spoonjoy-v2#828)", async () => {
+  const { lowerBaseline } = await import("./baseline.mjs");
+  const { regenerate } = await import("./generate.mjs");
+  const bytes = { "oxlint.baseline.json": Buffer.from(`${JSON.stringify({ "app/lib/ouro/ax/command.ts": { "no-console": 2 }, "app/root.tsx": { "no-console": 1 } }, null, 2)}\n`), "app/lib/ouro/ax/command.ts": Buffer.from("console.log(1);\nconsole.log(2);\n"), "tools/ouro-actions/ouro-actions.mts": Buffer.from("gen\n") };
+  const ctx = { consumerFile: async (path) => bytes[path] ?? null, consumerPaths: () => Object.keys(bytes) };
+  const lowered = await lowerBaseline({ "app/lib/ouro/ax/command.ts": null }, ctx);
+  assert.deepEqual(JSON.parse(lowered.files["oxlint.baseline.json"]), { "app/root.tsx": { "no-console": 1 } }, "a deleted file has no hits left");
+  assert.deepEqual(lowered.notes, ["Lowers `oxlint.baseline.json` to the hits left in the files this update changes, which it deletes: `app/lib/ouro/ax/command.ts` `no-console` `2` to `0`."]);
+  assert.deepEqual(lowered.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+  assert.deepEqual(await regenerate({ "tools/ouro-actions/ouro-actions.mts": null }, ctx), { files: {}, notes: [] });
+});
+
 test("an update to an app with no oxlint baseline writes none", async () => {
   const bare = fakeRepo(lintedApp(hits(3), { baseline: false }));
   await keepRepo(bare.gh, "o/r", RELEASES, lintedRelease(hits(1)));

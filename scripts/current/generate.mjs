@@ -71,7 +71,7 @@ async function generateSteps(generators, ctx) {
 }
 
 /** The bytes of one repository file as the update leaves it: the update's, or the default branch's. */
-const fileOf = async (files, ctx, path) => (path in files ? Buffer.from(files[path]) : await ctx.consumerFile(path));
+const fileOf = async (files, ctx, path) => (path in files ? (files[path] === null ? null : Buffer.from(files[path])) : await ctx.consumerFile(path));
 
 /** Writes the declarations and every file they import, relatively, into `dir`, as the update leaves them. */
 async function copyDeclarations(start, files, ctx, dir) {
@@ -119,6 +119,7 @@ async function generateOnce(step, files, ctx) {
 export async function regenerate(files, ctx) {
   const generators = [];
   for (const path of Object.keys(files).filter((path) => GENERATOR.test(path)).sort()) {
+    if (files[path] === null) continue; // a generator the update deletes generates nothing
     const before = await ctx.consumerFile(path);
     if (!before || !before.equals(Buffer.from(files[path]))) generators.push(path);
   }
