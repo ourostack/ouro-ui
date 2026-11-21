@@ -804,7 +804,7 @@ describe("docs", () => {
     await renderPage("/docs/button/");
     const looks = page.getByRole("group", { name: "Try a look" });
     await expect.element(looks).toBeVisible();
-    const dots = looks.getByRole("button").elements();
+    const dots = looks.getByRole("button").elements() as HTMLElement[];
     expect(dots.filter((dot) => dot.tabIndex === 0)).toHaveLength(1);
     const stop = dots.find((dot) => dot.tabIndex === 0)!;
     stop.focus();
