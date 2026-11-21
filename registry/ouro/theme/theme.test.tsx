@@ -240,11 +240,16 @@ describe("fixed sizes", () => {
     expect(root().getPropertyValue("--ouro-size-144").trim()).toBe("36rem");
   });
 
+  it("lets an app theme a fixed size by its token, which the named utility reads", () => {
+    const themed = mount('<div style="--ouro-size-8: 2.25rem"><i class="block size-ouro-8"></i></div>').firstElementChild!;
+    expect(getComputedStyle(themed.firstElementChild!).width).toBe("36px");
+  });
+
   it("keeps a fixed size at its step under a compact --spacing, where a spacing-scale size shrinks", () => {
     const widths = (element: Element) => [...element.children].map((child) => Number.parseFloat(getComputedStyle(child).width));
-    const roomy = mount('<div><i class="block size-8"></i><i class="block size-(--ouro-size-8)"></i></div>').firstElementChild!;
+    const roomy = mount('<div><i class="block size-8"></i><i class="block size-ouro-8"></i></div>').firstElementChild!;
     expect(widths(roomy)).toEqual([32, 32]);
-    const compact = mount('<div style="--spacing: 0.2rem"><i class="block size-8"></i><i class="block size-(--ouro-size-8)"></i></div>').firstElementChild!;
+    const compact = mount('<div style="--spacing: 0.2rem"><i class="block size-8"></i><i class="block size-ouro-8"></i></div>').firstElementChild!;
     // WebKit rounds the spacing-scale width to a sixty-fourth of a pixel, so it is compared to a tenth.
     const [spaced, fixed] = widths(compact);
     expect(spaced).toBeCloseTo(25.6, 1);

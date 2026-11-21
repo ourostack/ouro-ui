@@ -8,13 +8,13 @@ Gaps, padding and margins follow `--spacing`: `gap-3` and `py-2` are multiples o
 
 ## What doesn't
 
-Fixed sizes read `--ouro-size-*` variables instead. They are defined in `ouro-base.css` in rem, a quarter rem per step: `--ouro-size-8` is `2rem`, and a dot in the step is written as an underscore, as in `--ouro-size-2_5`. `--spacing` does not change them.[^tokens]
+Fixed sizes read `--ouro-size-*` variables instead. They are defined in `ouro-base.css` in rem, a quarter rem per step: `--ouro-size-8` is `2rem`, and a dot in the step is written as an underscore, as in `--ouro-size-2_5`. Components size those parts with the named utilities ouro-base registers for them, such as `size-ouro-8`, which [read their tokens](registry/ouro/theme/theme.test.tsx "verify:testExists(registry/ouro/theme/theme.test.tsx::fixed sizes > lets an app theme a fixed size by its token, which the named utility reads)"). `--spacing` does not change them.[^tokens]
 
 The fixed parts that use them today are an avatar's box, an avatar group's "+N" count, a conversation row's icon, mark and more button, and the coarse pointer's 44px target.[^floor] Avatar, AvatarGroup and ConversationList read the tokens; other components still size some fixed parts with spacing classes until their own changes land.
 
 ## Floors
 
-A row or control a finger touches stays at least 44px tall at every density, so the target is the same size on a phone whatever the app's `--spacing` is.[^floor] It is set with `--ouro-size-11`, not with spacing.
+A row or control a finger touches stays at least 44px tall at every density, so the target is the same size on a phone whatever the app's `--spacing` is.[^floor] It is set with `min-h-ouro-11`, which reads `--ouro-size-11`, not with spacing.
 
 ## Set density and a fixed size in your app
 
@@ -37,4 +37,4 @@ Set a `--ouro-size-*` variable the same way to theme one fixed size. This one ma
 [^proof]: test:registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > keeps its avatars' size while its rows tighten at a compact density verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > keeps its avatars' size while its rows tighten at a compact density)
 [^spacing]: registry/ouro/components/ouro/conversation-list/conversation-list.tsx verify:fileLine(registry/ouro/components/ouro/conversation-list/conversation-list.tsx, /density === "compact" \? "py-1\.5" : "py-2"/)
 [^tokens]: registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-size-8: 2rem;/) verify:testExists(registry/ouro/theme/theme.test.tsx::fixed sizes > keeps a fixed size at its step under a compact --spacing, where a spacing-scale size shrinks)
-[^floor]: test:registry/ouro/components/ouro/conversation-list/conversation-list.touch.test.tsx::gives each ConversationList row and section header a target at least 44px tall to a finger, even when compact verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.touch.test.tsx::gives each ConversationList row and section header a target at least 44px tall to a finger, even when compact) verify:fileLine(registry/ouro/components/ouro/conversation-list/conversation-list.tsx, /pointer-coarse:min-h-\(--ouro-size-11\)/)
+[^floor]: test:registry/ouro/components/ouro/conversation-list/conversation-list.touch.test.tsx::gives each ConversationList row and section header a target at least 44px tall to a finger, even when compact verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.touch.test.tsx::gives each ConversationList row and section header a target at least 44px tall to a finger, even when compact) verify:fileLine(registry/ouro/components/ouro/conversation-list/conversation-list.tsx, /pointer-coarse:min-h-ouro-11/)
