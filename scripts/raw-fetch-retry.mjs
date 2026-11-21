@@ -25,9 +25,11 @@ function urlOf(input) {
 }
 
 /**
- * Wraps `fetchImpl` so a request to one of `hosts` is tried again after a network error, a 429 or a 5xx.
- * A 404 and other non-retriable statuses return at once. After the last try, the last error is thrown
- * and the last response is returned, so the caller reports the failure it always did.
+ * Wraps `fetchImpl` so a request to one of `hosts` is tried again after a network error, a 429 or a 5xx,
+ * or when a 2xx body ends early (shadcn reads registry.json that way, and the headers have already come).
+ * A 2xx body is read here, so the caller gets a complete response. A 404 and other non-retriable statuses
+ * return at once. After the last try, the last error is thrown and the last response is returned, so the
+ * caller reports the failure it always did.
  */
 export function withRetry(fetchImpl, { hosts = [RAW_HOST], delays = RETRY_DELAYS_MS, log = () => {}, sleep = sleepFor } = {}) {
   const tries = delays.length + 1;
@@ -38,9 +40,16 @@ export function withRetry(fetchImpl, { hosts = [RAW_HOST], delays = RETRY_DELAYS
       let reason;
       try {
         const response = await fetchImpl(input, init);
-        if (!retriableStatus(response.status) || attempt === tries) return response;
-        reason = `HTTP ${response.status}`;
-        response.body?.cancel().catch(() => {});
+        if (retriableStatus(response.status)) {
+          if (attempt === tries) return response;
+          reason = `HTTP ${response.status}`;
+          response.body?.cancel().catch(() => {});
+        } else if (!response.ok || response.body === null) {
+          return response;
+        } else {
+          const body = await response.arrayBuffer();
+          return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
+        }
       } catch (error) {
         if (attempt === tries || init?.signal?.aborted) throw error;
         reason = reasonOf(error);

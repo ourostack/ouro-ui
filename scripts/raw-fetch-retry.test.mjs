@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
 import { withRetry } from "./raw-fetch-retry.mjs";
 
-const { AbortController, DOMException, Response } = globalThis;
+const { AbortController, DOMException, ReadableStream, Response, TextEncoder } = globalThis;
 
 const RAW = "https://raw.githubusercontent.com/ourostack/ouro-ui/v1/registry.json";
 const notFound = () => new Response("gone", { status: 404 });
@@ -15,6 +15,17 @@ const status = (code) => () => new Response("", { status: code });
 const dropped = () => {
   throw new TypeError("fetch failed", { cause: Object.assign(new Error("socket hang up"), { code: "ECONNRESET" }) });
 };
+// The headers arrive with a 200, then the body stream ends early: shadcn reads registry.json this way ("TypeError: terminated").
+const bodyDropped = () =>
+  new Response(
+    new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"items":'));
+        controller.error(new TypeError("terminated"));
+      },
+    }),
+    { status: 200 },
+  );
 
 /** A fake fetch that answers each call with the next step: a Response, or a function that throws. */
 function scripted(steps) {
@@ -43,6 +54,15 @@ test("a dropped raw fetch is tried again and then succeeds", async () => {
   assert.equal(calls.length, 2);
   assert.deepEqual(sleeps, [500]);
   assert.deepEqual(lines, ["raw-fetch-retry: /ourostack/ouro-ui/v1/registry.json failed (ECONNRESET); try 2 of 4 in 0.5s"]);
+});
+
+test("a 200 whose body ends early is tried again, and the caller reads the complete second body", async () => {
+  const { fetch, calls, lines, sleeps } = harness([bodyDropped, ok]);
+  const response = await fetch(RAW);
+  assert.equal(await response.text(), "ok");
+  assert.equal(calls.length, 2);
+  assert.deepEqual(sleeps, [500]);
+  assert.deepEqual(lines, ["raw-fetch-retry: /ourostack/ouro-ui/v1/registry.json failed (terminated); try 2 of 4 in 0.5s"]);
 });
 
 test("a 503 and a 429 are tried again", async () => {
@@ -120,6 +140,31 @@ test("a real connection dropped mid-request and a real 503 are both tried again"
     assert.equal(requests, 3);
     assert.equal(lines.length, 2);
     assert.match(lines[1], /failed \(HTTP 503\); try 3 of 4/);
+  } finally {
+    server.close();
+  }
+});
+
+test("a real response cut off mid-body is tried again", async () => {
+  let requests = 0;
+  const server = createServer((request, response) => {
+    requests += 1;
+    if (requests === 1) {
+      response.writeHead(200, { "Content-Length": 1000 });
+      response.write('{"items":', () => request.socket.destroy());
+      return;
+    }
+    response.writeHead(200).end("the file");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const url = `http://127.0.0.1:${server.address().port}/registry.json`;
+    const lines = [];
+    const fetch = withRetry(globalThis.fetch, { hosts: ["127.0.0.1"], log: (line) => lines.push(line), sleep: async () => {} });
+    const response = await fetch(url);
+    assert.equal(await response.text(), "the file");
+    assert.equal(requests, 2);
+    assert.equal(lines.length, 1);
   } finally {
     server.close();
   }
