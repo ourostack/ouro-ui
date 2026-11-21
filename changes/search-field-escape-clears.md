@@ -1,1 +1,1 @@
-- Fixed: Escape empties a filled `type="search"` TextField in WebKit and Firefox too, as it already did in Chromium, so a filter behaves the same everywhere.
+- Fixed: Escape empties a filled `type="search"` TextField in WebKit and Firefox too, as it already did in Chromium.
