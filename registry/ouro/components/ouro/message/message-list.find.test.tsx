@@ -45,30 +45,29 @@ describe("MessageList find", () => {
   it("reports how many matches there are and which is current, folding case and accents", async () => {
     const report = vi.fn();
     await render(<Chat find={{ query: "lunch", current: 2 }} onFindMatches={report} />);
-    expect(report).toHaveBeenLastCalledWith({ count: 3, current: 2, partial: false });
+    await expect.poll(() => report.mock.lastCall?.[0]).toEqual({ count: 3, current: 2, partial: false });
   });
 
   it("wraps the current match round, and reports none for an empty query", async () => {
     const report = vi.fn();
     const { root } = await render(<Chat find={{ query: "lunch", current: -1 }} onFindMatches={report} />);
-    expect(report).toHaveBeenLastCalledWith({ count: 3, current: 2, partial: false });
+    await expect.poll(() => report.mock.lastCall?.[0]).toEqual({ count: 3, current: 2, partial: false });
     report.mockClear();
     await act(async () => root.render(<Chat find={{ query: "" }} onFindMatches={report} />));
-    expect(report).toHaveBeenLastCalledWith({ count: 0, current: null, partial: false });
+    await expect.poll(() => report.mock.lastCall?.[0]).toEqual({ count: 0, current: null, partial: false });
     expect(highlighted("ouro-find")).toEqual([]);
   });
 
   it("highlights each match in the text, the current one apart, without changing the text", async () => {
     const { host } = await render(<Chat find={{ query: "lunch", current: 1 }} />);
-    expect([...highlighted("ouro-find"), ...highlighted("ouro-find-current")].sort()).toEqual(["LUNCH", "Lunch", "lunch"]);
+    await expect.poll(() => [...highlighted("ouro-find"), ...highlighted("ouro-find-current")].sort()).toEqual(["LUNCH", "Lunch", "lunch"]);
     expect(highlighted("ouro-find-current")).toEqual(["lunch"]);
     expect(host.textContent).toContain("Café for lunch, or LUNCH out");
   });
 
   it("matches across accents, and takes the fold from the find", async () => {
     await render(<Chat find={{ query: "cafe" }} />);
-    expect(highlighted("ouro-find-current")).toEqual(["Café"]);
-    await act(async () => {});
+    await expect.poll(() => highlighted("ouro-find-current")).toEqual(["Café"]);
   });
 
   it("leaves the scroll where the reader put it when the parent renders again", async () => {
@@ -83,6 +82,7 @@ describe("MessageList find", () => {
     );
     const { host, root } = await render(many({ query: "needle" }));
     const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    await expect.poll(() => CSS.highlights.get("ouro-find-current")?.size).toBe(1);
     await act(async () => scroller.scrollTo({ top: scroller.scrollHeight, behavior: "instant" }));
     const scrollTo = vi.spyOn(scroller, "scrollTo");
     await act(async () => root.render(many({ query: "needle" })));
@@ -91,7 +91,7 @@ describe("MessageList find", () => {
 
   it("clears the highlights when the list goes away", async () => {
     const { root } = await render(<Chat find={{ query: "lunch" }} />);
-    expect(highlighted("ouro-find-current")).toHaveLength(1);
+    await expect.poll(() => highlighted("ouro-find-current")).toHaveLength(1);
     await act(async () => root.unmount());
     expect(CSS.highlights.has("ouro-find")).toBe(false);
     expect(CSS.highlights.has("ouro-find-current")).toBe(false);
@@ -106,11 +106,13 @@ describe("MessageList find", () => {
     );
     const input = host.querySelector("input")!;
     input.focus();
-    await act(async () => {});
+    await expect.poll(() => CSS.highlights.get("ouro-find-current")?.size).toBe(1);
     expect(document.activeElement).toBe(input);
   });
 
-  it("styles matches from theme tokens, with system colours in forced colours", () => {
+  it("styles matches from theme tokens, with system colours in forced colours", async () => {
+    await render(<Chat find={{ query: "lunch" }} />);
+    await expect.poll(() => pageCss()).toContain("::highlight(ouro-find-current)");
     const css = pageCss();
     expect(css).toContain("::highlight(ouro-find-current)");
     expect(css).toMatch(/ouro-find\\\)\\\]\\:text-foreground/);

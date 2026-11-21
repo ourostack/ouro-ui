@@ -3,6 +3,7 @@
 import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
+import type { MessageFindLayer } from "@/registry/ouro/components/ouro/message/message-find";
 import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -12,10 +13,7 @@ import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { findInMessages, locateMatch, messageText } from "@/registry/ouro/lib/ouro/find-messages";
 import type { FindFold } from "@/registry/ouro/lib/ouro/find-text";
-import { useFindHighlights } from "@/registry/ouro/lib/ouro/use-find-highlights";
-import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
 import { useOuro, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
@@ -397,16 +395,6 @@ function topItems(content: Element): HTMLElement[] {
   return [...content.querySelectorAll<HTMLElement>(items)].filter((item) => !content.contains(item.parentElement!.closest(items)));
 }
 
-/**
- * How matches are drawn, by the highlight names `ouro-find` and `ouro-find-current`: the theme's primary, tinted for the others and solid
- * for the current one, with the paired text colour so a link inside a match stays readable, and the system colours when colours are forced.
- */
-const findMarks =
-  "[&::highlight(ouro-find)]:bg-[color-mix(in_oklab,var(--primary)_22%,var(--background))] [&::highlight(ouro-find)]:text-foreground " +
-  "[&::highlight(ouro-find-current)]:bg-primary [&::highlight(ouro-find-current)]:text-primary-foreground " +
-  "forced-colors:[&::highlight(ouro-find)]:bg-[Mark] forced-colors:[&::highlight(ouro-find)]:text-[MarkText] " +
-  "forced-colors:[&::highlight(ouro-find-current)]:bg-[Highlight] forced-colors:[&::highlight(ouro-find-current)]:text-[HighlightText]";
-
 /** Space kept between a message brought into view by the keyboard and the list's edge, so its focus ring shows. */
 const EDGE = 8;
 /** How far an arrow key scrolls through a message taller than the list, in pixels. */
@@ -620,6 +608,13 @@ let layerModule: Promise<typeof MessageBarLayer> | undefined;
 let loadedLayer: typeof MessageBarLayer | undefined;
 const loadLayer = () =>
   (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => (loadedLayer = module.MessageBarLayer)));
+
+// The find layer and its marks, loaded with the first list that has `find`, so a list without it adds none of that code.
+type FindModule = { Layer: typeof MessageFindLayer; marks: string };
+let findPromise: Promise<FindModule> | undefined;
+let findLoaded: FindModule | undefined;
+const loadFind = () =>
+  (findPromise ??= import("@/registry/ouro/components/ouro/message/message-find").then((module) => (findLoaded = { Layer: module.MessageFindLayer, marks: module.findMarks })));
 
 /** A child's key, from `Children.toArray`, or null for one that is not an element. */
 function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): Key | null {
@@ -1227,30 +1222,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const shown = windowed ? all : all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
   const keys = useMemo(() => all.map((child, index) => String(keyOf(child) ?? index)), [all]);
 
-  // Find: matches counted in the children's own text, so a message not drawn counts, and drawn in the page as highlights.
-  const reduced = useReducedMotion();
+  // Find: loaded with the first list that has `find`; its layer counts the matches and draws them.
   const hasFind = find !== undefined;
-  const findQuery = find?.query ?? "";
-  const findFold = find?.fold;
-  const findLocale = find?.locale;
-  const found = useMemo(
-    () => findInMessages(all.map((child, index) => ({ key: keys[index]!, text: messageText(child) })), { query: findQuery, fold: findFold, locale: findLocale }),
-    [all, keys, findQuery, findFold, findLocale],
-  );
-  const findCurrent = find?.current ?? 0;
-  useFindHighlights({ scroller: scrollerRef, content: contentRef, slot: SLOT, find: find === undefined ? undefined : { query: findQuery, fold: findFold, locale: findLocale }, result: found, current: findCurrent, reduced });
-  const findTarget = locateMatch(found, findCurrent);
-  const reportRef = useRef(onFindMatches);
+  const [findModule, setFindModule] = useState<FindModule | undefined>(() => findLoaded);
   useEffect(() => {
-    reportRef.current = onFindMatches;
-  });
-  let currentIndex: number | null = null;
-  if (findTarget !== null) {
-    currentIndex = found.order.slice(0, found.order.findIndex((entry) => entry.key === findTarget.key)).reduce((sum, entry) => sum + entry.count, 0) + findTarget.occurrence;
-  }
-  useEffect(() => {
-    if (hasFind) reportRef.current?.({ count: found.total, current: currentIndex, partial: hasOlder });
-  }, [found.total, currentIndex, hasOlder, hasFind]);
+    if (hasFind && !findModule) void loadFind().then(setFindModule);
+  }, [hasFind, findModule]);
+  const FindLayer = hasFind ? findModule?.Layer : undefined;
 
   // The window: which children draw, and the space kept for the others. Each child sits in a slot of its own that draws
   // no box, so the list's spacing and the continued messages' margins work as without one.
@@ -2845,7 +2823,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   };
 
   return (
-    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", findMarks, className)}>
+    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", hasFind && findModule?.marks, className)}>
       {/* Holds the scroller and its focus ring, drawn over it, so content that sticks to an edge never covers the ring. */}
       <div className="relative flex min-h-0 flex-1 flex-col">
         {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. Positioned, so
@@ -2917,6 +2895,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           </button>
         </div>
       )}
+      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} /> : null}
     </div>
   );
 }
