@@ -3636,3 +3636,14 @@ test("the nightly run opens or comments on one issue when its advisory VoiceOver
   assert.match(advisory, /select\(\(\.name \| test\("macos-15"\)\) and \(\.name \| test\("advisory"\)\)\)/);
   assert.match(advisory, /scripts\/scheduled-failure\.sh "\$RUN_URL" "Screen-reader lane: the advisory VoiceOver on macOS 15 failed"/);
 });
+
+test("browser and fallback shards upload a failed test's screenshots, so a timeout shows where its test stood", () => {
+  const jobs = ciJobs();
+  for (const [id, kind] of [["browser", "browser"], ["browser-fallback", "fallback"]]) {
+    assert.match(
+      jobs[id],
+      new RegExp(`- if: failure\\(\\)\\n {8}uses: actions/upload-artifact@[0-9a-f]{40} # v[\\d.]+\\n {8}with:\\n {10}name: failures-${kind}-\\$\\{\\{ matrix\\.shard \\}\\}\\n {10}path: \\.vitest/attachments/\\n`),
+      id,
+    );
+  }
+});
