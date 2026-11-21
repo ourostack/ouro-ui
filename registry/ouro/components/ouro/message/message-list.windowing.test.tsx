@@ -1495,6 +1495,36 @@ describe("MessageList windowing", () => {
     expect(moved).toBeLessThanOrEqual(1);
   });
 
+  it("commits at most twice a frame as a page of older messages draws in after it lands", async () => {
+    let commits = 0;
+    const list = (from: number, count: number) => (
+      <Profiler id="list" onRender={() => void commits++}>
+        <ShortRows ids={span(from, count)} />
+      </Profiler>
+    );
+    const { root, scroller } = await render(list(0, 200));
+    await scrollTo(scroller, 0);
+    const older = () => ids(scroller).filter((id) => id < 0).length;
+    await landInATask(
+      () => flushSync(() => root.render(list(-200, 400))),
+      () => {},
+    );
+    // Commits in each frame, counted from one frame's callback to the next, and the older rows drawn by each frame. One is the
+    // chunk's render; the other re-renders the avatars at scroll priority with no state change asking for it.
+    const perFrame: number[] = [];
+    const drawn: number[] = [];
+    let seen = commits;
+    for (let frames = 0; frames < 200; frames++) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      perFrame.push(commits - seen);
+      seen = commits;
+      drawn.push(older());
+      if (drawn.length >= 7 && drawn.slice(-6).every((count) => count === drawn.at(-1))) break;
+    }
+    expect(older()).toBeGreaterThan(OLDER_CHUNK);
+    expect(Math.max(...perFrame)).toBeLessThanOrEqual(2);
+  });
+
   it("does not spend a second chunk on rows the first chunk has not drawn yet, when a frame runs before React commits it", async () => {
     let commits = 0;
     const list = (from: number, count: number) => (
