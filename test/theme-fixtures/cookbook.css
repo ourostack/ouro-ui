@@ -6,9 +6,10 @@
  * are left out). It defines no --card, --chart-* or --sidebar-* and no --font-heading, as the
  * app does not. test/themes/ runs every story under it.
  *
- * The last block is not Spoonjoy's yet: it maps Ouro UI's action token onto Spoonjoy's action
- * pair, as the site's Cookbook preset does, so every story's solid primary Button is scanned in
- * Spoonjoy's charcoal (light) and brass (dark).
+ * The last block maps Ouro UI's action tokens onto Spoonjoy's action palette, as spoonjoy-v2's
+ * app/styles/tailwind.css does at 3fba3dad (2026-11-21, lines 110-116), so every story's solid
+ * primary Button is scanned in Spoonjoy's charcoal (light) and brass (dark). Its disabled look is
+ * Spoonjoy's own colours at full opacity, not Ouro's dimming (spoonjoy-v2#815).
  */
 :root {
   color-scheme: light;
@@ -195,4 +196,9 @@
 .dark {
   --ouro-action: var(--sj-action);
   --ouro-action-foreground: var(--sj-on-action);
+  --ouro-action-hover: var(--sj-action-hover);
+  --ouro-action-active: var(--sj-action-hover);
+  --ouro-action-disabled: var(--sj-action-disabled);
+  --ouro-action-disabled-foreground: var(--sj-on-action-disabled);
+  --ouro-action-disabled-opacity: 1;
 }
