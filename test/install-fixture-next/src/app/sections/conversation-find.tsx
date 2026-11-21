@@ -1,3 +1,5 @@
+"use client";
+
 import { ConversationFind } from "@/components/ouro/conversation-find/conversation-find";
 
 // expect: data-ouro="conversation-find"

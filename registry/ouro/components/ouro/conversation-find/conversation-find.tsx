@@ -7,7 +7,6 @@ import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 
 type Rest = Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange" | "className" | "role" | "aria-label">;
 
@@ -104,9 +103,10 @@ export function ConversationFind({
       : // Stryker disable next-line StringLiteral: production only; the check never runs there.
         /* istanbul ignore next @preserve -- production only */ "",
   );
-  const platform = usePlatform();
   // Where focus was before the bar took it, read while the box has not been focused yet.
-  const [opener] = useState<Element | null>(() => (typeof document === "undefined" ? null : document.activeElement));
+  // Stryker disable next-line ConditionalExpression,StringLiteral: the server has no document; in a browser the guard is always false.
+  const [opener] = useState(() => (typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null)));
+  // Stryker disable next-line ObjectLiteral: the effect below replaces the first value before any handler can run.
   const latest = useRef({ current, count, onCurrentChange, onClose });
   useEffect(() => {
     latest.current = { current, count, onCurrentChange, onClose };
@@ -118,14 +118,15 @@ export function ConversationFind({
   };
   const close = () => {
     latest.current.onClose();
-    if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    // Stryker disable next-line OptionalChaining: a page's activeElement is null only in a document with no body.
+    opener?.focus();
   };
 
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.defaultPrevented || event.altKey) return;
       const find = event.key === "F3" && !event.ctrlKey && !event.metaKey;
-      const again = event.code === "KeyG" && (platform === "apple" ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey);
+      const again = event.code === "KeyG" && event.metaKey !== event.ctrlKey;
       if (!find && !again) return;
       event.preventDefault();
       const next = stepFrom(latest.current.current, latest.current.count, event.shiftKey ? -1 : 1);
@@ -133,10 +134,10 @@ export function ConversationFind({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [platform]);
+  }, []);
 
   const words = resultWords(current, count, noMatchesLabel, resultLabel);
-  const said = query === "" ? "" : count === 0 || current === null ? words : partial ? `${words}+` : words;
+  const said = query === "" ? "" : partial && count > 0 && current !== null ? `${words}+` : words;
   useEffect(() => {
     if (said !== "") announce(said);
   }, [said]);
@@ -166,12 +167,12 @@ export function ConversationFind({
         className="min-w-0 flex-1"
       />
       <span data-ouro-conversation-find-result="" aria-hidden="true" className="shrink-0 px-1 text-sm tabular-nums text-muted-foreground">
-        {query === "" ? "" : said}
+        {said}
       </span>
-      <Button data-ouro-control="conversation-find" data-ouro-part="previous" variant="plain" tone="secondary" size="sm" aria-label={previousLabel} disabledReason={count === 0 ? noMatchesLabel : undefined} onClick={() => step(-1)}>
+      <Button data-ouro-control="conversation-find" data-ouro-part="previous-match" variant="plain" tone="secondary" size="sm" aria-label={previousLabel} disabledReason={count === 0 ? noMatchesLabel : undefined} onClick={() => step(-1)}>
         <ChevronIcon className="rotate-180" />
       </Button>
-      <Button data-ouro-control="conversation-find" data-ouro-part="next" variant="plain" tone="secondary" size="sm" aria-label={nextLabel} disabledReason={count === 0 ? noMatchesLabel : undefined} onClick={() => step(1)}>
+      <Button data-ouro-control="conversation-find" data-ouro-part="next-match" variant="plain" tone="secondary" size="sm" aria-label={nextLabel} disabledReason={count === 0 ? noMatchesLabel : undefined} onClick={() => step(1)}>
         <ChevronIcon />
       </Button>
       <Button data-ouro-control="conversation-find" data-ouro-part="close" variant="plain" tone="secondary" size="sm" aria-label={closeLabel} onClick={close}>
