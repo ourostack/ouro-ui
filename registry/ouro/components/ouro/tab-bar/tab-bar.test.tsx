@@ -283,6 +283,17 @@ describe("TabBar and the visual viewport", () => {
     expect(reads.mock.calls.length).toBeGreaterThan(before);
   });
 
+  it("takes back every viewport and focus listener it added once the bar unmounts", async () => {
+    const added = [vi.spyOn(VisualViewport.prototype, "addEventListener"), vi.spyOn(document, "addEventListener")];
+    const removed = [vi.spyOn(VisualViewport.prototype, "removeEventListener"), vi.spyOn(document, "removeEventListener")];
+    const bar = await mountBar();
+    const listeners = (spies: typeof added) => spies.flatMap((spy) => spy.mock.calls.map(([type, listener]) => [type, listener]));
+    const taken = listeners(added).filter(([type]) => ["resize", "focusin", "focusout"].includes(type as string));
+    expect(taken.length).toBeGreaterThan(0);
+    await bar.unmount();
+    expect(listeners(removed)).toEqual(expect.arrayContaining(taken));
+  });
+
   it("steps aside when the keyboard shrinks the visual viewport, and keeps no answer once no bar is mounted", async () => {
     const height = vi.spyOn(VisualViewport.prototype, "height", "get").mockReturnValue(innerHeight);
     const first = await mountBar();
