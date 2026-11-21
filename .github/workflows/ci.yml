@@ -1579,8 +1579,9 @@ jobs:
     # read only shadcn's standard tokens, so a third-party theme carries through. One fixture per
     # shard (test/themes/), in Chromium, beside the ci job. On a reduced pull request, only the
     # selected components' stories, and nothing when it selected none. Beside them, the components'
-    # shipped contrast tests run under cookbook (project themes-contrast), whose dark text is brighter
-    # than Ouro's, so a test that holds only in Ouro's palette fails here before an app vendors it.
+    # shipped contrast and looks-off tests run under cookbook (project themes-contrast), whose dark text
+    # is brighter than Ouro's and whose disabled button is drawn in its own colours at full opacity, so a
+    # test that holds only in Ouro's palette or Ouro's dimming fails here before an app vendors it.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
