@@ -125,6 +125,9 @@ export function relevance(target, changedFiles) {
   return { run, reasons };
 }
 
+/** Whether the commits are a docs pin (scripts/pin-only.mjs): only the release tag the docs name moved. */
+const isDocsPin = (base, head) => spawnSync(process.execPath, [join(repoRoot, "scripts", "pin-only.mjs"), base, head], { cwd: repoRoot, stdio: "ignore" }).status === 0;
+
 function main([target, base, head]) {
   const output = (line) => appendFileSync(process.env["GITHUB_OUTPUT"] ?? "/dev/null", `${line}\n`);
   if (!targets[target] || !base || !head) {
@@ -136,6 +139,11 @@ function main([target, base, head]) {
   if (diff.status !== 0) {
     console.log(`git diff ${base} ${head} failed, so ${targets[target].name} run: ${diff.stderr}`);
     output("run=true");
+    return 0;
+  }
+  if (target === "heavy" && isDocsPin(base, head)) {
+    console.log("Nothing the heavy tier reads changed: only the release tag the docs name moved (scripts/pin-only.mjs), and docs --check holds every literal to it.");
+    output("run=false");
     return 0;
   }
   const { run, reasons } = relevance(target, diff.stdout.split("\n").filter(Boolean));

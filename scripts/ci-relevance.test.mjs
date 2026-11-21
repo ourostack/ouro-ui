@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { copyFileSync, existsSync, realpathSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -244,4 +244,41 @@ test("a change to a CI helper, a Node script test or another workflow starts no 
   assert.equal(runs("browser", ["scripts/shard.mjs"]), true);
   assert.equal(runs("installs", ["scripts/install-test.sh"]), true);
   assert.equal(runs("browser", ["scripts/gen-docs.mts"]), true);
+});
+
+test("the platform parity data reaches the site and the heavy tier but no install and no component's tests", () => {
+  for (const path of ["scripts/parity-data/versions.json", "scripts/parity-data/platforms.json", "scripts/parity-data/provenance.json", "scripts/parity-data/components.claims.json"]) {
+    assert.equal(runs("installs", [path]), false, path);
+    assert.equal(runs("browser", [path]), true, path);
+    assert.equal(runs("screens", [path]), true, path);
+    assert.equal(runs("heavy", [path]), true, path);
+  }
+});
+
+test("the heavy tier skips a docs pin and runs for a pin that changes anything else", () => {
+  const dir = realpathSync(scratchDir("ci-pin-"));
+  mkdirSync(join(dir, "scripts"), { recursive: true });
+  for (const file of ["ci-relevance.mjs", "ci-paths.mjs", "pin-only.mjs", "latest-release.mjs"]) copyFileSync(join(root, "scripts", file), join(dir, "scripts", file));
+  const git = (...args) => spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: dir, encoding: "utf8" });
+  git("init", "-q");
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ description: "x v1.0.0", ouro: { latestRelease: "v1.0.0" } }));
+  writeFileSync(join(dir, "README.md"), "npm i ouro#v1.0.0\n");
+  git("add", ".");
+  git("commit", "-q", "-m", "base");
+  const heavy = (base, head) => {
+    const output = join(dir, "out");
+    rmSync(output, { force: true });
+    const res = spawnSync(process.execPath, [join(dir, "scripts/ci-relevance.mjs"), "heavy", base, head], { cwd: dir, encoding: "utf8", env: { ...process.env, GITHUB_OUTPUT: output } });
+    return existsSync(output) ? readFileSync(output, "utf8") : res.stderr + res.stdout;
+  };
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ description: "x v1.1.0", ouro: { latestRelease: "v1.1.0" } }));
+  writeFileSync(join(dir, "README.md"), "npm i ouro#v1.1.0\n");
+  git("commit", "-q", "-am", "pin");
+  assert.equal(heavy("HEAD~1", "HEAD"), "run=false\n");
+  writeFileSync(join(dir, "README.md"), "npm i ouro#v1.1.0\nand more words\n");
+  git("commit", "-q", "-am", "prose");
+  assert.equal(heavy("HEAD~1", "HEAD"), "run=true\n", "a README edit is not a pin");
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ description: "x v1.2.0", ouro: { latestRelease: "v1.2.0" }, scripts: { a: "b" } }));
+  git("commit", "-q", "-am", "pin plus script");
+  assert.equal(heavy("HEAD~1", "HEAD"), "run=true\n", "a pin that also changes package.json's other fields runs the heavy tier");
 });

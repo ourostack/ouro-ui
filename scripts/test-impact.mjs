@@ -407,6 +407,9 @@ export async function decideReducedRun(components, coverageDir, shards, { root =
   return 0;
 }
 
+/** Whether the commits are a docs pin (scripts/pin-only.mjs): only the release tag the docs name moved. */
+const isDocsPin = (base, head) => spawnSync(process.execPath, [join(repoRoot, "scripts", "pin-only.mjs"), base, head], { cwd: repoRoot, stdio: "ignore" }).status === 0;
+
 const list = (text = "") => text.split(",").map((entry) => entry.trim()).filter(Boolean);
 
 async function main([command, ...args]) {
@@ -414,7 +417,9 @@ async function main([command, ...args]) {
     const [base, head] = args;
     const diff = spawnSync("git", ["diff", "--no-renames", "--name-only", base, head], { cwd: repoRoot, encoding: "utf8" });
     if (diff.status !== 0) throw new Error(`git diff ${base} ${head} failed: ${diff.stderr}`);
-    const impact = testImpact(diff.stdout.split("\n").filter(Boolean));
+    const impact = isDocsPin(base, head)
+      ? { full: false, components: [], rendered: [], reasons: ["only the release tag the docs name moved (scripts/pin-only.mjs), which no component's tests or stories read"] }
+      : testImpact(diff.stdout.split("\n").filter(Boolean));
     console.log(impact.full ? "Everything runs:" : `Reduced run: the tests of ${impact.components.join(", ") || "no component"}; the stories of ${impact.rendered.join(", ") || "no component"}`);
     for (const reason of impact.reasons) console.log(`- ${reason}`);
     if (process.env["GITHUB_OUTPUT"]) appendFileSync(process.env["GITHUB_OUTPUT"], `full=${impact.full}\ncomponents=${impact.full ? "" : impact.components.join(",")}\nrendered=${impact.full ? "" : impact.rendered.join(",")}\n`);
