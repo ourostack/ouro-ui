@@ -230,6 +230,28 @@ describe("motion tokens", () => {
   });
 });
 
+describe("fixed sizes", () => {
+  const root = () => getComputedStyle(document.documentElement);
+
+  it("defines each step as a quarter rem, with a dot written as an underscore", () => {
+    expect(root().getPropertyValue("--ouro-size-0_5").trim()).toBe("0.125rem");
+    expect(root().getPropertyValue("--ouro-size-2_5").trim()).toBe("0.625rem");
+    expect(root().getPropertyValue("--ouro-size-8").trim()).toBe("2rem");
+    expect(root().getPropertyValue("--ouro-size-144").trim()).toBe("36rem");
+  });
+
+  it("keeps a fixed size at its step under a compact --spacing, where a spacing-scale size shrinks", () => {
+    const widths = (element: Element) => [...element.children].map((child) => Number.parseFloat(getComputedStyle(child).width));
+    const roomy = mount('<div><i class="block size-8"></i><i class="block size-(--ouro-size-8)"></i></div>').firstElementChild!;
+    expect(widths(roomy)).toEqual([32, 32]);
+    const compact = mount('<div style="--spacing: 0.2rem"><i class="block size-8"></i><i class="block size-(--ouro-size-8)"></i></div>').firstElementChild!;
+    // WebKit rounds the spacing-scale width to a sixty-fourth of a pixel, so it is compared to a tenth.
+    const [spaced, fixed] = widths(compact);
+    expect(spaced).toBeCloseTo(25.6, 1);
+    expect(fixed).toBe(32);
+  });
+});
+
 describe("press utility", () => {
   it("scales in and out in 160ms on the ease-out token, and changes colors at once", () => {
     const style = getComputedStyle(mount('<button class="press"></button>').firstElementChild!);

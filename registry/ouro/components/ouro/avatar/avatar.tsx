@@ -13,7 +13,7 @@ import { groupChatWith } from "@/registry/ouro/components/ouro/avatar/avatar-sty
  * Avatar sizes: 24, 32, 40, 48, 64, 72 and 112px.
  *
  * @claim "Avatar sizes: 24, 32, 40, 48" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > comes in sizes that grow in order, as circles)
- * @claim "Avatar sizes: 24, 32, 40, 48" registry/ouro/components/ouro/avatar/avatar.tsx verify:fileLine(registry/ouro/components/ouro/avatar/avatar.tsx, /"3xl": "size-28/)
+ * @claim "Avatar sizes: 24, 32, 40, 48" registry/ouro/components/ouro/avatar/avatar.tsx verify:fileLine(registry/ouro/components/ouro/avatar/avatar.tsx, /"3xl": "size-\(--ouro-size-28\)/)
  */
 export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
 
@@ -136,7 +136,7 @@ export interface AvatarOwnProps {
    * @default "md"
    * @claim "24, 32, 40, 48, 64, 72" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > shows initials from the name, and the name to screen readers)
    * @claim "the presence dot grow with it" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > sits on the lower end corner at every size, with the avatar cut away round it)
-   * @claim "24, 32, 40, 48, 64, 72" registry/ouro/components/ouro/avatar/avatar.tsx verify:fileLine(registry/ouro/components/ouro/avatar/avatar.tsx, /"3xl": "size-28/)
+   * @claim "24, 32, 40, 48, 64, 72" registry/ouro/components/ouro/avatar/avatar.tsx verify:fileLine(registry/ouro/components/ouro/avatar/avatar.tsx, /"3xl": "size-\(--ouro-size-28\)/)
    */
   size?: AvatarSize | (string & { 'Use "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never }) | undefined;
   /** Layout only: margins, grid placement (`ms-2`). Appearance classes warn in development; use `size`. */
@@ -224,15 +224,16 @@ export interface AvatarGroupOwnProps {
 /** Props for {@link AvatarGroup}: its own props and the `<div>` attributes it passes through. */
 export type AvatarGroupProps = Omit<HTMLAttributes<HTMLDivElement>, keyof AvatarGroupOwnProps | "role"> & AvatarGroupOwnProps;
 
-// Each size sets the box and the initials' type size together.
+// Each size sets the box and the initials' type size together. The box reads the fixed-size tokens, so a
+// density that changes --spacing leaves the avatar its size.
 const sizes = {
-  xs: "size-6 [--ouro-edge:0.105rem] text-[0.625rem]",
-  sm: "size-8 [--ouro-edge:0.14rem] text-xs",
-  md: "size-10 [--ouro-edge:0.175rem] text-sm",
-  lg: "size-12 [--ouro-edge:0.21rem] text-base",
-  xl: "size-16 [--ouro-edge:0.28rem] text-xl",
-  "2xl": "size-18 [--ouro-edge:0.315rem] text-2xl",
-  "3xl": "size-28 [--ouro-edge:0.49rem] text-4xl",
+  xs: "size-(--ouro-size-6) [--ouro-edge:0.105rem] text-[0.625rem]",
+  sm: "size-(--ouro-size-8) [--ouro-edge:0.14rem] text-xs",
+  md: "size-(--ouro-size-10) [--ouro-edge:0.175rem] text-sm",
+  lg: "size-(--ouro-size-12) [--ouro-edge:0.21rem] text-base",
+  xl: "size-(--ouro-size-16) [--ouro-edge:0.28rem] text-xl",
+  "2xl": "size-(--ouro-size-18) [--ouro-edge:0.315rem] text-2xl",
+  "3xl": "size-(--ouro-size-28) [--ouro-edge:0.49rem] text-4xl",
 } as const;
 
 // How far each avatar after the first slides under the one before, by the group's size: 4px for 24 to 47px,
