@@ -836,7 +836,7 @@ jobs:
         run: |
           last=$(git ls-remote --tags --refs origin 'refs/tags/v*' | sed 's#.*refs/tags/##' | sort -V | tail -1)
           git fetch --quiet --no-tags --depth=1 origin "refs/tags/$last:refs/tags/$last"
-      # Never fails: without a base report the sizes are judged by their ceilings, and the step says why.
+      # Never fails: it takes the nearest report on main within 20 commits of the base, and with none the sizes are judged by their ceilings, and the step says why.
       - name: The base commit's pattern sizes
         if: env.SIZE_GATE == 'pull'
         timeout-minutes: 2
@@ -2422,7 +2422,7 @@ jobs:
         continue-on-error: true
       - *pnpm-install-stalled
       - *pnpm-install-retry
-      # Never fails: without a base report the sizes are judged by their ceilings, and the step says why.
+      # Never fails: it takes the nearest report on main within 20 commits of the base, and with none the sizes are judged by their ceilings, and the step says why.
       - name: The base commit's page JavaScript sizes
         if: env.SIZE_GATE == 'pull'
         timeout-minutes: 2

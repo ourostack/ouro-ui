@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { deflateRawSync } from "node:zlib";
 import { test } from "node:test";
-import { baseReport, judgeSizes, mainBreaches, readZipEntry, reportName, treeBreaches } from "./size-gate.mjs";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { scratchDir } from "./scratch.mjs";
+import { LOOKBACK, baseReport, judgeSizes, mainBreaches, readBase, readZipEntry, reportName, treeBreaches } from "./size-gate.mjs";
 
 // The docs page's JavaScript as #2747 found it: main had crept to 191,889 bytes, 114 under a ceiling of 192,003, and
 // #2747 grew it by 162 bytes without touching site/ (its e2e job 136857850020 read 192,051).
@@ -82,7 +85,7 @@ test("the base's report is the newest artifact named for the size check and the 
   const asked = [];
   const fetch = async (url) => {
     asked.push(url);
-    if (url.endsWith("/commits/merge")) return globalThis.Response.json({ parents: [{ sha: "base" }] });
+    if (url.endsWith("/commits/merge")) return globalThis.Response.json({ commit: { tree: { sha: "mergetree" } }, parents: [{ sha: "base" }] });
     if (url.endsWith("/commits/base")) return globalThis.Response.json({ commit: { tree: { sha: "basetree" } } });
     if (url.includes("/actions/artifacts?name=size-closure-basetree")) {
       return globalThis.Response.json({ artifacts: [
@@ -96,7 +99,7 @@ test("the base's report is the newest artifact named for the size check and the 
     return new globalThis.Response("not found", { status: 404 });
   };
   const found = await baseReport({ check: "closure", sha: "merge", repo: "o/r", api: "https://api", token: "t", fetch });
-  assert.deepEqual(found, { report: docs(191_889), from: "size-closure-basetree", artifact: 2 });
+  assert.deepEqual(found, { report: docs(191_889), from: "size-closure-basetree", artifact: 2, commit: "base", behind: 0 });
   assert.ok(asked.every((url) => url.startsWith("https://api/repos/o/r/")));
 
   const none = await baseReport({ check: "patterns", sha: "merge", repo: "o/r", api: "https://api", token: "t", fetch });
@@ -114,4 +117,59 @@ test("on main, the sizes a commit's tree measured are read from its artifacts, a
   };
   const found = await treeBreaches({ checks: ["closure", "patterns"], sha: "main", repo: "o/r", api: "https://api", token: "t", fetch });
   assert.deepEqual(found, { breaches: ["docs initial JavaScript: 192051 bytes, over its ceiling of 192003"], missing: ["size-patterns-maintree"] });
+});
+
+// main's history as GitHub's commits API serves it: each commit's tree and parents, first parent first.
+function history(commits, reported) {
+  const asked = [];
+  const fetch = async (url) => {
+    asked.push(url);
+    const sha = url.match(/\/commits\/([^/?]+)$/)?.[1];
+    if (sha && commits[sha]) return globalThis.Response.json({ sha, commit: { tree: { sha: `${sha}tree` } }, parents: commits[sha].map((parent) => ({ sha: parent })) });
+    const name = url.match(/artifacts\?name=([^&]+)/)?.[1];
+    if (name) {
+      const at = reported.findIndex((sha) => name === `size-closure-${sha}tree`);
+      return globalThis.Response.json({ artifacts: at < 0 ? [] : [{ id: 100 + at, expired: false, created_at: "2026-11-21T09:00:00Z" }] });
+    }
+    const id = url.match(/artifacts\/(\d+)\/zip$/)?.[1];
+    if (id) return new globalThis.Response(zip("closure.json", JSON.stringify(docs(191_000 + Number(id)))));
+    return new globalThis.Response("not found", { status: 404 });
+  };
+  return { fetch, asked };
+}
+
+test("with no report for the commit a pull request merges into, the base is the nearest first-parent ancestor that has one", async () => {
+  // merge -> m0 (main's run still measuring) -> m1 -> m2 (measured). m0's second parent, a side branch, was measured too,
+  // and is not main's history.
+  const { fetch, asked } = history({ merge: ["m0", "pr"], m0: ["m1", "side"], m1: ["m2"], m2: ["m3"], side: [] }, ["side", "m2"]);
+  const found = await baseReport({ check: "closure", sha: "merge", repo: "o/r", api: "https://api", token: "t", fetch });
+  assert.deepEqual(found, { report: docs(191_101), from: "size-closure-m2tree", artifact: 101, commit: "m2", behind: 2 });
+  assert.ok(!asked.some((url) => url.includes("sidetree")), "a second parent's report is never used");
+});
+
+test("beyond LOOKBACK commits back no ancestor's report is used, and the ceilings decide", async () => {
+  assert.equal(LOOKBACK, 20);
+  const chain = Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`m${i}`, [`m${i + 1}`]]));
+  const { fetch } = history({ merge: ["m0"], ...chain }, [`m${LOOKBACK}`]);
+  const found = await baseReport({ check: "closure", sha: "merge", repo: "o/r", api: "https://api", token: "t", fetch });
+  assert.equal(found.report, null);
+  assert.match(found.why, /no artifact named size-closure-m0tree, nor for the 19 commits before it on main/);
+
+  const { fetch: near } = history({ merge: ["m0"], ...chain }, [`m${LOOKBACK - 1}`]);
+  const last = await baseReport({ check: "closure", sha: "merge", repo: "o/r", api: "https://api", token: "t", fetch: near });
+  assert.equal(last.commit, `m${LOOKBACK - 1}`);
+  assert.equal(last.behind, LOOKBACK - 1);
+});
+
+test("a base taken from an earlier commit is named in each size's line, which says the growth includes the commits between", () => {
+  const dir = scratchDir("ouro-size-gate-");
+  writeFileSync(join(dir, "base-closure.json"), JSON.stringify(docs(191_889)));
+  writeFileSync(join(dir, "base-closure.origin.json"), JSON.stringify({ commit: "abcdef1234567890", behind: 2 }));
+  const base = readBase("closure", dir);
+  assert.deepEqual(Object.keys(base), ["docs initial JavaScript"]);
+  const verdict = judgeSizes(docs(192_051), { mode: "pull", base });
+  assert.match(verdict.lines[0], /162 more than its base's 191889 \(measured at abcdef1, 2 commits before the commit this merges into; the growth includes theirs\)/);
+
+  writeFileSync(join(dir, "base-closure.origin.json"), JSON.stringify({ commit: "abcdef1234567890", behind: 0 }));
+  assert.doesNotMatch(judgeSizes(docs(192_051), { mode: "pull", base: readBase("closure", dir) }).lines[0], /measured at/);
 });
