@@ -101,6 +101,33 @@ describe("SyncStatus queue", () => {
     expect(document.activeElement).toBe(elsewhere);
   });
 
+  it("takes no focus on mount, and a later list that never held focus takes none from the page", async () => {
+    const onCancel = vi.fn();
+    const { host, rerender } = await render(
+      <>
+        <SyncStatus status="saved" onCancel={onCancel} />
+        <button type="button" data-test-harness id="elsewhere">Elsewhere</button>
+      </>,
+    );
+    expect(document.activeElement).toBe(document.body);
+    const cancel = () => host.querySelector<HTMLButtonElement>('[data-ouro-part="cancel"]');
+    const tree = (queue: QueuedWrite[]) => (
+      <>
+        <SyncStatus status="saving" queue={queue} onCancel={onCancel} />
+        <button type="button" data-test-harness id="elsewhere">Elsewhere</button>
+      </>
+    );
+    await rerender(tree([...writes]));
+    cancel()!.focus();
+    await rerender(tree([]));
+    expect(document.activeElement).toBe(host.querySelector('[data-ouro="sync-status"] > p:not([aria-hidden])'));
+    await rerender(tree([...writes]));
+    const elsewhere = host.querySelector<HTMLButtonElement>("#elsewhere")!;
+    elsewhere.focus();
+    await rerender(tree([]));
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
   it("hands focus to the next write's Cancel when a middle one is cancelled, and to the line after the last", async () => {
     function Queue() {
       const [queue, setQueue] = useState<QueuedWrite[]>([...writes]);
