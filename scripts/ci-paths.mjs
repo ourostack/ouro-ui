@@ -41,7 +41,7 @@ export const runsAll = {
     "browser-deps.sh", "catalog-groups.mts", "changes.mjs", "check/", "ci-paths.mjs", "ci-relevance.mjs", "claims.mjs", "components.mts", "conformance-exemptions.mjs", "control-matrix.mts",
     "core-bundle.mts", "coverage-merge.mjs", "cross-kit/", "current/", "docs-summary.mts", "drift/", "fixtures/", "form-answer-impact.mjs", "gen-docs.mts", "generate.mjs",
     "generated-files.d.mts", "generated-files.mjs", "git-hooks/", "goto-timeout-reporter.mjs", "images/", "install-check.mjs", "install-folders.mts", "install-hooks.mjs",
-    "kit-pin.mjs", "kits/", "latency-quiet.mjs", "latest-release.mjs", "layout-animation-allowed.json", "links.mjs", "lint/", "mcp-app.mts", "mcp-app/", "mirror/", 
+    "kit-pin.mjs", "kits/", "latency-quiet.mjs", "latest-release.mjs", "local-test-gate.sh", "layout-animation-allowed.json", "links.mjs", "lint/", "mcp-app.mts", "mcp-app/", "mirror/", 
     "motion-coverage.mts", "motion-reporter.mts", "motion-states.mts", "mutation.mjs", "mutation/", "namespace.sh", "ouro-actions/", "parity-data/", "parity-matrix.mjs",
     "parity-rows.d.mts", "parity-rows.mjs", "part-names-baseline.json", "part-names.mts", "pattern-size.json", "pattern-size.mjs", "physical-allowed.json", "pin-only.mjs", "platform-parity.mjs", "platform-versions.mjs",
     "pre-push.mjs", "public-registry.mjs", "published-release.mjs", "radius-codemod.mjs", "read-stdin.mjs", "readme-steps.mjs", "real-clock-ratchet.mjs", "registry.mts",
