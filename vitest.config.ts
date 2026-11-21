@@ -201,8 +201,9 @@ export default defineConfig({
             },
             // The components' tests under Spoonjoy's cookbook theme, whose dark text is brighter than Ouro's. `pnpm
             // test:themes-contrast` runs the shipped contrast tests in it (a name with "contrast" or a ratio such as
-            // "4.5:1"): apps vendor these tests and run them in their own theme, so one that holds only in Ouro's palette
-            // fails here first (spoonjoy/spoonjoy-v2#784, #770).
+            // "4.5:1") and the tests of how a control looks off (a name with "looks off"): apps vendor these tests and run
+            // them in their own theme, so one that holds only in Ouro's palette or Ouro's dimming fails here first
+            // (spoonjoy/spoonjoy-v2#784, #770, #815).
             {
               extends: true as const,
               test: {
