@@ -73,6 +73,31 @@ function Reacting() {
   );
 }
 
+/** A server that takes a moment, accepts the first reaction and refuses the rest. */
+function Optimistic() {
+  const [list, setList] = useState(reactions);
+  const answered = useRef(0);
+  return (
+    <Surface>
+      <ReactionBar
+        reactions={list}
+        quick={quick}
+        optimistic
+        onReact={(key) =>
+          new Promise<void>((resolve, reject) =>
+            setTimeout(() => {
+              if (answered.current++ === 0) {
+                setList((current) => toggle(current, key));
+                resolve();
+              } else reject(new Error("The server refused that reaction"));
+            }, 800),
+          )
+        }
+      />
+    </Surface>
+  );
+}
+
 function Picking() {
   const [list, setList] = useState(reactions);
   const [open, setOpen] = useState(false);
@@ -282,6 +307,11 @@ export const InMessage: Story = {
 };
 
 /** `onMore` adds an "Add reaction" button that opens the app's own picker, here a Popover anchored to it. */
+export const OptimisticPress: Story = {
+  name: "Optimistic",
+  render: () => <Optimistic />,
+};
+
 export const WithPicker: Story = {
   render: () => <Picking />,
 };

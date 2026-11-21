@@ -637,6 +637,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-keyboard-scrollable`,
 `lib-use-media-query`,
 `lib-use-mounted-open`,
+`lib-use-optimistic-action`,
 `lib-use-ouro`,
 `lib-use-person`,
 `lib-use-platform`,
@@ -776,6 +777,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **toast** — Shows a toast: a short message that appears at the bottom of the screen, is read to screen readers once, and dismisses itself. [Docs](docs/toast.md)
 - **Toaster** — Shows the toasts you send with `toast("Saved")` from `@/lib/ouro/toast`: render it once, at the root of your app, inside `OuroProvider` if you use one, or alone. [Docs](docs/Toaster.md)
 - **useInstallPrompt** — Whether the browser offers to install this web app, and the means to offer it at a good moment rather than when the browser chooses: `install()` opens the browser's own install dialog, `dismiss()` puts the offer away for two weeks. [Docs](docs/useInstallPrompt.md)
+- **useOptimisticAction** — Shows a change the moment it is made, undoes it and says why if the server refuses it, and tells the page what is still pending. [Docs](docs/useOptimisticAction.md)
 - **useTimer** — A countdown timer that keeps time by the clock, not by ticks, so it stays right in a background tab, across a reload (with `timerId`) and when the screen sleeps. [Docs](docs/useTimer.md)
 
 ### Display
