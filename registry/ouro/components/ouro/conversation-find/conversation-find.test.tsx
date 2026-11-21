@@ -173,6 +173,17 @@ describe("ConversationFind", () => {
     expect(page.getByRole("search", { name: "Find in conversation" })).toBeDefined();
   });
 
+  it("lets a pending announcement land when the query is cleared before it is spoken, instead of cancelling it with a blank one", async () => {
+    const heard = watchAnnouncements();
+    try {
+      const { root } = await render(<Bar />);
+      await act(async () => root.render(<Bar query="" />));
+      await expect.poll(() => heard.count("1 of 3")).toBe(1);
+    } finally {
+      heard.stop();
+    }
+  });
+
   it("marks a count that more history may add to, and keeps its buttons off while there is nothing to step to", async () => {
     await render(<Bar partial />);
     await expect.element(page.getByRole("status")).toHaveTextContent("1 of 3+");

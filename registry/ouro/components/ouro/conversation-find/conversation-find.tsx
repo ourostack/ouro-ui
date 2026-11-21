@@ -134,10 +134,11 @@ export function ConversationFind({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
+  // Stryker disable next-line ArrayDeclaration: the effect reads only the latest ref, so its dependencies never change what it does
   }, []);
 
   const words = resultWords(current, count, noMatchesLabel, resultLabel);
-  const said = query === "" ? "" : partial && count > 0 && current !== null ? `${words}+` : words;
+  const said = query === "" ? "" : partial && current !== null ? `${words}+` : words;
   useEffect(() => {
     if (said !== "") announce(said);
   }, [said]);
