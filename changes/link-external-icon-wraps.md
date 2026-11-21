@@ -1,0 +1,1 @@
+- Fixed: an external Link whose text is a string keeps its last word and its icon on one line, so the icon doesn't wrap onto a line of its own.
