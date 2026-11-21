@@ -36,7 +36,7 @@ interface DevCommandFinding extends DevCommand {
 interface DevCommandsOptions {
   /** Read only what is under {@link MESSAGE_KEYS}, as in a read's `--json`, whose other fields are the person's data. */
   messagesOnly?: boolean;
-  /** The CLI's own name: a word after it is the CLI's own subcommand (`ouro git status`), never a developer command. */
+  /** The CLI's own name: a word after it is the CLI's own subcommand (`ouro git status`), so it is not read as a developer command. */
   own?: string;
 }
 
