@@ -7,11 +7,11 @@ test("Enter steps through the matches and Escape closes the bar, with focus stay
   await box.focus();
   await page.keyboard.press("Enter");
   await expect(box).toBeFocused();
-  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("2 of 3");
+  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("2 of 4");
   await page.keyboard.press("Shift+Enter");
-  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("1 of 3");
+  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("1 of 4");
   await page.keyboard.press("F3");
-  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("2 of 3");
+  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("2 of 4");
   await page.keyboard.press("Escape");
   await expect(box).toHaveValue("");
 });

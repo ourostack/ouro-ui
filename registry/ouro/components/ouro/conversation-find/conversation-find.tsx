@@ -105,7 +105,7 @@ export function ConversationFind({
   );
   // Where focus was before the bar took it, read while the box has not been focused yet.
   // Stryker disable next-line ConditionalExpression,StringLiteral: the server has no document; in a browser the guard is always false.
-  const [opener] = useState(() => (typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null)));
+  const [opener] = useState(() => (typeof document === "undefined" ? /* istanbul ignore next @preserve -- the server has no document */ null : (document.activeElement as HTMLElement | null)));
   // Stryker disable next-line ObjectLiteral: the effect below replaces the first value before any handler can run.
   const latest = useRef({ current, count, onCurrentChange, onClose });
   useEffect(() => {
@@ -178,7 +178,7 @@ export function ConversationFind({
       <Button data-ouro-control="conversation-find" data-ouro-part="next-match" variant="plain" tone="secondary" size="sm" aria-label={nextLabel} disabledReason={count === 0 ? noMatchesLabel : undefined} onClick={() => step(1)}>
         <ChevronIcon />
       </Button>
-      <Button data-ouro-control="conversation-find" data-ouro-part="close" variant="plain" tone="secondary" size="sm" aria-label={closeLabel} onClick={close}>
+      <Button data-ouro-control="conversation-find" data-ouro-part="close-find" variant="plain" tone="secondary" size="sm" aria-label={closeLabel} onClick={close}>
         <CloseIcon />
       </Button>
     </div>
