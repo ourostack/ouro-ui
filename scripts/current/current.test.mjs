@@ -573,6 +573,18 @@ test("an install record deletes a copy an earlier update kept after the release 
   assert.ok(update.notes.includes("Deletes what the release no longer ships: `lib/ouro/ax/command.ts`."));
 });
 
+test("a renamed file's old copy goes even when the release ships another file of that name (spoonjoy/spoonjoy-v2#830)", async () => {
+  // As spoonjoy-v2: ax/claims.ts was renamed ax-claims.ts, while lib-claims still ships a claims.ts of its own.
+  const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
+  const registry = JSON.stringify({ items: [{ name: "ax-claims", files: [{ path: "registry/ouro/ax/ax-claims.ts", target: "@lib/ouro/ax/ax-claims.ts" }] }] });
+  const shipped = (v) => files({ "registry.json": registry, "registry/ouro/ax/ax-claims.ts": `ax claims ${v}\n`, "registry/ouro/lib/ouro/claims.ts": `lib claims ${v}\n` });
+  const record = { tag: "v1.3.242", tagCommit: "old", files: { "lib/ouro/ax/ax-claims.ts": sha256("ax claims v1\n"), "lib/ouro/ax/claims.ts": sha256("ax claims v0\n") } };
+  const consumer = files({ "package.json": JSON.stringify({ name: "app", type: "module" }), "lib/ouro/ax/ax-claims.ts": "ax claims v1\n", "lib/ouro/ax/claims.ts": "ax claims v0\n" });
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, { tarball: async (follows, tag) => shipped(tag === "v1.3.242" ? "v1" : "v2"), consumerFiles: async () => consumer });
+  assert.equal(update.files["lib/ouro/ax/claims.ts"], null);
+});
+
 test("an install record keeps a file the release no longer ships when it was edited here", async () => {
   const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
   const registry = (...names) => JSON.stringify({ items: [{ name: "ax-command", files: names.map((name) => ({ path: `registry/ouro/ax/${name}`, target: `@lib/ouro/ax/${name}` })) }] });

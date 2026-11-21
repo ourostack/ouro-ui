@@ -589,10 +589,13 @@ async function updateHxInstalled(pin, text, release, ctx) {
   const edited = [];
   const gone = [];
   const dropped = [];
-  // A file is deleted only when no file of the release's registry has its name: one this cannot place (an app without
-  // components.json, as factory's site/src/ouro/ theme) may still be shipped, and deleting it broke factory#1138's build.
-  const shippedNames = new Set([...next.keys()].filter((key) => key.startsWith("registry/")).map((key) => posix.basename(key)));
-  const shipsName = (path) => shippedNames.has(posix.basename(path));
+  // A file is deleted only when the release no longer ships it. One this cannot place (an app without components.json,
+  // as factory's site/src/ouro/ theme) counts as shipped while the release has a file of its name, unless it is the old
+  // path of a file the release renamed (`ax/command.ts`): deleting a shipped file broke factory#1138's build.
+  const tail = (path) => path.split("/").slice(-2).join("/");
+  const names = new Set([...next.keys()].filter((key) => key.startsWith("registry/")).map((key) => posix.basename(key)));
+  const renamedTails = new Set(Object.keys(MOVED_SOURCES).map(tail));
+  const shipsName = (path) => names.has(posix.basename(path)) && !renamedTails.has(tail(path));
   const moves = [];
   const blocked = [];
   const items = new Set();
