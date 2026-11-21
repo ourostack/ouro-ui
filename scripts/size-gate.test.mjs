@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { deflateRawSync } from "node:zlib";
 import { test } from "node:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { scratchDir } from "./scratch.mjs";
 import { LOOKBACK, baseReport, judgeSizes, mainBreaches, readBase, readZipEntry, reportName, treeBreaches } from "./size-gate.mjs";
 
 // The docs page's JavaScript as #2747 found it: main had crept to 191,889 bytes, 114 under a ceiling of 192,003, and
@@ -162,7 +162,7 @@ test("beyond LOOKBACK commits back no ancestor's report is used, and the ceiling
 });
 
 test("a base taken from an earlier commit is named in each size's line, which says the growth includes the commits between", () => {
-  const dir = mkdtempSync(join(tmpdir(), "size-gate-"));
+  const dir = scratchDir("ouro-size-gate-");
   writeFileSync(join(dir, "base-closure.json"), JSON.stringify(docs(191_889)));
   writeFileSync(join(dir, "base-closure.origin.json"), JSON.stringify({ commit: "abcdef1234567890", behind: 2 }));
   const base = readBase("closure", dir);
