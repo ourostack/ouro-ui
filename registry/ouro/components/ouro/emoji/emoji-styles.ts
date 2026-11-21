@@ -302,9 +302,9 @@ function buildShape(items: readonly EmojiItem[]): IndexShape {
   const textStarts = new Map<string, string[][]>();
   for (const text of [...byText.keys()].sort((a, b) => b.length - a.length)) {
     const chars = Array.from(text);
-    const texts = textStarts.get(chars[0]!) ?? [];
-    textStarts.set(chars[0]!, texts);
-    texts.push(chars);
+    const texts = textStarts.get(chars[0]!);
+    if (texts) texts.push(chars);
+    else textStarts.set(chars[0]!, [chars]);
   }
   return { byId, byToken, byText, textStarts };
 }
@@ -407,17 +407,20 @@ function nextEmojiText(text: string, from: number, textStarts: TextStarts, token
       }
       if (end > at + 1 && text[end] === ":") return { index: at, end, token: true };
     }
-    for (const chars of textStarts.get(char) ?? []) {
-      let end = at;
-      for (const c of chars) {
-        if (!text.startsWith(c, end)) {
-          end = -1;
-          break;
+    const texts = textStarts.get(char);
+    if (texts) {
+      for (const chars of texts) {
+        let end = at;
+        for (const c of chars) {
+          if (!text.startsWith(c, end)) {
+            end = -1;
+            break;
+          }
+          end += c.length;
+          if (text[end] === "\uFE0F") end += 1;
         }
-        end += c.length;
-        if (text[end] === "\uFE0F") end += 1;
+        if (end !== -1) return { index: at, end, token: false };
       }
-      if (end !== -1) return { index: at, end, token: false };
     }
     at += char.length;
   }

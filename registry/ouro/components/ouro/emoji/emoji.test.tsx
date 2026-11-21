@@ -919,7 +919,11 @@ describe("Emoji helpers", () => {
     const man: EmojiItem = { id: "man", name: "Man", text: "👨", src: image("man") };
     const coder: EmojiItem = { id: "coder", name: "Man coder", shortcodes: ["coder"], text: "👨\u200d💻", src: image("coder") };
     const yes: EmojiItem = { id: "yes", name: "Yes", text: "(y)", src: image("yes") };
-    const wide: EmojiCatalogue = { categories: [...catalogue.categories, { id: "more", label: "More", items: [man, coder, yes] }] };
+    // A text that starts with two colons: a colon with no name after it opens no token, so the text is still found.
+    const eyes: EmojiItem = { id: "eyes", name: "Eyes", text: "::)", src: image("eyes") };
+    const wide: EmojiCatalogue = { categories: [...catalogue.categories, { id: "more", label: "More", items: [man, coder, yes, eyes] }] };
+    expect(splitEmojiText("look ::) here", wide)).toEqual(["look ", { item: eyes, tone: "default", source: "::)" }, " here"]);
+    expect(splitEmojiText("look ::)", wide, false)).toEqual(["look ", { item: eyes, tone: "default", source: "::)" }]);
     const index = catalogueIndex(wide);
     const texts: string[] = [];
     const seen = new Set<string>();
@@ -930,14 +934,16 @@ describe("Emoji helpers", () => {
     }
     const escaped = (char: string) => char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const alternatives = texts.sort((a, b) => b.length - a.length).map((text) => Array.from(text, (char) => `${escaped(char)}\\uFE0F?`).join(""));
-    const pattern = new RegExp([":[^\\s:]+(?=:)", ...alternatives].join("|"), "gu");
+    // The pattern told a token from an emoji text by its colon, so it never found a text that starts with one; the
+    // scan does, and so does this, which tells them apart by the alternative that matched.
+    const pattern = new RegExp(["(?<token>:[^\\s:]+(?=:))", ...alternatives].join("|"), "gu");
     const textPattern = new RegExp(["(?!)", ...alternatives].join("|"), "gu");
     const before = (text: string, tokens: boolean) => {
       const parts: unknown[] = [];
       let plainFrom = 0;
       for (const match of text.matchAll(tokens ? pattern : textPattern)) {
         if (match.index < plainFrom) continue;
-        const token = match[0].startsWith(":");
+        const token = match.groups?.token !== undefined;
         const found = token ? index.byToken.get(match[0].slice(1).toLowerCase()) : index.byText.get(match[0].replace(/\uFE0F/g, ""));
         if (!found) continue;
         if (match.index > plainFrom) parts.push(text.slice(plainFrom, match.index));
