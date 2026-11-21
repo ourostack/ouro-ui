@@ -55,4 +55,17 @@ describe("Link prefetch", () => {
     expect(own.onPointerLeave).toHaveBeenCalledOnce();
     expect(own.onTouchStart).toHaveBeenCalledOnce();
   });
+
+  it("takes a pointer leaving a link that has no handlers of its own", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Link href="/recipes">Recipes</Link>));
+    const link = host.querySelector("a")!;
+    await act(async () => link.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse", relatedTarget: null })));
+    await act(async () => link.dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType: "mouse", relatedTarget: null })));
+    expect(link.isConnected).toBe(true);
+  });
 });
