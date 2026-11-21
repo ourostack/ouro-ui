@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [A Sidebar label longer than its column ends in an ellipsis](registry/ouro/components/ouro/sidebar/sidebar.test.tsx "verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar long labels > cuts a label longer than the column with an ellipsis, inside the column's own edge)") instead of widening the list past the column and being clipped at its edge.
