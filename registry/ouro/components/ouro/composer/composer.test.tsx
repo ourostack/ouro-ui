@@ -92,6 +92,14 @@ function onPlatform(platform: "macOS" | "Windows") {
 }
 
 describe("Composer", () => {
+  it("keeps its text box's flex basis at 12rem, and follows a compact --spacing, which sizes it on the spacing scale", async () => {
+    const { host } = await render(<Composer label="Message Mia" placeholder="Write a message" onSend={() => {}} />);
+    const basis = () => getComputedStyle(host.querySelector<HTMLElement>(".basis-48")!).flexBasis;
+    expect(basis()).toBe("192px");
+    host.style.setProperty("--spacing", "0.2rem");
+    expect(basis()).toBe("153.6px");
+  });
+
   it("keeps its quote bar 4px wide and its icons 16 or 20px at a compact --spacing", async () => {
     const { host } = await render(<Composer label="Message Mia" placeholder="Write a message" onSend={() => {}} quote={{ author: "Ana Lind", excerpt: "Soft polenta", onRemove: () => {} }} />);
     const sizes = () => [getComputedStyle(host.querySelector<HTMLElement>("[data-ouro-composer-quote-bar]")!).width, [...host.querySelectorAll<SVGElement>("svg")].map((svg) => getComputedStyle(svg).width)];

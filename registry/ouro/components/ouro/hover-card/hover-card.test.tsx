@@ -61,6 +61,20 @@ async function renderCard(props: Partial<HoverCardProps> = {}) {
 }
 
 describe("HoverCard", () => {
+  it("keeps its preview 18rem wide at a compact --spacing", async () => {
+    await renderCard();
+    await userEvent.hover(link());
+    const element = await shown();
+    const width = () => getComputedStyle(element).width;
+    expect(width()).toBe("288px");
+    document.documentElement.style.setProperty("--spacing", "0.2rem");
+    try {
+      expect(width()).toBe("288px");
+    } finally {
+      document.documentElement.style.removeProperty("--spacing");
+    }
+  });
+
   it("shows a preview below the link on hover, and hides it when the pointer leaves", async () => {
     await renderCard();
     await userEvent.hover(link());

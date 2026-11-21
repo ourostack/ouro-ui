@@ -89,6 +89,21 @@ afterEach(async () => {
 });
 
 describe("Chart", () => {
+  it("keeps its tooltip 8rem wide at least at a compact --spacing", async () => {
+    const { chart } = await render(<Chart title="Spend" data={rows} categoryKey="month" config={config} />);
+    await drawn(chart);
+    await userEvent.hover(bars(chart, "cooked")[0]!);
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")).not.toBeNull();
+    const minWidth = () => getComputedStyle(chart.querySelector<HTMLElement>("[data-ouro-chart-tooltip]")!).minWidth;
+    expect(minWidth()).toBe("128px");
+    document.documentElement.style.setProperty("--spacing", "0.2rem");
+    try {
+      expect(minWidth()).toBe("128px");
+    } finally {
+      document.documentElement.style.removeProperty("--spacing");
+    }
+  });
+
   it("keeps its legend markers 12px at a compact --spacing", async () => {
     const { host } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
     const marker = () => getComputedStyle(host.querySelector<SVGElement>("[data-ouro-chart-marker]")!);

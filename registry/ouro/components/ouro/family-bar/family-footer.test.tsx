@@ -52,6 +52,20 @@ const sites: FamilyLink[] = [
 ];
 
 describe("FamilyFooter", () => {
+  it("keeps each link 44px tall on a phone with a fine pointer, at a compact --spacing", async () => {
+    const [width, height] = [window.innerWidth, window.innerHeight];
+    await page.viewport(390, 844);
+    try {
+      const { footer } = await render(<FamilyFooter links={sites} current="docs" />);
+      const link = () => getComputedStyle(footer.querySelector<HTMLElement>('[data-ouro-part="link"]')!);
+      expect(link().minHeight).toBe("44px");
+      footer.style.setProperty("--spacing", "0.2rem");
+      expect(link().minHeight).toBe("44px");
+    } finally {
+      await page.viewport(width, height);
+    }
+  });
+
   it("renders the family's links in order in a labelled nav, the current site marked as in the bar, and the site's extras after them", async () => {
     const { footer, link } = await render(
       <FamilyFooter links={sites} current="docs">

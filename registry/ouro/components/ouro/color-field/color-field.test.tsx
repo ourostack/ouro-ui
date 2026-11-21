@@ -63,6 +63,20 @@ afterEach(async () => {
 });
 
 describe("ColorField", () => {
+  it("keeps its swatch 24px from sm up with a fine pointer, at a compact --spacing", async () => {
+    const [width, height] = [window.innerWidth, window.innerHeight];
+    await page.viewport(1024, 768);
+    try {
+      const { host } = await render(<ColorField label="Accent color" name="accent" defaultValue="#3366FF" />);
+      const swatch = () => getComputedStyle(host.querySelector<HTMLInputElement>('input[type="color"]')!.closest<HTMLElement>("label")!);
+      expect([swatch().width, swatch().height]).toEqual(["24px", "24px"]);
+      host.style.setProperty("--spacing", "0.2rem");
+      expect([swatch().width, swatch().height]).toEqual(["24px", "24px"]);
+    } finally {
+      await page.viewport(width, height);
+    }
+  });
+
   it("keeps its fixed sizes at a compact --spacing", async () => {
     const { host } = await render(<ColorField label="Accent color" name="accent" defaultValue="#3366FF" />);
     const swatch = () => getComputedStyle(host.querySelector<HTMLInputElement>('input[type="color"]')!.closest("label")!);

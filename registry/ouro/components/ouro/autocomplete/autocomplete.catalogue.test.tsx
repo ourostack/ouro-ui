@@ -64,6 +64,35 @@ afterEach(async () => {
 });
 
 describe("Autocomplete with a catalogue", () => {
+  it("keeps its listbox 224px wide, its rows 44px tall and its emoji 24px at a compact --spacing", async () => {
+    const [width, height] = [window.innerWidth, window.innerHeight];
+    await page.viewport(390, 844);
+    try {
+      const { control } = await render(
+        <Autocomplete triggers={[emojiTrigger]}>
+          <TextArea label="Message" />
+        </Autocomplete>,
+      );
+      control.focus();
+      await userEvent.keyboard("Hi :ta");
+      await expect.poll(() => options().length).toBeGreaterThan(0);
+      const sizes = () => {
+        const listbox = document.querySelector<HTMLElement>('[data-ouro="autocomplete"]')!;
+        const option = options()[0]!;
+        return [getComputedStyle(listbox).minWidth, getComputedStyle(option).minHeight, getComputedStyle(option.querySelector<HTMLElement>('[data-ouro="emoji"]')!.parentElement!).width];
+      };
+      expect(sizes()).toEqual(["224px", "44px", "24px"]);
+      document.documentElement.style.setProperty("--spacing", "0.2rem");
+      try {
+        expect(sizes()).toEqual(["224px", "44px", "24px"]);
+      } finally {
+        document.documentElement.style.removeProperty("--spacing");
+      }
+    } finally {
+      await page.viewport(width, height);
+    }
+  });
+
   it("suggests emoji by shortcode, name and keyword, shortcodes first, drawn as images", async () => {
     const { control } = await render(
       <Autocomplete triggers={[emojiTrigger]}>

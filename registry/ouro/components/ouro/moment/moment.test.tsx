@@ -90,6 +90,14 @@ afterEach(async () => {
 });
 
 describe("Moment", () => {
+  it("keeps its dismiss icon 16px at a compact --spacing", async () => {
+    const { host } = await render(<Moment kind="success" art={<Art />} title="Saved" onDismiss={() => {}} />);
+    const icon = () => getComputedStyle(host.querySelector<SVGElement>('[aria-label="Dismiss"] svg')!);
+    expect([icon().width, icon().height]).toEqual(["16px", "16px"]);
+    host.style.setProperty("--spacing", "0.2rem");
+    expect([icon().width, icon().height]).toEqual(["16px", "16px"]);
+  });
+
   it("keeps its sparkles 12px at a compact --spacing", async () => {
     const { host } = await render(<Moment kind="success" art={<Art />} title="Saved" />);
     const sparkle = () => getComputedStyle(host.querySelector<SVGElement>('[data-ouro-part="sparkle"]')!);
