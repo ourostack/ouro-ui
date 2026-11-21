@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Changed: the Apple pages and the Platforms pages [name Apple's 1.5.0](site/src/apple/kit.json "verify:equals(site/src/apple/kit.json#release)=1.5.0"), and the parity table lists [each view a Swift file declares](scripts/parity-matrix.test.mjs "verify:fileLine(scripts/parity-matrix.test.mjs, /counts each, and not its support types/)"), so `OuroSkeleton`, `OuroSpinner` and `OuroProgress` all show.
+- Fixed: [A page of older messages that draws in a chunk a frame renders at most twice a frame, where it rendered three times](registry/ouro/components/ouro/message/message-list.windowing.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > commits at most twice a frame as a page of older messages draws in after it lands)"), so a long conversation that loads its history does less work in each frame.
