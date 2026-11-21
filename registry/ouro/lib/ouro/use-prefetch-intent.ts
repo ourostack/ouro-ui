@@ -87,6 +87,7 @@ export function usePrefetchIntent(
 ): PrefetchIntentHandlers {
   const { delay = 65, maxInflight = 2, staleAfter = 30_000 } = options;
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Stryker disable next-line ArrayDeclaration: a constant dependency array behaves as the empty one, so cleanup still runs once on unmount
   useEffect(() => () => clearTimeout(timer.current), []);
   return useMemo(() => {
     const go = () => {
