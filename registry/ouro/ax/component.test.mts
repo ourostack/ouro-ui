@@ -23,6 +23,9 @@ test("an action is agent or person-only, exactly one, and every problem throws o
   throwsLine(read({ id: "participant", fields: [], consent: "none" }), 'MediaTile read "participant": it lists no fields. Fix: fields: ["<a field its twin\'s --json carries>"].');
   throwsLine(read({ id: "participant", fields: ["name"], consent: "always" }), 'MediaTile read "participant": consent is "always". Fix: consent: "none", or "listening" for what people say.');
   throwsLine(read({ id: "captions", fields: ["text"], consent: "listening", push: "all" }), 'MediaTile read "captions": push is "all". Fix: push: "filtered", or leave it out.');
+  throwsLine(read({ id: "captions", fields: ["speaker", "text"], consent: "none" }), 'MediaTile read "captions": field "text" carries what people say, and the read declares consent "none". Fix: consent: "listening", or notSpeech: "<why this field is not speech>".');
+  throwsLine(read({ id: "label", fields: ["text"], consent: "none", notSpeech: "two\nlines" }), 'MediaTile read "label": notSpeech needs a one-line reason. Fix: notSpeech: "<why this field is not speech>".');
+  assert.doesNotThrow(read({ id: "label", fields: ["text"], consent: "none", notSpeech: "The button's label, not speech." }));
   const r = { id: "participant", fields: ["name"], consent: "none" } as const;
   throwsLine(() => defineComponentAx({ component: "MediaTile", reads: [r, r], actions: [] }), 'MediaTile read "participant": the id is used twice. Fix: give each read its own id.');
   throwsLine(() => defineComponentAx({ component: " ", reads: [], actions: [] }), ` : the component has no name. Fix: component: "<the component's export name>".`);
