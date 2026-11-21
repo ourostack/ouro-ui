@@ -3517,7 +3517,11 @@ jobs:
         continue-on-error: true
       - *pnpm-install-stalled
       - *pnpm-install-retry
+      # With GH_TOKEN, shadcn resolves a GitHub ref through fetch, where the raw-fetch preload answers a tag's
+      # branch lookup (scripts/raw-fetch-retry.mjs). Without it, shadcn asks the gh CLI, which the preload can't see.
       - run: scripts/install-test.sh upgrade "$RUNNER_TEMP/app"
+        env:
+          GH_TOKEN: ${{ github.token }}
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

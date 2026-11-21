@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
-import { withRetry } from "./raw-fetch-retry.mjs";
+import { withRetry, withTagFallback } from "./raw-fetch-retry.mjs";
 
 const { AbortController, DOMException, ReadableStream, Response, TextEncoder } = globalThis;
 
@@ -184,4 +184,42 @@ test("every shadcn add from GitHub in the install test goes through add_retrying
   assert.deepEqual(lines.filter((line) => /\badd\b/.test(line) && /ourostack\/ouro-ui\//.test(line) && !/^\s*add_retrying_raw_fetch /.test(line)), []);
   assert.ok(lines.some((line) => /^\s*add_retrying_raw_fetch "\$\{shadcn\[2\]\}" "ourostack\/ouro-ui\/dialog#v0\.1\.0"$/.test(line)));
   assert.ok(lines.some((line) => /^\s*add_retrying_raw_fetch "\$\{shadcn\[2\]\}" "ourostack\/ouro-ui\/ouro-theme#\$ref"$/.test(line)));
+});
+
+const BRANCH_LOOKUP = "https://api.github.com/repos/ourostack/ouro-ui/commits/heads/v0.1.0";
+const TAG_LOOKUP = "https://api.github.com/repos/ourostack/ouro-ui/commits/tags/v0.1.0";
+
+test("a tag whose branch lookup GitHub answers 422 is looked up as a tag, and that answer is returned", async () => {
+  const { fetchImpl, calls } = scripted([status(422), () => new Response('{"sha":"6a5b"}', { status: 200 })]);
+  const response = await withTagFallback(fetchImpl)(BRANCH_LOOKUP, { redirect: "manual" });
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), '{"sha":"6a5b"}');
+  assert.deepEqual(calls.map((call) => call.url), [BRANCH_LOOKUP, TAG_LOOKUP]);
+  assert.deepEqual(calls[1].init, { redirect: "manual" });
+});
+
+test("a ref that is neither a branch nor a tag still fails with GitHub's 422", async () => {
+  const { fetchImpl, calls } = scripted([status(422), status(422)]);
+  const response = await withTagFallback(fetchImpl)(BRANCH_LOOKUP);
+  assert.equal(response.status, 422);
+  assert.equal(calls.length, 2);
+});
+
+test("only a 422 on a GitHub branch lookup is answered by the tag lookup; other answers and URLs pass through once", async () => {
+  for (const url of [
+    "https://raw.githubusercontent.com/ourostack/ouro-ui/v0.1.0/registry.json",
+    "https://api.github.com/repos/ourostack/ouro-ui/git/ref/heads/v0.1.0",
+    "https://example.com/repos/ourostack/ouro-ui/commits/heads/v0.1.0",
+  ]) {
+    const { fetchImpl, calls } = scripted([status(422)]);
+    assert.equal((await withTagFallback(fetchImpl)(url)).status, 422, url);
+    assert.equal(calls.length, 1, url);
+  }
+  // A 404 is shadcn's own signal to look the tag up, so the wrapper leaves it alone.
+  const notFound = scripted([status(404)]);
+  assert.equal((await withTagFallback(notFound.fetchImpl)(BRANCH_LOOKUP)).status, 404);
+  assert.equal(notFound.calls.length, 1);
+  const branch = scripted([ok]);
+  assert.equal((await withTagFallback(branch.fetchImpl)(BRANCH_LOOKUP)).status, 200);
+  assert.equal(branch.calls.length, 1);
 });
