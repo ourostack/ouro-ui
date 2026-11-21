@@ -1,4 +1,4 @@
-/* global process, URL, setTimeout, window */
+/* global URL, setTimeout, window */
 // The four ways an agent reaches an app (apps.mjs), and a fifth that runs on macOS only. Each arm opens on one trial's app and
 // store (`open({ app, store, browser })`, the app Pantry when none is given) and returns the
 // tools the model gets: `{ name, description, parameters, handler(args) -> string }`. The runner gives every arm the

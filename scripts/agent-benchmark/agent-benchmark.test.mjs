@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { scratchDir } from "../scratch.mjs";
 import { createStore, SEED } from "./fixture/store.mjs";
 import { TASKS, taskById } from "./tasks.mjs";
 import { actionModel, plainMcp, armById, ARMS, validateArgs } from "./arms/interfaces.mjs";
@@ -150,7 +150,7 @@ for (const arm of [actionModel, plainMcp]) {
 }
 
 const fakeHost = (body) => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "apple-host-"));
+  const dir = scratchDir("apple-host-");
   const file = path.join(dir, "host.mjs");
   fs.writeFileSync(file, `#!${process.execPath}\nimport readline from "node:readline";\nfor await (const line of readline.createInterface({ input: process.stdin })) {\n  const q = JSON.parse(line);\n  const send = (o) => console.log(JSON.stringify(o));\n${body}\n}\n`, { mode: 0o755 });
   return file;
