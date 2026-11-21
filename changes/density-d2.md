@@ -1,0 +1,1 @@
+- ImageCropper: fixed sizes (the zoom slider's maximum width) read `--ouro-size-*` tokens, so a compact `--spacing` no longer shrinks them (#417).
