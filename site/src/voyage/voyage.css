@@ -723,6 +723,29 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
     order: 2;
     margin-top: 1rem;
   }
+  /*
+   * The scene is parsed after the side column, so a first paint made before the scene arrives would draw the column where
+   * the scene will sit and then push it down (Ouro check's layout shift). Until the scene is in the page, this box keeps
+   * its place at the scene's width and shape; the scene replaces it.
+   */
+  .site-voyage-hero::after {
+    content: "";
+    display: block;
+    order: 1;
+    width: var(--hero-width);
+    margin: 0.5rem auto 0;
+    aspect-ratio: 2 / 1;
+  }
+  @media (width > 40rem) {
+    .site-voyage-hero::after {
+      aspect-ratio: 3 / 1;
+    }
+  }
+  /* The box steps aside once the picture the scheme shows is in the page (the other one is hidden). */
+  :root:not(.dark) .site-voyage-hero:has(.story-world-day img)::after,
+  .dark .site-voyage-hero:has(.story-world-night img)::after {
+    display: none;
+  }
 }
 @media (min-width: 40rem) and (max-width: 63.999rem) {
   .site-voyage-hero {
