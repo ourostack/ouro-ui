@@ -101,7 +101,6 @@ export function Freshness(props: FreshnessProps): JSX.Element {
         strokeWidth="2"
         strokeLinecap="round"
         data-slot="freshness-icon"
-        data-ouro-part="icon"
         className={cn("size-ouro-3 shrink-0", refreshing ? "motion-safe:animate-[ouro-spin_1s_linear_infinite]" : "invisible")}
       >
         <path d="M21 12a9 9 0 1 1-6.22-8.56" />

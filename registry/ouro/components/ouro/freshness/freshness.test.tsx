@@ -36,7 +36,7 @@ describe("Freshness", () => {
     expect(el.hasAttribute("data-ouro-refreshing")).toBe(false);
     expect(el.hasAttribute("aria-busy")).toBe(false);
     expect(el.querySelector('[role="status"]')!.textContent).toBe("");
-    expect(el.querySelector('[data-ouro-part="icon"]')!.getAttribute("class")).toContain("invisible");
+    expect(el.querySelector('[data-slot="freshness-icon"]')!.getAttribute("class")).toContain("invisible");
   });
 
   it("marks a refresh for agents and screen readers, and clears it", async () => {
@@ -44,7 +44,7 @@ describe("Freshness", () => {
     expect(el.getAttribute("data-ouro-refreshing")).toBe("");
     expect(el.getAttribute("aria-busy")).toBe("true");
     expect(el.querySelector('[role="status"]')!.textContent).toBe("Refreshing");
-    expect(el.querySelector('[data-ouro-part="icon"]')!.getAttribute("class")).toContain("ouro-spin");
+    expect(el.querySelector('[data-slot="freshness-icon"]')!.getAttribute("class")).toContain("ouro-spin");
     await act(async () => root.render(<Freshness updatedAt={Date.now()} />));
     expect(el.hasAttribute("data-ouro-refreshing")).toBe(false);
     expect(el.querySelector('[role="status"]')!.textContent).toBe("");
