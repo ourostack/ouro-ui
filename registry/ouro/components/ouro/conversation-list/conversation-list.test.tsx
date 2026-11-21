@@ -311,6 +311,42 @@ describe("ConversationList", () => {
     expect(getComputedStyle(rows[0]!).paddingTop).toBe("6px");
   });
 
+  it("keeps its avatars' size while its rows tighten at a compact density", async () => {
+    const pin = (
+      <svg role="img" aria-label="Pinned" viewBox="0 0 16 16">
+        <circle cx="8" cy="8" r="4" fill="currentColor" />
+      </svg>
+    );
+    const { host, rows } = await render(
+      <ConversationList label="Conversations" items={[{ ...items[1]!, icon: pin, mark: "New", menu: [{ label: "Pin", onClick: () => {} }] }]} onSelect={() => {}} />,
+    );
+    const row = rows[0]!;
+    // The more button is the row's sibling in its item, so both are measured from the item.
+    const item = row.closest("li")!;
+    const measure = () => {
+      const size = (selector: string) => {
+        const { width, height } = item.querySelector(selector)!.getBoundingClientRect();
+        return [width, height];
+      };
+      return {
+        avatar: size('[data-ouro="avatar"]'),
+        icon: size("[data-ouro-conversation-icon] svg"),
+        more: size('[data-ouro-part="more"]'),
+        mark: size("[data-ouro-conversation-mark]")[1],
+        row: row.getBoundingClientRect().height,
+      };
+    };
+    const roomy = measure();
+    expect(getComputedStyle(row).paddingTop).toBe("8px");
+    expect(roomy).toMatchObject({ avatar: [32, 32], icon: [16, 16], more: [28, 20], mark: 20 });
+    // The spacing scale is set on the list's container: its rows' padding follows it, and the fixed sizes do not.
+    host.style.setProperty("--spacing", "0.2rem");
+    const compact = measure();
+    expect(getComputedStyle(row).paddingTop).toBe("6.4px");
+    expect(compact).toMatchObject({ avatar: [32, 32], icon: [16, 16], more: [28, 20], mark: 20 });
+    expect(compact.row).toBeLessThan(roomy.row);
+  });
+
   it("is a plain row that shows a focus ring from the keyboard and does not select its text", async () => {
     const { rows } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
     const style = getComputedStyle(rows[0]!);

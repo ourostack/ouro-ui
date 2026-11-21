@@ -249,7 +249,7 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
 const controlClass =
   "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 " +
   "text-start text-foreground select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-11 pointer-fine:group-hover/row:bg-[color:var(--ouro-row-hover,color-mix(in_oklab,var(--muted)_60%,var(--background)))] pointer-fine:group-hover/row:shadow-(--ouro-row-hover-shadow,0_0_0_1px_var(--border)) forced-colors:pointer-fine:group-hover/row:border-[Highlight] active:bg-[color:var(--ouro-row-pressed,var(--muted))] pointer-fine:hover:active:bg-[color:var(--ouro-row-pressed,var(--muted))]";
+  "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-(--ouro-size-11) pointer-fine:group-hover/row:bg-[color:var(--ouro-row-hover,color-mix(in_oklab,var(--muted)_60%,var(--background)))] pointer-fine:group-hover/row:shadow-(--ouro-row-hover-shadow,0_0_0_1px_var(--border)) forced-colors:pointer-fine:group-hover/row:border-[Highlight] active:bg-[color:var(--ouro-row-pressed,var(--muted))] pointer-fine:hover:active:bg-[color:var(--ouro-row-pressed,var(--muted))]";
 // A row opens and closes at once (`press` eases no colour): the open row is drawn in its accent on the first frame after
 // it becomes current, and the row that closes drops it on that frame.
 const rowClass = "gap-3 aria-[current=true]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] aria-[current=true]:text-accent-foreground forced-colors:aria-[current=true]:border-2";
@@ -344,7 +344,7 @@ function reveal(controls: ReadonlyMap<string, HTMLElement>, key: string, block: 
 /** A chevron that points at the rows when the section is open, and along the header when it is closed. */
 function Chevron({ open }: { open: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={cn("size-4 shrink-0", quiet, !open && "rtl:-scale-x-100")}>
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={cn("size-(--ouro-size-4) shrink-0", quiet, !open && "rtl:-scale-x-100")}>
       <path d={open ? "M4 6l4 4 4-4" : "M6 4l4 4-4 4"} />
     </svg>
   );
@@ -387,7 +387,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
     <>
       {hasMark && (
         // As tall as the line, so a badge that is a little taller leaves the row the height of the others.
-        <span data-ouro-conversation-mark="" className={cn("flex h-5 shrink-0 items-center text-xs", quiet)}>
+        <span data-ouro-conversation-mark="" className={cn("flex h-(--ouro-size-5) shrink-0 items-center text-xs", quiet)}>
           {item.mark}
         </span>
       )}
@@ -423,7 +423,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
           <span className="flex min-w-0 items-center gap-2">
             <span className="flex min-w-0 flex-1 items-center gap-1.5">
               {shown(item.icon) && (
-                <span data-ouro-conversation-icon="" className={cn("flex shrink-0 items-center [&_svg]:size-4", quiet)}>
+                <span data-ouro-conversation-icon="" className={cn("flex shrink-0 items-center [&_svg]:size-(--ouro-size-4)", quiet)}>
                   {item.icon}
                 </span>
               )}
@@ -462,7 +462,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
               <span
                 className={cn(
                   "flex shrink-0 items-center gap-2",
-                  hasMenu(item) && "pointer-fine:min-w-7 pointer-fine:justify-end pointer-coarse:me-9 [&>:not([data-ouro-conversation-time])]:order-first",
+                  hasMenu(item) && "pointer-fine:min-w-(--ouro-size-7) pointer-fine:justify-end pointer-coarse:me-(--ouro-size-9) [&>:not([data-ouro-conversation-time])]:order-first",
                 )}
               >
                 {shown(item.time) && (
@@ -530,7 +530,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
             }
           }}
           className={cn(
-            "press absolute end-3 top-2 box-border flex h-5 w-7 cursor-pointer items-center justify-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 forced-colors:border forced-colors:border-solid bg-transparent p-0 text-base leading-none text-foreground",
+            "press absolute end-3 top-2 box-border flex h-(--ouro-size-5) w-(--ouro-size-7) cursor-pointer items-center justify-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 forced-colors:border forced-colors:border-solid bg-transparent p-0 text-base leading-none text-foreground",
             "touch-manipulation [-webkit-tap-highlight-color:transparent] outline-ring outline-offset-0 focus-visible:outline-2 focus-visible:outline-solid",
             "transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-focus-within/row:opacity-100",
             "pointer-fine:hover:bg-[color:var(--ouro-row-pressed,var(--muted))] active:bg-[color:var(--ouro-row-pressed,var(--muted))]",
