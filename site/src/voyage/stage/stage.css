@@ -1018,7 +1018,7 @@
   column-gap: 1.5rem;
   row-gap: 0.5rem;
 }
-@container (min-width: 30rem) {
+@container (min-width: 36rem) {
   .stage-instruments {
     grid-template-areas: "depth-head speed-head" "depth speed";
     column-gap: 2rem;
@@ -1036,7 +1036,7 @@
   grid-area: speed-head;
   align-self: center;
 }
-@container (min-width: 30rem) {
+@container (min-width: 36rem) {
   .stage-speed-head {
     align-self: baseline;
   }
