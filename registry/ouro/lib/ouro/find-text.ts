@@ -48,6 +48,7 @@ const anyMark = /\p{M}/u;
 function foldUnit(unit: string, fold: FindFold, locale: string | undefined): string {
   let out = unit.normalize("NFC");
   if (fold === "case" || fold === "all") {
+    // Stryker disable next-line ConditionalExpression,MethodExpression: lowercasing and uppercasing both sides alike match the same text, and an undefined locale is the default one.
     out = locale === undefined ? out.toLowerCase() : out.toLocaleLowerCase(locale);
     let spread = "";
     for (const char of out) spread += expansions[char] ?? char;
@@ -100,7 +101,7 @@ function findMatches(text: string, query: string, options: FindOptions = {}): Fi
   const wanted = units(query)
     .map((unit) => foldUnit(unit, fold, locale))
     .join("");
-  if (wanted === "" || text === "") return [];
+  if (wanted === "") return [];
 
   let folded = "";
   // For each folded code unit, which letter it came from; a letter's range in the text; and where each letter's fold starts.

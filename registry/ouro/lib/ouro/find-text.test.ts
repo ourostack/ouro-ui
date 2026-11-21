@@ -157,4 +157,36 @@ describe("findMatches", () => {
       }
     }
   });
+
+  it("folds every full case folding the helper knows, and no more", () => {
+    const pairs: [string, string][] = [
+      ["ß", "ss"], ["ẞ", "ss"], ["ς", "σ"], ["ſ", "s"], ["ŉ", "ʼn"], ["և", "եւ"], ["ẚ", "aʾ"],
+      ["ﬀ", "ff"], ["ﬁ", "fi"], ["ﬂ", "fl"], ["ﬃ", "ffi"], ["ﬄ", "ffl"], ["ﬅ", "st"], ["ﬆ", "st"],
+    ];
+    for (const [letter, spelled] of pairs) {
+      expect(slices(`x ${letter} y`, spelled)).toEqual([letter]);
+      expect(slices(`x ${spelled} y`, letter)).toEqual([spelled]);
+    }
+  });
+
+  it("strips a combining mark at the first and last place of each block it knows", () => {
+    for (const mark of [0x300, 0x36f, 0x1ab0, 0x1abe, 0x1dc0, 0x1dff, 0x20d0, 0x20f0, 0xfe20, 0xfe2f]) {
+      const text = `a${String.fromCodePoint(mark)}b`;
+      expect(slices(text, "ab", "accents")).toEqual([text]);
+    }
+    expect(slices("a\u2ff0b", "ab", "accents")).toEqual([]);
+    expect(slices("a\u02ffb", "ab", "accents")).toEqual([]);
+  });
+
+  it("keeps a Hangul syllable's jamo together from the first to the last place of each range", () => {
+    const joined: [number, number][] = [
+      [0x1100, 0x1160], [0x1100, 0x11ff], [0x11ff, 0x11a8], [0x1100, 0x11a8], [0xac00, 0x11a8], [0xd7a3, 0x11a8],
+    ];
+    const apart: [number, number][] = [
+      [0x1100, 0x115f], [0x1100, 0x1200], [0x10ff, 0x11a8], [0x1200, 0x11a8], [0xabff, 0x11a8], [0xd7a4, 0x11a8],
+    ];
+    const text = ([first, second]: [number, number]) => String.fromCodePoint(first, second);
+    for (const pair of joined) expect(findMatches(text(pair), String.fromCodePoint(pair[0]), { fold: "none" })).toEqual([]);
+    for (const pair of apart) expect(findMatches(text(pair), String.fromCodePoint(pair[0]), { fold: "none" })).toHaveLength(1);
+  });
 });
