@@ -335,7 +335,9 @@ test("a long conversation draws only what is near the view, and a quote or a sea
 });
 
 // Frames where the wheel came, the list was not at an end, and the message at the centre of the view moved neither in that
-// frame nor in the next, while older posts load above (ourostack/ouro-ui#925): dead frames. The centre message is what is read,
+// frame nor in the two after it, while older posts load above (ourostack/ouro-ui#925): dead frames. Two still frames are not
+// enough: when the wheel lands after a frame has begun, the compositor scrolls in that frame and the page reads the new position
+// a frame later, and twice running after a long frame (ourostack/ouro-ui#2684). The centre message is what is read,
 // not scrollTop: the list corrects its own scrollTop to hold the reader's place as a page goes in, which moves nothing on screen.
 // And frames where the wheel pushed up at scrollTop 0 while messages already drawn sat above the view, out of reach: wall frames,
 // which a list that holds older posts above the scroll's start until the wheel rests would make, and the dead count cannot see.
@@ -403,7 +405,7 @@ for (const { story, label, least } of [
     });
     const atEnd = (f: (typeof frames)[number]) => (f.wheel < 0 ? f.scrollTop <= 1 : f.scrollTop >= f.maxTop - 1);
     const still = (f: (typeof frames)[number] | undefined) => f !== undefined && f.moved !== null && Math.abs(f.moved) < 0.5;
-    const dead = frames.filter((f, i) => f.wheel !== 0 && !atEnd(f) && still(f) && still(frames[i + 1]));
+    const dead = frames.filter((f, i) => f.wheel !== 0 && !atEnd(f) && still(f) && still(frames[i + 1]) && still(frames[i + 2]));
     const wall = frames.filter((f) => f.wheel < 0 && f.scrollTop <= 1 && still(f) && f.above);
     // Pages went in above while the reader scrolled, and the scroll was neither stalled nor stopped short on the way.
     const count = Number(await page.locator("[data-count]").getAttribute("data-count"));
