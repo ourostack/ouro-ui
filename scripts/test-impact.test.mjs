@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { storyFileSelected } from "../test/story-selection.ts";
-import { decideReducedRun, e2eArgs, runBrowserShard, storyFolders, testImpact, vitestArgs } from "./test-impact.mjs";
+import { conformanceShards, decideReducedRun, e2eArgs, runBrowserShard, storyFolders, testImpact, vitestArgs } from "./test-impact.mjs";
 import { treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -338,4 +338,12 @@ test("a change to a CI helper, a Node script test, another workflow or a baselin
   for (const path of ["scripts/gen-docs.mts", "test/first-frame.test.tsx", "test/stories.tsx", ".github/workflows/ci.yml"]) {
     assert.equal(testImpact([path], fixture()).full, true, path);
   }
+});
+
+test("in this repository, a reduced run checks conformance on one shard for a few components' stories and on three for most of them", () => {
+  assert.equal(conformanceShards(testImpact([`${components}/slider/slider.tsx`]).rendered), "[1]");
+  // Nearly every story renders a Button, so a change to it selects most stories: one shard took 17.6 minutes (#2774).
+  const button = testImpact([`${components}/button/button.tsx`]);
+  assert.equal(button.full, false);
+  assert.equal(conformanceShards(button.rendered), "[1,2,3]");
 });
