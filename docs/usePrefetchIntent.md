@@ -19,9 +19,10 @@ const intent = usePrefetchIntent((id) => queryClient.prefetchQuery(recipe(id)), 
 
 The budget: a key is prefetched once until it goes stale, at most `maxInflight` prefetches run at once across the targets that share the function, a refused or skipped one is retried by the next intent, and nothing is prefetched when the browser asks to save data. The function's errors are swallowed, so a failed prefetch never breaks the page.
 
+Spread it on a `Link` for a route: Link passes the handlers to its anchor.
+
 ## Use instead when
 
-- Use `Link`'s `prefetch` prop instead when the target is a link.
 - Use the Speculation Rules API instead when the browser should prerender whole documents.
 
 ## Parameters

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type ReactNode } from "react";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
+import { usePrefetchIntent } from "@/registry/ouro/lib/ouro/use-prefetch-intent";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -129,12 +130,22 @@ export const DocumentNavigation: Story = {
   ),
 };
 
+function PrefetchLink({ href, prefetch, children }: { href: string; prefetch: (href: string) => unknown; children: ReactNode }) {
+  return (
+    <Link href={href} {...usePrefetchIntent(prefetch, href)}>
+      {children}
+    </Link>
+  );
+}
+
 function Prefetching() {
   const [prefetched, setPrefetched] = useState<string[]>([]);
   return (
     <Surface>
       <Text>
-        <Link href="#recipes" prefetch={(href) => setPrefetched((list) => [...list, href])}>Browse recipes</Link>
+        <PrefetchLink href="#recipes" prefetch={(href) => setPrefetched((list) => [...list, href])}>
+          Browse recipes
+        </PrefetchLink>
       </Text>
       <output data-test-harness="" style={{ color: "var(--muted-foreground)" }}>
         Prefetched {prefetched.length} time{prefetched.length === 1 ? "" : "s"}
@@ -144,8 +155,8 @@ function Prefetching() {
 }
 
 /**
- * `prefetch` calls the app's function with the `href` when a mouse rests on the link, it takes
- * keyboard focus or a touch begins, so the route is ready by the click. Rest the pointer on the
- * link: the count goes to 1 and stays there until the link goes stale.
+ * Spread `usePrefetchIntent(prefetch, href)` on a `Link` to call the app's function when a mouse
+ * rests on it, it takes keyboard focus or a touch begins, so the route is ready by the click. Rest
+ * the pointer on the link: the count goes to 1 and stays there until the link goes stale.
  */
 export const PrefetchOnIntent: Story = { render: () => <Prefetching /> };

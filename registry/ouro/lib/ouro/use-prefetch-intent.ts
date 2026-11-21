@@ -66,7 +66,7 @@ function prefetchOnce(prefetch: (key: string) => unknown, key: string, maxInflig
  * next intent, and nothing is prefetched when the browser asks to save data. The function's errors
  * are swallowed, so a failed prefetch never breaks the page.
  *
- * Use `Link`'s `prefetch` prop instead when the target is a link. Use the Speculation Rules API
+ * Spread it on a `Link` for a route: Link passes the handlers to its anchor. Use the Speculation Rules API
  * instead when the browser should prerender whole documents.
  *
  * @group Navigation

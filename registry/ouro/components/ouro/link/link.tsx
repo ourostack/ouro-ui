@@ -4,10 +4,9 @@ import type { AnchorHTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { fontFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { RouterLink, isExternalHref, safeRel } from "@/registry/ouro/lib/ouro/router-link";
+import { RouterLink, safeRel } from "@/registry/ouro/lib/ouro/router-link";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { usePrefetchIntent } from "@/registry/ouro/lib/ouro/use-prefetch-intent";
 
 /** The props Link adds to the anchor attributes it passes through. */
 export interface LinkOwnProps {
@@ -26,15 +25,6 @@ export interface LinkOwnProps {
    * @claim "Navigates with a full page load:" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link > renders a plain <a> with reloadDocument or download, skipping the router's link, in the same look)
    */
   reloadDocument?: boolean | undefined;
-  /**
-   * Called with `href` when a person shows intent to follow the link: a mouse resting on it, keyboard
-   * focus or a touch beginning. Start the route's data or code there; Ouro keeps it within a budget (a
-   * link is prefetched once until it goes stale, two at a time, none when the browser asks to save data)
-   * and never calls it for an external link, a download or a `reloadDocument` link. Pass the same function
-   * to every link so they share the budget. The app owns what it fetches.
-   * @claim "never calls it for an external link" registry/ouro/components/ouro/link/link.prefetch.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.prefetch.test.tsx::Link prefetch > prefetches an internal link on intent, and never an external, download or reloadDocument one)
-   */
-  prefetch?: ((href: string) => unknown) | undefined;
   /**
    * Opens the link in a new tab: sets `target="_blank"`, adds `rel="noopener noreferrer"`
    * (keeping your own `rel` tokens) and an icon, and tells screen readers "opens in a new tab".
@@ -191,9 +181,6 @@ function linkHint(token: string): string {
  * `<p>`, a `<label>`, a `Text`, a field's description or error) stays as tall as its line;
  * `inline` says the same anywhere else. With a mouse every link is as tall as its text.
  *
- * `prefetch` calls your function with the `href` when a person shows intent to follow the link, so the
- * page is ready by the time they click.
- *
  * In a list of chapters, steps or sections, `current` marks the one you are on
  * (`aria-current="page"`) with the same look as `Navbar`'s current link.
  *
@@ -224,7 +211,6 @@ export function Link(props: LinkProps): JSX.Element {
     href,
     external,
     reloadDocument,
-    prefetch,
     tone: toneProp = "primary",
     inline: inlineProp,
     current: currentProp,
@@ -275,17 +261,11 @@ export function Link(props: LinkProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const eligible = !external && !reloadDocument && !rest.download && !isExternalHref(href);
-  const intent = usePrefetchIntent(eligible ? prefetch : undefined, href);
   return (
     <RouterLink
       data-ouro-control="link"
       data-ouro-part="root"
       {...rest}
-      onPointerEnter={(event) => (rest.onPointerEnter?.(event), intent.onPointerEnter(event))}
-      onPointerLeave={(event) => (rest.onPointerLeave?.(event), intent.onPointerLeave(event))}
-      onFocus={(event) => (rest.onFocus?.(event), intent.onFocus(event))}
-      onTouchStart={(event) => (rest.onTouchStart?.(event), intent.onTouchStart(event))}
       href={href}
       reloadDocument={reloadDocument}
       target={external ? "_blank" : target}
