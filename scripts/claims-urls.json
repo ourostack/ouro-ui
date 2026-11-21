@@ -343,10 +343,6 @@
     "status": 200,
     "checked": "2026-11-08"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/27ab8db1842693f1d9d0e479aef34d9b9959cac4/core-provenance.json": {
-    "status": 200,
-    "checked": "2026-11-21"
-  },
   "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L11-L13": {
     "status": 200,
     "checked": "2026-11-06"
@@ -398,6 +394,10 @@
   "https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96": {
     "status": 200,
     "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/9f814854210c0bb4f3e2b56061830f891b12c79f/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-21"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Sources/OuroA2UI/ComposedSurface.swift": {
     "status": 200,
@@ -491,7 +491,7 @@
     "status": 200,
     "checked": "2026-11-21"
   },
-  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.6.0": {
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.7.0": {
     "status": 200,
     "checked": "2026-11-21"
   },
