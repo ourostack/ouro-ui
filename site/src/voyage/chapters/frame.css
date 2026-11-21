@@ -13,7 +13,7 @@
   width: 0.5rem;
   height: 0.5rem;
   border: 1.5px solid var(--muted-foreground);
-  border-radius: 999px;
+  border-radius: 999px; corner-shape: round;
   transition:
     background-color var(--ouro-duration-slow) ease,
     border-color var(--ouro-duration-slow) ease;

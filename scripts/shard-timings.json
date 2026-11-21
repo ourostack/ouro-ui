@@ -1011,6 +1011,7 @@
     "site/e2e/chapter-three.spec.ts": 354766,
     "site/e2e/chapter-two.spec.ts": 293770,
     "site/e2e/consistency.spec.ts": 214754,
+    "site/e2e/corners.spec.ts": 60000,
     "site/e2e/demos.spec.ts": 2427,
     "site/e2e/dive.spec.ts": 38630,
     "site/e2e/docs-page.spec.ts": 6706,

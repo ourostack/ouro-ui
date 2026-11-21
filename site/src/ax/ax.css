@@ -48,7 +48,7 @@
     content: "";
     width: 0.5rem;
     height: 0.5rem;
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     background: var(--ax-term-lit);
   }
   .ax-term-body {
@@ -322,7 +322,7 @@
     width: 1.5rem;
     height: 1.5rem;
     flex: none;
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     font-size: 0.875rem;
     font-weight: 600;
     line-height: 1;

@@ -155,7 +155,7 @@
     right: 0;
     bottom: calc(100% + 6px);
     padding: 2px 8px;
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     background: var(--background);
     color: var(--foreground);
     font-size: 0.75rem;
@@ -351,7 +351,7 @@
     max-width: 100%;
     padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     background: transparent;
     color: var(--foreground);
     font-size: 0.875rem;
@@ -410,7 +410,7 @@
   .reins-track {
     height: 0.75rem;
     overflow: hidden;
-    border-radius: 999px;
+    border-radius: 999px; corner-shape: round;
     background: color-mix(in oklab, var(--muted-foreground) 22%, transparent);
   }
   .reins-fill {
