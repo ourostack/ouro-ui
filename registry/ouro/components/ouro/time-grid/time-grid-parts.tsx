@@ -26,7 +26,7 @@ export interface TimeGridNavProps {
 }
 
 const chevron = (d: string) => (
-  <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-4 rtl:-scale-x-100">
+  <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-ouro-4 rtl:-scale-x-100">
     <path d={d} />
   </svg>
 );

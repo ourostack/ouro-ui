@@ -19,8 +19,8 @@ function shownCount(count: number): string {
  * @claim "It fills its container's" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail > fills its container's height and draws no surface of its own)
  */
 const railClass = {
-  labels: "box-border flex h-full w-17 shrink-0 flex-col py-2",
-  icons: "box-border flex h-full w-14 shrink-0 flex-col py-2",
+  labels: "box-border flex h-full w-ouro-17 shrink-0 flex-col py-2",
+  icons: "box-border flex h-full w-ouro-14 shrink-0 flex-col py-2",
 } as const;
 
 const headerClass = "flex shrink-0 items-center justify-center px-1 pb-2";
@@ -49,7 +49,7 @@ const itemClass = {
     "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] pointer-fine:hover:bg-[var(--ouro-rail-hover,var(--ouro-row-hover,var(--accent)))] pointer-fine:hover:text-[var(--ouro-rail-hover-foreground,var(--foreground))] data-selected:text-foreground " +
     "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:border forced-colors:border-solid",
   icons:
-    "press group/navigation-rail relative m-0 box-border flex min-h-11 w-full cursor-pointer flex-col items-center justify-center rounded-ouro-md border-0 bg-transparent p-0 " +
+    "press group/navigation-rail relative m-0 box-border flex min-h-ouro-11 w-full cursor-pointer flex-col items-center justify-center rounded-ouro-md border-0 bg-transparent p-0 " +
     "font-[inherit] no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
     // Stryker disable next-line StringLiteral: a class string in a class position; test/state-hovers.test.tsx reads its tokens, outside this file's tests
     "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] pointer-fine:hover:bg-[var(--ouro-rail-hover,var(--ouro-row-hover,var(--accent)))] pointer-fine:hover:text-[var(--ouro-rail-hover-foreground,var(--foreground))] data-selected:text-foreground " +
@@ -62,13 +62,13 @@ const itemClass = {
  * Under forced colours it keeps the highlight colour.
  */
 const indicatorClass =
-  "pointer-events-none absolute -start-1 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-primary opacity-0 scale-y-0 " +
+  "pointer-events-none absolute -start-1 top-1/2 h-ouro-5 w-[3px] -translate-y-1/2 rounded-full bg-primary opacity-0 scale-y-0 " +
   "transition-[scale,opacity] duration-(--ouro-duration-base) ease-(--ouro-ease-out) " +
   "group-data-selected/navigation-rail:opacity-100 group-data-selected/navigation-rail:scale-y-100 " +
   "motion-reduce:scale-y-100 motion-reduce:transition-opacity motion-reduce:duration-(--ouro-duration-fast) " +
   "forced-colors:bg-[Highlight] forced-colors:forced-color-adjust-none";
 
-const iconClass = "relative flex size-6 shrink-0 items-center justify-center group-data-selected/navigation-rail:text-primary [&>svg]:size-full";
+const iconClass = "relative flex size-ouro-6 shrink-0 items-center justify-center group-data-selected/navigation-rail:text-primary [&>svg]:size-full";
 
 /**
  * The label under the icon: two lines at most, broken between words (hyphenated where the
@@ -87,7 +87,7 @@ const labelClass = {
 
 /** The count on the icon's top end corner. */
 const countClass =
-  "absolute -end-2.5 -top-1.5 box-border h-4 min-w-4 rounded-full bg-destructive px-1 text-center text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums " +
+  "absolute -end-ouro-2_5 -top-ouro-1_5 box-border h-ouro-4 min-w-ouro-4 rounded-full bg-destructive px-1 text-center text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums " +
   "forced-colors:border forced-colors:border-solid forced-colors:leading-[0.875rem]";
 
 /**
@@ -99,5 +99,5 @@ const spokenCountClass = "text-[0px] leading-0";
 
 /** The count after a label in the More menu. */
 const menuCountClass =
-  "ms-auto box-border h-4 min-w-4 rounded-full bg-destructive px-1 text-center text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums " +
+  "ms-auto box-border h-ouro-4 min-w-ouro-4 rounded-full bg-destructive px-1 text-center text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums " +
   "forced-colors:border forced-colors:border-solid forced-colors:leading-[0.875rem]";
