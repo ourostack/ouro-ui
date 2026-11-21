@@ -610,11 +610,10 @@ const loadLayer = () =>
   (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => (loadedLayer = module.MessageBarLayer)));
 
 // The find layer and its marks, loaded with the first list that has `find`, so a list without it adds none of that code.
-type FindModule = { Layer: typeof MessageFindLayer; marks: string };
-let findPromise: Promise<FindModule> | undefined;
-let findLoaded: FindModule | undefined;
+let findPromise: Promise<typeof MessageFindLayer> | undefined;
+let findLoaded: typeof MessageFindLayer | undefined;
 const loadFind = () =>
-  (findPromise ??= import("@/registry/ouro/components/ouro/message/message-list-parts").then((module) => (findLoaded = { Layer: module.MessageFindLayer, marks: module.findMarks })));
+  (findPromise ??= import("@/registry/ouro/components/ouro/message/message-list-parts").then((module) => (findLoaded = module.MessageFindLayer)));
 
 /** A child's key, from `Children.toArray`, or null for one that is not an element. */
 function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): Key | null {
@@ -1224,11 +1223,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   // Find: loaded with the first list that has `find`; its layer counts the matches and draws them.
   const hasFind = find !== undefined;
-  const [findModule, setFindModule] = useState<FindModule | undefined>(() => findLoaded);
+  const [findModule, setFindModule] = useState<typeof MessageFindLayer | undefined>(() => findLoaded);
+  const [findMarks, setFindMarks] = useState<string>();
   useEffect(() => {
-    if (hasFind && !findModule) void loadFind().then(setFindModule);
+    if (hasFind && !findModule) void loadFind().then((layer) => setFindModule(() => layer));
   }, [hasFind, findModule]);
-  const FindLayer = hasFind ? findModule?.Layer : undefined;
+  const FindLayer = hasFind ? findModule : undefined;
 
   // The window: which children draw, and the space kept for the others. Each child sits in a slot of its own that draws
   // no box, so the list's spacing and the continued messages' margins work as without one.
@@ -2823,7 +2823,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   };
 
   return (
-    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", hasFind && findModule?.marks, className)}>
+    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", hasFind && findMarks, className)}>
       {/* Holds the scroller and its focus ring, drawn over it, so content that sticks to an edge never covers the ring. */}
       <div className="relative flex min-h-0 flex-1 flex-col">
         {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. Positioned, so
@@ -2895,7 +2895,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           </button>
         </div>
       )}
-      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} /> : null}
+      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} /> : null}
     </div>
   );
 }

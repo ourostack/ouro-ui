@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList, type MessageListFind, type MessageListFindReport } from "@/registry/ouro/components/ouro/message/message-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -8,6 +8,9 @@ import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
+
+// The find layer loads on demand; having it loaded keeps its arrival inside the act that renders the list.
+beforeAll(() => import("@/registry/ouro/components/ouro/message/message-list-parts"));
 
 afterEach(async () => {
   for (const root of roots.splice(0)) await act(async () => root.unmount());

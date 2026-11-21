@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import type { Children, RefObject } from "react";
 import type { MessageListFind, MessageListFindReport } from "@/registry/ouro/components/ouro/message/message-list";
 import { findInMessages, locateMatch, messageText } from "@/registry/ouro/lib/ouro/find-messages";
 import { useFindHighlights } from "@/registry/ouro/lib/ouro/use-find-highlights";
 import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 
-export { MessageFindLayer, findMarks };
+export { MessageFindLayer };
 
 /**
  * How matches are drawn, by the highlight names `ouro-find` and `ouro-find-current`: the theme's primary, tinted for the others and solid
@@ -36,6 +36,7 @@ function MessageFindLayer({
   content,
   slot,
   onFindMatches,
+  onMarks,
 }: {
   all: ReturnType<typeof Children.toArray>;
   keys: string[];
@@ -45,7 +46,9 @@ function MessageFindLayer({
   content: RefObject<HTMLElement | null>;
   slot: string;
   onFindMatches: ((report: MessageListFindReport) => void) | undefined;
+  onMarks: (marks: string) => void;
 }): null {
+  useLayoutEffect(() => onMarks(findMarks), [onMarks]);
   const reduced = useReducedMotion();
   const { query, fold, locale } = find;
   const found = useMemo(
