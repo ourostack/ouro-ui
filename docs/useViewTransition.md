@@ -31,7 +31,7 @@ await run(() => navigate("/recipes/42"));
 
 Only the element that moves between views (the opened row's avatar or title) takes a `view-transition-name`, since a name repeated across rows makes the browser skip the transition. Keep a transition short, because a press during one lands on its overlay.
 
-Ouro UI takes no router, so you give `run` the swap: a router's `navigate`, or a state update, which `run` flushes inside the transition. Where a router has its own `viewTransition` prop, pass it `enabled`. The browser runs the back and forward buttons' swap itself, so only navigations you start go through `run`. Import it only where a navigation needs it.
+Ouro UI takes no router, so you give `run` the swap: a state update, which `run` flushes inside the transition, or a router's `navigate` whose promise settles once the new view has rendered. Where a router has its own `viewTransition` prop, pass it `enabled`. The browser runs the back and forward buttons' swap itself, so only navigations you start go through `run`. Import it only where a navigation needs it.
 
 Use it instead of calling `document.startViewTransition` yourself, which ignores `<OuroProvider motion>` and the device's reduced-motion setting.
 

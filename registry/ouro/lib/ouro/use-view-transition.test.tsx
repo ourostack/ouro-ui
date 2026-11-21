@@ -166,6 +166,17 @@ describe("useViewTransition", () => {
     ).rejects.toThrow("no route");
   });
 
+  it("reports a swap's failure as a rejection where there is no transition, as it does with one", async () => {
+    setStart(undefined);
+    let run!: (swap: ViewSwap) => Promise<void>;
+    await mount(<App onRun={(r) => (run = r)} />);
+    let rejected = "";
+    await run(() => {
+      throw new Error("no route");
+    }).catch((error: Error) => (rejected = error.message));
+    expect(rejected).toBe("no route");
+  });
+
   it("swaps at once, with no transition, where the browser has none or motion is reduced", async () => {
     const start = vi.fn();
     let enabled = true;

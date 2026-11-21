@@ -28,8 +28,9 @@ type StartViewTransition = (update: () => void | Promise<void>) => { updateCallb
  * `view-transition-name`, since a name repeated across rows makes the browser skip the transition.
  * Keep a transition short, because a press during one lands on its overlay.
  *
- * Ouro UI takes no router, so you give `run` the swap: a router's `navigate`, or a state update,
- * which `run` flushes inside the transition. Where a router has its own `viewTransition` prop,
+ * Ouro UI takes no router, so you give `run` the swap: a state update, which `run` flushes
+ * inside the transition, or a router's `navigate` whose promise settles once the new view has rendered.
+ * Where a router has its own `viewTransition` prop,
  * pass it `enabled`. The browser runs the back and forward buttons' swap itself, so only
  * navigations you start go through `run`. Import it only where a navigation needs it.
  *
@@ -61,7 +62,7 @@ export function useViewTransition(): ViewTransitionControls {
   const run = useCallback(
     (swap: ViewSwap): Promise<void> => {
       const start = (document as Document & { startViewTransition?: StartViewTransition }).startViewTransition;
-      if (reduced || typeof start !== "function") return Promise.resolve(swap());
+      if (reduced || typeof start !== "function") return new Promise<void>((resolve) => resolve(swap()));
       const transition = start.call(document, () => {
         let result: void | Promise<void> = undefined;
         flushSync(() => {
