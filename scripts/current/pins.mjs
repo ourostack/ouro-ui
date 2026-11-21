@@ -291,6 +291,33 @@ const list = (paths) => paths.map((path) => `\`${path}\``).join(", ");
 /** Paths in code spans, the last after "and". */
 const listAnd = (paths) => (paths.length > 1 ? `${list(paths.slice(0, -1))} and \`${paths.at(-1)}\`` : list(paths));
 
+/** Files that can name another by its path and break without it: code, scripts, workflows, config and stylesheets. */
+const NAMING = /\.(?:[cm]?[jt]sx?|json|ya?ml|sh|css|scss|toml|html|vue|svelte|astro)$|(^|\/)(?:Makefile|Dockerfile)$/;
+
+/**
+ * Each of `paths` that a file of the repository names, with the `file:line` of each line that does, by its path from the
+ * root or from the naming file's folder. What the update itself writes or the record lists (`skip`), lock files, and
+ * prose are not read: a changelog that mentions a file does not use it.
+ */
+function namedAt(consumer, paths, skip) {
+  if (paths.length === 0) return [];
+  const hits = new Map(paths.map((path) => [path, []]));
+  for (const [file, bytes] of consumer) {
+    if (skip.has(file) || hits.has(file) || !NAMING.test(file) || /(^|\/)node_modules\/|(^|[-.])lock\.(?:json|ya?ml)$|\.lock$/.test(file) || bytes.includes(0)) continue;
+    const lines = bytes.toString("utf8").split("\n");
+    for (const path of paths) {
+      const forms = [...new Set([path, posix.relative(posix.dirname(file), path)])].map(escapeRe).join("|");
+      const re = new RegExp(String.raw`(^|[^\w./-])(?:\.\/)?(?:${forms})(?![\w/-]|\.\w)`);
+      lines.forEach((line, index) => {
+        if (re.test(line)) hits.get(path).push({ file, line: index + 1 });
+      });
+    }
+  }
+  return [...hits]
+    .filter(([, at]) => at.length)
+    .map(([path, at]) => ({ path, at: at.sort((a, b) => (a.file === b.file ? a.line - b.line : a.file < b.file ? -1 : 1)).map(({ file, line }) => `${file}:${line}`) }));
+}
+
 /** A path in a script, where it stands as a word: `src/lib/x.ts`, or `./src/lib/x.ts` after a space or a quote. */
 const scriptPath = (path) => new RegExp(String.raw`(^|[\s"'=(])((?:\.\/)?)${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\w-]|\.\w)`, "g");
 
@@ -781,6 +808,14 @@ async function updateHxInstalled(pin, text, release, ctx) {
   });
   const refs = rewriteReferences(consumer, moves, { skip, app: [...new Set(appFolders)], ouro: [...new Set(ouroFolders)], packageDir: found?.dir ?? "", installed });
   Object.assign(out, refs.files);
+  // A file the release no longer ships that the repository's code, scripts, workflows or config still name stays, with
+  // each line that names it listed: deleting it would break them, as a build that copies it by path (factory's site).
+  const stillNamed = namedAt(consumer, dropped, skip);
+  for (const { path } of stillNamed) {
+    delete out[path];
+    hashes[path] = record.files[path];
+    dropped.splice(dropped.indexOf(path), 1);
+  }
   // An import of a renamed AX file by its `#ouro-ax/` name follows it too; a relative one is a path, which the above followed.
   const renamed = moves.filter((move) => MOVED_SOURCES[move.source]);
   if (renamed.length) {
@@ -822,6 +857,7 @@ async function updateHxInstalled(pin, text, release, ctx) {
   for (const { from, to } of blocked) notes.push(`Leaves \`${from}\` where it is, because \`${to}\` already exists in the app and is not replaced.`);
   if (gone.length) notes.push(`Keeps what the registry no longer has: ${list(gone)}.`);
   if (dropped.length) notes.push(`Deletes what the release no longer ships: ${list(dropped)}.`);
+  for (const { path, at } of stillNamed) notes.push(`Keeps \`${path}\`, which the release no longer ships, because ${listAnd(at)} still ${one(at, "names", "name")} it. Change ${one(at, "that line", "those lines")}, and the next update deletes it.`);
   // The rules this release adds, whether or not the app vendors Ouro check: a live-checked app gates on them (live.mjs).
   const brought = newCheckRules(previous, next, record.tag, release);
   // A repository that vendors Ouro check lists them in its pull request, and is told when it cannot read them.

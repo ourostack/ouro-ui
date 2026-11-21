@@ -708,6 +708,31 @@ test("a renamed file's old copy goes even when the release ships another file of
   assert.equal(update.files["lib/ouro/ax/claims.ts"], null);
 });
 
+test("an install record keeps a file the release no longer ships while the repository still names it, and lists each line that does", async () => {
+  // As factory's site build: a workflow step and a script copy the vendored stylesheet by its path.
+  const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
+  const registry = (...names) => JSON.stringify({ items: [{ name: "theme", files: names.map((name) => ({ path: `registry/ouro/theme/${name}`, target: `@lib/ouro/theme/${name}` })) }] });
+  const previous = files({ "registry.json": registry("ouro-kept.css", "ouro-old.css", "ouro-free.css"), "registry/ouro/theme/ouro-kept.css": "kept v1\n", "registry/ouro/theme/ouro-old.css": "old v1\n", "registry/ouro/theme/ouro-free.css": "free v1\n" });
+  const next = files({ "registry.json": registry("ouro-kept.css"), "registry/ouro/theme/ouro-kept.css": "kept v2\n" });
+  const record = { tag: "v1.3.242", tagCommit: "old", files: { "lib/ouro/theme/ouro-kept.css": sha256("kept v1\n"), "lib/ouro/theme/ouro-old.css": sha256("old v1\n"), "lib/ouro/theme/ouro-free.css": sha256("free v1\n") } };
+  const consumer = files({
+    "package.json": JSON.stringify({ name: "site", type: "module" }),
+    "lib/ouro/theme/ouro-kept.css": "kept v1\n",
+    "lib/ouro/theme/ouro-old.css": "old v1\n",
+    "lib/ouro/theme/ouro-free.css": "free v1\n",
+    ".github/workflows/site.yml": "jobs:\n  build:\n    steps:\n      - run: cp lib/ouro/theme/ouro-old.css site/dist/\n",
+    ".github/scripts/build-site.mjs": 'import { cpSync } from "node:fs";\ncpSync("lib/ouro/theme/ouro-old.css", "site/dist/ouro-old.css");\n',
+    "CHANGELOG.md": "Prose may mention lib/ouro/theme/ouro-free.css without holding it.\n",
+  });
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, { tarball: async (follows, tag) => (tag === "v1.3.242" ? previous : next), consumerFiles: async () => consumer });
+  assert.equal("lib/ouro/theme/ouro-old.css" in update.files, false, "a file the repository still names stays");
+  assert.ok(Object.keys(JSON.parse(update.files[pin.file]).files).includes("lib/ouro/theme/ouro-old.css"), "and stays in the record");
+  assert.equal(update.files["lib/ouro/theme/ouro-free.css"], null, "a file only prose names goes");
+  assert.ok(update.notes.includes("Keeps `lib/ouro/theme/ouro-old.css`, which the release no longer ships, because `.github/scripts/build-site.mjs:2` and `.github/workflows/site.yml:4` still name it. Change those lines, and the next update deletes it."));
+  assert.deepEqual(update.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+});
+
 test("an install record keeps a file the release no longer ships when it was edited here", async () => {
   const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
   const registry = (...names) => JSON.stringify({ items: [{ name: "ax-command", files: names.map((name) => ({ path: `registry/ouro/ax/${name}`, target: `@lib/ouro/ax/${name}` })) }] });
