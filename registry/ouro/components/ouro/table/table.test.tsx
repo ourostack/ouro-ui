@@ -875,6 +875,28 @@ describe("Table parts", () => {
     expect(warn).toHaveBeenCalledWith('[ouro-ui] TableRoot: caption is required; it names the table. Fix: <TableRoot caption="Pantry">, with hideCaption when a heading already shows it.');
   });
 
+  it("leaves a link of the app's own in the row header unwrapped, so no link nests in another and the server HTML parses to the client's", () => {
+    const node = (
+      <Table caption="Pantry">
+        <TableBody>
+          <TableRow href="#flour">
+            <TableCell rowHeader>
+              <a href="#own">Flour</a>
+            </TableCell>
+            <TableCell>
+              <span data-kind="said">Pain</span>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(node);
+    expect(host.querySelectorAll("a")).toHaveLength(1);
+    expect(host.querySelector("th a")!.getAttribute("href")).toBe("#own");
+    expect(host.querySelector("td span[data-kind]")!.textContent).toBe("Pain");
+  });
+
   it("warns when the row link would hold a control, or has no text to name it", async () => {
     await render(
       <Table caption="Pantry">
