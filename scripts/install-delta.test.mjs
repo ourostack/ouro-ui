@@ -31,7 +31,7 @@ test("the install delta adds only the changed items the shipped tests install", 
   const before = manifestOf(base());
   const now = base();
   now["button-tests"] = item("bt2", ["button.test.tsx"], ["button"]);
-  assert.deepEqual(plan(now, before), { mode: "incremental", items: ["button-tests"], remove: [] });
+  assert.deepEqual(plan(now, before), { mode: "incremental", items: ["button-tests"], remove: ["button.test.tsx"] });
   assert.deepEqual(plan(base(), before), { mode: "incremental", items: [], remove: [] });
   const outside = base();
   outside.extra = item("e2", ["extra.tsx"]);
@@ -56,11 +56,23 @@ test("the install delta result equals a full add when items are changed, added, 
   const swapped = base();
   swapped["button-tests"] = item("bt6", ["other.test.tsx"], ["button"]);
   for (const now of [grown, gained, added, removed, moved, shrunk, swapped]) assert.deepEqual(applyDelta(before, now), fullAdd(now));
-  assert.deepEqual(plan(moved, manifestOf(before)).remove, ["button.tsx"]);
+  assert.deepEqual(plan(moved, manifestOf(before)).remove, ["button.tsx", "ui/button.tsx"]);
   assert.deepEqual(plan(removed, manifestOf(before)).remove, ["button.test.tsx"]);
   const shared = base();
   shared["button-tests"] = item("bt7", ["button.tsx"], ["button"]);
-  assert.deepEqual(plan(shared, manifestOf(before)).remove, ["button.test.tsx"]);
+  assert.deepEqual(plan(shared, manifestOf(before)).remove, ["button.test.tsx", "button.tsx"]);
+});
+
+test("the install delta deletes the files of each item it adds again, before and after the change, and leaves its dependencies' files", () => {
+  // shadcn resolves an import wrongly when it updates a file in place, so every file an item added again writes is created anew (#2757).
+  const before = base();
+  const now = base();
+  now["button-tests"] = item("bt8", ["button.test.tsx", "button.touch.test.tsx"], ["button", "extra"]);
+  now["ouro-tests"] = item("t", ["t.ts"], ["button", "button-tests", "extra"]);
+  before.extra = item("e1", ["extra.tsx"]);
+  const result = plan(now, manifestOf(before));
+  assert.deepEqual(result, { mode: "incremental", items: ["button-tests", "extra"], remove: ["button.test.tsx", "button.touch.test.tsx", "extra.tsx"] });
+  assert.equal(result.remove.includes("button.tsx"), false);
 });
 
 test("the install delta adds everything when a theme item changed, since only the base writes the app's stylesheet", () => {
@@ -99,7 +111,7 @@ test("the install delta adds everything when the app cannot be proved to match a
 test("app paths come from the app's own aliases, and a path they do not cover stops the removal", () => {
   const ts = { "~/*": ["./src/*"] };
   const aliases = { components: "~/components", lib: "~/lib" };
-  assert.equal(appPath("~/e2e/ouro/a.spec.ts", aliases, ts), "src/e2e/ouro/a.spec.ts");
+  assert.equal(appPath("~/e2e/ouro/a.spec.ts", aliases, ts), "e2e/ouro/a.spec.ts");
   assert.equal(appPath("@components/ouro/a/a.tsx", aliases, ts), "src/components/ouro/a/a.tsx");
   assert.equal(appPath("@lib/ouro/x.ts", aliases, ts), "src/lib/ouro/x.ts");
   assert.equal(appPath("@lib/ouro/x.ts", {}, ts), null);

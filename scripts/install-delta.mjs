@@ -56,7 +56,8 @@ export function closure(items, root) {
 const targetsOf = (entries, names) => new Set([...names].flatMap((name) => entries[name]?.paths ?? []));
 
 // The app holds what a full add of the built items would write when the files the new closure no longer
-// writes are removed and the items that are new, changed or newly in the closure are added again. Anything
+// writes, and those of the items added again, are removed and the items that are new, changed or newly in
+// the closure are added again. Anything
 // that cannot be proved so (a package an item stopped needing, a manifest that predates the package list,
 // a changed root, a changed theme item) plans a full add.
 export function plan(items, manifest, root = "ouro-tests") {
@@ -75,7 +76,12 @@ export function plan(items, manifest, root = "ouro-tests") {
   if (restyled) return full(`${restyled} changed the app's stylesheet, which only the base adds`);
   const add = [...installed].filter((name) => name !== root && (!oldClosure.has(name) || before[name].hash !== items[name].hash || before[name].paths.join() !== items[name].paths.join() || before[name].dependencies.join() !== items[name].dependencies.join()));
   const kept = targetsOf(items, installed);
-  const remove = [...targetsOf(before, oldClosure)].filter((target) => !kept.has(target)).sort();
+  const stale = [...targetsOf(before, oldClosure)].filter((target) => !kept.has(target));
+  // The files of an item added again go too, so the add creates them as a full add does: shadcn 4.21.1 resolves an import
+  // by file name against the files the add itself writes when it updates a file in place, so an AX import a test names as
+  // `command.ts` became Command's `command.tsx` once both were added again together (#2757).
+  const rewritten = [...targetsOf(before, add.filter((name) => oldClosure.has(name))), ...targetsOf(items, add)];
+  const remove = [...new Set([...stale, ...rewritten])].sort();
   const packagesNow = new Set([...installed].flatMap((name) => items[name].packages));
   const lost = [...oldClosure].flatMap((name) => before[name].packages).find((pkg) => !packagesNow.has(pkg));
   if (lost) return full(`${lost} is no longer needed by an item the shipped tests install`);
@@ -87,7 +93,8 @@ export function manifestOf(items) {
 }
 
 // Where an item's target lands in an app: shadcn's aliases (@components, @lib) come from components.json and
-// the app's import alias from its tsconfig; "~" is the app's root. Null when the app does not say.
+// the app's import alias from its tsconfig; a "~/" target is under the app's root, where shadcn writes it, whatever
+// the tsconfig maps "~/*" to. Null when the app does not say.
 export function appPath(target, aliases, tsPaths) {
   const [head, ...rest] = target.split("/");
   const fromAlias = (alias) => {
@@ -97,7 +104,7 @@ export function appPath(target, aliases, tsPaths) {
     }
     return null;
   };
-  if (head === "~") return fromAlias(target);
+  if (head === "~") return join(...rest);
   const key = { "@components": "components", "@lib": "lib" }[head];
   const base = key && aliases[key] ? fromAlias(aliases[key]) : null;
   return base === null ? null : join(base, ...rest);

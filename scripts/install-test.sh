@@ -725,7 +725,8 @@ if [ -n "${OURO_DELTA:-}" ] && [ -f "$app/.ouro-added.json" ]; then
   delta_mode=$(node -e 'console.log(JSON.parse(process.argv[1]).mode)' "$delta_plan")
   if [ "$delta_mode" = incremental ]; then
     mapfile -t test_items < <(node -e 'for (const item of JSON.parse(process.argv[1]).items) console.log(process.argv[2] + "/" + item + ".json")' "$delta_plan" "$registry/r")
-    # Files an item stopped writing (a removed or moved item) go before the add, as a full add would not have them.
+    # Files an item stopped writing (a removed or moved item) go before the add, as a full add would not have them, and so do
+    # the files of each item added again, so the add creates them: shadcn resolves an import wrongly when it updates a file (#2757).
     if ! node -e 'console.log(JSON.stringify(JSON.parse(process.argv[1]).remove))' "$delta_plan" | node "$root/scripts/install-delta.mjs" remove "$registry/r" "$app"; then
       echo "Install delta: a removed file does not map to the app; adding everything"
       delta_mode=full
