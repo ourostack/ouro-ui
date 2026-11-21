@@ -89,8 +89,8 @@
   },
   "android": {
     "repo": "ourostack/ouro-ui-android",
-    "tag": "v0.11.0",
-    "commit": "2f1f3ce2fd3497a0bb91a99be65ef4b8ffd07ed1",
+    "tag": "v0.12.0",
+    "commit": "f27522bb0dc12193f1051e1a31f3b94e7efa16fc",
     "components": [
       {
         "name": "OuroBadge",
@@ -187,6 +187,10 @@
       {
         "name": "OuroTabBar",
         "web": "tab-bar"
+      },
+      {
+        "name": "OuroTable",
+        "web": "table"
       },
       {
         "name": "OuroTabs",

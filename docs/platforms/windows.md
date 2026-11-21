@@ -28,6 +28,7 @@ An unpackaged app also needs `<EnableMsixTooling>true</EnableMsixTooling>` in it
 ## What is still missing
 
 - **Components.** [The parity matrix](parity.md) lists which of web's components this kit has. Core's decision record plans v0.1.0 as the components Apple shipped first, and the rest have no Windows version yet.[^decision]
+- **Table's linked rows.** A `rowHref` row is one press instead of a link, and CI reads the table through UI Automation on Windows Server, so Narrator on a client is unchecked. Tracked in [ourostack/ouro-ui-windows#79](https://github.com/ourostack/ouro-ui-windows/issues/79).
 - **A client machine.** The free runner is Windows Server, and it lacks an App Actions runtime, an On-device Agent Registry and Mica. CI proves the package registers both agent doors and that they behave, but not that Windows lists them to agents.[^release]
 - **The person check.** Requiring Windows Hello before a person-only action is built and off by default. Whether to turn it on is Ari's decision, and [the person-check note](https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/docs/person-check.md) sets out the question.[^person]
 - **Contrast themes.** Under a contrast theme the controls draw the person's system colours, so status tones look alike, and their meaning must also be in words.[^readme]

@@ -8,13 +8,13 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 | | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| Kit | this repository | [ourostack/ouro-ui-apple v1.4.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.4.0") | [ourostack/ouro-ui-android v0.11.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.11.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.11.0") | [ourostack/ouro-ui-windows v0.10.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.10.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.10.0") |
+| Kit | this repository | [ourostack/ouro-ui-apple v1.4.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.4.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.4.0") | [ourostack/ouro-ui-android v0.12.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.12.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.12.0") | [ourostack/ouro-ui-windows v0.10.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.10.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.10.0") |
 
-Components: Web has 132 of 135, Apple has 20 of 135, Android has 26 of 135, Windows has 30 of 135.[^matrix]
+Components: Web has 132 of 135, Apple has 20 of 135, Android has 27 of 135, Windows has 30 of 135.[^matrix]
 
 Claims covered: Web 7 of 13, Apple 13 of 13, Android 7 of 13, Windows 7 of 13.[^matrix]
 
-Gap cells: 350.[^matrix]
+Gap cells: 349.[^matrix]
 
 ### Components
 
@@ -77,7 +77,7 @@ Gap cells: 350.[^matrix]
 | [breadcrumb](https://ui.ouroboros.bot/docs/breadcrumb/) | `breadcrumb` | Not yet | Not yet | Not yet |
 | [pagination](https://ui.ouroboros.bot/docs/pagination/) | `pagination` | Not yet | Not yet | Not yet |
 | [navigation-menu](https://ui.ouroboros.bot/docs/navigation-menu/) | `navigation-menu` | Not yet | Not yet | Not yet |
-| [table](https://ui.ouroboros.bot/docs/table/) | `table` | Not yet | Not yet | `OuroTable` |
+| [table](https://ui.ouroboros.bot/docs/table/) | `table` | Not yet | `OuroTable` | `OuroTable` |
 | [description-list](https://ui.ouroboros.bot/docs/description-list/) | `description-list` | `OuroDescriptionList` | `OuroDescriptionList` | `OuroDescriptionList` |
 | [toggle](https://ui.ouroboros.bot/docs/toggle/) | `toggle` | Not yet | Not yet | Not yet |
 | [toggle-group](https://ui.ouroboros.bot/docs/toggle-group/) | `toggle-group` | Not yet | Not yet | Not yet |
