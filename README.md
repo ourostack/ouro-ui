@@ -640,6 +640,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-ouro`,
 `lib-use-person`,
 `lib-use-platform`,
+`lib-use-prefetch-intent`,
 `lib-use-reduced-motion`,
 `lib-use-sheet-presentation`,
 `lib-use-timer`,
@@ -848,6 +849,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **StackedLayout** — The shell of an app with a `Navbar`: the bar across the top, in view while the page scrolls, an optional `toolbar` under it for the page's own tools, and the page below them in a centered column. [Docs](docs/StackedLayout.md)
 - **TabBar** — The bar of tabs at the bottom of a phone screen: two to five of the app's top-level pages, each an icon over a short label, with the current page marked `aria-current="page"` and an accent wash. [Docs](docs/TabBar.md)
 - **Tabs** — Tabs that switch between panels in place: an accessible tab list with roving focus, arrow-key navigation, a line that slides to the selected tab, and 44px tabs on touch screens. [Docs](docs/Tabs.md)
+- **usePrefetchIntent** — Calls the app's `prefetch(key)` when a person shows intent to open something: a mouse or pen resting on it, keyboard focus, or a touch beginning. [Docs](docs/usePrefetchIntent.md)
 
 ### Data
 
