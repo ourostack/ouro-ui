@@ -952,3 +952,13 @@ describe("Composer rich mode highlights", () => {
     expect(box.bottom).toBeLessThan(item.bottom + 2);
   });
 });
+
+describe("Composer rich mode Escape", () => {
+  it("keeps focus in the editor when Escape closes nothing", async () => {
+    const { editor } = await render(rich({ defaultValue: "hi" }));
+    await act(async () => editor.focus());
+    expect(document.activeElement).toBe(editor);
+    await userEvent.keyboard("{Escape}");
+    expect(document.activeElement).toBe(editor);
+  });
+});
