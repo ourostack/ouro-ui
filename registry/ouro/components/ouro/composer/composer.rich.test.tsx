@@ -636,6 +636,16 @@ describe("Composer rich mode with a catalogue", () => {
     expect(field(editor).value).toBe("hi :nope: :party:");
   });
 
+  it("keeps a half-formed token as text, and draws it once its colon closes it", async () => {
+    const { editor } = await render(withCatalogue());
+    editor.focus();
+    await userEvent.keyboard("party: :party");
+    expect(pictures(editor)).toEqual([]);
+    await userEvent.keyboard(":");
+    await expect.poll(() => pictures(editor).length).toBe(1);
+    expect(field(editor).value).toBe("party: :party:");
+  });
+
   it("leaves a typed token the catalogue does not list as text", async () => {
     const { editor } = await render(withCatalogue());
     editor.focus();
