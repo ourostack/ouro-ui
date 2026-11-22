@@ -16,7 +16,7 @@ test("the theme picker's popover opens from the chosen wordmark and closes on Es
   await page.evaluate(() => localStorage.removeItem("ouro-theme-picker-story"));
   const trigger = page.getByRole("button", { name: /Theme: Ledger/ });
   await trigger.click();
-  const chart = page.getByRole("button", { name: "Chart" });
+  const chart = page.getByRole("button", { name: "Chart", exact: true });
   await expect(chart).toBeVisible();
   await chart.click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "chart");
