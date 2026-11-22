@@ -228,12 +228,34 @@ export function currentInstall(root = repo): Install {
 
 const id = "virtual:site-proof";
 
-/** Serves `virtual:site-proof`, the proof computed from the repository (`root`) when the site builds. */
-export function proofPlugin(root = repo): { name: string; resolveId: (source: string) => string | undefined; load: (source: string) => string | undefined } {
+/**
+ * Serves `virtual:site-proof`, the proof computed from the repository (`root`) when the site builds. It is computed in
+ * `buildStart`, when Vite starts, and not in `load`: the work is synchronous, with up to 46 s of waits for the release
+ * tag's fetch, and Vite's module runner gives a module 60 s from its request (ourostack/ouro-ui#2469), a request that
+ * also waits behind everything else the loaded runner is doing. `load` serves what `buildStart` computed, or the error.
+ */
+export function proofPlugin(root = repo): { name: string; buildStart: () => void; resolveId: (source: string) => string | undefined; load: (source: string) => string | undefined } {
+  let computed: { text: string } | { error: unknown } | undefined;
+  const compute = () => {
+    if (!computed) {
+      try {
+        computed = { text: `export default ${JSON.stringify(currentProof(root))};\nexport const install = ${JSON.stringify(currentInstall(root))};` };
+      } catch (error) {
+        computed = { error };
+      }
+    }
+    return computed;
+  };
   return {
     name: "site-proof",
+    buildStart: () => void compute(),
     resolveId: (source) => (source === id ? `\0${id}` : undefined),
-    load: (source) => (source === `\0${id}` ? `export default ${JSON.stringify(currentProof(root))};\nexport const install = ${JSON.stringify(currentInstall(root))};` : undefined),
+    load: (source) => {
+      if (source !== `\0${id}`) return undefined;
+      const result = compute();
+      if ("error" in result) throw result.error;
+      return result.text;
+    },
   };
 }
 

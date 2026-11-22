@@ -519,6 +519,17 @@ describe("docs", () => {
     expect(nightPhone.srcset).toContain("phone/ouro-ui-core-dark-768.");
   });
 
+  it("on a phone, the home page's hand-off sits above the scene, with its Copy button on the first screen", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/");
+    const hero = document.querySelector<HTMLElement>(".site-voyage-hero")!;
+    const more = hero.querySelector<HTMLElement>('[data-slot="more"]')!;
+    const media = hero.querySelector<HTMLElement>('[data-slot="media"]')!;
+    await expect.poll(() => more.getBoundingClientRect().bottom).toBeLessThanOrEqual(844);
+    expect(more.getBoundingClientRect().bottom).toBeLessThanOrEqual(media.getBoundingClientRect().top);
+    expect(getComputedStyle(hero.querySelector("h1")!).fontSize).toBe("32px");
+  });
+
   it("on a phone, the menu's search says what another kit's name is called here", async () => {
     await page.viewport(390, 844);
     await renderPage("/docs/button/");
@@ -797,6 +808,33 @@ describe("docs", () => {
       expect(line?.textContent, name).toBe(`Try it: ${tries[name]}`);
       expect(line?.textContent, name).toContain(words);
     }
+  });
+
+  it("makes a row of looks one Tab stop, moves between them with the arrow keys, and rings focus as it rings the chosen look", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/button/");
+    const looks = page.getByRole("group", { name: "Try a look" });
+    await expect.element(looks).toBeVisible();
+    const dots = looks.getByRole("button").elements() as HTMLElement[];
+    expect(dots.filter((dot) => dot.tabIndex === 0)).toHaveLength(1);
+    const stop = dots.find((dot) => dot.tabIndex === 0)!;
+    stop.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(dots[(dots.indexOf(stop) + 1) % dots.length]);
+    await userEvent.keyboard("{End}");
+    expect(document.activeElement).toBe(dots.at(-1));
+    await userEvent.keyboard("{Home}{ArrowLeft}");
+    expect(document.activeElement).toBe(dots.at(-1));
+    const ring = (dot: HTMLElement) => {
+      const swatch = getComputedStyle(dot.querySelector("[data-theme]")!);
+      return [swatch.outlineWidth, swatch.outlineOffset];
+    };
+    const chosen = dots.find((dot) => dot.getAttribute("aria-pressed") === "true")!;
+    const chosenRing = ring(chosen);
+    chosen.focus();
+    await userEvent.keyboard("{ArrowRight}{ArrowLeft}");
+    expect(getComputedStyle(chosen).outlineStyle).toBe("none");
+    expect(ring(chosen)).toEqual([chosenRing[0], "3px"]);
   });
 
   it("repaints the page, demo and all, from a look under the demo, and keeps its room so nothing moves", async () => {
@@ -1276,6 +1314,11 @@ describe("guides and exports without an item", () => {
     // A source names its test or file as written, which may hold words the text rules look for.
     expect(first.getAttribute("data-ouro-allow")).toBe("leaked-value odd-timestamp");
     expect(first.href).toMatch(/^https:\/\/github\.com\/ourostack\/ouro-ui\/blob\/main\//);
+    // The checks sit behind a "Checks" summary, so a source reads as a link, not as machine text.
+    const checks = sources.querySelector("li details")!;
+    expect(checks.querySelector("summary")!.textContent).toBe("Checks");
+    expect(checks.hasAttribute("open")).toBe(false);
+    expect([...sources.querySelectorAll("code")].filter((code) => code.textContent!.startsWith("verify:") && !code.closest("details"))).toHaveLength(0);
     const ref = document.querySelector<HTMLAnchorElement>("sup a[href^='#source-']")!;
     expect(document.getElementById(ref.getAttribute("href")!.slice(1))).not.toBeNull();
   });

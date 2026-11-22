@@ -1,0 +1,1 @@
+- Fixed: the X-ray no longer reads a CLI's own subcommand named like a developer tool, such as its own git command, as a developer command.

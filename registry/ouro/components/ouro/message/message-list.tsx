@@ -3,6 +3,7 @@
 import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
+import type { MessageFindLayer } from "@/registry/ouro/components/ouro/message/message-list-parts";
 import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -12,9 +13,37 @@ import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
+import type { FindFold } from "@/registry/ouro/lib/ouro/find-text";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
 import { useOuro, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
+
+/**
+ * What a MessageList finds, and which match is the current one.
+ *
+ * @example
+ * <MessageList label="Chat" find={{ query: "lunch", current: 0 }}>{messages}</MessageList>
+ */
+export interface MessageListFind {
+  /** The text to look for. Nothing is found while it is empty. */
+  query: string;
+  /** What the match ignores: `"none"`, `"case"`, `"accents"` or `"all"`. @default "all" */
+  fold?: FindFold | undefined;
+  /** A language tag for case, such as `"tr"`, where `I` and `i` are different letters from the dotted İ and dotless ı. */
+  locale?: string | undefined;
+  /** Which match is the current one, counted through the whole list, oldest first, from the first. It wraps round past either end. @default 0 */
+  current?: number | undefined;
+}
+
+/** What a MessageList says about its find: how many matches there are, which is current, and whether more may lie in history not loaded yet. */
+export interface MessageListFindReport {
+  /** How many matches the messages in the list hold. */
+  count: number;
+  /** The index of the current match, or null when there is nothing to point at. */
+  current: number | null;
+  /** True while older messages may still load (`hasOlder`), so a match may lie above the ones counted. */
+  partial: boolean;
+}
 
 /** The props MessageList adds to the `<div>` attributes it passes through. */
 export interface MessageListOwnProps {
@@ -206,6 +235,19 @@ export interface MessageListOwnProps {
    * follows new messages again. See {@link MessageListActions}.
    */
   actionsRef?: Ref<MessageListActions> | undefined;
+  /**
+   * Finds `find.query` in the messages and marks the matches in the text drawn, the current one in a stronger colour. It
+   * reads the text the children hold (strings, through elements, and a post's `subject`), so a message the window has not
+   * drawn counts as well as one that is. Highlights are the CSS Custom Highlight API's, so the text stays as it is and links
+   * keep working; where the browser lacks the API matches are counted but not drawn. Their colours follow the theme, in
+   * light, dark and forced colours. The current match scrolls into view when it changes, gently unless motion is reduced,
+   * and focus stays where it is, so a find box keeps the keys. Counts come back through `onFindMatches`.
+   * @example
+   * <MessageList label="Chat" find={{ query, current }} onFindMatches={({ count }) => setCount(count)}>{messages}</MessageList>
+   */
+  find?: MessageListFind | undefined;
+  /** Called with how many matches there are and which is current, whenever either changes, or `partial` does. See {@link MessageListFindReport}. */
+  onFindMatches?: ((report: MessageListFindReport) => void) | undefined;
   /**
    * Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that
    * height, so give it one. Appearance classes warn in development.
@@ -566,6 +608,12 @@ let layerModule: Promise<typeof MessageBarLayer> | undefined;
 let loadedLayer: typeof MessageBarLayer | undefined;
 const loadLayer = () =>
   (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => (loadedLayer = module.MessageBarLayer)));
+
+// The find layer and its marks, loaded with the first list that has `find`, so a list without it adds none of that code.
+let findPromise: Promise<typeof MessageFindLayer> | undefined;
+let findLoaded: typeof MessageFindLayer | undefined;
+const loadFind = () =>
+  (findPromise ??= import("@/registry/ouro/components/ouro/message/message-list-parts").then((module) => (findLoaded = module.MessageFindLayer)));
 
 /** A child's key, from `Children.toArray`, or null for one that is not an element. */
 function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): Key | null {
@@ -1067,6 +1115,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     heightCache,
     estimatedItemHeight,
     actionsRef,
+    find,
+    onFindMatches,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     autoScroll,
@@ -1170,6 +1220,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
   if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > OLDER_CHUNK ? edge.drawn : top });
   const shown = windowed ? all : all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
   const keys = useMemo(() => all.map((child, index) => String(keyOf(child) ?? index)), [all]);
+
+  // Find: loaded with the first list that has `find`; its layer counts the matches and draws them.
+  const hasFind = find !== undefined;
+  // Stryker disable next-line ArrowFunction: starting empty only delays the layer by the effect below, which loads it at once.
+  const [findModule, setFindModule] = useState<typeof MessageFindLayer | undefined>(() => findLoaded);
+  const [findMarks, setFindMarks] = useState<string>();
+  useEffect(() => {
+    if (!hasFind) return;
+    // Stryker disable next-line ConditionalExpression: asking again for a module already held returns the cached promise and changes nothing a page can see.
+    if (!findModule) void loadFind().then((layer) => setFindModule(() => layer));
+  }, [hasFind, findModule]);
+  const FindLayer = hasFind ? findModule : undefined;
 
   // The window: which children draw, and the space kept for the others. Each child sits in a slot of its own that draws
   // no box, so the list's spacing and the continued messages' margins work as without one.
@@ -2764,7 +2826,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   };
 
   return (
-    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", className)}>
+    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", hasFind && findMarks, className)}>
       {/* Holds the scroller and its focus ring, drawn over it, so content that sticks to an edge never covers the ring. */}
       <div className="relative flex min-h-0 flex-1 flex-col">
         {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. Positioned, so
@@ -2836,6 +2898,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           </button>
         </div>
       )}
+      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} /> : null}
     </div>
   );
 }

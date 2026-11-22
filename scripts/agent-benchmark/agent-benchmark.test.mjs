@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { scratchDir } from "../scratch.mjs";
 import { createStore, SEED } from "./fixture/store.mjs";
 import { TASKS, taskById } from "./tasks.mjs";
 import { actionModel, plainMcp, armById, ARMS, validateArgs } from "./arms/interfaces.mjs";
@@ -148,10 +149,66 @@ for (const arm of [actionModel, plainMcp]) {
   }
 }
 
-test("the Apple arm is a hook that says what it waits for", async () => {
+const fakeHost = (body) => {
+  const dir = scratchDir("apple-host-");
+  const file = path.join(dir, "host.mjs");
+  fs.writeFileSync(file, `#!${process.execPath}\nimport readline from "node:readline";\nfor await (const line of readline.createInterface({ input: process.stdin })) {\n  const q = JSON.parse(line);\n  const send = (o) => console.log(JSON.stringify(o));\n${body}\n}\n`, { mode: 0o755 });
+  return file;
+};
+
+test("the Apple arm lists the generated tools the host has an App Intent for, and runs them through the host", async () => {
+  const host = fakeHost(`
+  if (q.list) send({ intents: ["add_shopping_list_item", "get_shopping_list"] });
+  else if (q.action === "get_shopping_list") send({ result: { items: "[]" }, items: [] });
+  else if (q.args.name === "bad") send({ error: "An item needs a name.", items: [] });
+  else if (q.action === "place_grocery_order") send({ refused: { code: "person-only", message: "No." } });
+  else send({ result: { id: "i6", name: q.args.name }, items: [{ id: "i6", name: q.args.name, quantity: null, unit: null, checked: false }] });`);
+  const store = createStore();
   const apple = armById("apple-app-intents");
-  await assert.rejects(apple.open({}), /ourostack\/ouro-ui#1156/);
-  assert.ok(!ARMS.includes(apple));
+  const opened = await apple.open({ store, host });
+  try {
+    assert.deepEqual(opened.tools.map((t) => t.name), ["get_shopping_list", "add_shopping_list_item"]);
+    const add = opened.tools.find((t) => t.name === "add_shopping_list_item");
+    assert.match(await add.handler({}), /name is required/);
+    assert.deepEqual(JSON.parse(await add.handler({ name: "oat milk" })), { id: "i6", name: "oat milk" });
+    assert.deepEqual(store.state.items.map((i) => i.name), ["oat milk"]);
+    assert.deepEqual(JSON.parse(await add.handler({ name: "bad" })), { error: "An item needs a name." });
+    assert.equal(opened.personRefusals, 0);
+    assert.equal(opened.infraError, null);
+  } finally {
+    await opened.close();
+  }
+});
+
+test("the Apple arm counts a typed refusal from the host, and reports a host that is missing or gone", async () => {
+  const host = fakeHost(`
+  if (q.list) send({ intents: ["get_shopping_list"] });
+  else if (q.action === "exit") process.exit(3);
+  else send({ refused: { code: "person-only", message: "No." } });`);
+  const opened = await armById("apple-app-intents").open({ store: createStore(), host });
+  try {
+    const tool = { ...opened.tools[0] };
+    assert.deepEqual(JSON.parse(await tool.handler({})), { error: "No.", code: "person-only" });
+    assert.equal(opened.personRefusals, 1);
+  } finally {
+    await opened.close();
+  }
+  await assert.rejects(armById("apple-app-intents").open({ store: createStore(), host: "/nonexistent/host" }), /not built/);
+  await assert.rejects(armById("apple-app-intents").open({ app: appById("ouro-md"), store: createStore(), host }), /Pantry only/);
+  const quiet = fakeHost(`if (q.list) process.exit(4);`);
+  await assert.rejects(armById("apple-app-intents").open({ store: createStore(), host: quiet }), /closed its output|exited with 4/);
+  const dies = fakeHost(`if (q.list) send({ intents: ["get_shopping_list"] }); else process.exit(5);`);
+  const gone = await armById("apple-app-intents").open({ store: createStore(), host: dies });
+  try {
+    await assert.rejects(gone.tools[0].handler({}), /closed its output|exited with 5/);
+    await assert.rejects(gone.tools[0].handler({}), /closed its output|exited with 5/);
+  } finally {
+    await gone.close();
+  }
+  const notExecutable = fakeHost("");
+  fs.chmodSync(notExecutable, 0o644);
+  await assert.rejects(armById("apple-app-intents").open({ store: createStore(), host: notExecutable }), /did not start|closed its output/);
+  assert.ok(!ARMS.includes(armById("apple-app-intents")));
   assert.ok(fs.existsSync(path.join(here, "fixture/generated/OuroActions.swift")));
 });
 
@@ -190,14 +247,14 @@ test("a person-only trial counts as refused when no order was placed and nothing
   assert.deepEqual(arm.personOnly, { trials: 3, refused: 1, done: 1 });
 });
 
-test("options name models, arms, tasks and trials, and refuse an arm that cannot run yet", () => {
+test("options name models, arms, tasks and trials", () => {
   const options = parseOptions(["--models", "gpt-6-luna", "--arms", "action-model,browser", "--trials", "2", "--output-dir", "/tmp/x"]);
   assert.deepEqual(options.models, ["gpt-6-luna"]);
   assert.deepEqual(options.arms, ["action-model", "browser"]);
   assert.equal(options.trials, 2);
   assert.deepEqual(options.tasks, TASKS.map((t) => t.id));
   assert.deepEqual([...new Set(TASKS.map((t) => t.app))], ["pantry", "ouro-md"]);
-  assert.throws(() => parseOptions(["--arms", "apple-app-intents", "--output-dir", "/tmp/x"]), /not runnable yet/);
+  assert.deepEqual(parseOptions(["--arms", "apple-app-intents", "--output-dir", "/tmp/x"]).arms, ["apple-app-intents"]);
 });
 
 test("the site page is rendered from the runs' results, with counts per interface, task and model", async () => {

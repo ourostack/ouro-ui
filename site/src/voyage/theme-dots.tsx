@@ -3,6 +3,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ByPreset, choiceList, Swatch } from "./presets";
 import { originOf, useSiteTheme } from "./theme-store";
 import { SKY_WORDS } from "./sky-words";
+import { rovingRow } from "@/registry/ouro/lib/ouro/roving-row";
 
 /**
  * The looks as a row of dots, Live first, with the chosen one's name and mood beside them. A press
@@ -11,9 +12,10 @@ import { SKY_WORDS } from "./sky-words";
  */
 export function ThemeDots({ label = "Theme", size = "lg", describe = true, nameClassName = "", groupClassName = "" }: { label?: string; size?: "md" | "lg"; describe?: boolean; nameClassName?: string; groupClassName?: string }): JSX.Element {
   const { preset, sky, setPreset } = useSiteTheme();
+  const roving = rovingRow(choiceList.map((item) => item.name), preset);
   return (
     <div>
-      <div role="group" aria-label={label} className={`flex flex-wrap gap-1.5 ${groupClassName}`}>
+      <div role="group" aria-label={label} onKeyDown={roving.onKeyDown} className={`flex flex-wrap gap-1.5 ${groupClassName}`}>
         {choiceList.map((item) => (
           <Button
             key={item.name}
@@ -21,6 +23,7 @@ export function ThemeDots({ label = "Theme", size = "lg", describe = true, nameC
             tone="secondary"
             aria-pressed={item.name === preset}
             aria-label={item.label}
+            tabIndex={roving.tabIndex(item.name)}
             data-site-preset={item.name}
             onClick={(event) => setPreset(item.name, originOf(event))}
             className="site-dot h-auto p-1"

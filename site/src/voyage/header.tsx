@@ -18,6 +18,8 @@ import {
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
+import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
+import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { HxLogo } from "../components/brand";
 import { FAMILY, FAMILY_CURRENT } from "../family";
@@ -130,6 +132,7 @@ const loadPalette = (): Promise<Palette> =>
 /** ⌘K: every page, the presets, light and dark, and X-ray (site-palette.tsx). */
 function SiteCommand({ open, setOpen }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>> }): JSX.Element {
   const [SitePalette, setSitePalette] = useState<Palette | null>(null);
+  const platform = usePlatform();
   // Search pressed while its code failed to load does not stay open with nothing to show.
   const want = useCallback(() => void loadPalette().then((palette) => setSitePalette(() => palette), () => setOpen(false)), [setOpen]);
   // ⌘K opens it with no press on the button.
@@ -150,10 +153,12 @@ function SiteCommand({ open, setOpen }: { open: boolean; setOpen: Dispatch<SetSt
         // As wide as Ctrl+K needs, with the hint at its end, as a search field: the server can't know the platform, so
         // a Mac's ⌘K, narrower, arrives as the page hydrates, and would otherwise pull the controls beside it along.
         className="max-sm:hidden min-w-[8.25rem] [&>[data-ouro-label]]:flex-1"
-        aria-keyshortcuts="Meta+K Control+K"
+        aria-keyshortcuts={ariaKeyShortcuts(["mod", "k"], platform)}
       >
         Search
-        <Kbd keys={["mod", "k"]} className="ms-auto" />
+        <span aria-hidden="true" className="ms-auto">
+          <Kbd keys={["mod", "k"]} />
+        </span>
       </Button>
       {SitePalette && <SitePalette open={open} onOpenChange={setOpen} />}
     </>

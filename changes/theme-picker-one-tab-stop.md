@@ -1,0 +1,1 @@
+- Changed: `ThemePicker` is one Tab stop on the chosen look, with the arrow keys, Home and End moving focus along the dots and a ring on the focused swatch; a press still chooses.

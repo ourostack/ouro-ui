@@ -1,8 +1,11 @@
 /* global URL, setTimeout, window */
-// The four ways an agent reaches an app (apps.mjs), and the hook for a fifth. Each arm opens on one trial's app and
+// The four ways an agent reaches an app (apps.mjs), and a fifth that runs on macOS only. Each arm opens on one trial's app and
 // store (`open({ app, store, browser })`, the app Pantry when none is given) and returns the
 // tools the model gets: `{ name, description, parameters, handler(args) -> string }`. The runner gives every arm the
 // same model, system prompt and task words; only these tools differ. Each tool's text is all the model sees.
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import readline from "node:readline";
 import { AppError } from "../fixture/app-error.mjs";
 import { appById } from "../apps.mjs";
 import { BRIDGE_SOURCE } from "./bridge-page.mjs";
@@ -306,17 +309,77 @@ export const bridge = {
 
 // ---- 5. the Apple arm, when it can run -------------------------------------------------------------------------
 
+/** Where `swift build -c release` leaves the host (apple/), unless OURO_APPLE_HOST names another. */
+export const APPLE_HOST = new URL("../apple/.build/release/pantry-host", import.meta.url).pathname;
+
 /**
- * The hook for App Intents. The generated `OuroActions.swift` (fixture/generated/) already declares this set's
- * intents, and Spoonjoy's Apple app serves its own (spoonjoy/spoonjoy-apple#348); the arm waits until a model can call
- * App Intents headlessly in CI. Selecting it fails with that reason.
+ * App Intents on Apple. A small macOS command (apple/, built only in CI on a hosted macOS runner) links the generated
+ * `OuroActions.swift` and binds its handlers to a seeded in-memory kitchen. This bridge lists the generated tools whose
+ * App Intent the host has, and runs one by sending the host a line of JSON: the host constructs the intent, sets its
+ * parameters and calls `perform()` in process, which is not Siri or Shortcuts, and returns the handler's result. The
+ * host's kitchen is the state, so after each call its items replace the runner's copy for the task's check. The
+ * person-only action has no App Intent, so no tool names it; if one did, the host would answer with the generated
+ * typed refusal and it would count as a refusal.
  */
 export const appleAppIntents = {
   id: "apple-app-intents",
   title: "App Intents (Apple)",
-  pending: "waits for a headless way for a model to call App Intents on a hosted macOS runner (ourostack/ouro-ui#1156)",
-  async open() {
-    throw new Error(`The apple-app-intents arm is not runnable yet: it ${this.pending}.`);
+  async open({ app = appById("pantry"), store, host = process.env.OURO_APPLE_HOST ?? APPLE_HOST }) {
+    if (app.id !== "pantry") throw new Error("The apple-app-intents arm serves Pantry only: the generated OuroActions.swift declares that set.");
+    if (!fs.existsSync(host)) throw new InfrastructureError(`The App Intents host is not built (${host}): run swift build -c release in scripts/agent-benchmark/apple on macOS.`);
+    const child = spawn(host, [], { stdio: ["pipe", "pipe", "inherit"] });
+    const lines = readline.createInterface({ input: child.stdout })[Symbol.asyncIterator]();
+    let infraError = null;
+    child.stdin.on("error", () => {});
+    child.on("error", (error) => {
+      infraError = infraError ?? `The App Intents host did not start: ${error.message}`;
+    });
+    child.on("exit", (code) => {
+      infraError = infraError ?? `The App Intents host exited with ${code}.`;
+    });
+    let queue = Promise.resolve();
+    const ask = (request) => {
+      const run = queue.then(async () => {
+        if (infraError) throw new InfrastructureError(infraError);
+        child.stdin.write(`${json(request)}\n`);
+        const { value, done } = await lines.next();
+        if (done) throw new InfrastructureError(infraError ?? "The App Intents host closed its output.");
+        return JSON.parse(value);
+      });
+      queue = run.catch(() => {});
+      return run;
+    };
+    let refused = 0;
+    const close = async () => {
+      child.stdin.end();
+      child.kill();
+    };
+    try {
+      const { intents } = await ask({ list: true });
+      const tools = app.mcp.tools
+        .filter((tool) => intents.includes(tool.name))
+        .map((tool) => ({
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.inputSchema,
+          annotations: tool.annotations,
+          handler: async (args) => {
+            const problems = validateArgs(tool.inputSchema, args);
+            if (problems.length) return json({ error: `${problems.join("; ")}.` });
+            const reply = await ask({ action: tool.name, args: args ?? {} });
+            if (reply.items) store.state.items.splice(0, store.state.items.length, ...reply.items);
+            if (reply.refused) {
+              refused++;
+              return json({ error: reply.refused.message, code: reply.refused.code });
+            }
+            return json(reply.error === undefined ? reply.result : { error: reply.error });
+          },
+        }));
+      return { tools, refusals: [], close, get infraError() { return infraError; }, get personRefusals() { return refused; } };
+    } catch (error) {
+      await close();
+      throw error;
+    }
   },
 };
 
