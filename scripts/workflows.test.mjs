@@ -2134,6 +2134,11 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.match(jobs["sweeps-compare"], /pattern: sweeps-looks-\*\n {10}path: \.tmp\/looks\n {10}merge-multiple: true/);
   assert.match(jobs["sweeps-compare"], /run: node scripts\/sweeps-compare\.mjs \.tmp\/looks \.tmp\/timings$/m);
   assert.match(jobs["sweeps-compare"], /name: timings-sweeps-compare/);
+  // On a pull request the shard sets the scope in which a changed control's picture is taken twice (site/e2e/stable-take.ts), before the specs run.
+  const retake = stepScript(jobs["sweep-shard"], "Sweeps retake scope");
+  assert.match(retake, /GITHUB_EVENT_NAME" = pull_request/);
+  assert.match(retake, /node scripts\/sweeps-retake\.mjs "\$GITHUB_EVENT_NAME" \.tmp\/sweeps-changed\.txt/);
+  assert.ok(jobs["sweep-shard"].indexOf("Sweeps retake scope") < jobs["sweep-shard"].indexOf("name: Sweep specs"));
   // ci-budget reaches sweeps-compare through the e2e gate, which waits on it.
   // The sweeps run in shards of their own, so between the e2e and sweep shards every spec runs once.
   const { sweepFiles } = await import("./shard.mjs");
