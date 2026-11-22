@@ -1264,8 +1264,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     revealed.current = null;
     setReach(next);
   });
-  // The find layer asks for a match's message to be drawn, in a windowed list where it is not yet; the scroll to the match follows once it is.
-  const drawForFind = useCallback((key: string) => requestRef.current({ key, id: null, child: true, forward: true, focus: false, block: "center" }), []);
   if (!windowed && band !== null) setBand(null);
   // Once long it stays set, as the band decides from then on; another conversation clears it.
   if (!windowed && !drewWhole) setDrewWhole(true);
@@ -2913,7 +2911,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           </button>
         </div>
       )}
-      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} onDraw={drawForFind} /> : null}
+      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} request={requestRef} /> : null}
     </div>
   );
 }

@@ -18,13 +18,14 @@ afterEach(async () => {
 
 const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
-function Chat({ current, hasOlder, twice, report }: { current: number; hasOlder?: boolean; twice?: boolean; report: MessageListFindReport[] }) {
+function Chat({ current, hasOlder, twice, tall, at, report }: { current: number; hasOlder?: boolean; twice?: boolean; tall?: boolean; at?: number; report: MessageListFindReport[] }) {
   const [reports] = useState(report);
   return (
     <MessageList label="Chat" style={{ height: 300, width: 360 }} hasOlder={hasOlder} find={{ query: "needle", current }} onFindMatches={(next) => reports.push(next)}>
       {Array.from({ length: 400 }, (_, id) => (
-        <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name="Ana" style={{ height: 80, boxSizing: "border-box" }}>
-          {id === 200 && twice ? "Message 200 needle needle" : id === 3 || id === 200 ? `Message ${id} needle` : `Message ${id}`}
+        <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name="Ana" style={{ height: id === 200 && tall ? undefined : 80, boxSizing: "border-box" }}>
+          {id === 200 && tall ? <div style={{ height: 1200 }} /> : null}
+          {id === 200 && twice ? "Message 200 needle needle" : id === 3 || id === 200 || id === at ? `Message ${id} needle` : `Message ${id}`}
         </Message>
       ))}
     </MessageList>
@@ -81,5 +82,43 @@ describe("MessageList find in a windowed list", () => {
     await expect.poll(() => host.querySelector("#m200") !== null).toBe(true);
     await expect.poll(() => [...(CSS.highlights.get("ouro-find-current") ?? [])].map((range) => range.toString())).toEqual(["needle"]);
     expect(report.at(-1)).toEqual({ count: 3, current: 2, partial: false });
+  });
+
+  it("scrolls to the match itself once its message is drawn, when the message is taller than the list", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const report: MessageListFindReport[] = [];
+    await act(async () => root.render(<Chat tall current={0} report={report} />));
+    await act(async () => root.render(<Chat tall current={1} report={report} />));
+    await expect.poll(() => host.querySelector("#m200") !== null).toBe(true);
+    const scroller = host.querySelector<HTMLElement>("[data-ouro='message-list']")!.querySelector<HTMLElement>("[data-ouro-message-list-scroller]") ?? host.querySelector<HTMLElement>("[data-ouro='message-list']")!;
+    await expect.poll(async () => {
+      await frame();
+      const match = ([...(CSS.highlights.get("ouro-find-current") ?? [])][0] as Range | undefined)?.getBoundingClientRect();
+      const view = scroller.getBoundingClientRect();
+      return match !== undefined && match.top >= view.top && match.bottom <= view.bottom;
+    }).toBe(true);
+  });
+
+  it("does not scroll back to a match that was in the window, once the reader has moved away", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const report: MessageListFindReport[] = [];
+    await act(async () => root.render(<Chat at={398} current={2} report={report} />));
+    const scroller = host.querySelector<HTMLElement>("[data-ouro='message-list']")!.querySelector<HTMLElement>("[data-ouro-message-list-scroller]") ?? host.querySelector<HTMLElement>("[data-ouro='message-list']")!;
+    await expect.poll(() => [...(CSS.highlights.get("ouro-find-current") ?? [])].map((range) => range.toString())).toEqual(["needle"]);
+    await act(async () => scroller.scrollTo({ top: scroller.scrollTop - 200, behavior: "instant" }));
+    await frame();
+    const top = scroller.scrollTop;
+    await act(async () => host.querySelector("[data-ouro-message-list-slot]")!.parentElement!.append(document.createElement("i")));
+    await frame();
+    await frame();
+    expect(scroller.scrollTop).toBe(top);
   });
 });

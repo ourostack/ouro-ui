@@ -50,7 +50,9 @@ function useFindHighlights(options: {
     const match = drawn.current!.getBoundingClientRect();
     const edge = view.getBoundingClientRect();
     const move = Math.min(0, match.top - edge.top - MARGIN) || Math.max(0, match.bottom - edge.bottom + MARGIN);
-    if (move !== 0) view.scrollTo({ top: view.scrollTop + move, behavior: latest.current.reduced ? "instant" : "smooth" });
+    if (move === 0) return true;
+    view.scrollTo({ top: view.scrollTop + move, behavior: latest.current.reduced ? "instant" : "smooth" });
+    return false;
   };
   const scrollRef = useRef(scrollToCurrent);
   useLayoutEffect(() => {
@@ -96,10 +98,8 @@ function useFindHighlights(options: {
       CSS.highlights.set(ALL_MATCHES, new Highlight(...others));
       CSS.highlights.set(CURRENT_MATCH, new Highlight(...wanted));
       drawn.current = currentRange;
-      if (currentRange && owed.current) {
-        owed.current = false;
-        scrollRef.current();
-      }
+      // Owed until the match is in view: the list's own scroll to the message can land after this one.
+      if (currentRange && owed.current && scrollRef.current()) owed.current = false;
     };
     draw();
     let frame = 0;
@@ -115,8 +115,7 @@ function useFindHighlights(options: {
   }, [content, slot, query, fold, locale, signature, target?.key, target?.occurrence]);
 
   useLayoutEffect(() => {
-    owed.current = false;
+    owed.current = drawn.current === undefined && hasTarget;
     if (drawn.current) scrollRef.current();
-    else owed.current = hasTarget;
   }, [scroller, query, fold, locale, hasTarget, target?.key, target?.occurrence]);
 }
