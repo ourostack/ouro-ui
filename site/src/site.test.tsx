@@ -1064,12 +1064,22 @@ describe("docs", () => {
     for (const name of names) expect(routes.map((route) => route.path)).toContain(`/docs/${name}/`);
   });
 
-  it.each(sliced(docsItems, "site: docs items"))("docs/$name shows a live demo, the init step, both install commands, the tests item and the guard props", async ({ name }) => {
+  it.each(sliced(docsItems, "site: docs items"))("docs/$name shows a live demo, the init step, the add commands, the tests item in a closed More ways, and the guard props", async ({ name }) => {
     await renderPage(`/docs/${name}/`);
     await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease}`, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`npx shadcn@latest add @ouro/ouro-base @ouro/${name}`, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease} ourostack/ouro-ui/${name}-tests#${latestRelease}`, { exact: true })).toBeVisible();
+    const more = page.getByRole("button", { name: "More ways" });
+    await expect.element(more).toHaveAttribute("aria-expanded", "false");
+    const namespace = page.getByText(`npx shadcn@latest add @ouro/ouro-base @ouro/${name}`, { exact: true });
+    const tests = page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease} ourostack/ouro-ui/${name}-tests#${latestRelease}`, { exact: true });
+    expect(namespace.element()).toBeTruthy();
+    await expect.element(namespace).not.toBeVisible();
+    await expect.element(tests).not.toBeVisible();
+    more.element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(more).toHaveAttribute("aria-expanded", "true");
+    await expect.element(namespace).toBeVisible();
+    await expect.element(tests).toBeVisible();
     await expect.element(page.getByRole("region", { name: "Live demo" })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Props", level: 2 })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Use instead when", level: 2 })).toBeVisible();
