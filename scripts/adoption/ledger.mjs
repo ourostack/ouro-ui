@@ -329,7 +329,13 @@ function readArtifactReport(ctx, repo, artifact, tmp, wanted = "report.json") {
   });
 }
 
-/** The newest ax-xray report, over a surface's sources, that is for the right app and still downloadable. */
+/** The surfaces a report checks: those its claims are about (`cli`, `mcp`, `tools`, `app-intents`). An action claims report has none. */
+const surfacesOf = (report) => [...new Set((report.claims ?? []).map((claim) => claim.surface).filter((surface) => typeof surface === "string"))].sort();
+
+/**
+ * The newest report of each checker and surface, over a surface's sources, from a successful push to main in the source's
+ * own repository, for the right app and still downloadable.
+ */
 export function measureXray(ctx, surface) {
   const source = `https://github.com/${surface.repo}/actions`;
   if (surface.xray.length === 0) return unmeasured(ctx, "no X-ray runs in CI for this product yet", source);
@@ -339,8 +345,11 @@ export function measureXray(ctx, surface) {
   try {
     for (const entry of surface.xray) {
       try {
-        const query = entry.branch ? `&branch=${entry.branch}` : "";
-        const runs = ctx.api(`repos/${entry.repo}/actions/workflows/${entry.workflow}/runs?status=success&per_page=3${query}`).workflow_runs;
+        // Only a push to main counts: a pull request, a fork's own `main` or another branch can't stand for the product.
+        const branch = entry.branch ?? "main";
+        const runs = ctx
+          .api(`repos/${entry.repo}/actions/workflows/${entry.workflow}/runs?status=success&per_page=3&branch=${branch}&event=push`)
+          .workflow_runs.filter((run) => run.event === "push" && run.head_branch === branch && run.head_repository?.full_name === entry.repo);
         for (const run of runs) {
           const artifacts = ctx.api(`repos/${entry.repo}/actions/runs/${run.id}/artifacts?per_page=50`).artifacts.filter((artifact) => !artifact.expired && /xray/i.test(artifact.name));
           for (const artifact of artifacts) {
@@ -352,9 +361,8 @@ export function measureXray(ctx, surface) {
             }
             const name = report.target?.app?.name;
             if (entry.app && name?.toLowerCase() !== entry.app.toLowerCase()) continue;
-            found.push({ report, run, entry, artifact });
+            found.push({ report, run, entry, artifact, key: `${report.tool} ${surfacesOf(report).join(",")}` });
           }
-          if (found.some((item) => item.run.id === run.id)) break;
         }
       } catch (error) {
         errors.push(error.message);
@@ -363,16 +371,22 @@ export function measureXray(ctx, surface) {
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
-  if (found.length === 0) return unmeasured(ctx, errors[0] ?? "no downloadable report in the latest successful runs", source);
+  if (found.length === 0) return unmeasured(ctx, errors[0] ?? `no report from a push to main in ${surface.xray.map((entry) => entry.repo).join(" or ")} among the latest successful runs`, source);
   found.sort((a, b) => b.report.at.localeCompare(a.report.at));
-  // One report per checker: the X-ray's own claim set, and ouro-actions' action claims beside it. Each checker's newest
-  // report counts, and their claims add up, so an app's action claims count as AX must claims with its X-ray's.
+  // One report per checker and surface: the CLI X-ray, the MCP X-ray, the in-turn tools X-ray and ouro-actions' action
+  // claims each count once, newest first, and their claims add up.
   const newest = [];
-  for (const item of found) if (!newest.some((kept) => kept.report.tool === item.report.tool)) newest.push(item);
+  for (const item of found) if (!newest.some((kept) => kept.key === item.key)) newest.push(item);
   const { report, run } = newest[0];
   const sum = (key) => newest.reduce((total, item) => total + (item.report.summary[key] ?? 0), 0);
   const must = sum("must");
   const scored = newest.find((item) => typeof item.report.summary.score === "number");
+  const surfaces = [...new Set(newest.flatMap((item) => surfacesOf(item.report)))].sort();
+  const missingSurfaces = (surface.xraySurfaces ?? []).filter((listed) => !surfaces.includes(listed));
+  const notes = [];
+  if (missingSurfaces.length) notes.push(`No X-ray report checks its ${orList(missingSurfaces)} doors yet, so its must claims can't pass.`);
+  if (must === 0) notes.push("The claim set has no must claims yet, so conforming is trivial.");
+  else if (newest.length > 1) notes.push(`Adds up the newest report of each checker and surface: ${newest.map((item) => [item.report.tool, ...surfacesOf(item.report)].join(" ")).join(", ")}.`);
   return cell(
     ctx,
     {
@@ -388,14 +402,19 @@ export function measureXray(ctx, surface) {
       commit: report.target?.commit ?? null,
       reportAt: report.at,
       run: run.html_url,
-      reports: newest.map((item) => ({ tool: `${item.report.tool} ${item.report.checker?.version ?? ""}`.trim(), claimSet: item.report.claimSet?.version ?? null, must: item.report.summary.must, mustHolding: item.report.summary.mustHolding, reportAt: item.report.at, run: item.run.html_url })),
+      surfaces,
+      missingSurfaces,
+      reports: newest.map((item) => ({ tool: `${item.report.tool} ${item.report.checker?.version ?? ""}`.trim(), surfaces: surfacesOf(item.report), claimSet: item.report.claimSet?.version ?? null, must: item.report.summary.must, mustHolding: item.report.summary.mustHolding, reportAt: item.report.at, run: item.run.html_url })),
     },
-    { note: must === 0 ? "The claim set has no must claims yet, so conforming is trivial." : newest.length > 1 ? `Adds up the newest report of each checker: ${newest.map((item) => item.report.tool).join(" and ")}.` : null, source: run.html_url },
+    { note: notes.length ? notes.join(" ") : null, source: run.html_url },
   );
 }
 
-/** AX `must` claims pass in CI: a report exists, has must claims, and every one holds. A claim set with none is vacuous. */
-export const mustPasses = (xrayCell) => Boolean(xrayCell.value) && xrayCell.value.must > 0 && xrayCell.value.mustHolding === xrayCell.value.must;
+/**
+ * AX `must` claims pass in CI: a report exists, has must claims, every one holds, and the reports check every surface the
+ * product lists. A claim set with none is vacuous.
+ */
+export const mustPasses = (xrayCell) => Boolean(xrayCell.value) && xrayCell.value.must > 0 && xrayCell.value.mustHolding === xrayCell.value.must && (xrayCell.value.missingSurfaces ?? []).length === 0;
 
 // ---- Ouro AX census --------------------------------------------------------------------------------------
 

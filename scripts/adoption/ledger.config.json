@@ -188,6 +188,9 @@
         "spoonjoy/spoonjoy-v2",
         "Spoonjoy web"
       ],
+      "xraySurfaces": [
+        "mcp"
+      ],
       "xray": [
         {
           "repo": "spoonjoy/spoonjoy-v2",
@@ -223,16 +226,14 @@
         "spoonjoy/spoonjoy-apple",
         "Spoonjoy Apple"
       ],
+      "xraySurfaces": [
+        "app-intents"
+      ],
       "xray": [
         {
           "repo": "spoonjoy/spoonjoy-apple",
           "workflow": "app-intents-xray.yml",
           "branch": "main"
-        },
-        {
-          "repo": "ourostack/ouro-ui-apple",
-          "workflow": "xray-apps.yml",
-          "app": "Spoonjoy"
         },
         {
           "repo": "spoonjoy/spoonjoy-apple",
@@ -268,12 +269,10 @@
         "ourostack/ouro-md",
         "Ouro MD"
       ],
+      "xraySurfaces": [
+        "app-intents"
+      ],
       "xray": [
-        {
-          "repo": "ourostack/ouro-ui-apple",
-          "workflow": "xray-apps.yml",
-          "app": "Ouro MD"
-        },
         {
           "repo": "ourostack/ouro-md",
           "workflow": "ci.yml",
@@ -308,12 +307,10 @@
         "ourostack/gatefold",
         "Gatefold"
       ],
+      "xraySurfaces": [
+        "app-intents"
+      ],
       "xray": [
-        {
-          "repo": "ourostack/ouro-ui-apple",
-          "workflow": "xray-apps.yml",
-          "app": "Gatefold"
-        },
         {
           "repo": "ourostack/gatefold",
           "workflow": "actions.yml",
@@ -355,6 +352,12 @@
         "ourostack/ouroboros",
         "ouroboros-agent-harness",
         "@ouro.bot/cli"
+      ],
+      "runsAgents": true,
+      "xraySurfaces": [
+        "cli",
+        "mcp",
+        "tools"
       ],
       "xray": [
         {
@@ -446,6 +449,9 @@
         "Desk plugin",
         "Desk MCP"
       ],
+      "xraySurfaces": [
+        "mcp"
+      ],
       "xray": [
         {
           "repo": "ourostack/desk",
@@ -480,6 +486,9 @@
       "giveBackTerms": [
         "desk-web",
         "Desk Browser"
+      ],
+      "xraySurfaces": [
+        "mcp"
       ],
       "xray": [
         {
@@ -603,6 +612,9 @@
         "exclude": "(^registry/ouro/ax/|\\.test\\.|fixtures?/|example|^docs/|\\.md$)"
       },
       "giveBackTerms": [],
+      "xraySurfaces": [
+        "mcp"
+      ],
       "xray": [
         {
           "repo": "ourostack/ouro-ui",
@@ -636,6 +648,9 @@
       "giveBackTerms": [
         "housesitter",
         "ourostack/housesitter"
+      ],
+      "xraySurfaces": [
+        "cli"
       ],
       "xray": [
         {
@@ -671,6 +686,9 @@
         "m365crawl",
         "ourostack/m365crawl"
       ],
+      "xraySurfaces": [
+        "cli"
+      ],
       "xray": [
         {
           "repo": "ourostack/m365crawl",
@@ -705,6 +723,9 @@
         "friends-relay",
         "friends-mcp"
       ],
+      "xraySurfaces": [
+        "mcp"
+      ],
       "xray": [
         {
           "repo": "ourostack/friends",
@@ -738,6 +759,9 @@
         "flow-review",
         "ourostack/flow-review"
       ],
+      "xraySurfaces": [
+        "cli"
+      ],
       "xray": [
         {
           "repo": "ourostack/flow-review",
@@ -770,6 +794,9 @@
       "giveBackTerms": [
         "apple-distribution-kit"
       ],
+      "xraySurfaces": [
+        "cli"
+      ],
       "xray": [
         {
           "repo": "ourostack/apple-distribution-kit",
@@ -801,6 +828,9 @@
       },
       "giveBackTerms": [
         "ouro-work-substrate"
+      ],
+      "xraySurfaces": [
+        "cli"
       ],
       "xray": [
         {
@@ -887,6 +917,9 @@
         "hackamore",
         "ourostack/hackamore"
       ],
+      "xraySurfaces": [
+        "cli"
+      ],
       "xray": [
         {
           "repo": "ourostack/hackamore",
@@ -913,6 +946,10 @@
       },
       "giveBackTerms": [
         "sanctuary.ouro"
+      ],
+      "runsAgents": true,
+      "xraySurfaces": [
+        "tools"
       ],
       "xray": []
     }
