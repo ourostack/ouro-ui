@@ -8,7 +8,7 @@ import { changedLines, dryRunMinutes, inScope, mutationRunners, SHARD_TARGET_SEC
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, inOtherShard, isClassList, testPhases } from "./mutation/plugins.mjs";
-import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, recordTests, scopeReport, shardCost, shardCount, strykerTimeout, testSeconds, timeoutRate, unmeasuredSeconds } from "./mutation/cache.mjs";
+import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, recordTests, scopeReport, shardCost, shardCount, strykerTimeout, hangRates, testSeconds, timeoutRate, unmeasuredSeconds } from "./mutation/cache.mjs";
 
 test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
   for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/components/ouro/dialog/dialog-styles.ts", "registry/ouro/lib/ouro/cn.ts"]) assert.ok(runtimeSource(path), path);
@@ -264,6 +264,8 @@ test("planShards weighs each mutant by its own tests' measured time and each sha
   assert.equal(shardCost(["handoff.ts"], files, seconds), 55 * 1.5 + 0.5 + 15 + hang(55, 31));
   assert.deepEqual(planShards(files, 3, seconds), [["dialog.tsx"], ["sheet.tsx"], ["handoff.ts", "styles.ts"]]);
   // A file whose tests were never timed counts as a few seconds of tests, not none.
+  const list = "registry/ouro/components/ouro/message/message-list.tsx";
+  assert.equal(shardCost([list], { [list]: { mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * 31 + 30 + 10 * hangRates[list] * strykerTimeout(60));
   assert.equal(shardCost(["new.tsx"], { "new.tsx": { mutants: 2, own: ["new.test.tsx"], wider: [] } }, {}), 2 * (1 + 0.5 * unmeasuredSeconds) + 0.5 * unmeasuredSeconds + hang(2, unmeasuredSeconds));
 });
 
