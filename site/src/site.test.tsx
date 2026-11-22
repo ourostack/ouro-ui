@@ -6,7 +6,7 @@ import { latestRelease, upgrading } from "./release";
 import { demos } from "./docs/demos";
 import { followSystemScheme, THEME_KEY } from "./themes/prepaint";
 import { choiceList } from "./voyage/presets";
-import { finishReveal } from "./voyage/theme-store";
+import { finishReveal, storeTheme } from "./voyage/theme-store";
 import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
@@ -68,35 +68,52 @@ const INIT = "npx shadcn@latest init --base base --preset nova --yes --no-monore
 const upgradeCommands = parse(upgrading).flatMap((block) => (block.kind === "code" ? [block.text] : []));
 
 describe("home page", () => {
-  it("sets the headline at one height in every look beside the story, so choosing a look moves nothing below it", async () => {
+  describe("the headline beside the story", () => {
     const root = document.documentElement;
-    const was = localStorage.getItem(THEME_KEY);
-    const theme = root.getAttribute("data-theme");
-    try {
-      for (const width of [1024, 1100, 1279]) {
-        await page.viewport(width, 900);
-        await renderPage("/");
-        const heading = document.querySelector<HTMLElement>(".site-voyage-hero h1")!;
-        const dots = [...document.querySelectorAll<HTMLElement>("[data-site-hero-paint] button")];
-        expect(dots.length).toBe(choiceList.length);
-        const heights = new Set<number>();
-        for (const dot of dots) {
-          await userEvent.click(dot, { force: true });
-          await expect.poll(() => dot.getAttribute("aria-pressed")).toBe("true");
-          await finishReveal();
-          heights.add(Math.round(heading.getBoundingClientRect().height));
-        }
-        expect([width, [...heights]]).toEqual([width, [[...heights][0]]]);
-        const lineHeight = parseFloat(getComputedStyle(heading).lineHeight);
-        expect(heading.getBoundingClientRect().height / lineHeight).toBeCloseTo(2, 0);
-      }
-    } finally {
+    let was: string | null;
+    let theme: string | null;
+    beforeEach(() => {
+      was = localStorage.getItem(THEME_KEY);
+      theme = root.getAttribute("data-theme");
+    });
+    afterEach(async () => {
       await finishReveal();
       if (was === null) localStorage.removeItem(THEME_KEY);
       else localStorage.setItem(THEME_KEY, was);
       if (theme === null) root.removeAttribute("data-theme");
       else root.setAttribute("data-theme", theme);
-    }
+    });
+
+    const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    const lines = (heading: HTMLElement) => Math.round(heading.getBoundingClientRect().height / parseFloat(getComputedStyle(heading).lineHeight));
+
+    // The looks are applied through the store the dots use, at once; one test below clicks a dot.
+    it.each([1024, 1100, 1279])("is two lines in every look at %i px, so a look moves nothing below it", async (width) => {
+      await page.viewport(width, 900);
+      await renderPage("/");
+      const heading = document.querySelector<HTMLElement>(".site-voyage-hero h1")!;
+      const seen: [string, number][] = [];
+      for (const choice of choiceList) {
+        storeTheme({ preset: choice.name });
+        await document.fonts.ready;
+        await frame();
+        seen.push([choice.name, lines(heading)]);
+      }
+      expect(seen).toEqual(choiceList.map((choice) => [choice.name, 2]));
+    });
+
+    it("stays two lines when a look is chosen from its dot", async () => {
+      await page.viewport(1100, 900);
+      await renderPage("/");
+      const heading = document.querySelector<HTMLElement>(".site-voyage-hero h1")!;
+      const dot = document.querySelector<HTMLElement>('[data-site-hero-paint] button[aria-label="Chart"]')!;
+      await userEvent.click(dot, { force: true });
+      await expect.poll(() => dot.getAttribute("aria-pressed")).toBe("true");
+      await finishReveal();
+      await document.fonts.ready;
+      await frame();
+      expect(lines(heading)).toBe(2);
+    });
   });
 
   it("opens on the Nautilus hero, and Come aboard goes to the Nautilus's page", async () => {

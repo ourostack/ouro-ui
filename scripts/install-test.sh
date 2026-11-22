@@ -356,6 +356,11 @@ if [ "$variant" = current ]; then
   echo "::endgroup::"
 
   echo "::group::Type check, build, and the shipped tests that read the theme's radius steps"
+  # Ouro Current moves component files, not the app's package.json, so an npm package a component gained since $from
+  # (Composer's rich mode loads Lexical) is added the way the shadcn CLI adds it on an install.
+  # shellcheck disable=SC2207 # package specs have no spaces
+  gained=($(node -e 'const have = require("./package.json"); const want = new Set(); for (const item of require(process.argv[1]).items) for (const dep of item.dependencies ?? []) { const at = dep.lastIndexOf("@"); const name = dep.slice(0, at); if (!(have.dependencies?.[name] ?? have.devDependencies?.[name])) want.add(dep); } console.log([...want].join("\n"))' "$registry/registry.json"))
+  [ "${#gained[@]}" -eq 0 ] || npm install --no-audit --no-fund "${gained[@]}"
   npx tsc -b
   npx vite build
   cp -R "$root/test/install-fixture-tests/." "$app/"

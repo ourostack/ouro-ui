@@ -75,3 +75,7 @@ expectTypeOf<{ label: "Message"; onSend: () => void; defaultExpanded: false }>()
 createElement(Composer, { label: "Message" });
 // @ts-expect-error sending is the prop.
 createElement(Composer, { label: "Message", onSend: () => {}, loading: true });
+
+// format is plain or rich, and a guessed value is a type error that names the two.
+for (const format of ["plain", "rich"] as const) createElement(Composer, { label: "Message", onSend: () => {}, format });
+expectTypeOf<{ label: "Message"; onSend: () => void; format: "markdown" }>().not.toExtend<ComposerProps>();

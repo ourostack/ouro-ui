@@ -40,7 +40,7 @@ jobs:
         env:
           CI: "true"
           PROJECT: ${{ matrix.project }}
-        run: pnpm exec playwright test --config playwright.probes.config.ts --project "$PROJECT"
+        run: pnpm exec playwright test registry/ouro/e2e/probes/skeleton-frames.spec.ts --config playwright.probes.config.ts --project "$PROJECT"
       - if: always()
         env:
           PROJECT: ${{ matrix.project }}
