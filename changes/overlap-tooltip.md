@@ -1,0 +1,1 @@
+- Fixed: Ouro check's overlap rule reads an open tooltip as covering the heading it sits over, so a tooltip drawn over a heading isn't reported as a collision ([test](scripts/check/check-pages.test.mts "verify:testExists(scripts/check/check-pages.test.mts::Ouro check > reads an open tooltip as covering the heading under it, but still catches a plain box drawn the same way)")).
