@@ -84,7 +84,13 @@ function useScrollTabStop(viewportRef: { current: HTMLDivElement | null }): void
   useEffect(() => {
     const viewport = viewportRef.current!;
     const update = () => {
-      viewport.tabIndex = viewport.scrollHeight > viewport.clientHeight || viewport.scrollWidth > viewport.clientWidth ? 0 : -1;
+      const scrollsAtAll = viewport.scrollHeight > viewport.clientHeight || viewport.scrollWidth > viewport.clientWidth;
+      // Content inside can already take focus and scroll the viewport to it, so the viewport itself
+      // needs no extra tab stop; axe's scrollable-region-focusable is satisfied either way. Writing
+      // tabIndex is itself a tabindex mutation the observer below watches, so skip the write once the
+      // value already holds, or setting it would retrigger the observer without end.
+      const stop = scrollsAtAll && !viewport.querySelector(focusable) ? 0 : -1;
+      if (viewport.tabIndex !== stop) viewport.tabIndex = stop;
       const hidden = viewport.scrollHeight - viewport.clientHeight;
       const start = Math.max(0, viewport.scrollTop);
       const end = Math.max(0, hidden - start);
@@ -103,10 +109,15 @@ function useScrollTabStop(viewportRef: { current: HTMLDivElement | null }): void
     observer.observe(viewport);
     observer.observe(viewport.firstElementChild!);
     viewport.addEventListener("scroll", update);
+    // Content can gain or lose focusable elements with no resize (a disabled button turning
+    // enabled), which changes whether the viewport itself still needs the tab stop.
+    const content = new MutationObserver(update);
+    content.observe(viewport, { childList: true, subtree: true, attributes: true, attributeFilter: ["tabindex", "disabled", "href"] });
     // Stryker disable next-line BlockStatement,CallExpression,StringLiteral: cleanup only releases listeners on an element that is going away, which nothing can observe
     return () => {
       // Stryker disable next-line CallExpression: cleanup only releases an observer on an element that is going away, which nothing can observe
       observer.disconnect();
+      content.disconnect();
       // Stryker disable next-line CallExpression,StringLiteral: cleanup only releases a listener on an element that is going away, which nothing can observe
       viewport.removeEventListener("scroll", update);
     };

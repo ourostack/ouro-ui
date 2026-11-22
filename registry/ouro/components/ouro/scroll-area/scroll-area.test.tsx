@@ -271,6 +271,29 @@ describe("ScrollArea", () => {
     expect(host.contains(viewport)).toBe(true);
   });
 
+  it("gives no extra tab stop to a scrolling area whose content holds buttons, but keeps one for plain text", async () => {
+    const { viewport: withButtons } = await render(
+      <ScrollArea className="h-40">
+        {lines.map((line) => (
+          <Button key={line}>{line}</Button>
+        ))}
+      </ScrollArea>,
+    );
+    await expect.poll(() => withButtons.scrollHeight).toBeGreaterThan(withButtons.clientHeight);
+    expect(withButtons.tabIndex).toBe(-1);
+    const { viewport: plainText } = await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
+    await expect.poll(() => plainText.tabIndex).toBe(0);
+  });
+
+  it("drops the tab stop once a button is added to content that scrolled with none", async () => {
+    const { viewport, area } = await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+    await act(async () => {
+      viewport.prepend(area.ownerDocument.createElement("button"));
+    });
+    await expect.poll(() => viewport.tabIndex).toBe(-1);
+  });
+
   it("lets the page scroll on once the area reaches its end, unless contain is set", async () => {
     const { viewport } = await render(
       <ScrollArea className="h-40" label="Method">
@@ -325,7 +348,9 @@ describe("ScrollArea development messages", () => {
 
   it.each([
     ["a label", 0, <ScrollArea className="h-40" label="Method">{tall}</ScrollArea>],
-    ["a focusable child", 0, <ScrollArea className="h-40"><a href="#top">Top</a>{tall}</ScrollArea>],
+    // A focusable child can already take focus and scroll the viewport to it, so the viewport
+    // itself needs no tab stop of its own, and so no name either.
+    ["a focusable child", -1, <ScrollArea className="h-40"><a href="#top">Top</a>{tall}</ScrollArea>],
     ["content that fits", -1, <ScrollArea className="h-40"><p>Short</p></ScrollArea>],
   ] as const)("does not ask for a name with %s", async (_name, tabIndex, node) => {
     const { viewport } = await render(node);
