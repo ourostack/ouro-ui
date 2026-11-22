@@ -55,10 +55,6 @@ function useFindHighlights(options: {
     return false;
   };
   const scrollRef = useRef(scrollToCurrent);
-  // Stryker disable next-line BlockStatement: scrollToCurrent reads only refs, so the first render's closure behaves the same as each later one.
-  useLayoutEffect(() => {
-    scrollRef.current = scrollToCurrent;
-  });
   useLayoutEffect(
     () => () => {
       /* istanbul ignore else @preserve -- the effect below never draws without the API, so there is nothing to delete */

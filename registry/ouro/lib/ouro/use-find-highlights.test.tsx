@@ -20,7 +20,7 @@ const rows = [
   { key: "c", text: "a last fox" },
 ];
 
-function Harness({ query, current, reduced = false, tall = false, roomy = false, none = false, stray = false, shortA = false, fold, locale }: { stray?: boolean; shortA?: boolean; none?: boolean; fold?: "none" | "case" | "accents" | "all"; locale?: string; query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean }) {
+function Harness({ query, current, reduced = false, tall = false, roomy = false, none = false, stray = false, shortA = false, hideLast = false, fold, locale }: { hideLast?: boolean; stray?: boolean; shortA?: boolean; none?: boolean; fold?: "none" | "case" | "accents" | "all"; locale?: string; query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean }) {
   const scroller = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const find = { query, ...(fold ? { fold } : {}), ...(locale ? { locale } : {}) };
@@ -29,7 +29,7 @@ function Harness({ query, current, reduced = false, tall = false, roomy = false,
   return (
     <div ref={scroller} data-testid="scroller" style={{ height: roomy ? 300 : 80, overflow: "auto" }}>
       <div ref={content}>
-        {rows.map((row, index) => (
+        {rows.filter((row) => !(hideLast && row.key === "c")).map((row, index) => (
           <p key={row.key} data-key={row.key} style={{ margin: 0, height: tall ? 400 : roomy ? 60 : undefined }}>
             <span data-ouro-message-content="" data-index={index}>
               {shortA && row.key === "a" ? "one fox" : row.text}
@@ -55,6 +55,8 @@ async function mount(props: Parameters<typeof Harness>[0]) {
   await act(async () => root.render(<Harness {...props} />));
   return { host, root };
 }
+
+const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 const drawn = (name: string) => [...(CSS.highlights.get(name) ?? [])].map((range) => range.toString());
 
@@ -178,6 +180,37 @@ describe("useFindHighlights", () => {
     await mount({ query: "last", current: 0, roomy: true });
     expect(drawn(CURRENT_MATCH)).toEqual(["last"]);
     expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("keeps owing the scroll to a match that was not drawn until it is in view, then stops owing it", async () => {
+    const scrollTo = vi.spyOn(HTMLElement.prototype, "scrollTo").mockImplementation(() => undefined);
+    const { root } = await mount({ query: "last", current: 0, tall: true, hideLast: true });
+    expect(scrollTo).not.toHaveBeenCalled();
+    await act(async () => root.render(<Harness query="last" current={0} tall />));
+    await expect.poll(() => scrollTo.mock.calls.length).toBe(1);
+    await act(async () => root.render(<Harness query="last" current={0} tall shortA />));
+    await expect.poll(() => scrollTo.mock.calls.length).toBe(2);
+    await act(async () => root.render(<Harness query="last" current={0} roomy />));
+    await act(async () => root.render(<Harness query="last" current={0} roomy shortA={false} />));
+    await expect.poll(() => scrollTo.mock.calls.length).toBe(2);
+    scrollTo.mockClear();
+    await act(async () => root.render(<Harness query="last" current={0} tall />));
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("owes no scroll once the match was in view when it was drawn, so a later draw leaves where the reader went", async () => {
+    const scrollTo = vi.spyOn(HTMLElement.prototype, "scrollTo").mockImplementation(() => undefined);
+    for (const hidden of [false, true]) {
+      scrollTo.mockClear();
+      const { root } = await mount({ query: "last", current: 0, roomy: true, hideLast: hidden });
+      await act(async () => root.render(<Harness query="last" current={0} roomy />));
+      await frame();
+      await frame();
+      await act(async () => root.render(<Harness query="last" current={0} tall shortA />));
+      await frame();
+      await frame();
+      expect(scrollTo).not.toHaveBeenCalled();
+    }
   });
 
   it("scrolls up to a match above the view, leaving room above it", async () => {

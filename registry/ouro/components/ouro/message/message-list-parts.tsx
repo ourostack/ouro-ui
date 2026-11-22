@@ -50,7 +50,6 @@ function MessageFindLayer({
   onMarks: (marks: string) => void;
   request: RefObject<(next: { key: string; id: null; child: boolean; forward: boolean; focus: boolean; block: "center" }) => void>;
 }): null {
-  // Stryker disable next-line ArrayDeclaration: the callback is a state setter, which never changes, so its dependencies make no difference.
   useLayoutEffect(() => onMarks(findMarkClasses), [onMarks]);
   const reduced = useReducedMotion();
   const { query, fold, locale } = find;
