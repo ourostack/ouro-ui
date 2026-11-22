@@ -1,7 +1,7 @@
 // The presets the shared header's theme picker switches between, as on the voyage pages.
 import "../themes/presets.generated.css";
 import "../themes/by-preset.css";
-import type { JSX, ReactNode } from "react";
+import { lazy, Suspense, type JSX, type ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
@@ -23,7 +23,6 @@ import { Markdown, parse, prose, type Block } from "../docs/markdown";
 import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, repositoryLink, type DocsPage } from "../docs/pages";
 import { href, routeFor } from "../routes";
 import { latestRelease } from "../latest-release";
-import ChatDemo from "../docs/chat-demo";
 import spoonjoy from "../docs/spoonjoy.json";
 import shipComponents from "../docs/ship-components.json";
 import { SHIP_PAGES } from "../docs/ships";
@@ -506,13 +505,19 @@ export function Switching(): JSX.Element {
   );
 }
 
+// A glob, so the docs shell's stylesheet does not scan the chat components; the page links the whole build.
+const chatDemoModules = import.meta.glob<{ default: () => JSX.Element }>("../docs/chat-demo.tsx");
+const ChatDemo = lazy(Object.values(chatDemoModules)[0]!);
+
 export function ChatDemoPage(): JSX.Element {
   return (
     <DocsShell current="/docs/chat-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A chat app" }}>
       <Lead>
         The chat components together, with made-up people: a conversation list, messages with a thread, a typing line, read receipts, and a plain and a rich composer. Try the keyboard, a narrow window and dark mode.
       </Lead>
-      <ChatDemo />
+      <Suspense fallback={null}>
+        <ChatDemo />
+      </Suspense>
     </DocsShell>
   );
 }
