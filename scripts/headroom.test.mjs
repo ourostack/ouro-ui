@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { exemptionProblems, headroomProblems, headroomReason, ratchetProblems, readExemptions, staleExemptions } from "./headroom.mjs";
+import { changedFiles, exemptionProblems, judge, headroomProblems, headroomReason, ratchetProblems, readExemptions, staleExemptions } from "./headroom.mjs";
 
 const named = (test) => ({ test, reason: "slow", owner: "drain-3" });
 
@@ -65,4 +65,28 @@ test("the exemption count only goes down: a larger file fails unless the descrip
 test("headroomReason reads the line, not a mention", () => {
   assert.equal(headroomReason("text headroom: long enough reason"), null);
   assert.equal(headroomReason("a\nHeadroom: long enough reason\nb"), "long enough reason");
+});
+
+test("a breach on a push to main annotates and stays green; a pull request fails it only in a changed file", () => {
+  const tests = [{ name: "site (chromium) a.test.tsx > slow", file: "a.test.tsx", durationMs: 17_000, timeoutMs: 30_000 }];
+  const push = judge({ tests, exemptions: [], event: "push", changed: null });
+  assert.deepEqual(push.failures, []);
+  assert.equal(push.breaches.length, 1);
+  assert.match(push.warnings[0], /^::warning title=Headroom::\[ouro-ui\] Headroom: site \(chromium\) a\.test\.tsx > slow took 17\.0 s against a budget of 30\.0 s/);
+  for (const event of ["merge_group", "schedule"]) assert.deepEqual(judge({ tests, exemptions: [], event, changed: null }).failures, []);
+  const pull = judge({ tests, exemptions: [], event: "pull_request", changed: new Set(["a.test.tsx"]) });
+  assert.equal(pull.failures.length, 1);
+  assert.deepEqual(pull.warnings, []);
+  assert.deepEqual(judge({ tests, exemptions: [], event: "pull_request", changed: new Set(["b.test.tsx"]) }).failures, []);
+  assert.equal(judge({ tests, exemptions: [], event: undefined, changed: null }).failures.length, 1);
+});
+
+test("a malformed exemption fails the run on main too", () => {
+  assert.equal(judge({ tests: [], exemptions: [{ test: "x", reason: "", owner: "o" }], event: "push", changed: null }).failures.length >= 1, true);
+});
+
+test("changedFiles reads a pull request's files, and judges every test where it gets none", () => {
+  assert.deepEqual([...changedFiles("a.test.tsx\n b/c.test.ts \n\n")], ["a.test.tsx", "b/c.test.ts"]);
+  assert.equal(changedFiles(undefined), null);
+  assert.equal(changedFiles(" \n"), null);
 });
