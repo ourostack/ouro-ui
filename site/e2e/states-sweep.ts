@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { recordMatched } from "./waivers";
+import { instability, wantsRetake } from "./stable-take";
 import { describe, LOOK_SELECTOR, Looks, picture, quiet, routeGuard, routes, settled } from "./looks";
 
 // Every control, as each page shows it, is put through hover, keyboard focus and press, in both engines and
@@ -55,6 +56,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
     page.setDefaultTimeout(5_000);
     await context.addInitScript((m) => localStorage.setItem("ouro-site-theme", JSON.stringify({ preset: "pearl", mode: m })), mode);
     const found: string[] = [];
+    const unsteady: string[] = [];
     const looks = new Looks();
     const taken = new Map<string, number>();
     const guard = routeGuard(context, page);
@@ -120,7 +122,12 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
             if (!look) return;
             const tagged = { ...look, key: `${look.key}|${state}` };
             const label = await control.evaluate((el) => (el.getAttribute("aria-label") || el.closest("label, [data-ouro]")?.textContent || "").trim().slice(0, 40));
-            looks.add(path, tagged, tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null, label);
+            const shot = tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null;
+            if (shot && wantsRetake(process.env["OURO_SWEEP_RETAKE"], tagged.key)) {
+              const unstable = instability(shot, await picture(page, i), { signature: tagged.key, page: path, state });
+              if (unstable) unsteady.push(unstable);
+            }
+            looks.add(path, tagged, shot, label);
           };
           // Nothing keeps focus into the hover and press reads: a control focused before (by the page, or by the last
           // control's press handing focus to a sibling) would read its focus ring as part of the hover (#2235).
@@ -143,6 +150,8 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
     for (const side of looks.sides()) console.log(`SIDES ${browserName} ${mode}: ${side}`);
     expect.soft(guard.skipped.length, `routes skipped as too slow: ${guard.skipped.join(", ")}`).toBeLessThanOrEqual(3);
     recordMatched(`states-${mode}-${chunk}-${browserName}`);
+    for (const f of unsteady) console.log(`FINDING ${browserName} ${mode}: ${f}`);
+    expect.soft(unsteady, "a control's picture differs between two takes in a state").toEqual([]);
     expect.soft([...new Set(found)], "a control leaves its shape in a state").toEqual([]);
     expect.soft(looks.differences(), "a control's properties differ from page to page in a state").toEqual([]);
     expect.soft(looks.pixelDifferences(), "a control's picture differs from page to page in a state").toEqual([]);
