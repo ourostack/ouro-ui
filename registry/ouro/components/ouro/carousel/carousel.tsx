@@ -280,7 +280,13 @@ export function Carousel(props: CarouselProps): JSX.Element {
   // but not while a finger is down: a finger held still mid-swipe has not chosen a slide.
   // A pause is not proof the scroll is over (a busy page delays scroll events past it), so
   // it settles only when the position then holds still for two frames and, after a button
-  // press, has reached the slide the press is heading to.
+  // press, has reached the slide the press is heading to. `scrollend` itself is not proof
+  // either: a press that lands while an earlier smooth scroll is still under way can fire
+  // `scrollend` for the scroll it interrupted, at a slide the carousel never meant to stop
+  // on, before the new scroll it started has reached — or even begun moving toward — the
+  // slide it is heading to. So `scrollend` settles only when the position already matches
+  // that heading (a press landing right as a real scroll ends still settles at once); a
+  // mismatch waits like a pause, for the scroll that is actually still under way to end.
   useEffect(() => {
     const viewport = viewportRef.current!;
     const fallback = !("onscrollend" in HTMLElement.prototype);
@@ -328,6 +334,15 @@ export function Carousel(props: CarouselProps): JSX.Element {
       stopWaiting();
       if (!touching) timer = setTimeout(check, 150);
     };
+    // scrollend fires the moment the browser decides a scroll stopped, so it is trusted only
+    // when the position it reports is where the latest press is heading (or no press is
+    // pending): still mid-way there means this scrollend belongs to a scroll it interrupted,
+    // so it is treated as a pause instead, which keeps waiting for the real end.
+    const onScrollEnd = () => {
+      const target = heading.current;
+      if (target !== undefined && Math.min(nearestSlide(viewport), latest.current.lastIndex) !== target) return wait();
+      settle();
+    };
     const onTouchStart = () => {
       touching = true;
       stopWaiting();
@@ -341,14 +356,14 @@ export function Carousel(props: CarouselProps): JSX.Element {
       viewport.addEventListener("touchstart", onTouchStart, { passive: true });
       viewport.addEventListener("touchend", onTouchEnd, { passive: true });
       viewport.addEventListener("touchcancel", onTouchEnd, { passive: true });
-    } else viewport.addEventListener("scrollend", settle);
+    } else viewport.addEventListener("scrollend", onScrollEnd);
     return () => {
       stopWaiting();
       viewport.removeEventListener("scroll", wait);
       viewport.removeEventListener("touchstart", onTouchStart);
       viewport.removeEventListener("touchend", onTouchEnd);
       viewport.removeEventListener("touchcancel", onTouchEnd);
-      viewport.removeEventListener("scrollend", settle);
+      viewport.removeEventListener("scrollend", onScrollEnd);
     };
   }, []);
 

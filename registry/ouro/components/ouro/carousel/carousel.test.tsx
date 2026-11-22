@@ -893,6 +893,23 @@ describe("Carousel motion", () => {
     expect(record.texts).toEqual(["Smooth 3 of 5", "Smooth 5 of 5"]);
     record.stop();
   });
+
+  it("ignores a scrollend the browser fires early, while the press it belongs to is still moving", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" slideLabel="Early {n} of {total}" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    await userEvent.click(screen.button("Next slide"));
+    // A browser (WebKit) can dispatch scrollend for a smooth scroll before it has reached
+    // its target. Firing it here, while the press above is still under way, must not settle
+    // on whatever half-finished position the viewport is passing through.
+    screen.viewport.dispatchEvent(new Event("scrollend"));
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+    expect(onIndexChange).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("Carousel development messages", () => {
