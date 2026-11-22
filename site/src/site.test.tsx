@@ -1156,15 +1156,37 @@ describe("docs", () => {
     for (const name of names) expect(routes.map((route) => route.path)).toContain(`/docs/${name}/`);
   });
 
-  it.each(sliced(docsItems, "site: docs items"))("docs/$name shows a live demo, the init step, both install commands, the tests item and the guard props", async ({ name }) => {
+  it.each(sliced(docsItems, "site: docs items"))("docs/$name shows a live demo, the init step, the add commands, the tests item in a closed More ways, and the guard props", async ({ name }) => {
     await renderPage(`/docs/${name}/`);
     await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease}`, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`npx shadcn@latest add @ouro/ouro-base @ouro/${name}`, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease} ourostack/ouro-ui/${name}-tests#${latestRelease}`, { exact: true })).toBeVisible();
+    const more = page.getByRole("button", { name: "More ways" });
+    await expect.element(more).toHaveAttribute("aria-expanded", "false");
+    const namespace = page.getByText(`npx shadcn@latest add @ouro/ouro-base @ouro/${name}`, { exact: true });
+    const tests = page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease} ourostack/ouro-ui/${name}-tests#${latestRelease}`, { exact: true });
+    expect(namespace.element()).toBeTruthy();
+    await expect.element(namespace).not.toBeVisible();
+    await expect.element(tests).not.toBeVisible();
+    more.element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(more).toHaveAttribute("aria-expanded", "true");
+    await expect.element(namespace).toBeVisible();
+    await expect.element(tests).toBeVisible();
     await expect.element(page.getByRole("region", { name: "Live demo" })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Props", level: 2 })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Use instead when", level: 2 })).toBeVisible();
+  });
+
+  it("draws the More ways trigger the same on every docs page: one box, colour and padding", async () => {
+    const seen: string[] = [];
+    for (const name of ["badge", "dialog", "button", "tabs", "text-field"]) {
+      await renderPage(`/docs/${name}/`);
+      const trigger = page.getByRole("button", { name: "More ways" }).element() as HTMLElement;
+      const box = trigger.getBoundingClientRect();
+      const cs = getComputedStyle(trigger);
+      seen.push([Math.round(box.width), Math.round(box.height), cs.color, cs.paddingInline, cs.textDecorationLine].join("|"));
+    }
+    expect(new Set(seen).size, seen.join("\n")).toBe(1);
   });
 
   it("is lost at sea at an address with no page: the way home, a guess at what it meant, and a search", async () => {
@@ -1604,15 +1626,23 @@ describe("platforms", () => {
 });
 
 describe("install addresses", () => {
+  // The page scan reads the rendered text, and the commands under a closed disclosure too: innerText leaves those out.
+  const textNodes = (root: Node): string[] => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const found: string[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) found.push(node.textContent ?? "");
+    return found;
+  };
+  const pageText = () => [document.body.innerText, ...[...document.querySelectorAll("[data-ouro=\"collapsible\"]")].flatMap(textNodes)].join("\n");
+
   it.each(sliced(routes, "site: pins"))("$path pins each ourostack/ouro-ui address to a release, or says it is for contributors", async ({ path }) => {
     await renderPage(path);
-    expect(unpinnedAddresses(document.body.innerText)).toEqual([]);
+    expect(unpinnedAddresses(pageText())).toEqual([]);
   });
 
-  // The page scan reads the rendered text: an item's docs page names its install addresses there.
   it("finds the install addresses on an item's docs page", async () => {
     await renderPage("/docs/dialog/");
-    expect(document.body.innerText.split("ourostack/ouro-ui/").length - 1).toBeGreaterThan(2);
+    expect(pageText().split("ourostack/ouro-ui/").length - 1).toBeGreaterThan(2);
   });
 
   it("marks every control on a docs page with its Ouro item, so X-ray names it", async () => {
@@ -1624,4 +1654,3 @@ describe("install addresses", () => {
     }
   });
 });
-

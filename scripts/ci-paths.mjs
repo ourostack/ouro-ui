@@ -35,6 +35,7 @@ export const scoped = [
     reason: "the platform parity data, which only the site's Apple pages, the site tests and the Node script tests read; no component or install reads it",
   },
   { pattern: /^scripts\/latency-shards\.mjs$/, tiers: ["heavy"], components: false, reason: "the latency shard table, which only the heavy tier's latency shards read" },
+  { pattern: /^\.github\/headroom\.json$/, tiers: ["browser"], components: false, reason: "the tests the browser shards may run past half their timeout, which changes no test" },
   { pattern: /^scripts\/(shard\.mjs|shard-timings\.json|vitest-shards\.mts)$/, tiers: ["browser"], components: false, reason: "how the browser shards split their tests, which changes no test" },
   {
     pattern: /^scripts\/(install-test\.sh|install-delta\.mjs|raw-fetch-retry\.mjs|raw-fetch-retry-preload\.mjs|upgrade-note\.mjs|split-items\.mjs)$/,
@@ -52,7 +53,7 @@ export const runsAll = {
     "a11y-evidence/", "addresses.d.mts", "addresses.mjs", "adoption/", "agent-benchmark/", "agent-usability/", "apple-release.mjs", "attribution.mjs", "ax-docs.mts",
     "browser-deps.sh", "catalog-groups.mts", "changes.mjs", "check/", "ci-paths.mjs", "ci-relevance.mjs", "claims.mjs", "components.mts", "conformance-exemptions.mjs", "control-matrix.mts",
     "core-bundle.mts", "coverage-merge.mjs", "cross-kit/", "docs-summary.mts", "drift/", "fixtures/", "form-answer-impact.mjs", "gen-docs.mts", "generate.mjs",
-    "generated-files.d.mts", "generated-files.mjs", "git-hooks/", "goto-timeout-reporter.mjs", "images/", "install-check.mjs", "install-folders.mts", "install-hooks.mjs",
+    "generated-files.d.mts", "generated-files.mjs", "git-hooks/", "goto-timeout-reporter.mjs", "headroom-ratchet.mjs", "headroom-reporter.mts", "headroom.d.mts", "headroom.mjs", "images/", "install-check.mjs", "install-folders.mts", "install-hooks.mjs",
     "kit-pin.mjs", "kits/", "latency-quiet.mjs", "latest-release.mjs", "local-test-gate.sh", "layout-animation-allowed.json", "links.mjs", "lint/", "mcp-app.mts", "mcp-app/", "mirror/", 
     "motion-coverage.mts", "motion-reporter.mts", "motion-states.mts", "mutation.mjs", "mutation/", "namespace.sh", "ouro-actions/", "parity-matrix.mjs",
     "parity-rows.d.mts", "parity-rows.mjs", "part-names-baseline.json", "part-names.mts", "pattern-size.json", "pattern-size.mjs", "physical-allowed.json", "pin-only.mjs", "platform-parity.mjs", "platform-versions.mjs",
