@@ -410,6 +410,18 @@ describe("the stage's controls", () => {
 });
 
 describe("the console's instruments", () => {
+  it("keeps Speed's label clear of the depth readout at every width the console takes", async () => {
+    for (const width of [390, 1100, 1280, 1500]) {
+      await page.viewport(width, 900);
+      await renderPage("/");
+      const readout = document.querySelector<HTMLElement>(".stage-depth-head .stage-readout")!.getBoundingClientRect();
+      const speed = document.querySelector<HTMLElement>(".stage-speed-head")!.getBoundingClientRect();
+      const apart = readout.right + 8 <= speed.left || speed.right <= readout.left || readout.bottom <= speed.top || speed.bottom <= readout.top;
+      expect(apart, `at ${width}px the Speed label overlaps the depth readout`).toBe(true);
+      await cleanupPage();
+    }
+  });
+
   it("are the porthole's brass and glass in every look: brass bezels on the sight glasses, a brass pipe and a brass-rimmed lamp", async () => {
     await renderPage("/");
     const context = document.createElement("canvas").getContext("2d")!;

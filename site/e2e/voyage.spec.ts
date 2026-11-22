@@ -310,17 +310,22 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   // real clock: the theme picker's popup stays open until it is closed; no timer ends it.
   await expect(popup).toBeVisible();
   expect(await page.evaluate(() => scrollY)).toBe(0);
-  // The themes are a row of buttons, Live first; Tab walks them, Enter picks one.
+  // The themes are a row of buttons and one Tab stop, the chosen one's: arrows walk them, Enter picks one.
   const themes = popup.getByRole("group", { name: "Themes" });
-  for (const name of ["Live", "Pearl", "Abyss"]) {
-    await pressTab(page);
-    await expect(themes.getByRole("button", { name, exact: true })).toBeFocused();
+  const theme = (name: string) => themes.getByRole("button", { name, exact: true });
+  await pressTab(page);
+  await expect(theme("Pearl")).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(theme("Live")).toBeFocused();
+  for (const name of ["Pearl", "Abyss"]) {
+    await page.keyboard.press("ArrowRight");
+    await expect(theme(name)).toBeFocused();
   }
   await page.keyboard.press("Enter");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "abyss");
   for (const name of ["Brass", "Chart", "Coral", "Cookbook"]) {
-    await pressTab(page);
-    await expect(themes.getByRole("button", { name, exact: true })).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(theme(name)).toBeFocused();
   }
   // The stored mode is light, so Tab lands on Surfaced, the checked one; one arrow on is Submerged.
   await pressTab(page);
