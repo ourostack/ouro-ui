@@ -219,12 +219,12 @@ export default function AppleHome(): JSX.Element {
       <Container className="apple-soon">
         <p className="site-eyebrow">Where it stands</p>
         <p className="apple-soon-line">
-          {claim("Ouro UI for Apple 1.7.0 has twenty components, the foundations, the X-ray, Ouro Feel, Ouro Reins and OuroA2UI (agent-composed UI, with fields and ComposedTree since 1.1, and an agent's updates to a card since 1.2). From 1.0, its public API is source-stable, and 1.1 and 1.2 only add to it.", {
+          {claim("Ouro UI for Apple 1.8.0 has twenty components, the foundations, the X-ray, Ouro Feel, Ouro Reins and OuroA2UI (agent-composed UI, with fields and ComposedTree since 1.1, and an agent's updates to a card since 1.2). From 1.0, its public API is source-stable, and 1.1 and 1.2 only add to it.", {
             source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/d8d336c19d3bc8216571d3163c596532130cc130/README.md#whats-in-the-box" },
             verify: [
-              { equals: "site/src/apple/kit.json#release", is: "1.7.0" },
+              { equals: "site/src/apple/kit.json#release", is: "1.8.0" },
               { count: "site/src/apple/kit.json#components", is: 20 },
-              { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.7.0" },
+              { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.8.0" },
               { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/d8d336c19d3bc8216571d3163c596532130cc130/README.md#whats-in-the-box" },
             ],
           })}{" "}
