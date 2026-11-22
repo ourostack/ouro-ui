@@ -1,0 +1,137 @@
+[
+  {
+    "test": "ouro-chromium (chromium) registry/ouro/components/ouro/form/form.test.tsx > Form error summary > has no summary and no alert when the only field with an error cannot take focus",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-chromium (chromium) registry/ouro/components/ouro/message/message-list.actions.test.tsx > MessageList actions > draws one bar for the whole list, on the message the pointer is over, and listens the same for a hundred messages as for two",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-chromium (chromium) registry/ouro/components/ouro/message/message-list.switching.test.tsx > MessageList switching conversations > keeps a partial re-key's rows at their own heights: sliding the window by one message leaves the list as tall as it was",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-chromium (chromium) registry/ouro/components/ouro/select/select.test.tsx > Select under a parent's spacing > keeps the 16px that space-y-4 puts between the Select and the button below it",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-touch (chromium) registry/ouro/lib/ouro/testing/commands.touch.test.ts > on a page zoomed and panned by touch, the kit waits for the frame where the touch lands",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-touch (chromium) registry/ouro/lib/ouro/testing/press.touch.test.ts > fails on an element with no pressed tint",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-touch (chromium) registry/ouro/lib/ouro/testing/press.touch.test.ts > leaves no listener or data-press-target behind, even after a failure",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > clears a form-owned field refusal when a calendar pick changes its value",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox > leaves the rest of the page exposed while its list is open, so the gate passes from the page's main landmark",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/command/command.test.tsx > Command > scrolls a long list by the arrow keys from the search, which keeps focus and Tab, and passes axe",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/command/command.test.tsx > Command motion > fades and scales in from 0.96 on the Dialog's slow token, and only fades with reduced motion",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/inspector/inspector.test.tsx > Inspector > leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/message/message-list.switching.test.tsx > MessageList switching conversations > keeps a partial re-key's rows at their own heights: sliding the window by one message leaves the list as tall as it was",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/message/message-list.switching.test.tsx > MessageList switching conversations > opens the newest message when every message gets a new key with no conversation named, as another conversation's messages would",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/message/message-list.windowing.test.tsx > MessageList windowing > measures each child by what it draws, its margins too, so once scrolled through it is exactly as tall as the whole list",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/popover/popover.test.tsx > Popover > keeps its fixed sizes at a compact --spacing: an 18rem panel",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/reorderable/reorderable.test.tsx > Reorderable > disabled > reorders again once it turns off, and marks no handle unavailable",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/reorderable/reorderable.test.tsx > Reorderable > disabled > with disabledReason, turns reordering off by itself, describes every handle by the reason and shows it as a tooltip",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/skeleton/skeleton.test.tsx > Skeleton > places a placeholder in the wave: a new wave after a quiet gap of more than a second, else the running one",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) test/motion.test.ts > the motion matrix > checklist's stories expose no state its motion map leaves out",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) test/stories.test.tsx > at 1280 px > light > Lightbox/MosaicWithMore has no axe violations, closed and with each overlay open",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) test/stories.test.tsx > at 390 px > light > TimeGrid/BackgroundEvents has no axe violations, closed and with each overlay open",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "site (chromium) site/src/gallery.test.tsx > an open Sheet demo at 1280 px > has no overflow or axe violations in dark",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "site (chromium) site/src/gallery.test.tsx > an open Sheet demo at 1280 px > has no overflow or axe violations in light",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "site (chromium) site/src/site.test.tsx > home page > sets the headline at one height in every look beside the story, so choosing a look moves nothing below it",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "squircle-chromium-fallback (chromium) registry/ouro/lib/ouro/squircle/csp.test.ts > under style-src 'self' > bridges native corner-shape with no <style> element and nothing refused",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "squircle-webkit-fallback (webkit) registry/ouro/lib/ouro/squircle/parse.test.ts > isTransparentColor > detects transparent colors",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  }
+]

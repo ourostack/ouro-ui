@@ -3652,3 +3652,10 @@ test("browser and fallback shards upload a failed test's screenshots, so a timeo
     );
   }
 });
+
+test("the browser shards hold each test to half its timeout: vitest.config.ts adds the headroom reporter to a browser shard only, and the browser job runs a shard", () => {
+  const config = readFileSync(join(root, "vitest.config.ts"), "utf8");
+  assert.match(config, /\.\.\.\(browserShard \? \[new HeadroomReporter\(\)\] : \[\]\)/);
+  assert.match(ciJobs().browser, /vitest run[^\n]*--shard=/);
+  assert.ok(existsSync(join(root, ".github/headroom.json")));
+});
