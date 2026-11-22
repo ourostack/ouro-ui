@@ -499,7 +499,8 @@ jobs:
       # are read at its base, and the addresses it adds to the cache or changes are fetched again.
       # The ratchet runs here too, in a required check: what the pull request adds to, changes in
       # or removes from claims.config.json's exemptions must be named in its description, and so
-      # must each file that gains a `// real clock:` escape (scripts/real-clock-ratchet.mjs). The
+      # must each file that gains a `// real clock:` escape (scripts/real-clock-ratchet.mjs); a larger
+      # .github/headroom.json needs a `headroom:` reason (scripts/headroom-ratchet.mjs). The
       # description is read as it is now, since a re-run replays the event the run started with: an
       # edited description and a re-run are enough. When GitHub doesn't answer, the event's copy is read.
       - name: Claims
@@ -519,6 +520,7 @@ jobs:
             git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
             CLAIMS_BASE_REF="HEAD^1" node scripts/claims.mjs ratchet
             REAL_CLOCK_BASE_REF="HEAD^1" node scripts/real-clock-ratchet.mjs
+            HEADROOM_BASE_REF="HEAD^1" node scripts/headroom-ratchet.mjs
             PATCH_GUARD_BASE_REF="HEAD^1" node scripts/patch-guard.mjs
             CLAIMS_BASE_REF="HEAD^1" pnpm claims:check --network=changed
           else

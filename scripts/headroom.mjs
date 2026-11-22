@@ -51,3 +51,18 @@ export function headroomProblems(tests, exemptions) {
   }
   return problems;
 }
+
+/** The reason on a `headroom: <reason>` line of the description, or null when there is none or it is under ten characters. */
+export function headroomReason(body) {
+  for (const [, reason] of body.matchAll(/^[ \t]*headroom:[ \t]*(.*?)[ \t]*$/gim)) if (reason.length >= 10) return reason;
+  return null;
+}
+
+/**
+ * The exemption count only goes down: a head file with more entries than the base's (a wildcard entry counts once)
+ * fails unless the pull request's description has a `headroom: <reason>` line.
+ */
+export function ratchetProblems({ base, head, body }) {
+  if (head.length <= base.length || headroomReason(body) !== null) return [];
+  return [`[ouro-ui] Headroom: .github/headroom.json grows from ${base.length} to ${head.length} exemptions. Fix: make the test faster instead, or put "headroom: <why it cannot be>" on its own line in the pull request's description.`];
+}
