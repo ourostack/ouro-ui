@@ -51,7 +51,7 @@ interface RichEditorProps {
   handleRef: Ref<RichEditorHandle>;
   /** Points an app's ref, such as Autocomplete's, at the editor's element, which reads and selects text as a textarea does. */
   controlRef?: Ref<HTMLDivElement> | undefined;
-  /** The handlers Autocomplete watches; the editor announces an input after each change the person makes. */
+  /** The handlers Autocomplete watches; the editor announces an input after a change the person makes. */
   onInput?: FormEventHandler<HTMLDivElement> | undefined;
   onSelect?: ((event: SyntheticEvent<HTMLDivElement>) => void) | undefined;
   onFocus?: FocusEventHandler<HTMLDivElement> | undefined;

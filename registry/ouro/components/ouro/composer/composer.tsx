@@ -247,7 +247,7 @@ export interface ComposerOwnProps {
    * address pasted over selected text links it, and ⌘K links the selection or takes its link off.
    * An `Autocomplete` around the composer works as around the plain box, for mentions and emoji
    * shortcodes: `ref` is the editor's element, which answers `value`, `selectionStart` and
-   * `selectionEnd` over the text without its marks, and an input method's composition never picks.
+   * `selectionEnd` over the text without its marks, and an input method's composition does not pick.
    * Attachments show as they do on the plain box. In rich mode `highlights`, `catalogue`, `onPaste`
    * and `pasteText` do not apply, and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
    *
