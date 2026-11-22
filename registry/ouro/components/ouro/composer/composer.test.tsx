@@ -109,6 +109,47 @@ describe("Composer conversation", () => {
   });
 });
 
+describe("Composer drafts", () => {
+  it("gives a draft back when the person returns to its conversation", async () => {
+    const view = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    await userEvent.type(view.textarea, "half a thought");
+    await view.rerender(<Composer label="Message" conversation="b" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("");
+    await view.rerender(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("half a thought");
+  });
+
+  it("gives a draft back in the rich editor", async () => {
+    const view = await render(<Composer label="Message" format="rich" conversation="a" onSend={() => {}} />);
+    const editor = () => view.host.querySelector<HTMLElement>('[contenteditable="true"]')!;
+    await expect.poll(editor).not.toBeNull();
+    await userEvent.type(editor(), "half a thought");
+    await view.rerender(<Composer label="Message" format="rich" conversation="b" onSend={() => {}} />);
+    await expect.poll(() => editor().textContent).toBe("");
+    await view.rerender(<Composer label="Message" format="rich" conversation="a" onSend={() => {}} />);
+    await expect.poll(() => editor().textContent).toBe("half a thought");
+  });
+
+  it("keeps only the most recent drafts, so many conversations do not grow it without limit", async () => {
+    const view = await render(<Composer label="Message" conversation="c0" onSend={() => {}} />);
+    await userEvent.type(view.textarea, "first");
+    for (let i = 1; i <= 51; i++) {
+      await view.rerender(<Composer label="Message" conversation={`c${i}`} onSend={() => {}} />);
+      await userEvent.type(view.textarea, `draft ${i}`);
+    }
+    await view.rerender(<Composer label="Message" conversation="c0" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("");
+    await view.rerender(<Composer label="Message" conversation="c2" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("draft 2");
+  });
+
+  it("leaves a controlled value to the app", async () => {
+    const view = await render(<Composer label="Message" conversation="a" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    await view.rerender(<Composer label="Message" conversation="b" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    expect(view.textarea.value).toBe("mine");
+  });
+});
+
 describe("Composer", () => {
   it("keeps its text box's flex basis at 12rem, and follows a compact --spacing, which sizes it on the spacing scale", async () => {
     const { host } = await render(<Composer label="Message Mia" placeholder="Write a message" onSend={() => {}} />);

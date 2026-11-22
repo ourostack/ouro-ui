@@ -103,8 +103,9 @@ export interface ComposerOwnProps {
   /** The starting text, for an uncontrolled composer, which clears itself after a send. */
   defaultValue?: string | undefined;
   /**
-   * Which conversation this box writes to, such as its id. An uncontrolled composer starts over from `defaultValue` when it
-   * changes, so a draft stays in its own conversation; a controlled one is the app's to reset.
+   * Which conversation this box writes to, such as its id. An uncontrolled composer keeps each conversation's unsent draft in
+   * memory, so it is back when the person returns, and shows `defaultValue` for one with no draft; it holds only the most
+   * recent drafts, and a controlled one is the app's to keep and reset.
    */
   conversation?: string | undefined;
   /** Called with the new text when it changes. */
@@ -316,6 +317,7 @@ export interface ComposerOwnProps {
 export type ComposerProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, keyof ComposerOwnProps | "children"> & ComposerOwnProps;
 
 const sendKeys = ["enter", "mod-enter"] as const;
+const draftLimit = 50;
 
 // One frame for the whole composer, with the field's border and one focus outline while the
 // text has focus; the textarea inside draws neither.
@@ -545,9 +547,15 @@ export function Composer(props: ComposerProps): JSX.Element {
   const modEnter = expanded || sendOnProp === "mod-enter";
   const [own, setOwn] = useState(defaultValue ?? "");
   const [ownConversation, setOwnConversation] = useState(conversation);
+  const drafts = useRef(new Map<string | undefined, string>());
   if (conversation !== ownConversation) {
+    const kept = drafts.current;
+    // The draft left behind waits for its conversation; the oldest of more than `draftLimit` are dropped.
+    kept.delete(ownConversation);
+    if (own !== "") kept.set(ownConversation, own);
+    if (kept.size > draftLimit) kept.delete(kept.keys().next().value);
     setOwnConversation(conversation);
-    setOwn(defaultValue ?? "");
+    setOwn(kept.get(conversation) ?? defaultValue ?? "");
   }
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
