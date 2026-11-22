@@ -536,6 +536,8 @@ export function Composer(props: ComposerProps): JSX.Element {
   }, [formatMode]);
   // Stryker disable next-line LogicalOperator,ConditionalExpression: the effect clears the loaded editor when the format changes, so only one render between them could tell.
   const richOn = formatMode === "rich" && rich !== undefined;
+  // Stryker disable next-line LogicalOperator: richOn is true only when rich is loaded, so either side alone reads the same.
+  const ActiveEditor = richOn && rich ? rich.Editor : undefined;
   const focusText = () => (richOn ? richRef.current!.focus() : textareaRef.current!.focus({ preventScroll: true }));
   const id = useId();
   const hasAttachments = Children.toArray(attachments).length > 0;
@@ -738,9 +740,8 @@ export function Composer(props: ComposerProps): JSX.Element {
         )}
         {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. */}
         <div ref={rowRef} data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end">
-          {/* Stryker disable next-line LogicalOperator: richOn is true only when rich is loaded, so either side alone reads the same. */}
-          {richOn && rich ? (
-            <rich.Editor
+          {ActiveEditor ? (
+            <ActiveEditor
               handleRef={richRef}
               label={label}
               value={text}
@@ -752,7 +753,7 @@ export function Composer(props: ComposerProps): JSX.Element {
               rows={rows}
               maxRows={maxRows}
               onKeyDown={keyDown}
-              autoFocus={rich.focus}
+              autoFocus={rich!.focus}
               data-slot="composer-rich"
               className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", expanded && "w-full flex-auto")}
             />
