@@ -109,6 +109,59 @@ describe("Composer conversation", () => {
   });
 });
 
+describe("Composer drafts", () => {
+  it("gives a draft back when the person returns to its conversation", async () => {
+    const view = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    await userEvent.type(view.textarea, "half a thought");
+    await view.rerender(<Composer label="Message" conversation="b" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("");
+    await view.rerender(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("half a thought");
+  });
+
+  it("gives a draft back in the rich editor", async () => {
+    const view = await render(<Composer label="Message" format="rich" conversation="a" onSend={() => {}} />);
+    const editor = () => view.host.querySelector<HTMLElement>('[contenteditable="true"]')!;
+    await expect.poll(editor).not.toBeNull();
+    await userEvent.type(editor(), "half a thought");
+    await view.rerender(<Composer label="Message" format="rich" conversation="b" onSend={() => {}} />);
+    await expect.poll(() => editor().textContent).toBe("");
+    await view.rerender(<Composer label="Message" format="rich" conversation="a" onSend={() => {}} />);
+    await expect.poll(() => editor().textContent).toBe("half a thought");
+  });
+
+  it("keeps only the most recent drafts, and counts a draft written again as recent", async () => {
+    const view = await render(<Composer label="Message" conversation="c0" onSend={() => {}} />);
+    // Set by the native setter, so filling fifty drafts costs no typing.
+    const write = (text: string) =>
+      act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(view.textarea, text);
+        view.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    const go = (id: string) => view.rerender(<Composer label="Message" conversation={id} onSend={() => {}} />);
+    await write("first");
+    await go("c1");
+    await write("second");
+    await go("c0");
+    await write("first again");
+    for (let i = 2; i <= 50; i++) {
+      await go(`c${i}`);
+      await write(`draft ${i}`);
+    }
+    await go("c51");
+    await go("c1");
+    expect(view.textarea.value).toBe("");
+    await go("c0");
+    expect(view.textarea.value).toBe("first again");
+  });
+
+  it("leaves a controlled value to the app", async () => {
+    const view = await render(<Composer label="Message" conversation="a" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    await view.rerender(<Composer label="Message" conversation="b" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    expect(view.textarea.value).toBe("mine");
+  });
+});
+
 describe("Composer", () => {
   it("keeps its text box's flex basis at 12rem, and follows a compact --spacing, which sizes it on the spacing scale", async () => {
     const { host } = await render(<Composer label="Message Mia" placeholder="Write a message" onSend={() => {}} />);
@@ -993,6 +1046,52 @@ describe("Composer expanded", () => {
     await expect.poll(() => textarea.hasAttribute("aria-activedescendant")).toBe(false);
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
     expect(onSend).toHaveBeenCalledWith("Hi @ma", expect.anything());
+  });
+
+  it("leaves a rich composer's editor a multiline textbox with its placeholder without an Autocomplete, and a combobox with neither inside one", async () => {
+    const bare = await render(<Composer label="Bare rich" format="rich" placeholder="Say hi" onSend={() => {}} />);
+    await expect.poll(() => bare.host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    const plain = bare.host.querySelector<HTMLElement>("[data-ouro-composer-editor]")!;
+    expect(plain.getAttribute("role")).toBe("textbox");
+    expect(plain.getAttribute("aria-multiline")).toBe("true");
+    expect(plain.getAttribute("aria-placeholder")).toBe("Say hi");
+    expect(plain.hasAttribute("aria-expanded")).toBe(false);
+    expect(plain.hasAttribute("aria-autocomplete")).toBe(false);
+    const wrapped = await render(
+      <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "mara", label: "Mara Quill" }] }]}>
+        <Composer label="Wrapped rich" format="rich" placeholder="Say hi" onSend={() => {}} />
+      </Autocomplete>,
+    );
+    await expect.poll(() => wrapped.host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    const boxed = wrapped.host.querySelector<HTMLElement>("[data-ouro-composer-editor]")!;
+    expect(boxed.getAttribute("role")).toBe("combobox");
+    expect(boxed.hasAttribute("aria-multiline")).toBe(false);
+    expect(boxed.hasAttribute("aria-placeholder")).toBe(false);
+  });
+
+  it("gives a rich composer's editor the combobox attributes of an open and a closed suggestion list", async () => {
+    const { host } = await render(
+      <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "mara", label: "Mara Quill" }] }]}>
+        <Composer label="Reply rich" format="rich" onSend={() => {}} />
+      </Autocomplete>,
+    );
+    const find = () => host.querySelector<HTMLElement>("[data-ouro-composer-editor]");
+    await expect.poll(find).not.toBeNull();
+    const box = find()!;
+    expect(box.getAttribute("role")).toBe("combobox");
+    expect(box.getAttribute("aria-expanded")).toBe("false");
+    expect(box.getAttribute("aria-autocomplete")).toBe("list");
+    expect(box.hasAttribute("aria-controls")).toBe(false);
+    expect(box.hasAttribute("aria-activedescendant")).toBe(false);
+    box.focus();
+    await userEvent.keyboard("Hi @ma");
+    await expect.poll(() => box.getAttribute("aria-expanded")).toBe("true");
+    expect(document.getElementById(box.getAttribute("aria-controls")!)?.getAttribute("role")).toBe("listbox");
+    await expect.poll(() => box.getAttribute("aria-activedescendant")).toMatch(/\S/);
+    expect(document.getElementById(box.getAttribute("aria-activedescendant")!)?.getAttribute("role")).toBe("option");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => box.getAttribute("aria-expanded")).toBe("false");
+    expect(box.hasAttribute("aria-controls")).toBe(false);
   });
 
   it("keeps the text, focus and the caret when it expands and collapses", async () => {

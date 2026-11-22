@@ -44,6 +44,28 @@ env:
 # off, as the store's path differs there: pnpm i takes about 5 seconds from the network, and a
 # cache that missed cost 10 more to save.
 jobs:
+  yield:
+    # Before the browser shards (22 runners) and the subsets (5) take runners, a pull request waits here, in one cheap
+    # job beside the plan, while main's CI in the org's busy repositories has a job without a runner (the org shares
+    # about 150 concurrent jobs). It never skips or fails: any API error proceeds at once, it stops waiting after 20
+    # minutes, and it is fetched from ourostack/.github's main (tools/yield-to-default-branch). Pushes and merge
+    # groups skip it and never wait.
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      # Pinned to an ourostack/.github commit; to update, change the SHA below to the newest commit touching
+      # tools/yield-to-default-branch there. Fails open: a failed fetch lets the pull request proceed.
+      - name: Yield to the default branch
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsSL --retry 2 --max-time 20 https://raw.githubusercontent.com/ourostack/.github/204693a6d7354d2bf74f144151f0d36f5c1e3798/tools/yield-to-default-branch/yield.mjs -o "$RUNNER_TEMP/yield.mjs" \
+            && node "$RUNNER_TEMP/yield.mjs" || echo "::warning::the yield step could not run; the pull request proceeds"
   plan:
     # Which browser tests this run needs (scripts/test-impact.mjs). A pull request into main runs
     # the tests of the components it changed and of every component that imports them; a change
@@ -575,7 +597,7 @@ jobs:
     # long each file took (`node scripts/shard.mjs refresh`). A shard also fails a test that takes more than half
     # its timeout unless .github/headroom.json names it (scripts/headroom-reporter.mts). Part of the ci check. A
     # pull request that changes nothing they read skips them (the plan's `browser`).
-    needs: [plan]
+    needs: [plan, yield]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}
     runs-on: ubuntu-24.04
     # Shards take about ten minutes (10.5 at most in recent runs), so a hang ends the job in minutes
@@ -707,7 +729,7 @@ jobs:
     # request, the sets that install a selected component): one job per set, beside the browser
     # shards instead of after their tests, so no browser shard waits for one (scripts/subset-coverage.mjs).
     # Part of the ci check. Skipped with the browser shards (the plan's `browser`).
-    needs: [plan]
+    needs: [plan, yield]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}
     runs-on: ubuntu-24.04
     # A hang ends the job in minutes rather than an hour (#671). The step's limit below ends it first.

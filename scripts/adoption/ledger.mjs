@@ -14,6 +14,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { currentTrials } from "../agent-benchmark/page.mjs";
 import { summarize } from "../agent-benchmark/run.mjs";
+import { headline as reviewHeadline, publishedRuns as publishedReviews, seriesOf, tally } from "../model-reviews/page.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const configPath = join(here, "ledger.config.json");
@@ -332,11 +333,93 @@ function readArtifactReport(ctx, repo, artifact, tmp, wanted = "report.json") {
 /** The surfaces a report checks: those its claims are about (`cli`, `mcp`, `tools`, `app-intents`). An action claims report has none. */
 const surfacesOf = (report) => [...new Set((report.claims ?? []).map((claim) => claim.surface).filter((surface) => typeof surface === "string"))].sort();
 
+// ---- A released claim set ----------------------------------------------------------------------------------
+
+const CLAIM_SETS = "scripts/ax-claim-sets.json";
+/** The surfaces Ouro AX's claim set covers; an X-ray of other surfaces (App Intents) checks another kit's claim set. */
+const OURO_AX_SURFACES = ["cli", "http", "mcp", "tools", "ui"];
+
+/** The claim sets an Ouro UI release publishes, newest first, or null when that release publishes none. */
+function releasedClaimSets(ctx, repo, tag) {
+  return ctx.memo(`claim-sets:${repo}:${tag}`, () => {
+    let manifest;
+    try {
+      manifest = JSON.parse(ctx.text(`repos/${repo}/contents/${CLAIM_SETS}?ref=${tag}`));
+    } catch {
+      return null;
+    }
+    return manifest?.tool === "ouro-ax-claim-sets" && Array.isArray(manifest.sets) ? manifest.sets : null;
+  });
+}
+
+/**
+ * How many Ouro UI releases have shipped claim set `set` (by hash) or a newer one: the release it first shipped in, and
+ * every release after it. A release that publishes a claim set lists every one before it too, so the releases listing
+ * `set` are the newest ones, and a binary search finds where they start.
+ */
+function releasesSince(ctx, web, set) {
+  const releases = ctx.releases(web.repo);
+  if (set.firstRelease) {
+    const at = releases.findIndex((release) => release.tag === set.firstRelease);
+    if (at >= 0) return at + 1;
+  }
+  const lists = (index) => (releasedClaimSets(ctx, web.repo, releases[index].tag) ?? []).some((item) => item.hash === set.hash);
+  let low = 0;
+  let high = releases.length;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (lists(mid)) low = mid + 1;
+    else high = mid;
+  }
+  return low;
+}
+
+/**
+ * Each Ouro AX X-ray report's claim set against the ones Ouro UI's latest release publishes. A claim set no release
+ * published came from a local or branch build. A released one may be older: it says how far behind it is, and fails
+ * only when a newer claim set adds a claim for a surface the product lists.
+ */
+function checkClaimSets(ctx, surface, latest, newest) {
+  const checks = [];
+  const problems = [];
+  const web = latest?.web;
+  for (const item of newest) {
+    const surfaces = surfacesOf(item.report);
+    if (item.report.tool !== "ax-xray" || surfaces.length === 0 || !surfaces.every((name) => OURO_AX_SURFACES.includes(name))) continue;
+    const name = [item.report.tool, ...surfaces].join(" ");
+    if (!web?.tag) {
+      problems.push(`Ouro UI's latest release couldn't be read (${web?.error ?? "no release"}), so ${name}'s claim set can't be checked`);
+      continue;
+    }
+    const sets = releasedClaimSets(ctx, web.repo, web.tag);
+    if (!sets?.length) {
+      problems.push(`Ouro UI ${web.tag} publishes no claim sets (${CLAIM_SETS}), so ${name}'s claim set can't be checked`);
+      continue;
+    }
+    const { version, hash } = item.report.claimSet ?? {};
+    const index = sets.findIndex((set) => set.hash === hash);
+    if (index < 0) {
+      problems.push(`${name}'s claim set ${version ?? "with no version"} (${String(hash).slice(0, 12)}) isn't one an Ouro UI release published, so it came from a local or branch build`);
+      continue;
+    }
+    const [newestSet] = sets;
+    const own = new Set(sets[index].claims.map((claim) => claim.id));
+    const adds = newestSet.claims.filter((claim) => !own.has(claim.id) && (surface.xraySurfaces ?? []).includes(claim.surface)).map((claim) => claim.id);
+    const releasesBehind = index === 0 ? 0 : releasesSince(ctx, web, sets[index - 1]);
+    checks.push({ tool: `${item.report.tool} ${item.report.checker?.version ?? ""}`.trim(), surfaces, version: sets[index].version, latest: newestSet.version, setsBehind: index, releasesBehind, adds });
+    if (adds.length) {
+      const by = [...new Set(newestSet.claims.filter((claim) => adds.includes(claim.id)).map((claim) => claim.surface))];
+      problems.push(`Ouro UI's claim set ${newestSet.version} adds ${orList(adds)} for its ${orList(by)} doors, which ${name}'s ${sets[index].version} doesn't check`);
+    }
+  }
+  return { checks, problems };
+}
+
 /**
  * The newest report of each checker and surface, over a surface's sources, from a successful push to main in the source's
  * own repository, for the right app and still downloadable.
  */
-export function measureXray(ctx, surface) {
+export function measureXray(ctx, surface, latest = null) {
   const source = `https://github.com/${surface.repo}/actions`;
   if (surface.xray.length === 0) return unmeasured(ctx, "no X-ray runs in CI for this product yet", source);
   const tmp = mkdtempSync(join(tmpdir(), "ouro-adoption-xray-"));
@@ -383,7 +466,11 @@ export function measureXray(ctx, surface) {
   const scored = newest.find((item) => typeof item.report.summary.score === "number");
   const surfaces = [...new Set(newest.flatMap((item) => surfacesOf(item.report)))].sort();
   const missingSurfaces = (surface.xraySurfaces ?? []).filter((listed) => !surfaces.includes(listed));
+  const claimSets = checkClaimSets(ctx, surface, latest, newest);
   const notes = [];
+  for (const problem of claimSets.problems) notes.push(`${problem}.`);
+  for (const check of claimSets.checks) if (check.setsBehind > 0 && !check.adds.length) notes.push(`${[check.tool.split(" ")[0], ...check.surfaces].join(" ")} checks claim set ${check.version}, ${check.setsBehind} claim set${check.setsBehind === 1 ? "" : "s"} and ${check.releasesBehind} Ouro UI release${check.releasesBehind === 1 ? "" : "s"} behind ${check.latest}; the newer ones add no claim for its surfaces.`);
+  if (newest.some((item) => surfacesOf(item.report).includes("app-intents"))) notes.push("The App Intents X-ray's claim set comes from Ouro UI Apple, which publishes no claim-set history yet, so it isn't checked against a release.");
   if (missingSurfaces.length) notes.push(`No X-ray report checks its ${orList(missingSurfaces)} doors yet, so its must claims can't pass.`);
   if (must === 0) notes.push("The claim set has no must claims yet, so conforming is trivial.");
   else if (newest.length > 1) notes.push(`Adds up the newest report of each checker and surface: ${newest.map((item) => [item.report.tool, ...surfacesOf(item.report)].join(" ")).join(", ")}.`);
@@ -404,6 +491,8 @@ export function measureXray(ctx, surface) {
       run: run.html_url,
       surfaces,
       missingSurfaces,
+      claimSets: claimSets.checks,
+      claimSetProblems: claimSets.problems,
       reports: newest.map((item) => ({ tool: `${item.report.tool} ${item.report.checker?.version ?? ""}`.trim(), surfaces: surfacesOf(item.report), claimSet: item.report.claimSet?.version ?? null, must: item.report.summary.must, mustHolding: item.report.summary.mustHolding, reportAt: item.report.at, run: item.run.html_url })),
     },
     { note: notes.length ? notes.join(" ") : null, source: run.html_url },
@@ -412,9 +501,10 @@ export function measureXray(ctx, surface) {
 
 /**
  * AX `must` claims pass in CI: a report exists, has must claims, every one holds, and the reports check every surface the
- * product lists. A claim set with none is vacuous.
+ * product lists, each with a claim set an Ouro UI release published and no newer one adding a claim for a listed surface. A
+ * claim set with none is vacuous.
  */
-export const mustPasses = (xrayCell) => Boolean(xrayCell.value) && xrayCell.value.must > 0 && xrayCell.value.mustHolding === xrayCell.value.must && (xrayCell.value.missingSurfaces ?? []).length === 0;
+export const mustPasses = (xrayCell) => Boolean(xrayCell.value) && xrayCell.value.must > 0 && xrayCell.value.mustHolding === xrayCell.value.must && (xrayCell.value.missingSurfaces ?? []).length === 0 && (xrayCell.value.claimSetProblems ?? []).length === 0;
 
 // ---- Ouro AX census --------------------------------------------------------------------------------------
 
@@ -626,11 +716,24 @@ export function measureBenchmark(ctx, config) {
   });
 }
 
+const MODEL_REVIEWS_PAGE = "https://ui.ouroboros.bot/docs/model-reviews/";
+
+/** The newest model review's verdicts, counted as its page counts them (scripts/model-reviews/page.mjs), from this checkout's results. */
+export function measureModelReviews(ctx, { runs = publishedReviews() } = {}) {
+  return attempt(ctx, MODEL_REVIEWS_PAGE, () => {
+    const latest = seriesOf(runs).at(-1);
+    if (!latest) return unmeasured(ctx, "no published review in scripts/model-reviews/results", MODEL_REVIEWS_PAGE);
+    const counts = tally(latest);
+    const when = latest.runs[0].startedAt.slice(0, 10);
+    const bar = counts.barMet ? "More than half chose Ouro UI, the bar for saying models choose it." : "Not more than half chose Ouro UI, so the bar for saying models choose it is not met.";
+    return cell(ctx, reviewHeadline(latest), { note: `The ${when} review: ${counts.tried} models asked, ${counts.completed} gave a verdict. ${bar}`, source: MODEL_REVIEWS_PAGE });
+  });
+}
+
 export function measureProgram(ctx, config, issues, latest, prsAll, giveBackCount, treeCount) {
   const programIssue = issues.program;
   const source = programIssue?.url ?? `https://github.com/${config.home}/issues?q=label%3A${config.label}`;
   const steps = programIssue ? parseSteps(programIssue.body).map((step) => ({ ...step, source })) : [];
-  const stepState = (id) => steps.find((step) => step.id === id)?.state;
   const headline = [];
   const add = (key, label, value, note, from) => headline.push({ key, label, ...cell(ctx, value, { note, source: from }) });
   for (const [key, entry] of Object.entries(latest)) add(`release-${key}`, `${entry.name} latest release`, entry.tag, entry.error ? `not measured: ${entry.error}` : `Published ${String(entry.at).slice(0, 10)}.`, entry.url);
@@ -638,7 +741,7 @@ export function measureProgram(ctx, config, issues, latest, prsAll, giveBackCoun
   add("merged-prs", "Merged pull requests across the three Ouro UI repositories", prsAll.length, "Counted from each repository's merged pull requests.", `https://github.com/${config.latest.web.repo}/pulls?q=is%3Apr+is%3Amerged`);
   add("give-back", "Merged pull requests that name a product", giveBackCount, "Distinct pull requests counted by the give-back column.", `https://github.com/${config.home}/issues?q=label%3A${config.label}`);
   headline.push({ key: "benchmark", label: "Benchmark against browser driving, an SDK-style bridge and plain MCP", ...measureBenchmark(ctx, config) });
-  add("model-reviews", "Frontier models pick Ouro UI in the model-reviews run", null, stepState("model-reviews-headline") === "done" ? "Not measured yet: the step is marked done but no result is read." : "not measured yet: the model-reviews headline step is not done.", source);
+  headline.push({ key: "model-reviews", label: "Frontier models pick Ouro UI in the model-reviews run", ...measureModelReviews(ctx) });
   return { issue: programIssue ? issueView(programIssue) : null, steps, headline, source, note: programIssue ? null : "not measured: the program tracking issue was not found" };
 }
 
@@ -715,7 +818,7 @@ export function build(ctx, config, { only = null } = {}) {
       pins = measurePins(ctx, surface, latest);
       hx = measureHx(ctx, surface);
       ax = measureAx(ctx, surface, config);
-      xray = measureXray(ctx, surface);
+      xray = measureXray(ctx, surface, latest);
       actions = measureActions(ctx, surface);
       census = measureCensus(ctx, surface, latest);
     }

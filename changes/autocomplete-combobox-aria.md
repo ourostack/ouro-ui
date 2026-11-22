@@ -1,0 +1,1 @@
+- Fixed: a rich Composer inside an Autocomplete now exposes its editor as a combobox that says whether the suggestion list is open, so a screen reader announces the list.
