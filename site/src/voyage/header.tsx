@@ -72,7 +72,7 @@ export function ThemePicker(): JSX.Element {
     <PopoverRoot modal={touch}>
       <PopoverTrigger
         render={
-          <Button variant="soft" tone="secondary" size="sm" data-site-theme-trigger="" className="site-theme-trigger">
+          <Button variant="soft" tone="secondary" size="sm" data-site-theme-trigger="" className="site-theme-trigger sm:h-9">
             <ByPreset>
               {(item) => (
                 <span className="inline-flex items-center gap-2">

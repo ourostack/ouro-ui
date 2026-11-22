@@ -111,10 +111,6 @@
     .site-console-grid {
       gap: 0.75rem;
     }
-    /* The way to the commands waits for a wider screen: on a phone the reader hands Ouro UI to an agent. */
-    .site-install-more {
-      display: none;
-    }
   }
   .site-console-grid {
     display: grid;

@@ -122,16 +122,16 @@ describe("the hero", () => {
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
 
-  it("points a person setting Ouro UI up themselves to the commands in the install section, on a wide screen", async () => {
+  it("points a person setting Ouro UI up themselves to the commands in the install section, on a wide screen and a phone", async () => {
     await renderPage("/");
     const link = page.getByRole("link", { name: HANDOFF.commands.text, exact: true });
     await expect.element(link).toHaveAttribute("href", "#install");
     expect(link.element().closest("[data-site-handoff] [data-slot='caption']")).not.toBeNull();
     expect(document.getElementById("install")).not.toBeNull();
-    // On a phone it waits: a phone's reader hands Ouro UI to an agent, and the release sits on the label's line.
+    // On a phone it stays, under the line, and the release sits on the label's line.
     const anchor = link.element();
     await page.viewport(390, 844);
-    await expect.poll(() => anchor.checkVisibility()).toBe(false);
+    await expect.poll(() => anchor.checkVisibility()).toBe(true);
     const label = document.querySelector<HTMLElement>("[data-site-handoff] [data-slot='label']")!.getBoundingClientRect();
     const release = document.querySelector<HTMLElement>("[data-site-release]")!.getBoundingClientRect();
     expect(release.top).toBeLessThan(label.bottom);

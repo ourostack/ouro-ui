@@ -126,6 +126,37 @@ describe("home page", () => {
     expect(page.getByRole("navigation", { name: "Ouro UI" }).getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
   });
 
+  it("never breaks a source path after its first folder, so no short stub is left alone on a line", async () => {
+    const host = await renderPage("/docs/dialog/");
+    for (const path of host.querySelectorAll("[data-site-path]")) {
+      const first = path.firstElementChild!;
+      expect(first.textContent).toMatch(/^[^/]+\/$/);
+      expect(first.querySelector("wbr")).toBeNull();
+    }
+  });
+
+  it("gives the docs page's install steps no history of v0.8.0 in running text", async () => {
+    const host = await renderPage("/docs/dialog/");
+    expect(host.textContent).not.toContain("From v0.8.0 it installs only");
+  });
+
+  it("shows the commands link in the hero on a phone, so the hand-off points to the install steps", async () => {
+    await page.viewport(390, 844);
+    const host = await renderPage("/");
+    const link = host.querySelector(".site-install-more")!;
+    expect(getComputedStyle(link).display).not.toBe("none");
+    expect(link.getBoundingClientRect().height).toBeGreaterThan(0);
+  });
+
+  it("makes the header's theme chip as tall as the header links on a fine pointer", async () => {
+    await page.viewport(1280, 800);
+    const host = await renderPage("/docs/density/");
+    const chip = host.querySelector("[data-site-theme-trigger]")!.getBoundingClientRect().height;
+    const heights = [...host.querySelectorAll("[data-ouro='navbar'] li a")].map((a) => a.getBoundingClientRect().height).filter((height) => height > 0);
+    expect(heights.length).toBeGreaterThan(0);
+    expect(heights).toEqual(heights.map(() => chip));
+  });
+
   it("breaks a source path after its slashes, and inside a name only when the name alone is too wide", async () => {
     const host = await renderPage("/docs/button/");
     const path = host.querySelector("[data-site-path]");
