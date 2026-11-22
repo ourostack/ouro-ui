@@ -903,6 +903,38 @@ describe("Composer rich mode highlights", () => {
     expect(measured).not.toHaveBeenCalled();
   });
 
+  it("draws one box for each different rectangle a run covers, and none for a rectangle seen again or with no width", async () => {
+    const rect = (left: number, top: number, width: number) => new DOMRect(left, top, width, 10);
+    vi.spyOn(Range.prototype, "getClientRects").mockReturnValue([rect(10, 10, 20), rect(10, 10, 20), rect(10, 30, 20), rect(50, 10, 0)] as unknown as DOMRectList);
+    const { host } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 0, end: 5, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(2);
+  });
+
+  it("draws no layer for marks that measure to no rectangle", async () => {
+    vi.spyOn(Range.prototype, "getClientRects").mockReturnValue([] as unknown as DOMRectList);
+    const { host } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 0, end: 5, label: "a" }] }));
+    await act(async () => void (await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))));
+    expect(layer(host)).toBeNull();
+  });
+
+  it("moves the marks and tells the app on every edit, with the callback it gave last, and with none given", async () => {
+    const first = vi.fn();
+    const last = vi.fn();
+    const marks = [{ start: 6, end: 11, label: "a" }];
+    const { editor, rerender } = await render(rich({ defaultValue: "Hello world", highlights: marks, onHighlightsChange: first }));
+    await rerender(rich({ defaultValue: "Hello world", highlights: marks, onHighlightsChange: last }));
+    editor.focus();
+    await act(async () => (editor as unknown as { setSelectionRange: (a: number, b: number) => void }).setSelectionRange(0, 0));
+    await userEvent.keyboard("a");
+    await expect.poll(() => last.mock.calls.at(-1)?.[0]).toEqual([{ start: 7, end: 12, label: "a" }]);
+    await userEvent.keyboard("b");
+    await expect.poll(() => last.mock.calls.at(-1)?.[0]).toEqual([{ start: 8, end: 13, label: "a" }]);
+    expect(first).not.toHaveBeenCalled();
+    await rerender(rich({ defaultValue: "Hello world", highlights: marks }));
+    await userEvent.keyboard("c");
+    await expect.poll(() => editor.textContent).toBe("abcHello world");
+  });
+
   it("measures the marks again when the box scrolls", async () => {
     const { host, editor } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 6, end: 11, label: "a" }] }));
     await expect.poll(() => boxes(host).length).toBe(1);
