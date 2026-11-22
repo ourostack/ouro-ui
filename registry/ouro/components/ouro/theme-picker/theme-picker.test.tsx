@@ -184,6 +184,31 @@ describe("ThemePicker", () => {
     expect(quiet).not.toHaveBeenCalled();
   });
 
+  it("ends a preview once: one the pointer already ended is not ended again on unmount", async () => {
+    const onPreviewChange = vi.fn();
+    const el = await render(<ThemePicker presets={three} value="pearl" onPreviewChange={onPreviewChange} />);
+    await userEvent.hover(option(el, "dusk"));
+    await userEvent.unhover(option(el, "dusk"));
+    await expect.poll(() => onPreviewChange.mock.calls.at(-1)).toEqual([null]);
+    const calls = onPreviewChange.mock.calls.length;
+    await act(async () => root?.unmount());
+    root = undefined;
+    expect(onPreviewChange.mock.calls).toHaveLength(calls);
+  });
+
+  it("tells the app's latest onPreviewChange, after a render gave it a new one", async () => {
+    const first = vi.fn();
+    const latest = vi.fn();
+    const el = await render(<ThemePicker presets={three} value="pearl" onPreviewChange={first} />);
+    await act(async () => root!.render(<ThemePicker presets={three} value="pearl" onPreviewChange={latest} />));
+    await userEvent.hover(option(el, "dusk"));
+    await expect.poll(() => latest.mock.calls.at(-1)).toEqual(["dusk"]);
+    await act(async () => root?.unmount());
+    root = undefined;
+    expect(latest.mock.calls.at(-1)).toEqual([null]);
+    expect(first).not.toHaveBeenCalled();
+  });
+
   it("previews nothing for a finger, whose pointerenter comes with the tap, or for focus that is not the keyboard's", async () => {
     const el = await render(<ThemePicker presets={three} />);
     option(el, "dusk").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "touch" }));
