@@ -1,6 +1,6 @@
 // First, so the page's own rules below come after Tailwind's and win.
 import "../voyage/voyage-tailwind.css";
-import { lazy, Suspense, useEffect, useState, useSyncExternalStore, type JSX } from "react";
+import { lazy, Suspense, useEffect, useState, type JSX } from "react";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { AxHero } from "../ax/hero";
@@ -14,7 +14,7 @@ import { TwoShips } from "../voyage/home";
 import { VoyageHero } from "../voyage/hero";
 import { VoyageFooter } from "../voyage/layout";
 import { StoryOpening } from "../voyage/nautilus";
-import { openXray, setXray, spotlightFrom, useXray } from "../voyage/xray-store";
+import { openXray, setXray, useSpotlight, useXray, useXrayFromAddress } from "../voyage/xray-store";
 import "../themes/presets.generated.css";
 import "../themes/by-preset.css";
 import "../voyage/voyage.css";
@@ -63,29 +63,6 @@ function Xray(): JSX.Element | null {
     </Suspense>
   ) : null;
 }
-
-/** X-ray on at load when the address asks for it (`?xray`), as the home page's "X-ray it" link does. */
-function useXrayFromAddress(): void {
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("xray")) setXray(true);
-  }, []);
-}
-
-/**
- * The component the address names for X-ray to point out (`?xray=Switch`), as each docs page's
- * links do, or `undefined`. The address stays put while the page is open, and the server has none.
- * Only X-ray reads it: a page that re-rendered with it as it hydrates would drop the server's HTML
- * of a chapter still waiting to hydrate.
- */
-function useSpotlight(): string | undefined {
-  return useSyncExternalStore(
-    noSubscription,
-    () => spotlightFrom(window.location.search),
-    () => undefined,
-  );
-}
-
-const noSubscription = () => () => {};
 
 /**
  * The voyage pages ("Mobilis in mobili", site-design.md), one chunk and stylesheet: the home page
