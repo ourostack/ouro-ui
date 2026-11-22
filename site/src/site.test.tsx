@@ -1085,6 +1085,20 @@ describe("docs", () => {
     await expect.element(page.getByRole("heading", { name: "Use instead when", level: 2 })).toBeVisible();
   });
 
+  it("draws the More ways trigger the same on every docs page: one box, on a solid surface of its own", async () => {
+    const seen: string[] = [];
+    for (const name of ["badge", "dialog", "button", "tabs", "text-field"]) {
+      await renderPage(`/docs/${name}/`);
+      const trigger = page.getByRole("button", { name: "More ways" }).element() as HTMLElement;
+      const surface = trigger.closest("[data-site-more-ways]") as HTMLElement;
+      const box = trigger.getBoundingClientRect();
+      const cs = getComputedStyle(trigger);
+      seen.push([Math.round(box.width), Math.round(box.height), cs.color, cs.paddingInline, getComputedStyle(surface).backgroundColor].join("|"));
+      expect(getComputedStyle(surface).backgroundColor, `${name}'s surface behind the trigger`).not.toBe("rgba(0, 0, 0, 0)");
+    }
+    expect(new Set(seen).size, seen.join("\n")).toBe(1);
+  });
+
   it("is lost at sea at an address with no page: the way home, a guess at what it meant, and a search", async () => {
     const before = location.href;
     history.replaceState(null, "", "/docs/buton/");
