@@ -81,6 +81,14 @@ function census(surface: Surface): Omit<Check, "key" | "label"> {
   return { state: "missing", why: "The census finds nothing to count", source: run };
 }
 
+/** The first claim-set problem the ledger found, said short: an unreleased claim set, a newer one adding claims, or no release to check against. */
+function claimSetWhy(problems: string[]): string {
+  const [first = ""] = problems;
+  if (/local or branch build/.test(first)) return "X-ray's claim set isn't from an Ouro UI release";
+  if (/ adds /.test(first)) return "A newer Ouro UI claim set adds claims its X-ray doesn't check";
+  return "X-ray's claim set can't be checked against a release";
+}
+
 function must(surface: Surface): Omit<Check, "key" | "label"> {
   const cell = surface.cells.xray;
   if (surface.conditions.must.met) return { state: "met", why: null, source: cell.value?.run ?? cell.source };
@@ -88,8 +96,9 @@ function must(surface: Surface): Omit<Check, "key" | "label"> {
     const xrayMissing = !PRIVATE.test(cell.note ?? "") && /x-ray/i.test(cell.note ?? "");
     return { state: unmeasuredOrNa(cell), why: unmeasured(cell, xrayMissing ? "X-ray doesn't run in CI yet" : undefined), source: cell.source, ...(xrayMissing ? { generic: true } : {}) };
   }
-  const { must: total, mustHolding, run, missingSurfaces = [] } = cell.value;
+  const { must: total, mustHolding, run, missingSurfaces = [], claimSetProblems = [] } = cell.value;
   if (missingSurfaces.length) return { state: "missing", why: `X-ray doesn't check its ${orList(missingSurfaces)} doors yet`, source: run ?? cell.source };
+  if (claimSetProblems.length) return { state: "missing", why: claimSetWhy(claimSetProblems), source: run ?? cell.source };
   if (total === 0) return { state: "missing", why: "Must claims not written yet", source: run ?? cell.source };
   return { state: "missing", why: `${total - mustHolding} of ${plural(total, "must claim")} fail`, source: run ?? cell.source };
 }
