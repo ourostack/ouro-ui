@@ -499,8 +499,8 @@ export const Rich: Story = {
       <Composer label="Write a message" format="rich" defaultValue="Ship **it** on _Friday_" placeholder="Write a message" onSend={() => {}} />
     </Surface>
   ),
-  play: async ({ canvasElement } = {}) => {
+  play: async ({ canvasElement }) => {
     // The editor loads after the first render; the story shows it, not the plain box it starts as.
-    while (!canvasElement?.querySelector("[data-ouro-composer-editor]")) await new Promise((resolve) => requestAnimationFrame(resolve));
+    while (!canvasElement.querySelector("[data-ouro-composer-editor]")) await new Promise((resolve) => requestAnimationFrame(resolve));
   },
 };
