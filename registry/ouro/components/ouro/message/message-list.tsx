@@ -585,12 +585,6 @@ const STRETCH = 0.25;
 const ARMED = 250;
 /** How long, in ms, after a wheel turn the list leaves the reader's place unwritten, and past the frame it turned in: a scroll position set meanwhile stops the wheel's own scroll. */
 const WHEEL_REST = 80;
-/** At most how far, in px, a scroll at rest that neither the reader nor the list made is put back (onScroll's stray). */
-const STRAY_PX = 3;
-/** How long after the reader's last press, key or touch a scroll at rest may still be theirs, in ms. */
-const INPUT_MS = 1000;
-/** How long after the list's own write a stray scroll is still put back to it, in ms. */
-const STRAY_MS = 250;
 /** A gap between a wheel's events shorter than this is the same turn of the wheel, its events waiting behind long frames; a longer one is a new turn. */
 const WHEEL_GAP = 4 * WHEEL_REST;
 /** How long, in ms, after a wheel turn the browser's first scroll is still the wheel's: a loaded machine begins an animated wheel scroll a frame or more after the turn, past the rest. */
@@ -1555,7 +1549,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const before = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
     ownTop.current = scroller.scrollTop;
-    heldAt.current = Number.NEGATIVE_INFINITY;
     springsRef.current?.moved(scroller.scrollTop - before);
   }, []);
 
@@ -1708,7 +1701,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const box = boxOf(target);
       scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
       ownTop.current = scroller.scrollTop;
-      heldAt.current = Number.NEGATIVE_INFINITY;
     };
     const open = () => {
       if (content.querySelector(items) === null) return;
@@ -1802,7 +1794,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const before = scroller.scrollTop;
       scroller.scrollTop += by;
       ownTop.current = scroller.scrollTop;
-      heldAt.current = Number.NEGATIVE_INFINITY;
       const applied = scroller.scrollTop - before;
       springsRef.current?.moved(applied);
       return applied;
@@ -1892,10 +1883,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only tells the browser the listener never cancels the wheel; no test can observe it.
     scroller.addEventListener("wheel", onWheel, { passive: true });
-    // When the reader last did something that may scroll the list, besides the wheel (turning).
-    let inputAt = Number.NEGATIVE_INFINITY;
-    const onInput = () => void (inputAt = performance.now());
-    for (const type of ["pointerdown", "keydown", "touchstart"]) scroller.addEventListener(type, onInput, { capture: true, passive: true });
     const hold = () => {
       // A list unmounted before this ran has no scroller left to hold.
       if (scrollerRef.current === null) return;
@@ -1950,8 +1937,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (Math.abs(moved) >= 0.5) {
           const before = scroller.scrollTop;
           scroller.scrollTop += moved;
-          ownTop.current = heldTop.current = scroller.scrollTop;
-          heldAt.current = performance.now();
+          ownTop.current = scroller.scrollTop;
           const applied = scroller.scrollTop - before;
           springsRef.current?.moved(applied);
           // What rounding left over, carried: under a pixel. A move the browser did not apply in full (the list's end or start stopped it, smooth scrolling or snapping took it) is not a debt a later write can pay.
@@ -1982,20 +1968,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {
-      // Just after hold() kept the reader's place, with nothing from the reader since (a wheel, a touch, a key, a press, the scrollbar's
-      // too), a scroll of a few pixels the list didn't write is none of the reader's: Chromium sometimes moves the scroll position a
-      // pixel or two by itself in the frame after hold() wrote it through rows measured above the view, which moves what the reader is
-      // reading. The list puts hold()'s position back. It stays the place to put back to through the scroll event its write brings, as
-      // the stray move comes a frame later.
-      const stray = scroller.scrollTop - heldTop.current;
-      const now = performance.now();
-      // Stryker disable next-line EqualityOperator: a stray of exactly STRAY_PX is put back or kept, a pixel either way.
-      if (stray !== 0 && Math.abs(stray) <= STRAY_PX && now - heldAt.current <= STRAY_MS && !turning() && now - inputAt > INPUT_MS) {
-        scrollOwn(-stray);
-        return;
-      }
-      // Any other move ends it: a scroll after that is the reader's or the app's, judged from where that move left the list.
-      if (stray !== 0) heldAt.current = Number.NEGATIVE_INFINITY;
       // Only the browser's own scroll, where it says when it ends. The first scroll after a turn is the wheel's when it comes
       // within WHEEL_START, which a loaded machine may take to begin it; judged by time alone, never by the frame the wheel turned
       // in, as a scroll the page makes in that frame (a scrollbar, a jump) is none of the wheel's, and with no scrollend after it
@@ -2025,7 +1997,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const onScrollEnd = endSoon;
     scroller.addEventListener("scrollend", onScrollEnd);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (["pointerdown", "keydown", "touchstart"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
+    return () => (scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,
@@ -2096,10 +2068,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     code: false,
   });
   const ownTop = useRef<number | null>(null);
-  // Where hold() last put the scroll position to keep the reader's place, and when: what a stray scroll just after it is put back to
-  // (onScroll). Any other write of the list's clears it.
-  const heldTop = useRef(0);
-  const heldAt = useRef(Number.NEGATIVE_INFINITY);
   // Where each slot drawn sits in the content, and its size, as last measured.
   const tops = useRef(new Map<string, { top: number; size: number }>());
   // How many messages each child drawn holds: a child that starts the conversation holds none.
