@@ -1534,7 +1534,8 @@ describe("MessageList windowing", () => {
         await act(async () => root.render(<Chat items={items} />));
         // A chat that sticks to the bottom itself, on top of the list's own following.
         if (app) await act(async () => void (scroller.scrollTop = scroller.scrollHeight));
-        if (next % 10 === 9) await settle(scroller);
+        // The window syncs in a useLayoutEffect, flushed inside the act() above: the count read here already reflects
+        // it, so settling for real animation frames on the way through buys nothing but turns the loop into real time.
         most = Math.max(most, messages(scroller).length);
       }
       await settle(scroller);
