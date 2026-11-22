@@ -89,7 +89,7 @@ function must(surface: Surface): Omit<Check, "key" | "label"> {
     return { state: unmeasuredOrNa(cell), why: unmeasured(cell, xrayMissing ? "X-ray doesn't run in CI yet" : undefined), source: cell.source, ...(xrayMissing ? { generic: true } : {}) };
   }
   const { must: total, mustHolding, run, missingSurfaces = [] } = cell.value;
-  if (missingSurfaces.length) return { state: "missing", why: `No X-ray of its ${orList(missingSurfaces)} doors yet`, source: run ?? cell.source };
+  if (missingSurfaces.length) return { state: "missing", why: `X-ray doesn't check its ${orList(missingSurfaces)} doors yet`, source: run ?? cell.source };
   if (total === 0) return { state: "missing", why: "Must claims not written yet", source: run ?? cell.source };
   return { state: "missing", why: `${total - mustHolding} of ${plural(total, "must claim")} fail`, source: run ?? cell.source };
 }
