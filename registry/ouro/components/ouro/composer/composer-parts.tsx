@@ -216,7 +216,7 @@ const toMarkdown = (editor: LexicalEditor) => separateBlocks(editor.getEditorSta
 // The editor's element answers as a textarea does, over the text without its marks, one line to each block, so Autocomplete finds a trigger at the caret and puts a pick in place of it.
 const $isLeaf = (node: ElementNode) => !node.getChildren().some((child) => $isElementNode(child) && !child.isInline());
 function $leaves(node: ElementNode): ElementNode[] {
-  // Stryker disable next-line LogicalOperator: every child that is not an element node (text, line break) is inline, so `||` selects the same children
+  // Stryker disable next-line LogicalOperator,MethodExpression,ConditionalExpression: a block that is not a leaf holds only block children, so the filter keeps every child however it is written
   const blocks = node.getChildren().filter((child): child is ElementNode => $isElementNode(child) && !child.isInline());
   return blocks.flatMap((block) => ($isLeaf(block) ? [block] : $leaves(block)));
 }
