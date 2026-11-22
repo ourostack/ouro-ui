@@ -1660,6 +1660,27 @@ describe("MessageList windowing", () => {
     expect(Math.max(...perFrame)).toBeLessThanOrEqual(2);
   });
 
+  it("measures a row still drawn, unchanged, only once, not again as later scrolls shift the band around it", async () => {
+    const { scroller } = await render(<ShortRows ids={span(0, 300)} />);
+    await scrollTo(scroller, 0);
+    const drawn = ids(scroller);
+    // A row with room on both sides, so the scrolls below move the band's edges without ever reaching it.
+    const watched = drawn[Math.floor(drawn.length / 2)]!;
+    const slot = document.getElementById(`m${watched}`)!.closest(`[${CSS.escape("data-ouro-message-list-slot")}]`)!;
+    // `extentOf` alone reads a message's computed style, for its margin: the anchor the reader's scroll position holds reads
+    // only boxes, so this counts a row measured for the window, not a box read to hold the reader's place as the band moves.
+    let reads = 0;
+    const style = window.getComputedStyle;
+    vi.spyOn(window, "getComputedStyle").mockImplementation(function (element: Element, pseudo?: string | null) {
+      if (slot.contains(element)) reads++;
+      return style(element, pseudo);
+    });
+    for (const top of [40, 90, 150, 220, 300]) await scrollTo(scroller, top);
+    // The row is still the one drawn: this is not passing because it left the band unread.
+    expect(ids(scroller)).toContain(watched);
+    expect(reads).toBe(0);
+  });
+
   it("marks the messages a commit brings in, in that commit, before the observer that follows it runs", async () => {
     const { root, scroller } = await render(<ShortRows ids={span(0, 5)} />);
     flushSync(() => root.render(<ShortRows ids={span(-3, 8)} />));

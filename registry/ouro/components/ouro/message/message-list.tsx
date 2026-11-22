@@ -344,6 +344,23 @@ function barOnly(record: MutationRecord): boolean {
   return [...record.addedNodes, ...record.removedNodes].every((node) => node instanceof Element && node.matches("[data-ouro-message-bar-slot]"));
 }
 
+/**
+ * Marks the slot a mutation sits in, dirty, leaving out the action bar coming and going, which draws no box of the
+ * message itself. A record of text holds the text node changed, which has no slot of its own to find by.
+ */
+function markDirty(record: MutationRecord, dirty: Set<string>): void {
+  const target = record.target;
+  const element: Element | null = target.nodeType === Node.TEXT_NODE ? target.parentElement : (target as Element);
+  if (element === null || element.closest("[data-ouro-message-bar-slot]") !== null) return;
+  // A record of children, the bar's host going in or out, moves alone: text and attribute records add or remove no
+  // node, so this is read for children only, or the empty case would read as the host alone too and the row it sits
+  // in would stay marked clean.
+  // Stryker disable next-line MethodExpression: the host goes in and out by itself, so a record of it holds it alone; some and every agree.
+  if (record.type === "childList" && [...record.addedNodes, ...record.removedNodes].every((node) => node instanceof Element && node.matches("[data-ouro-message-bar-slot]"))) return;
+  const key = element.closest(`[${SLOT}]`)?.getAttribute(SLOT);
+  if (key !== null && key !== undefined) dirty.add(key);
+}
+
 /** Whether a change added or removed a message. */
 function touchesItems(record: MutationRecord): boolean {
   return [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.matches(items) || node.querySelector(items) !== null));
@@ -1868,6 +1885,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only tells the browser the listener never cancels the wheel; no test can observe it.
     scroller.addEventListener("wheel", onWheel, { passive: true });
     const hold = () => {
+      // A list unmounted before this ran has no scroller left to hold.
+      if (scrollerRef.current === null) return;
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
       // A list at the old bottom follows. One that was following keeps on when its end came up, though something grew below
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
@@ -2056,6 +2075,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const counts = useRef(new Map<string, number>());
   // What the window last read, so a render that changed none of it (the app drawing again as someone types) reads no layout.
   const synced = useRef<{ keys: readonly string[]; band: Band | null; measured: Measured; reach: Reach | null; windowed: boolean } | null>(null);
+  // Each slot's place in the content and its size, as last measured, by key, with the element it was measured from: a slot
+  // still that element, with nothing marking it changed since, places and sizes the same again, which spares the layout a
+  // band shift of a few rows would otherwise force for every row still drawn. The place is kept relative to the content's
+  // own top, not the viewport, so a translate the content is held by between one measure and the next moves neither.
+  const extentCache = useRef(new Map<string, { element: Element; relTop: number; size: number }>());
+  // Keys a mutation inside their slot may have moved the box of since the window last measured, read and cleared each pass.
+  const dirty = useRef(new Set<string>());
+  // The observer itself, read synchronously by `takeRecords` before a measure, so a mutation from the same task that is about
+  // to measure is not missed for the wait a callback would otherwise take.
+  const invalidated = useRef<MutationObserver | null>(null);
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
@@ -2086,22 +2115,58 @@ export function MessageList(props: MessageListProps): JSX.Element {
         cacheRef.current.set(CACHED_WIDTH, bucket);
         // At a new width the heights are those of the old: the rows not drawn keep them as estimates until they draw.
         const bucketMoved = measured.bucket !== bucket;
+        // A change a mutation observer's own callback has not read yet, from a row that drew again in the very render this
+        // measures: read now, so it is not missed for the wait the callback would otherwise take.
+        const recs = invalidated.current?.takeRecords() ?? [];
+        for (const record of recs) markDirty(record, dirty.current);
+        const present = new Set(keys);
         const found = new Map<string, { top: number; size: number }>();
         // The heights measured that differ from those the list holds, by key.
         const moved = new Map<string, number>();
+        const cache = extentCache.current;
+        const drawn = new Set<string>();
+        // Whether a slot that draws a box has been found yet: only the first found places the others, so only its own box
+        // has to be read fresh; a row before it with no box of its own (a day's heading with nothing drawn) is read fresh
+        // too, since none of them has been found to place by yet.
+        let anchored = false;
+        // A row read fresh with a size unlike its cached one, or a key new to the cache, shifts the top of a row after it:
+        // from there on, a cached top can no longer be trusted, so every row from it on is read fresh too.
+        let shifted = false;
         for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) {
           const key = slot.getAttribute(SLOT)!;
-          const { top, size } = extentOf(slot);
+          drawn.add(key);
+          const cached = cache.get(key);
+          const stale = shifted || !anchored || bucketMoved || cached === undefined || cached.element !== slot || dirty.current.has(key);
+          let relTop: number;
+          let size: number;
+          if (stale) {
+            const extent = extentOf(slot);
+            relTop = extent.top - contentTop;
+            size = extent.size;
+          } else {
+            relTop = cached.relTop;
+            size = cached.size;
+          }
+          if (stale) {
+            if (cached === undefined || cached.element !== slot || cached.size !== size) shifted = true;
+            cache.set(key, { element: slot, relTop, size });
+            counts.current.set(key, topItems(slot).length);
+            cacheRef.current.set(`${key}\0${bucket}`, size);
+            if (measured.heights.get(key) !== size) moved.set(key, size);
+          }
           // Only a child that draws a box has a place to find the others by.
-          if (size > 0) found.set(key, { top: top - contentTop, size });
-          counts.current.set(key, topItems(slot).length);
-          cacheRef.current.set(`${key}\0${bucket}`, size);
-          if (measured.heights.get(key) !== size) moved.set(key, size);
+          if (size > 0) {
+            found.set(key, { top: relTop, size });
+            anchored = true;
+          }
         }
+        dirty.current.clear();
+        // The box kept for a key gone from the slots drawn is forgotten only once the message itself is gone, so a band that
+        // draws it again, still the same element, need not measure it again.
+        for (const key of cache.keys()) if (!drawn.has(key) && !present.has(key)) cache.delete(key);
         tops.current = found;
         if (bucketMoved || moved.size > 0) {
           // The heights of children gone are forgotten.
-          const present = new Set(keys);
           const gap = parseFloat(getComputedStyle(content).rowGap);
           // Once the estimate is fixed, a height measured for a row drawn changes no space the list keeps: the rows not drawn
           // keep their own heights and the estimate. Those are kept in place, which the next render reads, so no render
@@ -2326,8 +2391,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const resized = new ResizeObserver(() => windowSync.current!(false));
     resized.observe(scroller);
     resized.observe(content);
+    const invalidate = new MutationObserver((records) => {
+      for (const record of records) markDirty(record, dirty.current);
+    });
+    invalidate.observe(content, { childList: true, subtree: true, attributes: true, characterData: true });
+    invalidated.current = invalidate;
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer), cancelAnimationFrame(dripping.current));
+    return () => (resized.disconnect(), invalidate.disconnect(), (invalidated.current = null), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer), cancelAnimationFrame(dripping.current));
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);
