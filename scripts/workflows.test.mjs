@@ -2657,7 +2657,7 @@ test("the screen-reader lane runs after the tag, and a commit that breaks it twi
   assert.match(revert, /revertPullRequest\(input: \{ pullRequestId: \$id, body: \$body \}\)/);
   assert.match(revert, /gh pr edit "\$revert" --add-label red-main-fix\n/);
   assert.match(revert, /gh pr merge "\$revert" --auto --squash\n/);
-  assert.doesNotMatch(text, /@[a-z]|--reviewer|--assignee|gh pr comment|gh issue comment/i, "it mentions and asks no one");
+  assert.doesNotMatch(text, /@(?![0-9a-f]{40}\b)[a-z]|--reviewer|--assignee|gh pr comment|gh issue comment/i, "it mentions and asks no one (an action pinned by its commit hash is not a mention)");
   assert.match(text, /GH_TOKEN: \$\{\{ steps\.app\.outputs\.token \}\}/, "the Ouro Current app opens the revert, so its checks run");
 });
 
