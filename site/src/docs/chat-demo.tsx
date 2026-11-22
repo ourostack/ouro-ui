@@ -215,7 +215,9 @@ export default function ChatDemo(): JSX.Element {
           );
         })}
       </MessageList>
-      {typing === open.id ? <TypingIndicator people={open.members.filter((member) => member.name !== ME).slice(0, 1)} /> : null}
+      <div className="min-h-6 px-4">
+        {typing === open.id ? <TypingIndicator people={open.members.filter((member) => member.name !== ME).slice(0, 1)} /> : null}
+      </div>
       <div className="border-t border-border p-2">
         <Autocomplete triggers={triggers}>
           <Composer key={open.id} label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onSend={(text) => send(open.id, text, false)} />
@@ -223,7 +225,7 @@ export default function ChatDemo(): JSX.Element {
       </div>
     </div>
   ) : (
-    <Moment kind="empty" size="inline" title="Pick a conversation" description="Choose one from the list to read it." />
+    <Moment kind="empty" title="Pick a conversation" description="Choose one from the list to read it." />
   );
 
   const thread =
@@ -244,13 +246,13 @@ export default function ChatDemo(): JSX.Element {
 
   const body =
     stage === "loading" ? (
-      <Moment kind="loading" size="inline" title="Loading your conversations" />
+      <Moment kind="loading" title="Loading your conversations" />
     ) : stage === "empty" ? (
       <div className="grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]">
         <div className="border-e border-border p-2">
           <ConversationList label="Conversations" items={[]} empty="Your conversations show up here once you start one." onSelect={() => {}} />
         </div>
-        <Moment kind="empty" size="inline" title="Nothing here yet" description="Messages you send and receive show up here." />
+        <Moment kind="empty" title="Nothing here yet" description="Messages you send and receive show up here." />
       </div>
     ) : (
       <div className="group/app grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]" data-pane={open ? "chat" : "list"}>
