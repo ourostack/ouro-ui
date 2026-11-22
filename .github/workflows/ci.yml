@@ -2547,6 +2547,16 @@ jobs:
         continue-on-error: true
       - *pnpm-install-stalled
       - *pnpm-install-retry
+      - name: Sweeps retake scope
+        # On a pull request, a picture of a control the change reaches is taken twice and must agree (site/e2e/stable-take.ts);
+        # a diff that cannot be read counts as everything changed.
+        run: |
+          mkdir -p .tmp
+          if [ "$GITHUB_EVENT_NAME" = pull_request ] && git fetch --no-tags --depth=2 origin "$GITHUB_SHA" && git diff --name-only HEAD^1 HEAD > .tmp/sweeps-changed.txt; then
+            echo "OURO_SWEEP_RETAKE=$(node scripts/sweeps-retake.mjs "$GITHUB_EVENT_NAME" .tmp/sweeps-changed.txt)" >> "$GITHUB_ENV"
+          else
+            echo "OURO_SWEEP_RETAKE=$(node scripts/sweeps-retake.mjs "$GITHUB_EVENT_NAME")" >> "$GITHUB_ENV"
+          fi
       - name: Sweep specs
         run: |
           specs=$(node scripts/shard.mjs sweeps "$SHARD")

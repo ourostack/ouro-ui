@@ -111,8 +111,12 @@ export function problems(commits, { messages = true } = {}) {
 
 const runGit = (args) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 256 * 1024 * 1024 });
 
+/** How many times the log is tried: the checkout is a partial clone, so reading the trees a log lists fetches them from the remote, and one dropped connection must not fail the job. */
+export const LOG_TRIES = 3;
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
 /** The commits in base..head, newest first. Throws when either end is missing or unknown, or the range is empty. */
-export function readCommits(base, head, git = runGit) {
+export function readCommits(base, head, git = runGit, pause = sleep) {
   for (const [end, ref] of [["base", base], ["head", head]]) {
     if (!ref) throw new Error(`no ${end} commit was given, so the range cannot be read.`);
     try {
@@ -121,7 +125,17 @@ export function readCommits(base, head, git = runGit) {
       throw new Error(`the ${end} commit ${ref} is not in this checkout, so the range cannot be read: fetch it (CI checks out with fetch-depth: 0).`);
     }
   }
-  const log = git(["-c", "log.showSignature=false", "log", "--name-only", "--format=%x1e%H%x1f%an%x1f%ae%x1f%cn%x1f%ce%x1f%B%x1f", `${base}..${head}`]);
+  // A failed read is tried again: each try fetches what the last one did not finish, and the last failure is the one thrown.
+  let log;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      log = git(["-c", "log.showSignature=false", "log", "--name-only", "--format=%x1e%H%x1f%an%x1f%ae%x1f%cn%x1f%ce%x1f%B%x1f", `${base}..${head}`]);
+      break;
+    } catch (error) {
+      if (attempt >= LOG_TRIES) throw error;
+      pause(attempt * 5000);
+    }
+  }
   const commits = log
     .split("\x1e")
     .map((record) => record.replace(/^\n/, ""))
@@ -142,11 +156,11 @@ export const textProblems = (title, body) =>
   }));
 
 /** Checks base..head, printing each problem; returns the exit status. */
-export function main([base, head] = [], { git = runGit, log = console.log, actions = Boolean(process.env.GITHUB_ACTIONS), env = process.env } = {}) {
+export function main([base, head] = [], { git = runGit, log = console.log, actions = Boolean(process.env.GITHUB_ACTIONS), env = process.env, pause = sleep } = {}) {
   const prefix = actions ? "::error::" : "";
   let commits;
   try {
-    commits = readCommits(base, head, git);
+    commits = readCommits(base, head, git, pause);
   } catch (error) {
     log(`${prefix}attribution: ${error.message}`);
     return 1;
