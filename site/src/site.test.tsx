@@ -1507,15 +1507,22 @@ describe("platforms", () => {
 });
 
 describe("install addresses", () => {
+  // The page scan reads the rendered text, and the commands under a closed disclosure too: innerText leaves those out.
+  const textNodes = (root: Node): string[] => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const found: string[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) found.push(node.textContent ?? "");
+    return found;
+  };
+  const pageText = () => [document.body.innerText, ...[...document.querySelectorAll("[data-ouro=\"collapsible\"]")].flatMap(textNodes)].join("\n");
+
   it.each(sliced(routes, "site: pins"))("$path pins each ourostack/ouro-ui address to a release, or says it is for contributors", async ({ path }) => {
     await renderPage(path);
-    expect(unpinnedAddresses(document.body.innerText)).toEqual([]);
+    expect(unpinnedAddresses(pageText())).toEqual([]);
   });
 
-  // The page scan reads the rendered text: an item's docs page names its install addresses there.
   it("finds the install addresses on an item's docs page", async () => {
     await renderPage("/docs/dialog/");
-    expect(document.body.innerText.split("ourostack/ouro-ui/").length - 1).toBeGreaterThan(2);
+    expect(pageText().split("ourostack/ouro-ui/").length - 1).toBeGreaterThan(2);
   });
 });
-
