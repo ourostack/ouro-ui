@@ -1,0 +1,31 @@
+# Temporary: adds Lexical for Composer's rich-text mode (#2860) from public npm, which this
+# maintainer's machine cannot reach. Removed in the next commit; never merged.
+name: Temporary - add Lexical
+on:
+  push:
+    branches: [arimendelow-composer-rich-text]
+    paths: [.github/workflows/tmp-add-lexical.yml]
+permissions:
+  contents: write
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Add Lexical from public npm
+        run: |
+          pnpm add -w --ignore-scripts lexical@^0.53.0 @lexical/rich-text@^0.53.0 @lexical/markdown@^0.53.0 @lexical/link@^0.53.0 @lexical/history@^0.53.0 @lexical/utils@^0.53.0 @lexical/selection@^0.53.0
+          echo "registry hosts in the lockfile:"; grep -oE 'tarball: https?://[^/]+' pnpm-lock.yaml | sort | uniq -c || true
+          git diff --stat
+      - name: Commit package.json and the lockfile
+        run: |
+          git config user.name "Ari Mendelow"
+          git config user.email "16390116+arimendelow@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          git commit -m "Add Lexical for Composer's rich-text mode (#2860)"
+          git push origin HEAD:arimendelow-composer-rich-text
