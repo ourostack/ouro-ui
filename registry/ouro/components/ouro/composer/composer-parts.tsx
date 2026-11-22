@@ -113,6 +113,7 @@ const safeHref = (text: string): string | undefined => {
   try {
     const url = new URL(text.trim());
     return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : undefined;
+  // Stryker disable next-line BlockStatement: an empty handler falls off the end and returns undefined as well.
   } catch {
     return undefined;
   }
@@ -120,7 +121,7 @@ const safeHref = (text: string): string | undefined => {
 
 const htmlFormats: Record<string, TextFormatType> = { B: "bold", STRONG: "bold", I: "italic", EM: "italic", U: "underline", S: "strikethrough", DEL: "strikethrough", STRIKE: "strikethrough", CODE: "code" };
 const htmlBlocks = new Set(["P", "DIV", "LI", "BLOCKQUOTE", "PRE", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "TR"]);
-const htmlSkipped = new Set(["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT", "IFRAME", "OBJECT", "HEAD", "TITLE", "META", "SVG"]);
+const htmlSkipped = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "IFRAME", "OBJECT", "TITLE", "SVG"]);
 
 // The allowlist for a formatted paste: bold, italic, underline, strikethrough, code, links to http, https and mailto addresses, line breaks and paragraphs. A list item, quote or heading comes in as a line, a list item and a quote with the Markdown that starts them; every other tag, style and attribute is dropped, keeping its text.
 function $nodesFromHtml(html: string): LexicalNode[][] {
@@ -133,6 +134,7 @@ function $nodesFromHtml(html: string): LexicalNode[][] {
     const last = line.at(-1);
     if ($isTextNode(last)) last.setTextContent(last.getTextContent().trimEnd());
     if (line.some((node) => !$isTextNode(node) || node.getTextContent() !== "")) {
+      // Stryker disable next-line ConditionalExpression: an empty text node put in front of a line with no marker is dropped when the editor normalizes.
       if (pending) line.unshift($createTextNode(pending));
       pending = "";
       lines.push(line);
@@ -159,6 +161,7 @@ function $nodesFromHtml(html: string): LexicalNode[][] {
     if (block) endLine();
     if (tag === "LI") {
       const parent = element.parentElement;
+      // Stryker disable next-line OptionalChaining: a list item parsed from a body has a parent element, so the access never meets null.
       pending = parent?.tagName === "OL" ? `${[...parent.children].indexOf(element) + 1}. ` : "- ";
     }
     if (tag === "BLOCKQUOTE") pending = "> ";
@@ -179,6 +182,7 @@ function $nodesFromHtml(html: string): LexicalNode[][] {
     return [link];
   };
   const body = new DOMParser().parseFromString(html, "text/html").body;
+  // Stryker disable next-line ArrayDeclaration: an unknown format name toggles nothing.
   body.childNodes.forEach((child) => void line.push(...walk(child, [], false)));
   endLine();
   return lines;
@@ -192,6 +196,7 @@ function toggleLinkOfSelection(): void {
     $toggleLink(null);
     return;
   }
+  // Stryker disable next-line StringLiteral: a cancelled prompt read as any other text is no address, so safeHref rejects both alike; the question itself is checked.
   const href = safeHref(selection.getTextContent()) ?? safeHref(window.prompt("Link address") ?? "");
   if (href) $toggleLink(href);
 }

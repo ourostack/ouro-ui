@@ -52,6 +52,90 @@ async function selectAll(editor: HTMLElement) {
 
 describe("Composer rich paste", () => {
   it.each([
+    ["⌘⇧V", { key: "v", metaKey: true, shiftKey: true }, "x"],
+    ["Ctrl⇧V", { key: "V", ctrlKey: true, shiftKey: true }, "x"],
+    ["⌘V", { key: "v", metaKey: true }, "**x**"],
+    ["⌘⌥⇧V", { key: "v", metaKey: true, shiftKey: true, altKey: true }, "**x**"],
+    ["⇧V", { key: "V", shiftKey: true }, "**x**"],
+    ["⌘⇧X", { key: "x", metaKey: true, shiftKey: true }, "**x**"],
+    ["a key", { key: "a" }, "**x**"],
+  ])("takes %s for a plain paste only when it is ⌘⇧V", async (_name, init, expected) => {
+    const seen: string[] = [];
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
+    editor.focus();
+    await key(editor, init);
+    await paste(editor, { "text/plain": "x", "text/html": "<b>x</b>" });
+    await expect.poll(() => seen.at(-1)).toBe(expected);
+  });
+
+  it("keeps ⌘K from reaching the browser", async () => {
+    const editor = await render(rich({ defaultValue: "words" }));
+    vi.spyOn(window, "prompt").mockReturnValue(null);
+    await selectAll(editor);
+    const event = new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true, cancelable: true });
+    await act(async () => void editor.dispatchEvent(event));
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("asks for an address with its own words, and takes a link off a selection that holds one among other text", async () => {
+    const seen: string[] = [];
+    const prompt = vi.spyOn(window, "prompt").mockReturnValue(null);
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
+    editor.focus();
+    await paste(editor, { "text/html": 'a <a href="https://x.test/">b</a> c' });
+    await expect.poll(() => seen.at(-1)).toBe("a [b](https://x.test/) c");
+    await selectAll(editor);
+    await key(editor, { key: "k", metaKey: true });
+    await expect.poll(() => seen.at(-1)).toBe("a b c");
+    expect(prompt).not.toHaveBeenCalled();
+    await selectAll(editor);
+    await key(editor, { key: "k", metaKey: true });
+    expect(prompt).toHaveBeenCalledWith("Link address");
+  });
+
+  it.each(["script", "style", "noscript", "iframe", "object", "title", "svg"])("drops <%s> with its text", async (tag) => {
+    const seen: string[] = [];
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
+    editor.focus();
+    await paste(editor, { "text/html": `a<${tag}>hidden</${tag}>b` });
+    await expect.poll(() => seen.at(-1)).toBe("ab");
+  });
+
+  it("collapses runs of whitespace, in a block too, and trims a line's ends", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
+    editor.focus();
+    await paste(editor, { "text/html": "a  \n  b<p>  c   d  </p><p> </p><p>e</p>" });
+    await expect.poll(() => seen.at(-1)).toBe("a b\nc d\ne");
+  });
+
+  it("keeps an empty line made of a line break, and trims only the ends of a line that ends in a link", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
+    editor.focus();
+    await paste(editor, { "text/html": '<p> a <a href="https://x.test/">b</a> </p><p><br></p>' });
+    await expect.poll(() => seen.at(-1)).toContain("a [b](https://x.test/)");
+    expect(seen.at(-1)).not.toMatch(/^ /);
+  });
+
+  it("pastes a formatted line inside a line, not as a paragraph of its own", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ defaultValue: "ab", onValueChange: (value: string) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    await paste(editor, { "text/html": "<b>x</b>" });
+    await expect.poll(() => seen.at(-1)).toBe("a**x**b");
+  });
+
+  it("makes a link of a web address with spaces or a line break around it, over a selection", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ defaultValue: "docs", onValueChange: (value: string) => void seen.push(value) }));
+    await selectAll(editor);
+    await paste(editor, { "text/plain": " http://x.test/a \n" });
+    await expect.poll(() => seen.at(-1)).toBe("[docs](http://x.test/a)");
+  });
+
+  it.each([
     ["strong", "<strong>x</strong>", "**x**"],
     ["em", "<em>x</em>", "_x_"],
     ["i", "<i>x</i>", "_x_"],
