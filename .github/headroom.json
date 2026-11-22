@@ -323,5 +323,15 @@
     "test": "* registry/ouro/components/ouro/toast/toaster.touch.test.tsx > the swipe follows the finger (rule 12) > still follows the finger with reduced motion, then returns or fades with no travel",
     "reason": "ouro-touch at 8.5s of 15s in #2982 (run 45048634456). Measured clean locally: 1004ms, with its two restFinger() waits (real wall-clock, needed so the spring reads no leftover velocity before it snaps back under reduced motion) accounting for 300ms by design. The rest is nine real touchStep round trips across two drag-and-release cycles, the same shape as the neighboring settles-from-where-it-was-let-go case already exempted here. No avoidable wait found. Reads as CI-shard load on real touch round trips. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
+  },
+  {
+    "test": "ouro-touch registry/ouro/components/ouro/select/select.touch.test.tsx > keeps a select's trigger 44px tall to a finger, even at a compact --spacing",
+    "reason": "ouro-touch at 7.6s of 15s in #3000 (run 45060816478). Measured clean locally: the test body itself is 47-49ms; the file's shared afterEach pays four CDP round trips every test regardless (rotate()'s zoom read, viewport set, zoom reset, plus an emulateMedia reset), even though only one of the file's twelve tests rotates and only one changes reduced motion. That reset is the repo-wide touch-test safety convention (rotate.ts: catch any stray zoom, not only an explicit rotate() call) used in 40+ *.touch.test.tsx files; narrowing it to only run when this file's own test mutated state would weaken that catch-any-stray-zoom guarantee just for this file. No avoidable cost found in the test body or a safe per-file narrowing. Reads as CI-shard load on the shared reset's real CDP round trips. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > typing > never reports a typed date outside min and max, and shows the out-of-range message",
+    "reason": "ouro-webkit at 7.5s of 15s in #3000 (run 45060816478). Measured clean locally with per-step timing: the whole test is ~250ms, spread evenly across four distinct typed 10-character dates (below-min, above-max, a disabled date, a newly-allowed date) and their clears, 7-34ms each, with no single dominant round trip. The file's own beforeEach/afterEach carry no redundant reset (no viewport bounce back and forth). Reducing the typed cases would drop real boundary coverage this test proves. No avoidable wait found. Reads as CI-shard load on real typing round trips. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
   }
 ]
