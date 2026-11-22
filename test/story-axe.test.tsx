@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
@@ -71,7 +71,11 @@ it("recovers a trigger that covers itself again while a slow hover waits on it, 
   let recover: (() => void) | undefined;
   const Refades = () => {
     const [cover, setCover] = useState(false);
-    recover = () => setCover(true);
+    // Setting the outer `recover` during render would reassign a variable declared outside
+    // the component, which react-hooks' purity rule flags; an effect runs after render instead.
+    useEffect(() => {
+      recover = () => setCover(true);
+    });
     return (
       <div style={{ position: "relative", height: 60 }} onPointerMove={() => setCover(false)}>
         <Tooltip content="Liked by Ana">
