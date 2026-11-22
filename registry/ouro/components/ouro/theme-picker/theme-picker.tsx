@@ -295,23 +295,48 @@ function ThemePickerView(
 }
 
 /**
+ * A preview that ends if the picker unmounts during it, and only then: a picker that goes while it previews (its page
+ * left, its popover closed by the app) leaves the chosen look on the page, and one that goes otherwise touches nothing.
+ */
+function useEndingPreview(preview: (name: string | null) => void): (name: string | null) => void {
+  const latest = useRef(preview);
+  const previewing = useRef(false);
+  useEffect(() => {
+    latest.current = preview;
+  });
+  useEffect(
+    () => () => {
+      if (previewing.current) latest.current(null);
+    },
+    // Stryker disable next-line ArrayDeclaration: the cleanup reads both refs, so running it more often ends the same preview.
+    [],
+  );
+  return (name) => {
+    previewing.current = name !== null;
+    latest.current(name);
+  };
+}
+
+/**
  * Previews a look on `<html>` while the pointer or keyboard focus rests on it, and puts the chosen one back after,
- * on leaving, on Escape and on unmount.
+ * on leaving, on Escape and on unmount mid-preview.
  */
 function usePagePreview(chosen: string, onPreviewChange: ThemePickerProps["onPreviewChange"]): (name: string | null) => void {
   const kept = useRef(chosen);
   useEffect(() => {
     kept.current = chosen;
   }, [chosen]);
-  useEffect(
-    () => () => document.documentElement.setAttribute("data-theme", kept.current),
-    // Stryker disable next-line ArrayDeclaration: the cleanup reads the kept look from a ref, so running it more often puts back the same look.
-    [],
-  );
-  return (name) => {
+  return useEndingPreview((name) => {
     document.documentElement.setAttribute("data-theme", name ?? kept.current);
     onPreviewChange?.(name);
-  };
+  });
+}
+
+/** The controlled picker's preview: the app paints it (`onPreviewChange`), and is told it ended if the picker unmounts mid-preview. */
+function ControlledThemePicker(props: ThemePickerProps & { value: string }): JSX.Element {
+  const { onValueChange, onPreviewChange } = props;
+  const preview = useEndingPreview((name) => onPreviewChange?.(name));
+  return <ThemePickerView {...props} chosen={props.value} choose={(name, event) => onValueChange?.(name, event)} preview={preview} />;
 }
 
 function StoredThemePicker(props: ThemePickerProps): JSX.Element {
@@ -359,7 +384,5 @@ function StoredThemePicker(props: ThemePickerProps): JSX.Element {
  */
 export function ThemePicker(props: ThemePickerProps): JSX.Element {
   if (props.value === undefined) return <StoredThemePicker {...props} />;
-  const { onValueChange } = props;
-  const { onPreviewChange } = props;
-  return <ThemePickerView {...props} chosen={props.value} choose={(name, event) => onValueChange?.(name, event)} preview={(name) => onPreviewChange?.(name)} />;
+  return <ControlledThemePicker {...props} value={props.value} />;
 }

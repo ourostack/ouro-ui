@@ -161,6 +161,29 @@ describe("ThemePicker", () => {
     expect(html.getAttribute("data-theme")).toBe("dusk");
   });
 
+  it("leaves the page's look alone when it unmounts with no preview running", async () => {
+    await render(<ThemePicker presets={three} defaultPreset="abyss" />);
+    html.setAttribute("data-theme", "dusk");
+    await act(async () => root?.unmount());
+    root = undefined;
+    expect(html.getAttribute("data-theme")).toBe("dusk");
+  });
+
+  it("tells the app a preview ended when a controlled picker unmounts mid-preview, and only then", async () => {
+    const onPreviewChange = vi.fn();
+    const el = await render(<ThemePicker presets={three} value="pearl" onPreviewChange={onPreviewChange} />);
+    await userEvent.hover(option(el, "dusk"));
+    await expect.poll(() => onPreviewChange.mock.calls.at(-1)).toEqual(["dusk"]);
+    await act(async () => root?.unmount());
+    root = undefined;
+    expect(onPreviewChange.mock.calls.at(-1)).toEqual([null]);
+    const quiet = vi.fn();
+    await render(<ThemePicker presets={three} value="pearl" onPreviewChange={quiet} />);
+    await act(async () => root?.unmount());
+    root = undefined;
+    expect(quiet).not.toHaveBeenCalled();
+  });
+
   it("previews nothing for a finger, whose pointerenter comes with the tap, or for focus that is not the keyboard's", async () => {
     const el = await render(<ThemePicker presets={three} />);
     option(el, "dusk").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "touch" }));
