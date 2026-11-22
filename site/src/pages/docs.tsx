@@ -388,9 +388,11 @@ export function DocsIndex(): JSX.Element {
         <ul className="m-0 flex list-none flex-wrap gap-x-5 gap-y-2 p-0">
           {exportPages.map((page) => (
             <li key={page.name}>
-              <a href={href(`/docs/${page.name}/`)} className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4 sm:min-h-6">
-                {page.title}
-              </a>
+              <Text size="sm">
+                <Link href={href(`/docs/${page.name}/`)} inline={false}>
+                  {page.title}
+                </Link>
+              </Text>
             </li>
           ))}
         </ul>

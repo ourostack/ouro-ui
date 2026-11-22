@@ -1538,7 +1538,7 @@ describe("install addresses", () => {
 
   it("marks every control on a docs page with its Ouro item, so X-ray names it", async () => {
     await page.viewport(1100, 900);
-    for (const path of ["/docs/dialog/", "/docs/radio/"]) {
+    for (const path of ["/docs/", "/docs/dialog/", "/docs/radio/", "/docs/density/", "/docs/button/"]) {
       await renderPage(path);
       const unmarked = collectControls().filter((element) => !element.closest("[data-ouro-control]"));
       expect(unmarked.map((element) => `${path} ${element.tagName.toLowerCase()} ${element.getAttribute("href") ?? element.textContent?.trim().slice(0, 30)}`)).toEqual([]);
