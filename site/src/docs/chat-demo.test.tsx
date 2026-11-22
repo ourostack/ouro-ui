@@ -24,7 +24,8 @@ describe("the chat app page", () => {
     await expect.element(page.getByLabelText("Replies").first()).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     await page.getByRole("radio", { name: "Empty" }).click();
-    await expect.element(page.getByText("Nothing here yet")).toBeInTheDocument();
+    await expect.element(page.getByRole("radio", { name: "Empty" })).toBeChecked();
+    await expect.element(page.getByRole("list", { name: "Conversations" })).not.toBeInTheDocument();
   });
 
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
