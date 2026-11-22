@@ -106,8 +106,12 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  *
  * The home page's set again 2026-11-21 at 289,844 bytes, what CI measured on main at 8ec35db91 (run 44962422523), after the
  * header's Search button took its name and a longer hidden label (#2839): about 540 bytes more of the first script (#2845).
+ *
+ * The docs' set again 2026-11-21 at 194,931 bytes, what CI measured on this pull request's run 44977376245 (e2e job
+ * 137070628535), after a component page's install section put its namespace and tests commands under Collapsible's "More
+ * ways": Collapsible and its code now load with every docs page's first script.
  */
-const MEASURED = { voyage: 289_844, docs: 193_168 } as const;
+const MEASURED = { voyage: 289_844, docs: 194_931 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
