@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { exemptionProblems, headroomProblems, readExemptions, staleExemptions } from "./headroom.mjs";
+import { exemptionProblems, headroomProblems, headroomReason, ratchetProblems, readExemptions, staleExemptions } from "./headroom.mjs";
 
 const named = (test) => ({ test, reason: "slow", owner: "drain-3" });
 
@@ -48,4 +48,21 @@ test("the committed exemptions each name a test, a reason and an owner, once", (
   const exemptions = readExemptions();
   assert.deepEqual(exemptionProblems(exemptions), []);
   assert.equal(new Set(exemptions.map((entry) => entry.test)).size, exemptions.length);
+});
+
+test("the exemption count only goes down: a larger file fails unless the description gives a reason", () => {
+  const base = [named("a"), named("b")];
+  const grown = [...base, named("c")];
+  assert.deepEqual(ratchetProblems({ base, head: base, body: "" }), []);
+  assert.deepEqual(ratchetProblems({ base, head: [named("a")], body: "" }), []);
+  const failed = ratchetProblems({ base, head: grown, body: "Adds c." });
+  assert.equal(failed.length, 1);
+  assert.match(failed[0], /from 2 to 3 exemptions/);
+  assert.deepEqual(ratchetProblems({ base, head: grown, body: "headroom: c's cost is the page load, fixed in the next change" }), []);
+  assert.equal(ratchetProblems({ base, head: grown, body: "headroom: slow" }).length, 1);
+});
+
+test("headroomReason reads the line, not a mention", () => {
+  assert.equal(headroomReason("text headroom: long enough reason"), null);
+  assert.equal(headroomReason("a\nHeadroom: long enough reason\nb"), "long enough reason");
 });
