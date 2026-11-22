@@ -319,14 +319,14 @@
     }
     .site-console-grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      grid-template-rows: 1fr auto auto 1fr;
+      grid-template-rows: auto auto 1fr;
       column-gap: 3.5rem;
       row-gap: 2rem;
     }
-    /* The invitation and the proof beside the porthole, centred on it as one group. */
+    /* The invitation and the proof beside the porthole, from its top: the stage is tall (porthole and console), so centring the pair on it left a gap above the heading. */
     .site-console-copy {
       grid-column: 1;
-      grid-row: 2;
+      grid-row: 1;
     }
     .site-console-stage {
       grid-column: 2;
@@ -334,7 +334,7 @@
     }
     .site-proof {
       grid-column: 1;
-      grid-row: 3;
+      grid-row: 2;
     }
   }
 }
