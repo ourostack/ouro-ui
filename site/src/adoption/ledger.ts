@@ -91,7 +91,7 @@ export interface Surface {
     giveBack: LedgerCell<number> & { prs: GiveBackPr[] };
     tracking: LedgerCell<Issue[]>;
   };
-  conditions: Record<"current" | "census" | "must" | "gaveBack", { label: string; met: boolean }>;
+  conditions: Record<"current" | "hx" | "census" | "must" | "gaveBack", { label: string; met: boolean }>;
   met: number;
   confirmed: boolean;
 }

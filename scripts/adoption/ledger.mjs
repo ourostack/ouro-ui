@@ -538,6 +538,9 @@ export function measureCensus(ctx, surface, latest) {
   });
 }
 
+/** Ouro HX in full: the product's screens are built from Ouro HX, as `measureHx` counts it (`full`), not partly or not at all. */
+export const hxFull = (hxCell) => hxCell.value === "full";
+
 /** Census at zero: the census finds doors, every one is declared with a valid card, and it walks every kind the product has. */
 export const censusAtZero = (censusCell) => Boolean(censusCell.value) && censusCell.value.found > 0 && censusCell.value.gaps === 0 && censusCell.value.missingKinds.length === 0;
 
@@ -728,8 +731,12 @@ export function build(ctx, config, { only = null } = {}) {
     if (axNa && !mustPasses(xray)) xray = cell(ctx, null, { note: `n/a: ${surface.ax.reason}`, source: xray.source });
     const censusNa = axNa && censusFindsNothing(census);
     if (censusNa) census = cell(ctx, null, { note: `n/a: ${surface.ax.reason} Its census finds no doors.`, source: census.source });
+    // A product with screens is confirmed only on Ouro HX in full, so the ledger can't show one confirmed while its screens
+    // are hand-built. A product with no screen of its own (its config's HX is `n/a`, with its reason) has nothing to build.
+    const hxNa = surface.hx.kind === "na" && hx.value === "n/a";
     const conditions = {
       current: { label: "On current Ouro UI", met: isCurrent(pins) },
+      hx: { label: "Ouro HX in full", met: hxFull(hx) || hxNa },
       census: { label: "Census at zero", met: censusAtZero(census) || censusNa },
       must: { label: "AX must claims pass in CI", met: mustPasses(xray) || axNa },
       gaveBack: { label: "Has given back", met: surface.upstream ? true : gaveBack(giveBack) },
@@ -746,7 +753,7 @@ export function build(ctx, config, { only = null } = {}) {
       cells: { pins, hx, ax, actions, census, xray, giveBack, tracking },
       conditions,
       met,
-      confirmed: met === 4,
+      confirmed: met === Object.keys(conditions).length,
     };
   });
   const inScope = surfaces.filter((surface) => surface.inScope);
@@ -772,7 +779,7 @@ export function build(ctx, config, { only = null } = {}) {
   const order = [...inScope].sort((a, b) => a.met - b.met || (hxRank[a.cells.hx.value] ?? 3) - (hxRank[b.cells.hx.value] ?? 3) || a.name.localeCompare(b.name));
   const generatedAt = ctx.stamp();
   return {
-    schema: 2,
+    schema: 3,
     generatedAt,
     summary: { total: inScope.length, confirmed: inScope.filter((surface) => surface.confirmed).length, listed: surfaces.length, unmeasuredCells: surfaces.reduce((sum, surface) => sum + Object.values(surface.cells).filter(isUnmeasured).length, 0), releasesBehind, late, order: order.map((surface) => surface.id) },
     latest,

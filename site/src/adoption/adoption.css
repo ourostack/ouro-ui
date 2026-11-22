@@ -219,7 +219,7 @@
     fill: var(--adoption-starlight);
   }
 
-  /* The list: a product per row, its four marks under the column headings, and a line per gap. */
+  /* The list: a product per row, its five marks under the column headings, and a line per gap. */
   .adoption-h2 {
     margin: 0 0 calc(var(--spacing) * 4);
     font-size: 1rem;
@@ -229,12 +229,12 @@
   .adoption-head,
   .adoption-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) calc(var(--adoption-col) * 4);
+    grid-template-columns: minmax(0, 1fr) calc(var(--adoption-col) * 5);
     column-gap: calc(var(--spacing) * 3);
     align-items: start;
   }
   .adoption-head {
-    grid-template-columns: minmax(0, 1fr) repeat(4, var(--adoption-col));
+    grid-template-columns: minmax(0, 1fr) repeat(5, var(--adoption-col));
     column-gap: 0;
     padding-bottom: calc(var(--spacing) * 2);
     font-size: 0.75rem;
@@ -294,7 +294,7 @@
   }
   .adoption-marks {
     display: grid;
-    grid-template-columns: repeat(4, var(--adoption-col));
+    grid-template-columns: repeat(5, var(--adoption-col));
     justify-items: center;
     padding-top: 0.1875rem;
   }
@@ -342,10 +342,10 @@
   }
   @media (min-width: 80rem) {
     .adoption-head {
-      grid-template-columns: 11rem repeat(4, var(--adoption-col)) minmax(0, 1fr);
+      grid-template-columns: 11rem repeat(5, var(--adoption-col)) minmax(0, 1fr);
     }
     .adoption-row {
-      grid-template-columns: 11rem calc(var(--adoption-col) * 4) minmax(0, 1fr);
+      grid-template-columns: 11rem calc(var(--adoption-col) * 5) minmax(0, 1fr);
       column-gap: 0;
     }
     .adoption-name {
@@ -357,16 +357,16 @@
       margin: 0 0 0 calc(var(--spacing) * 4);
     }
   }
-  /* With large text on a phone the name and four columns cannot sit side by side: the name takes its own line, and the
-     columns share the row. 18rem is the name's least room and the four columns at a phone's width. */
+  /* With large text on a phone the name and five columns cannot sit side by side: the name takes its own line, and the
+     columns share the row. 21rem is the name's least room and the five columns at a phone's width. */
   .adoption-board {
     container-type: inline-size;
   }
-  @container (width < 18rem) {
+  @container (width < 21rem) {
     .adoption-head,
     .adoption-row,
     .adoption-marks {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       column-gap: 0;
     }
     .adoption-head span:first-child {

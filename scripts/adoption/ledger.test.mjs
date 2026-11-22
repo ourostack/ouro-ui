@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { build, censusAtZero, configPath, createContext, gaveBack, isCurrent, measureActions, measureCensus, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, censusAtZero, configPath, createContext, gaveBack, hxFull, isCurrent, measureActions, measureCensus, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
 import { execFileSync } from "node:child_process";
 import { rmSync, writeFileSync } from "node:fs";
 import { scratchDir } from "../scratch.mjs";
@@ -564,7 +564,7 @@ test("a product's own walkers are named in the census cell", () => {
 
 test("Census at zero replaces actions on the one-action model as a condition, and an n/a product needs a census that finds no doors", () => {
   const ledger = build(ctx([]), config);
-  assert.equal(ledger.schema, 2, "schema 2 counts the census where schema 1 counted actions, so the site never reads one as the other");
+  assert.ok(ledger.schema >= 2, "schema 2 counts the census where schema 1 counted actions, so the site never reads one as the other");
   const web = ledger.surfaces.find((surface) => surface.id === "web");
   assert.equal(web.conditions.census.label, "Census at zero");
   assert.equal(web.conditions.census.met, false);
@@ -760,4 +760,24 @@ test("every product with X-ray runs lists the surfaces they check, and a product
     for (const entry of surface.xray) assert.equal(entry.branch, "main", `${surface.id}'s ${entry.workflow} counts only from a push to main, so it names branch main`);
   }
   assert.equal(real.surfaces.find((surface) => surface.id === "harness").runsAgents, true);
+});
+
+// ---- Ouro HX in full -------------------------------------------------------------------------------------------
+
+test("a product with screens is confirmed only on Ouro HX in full, and one with no screen holds the check as n/a", () => {
+  assert.equal(hxFull({ value: "full" }), true);
+  assert.equal(hxFull({ value: "partial" }), false);
+  assert.equal(hxFull({ value: null }), false, "an HX use not measured is not full");
+  const ledger = build(ctx([]), config);
+  const web = ledger.surfaces.find((surface) => surface.id === "web");
+  assert.equal(ledger.schema, 3, "schema 3 adds the HX check, so the page never reads a ledger of four checks as one of five");
+  assert.deepEqual(Object.keys(web.conditions), ["current", "hx", "census", "must", "gaveBack"]);
+  assert.equal(web.conditions.hx.label, "Ouro HX in full");
+  assert.equal(web.cells.hx.value, "partial");
+  assert.equal(web.conditions.hx.met, false, "a web app using some Ouro components has hand-built screens left");
+  const cli = ledger.surfaces.find((surface) => surface.id === "cli");
+  assert.equal(cli.conditions.hx.met, true, "a CLI has no screens to build");
+  const secret = ledger.surfaces.find((surface) => surface.id === "secret");
+  assert.equal(secret.conditions.hx.met, false, "a private product's HX isn't read, so n/a in its config doesn't hold the check");
+  assert.equal(web.confirmed, false);
 });
