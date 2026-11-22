@@ -74,6 +74,9 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const depthAtLastLog = useRef(0);
   const root = useRef<HTMLDivElement>(null);
   const [offscreen, setOffscreen] = useState(false);
+  // Read inside the judge's frames, which a state update reaches only once React has committed
+  // it: a tick already queued when the stage leaves the screen must not wait on that commit.
+  const offscreenRef = useRef(false);
 
   const band = bandAt(depth);
   const full = TANKS.filter((tank) => tanks[tank.id]).length;
@@ -92,7 +95,11 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   useEffect(() => {
     const element = root.current;
     if (!element || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver((entries) => setOffscreen(!entries[entries.length - 1]!.isIntersecting));
+    const observer = new IntersectionObserver((entries) => {
+      const off = !entries[entries.length - 1]!.isIntersecting;
+      offscreenRef.current = off;
+      setOffscreen(off);
+    });
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
@@ -128,7 +135,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       let start = 0;
       let last = 0;
       const tick = (now: number) => {
-        if (document.hidden || menuOpen()) return;
+        if (document.hidden || menuOpen() || offscreenRef.current) return;
         if (last) gaps.push(now - last);
         else start = now;
         last = now;
@@ -139,7 +146,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       // No verdict 2 s after judging starts means the frames never came (under three, or a second's worth, in that
       // time). Twice running, the screen is slow, though it never gets to say so in frames; once could be one long task.
       deadline = window.setTimeout(() => {
-        if (document.hidden || menuOpen()) return;
+        if (document.hidden || menuOpen() || offscreenRef.current) return;
         cancelAnimationFrame(frame);
         if (starved) verdict(true);
         else {

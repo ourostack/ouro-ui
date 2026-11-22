@@ -1,0 +1,1 @@
+{ "product": "desk", "walkers": { "skills": { "module": "fixtures/walker-skills.mts" } }, "sources": [{ "walker": "skills", "module": "", "source": "skills" }], "groups": [] }

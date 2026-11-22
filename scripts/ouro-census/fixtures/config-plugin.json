@@ -1,0 +1,9 @@
+{
+  "product": "desk",
+  "walkers": { "skills": { "module": "fixtures/walker-skills.mts", "kinds": ["skill"] } },
+  "sources": [
+    { "walker": "skills", "module": "", "source": "plugins/desk/skills" },
+    { "walker": "mcp-schemas", "module": "walkers/fixtures/mcp-ok.cjs", "source": "walkers/fixtures/mcp-ok.ts" }
+  ],
+  "groups": []
+}

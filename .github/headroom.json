@@ -313,5 +313,10 @@
     "test": "site site/src/voyage/chapters/chapter-three.test.tsx > Chapter III > keeps Dive and the organ off in the menu and the palette until the squid lets go, and a press on them changes nothing",
     "reason": "A shard measured it at 7.7 s against a budget of 15 s (#2965), on chromium rather than WebKit, pointing at a cost shared across projects rather than one browser's automation latency. Chapter I, II and III's beforeEach set reduced motion and afterEach put it back on every test, paying a media round trip twice a test for a preference that never changes within the file; it now moves to a file-level beforeAll/afterAll, cutting that cost from twice a test to twice a file. A clean ouro-chromium run of the whole file shows no change (6.4 s and 7 s for 16 tests, both under budget and within the run-to-run spread this session has measured for other media-round-trip fixes), so the remaining cost still reads as CI-shard load, not an avoidable wait this fix left behind. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
+  },
+  {
+    "test": "ouro-touch test/text-size.touch.test.tsx > landscape (844 x 390) > demo/combobox has no text-entry control under 16px, closed or with any overlay open",
+    "reason": "A shard measured it at 7.8 s against a budget of 15 s (#2971). The demo renders four separate Comboboxes (Herb, Herbs, To, Cuisine), so the scan pays four real click round trips plus five subject re-renders (closed, then one per opener); no opener recurses further, since a listbox's options carry no aria-haspopup of their own, so this is not excess recursion. Instrumented locally the whole test (portrait and landscape together) totals under 1 s with each round trip at 82-150 ms, which matches the file's own documented model of up to 1 s per real round trip on a loaded shard rather than an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
   }
 ]
