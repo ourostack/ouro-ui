@@ -1,0 +1,227 @@
+[
+  {
+    "test": "* registry/ouro/components/ouro/form/form.test.tsx > Form error summary > has no summary and no alert when the only field with an error cannot take focus",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/message/message-list.actions.test.tsx > MessageList actions > draws one bar for the whole list, on the message the pointer is over, and listens the same for a hundred messages as for two",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/message/message-list.switching.test.tsx > MessageList switching conversations > keeps a partial re-key's rows at their own heights: sliding the window by one message leaves the list as tall as it was",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/select/select.test.tsx > Select under a parent's spacing > keeps the 16px that space-y-4 puts between the Select and the button below it",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/testing/commands.touch.test.ts > on a page zoomed and panned by touch, the kit waits for the frame where the touch lands",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/testing/press.touch.test.ts > fails on an element with no pressed tint",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/testing/press.touch.test.ts > leaves no listener or data-press-target behind, even after a failure",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > clears a form-owned field refusal when a calendar pick changes its value",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox > leaves the rest of the page exposed while its list is open, so the gate passes from the page's main landmark",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command > scrolls a long list by the arrow keys from the search, which keeps focus and Tab, and passes axe",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command motion > fades and scales in from 0.96 on the Dialog's slow token, and only fades with reduced motion",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/inspector/inspector.test.tsx > Inspector > leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/message/message-list.switching.test.tsx > MessageList switching conversations > opens the newest message when every message gets a new key with no conversation named, as another conversation's messages would",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/message/message-list.windowing.test.tsx > MessageList windowing > measures each child by what it draws, its margins too, so once scrolled through it is exactly as tall as the whole list",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/popover/popover.test.tsx > Popover > keeps its fixed sizes at a compact --spacing: an 18rem panel",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/reorderable/reorderable.test.tsx > Reorderable > disabled > reorders again once it turns off, and marks no handle unavailable",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/reorderable/reorderable.test.tsx > Reorderable > disabled > with disabledReason, turns reordering off by itself, describes every handle by the reason and shows it as a tooltip",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/skeleton/skeleton.test.tsx > Skeleton > places a placeholder in the wave: a new wave after a quiet gap of more than a second, else the running one",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/motion.test.ts > the motion matrix > checklist's stories expose no state its motion map leaves out",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/stories.test.tsx > at * px > * > Lightbox/MosaicWithMore has no axe violations, closed and with each overlay open",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/stories.test.tsx > at * px > * > TimeGrid/BackgroundEvents has no axe violations, closed and with each overlay open",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/gallery.test.tsx > an open Sheet demo at 1280 px > has no overflow or axe violations in dark",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/gallery.test.tsx > an open Sheet demo at 1280 px > has no overflow or axe violations in light",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/site.test.tsx > home page > sets the headline at one height in every look beside the story, so choosing a look moves nothing below it",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/squircle/csp.test.ts > under style-src 'self' > bridges native corner-shape with no <style> element and nothing refused",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/squircle/parse.test.ts > isTransparentColor > detects transparent colors",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx > EmojiPicker search > matches the start of any word in the name or keywords, ignoring case and accents, and hides the categories",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/testing/commands.test.ts > emulateMedia throws, naming the query, when the frame never matches it",
+    "reason": "Waits out a deliberate ten second poll bound, so it takes half its timeout by design.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/card/card.test.tsx > Card with href, zoomMedia and revealDescription > keeps a rising title and description at 4.5:1 on its glass over a bright picture and a dark one, in light and dark",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/testing/commands.touch.test.ts > a touch on a ::before box inside a frame waits for that frame",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/voyage/stage/stage.test.tsx > the stage's controls > keeps the newest five lines in the log, the newest also under the porthole",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/menu/menu.test.tsx > Menu items > passes the accessibility gate open, with every item type, in light and dark, inside the page's main landmark",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/combobox/combobox.touch.test.tsx > Combobox on a phone > clears typed text to an empty string with allowCustomValue",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command > hides the empty list from assistive technology while nothing matches, so the gate passes with only the empty state",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/dialog/dialog.touch.test.tsx > initial focus in the centered dialog (landscape phone, * > focuses the popup, not the input, after a tap, so no keyboard pops up",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/adoption/adoption.test.tsx > the adoption page > has a route and leads with the count of green products out of the total",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/voyage/voyage.test.tsx > the header and the theme section > turns X-ray on from the header's switch and from See how it's built",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/sheet/sheet.touch.test.tsx > Sheet on a phone > stays under the finger when it is caught on its way back to rest, and follows from there",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/text-field/text-field.weight.test.tsx > TextField's mount time > mounts a plain field, one of 100, in a bounded multiple*",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/toast/toaster.test.tsx > toast() > runs the action, then dismisses the toast",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/toast/toaster.touch.test.tsx > the swipe follows the finger (rule 12) > settles from where it was let go, and can be caught again on the way",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/site.test.tsx > docs > opens a docs page on the registry Hero: its scene contained, by day and at night, a band on a component page and the whole scene on a platform page",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/stories.test.tsx > at * px > * > Reorderable/ScrollsInPlace has no axe violations, closed and with each overlay open",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx > EmojiPicker search > splits names and keywords at hyphens, underscores and colons, and treats spaces alone as no search",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/controls.touch.test.tsx > no control is left unmarked on a touch phone > *",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  }
+]

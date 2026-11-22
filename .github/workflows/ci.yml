@@ -550,7 +550,8 @@ jobs:
     # pull request, the selected components' tests, the shared suites over their stories and the
     # site's tests, still in every Vitest project (scripts/test-impact.mjs vitest). Each shard
     # uploads its motion evidence, its coverage (the ci job merges it and holds it to 100%) and how
-    # long each file took (`node scripts/shard.mjs refresh`). Part of the ci check. A
+    # long each file took (`node scripts/shard.mjs refresh`). A shard also fails a test that takes more than half
+    # its timeout unless .github/headroom.json names it (scripts/headroom-reporter.mts). Part of the ci check. A
     # pull request that changes nothing they read skips them (the plan's `browser`).
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}
