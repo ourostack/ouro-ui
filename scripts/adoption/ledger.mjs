@@ -406,24 +406,51 @@ const CENSUS_MANIFEST = "scripts/ouro-census/dist-manifest.json";
 const GAP_KEYS = ["weak", "undeclared", "unwalked", "stale"];
 const orList = (items) => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items.at(-1)}`);
 
-/** The census checker hash Ouro UI's latest web release ships in its manifest. */
-function releasedChecker(ctx, web) {
-  return ctx.memo(`census-manifest:${web.repo}:${web.tag}`, () => {
+/** The census checker hash an Ouro UI release ships in its manifest, or null when that release has none. */
+function releasedChecker(ctx, repo, tag) {
+  return ctx.memo(`census-manifest:${repo}:${tag}`, () => {
     let manifest;
     try {
-      manifest = JSON.parse(ctx.text(`repos/${web.repo}/contents/${CENSUS_MANIFEST}?ref=${web.tag}`));
+      manifest = JSON.parse(ctx.text(`repos/${repo}/contents/${CENSUS_MANIFEST}?ref=${tag}`));
     } catch {
-      throw new Error(`Ouro UI ${web.tag} has no census manifest (${CENSUS_MANIFEST})`);
+      return null;
     }
-    if (manifest?.tool !== "ouro-census" || typeof manifest.checker !== "string") throw new Error(`Ouro UI ${web.tag}'s ${CENSUS_MANIFEST} names no checker hash`);
-    return manifest.checker;
+    return manifest?.tool === "ouro-census" && typeof manifest.checker === "string" ? manifest.checker : null;
   });
 }
 
 /**
- * A product's Ouro AX census: the `census.json` in the `ax-census` artifact of the newest successful run on main of its
- * workflow. It counts only when the report is for main at that run's own commit, its checker is the one Ouro UI's
- * latest release ships (so a product can't weaken a walker and keep reporting), and it is at most a week old.
+ * The checker hashes a census may carry: the latest web release's, and those of the releases it replaced less than a day
+ * ago, since a product has a day to take a release (the "On current Ouro UI" grace).
+ */
+function acceptedCheckers(ctx, web) {
+  if (!web.tag) throw new Error(`Ouro UI's latest release couldn't be read (${web.error ?? "no release"}), so the census's checker can't be checked`);
+  const latest = releasedChecker(ctx, web.repo, web.tag);
+  if (!latest) throw new Error(`Ouro UI ${web.tag} has no census manifest (${CENSUS_MANIFEST})`);
+  const accepted = new Map([[latest, web.tag]]);
+  let releases = [];
+  try {
+    releases = ctx.releases(web.repo);
+  } catch {
+    // The latest release alone is the strict reading.
+  }
+  for (let i = 1; i < releases.length; i += 1) {
+    // A release stays accepted until the one after it has been out for a day.
+    if (ctx.now().getTime() - new Date(releases[i - 1].at).getTime() > LATE_AFTER_MS) break;
+    const checker = releasedChecker(ctx, web.repo, releases[i].tag);
+    if (checker && !accepted.has(checker)) accepted.set(checker, releases[i].tag);
+  }
+  return { latest, accepted };
+}
+
+const isCount = (value) => Number.isInteger(value) && value >= 0;
+const shown = (value) => (typeof value === "string" ? JSON.stringify(value) : String(value));
+
+/**
+ * A product's Ouro AX census: the `census.json` in the `ax-census` artifact of the newest successful push to main of its
+ * workflow, in its own repository. It counts only when the report is for main at that run's own commit, its checker is
+ * one Ouro UI released (so a product can't weaken a walker and keep reporting), it is at most a week old and its counts
+ * add up.
  */
 export function measureCensus(ctx, surface, latest) {
   const census = surface.census;
@@ -431,53 +458,62 @@ export function measureCensus(ctx, surface, latest) {
   const source = `https://github.com/${repo}/actions`;
   if (!census) return unmeasured(ctx, "no Ouro AX census runs in CI for this product yet", source);
   return attempt(ctx, source, () => {
-    const runs = ctx.api(`repos/${repo}/actions/workflows/${census.workflow}/runs?status=success&per_page=3&branch=main`).workflow_runs;
+    if (!Array.isArray(census.kinds) || census.kinds.length === 0) throw new Error(`the ledger config lists no door kinds for ${census.product}'s census`);
+    // Only a push to main counts: a pull request from a fork's own `main` branch also matches `branch=main`.
+    const [run] = ctx.api(`repos/${repo}/actions/workflows/${census.workflow}/runs?status=success&per_page=1&branch=main&event=push`).workflow_runs;
+    if (!run) throw new Error("no successful census run on main yet");
+    if (run.event !== "push") throw new Error(`the newest census run on main was a ${run.event} run, not a push`);
+    if (run.head_branch !== "main") throw new Error(`the newest census run on main ran on ${run.head_branch}`);
+    if (run.head_repository?.full_name !== repo) throw new Error(`the newest census run on main came from ${run.head_repository?.full_name ?? "another repository"}, not ${repo}`);
+    const artifact = ctx.api(`repos/${repo}/actions/runs/${run.id}/artifacts?per_page=50`).artifacts.find((item) => !item.expired && item.name === "ax-census");
+    if (!artifact) throw new Error("no ax-census artifact in the latest successful run on main");
     const tmp = mkdtempSync(join(tmpdir(), "ouro-adoption-census-"));
-    let found = null;
+    let report;
     try {
-      for (const run of runs) {
-        const artifact = ctx.api(`repos/${repo}/actions/runs/${run.id}/artifacts?per_page=50`).artifacts.find((item) => !item.expired && item.name === "ax-census");
-        if (!artifact) continue;
-        found = { run, report: readArtifactReport(ctx, repo, artifact, tmp, CENSUS_FILE) };
-        break;
-      }
+      report = readArtifactReport(ctx, repo, artifact, tmp, CENSUS_FILE);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
-    if (!found) throw new Error("no ax-census artifact in the latest successful runs on main");
-    const { run, report } = found;
     if (report?.ax !== "census/1") throw new Error("the ax-census artifact holds no census/1 report");
     if (report.target?.ref !== "refs/heads/main") throw new Error(`the census ran on ${report.target?.ref ?? "an unknown ref"}, not main`);
     if (report.target?.commit !== run.head_sha) throw new Error(`the census reports commit ${short(report.target?.commit)}, but its run built ${short(run.head_sha)}`);
-    const checker = releasedChecker(ctx, latest.web);
-    if (report.checker?.sha256 !== checker) throw new Error(`the census's checker ${String(report.checker?.sha256).slice(0, 12)} is not the one Ouro UI ${latest.web.tag} released (${checker.slice(0, 12)})`);
-    const age = ctx.now().getTime() - new Date(report.at).getTime();
+    const { latest: checker, accepted } = acceptedCheckers(ctx, latest.web);
+    if (!accepted.has(report.checker?.sha256)) throw new Error(`the census's checker ${String(report.checker?.sha256).slice(0, 12)} is not one Ouro UI released in the last day (${latest.web.tag} ships ${checker.slice(0, 12)})`);
+    const at = new Date(report.at).getTime();
+    const age = ctx.now().getTime() - at;
+    if (age < -5 * 60_000) throw new Error(`the census is dated ${report.at}, after the ledger's own clock`);
     if (!(age <= CENSUS_MAX_AGE_DAYS * 86_400_000)) throw new Error(`the newest census is from ${String(report.at).slice(0, 10)}, more than ${CENSUS_MAX_AGE_DAYS} days ago`);
     const product = (report.products ?? []).find((item) => item.product === census.product);
     if (!product) throw new Error(`the census reports no ${census.product} product yet`);
-    const summary = product.summary;
-    const gaps = GAP_KEYS.reduce((total, key) => total + (summary[key] ?? 0), 0);
+    const summary = product.summary ?? {};
+    for (const key of ["found", "declared", ...GAP_KEYS]) if (!isCount(summary[key])) throw new Error(`the census's summary has ${key} ${shown(summary[key])}, not a count`);
+    if (summary.declared + summary.weak + summary.undeclared !== summary.found) throw new Error(`the census's summary doesn't add up: ${summary.declared} declared and ${summary.weak + summary.undeclared} weak or undeclared of ${summary.found} found`);
+    const gaps = GAP_KEYS.reduce((total, key) => total + summary[key], 0);
     // The released checker's hash vouches for its built-in walkers only. A kind a product's own walker walks (a built-in
     // kind too: the report doesn't say which walker found each door) counts once that walker's code, by its hash, is on
     // the surface's reviewed list.
     const walkers = report.checker.walkers ?? [];
+    if (walkers.some((walker) => typeof walker?.name !== "string")) throw new Error("the census lists a product walker with no name");
     const reviewed = census.reviewed ?? {};
-    const unreviewed = walkers.filter((walker) => reviewed[walker.name] !== walker.sha256);
-    const productOnly = (kind) => unreviewed.some((walker) => walker.kinds.includes(kind));
-    const walked = (product.walked?.kinds ?? []).filter((kind) => !productOnly(kind));
-    const notWalked = census.kinds.filter((kind) => !(product.walked?.kinds ?? []).includes(kind));
+    const unreviewed = walkers.filter((walker) => typeof walker.sha256 !== "string" || !Object.hasOwn(reviewed, walker.name) || reviewed[walker.name] !== walker.sha256);
+    const productOnly = (kind) => unreviewed.some((walker) => Array.isArray(walker.kinds) && walker.kinds.includes(kind));
+    const walkedKinds = product.walked?.kinds ?? [];
+    const walked = walkedKinds.filter((kind) => !productOnly(kind));
+    const notWalked = census.kinds.filter((kind) => !walkedKinds.includes(kind));
     const missingKinds = census.kinds.filter((kind) => !walked.includes(kind));
+    // Doors of kinds the config doesn't list (say, from a walker nobody reviewed) don't make the census find something.
+    const listedFound = product.byKind ? census.kinds.reduce((total, kind) => total + (product.byKind[kind]?.found ?? 0), 0) : summary.found;
     const productWalkers = walkers.map((walker) => walker.name);
-    const parts = [`${summary.declared} of ${summary.found} doors declared; ${gaps === 0 ? "no gaps" : `${gaps} gaps (${GAP_KEYS.map((key) => `${summary[key] ?? 0} ${key}`).join(", ")})`}`];
+    const parts = [`${summary.declared} of ${summary.found} doors declared; ${gaps === 0 ? "no gaps" : `${gaps} gaps (${GAP_KEYS.map((key) => `${summary[key]} ${key}`).join(", ")})`}`];
     if (notWalked.length) parts.push(`it doesn't walk ${orList(notWalked)} doors yet`);
     for (const walker of unreviewed) {
-      const kinds = walker.kinds.filter((kind) => census.kinds.includes(kind) && productOnly(kind));
+      const kinds = (walker.kinds ?? []).filter((kind) => census.kinds.includes(kind));
       if (kinds.length) parts.push(`${orList(kinds)} doors are walked by ${walker.name}, whose code ${String(walker.sha256).slice(0, 12)} is not on the reviewed list`);
     }
     if (productWalkers.length) parts.push(`with the product's own walker${productWalkers.length === 1 ? "" : "s"} ${productWalkers.join(", ")}`);
     return cell(
       ctx,
-      { found: summary.found, declared: summary.declared, gaps, ...Object.fromEntries(GAP_KEYS.map((key) => [key, summary[key] ?? 0])), baseline: summary.baseline ?? 0, walked, missingKinds, productWalkers, checker: report.checker.sha256, commit: report.target.commit, reportAt: report.at, run: run.html_url },
+      { found: listedFound, declared: summary.declared, gaps, ...Object.fromEntries(GAP_KEYS.map((key) => [key, summary[key]])), baseline: summary.baseline ?? 0, walked, missingKinds, productWalkers, checker: report.checker.sha256, commit: report.target.commit, reportAt: report.at, run: run.html_url },
       { note: `${parts.join("; ")}.`, source: run.html_url },
     );
   });

@@ -5,7 +5,7 @@
     "total": 21,
     "confirmed": 0,
     "listed": 22,
-    "unmeasuredCells": 50,
+    "unmeasuredCells": 52,
     "releasesBehind": 134,
     "late": [
       {
@@ -24,18 +24,18 @@
       "desk-browser",
       "desk",
       "drift-remote",
+      "shepherd",
       "friends",
       "ouro-work-substrate",
-      "shepherd",
       "spoonjoy-web",
       "ouro-ui",
-      "mendelow-me",
       "ouro-md",
       "spoonjoy-apple",
+      "mendelow-me",
       "gatefold",
+      "housesitter",
       "apple-distribution-kit",
       "flow-review",
-      "housesitter",
       "m365crawl"
     ]
   },
@@ -1240,10 +1240,10 @@
       "scopeNote": null,
       "cells": {
         "pins": {
-          "value": [],
-          "note": "No dependency on Ouro UI found in its files.",
-          "source": "https://github.com/ourostack/ouroboros",
-          "measuredAt": "2026-11-14T21:06:35.647Z"
+          "value": null,
+          "note": "not measured: Shepherd was added to the ledger after this snapshot",
+          "source": null,
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "hx": {
           "value": null,
@@ -1252,16 +1252,16 @@
           "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "ax": {
-          "value": null,
-          "note": "not measured: Shepherd was added to the ledger after this snapshot",
-          "source": "https://github.com/search?q=defineCommand%20OR%20bindAx%20OR%20ax-mcp%20repo%3Aourostack%2Fouroboros&type=code",
+          "value": "no",
+          "note": "Shepherd's agent doors are counted by the harness census, under its own product.",
+          "source": "https://github.com/ourostack/ouroboros",
           "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "actions": {
-          "value": 0,
-          "note": "The one-action model is not released yet, so no product has actions on it.",
+          "value": null,
+          "note": "not measured: Shepherd was added to the ledger after this snapshot",
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
-          "measuredAt": "2026-11-14T21:07:07.661Z"
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "census": {
           "value": null,
@@ -1271,9 +1271,9 @@
         },
         "xray": {
           "value": null,
-          "note": "not measured: no X-ray runs in CI for this product yet",
+          "note": "not measured: Shepherd was added to the ledger after this snapshot",
           "source": "https://github.com/ourostack/ouroboros/actions",
-          "measuredAt": "2026-11-14T21:07:06.749Z"
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "giveBack": {
           "value": null,
@@ -2724,10 +2724,10 @@
           "measuredAt": "2026-11-14T21:10:35.676Z"
         },
         "actions": {
-          "value": 0,
-          "note": "The one-action model is not released yet, so no product has actions on it.",
-          "source": "https://github.com/ourostack/ouro-ui/issues/1011",
-          "measuredAt": "2026-11-14T21:10:35.688Z"
+          "value": null,
+          "note": "not measured: the repository is private, so a public run cannot read it",
+          "source": null,
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "census": {
           "value": null,
@@ -2744,7 +2744,7 @@
         "giveBack": {
           "value": null,
           "note": "not measured: the Butler was added to the ledger after this snapshot",
-          "source": "https://github.com/search?q=drift-remote%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
+          "source": null,
           "measuredAt": "2026-11-14T21:11:18.683Z",
           "prs": []
         },

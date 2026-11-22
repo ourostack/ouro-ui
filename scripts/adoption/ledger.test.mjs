@@ -475,7 +475,7 @@ const censusReport = (overrides = {}, product = {}) => ({
 });
 
 /** A gh that serves one main run with an `ax-census` artifact holding `report`, and the release's census manifest. */
-function censusGh(dir, report, { manifest = { tool: "ouro-census", version: "0.1.0", checker: CHECKER, files: {} }, artifact = "ax-census", headSha = "abc123", calls = [] } = {}) {
+function censusGh(dir, report, { manifest = { tool: "ouro-census", version: "0.1.0", checker: CHECKER, files: {} }, manifests = {}, artifact = "ax-census", headSha = "abc123", run = {}, calls = [] } = {}) {
   execFileSync("mkdir", ["-p", join(dir, "ax-census")]);
   writeFileSync(join(dir, "ax-census", "census.json"), JSON.stringify(report));
   writeFileSync(join(dir, "ax-census", "census.txt"), "harness: ...");
@@ -485,19 +485,26 @@ function censusGh(dir, report, { manifest = { tool: "ouro-census", version: "0.1
   return (args, { binary } = {}) => {
     const line = args.join(" ");
     calls.push(line);
-    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 7, head_sha: headSha, html_url: "https://example.test/run/7" }] });
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) {
+      assert.match(line, /branch=main&event=push/, "only pushes to main count, never a pull request from a fork's main");
+      return JSON.stringify({ workflow_runs: [{ id: 7, head_sha: headSha, head_branch: "main", event: "push", head_repository: { full_name: "org/cli" }, html_url: "https://example.test/run/7", ...run }] });
+    }
     if (/runs\/7\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 9, name: artifact, expired: false }] });
     if (/artifacts\/9\/zip/.test(line) && binary) return bytes;
-    if (line.includes("contents/scripts/ouro-census/dist-manifest.json?ref=v1.3.15")) {
-      if (!manifest) throw new Error("gh api: Not Found");
-      return b64(manifest);
+    const release = /repos\/ourostack\/ouro-ui\/releases/.test(line);
+    if (release) return releases["ourostack/ouro-ui"].map((item) => JSON.stringify({ tag: item.tag_name, at: item.published_at, url: item.html_url })).join("\n");
+    const ref = /contents\/scripts\/ouro-census\/dist-manifest\.json\?ref=(v[\d.]+)/.exec(line);
+    if (ref) {
+      const found = ref[1] === "v1.3.15" ? manifest : manifests[ref[1]];
+      if (!found) throw new Error("gh api: Not Found");
+      return b64(found);
     }
     throw new Error(`unexpected gh call: ${line}`);
   };
 }
 
 const censusSurface = { id: "cli", repo: "org/cli", census: { workflow: "ax-xray.yml", product: "harness", kinds: HARNESS_KINDS } };
-const latestWeb = { web: { repo: "ourostack/ouro-ui", tag: "v1.3.15" } };
+const latestWeb = { web: { repo: "ourostack/ouro-ui", tag: "v1.3.15", at: "2026-11-13T10:00:00Z" } };
 const censusOf = (report, options = {}, surface = censusSurface) => {
   const dir = scratchDir("ledger-census-");
   try {
@@ -519,10 +526,10 @@ test("a product's census at zero, from its newest run on main with a released ch
 });
 
 test("a census with gaps, or one that walks only some of the product's door kinds, is not at zero", () => {
-  const gaps = censusOf(censusReport({}, { summary: { found: 492, declared: 480, weak: 1, undeclared: 9, unwalked: 1, stale: 1, excluded: 3, baseline: 12 } }));
-  assert.equal(gaps.value.gaps, 12);
+  const gaps = censusOf(censusReport({}, { summary: { found: 492, declared: 480, weak: 1, undeclared: 11, unwalked: 1, stale: 1, excluded: 3, baseline: 14 } }));
+  assert.equal(gaps.value.gaps, 14);
   assert.equal(censusAtZero(gaps), false);
-  assert.match(gaps.note, /480 of 492 doors declared; 12 gaps \(1 weak, 9 undeclared, 1 unwalked, 1 stale\)/);
+  assert.match(gaps.note, /480 of 492 doors declared; 14 gaps \(1 weak, 11 undeclared, 1 unwalked, 1 stale\)/);
   const partial = censusOf(censusReport({}, { walked: { kinds: ["mcp", "cli"], finders: [] } }));
   assert.deepEqual(partial.value.missingKinds, ["tool", "approval"]);
   assert.equal(censusAtZero(partial), false);
@@ -539,10 +546,10 @@ test("a census report counts only from main at the run's own commit, with a rele
   };
   not(censusOf(censusReport({ target: { repo: "org/cli", ref: "refs/pull/4/merge", commit: "abc123" } })), /^not measured: the census ran on refs\/pull\/4\/merge, not main/);
   not(censusOf(censusReport(), { headSha: "fff999" }), /^not measured: the census reports commit abc123, but its run built fff999/);
-  not(censusOf(censusReport({ checker: { version: "0.1.0", sha256: "d".repeat(64), walkers: [] } })), /^not measured: the census's checker dddddd\S* is not the one Ouro UI v1\.3\.15 released/);
+  not(censusOf(censusReport({ checker: { version: "0.1.0", sha256: "d".repeat(64), walkers: [] } })), /^not measured: the census's checker dddddddddddd is not one Ouro UI released in the last day \(v1\.3\.15 ships cccccccccccc\)/);
   not(censusOf(censusReport(), { manifest: null }), /^not measured: Ouro UI v1\.3\.15 has no census manifest/);
   not(censusOf(censusReport({ at: "2026-11-05T20:00:00Z" })), /^not measured: the newest census is from 2026-11-05, more than 7 days ago/);
-  not(censusOf(censusReport(), { artifact: "xray" }), /^not measured: no ax-census artifact in the latest successful runs on main/);
+  not(censusOf(censusReport(), { artifact: "xray" }), /^not measured: no ax-census artifact in the latest successful run on main/);
   not(censusOf(censusReport({ ax: "census/0" })), /^not measured: the ax-census artifact holds no census\/1 report/);
   not(censusOf(censusReport(), {}, { ...censusSurface, census: { ...censusSurface.census, product: "shepherd" } }), /^not measured: the census reports no shepherd product yet/);
   const none = measureCensus(ctx([]), { id: "x", repo: "org/x" }, latestWeb);
@@ -575,7 +582,7 @@ test("an n/a product whose census finds no doors holds Census at zero as n/a", (
   try {
     const report = censusReport({}, { product: "site", walked: { kinds: HARNESS_KINDS, finders: [] }, summary: { found: 0, declared: 0, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 0, baseline: 0 } });
     const base = fakeGh();
-    const census = censusGh(dir, report, { headSha: "abc123" });
+    const census = censusGh(dir, report, { headSha: "abc123", run: { head_repository: { full_name: "org/web" } } });
     const gh = (args, options) => {
       const line = args.join(" ");
       return /actions\/|census/.test(line) && !line.includes("git/trees") ? census(args, options) : base(args, options);
@@ -614,4 +621,62 @@ test("a kind only a product's own walker walks counts once that walker's hash is
   const reviewed = censusOf(report, {}, { ...surface, census: { ...surface.census, reviewed: { "desk-skills": "e".repeat(64) } } });
   assert.deepEqual(reviewed.value.missingKinds, []);
   assert.equal(censusAtZero(reviewed), true);
+});
+
+test("a census run that isn't a push to main in the product's own repository doesn't count", () => {
+  const not = (run, pattern) => {
+    const census = censusOf(censusReport(), { run });
+    assert.equal(census.value, null);
+    assert.match(census.note, pattern);
+  };
+  not({ head_repository: { full_name: "someone/fork" } }, /^not measured: the newest census run on main came from someone\/fork, not org\/cli/);
+  not({ head_branch: "feature" }, /^not measured: the newest census run on main ran on feature/);
+  not({ event: "pull_request" }, /^not measured: the newest census run on main was a pull_request run, not a push/);
+});
+
+test("a census dated after the run, or with counts that aren't whole numbers that add up, doesn't count", () => {
+  const not = (report, pattern) => {
+    const census = censusOf(report);
+    assert.equal(census.value, null);
+    assert.match(census.note, pattern);
+  };
+  not(censusReport({ at: "2026-11-14T22:00:00Z" }), /^not measured: the census is dated 2026-11-14T22:00:00Z, after the ledger's own clock/);
+  const summary = (extra) => censusReport({}, { summary: { found: 492, declared: 492, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 3, baseline: 0, ...extra } });
+  not(summary({ weak: -1, undeclared: 1, declared: 492 }), /^not measured: the census's summary has weak -1, not a count/);
+  not(summary({ found: "492" }), /^not measured: the census's summary has found "492", not a count/);
+  not(summary({ stale: undefined }), /^not measured: the census's summary has stale undefined, not a count/);
+  not(summary({ declared: 400 }), /^not measured: the census's summary doesn't add up: 400 declared and 0 weak or undeclared of 492 found/);
+  not(censusReport({ checker: { version: "0.1.0", sha256: CHECKER, walkers: [{ module: "x.mts", kinds: ["skill"] }] } }), /^not measured: the census lists a product walker with no name/);
+});
+
+test("a product walker with no hash is never taken as reviewed", () => {
+  const report = censusReport({ checker: { version: "0.1.0", sha256: CHECKER, walkers: [{ name: "desk-skills", module: "ax/skills.mts", kinds: ["skill"] }] } }, { walked: { kinds: [...HARNESS_KINDS, "skill"], finders: [] } });
+  const surface = { ...censusSurface, census: { ...censusSurface.census, kinds: [...HARNESS_KINDS, "skill"] } };
+  assert.deepEqual(censusOf(report, {}, surface).value.missingKinds, ["skill"]);
+  assert.deepEqual(censusOf(report, {}, { ...surface, census: { ...surface.census, reviewed: { other: undefined } } }).value.missingKinds, ["skill"]);
+});
+
+test("a checker from a release out less than a day counts beside the latest one, and an older one doesn't", () => {
+  const old = (tag) => censusOf(censusReport({ checker: { version: "0.1.0", sha256: "b".repeat(64), walkers: [] } }), { manifests: { [tag]: { tool: "ouro-census", version: "0.1.0", checker: "b".repeat(64), files: {} } } });
+  assert.equal(censusAtZero(old("v1.3.14")), true, "v1.3.14 came out at 2026-11-12T10:00Z, 36 hours before the ledger ran, but v1.3.15, which replaced it, is under a day old");
+  const stale = old("v1.2.13");
+  assert.equal(stale.value, null);
+  assert.match(stale.note, /^not measured: the census's checker bbbbbbbbbbbb is not one Ouro UI released in the last day \(v1\.3\.15 ships cccccccccccc\)/);
+});
+
+test("a product's census needs the door kinds it has listed, and its doors counted only over those kinds", () => {
+  const none = censusOf(censusReport(), {}, { ...censusSurface, census: { ...censusSurface.census, kinds: [] } });
+  assert.match(none.note, /^not measured: the ledger config lists no door kinds for harness's census/);
+  const onlySkills = censusReport({}, { walked: { kinds: [...HARNESS_KINDS, "skill"], finders: [] }, byKind: { mcp: { found: 0 }, cli: { found: 0 }, tool: { found: 0 }, approval: { found: 0 }, skill: { found: 4 } }, summary: { found: 4, declared: 4, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 0, baseline: 0 } });
+  assert.equal(censusAtZero(censusOf(onlySkills)), false, "doors of a kind the config doesn't list don't make a census of the listed kinds find something");
+});
+
+test("the ledger says when it couldn't read Ouro UI's latest release, rather than naming a null release", () => {
+  const dir = scratchDir("ledger-census-norelease-");
+  try {
+    const census = measureCensus(createContext({ gh: censusGh(dir, censusReport()), now: () => NOW, sleep: () => {}, searchGapMs: 0 }), censusSurface, { web: { repo: "ourostack/ouro-ui", tag: null, error: "boom" } });
+    assert.match(census.note, /^not measured: Ouro UI's latest release couldn't be read \(boom\), so the census's checker can't be checked/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

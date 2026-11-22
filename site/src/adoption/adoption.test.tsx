@@ -245,7 +245,7 @@ describe("reading the checks", () => {
 
   it("says what keeps a census from zero: gaps, kinds it doesn't walk yet, or no census at all", () => {
     const census = (value: Partial<CensusValue>) => ({ value: { found: 492, declared: 480, gaps: 12, weak: 0, undeclared: 12, unwalked: 0, stale: 0, baseline: 12, walked: ["mcp", "cli", "tool", "approval"], missingKinds: [], productWalkers: [], checker: "c", commit: "abc", reportAt: at, run: "https://example.com/run", ...value }, note: null, source: "https://example.com/run", measuredAt: at });
-    expect(checksOf(withCells({ census: census({}) }))[1]).toMatchObject({ state: "missing", why: "12 of 492 doors without a valid card", source: "https://example.com/run" });
+    expect(checksOf(withCells({ census: census({}) }))[1]).toMatchObject({ state: "missing", why: "12 gaps among 492 doors", source: "https://example.com/run" });
     expect(checksOf(withCells({ census: census({ gaps: 0, missingKinds: ["tool", "approval"] }) }))[1]).toMatchObject({ state: "missing", why: "Doesn't walk tool or approval doors yet" });
     expect(checksOf(withCells({ census: census({ found: 0, gaps: 0 }) }))[1]).toMatchObject({ state: "missing", why: "The census finds no doors" });
     expect(checksOf(withCells({ census: census({ gaps: 0 }) }, { census: true }))[1]).toMatchObject({ state: "met", why: null });

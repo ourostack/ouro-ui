@@ -76,7 +76,7 @@ function census(surface: Surface): Omit<Check, "key" | "label"> {
     return { state: unmeasuredOrNa(cell), why: none ? "No census in CI yet" : unmeasured(cell), source: cell.source, ...(none ? { generic: true } : {}) };
   }
   const { found, gaps, missingKinds, run } = cell.value;
-  if (gaps > 0) return { state: "missing", why: `${gaps} of ${plural(found, "door")} without a valid card`, source: run };
+  if (gaps > 0) return { state: "missing", why: `${plural(gaps, "gap")} among ${plural(found, "door")}`, source: run };
   if (missingKinds.length) return { state: "missing", why: `Doesn't walk ${orList(missingKinds)} doors yet`, source: run };
   return { state: "missing", why: "The census finds no doors", source: run };
 }

@@ -400,7 +400,8 @@
         "reason": "A terminal UI inside the harness; its Ouro UI pins are the harness's."
       },
       "ax": {
-        "search": "shepherd"
+        "kind": "none",
+        "reason": "Shepherd's agent doors are counted by the harness census, under its own product."
       },
       "giveBackTerms": [
         "shepherd"
@@ -907,8 +908,8 @@
         "reason": "No web or app UI of its own."
       },
       "ax": {
-        "kind": "na",
-        "reason": "Unmeasured while private."
+        "kind": "none",
+        "reason": "The Butler's agent and CLIs are in a private repository; its census will count them."
       },
       "giveBackTerms": [
         "sanctuary.ouro"
