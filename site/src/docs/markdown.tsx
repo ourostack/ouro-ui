@@ -89,7 +89,29 @@ export function sourceHref(source: string): string {
   return `${GITHUB}/blob/${commit ?? "main"}/${file}${line ? `#L${line}` : ""}`;
 }
 
-/** A footnote's body: its sources as links, then its checks as code. */
+/** A source as words: what the link opens, named by its kind and what it checks, never the raw path. */
+export function sourceLabel(source: string): string {
+  if (/^https?:\/\//.test(source)) return `The page at ${new URL(source).hostname}`;
+  if (source.startsWith("evidence:")) return `The recorded evidence in ${source.slice(9).split("/").pop()}`;
+  if (source.startsWith("test:")) {
+    const name = source.includes("::") ? source.slice(source.indexOf("::") + 2).trim() : "";
+    return name ? `The test that proves it: ${name}` : `The test file ${source.slice(5).split("/").pop()}`;
+  }
+  return `The source file ${source.replace(/[#@].*$/, "").split("/").pop()}`;
+}
+
+/** A check as words, for a reader; the raw `verify:` form stays in the link's title for machines. */
+export function checkLabel(check: string): string {
+  const call = /^(\w+)\(([\s\S]*)\)$/.exec(check);
+  if (!call) return check;
+  const [, kind, args] = call;
+  if (kind === "testExists") return `A test with this name exists: ${args!.split("::").pop()}`;
+  if (kind === "fileLine") return `A line matching ${args!.slice(args!.indexOf(",") + 1).trim()} is in ${args!.slice(0, args!.indexOf(",")).split("/").pop()}`;
+  if (kind === "urlOk") return `The page at ${args} opens`;
+  return check;
+}
+
+/** A footnote's body: its sources as links, then its checks as words. */
 function sourceBody(text: string): ReactNode[] {
   const at = text.search(/(?:^|\s)verify:/);
   const sources = (at === -1 ? text : text.slice(0, at)).split(/\s*;\s*/).map((source) => source.trim()).filter(Boolean);
@@ -98,8 +120,8 @@ function sourceBody(text: string): ReactNode[] {
   sources.forEach((source, index) => {
     if (index > 0) out.push("; ");
     out.push(
-      <a key={`source-${index}`} href={sourceHref(source)} data-ouro-allow="leaked-value odd-timestamp" data-ouro-allow-why="a source names its test or file as written" className="font-medium text-primary underline underline-offset-4 [overflow-wrap:anywhere]">
-        {source}
+      <a key={`source-${index}`} href={sourceHref(source)} title={source} data-ouro-allow="leaked-value odd-timestamp" data-ouro-allow-why="a source names its test or file as written" className="font-medium text-primary underline underline-offset-4 [overflow-wrap:anywhere]">
+        {sourceLabel(source)}
       </a>,
     );
   });
@@ -111,7 +133,7 @@ function sourceBody(text: string): ReactNode[] {
         <ul className="mt-1 space-y-1">
           {checks.map((check, index) => (
             <li key={index}>
-              <InlineCode>{`verify:${check}`}</InlineCode>
+              <span title={`verify:${check}`} className="[overflow-wrap:anywhere]">{checkLabel(check)}</span>
             </li>
           ))}
         </ul>
@@ -142,7 +164,7 @@ export function inline(text: string, link: (href: string) => string = (href) => 
     if (match[1] !== undefined) out.push(<InlineCode key={match.index}>{/^ .* $/s.test(match[2]!) && match[2]!.trim() ? match[2]!.slice(1, -1) : match[2]}</InlineCode>);
     else if (match[3] !== undefined)
       out.push(
-        <sup key={match.index} className="whitespace-nowrap">
+        <sup key={match.index} className="ms-1 whitespace-nowrap">
           <a href={`#source-${slug(match[3])}`} aria-label={`Source: ${match[3]}`} className="text-primary underline underline-offset-2">
             {match[3]}
           </a>

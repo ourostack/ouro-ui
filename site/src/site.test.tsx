@@ -19,7 +19,7 @@ import { tries } from "./docs/tries";
 import { docsPages, guidePages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
+import { checkLabel, Markdown, parse, prose, sourceHref, sourceLabel } from "./docs/markdown";
 import { headTags, homeStructuredData, SITE } from "./head";
 import { componentPrompt, GUIDE_TASKS, PROMPT_SITE, withInstall } from "./docs/agent-prompt";
 import { headerPath } from "./components/docs-header";
@@ -1351,6 +1351,20 @@ describe("guides and exports without an item", () => {
     expect([...sources.querySelectorAll("code")].filter((code) => code.textContent!.startsWith("verify:") && !code.closest("details"))).toHaveLength(0);
     const ref = document.querySelector<HTMLAnchorElement>("sup a[href^='#source-']")!;
     expect(document.getElementById(ref.getAttribute("href")!.slice(1))).not.toBeNull();
+  });
+
+  it("reads a claim source and its checks as words, keeps the raw form in the title, and sets a footnote mark apart from its sentence", async () => {
+    expect(sourceLabel("test:scripts/claims.test.mjs::lint > a name")).toBe("The test that proves it: lint > a name");
+    expect(sourceLabel("scripts/claims.mjs#L12")).toBe("The source file claims.mjs");
+    expect(sourceLabel("https://example.com/spec")).toBe("The page at example.com");
+    expect(checkLabel("testExists(a/b.test.ts::x > y)")).toBe("A test with this name exists: x > y");
+    expect(checkLabel("fileLine(a/b.css, /--x: 1;/)")).toBe("A line matching /--x: 1;/ is in b.css");
+    const page = document.createElement("div");
+    page.innerHTML = renderToStaticMarkup(<Markdown blocks={parse("Held.[^a]\n\n[^a]: test:a/b.test.ts::it works verify:testExists(a/b.test.ts::it works)")} />);
+    expect(page.querySelector("sup")!.className).toContain("ms-1");
+    expect(page.querySelector("li a")!.textContent).toBe("The test that proves it: it works");
+    expect(page.querySelector("li a")!.getAttribute("title")).toBe("test:a/b.test.ts::it works");
+    expect(page.querySelector("li")!.textContent).not.toMatch(/verify:|\.test\.ts/);
   });
 });
 
