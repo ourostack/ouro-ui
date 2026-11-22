@@ -82,6 +82,7 @@ jobs:
       installs: ${{ steps.tiers.outputs.installs }}
       heavy: ${{ steps.tiers.outputs.heavy }}
       browser: ${{ steps.browser.outputs.run }}
+      changed: ${{ steps.changed.outputs.files }}
       screen_reader: ${{ steps.lane.outputs.screen_reader }}
       screen_reader_specs: ${{ steps.lane.outputs.screen_reader_specs }}
     steps:
@@ -233,6 +234,25 @@ jobs:
           else
             echo "Everything runs: $EVENT on $REF${BASE_REF:+ into $BASE_REF}. Only a pull request into main runs what it can affect."
             echo "full=true" >> "$GITHUB_OUTPUT"
+          fi
+      # The files a pull request into main changes, which the browser and browser-fallback shards pass
+      # to the headroom reporter: on a pull request only tests in these files can fail it, and main
+      # judges every test.
+      - id: changed
+        name: Which files does the change touch?
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [[ "$HEAD_REF" != release/* ]]; then
+            if files=$(git diff --name-only HEAD^1 HEAD); then
+              {
+                echo "files<<CHANGED_FILES_EOF"
+                echo "$files"
+                echo "CHANGED_FILES_EOF"
+              } >> "$GITHUB_OUTPUT"
+            fi
           fi
       # Whether the install test and the heavy tier run (scripts/ci-relevance.mjs installs|heavy): a
       # pull request into main skips a tier only when every changed file is one the tier never reads
@@ -576,6 +596,7 @@ jobs:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       SHARD: ${{ matrix.shard }}/22
+      HEADROOM_CHANGED: ${{ needs.plan.outputs.changed }}
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -662,6 +683,15 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
+      # The tests over half their timeout on a run that only reports them (headroom-report.yml files them in one issue).
+      - if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: headroom-browser-${{ matrix.shard }}
+          path: .tmp/headroom/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
       # A failed test's screenshot, which shows where a timed-out test stood: its error names only the test, not the step it
       # waited on (ourostack/ouro-ui#2730).
       - if: failure()
@@ -1100,6 +1130,8 @@ jobs:
     # the files whose measured times make up its share and its slice of the sliced suites
     # (scripts/vitest-shards.mts), and uploads its coverage, which the ci job merges and holds to
     # 100%, and its motion evidence, which motion-coverage reads in place of the browser shards'.
+    # The headroom reporter judges it with the same HEADROOM_CHANGED scope as the browser shards, so
+    # a test over half its timeout in a file the pull request did not touch only reports, never fails.
     # Part of the ci check.
     needs: [plan, coverage]
     if: ${{ !cancelled() && needs.coverage.outputs.fallback == 'true' }}
@@ -1118,6 +1150,7 @@ jobs:
     name: browser fallback (${{ matrix.shard }}/28)
     env:
       SHARD: ${{ matrix.shard }}/28
+      HEADROOM_CHANGED: ${{ needs.plan.outputs.changed }}
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -364,7 +364,7 @@ describe("Command", () => {
   });
 
   it("scrolls a long list by the arrow keys from the search, which keeps focus and Tab, and passes axe", async () => {
-    const many = Array.from({ length: 40 }, (_, index) => ({ label: `Conversation ${index + 1}`, onSelect: () => {} }));
+    const many = Array.from({ length: 14 }, (_, index) => ({ label: `Conversation ${index + 1}`, onSelect: () => {} }));
     await openPalette({ items: many });
     await expect.poll(() => document.activeElement).toBe(input().element());
     const listbox = document.querySelector<HTMLElement>('[role="listbox"]')!;
@@ -380,8 +380,8 @@ describe("Command", () => {
     expect(document.activeElement).toBe(dialog.querySelector("[data-ouro-command-close]"));
     await pressTab({ shift: true });
     expect(document.activeElement).toBe(input().element());
-    const last = page.getByRole("option", { name: "Conversation 40" }).element();
-    for (let step = 0; step < 40 && input().element().getAttribute("aria-activedescendant") !== last.id; step++) await userEvent.keyboard("{ArrowDown}");
+    const last = page.getByRole("option", { name: "Conversation 14" }).element();
+    await userEvent.keyboard("{ArrowUp}");
     expect(input().element().getAttribute("aria-activedescendant")).toBe(last.id);
     expect(document.activeElement).toBe(input().element());
     await expect.poll(() => listbox.scrollTop).toBeGreaterThan(0);

@@ -241,7 +241,11 @@ export interface ComposerOwnProps {
    * `++underline++`, `~~strike~~`, a backtick for code). `value`, `defaultValue` and `onSend` stay
    * Markdown text, the shape the plain box has. The editor loads on first use, so a page with only
    * plain composers pays nothing for it; until it arrives, and on the server, a plain textarea
-   * shows. In rich mode `ref` is not set, `highlights`, `catalogue`, `onPaste` and `pasteText` do not apply, and ⌘⇧X is
+   * shows. A paste keeps only what an allowlist names: bold, italic, underline, strikethrough, code,
+   * web and mail links, line breaks, and lists and quotes as lines with their Markdown marks; scripts,
+   * styles, attributes and other links are dropped and their text kept. ⌘⇧V pastes the text only, a web
+   * address pasted over selected text links it, and ⌘K links the selection or takes its link off. In
+   * rich mode `ref` is not set, `highlights`, `catalogue`, `onPaste` and `pasteText` do not apply, and ⌘⇧X is
    * strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
    *
    * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
