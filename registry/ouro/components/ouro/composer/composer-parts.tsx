@@ -519,6 +519,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   });
   // The marks that fit the text now: new `highlights` are taken as given, and when the text changes they move with it.
   const marksKey = highlightsKey(highlights);
+  // Stryker disable next-line ObjectLiteral: a start with no key matches nothing, so the first render fills it in the same way before anything is drawn.
   const [track, setTrack] = useState(() => ({ key: marksKey, text: value, ranges: normalizeHighlights(highlights, value.length), moved: false }));
   let ranges = track.ranges;
   if (track.key !== marksKey || track.text !== value) {
