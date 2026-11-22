@@ -689,6 +689,16 @@ describe("Composer rich mode with a catalogue", () => {
     expect(field(editor).value).toBe(":party::party:");
   });
 
+  it("loads a saved state back with its pictures, by the type each node saves", async () => {
+    const { editor } = await render(withCatalogue({ defaultValue: "a :party: b" }));
+    const lexical = (editor as unknown as { __lexicalEditor: { getEditorState(): { toJSON(): unknown }; parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    const json = lexical.getEditorState().toJSON();
+    expect(JSON.stringify(json)).toContain('"type":"ouro-emoji"');
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(json)));
+    await expect.poll(() => pictures(editor).length).toBe(1);
+    expect(field(editor).value).toBe("a :party: b");
+  });
+
   it("keeps a plain selection's text offsets over a token, as the token's own text", async () => {
     const { editor } = await render(rich({ catalogue, defaultValue: "a :party: b" }));
     expect(field(editor).value).toBe("a :party: b");
