@@ -27,6 +27,7 @@ export const scoped = [
     reason: "Ouro Current, which only the install test's current variant and the Node script tests run (install-check.mjs takes its stylesheet module); no browser shard, design shard or heavy job loads it",
   },
   { pattern: /^scripts\/ouro-census\//, tiers: [], components: false, reason: "the Ouro AX census, which only its Node script test (scripts/ouro-census.test.mjs) runs" },
+  { pattern: /^scripts\/ax-claim-sets\.(json|mjs)$/, tiers: [], components: false, reason: "the Ouro AX claim-set history, which only its Node script test and the adoption ledger read" },
   { pattern: /^scripts\/claims-urls\.json$/, tiers: [], components: false, reason: "the claim URL list, which only the Node script tests read" },
   { pattern: /^scripts\/model-reviews\//, tiers: ["screens"], components: false, reason: "the model reviews and their pages, which the Node script tests read and the site renders at install (#2600)" },
   {

@@ -4,13 +4,16 @@ import { $isCodeNode, CodeNode } from "@lexical/code-core";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
 import { $createLinkNode, $isLinkNode, $toggleLink, LinkNode } from "@lexical/link";
 import { $isListItemNode, ListItemNode, ListNode, registerList } from "@lexical/list";
-import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type Transformer } from "@lexical/markdown";
+import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type TextMatchTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
-import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode } from "lexical";
+import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
-import type { FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
+import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
+import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { emojiToken, splitEmojiText, toneOf } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
+import type { EmojiTextPart } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { attachRef } from "@/registry/ouro/lib/ouro/refs";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 
@@ -33,6 +36,8 @@ interface RichEditorHandle {
 interface RichEditorProps {
   /** Whether the element answers its value and selection in Markdown offsets, read when asked. */
   markdownOffsets: boolean;
+  /** The emoji whose `:shortcode:` tokens the editor draws as pictures. */
+  catalogue?: EmojiCatalogue | undefined;
   label: string;
   value: string;
   onValueChange: (value: string) => void;
@@ -58,10 +63,89 @@ interface RichEditorProps {
   onSelect?: ((event: SyntheticEvent<HTMLDivElement>) => void) | undefined;
   onFocus?: FocusEventHandler<HTMLDivElement> | undefined;
   onBlur?: FocusEventHandler<HTMLDivElement> | undefined;
+  /** The role and states a wrapping Autocomplete sets (combobox, expanded, controls, active suggestion), which the editor carries over its own textbox role. */
+  comboboxProps: HTMLAttributes<HTMLDivElement>;
 }
 
 // Underline has no CommonMark mark; `++` is the one Composer's plain mode writes too.
 const UNDERLINE: TextFormatTransformer = { format: ["underline"], tag: "++", type: "text-format" };
+
+type SerializedEmojiNode = Spread<{ token: string; name: string; src: string }, SerializedLexicalNode>;
+
+// One emoji from the catalogue, drawn as its picture and written as the token it stands for, so the Markdown stays light text.
+class EmojiNode extends DecoratorNode<null> {
+  __token: string;
+  __name: string;
+  __src: string;
+  static override getType(): string {
+    return "ouro-emoji";
+  }
+  static override clone(node: EmojiNode): EmojiNode {
+    return new EmojiNode(node.__token, node.__name, node.__src, node.__key);
+  }
+  static override importJSON(json: SerializedEmojiNode): EmojiNode {
+    return new EmojiNode(json.token, json.name, json.src);
+  }
+  constructor(token: string, name: string, src: string, key?: NodeKey) {
+    super(key);
+    this.__token = token;
+    this.__name = name;
+    this.__src = src;
+  }
+  override exportJSON(): SerializedEmojiNode {
+    return { ...super.exportJSON(), token: this.__token, name: this.__name, src: this.__src };
+  }
+  override createDOM(): HTMLElement {
+    const picture = document.createElement("img");
+    picture.alt = this.__name;
+    picture.src = this.__src;
+    picture.draggable = false;
+    picture.className = "inline-block size-[1.25em] align-text-bottom";
+    return picture;
+  }
+  // Stryker disable next-line BlockStatement: the picture never changes, and a node that is never dirty is never asked
+  override updateDOM(): false {
+    // Stryker disable next-line BooleanLiteral: the same
+    return false;
+  }
+  override isInline(): true {
+    return true;
+  }
+  override getTextContent(): string {
+    return this.__token;
+  }
+  // Stryker disable next-line BlockStatement: a decorator must answer, and nothing reads the answer of one drawn by createDOM
+  override decorate(): null {
+    return null;
+  }
+}
+
+// Stryker disable next-line MethodExpression: a token starts and ends with a colon, and a character with neither, so endsWith tells them apart as startsWith does
+const $emojiNode = (found: Exclude<EmojiTextPart, string>) => new EmojiNode(found.source.startsWith(":") ? found.source : emojiToken(found.item, found.tone), found.item.name, toneOf(found.item, found.tone).src);
+
+// Reads a token in as its picture; the transformer is made for the editor, which knows its catalogue. An emoji goes out as its text, the token.
+const emojiTransformer = (catalogue: () => EmojiCatalogue | undefined): TextMatchTransformer => ({
+  // Stryker disable next-line ArrayDeclaration: Lexical only checks that the class is registered, which the editor's nodes do
+  dependencies: [EmojiNode],
+  importRegExp: /:[^\s:]+:/,
+  regExp: /:[^\s:]+:$/,
+  trigger: ":",
+  replace: (node, match) => {
+    // Stryker disable next-line ArrayDeclaration: with no catalogue the parts are not one emoji whatever they hold, so nothing is replaced
+    const parts = catalogue() ? splitEmojiText(match[0], catalogue()!) : [];
+    if (parts.length === 1 && typeof parts[0] !== "string") node.replace($emojiNode(parts[0]!));
+  },
+  type: "text-match",
+});
+
+// Puts text in at the selection, with the catalogue's emoji in it as pictures; `text` puts in each run between them.
+function $insertWithEmoji(selection: RangeSelection, text: string, catalogue: EmojiCatalogue | undefined, put: (text: string) => void = (run) => selection.insertText(run)): void {
+  for (const part of catalogue ? splitEmojiText(text, catalogue) : [text]) {
+    if (typeof part === "string") put(part);
+    else selection.insertNodes([$emojiNode(part)]);
+  }
+}
+
 const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK];
 
 const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
@@ -218,7 +302,7 @@ function toggleLinkOfSelection(): void {
 }
 
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
-const NODES = [ListNode, ListItemNode, QuoteNode, CodeNode, LinkNode];
+const NODES = [ListNode, ListItemNode, QuoteNode, CodeNode, LinkNode, EmojiNode];
 const toMarkdown = (editor: LexicalEditor) => separateBlocks(editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", ""));
 
 // The editor's element answers as a textarea does, over the text without its marks, one line to each block, so Autocomplete finds a trigger at the caret and puts a pick in place of it.
@@ -259,8 +343,12 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
     const size = child.getTextContentSize();
     // Stryker disable next-line EqualityOperator: at left === size the next child, or the trailing point, gives the same position
     const fits = left <= size;
+    if ($isDecoratorNode(child)) {
+      // An emoji has no text point: the caret goes before it, or after it when the offset is past its token.
+      // Stryker disable next-line EqualityOperator,StringLiteral: at left === size the next child gives the same position, and the point's kind is read only as "text"
+      if (left <= size) return [element, left === size ? index + 1 : index, "element"];
     // Stryker disable next-line all: equivalent: a line break child has size 1 and the text branch would give the same offset
-    if ($isLineBreakNode(child)) {
+    } else if ($isLineBreakNode(child)) {
       // Stryker disable next-line all: equivalent: past offset 0 the loop continues to the same point
       if (left === 0) return [element, index, "element"];
     } else if (fits) {
@@ -362,13 +450,18 @@ function readMarkdownControl(editor: LexicalEditor, scratch: LexicalEditor) {
   return { value, start: Math.min(a, b), end: Math.max(a, b) };
 }
 
+/** The props that are set, so an unset one leaves the editor's own in place. */
+function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
+  return Object.fromEntries(Object.entries(props).filter(([, value]) => value !== undefined));
+}
+
 /**
  * The editor Composer swaps in for its textarea with `format="rich"`: a contenteditable that
  * reads and writes light Markdown.
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, comboboxProps, catalogue }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -382,6 +475,11 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   const inMarkdown = useRef(markdownOffsets);
   useEffect(() => {
     inMarkdown.current = markdownOffsets;
+  });
+  const emoji = useRef(catalogue);
+  const readingRef = useRef<Transformer[]>(transformers);
+  useEffect(() => {
+    emoji.current = catalogue;
   });
   // ⌘⇧V was pressed, so the paste that follows takes the clipboard's text alone.
   const plainPaste = useRef(false);
@@ -401,6 +499,9 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       },
     });
     const root = rootRef.current!;
+    // What reads Markdown in, which turns a token into the emoji's picture when the catalogue lists it.
+    const reading = [emojiTransformer(() => emoji.current), ...transformers];
+    readingRef.current = reading;
     editor.setRootElement(root);
     editorRef.current = editor;
     // A copy of the editor that Markdown offsets are worked out in, made when first asked.
@@ -425,7 +526,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           if (root.getAttribute("contenteditable") !== "true") return;
           const markdown = toMarkdown(editor);
           const [from, to] = [Math.min(Math.max(Math.min(start, end), 0), markdown.length), Math.min(Math.max(Math.max(start, end), 0), markdown.length)];
-          editor.update(() => $convertFromMarkdownString(markdown.slice(0, from) + text + markdown.slice(to), transformers, undefined, true), { discrete: true });
+          editor.update(() => $convertFromMarkdownString(markdown.slice(0, from) + text + markdown.slice(to), reading, undefined, true), { discrete: true });
           const at = textOffsetOf(editor, copy(), from + text.length);
           // Stryker disable next-line ObjectLiteral,BooleanLiteral: the caret is placed in the same task either way, so only when it is drawn differs
           editor.update(() => $selectText(at, at), { discrete: true });
@@ -448,7 +549,22 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       registerRichText(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
       registerList(editor),
-      registerMarkdownShortcuts(editor, transformers),
+      registerMarkdownShortcuts(editor, reading),
+      // An emoji the system inserts goes in as its picture, with the token that stands for it as its text.
+      editor.registerCommand(
+        CONTROLLED_TEXT_INSERTION_COMMAND,
+        (payload) => {
+          // Lexical hands over typed text as a string; anything else is left to it.
+          const selection = $getSelection();
+          // Stryker disable next-line ConditionalExpression: a typed key always meets a range selection here; the check narrows the type
+          if (typeof payload !== "string" || !emoji.current || !$isRangeSelection(selection)) return false;
+          // Stryker disable next-line ConditionalExpression,StringLiteral: the check only hands plain typing back to Lexical, whose insertion of the same text is the same
+          if (!splitEmojiText(payload, emoji.current).some((part) => typeof part !== "string")) return false;
+          $insertWithEmoji(selection, payload, emoji.current);
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
       // Enter sends, so Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, and each leaves from an empty one.
       editor.registerCommand(INSERT_LINE_BREAK_COMMAND, () => leaveOrContinueBlock(editor), COMMAND_PRIORITY_HIGH),
       // A caret is placed only when the box takes focus, so that loading it never moves focus.
@@ -483,7 +599,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           }
           const lines = html ? $nodesFromHtml(html) : [];
           if (lines.length === 0) {
-            selection.insertRawText(text);
+            $insertWithEmoji(selection, text, emoji.current, (run) => selection.insertRawText(run));
             return true;
           }
           const [only] = lines;
@@ -504,7 +620,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     ];
     editor.update(
       () => {
-        $convertFromMarkdownString(held.current, transformers, undefined, true);
+        $convertFromMarkdownString(held.current, reading, undefined, true);
       },
       // Stryker disable next-line ObjectLiteral,ArrayDeclaration,StringLiteral,BooleanLiteral: the history keeps nothing for the update that fills an empty editor, so no test can tell its tag, and an update that waits a microtask instead of running at once shows the same content by the time a test or a person looks.
       { tag: [synced, "history-merge"], discrete: true },
@@ -528,7 +644,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     const focused = document.activeElement === rootRef.current;
     editor.update(
       () => {
-        $convertFromMarkdownString(value, transformers, undefined, true);
+        $convertFromMarkdownString(value, readingRef.current, undefined, true);
         // Stryker disable next-line ConditionalExpression: the conversion leaves the caret at the end already.
         if (focused) $getRoot().selectEnd();
       },
@@ -563,7 +679,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       if (readOnly) return;
       editorRef.current!.update(() => {
         const selection = $getSelection();
-        ($isRangeSelection(selection) ? selection : $getRoot().selectEnd()).insertText(text);
+        $insertWithEmoji($isRangeSelection(selection) ? selection : $getRoot().selectEnd(), text, emoji.current);
       });
     },
     focus,
@@ -582,12 +698,13 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         onFocus={onFocus}
         onBlur={onBlur}
         role="textbox"
-        aria-multiline="true"
+        aria-multiline={comboboxProps.role === "combobox" ? undefined : "true"}
         aria-label={label}
-        aria-placeholder={placeholder}
+        aria-placeholder={comboboxProps.role === "combobox" ? undefined : placeholder}
         aria-describedby={describedBy}
         aria-disabled={disabled || undefined}
         aria-readonly={readOnly || undefined}
+        {...definedOnly(comboboxProps)}
         contentEditable={!disabled && !readOnly}
         // A read-only box stays in the tab order, as a read-only textarea does, so its text can be read and copied.
         tabIndex={readOnly && !disabled ? 0 : undefined}

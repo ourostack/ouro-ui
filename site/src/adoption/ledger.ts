@@ -42,6 +42,8 @@ export interface XrayValue {
   surfaces?: string[];
   /** The surfaces the config lists for the product that no report checks: the must check fails while any is left. */
   missingSurfaces?: string[];
+  /** Why the claim set its reports check doesn't count: unreleased, behind a newer one that adds a claim, or unreadable. */
+  claimSetProblems?: string[];
 }
 
 export interface Issue {
