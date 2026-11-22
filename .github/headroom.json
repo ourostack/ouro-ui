@@ -213,5 +213,15 @@
     "test": "* test/stories.test.tsx > at * px > * > Reorderable/ScrollsInPlace has no axe violations, closed and with each overlay open",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx > EmojiPicker search > splits names and keywords at hyphens, underscores and colons, and treats spaces alone as no search",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/controls.touch.test.tsx > no control is left unmarked on a touch phone > Reorderable/ScrollsInPlace leaves no control unmarked",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
   }
 ]
