@@ -2915,6 +2915,27 @@ describe("Message pending", () => {
       }
     });
 
+    it("stays quiet when a failed message is cleared, when a label changes, and when a send goes pending again", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const failedMessage = (label: string) => (
+          <Message variant="chat" role="user" name="Ana" failed={{ onRetry: () => {} }} failedLabel={label} sentLabel="Enviado">Hola</Message>
+        );
+        const { rerender } = await mount(failedMessage("Fallo"));
+        await rerender(failedMessage("Error"));
+        await wait(600);
+        await rerender(<Message variant="chat" role="user" name="Ana" sentLabel="Enviado">Hola</Message>);
+        await wait(600);
+        await rerender(<Message variant="chat" role="user" name="Ana" pending sentLabel="Enviado">Hola</Message>);
+        await wait(600);
+        expect(announced.count("Fallo")).toBe(0);
+        expect(announced.count("Error")).toBe(0);
+        expect(announced.count("Enviado")).toBe(0);
+      } finally {
+        announced.stop();
+      }
+    });
+
     it("says nothing for a send confirmed within the second", async () => {
       const announced = watchAnnouncements();
       try {
