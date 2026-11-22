@@ -71,7 +71,9 @@ function leaveOrContinueBlock(editor: LexicalEditor): boolean {
   const quote = $findMatchingParent(node, $isQuoteNode);
   if (quote) {
     const tail = quote.getLastChild();
-    if (!selection.isCollapsed() || !$isLineBreakNode(tail) || selection.anchor.offset !== quote.getChildrenSize() || !node.is(quote)) return false;
+    // Stryker disable next-line ConditionalExpression: a caret at the quote's end is placed on the text before it, so a last child that is no line break never meets the caret checks below.
+    if (!$isLineBreakNode(tail)) return false;
+    if (!selection.isCollapsed() || selection.anchor.offset !== quote.getChildrenSize() || !node.is(quote)) return false;
     tail.remove();
     const after = $createParagraphNode();
     quote.insertAfter(after);

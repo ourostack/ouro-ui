@@ -99,6 +99,41 @@ describe("Composer rich blocks", () => {
     await expect.poll(() => seen.at(-1)).toBe("> quoted\n> more");
     await userEvent.keyboard(`${shiftEnter}${shiftEnter}after`);
     await expect.poll(() => seen.at(-1)).toBe("> quoted\n> more\n\nafter");
+    expect(editor.querySelector("p")?.innerHTML).not.toContain("<br");
+  });
+
+  it("leaves the quote only from a caret on its empty last line, not from one before it or a selection over it", async () => {
+    const editor = await render(rich({ defaultValue: "> ab" }));
+    editor.focus();
+    await userEvent.keyboard(shiftEnter);
+    const quote = editor.querySelector("blockquote")!;
+    const press = async (anchor: [Node, number], focus: [Node, number]) => {
+      window.getSelection()!.setBaseAndExtent(...anchor, ...focus);
+      await act(async () => document.dispatchEvent(new Event("selectionchange")));
+      await userEvent.keyboard(shiftEnter);
+      expect(editor.querySelector("p")).toBeNull();
+    };
+    const text = () => quote.querySelector("span")!.firstChild!;
+    await press([text(), 2], [text(), 2]);
+    await press([quote, 1], [quote, 1]);
+  });
+
+  it("keeps a quote when a selection ends on its empty last line", async () => {
+    const editor = await render(rich({ defaultValue: "> ab" }));
+    editor.focus();
+    await userEvent.keyboard(`${shiftEnter}{Shift>}{ArrowLeft}{/Shift}${shiftEnter}`);
+    expect(editor.querySelector("p")).toBeNull();
+  });
+
+  it("keeps the text when a caret on the quote itself is not after a line break", async () => {
+    const editor = await render(rich({ defaultValue: "> ab" }));
+    editor.focus();
+    const quote = editor.querySelector("blockquote")!;
+    window.getSelection()!.setBaseAndExtent(quote, 1, quote, 1);
+    await act(async () => document.dispatchEvent(new Event("selectionchange")));
+    await userEvent.keyboard(shiftEnter);
+    expect(editor.querySelector("p")).toBeNull();
+    expect(quote.textContent).toBe("ab");
   });
 
   it("starts a new line of code on Shift+Enter in a code block, and leaves the block from a second empty line", async () => {
