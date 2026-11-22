@@ -293,17 +293,19 @@ const biteClass =
 // Each hue tints the surface and colors the initials, mixed toward the theme's background and
 // foreground so the pair keeps at least 4.5:1 in light and dark.
 const hues = [
-  "bg-[color-mix(in_oklab,var(--avatar-1)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-1)_70%,var(--foreground))]",
-  "bg-[color-mix(in_oklab,var(--avatar-2)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-2)_70%,var(--foreground))]",
-  "bg-[color-mix(in_oklab,var(--avatar-3)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-3)_70%,var(--foreground))]",
-  "bg-[color-mix(in_oklab,var(--avatar-4)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-4)_70%,var(--foreground))]",
-  "bg-[color-mix(in_oklab,var(--avatar-5)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-5)_70%,var(--foreground))]",
-  "bg-[color-mix(in_oklab,var(--avatar-6)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-6)_70%,var(--foreground))]",
-  "bg-[color-mix(in_oklab,var(--avatar-7)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-7)_70%,var(--foreground))]",
-  "bg-[color-mix(in_oklab,var(--avatar-8)_18%,var(--background))] text-[color-mix(in_oklab,var(--avatar-8)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-1)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-1)_46%,var(--background))] text-[color-mix(in_oklab,var(--avatar-1)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-2)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-2)_46%,var(--background))] text-[color-mix(in_oklab,var(--avatar-2)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-3)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-3)_46%,var(--background))] text-[color-mix(in_oklab,var(--avatar-3)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-4)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-4)_46%,var(--background))] text-[color-mix(in_oklab,var(--avatar-4)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-5)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-5)_46%,var(--background))] text-[color-mix(in_oklab,var(--avatar-5)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-6)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-6)_46%,var(--background))] text-[color-mix(in_oklab,var(--avatar-6)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-7)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-7)_46%,var(--background))] text-[color-mix(in_oklab,var(--avatar-7)_70%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--avatar-8)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-8)_46%,var(--background))] text-[color-mix(in_oklab,var(--avatar-8)_70%,var(--foreground))]",
 ] as const;
-const brand = "bg-[color-mix(in_oklab,var(--primary)_18%,var(--background))] text-[color-mix(in_oklab,var(--primary)_70%,var(--foreground))]";
+const brand = "bg-[color-mix(in_oklab,var(--primary)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--primary)_46%,var(--background))] text-[color-mix(in_oklab,var(--primary)_70%,var(--foreground))]";
 const neutral = "bg-secondary text-secondary-foreground";
+// The ink is the last class; the fill before it may be more than one, for the dark scheme's own step.
+const splitTint = (tint: string): [string, string] => [tint.slice(0, tint.lastIndexOf(" ")), tint.slice(tint.lastIndexOf(" ") + 1)];
 
 const shapes = ["circle", "square", "agent"] as const;
 
@@ -385,7 +387,7 @@ function initialsOf(name: string): string {
  */
 function GroupSlice({ member, tint, quarter }: { member: AvatarMember; tint: string | undefined; quarter: boolean }): JSX.Element {
   const image = useImageStatus(member.src);
-  const [fill, ink] = (tint ?? hueOf(member.idForColor ?? member.name)).split(" ") as [string, string];
+  const [fill, ink] = splitTint(tint ?? hueOf(member.idForColor ?? member.name));
   const loaded = image === "loaded";
   return (
     <span
@@ -634,7 +636,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
   const glyph = icon !== undefined && icon !== null ? icon : shape === "agent" ? <AgentGlyph /> : undefined;
   const iconShown = glyph !== undefined;
   const tint = color === "neutral" ? neutral : color === "brand" ? brand : hueOf(idForColor ?? name);
-  const [fill, ink] = tint.split(" ") as [string, string];
+  const [fill, ink] = splitTint(tint);
   return (
     <span
       {...rest}

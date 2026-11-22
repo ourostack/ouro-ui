@@ -608,6 +608,24 @@ describe("Avatar colors", () => {
     }
   });
 
+  it("lifts the tile off a dark page, on every hue and on brand, and keeps the initials readable", async () => {
+    document.documentElement.classList.add("dark");
+    const { host } = await render(
+      <>
+        {names.map((name) => (
+          <Avatar key={name} name={name} />
+        ))}
+        <Avatar name="Ana Lind" color="brand" />
+      </>,
+    );
+    const page = toRgb(token("background"));
+    for (const avatar of host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')) {
+      const fill = toRgb(getComputedStyle(surface(avatar)).backgroundColor);
+      expect(ratio(fill, page)).toBeGreaterThanOrEqual(1.5);
+      expect(ratio(toRgb(getComputedStyle(avatar).color), fill)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("tints with the theme's primary for brand, and uses the secondary surface for neutral", async () => {
     const { host } = await render(
       <>
