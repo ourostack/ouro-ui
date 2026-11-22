@@ -24,7 +24,9 @@ const KEBAB = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 export const BOOKLET_WORDS: readonly string[] = ["always", "never", "do not", "use this whenever", "you must"];
 export const BOOKLET_FIELDS: readonly BookletAllow["field"][] = ["description", "when", "fix"];
 
-const bookletPattern = (word: string) => new RegExp(`(?<![a-z0-9'-])${word.replace(/ /g, "\\s+")}(?![a-z0-9'-])`, "i");
+// A booklet word counts whole, quoted or not ("'never'" counts, "nevermore" and "always-on" don't), and a phrase's words
+// may be split by spaces, line breaks, hyphens or underscores.
+const bookletPattern = (word: string) => new RegExp(`(?<![a-z0-9_-])${word.replace(/ /g, "[\\s_-]+")}(?![a-z0-9_-])`, "i");
 
 /** Each booklet word a text says, in the list's order. */
 export function bookletWordsIn(text: unknown): string[] {

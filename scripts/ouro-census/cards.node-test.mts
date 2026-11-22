@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import { deepEqual, ok } from "node:assert/strict";
 import { checkCard, checkDeclaredBy } from "./cards.mts";
-import type { Door, DoorCard, GroupCard } from "./types.mts";
+import type { BookletAllow, Door, DoorCard, GroupCard } from "./types.mts";
 
 const groups: GroupCard[] = [{ id: "agent", when: "Talk to and steer a running Ouro agent." }];
 
@@ -165,12 +165,17 @@ test("booklet words in a card's when, its fixes or the door's description are we
   ]);
   const whenever = door({}, { when: "Use this whenever the agent's answer is needed in this turn." });
   deepEqual(checkCard(whenever, { ...ctx, booklet: [] }), ['when: says "use this whenever", a rule for the reader; say what the door does instead']);
-  deepEqual(checkCard(door({ description: "Nevermore, always-on, Donot." }), { ...ctx, booklet: [] }), [], "whole words only");
+  deepEqual(checkCard(door({ description: "Nevermore, always-on, always_on, Donot." }), { ...ctx, booklet: [] }), [], "whole words only");
+  deepEqual(checkCard(door({ description: "Reply 'never' to stop; do-not and you_must count too." }), { ...ctx, booklet: [] }), [
+    'description: says "never", a rule for the reader; say what the door does instead',
+    'description: says "do not", a rule for the reader; say what the door does instead',
+    'description: says "you must", a rule for the reader; say what the door does instead',
+  ], "quoted words and hyphenated or underscored phrases count");
 });
 
 test("a reviewed allowlist entry lets one booklet word stand on one door's field", () => {
   const booklet = door({ description: "Ask the agent something; it never writes." });
-  const allow = [{ door: "mcp:ask", field: "description", word: "never", reason: "States what the door does." }];
+  const allow: BookletAllow[] = [{ door: "mcp:ask", field: "description", word: "never", reason: "States what the door does." }];
   deepEqual(checkCard(booklet, { ...ctx, booklet: allow }), []);
   deepEqual(checkCard(booklet, { ...ctx, booklet: [{ ...allow[0]!, door: "mcp:status" }] }), ['description: says "never", a rule for the reader; say what the door does instead']);
 });

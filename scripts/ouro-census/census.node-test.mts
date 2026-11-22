@@ -714,6 +714,29 @@ test("booklet words: a product adopts the rule in one pull request, seeding its 
     const stale = config({ bookletWords: { allow: [allow, { ...allow, word: "never" }] } });
     await failsWith(argv(stale, [], stale), "mcp:ask description never: on the booklet allowlist but the text doesn't say it. Fix: take it off bookletWords.allow.");
     await failsWith(argv(config({ bookletWords: { allow: [{ door: "mcp:ask", word: "always" }] } }), [], null), "bookletWords.allow: each entry needs a door, a field (description, when or fix), a booklet word and a reason");
+    await failsWith(argv(config({ bookletWords: null }), [], null), "bookletWords: adopt the rule with an object that has an allow list");
+    await failsWith(argv(config({ bookletWords: { allow: {} } }), [], null), "bookletWords.allow: each entry needs a door, a field (description, when or fix), a booklet word and a reason");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("booklet words: the adopting pull request seeds only the doors the rule alone makes weak", async () => {
+  const dir = scratch();
+  try {
+    const config = (extra: Record<string, unknown>, name: string) => {
+      const file = join(dir, name);
+      writeFileSync(file, JSON.stringify({ product: "harness", sources: [{ walker: "mcp-schemas", module: "walkers/fixtures/mcp-booklet-mixed.cjs", source: "walkers/fixtures/mcp-booklet-mixed.ts" }], groups: [{ id: "agent", when: "Talk to and steer a running Ouro agent from a coding tool." }], ...extra }));
+      return file;
+    };
+    const off = config({}, "off.json");
+    const on = config({ bookletWords: { allow: [] } }, "on.json");
+    const argv = (gaps: string[], baseGaps: string[]) => ["--config", on, "--baseline", baselineFile(dir, gaps), "--base-baseline", baselineFile(dir, baseGaps, "base-baseline.json"), "--base-config", off];
+    // mcp:status was weak before the rule, so it is on the base baseline already; mcp:ask is the rule's alone.
+    const { err, io } = capture();
+    equal(await run({ argv: argv(["mcp:ask", "mcp:status"], ["mcp:status"]), io, root: here }), 0, err.join("\n"));
+    // A door weak for another reason can't ride in on the adoption.
+    await failsWith(argv(["mcp:ask", "mcp:status"], []), "mcp:status: added to the baseline.");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

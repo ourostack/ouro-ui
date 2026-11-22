@@ -95,7 +95,10 @@ async function readConfig(path: string): Promise<Config> {
   const booklet = (config as { bookletWords?: { allow?: unknown } }).bookletWords;
   let allow: BookletAllow[] | null = null;
   if (booklet !== undefined) {
-    const entries = booklet?.allow ?? [];
+    if (typeof booklet !== "object" || booklet === null || Array.isArray(booklet)) {
+      throw new CensusFailure(`ax-census: ${path}: bookletWords: adopt the rule with an object that has an allow list`);
+    }
+    const entries = booklet.allow ?? [];
     const valid = (e: Partial<BookletAllow>) =>
       typeof e?.door === "string" && BOOKLET_FIELDS.includes(e.field as BookletAllow["field"]) && BOOKLET_WORDS.includes(e.word as string) && typeof e.reason === "string" && e.reason.trim().length > 0;
     if (!Array.isArray(entries) || !entries.every(valid)) {

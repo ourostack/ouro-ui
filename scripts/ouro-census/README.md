@@ -14,20 +14,20 @@ The walkers run in one child process with an empty `HOME` and `TMPDIR`, without 
 
 ## Booklet words
 
-A product can adopt one more weak-card check, from the Butler's productionization spec (R11.6): text that gives the reading agent a rule instead of saying what the door does. It flags "always", "never", "do not", "use this whenever" and "you must" as whole words in a door's description, its card's `when` and its errors' `fix` lines.[^booklet] A product adopts it in its config:
+A product can adopt one more weak-card check, booklet words: text that gives the reading agent a rule instead of saying what the door does. It comes from the Butler's productionization spec. It flags "always", "never", "do not", "use this whenever" and "you must" as whole words, quoted or not, in a door's description, its card's `when` and its errors' `fix` lines.[^booklet] The spec also asks for tool results, runtime rejections and prompts to be checked; this check reads card texts only. A product adopts it in its config:
 
 ```json
 { "bookletWords": { "allow": [{ "door": "tool:shell", "field": "when", "word": "never", "reason": "Says what the tool does: it never runs as root." }] } }
 ```
 
-The pull request that adopts it may put the doors it alone makes weak on the baseline. After that, it works like the other checks:
+The pull request that adopts it may put the doors it alone makes weak on the baseline, and no door weak for another reason.[^booklet-seed] That pull request is a one-time window, like the one that adds a product walker, so its reviewer checks that it adds or rewords nothing else. After that, it works like the other checks:
 
 - a booklet word is a gap until the text is rewritten;
 - the base branch's check can't be turned off;
 - the allowlist only shrinks;
 - an allowlist entry whose text no longer says its word fails.[^booklet-ratchet]
 
-Each entry names one door, one field and one word, with the reviewed reason.
+An entry names a door, a field and a word, with the reviewed reason.[^booklet-allow] A `fix` entry names the door, not one error, so it lets the word stand on any of that door's fix lines.[^booklet-allow]
 
 ## Running it
 
@@ -78,3 +78,5 @@ The report lists product walkers with their kinds and module hashes under `check
 [^manifest]: scripts/ouro-census/manifest.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/manifest.node-test.mts, /the committed manifest pins every vendored file by hash/)
 [^booklet]: scripts/ouro-census/cards.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/cards.node-test.mts, /booklet words in a card's when, its fixes or the door's description are weak once the product adopts the rule/)
 [^booklet-ratchet]: scripts/ouro-census/census.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/census.node-test.mts, /booklet words: a product adopts the rule in one pull request, seeding its baseline, and can't drop it or grow its allowlist after/)
+[^booklet-seed]: scripts/ouro-census/census.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/census.node-test.mts, /the adopting pull request seeds only the doors the rule alone makes weak/)
+[^booklet-allow]: scripts/ouro-census/cards.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/cards.node-test.mts, /a reviewed allowlist entry lets one booklet word stand on one door's field/)
