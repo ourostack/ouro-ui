@@ -248,12 +248,9 @@ export function describe(arg: { selector: string; only?: number }): Described {
 // transparent (icons, which are not text, stay), and motion is stopped. So is an underline: it snaps to the pixel grid
 // apart from its box, so the same link a fraction of a pixel lower drew it a row lower. The properties judge it instead.
 export async function quiet(page: Page): Promise<void> {
-  // A page that hydrates or re-renders its document late can drop the style, so a picture puts it back when it is gone.
-  if (await page.evaluate(() => document.querySelector("style[data-sweep-quiet]") !== null).catch(() => false)) return;
-  const tag = await page.addStyleTag({
+  await page.addStyleTag({
     content: "*,*::before,*::after{-webkit-text-fill-color:transparent!important;text-decoration-color:transparent!important;text-shadow:none!important;caret-color:transparent!important;transition:none!important;animation:none!important}",
   });
-  await tag.evaluate((el) => (el as Element).setAttribute("data-sweep-quiet", ""));
   // A transition already running (a switch a page toggles on its own) ends on the next frame, not at once.
   await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
 }
@@ -308,7 +305,6 @@ export async function picture(page: Page, index: number, attributes?: string): P
     });
   }).catch(() => false);
   if (!clear) return null;
-  await quiet(page);
   const png = await handle.screenshot({ animations: "disabled", caret: "hide", timeout: 15_000 }).catch(() => null);
   if (!png) return null;
   // Scrolling it into view can wake the part of the page it is in (an island hydrates and an avatar's picture loads), so a
