@@ -150,12 +150,13 @@ describe("Composer rich element reads", () => {
   });
 
   it("reads the caret from the page's selection when it is in the editor, and from the editor's own when it is elsewhere", async () => {
-    const { host, editor } = await render(
+    const { host, ...mountedEditor } = await render(
       <>
         <Composer label="Message" format="rich" defaultValue="hello world" onSend={() => {}} />
         <p id="outside">elsewhere</p>
       </>,
     );
+    const editor = mountedEditor.editor as HTMLElement & { selectionStart: number; selectionEnd: number };
     editor.focus();
     await userEvent.keyboard("{Control>}{End}{/Control}");
     const text = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT).nextNode()!;
