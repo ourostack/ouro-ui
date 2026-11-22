@@ -2,7 +2,7 @@
 
 import "@/registry/ouro/lib/ouro/last-input";
 import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
-import type { ClipboardEvent, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
+import type { ClipboardEvent, FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { RichEditor, RichEditorHandle } from "@/registry/ouro/components/ouro/composer/composer-parts";
 import { composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
@@ -244,9 +244,12 @@ export interface ComposerOwnProps {
    * shows. A paste keeps only what an allowlist names: bold, italic, underline, strikethrough, code,
    * web and mail links, line breaks, and lists and quotes as lines with their Markdown marks; scripts,
    * styles, attributes and other links are dropped and their text kept. ⌘⇧V pastes the text only, a web
-   * address pasted over selected text links it, and ⌘K links the selection or takes its link off. In
-   * rich mode `ref` is not set, `highlights`, `catalogue`, `onPaste` and `pasteText` do not apply, and ⌘⇧X is
-   * strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
+   * address pasted over selected text links it, and ⌘K links the selection or takes its link off.
+   * An `Autocomplete` around the composer works as around the plain box, for mentions and emoji
+   * shortcodes: `ref` is the editor's element, which answers `value`, `selectionStart` and
+   * `selectionEnd` over the text without its marks, and an input method's composition never picks.
+   * Attachments show as they do on the plain box. In rich mode `highlights`, `catalogue`, `onPaste`
+   * and `pasteText` do not apply, and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
    *
    * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
    * @claim "as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code)
@@ -762,6 +765,11 @@ export function Composer(props: ComposerProps): JSX.Element {
               onKeyDown={keyDown}
               autoFocus={rich!.focus}
               name={name}
+              controlRef={ref as Ref<HTMLDivElement> | undefined}
+              onInput={rest.onInput as FormEventHandler<HTMLDivElement> | undefined}
+              onSelect={rest.onSelect as FormEventHandler<HTMLDivElement> | undefined}
+              onFocus={rest.onFocus as FocusEventHandler<HTMLDivElement> | undefined}
+              onBlur={rest.onBlur as FocusEventHandler<HTMLDivElement> | undefined}
               data-slot="composer-rich"
               className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", expanded && "w-full flex-auto")}
             />
