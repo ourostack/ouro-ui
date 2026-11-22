@@ -560,6 +560,7 @@ export function TableCell(props: TableCellProps): JSX.Element {
   useAlignCheck("TableCell", align);
   // The first row header cell holds the row link; a second one stays plain (TableRow warns).
   if (rowHeader && row.href !== undefined) row.claim.owner ??= id;
+  // Stryker disable next-line LogicalOperator,ConditionalExpression: only a row header with a row link claims the row (above), so the owner check already rules out a plain cell and a row without a link
   const holdsLink = rowHeader && row.href !== undefined && row.claim.owner === id && !holdsAnchor(children);
   const Element = rowHeader ? "th" : "td";
   return (
