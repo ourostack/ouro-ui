@@ -22,6 +22,12 @@ test("headroom lets a named exemption's test run over half", () => {
   assert.deepEqual(headroomProblems([{ name: "a", durationMs: 20_000, timeoutMs: 30_000 }], [named("a")]), []);
 });
 
+test("headroom reads * in an exemption as any text, so one entry covers a test in every project and size", () => {
+  const entry = [named("* a.test.tsx > at * px > b")];
+  assert.deepEqual(headroomProblems([{ name: "p (webkit) a.test.tsx > at 390 px > b", durationMs: 20_000, timeoutMs: 30_000 }], entry), []);
+  assert.equal(headroomProblems([{ name: "p (webkit) a.test.tsx > at 390 px > c", durationMs: 20_000, timeoutMs: 30_000 }], entry).length, 1);
+});
+
 test("headroom fails an exemption whose test file or title is gone, and keeps a present one", () => {
   const stale = staleExemptions([{ test: `p (c) scripts/headroom.test.mjs > a > ${["absent", "title", "text"].join(" ")}`, reason: "r", owner: "o" }]);
   assert.equal(stale.length, 1);

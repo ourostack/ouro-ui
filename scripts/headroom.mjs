@@ -20,7 +20,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 export function staleExemptions(exemptions, base = root) {
   return exemptions.flatMap(({ test }) => {
     const file = test.match(/(\S+\.test\.(?:tsx?|mjs))/)?.[1];
-    const title = test.split(" > ").at(-1);
+    const title = test.split(" > ").at(-1).split("*").sort((a, b) => b.length - a.length)[0];
     const parts = [title.slice(0, 20), title.slice(-20)];
     const source = file && existsSync(join(base, file)) ? readFileSync(join(base, file), "utf8") : null;
     return source && parts.some((part) => source.includes(part)) ? [] : [`[ouro-ui] Headroom: ${test} names a test that is gone. Fix: remove its exemption from .github/headroom.json.`];
@@ -40,7 +40,8 @@ export const exemptionProblems = (exemptions) =>
  * fails unless exempt. A stale exemption is found by `staleExemptions`.
  */
 export function headroomProblems(tests, exemptions) {
-  const named = new Map(exemptions.map((entry) => [entry.test, entry]));
+  const patterns = exemptions.map(({ test }) => new RegExp(`^${test.split("*").map((piece) => piece.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*")}$`));
+  const named = { has: (name) => patterns.some((pattern) => pattern.test(name)) };
   const problems = exemptionProblems(exemptions);
   for (const { name, durationMs, timeoutMs } of tests) {
     const over = durationMs > timeoutMs / 2;
