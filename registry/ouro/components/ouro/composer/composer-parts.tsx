@@ -53,6 +53,8 @@ const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "b
 // What a change from the app, rather than the person, carries, so the editor does not report it back.
 // Stryker disable next-line StringLiteral: the tag is only compared with itself, so any other name reads the same.
 const synced = "composer-sync";
+// Stryker disable next-line ArrayDeclaration: a list with one constant item runs an effect once, as an empty list does.
+const MOUNT_ONLY: never[] = [];
 
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
 const toMarkdown = (editor: LexicalEditor) => editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", "");
@@ -140,8 +142,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       editor.setRootElement(null);
       editorRef.current = null;
     };
-  // Stryker disable next-line ArrayDeclaration: a list with one constant item runs the effect once, as an empty list does.
-  }, []);
+  }, MOUNT_ONLY); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A value the app sets, such as the empty one after a send, replaces what the editor holds.
   useEffect(() => {
