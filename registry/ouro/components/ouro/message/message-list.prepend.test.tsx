@@ -224,8 +224,11 @@ describe("MessageList prepending older history", () => {
   async function held() {
     const list = await mountScrolledUp(false);
     const before = list.scroller.scrollTop;
+    // The scroll event of the list's own write, at once: a poll could take past the time a stray is put back in on a slow runner.
+    const scrolled = new Promise((resolve) => list.scroller.addEventListener("scroll", resolve, { once: true }));
     await list.grow();
-    await expect.poll(() => list.scroller.scrollTop).not.toBe(before);
+    await scrolled;
+    expect(list.scroller.scrollTop).not.toBe(before);
     return { ...list, at: list.scroller.scrollTop };
   }
 
