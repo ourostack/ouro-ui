@@ -223,5 +223,65 @@
     "test": "* test/controls.touch.test.tsx > no control is left unmarked on a touch phone > *",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/current/current.test.tsx > Ouro Current's page > has a route, leads with what it does and has one Install button",
+    "reason": "The first test of the file loads the page's route and renders it cold, and ran past half its timeout in a pull request run. Preload the route in a shared helper, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/testing/commands.touch.test.ts > the kit waits for the frame under a pointer-events: none overlay, where the touch lands",
+    "reason": "The test waits out the kit's own refusal timeout, which is the behaviour it proves, and ran past half its timeout in a pull request run. Shorten the kit's wait under test, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/message-list-windowing.bench.test.tsx > MessageList windowing benchmark > draws a conversation of 2000 messages in a fraction of the elements and time it takes drawn whole",
+    "reason": "The benchmark draws a long conversation whole to compare it with the windowed list, and a shard measured it past half its timeout. Draw the whole list from fewer messages or time the comparison from a smaller one, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/apple/apple.test.tsx > Ouro UI for Apple > renders * with its title, its section menu and a route",
+    "reason": "It renders each Apple page in turn, the first of them cold, and a shard measured one past half its timeout. Preload the route in a shared helper, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/stories.test.tsx > at * px > * > Lightbox/Photos has no axe violations, closed and with each overlay open",
+    "reason": "The story renders a grid of photos for the axe scan, and a shard measured it past half its timeout. Scan fewer photos in the story, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > typing > marks what is not an allowed date invalid, with a translatable message, so the form does not submit it",
+    "reason": "A shard measured it at 8.2 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox keys > keeps a read-only field as it is",
+    "reason": "A shard measured it at 7.6 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > signs on Ana, and the crew member who knows the name answers in place of the welcome",
+    "reason": "A shard measured it at 8.7 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/dialog/dialog.test.tsx > automatic presentation > renders a centered dialog at *px",
+    "reason": "A shard measured it at 7.6 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/patterns.test.tsx > SettingsPage > deletes the account only once the person confirms, then starts the form over",
+    "reason": "A shard measured it at 8.4 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx > EmojiPicker content > keeps its fixed sizes at a compact --spacing: an emoji's square, a category's box and icon, and a skin tone's ring",
+    "reason": "A shard measured it at 8.3 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > lets the crew speak only when it adds something: five ticks in order give at most three lines, and a tick out of order warns",
+    "reason": "A shard measured it at 8 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
   }
 ]
