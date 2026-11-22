@@ -62,8 +62,10 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@lexical/code-core": "^0.53.0",
     "@lexical/history": "^0.53.0",
     "@lexical/link": "^0.53.0",
+    "@lexical/list": "^0.53.0",
     "@lexical/markdown": "^0.53.0",
     "@lexical/rich-text": "^0.53.0",
     "@lexical/selection": "^0.53.0",
