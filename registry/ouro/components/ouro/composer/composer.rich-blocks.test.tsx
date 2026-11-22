@@ -108,10 +108,12 @@ describe("Composer rich blocks", () => {
     await userEvent.keyboard(shiftEnter);
     const quote = editor.querySelector("blockquote")!;
     const press = async (anchor: [Node, number], focus: [Node, number]) => {
+      const lines = quote.querySelectorAll("br").length;
       window.getSelection()!.setBaseAndExtent(...anchor, ...focus);
       await act(async () => document.dispatchEvent(new Event("selectionchange")));
       await userEvent.keyboard(shiftEnter);
       expect(editor.querySelector("p")).toBeNull();
+      expect(quote.querySelectorAll("br").length).toBeGreaterThan(lines);
     };
     const text = () => quote.querySelector("span")!.firstChild!;
     await press([text(), 2], [text(), 2]);
