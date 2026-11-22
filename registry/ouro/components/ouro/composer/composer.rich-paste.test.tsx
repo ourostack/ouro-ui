@@ -51,6 +51,48 @@ async function selectAll(editor: HTMLElement) {
 }
 
 describe("Composer rich paste", () => {
+  it.each([
+    ["strong", "<strong>x</strong>", "**x**"],
+    ["em", "<em>x</em>", "_x_"],
+    ["i", "<i>x</i>", "_x_"],
+    ["b", "<b>x</b>", "**x**"],
+    ["del", "<del>x</del>", "~~x~~"],
+    ["strike", "<strike>x</strike>", "~~x~~"],
+    ["s", "<s>x</s>", "~~x~~"],
+    ["u", "<u>x</u>", "++x++"],
+  ])("keeps the formatting of <%s>", async (_tag, html, markdown) => {
+    const seen: string[] = [];
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
+    editor.focus();
+    await paste(editor, { "text/html": html });
+    await expect.poll(() => seen.at(-1)).toBe(markdown);
+  });
+
+  it.each(["div", "blockquote", "pre", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol"])("starts a new line at <%s>", async (tag) => {
+    const seen: string[] = [];
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
+    editor.focus();
+    await paste(editor, { "text/html": `one<${tag}>two</${tag}>three` });
+    await expect.poll(() => seen.at(-1)?.split("\n").filter(Boolean).length).toBe(3);
+  });
+
+  it("puts each table row on its own line", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
+    editor.focus();
+    await paste(editor, { "text/html": "<table><tr><td>a</td><td>b</td></tr><tr><td>c</td></tr></table>" });
+    await expect.poll(() => seen.at(-1)).toBe("ab\nc");
+  });
+
+  it("starts a new line after a block, and makes a link of an anchor only", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
+    editor.focus();
+    await paste(editor, { "text/html": '<p>one</p>two <span href="https://x.test/">three</span>' });
+    await expect.poll(() => seen.at(-1)).toBe("one\ntwo three");
+    expect(editor.querySelector("a")).toBeNull();
+  });
+
   it("keeps the formatting the allowlist names: bold, italic, code, strikethrough and a web link", async () => {
     const seen: string[] = [];
     const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
