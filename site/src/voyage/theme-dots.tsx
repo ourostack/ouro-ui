@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { ThemePicker, type ThemePreset } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { ByPreset, choiceList } from "./presets";
-import { originOf, useSiteTheme } from "./theme-store";
+import { originOf, previewTheme, useSiteTheme } from "./theme-store";
 import { SKY_WORDS } from "./sky-words";
 import type { ThemeChoice } from "../themes/prepaint";
 
@@ -24,6 +24,7 @@ export function ThemeDots({ label = "Theme", size = "lg", describe = true, nameC
         size={size}
         value={preset}
         onValueChange={(name, event) => setPreset(name as ThemeChoice, originOf(event))}
+        onPreviewChange={(name) => previewTheme(name as ThemeChoice | null)}
         className={className}
       />
       {describe ? (

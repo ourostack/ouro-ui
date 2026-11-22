@@ -27,6 +27,7 @@ import spoonjoy from "../docs/spoonjoy.json";
 import shipComponents from "../docs/ship-components.json";
 import { SHIP_PAGES } from "../docs/ships";
 import itemSources from "../docs/sources.json";
+import { ThemeDots } from "../voyage/theme-dots";
 
 // The prerender links each page's Tailwind sheet in its head, the shared shell or the whole build (site/scripts/prerender.mts).
 // The dev server has no prerender, so it loads the whole build here.
@@ -294,6 +295,12 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
       {prompt !== undefined && (
         <div className="mb-10">
           <CodeBlock code={prompt} label="Hand it to your agent" copy wrap />
+        </div>
+      )}
+      {/* The theming guide lets a reader try the site's looks in place: the row fits the column, so nothing opens. */}
+      {page.name === "theming" && (
+        <div className="mb-10">
+          <ThemeDots label="Try a look" />
         </div>
       )}
       <Markdown blocks={body} link={link} />

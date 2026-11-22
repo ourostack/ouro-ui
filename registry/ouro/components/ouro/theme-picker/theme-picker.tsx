@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useRef, type FocusEvent, type JSX, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -58,6 +58,12 @@ export interface ThemePickerProps extends ThemePresetOptions {
   value?: string | undefined;
   /** Called with the look a person chooses, and the press that chose it. */
   onValueChange?: ((name: string, event: MouseEvent<HTMLButtonElement>) => void) | undefined;
+  /**
+   * Called with a look's name while the pointer rests on it or keyboard focus reaches it, and with `null` when it
+   * leaves or Escape is pressed, so the app can repaint the page as a preview and put it back. With no `value` the
+   * picker previews on `<html>` itself.
+   */
+  onPreviewChange?: ((name: string | null) => void) | undefined;
   /** More controls under the looks in the popover, such as a light and dark switch. Only with `presentation="popover"`. */
   children?: ReactNode;
   /** Layout only: margins, grid placement (`ms-auto`). Appearance classes warn in development. */
@@ -129,10 +135,12 @@ function Looks({
   label,
   size,
   describe,
+  preview,
 }: {
   presets: readonly ThemePreset[];
   value: string;
   choose: (name: string, event: MouseEvent<HTMLButtonElement>) => void;
+  preview: (name: string | null) => void;
   label: string;
   size: ThemePickerSize;
   describe: boolean;
@@ -142,9 +150,21 @@ function Looks({
     value,
   );
   const chosen = presets.find((item) => item.name === value);
+  // A finger has no hover: its pointerenter comes with the tap, which chooses.
+  const point = (name: string | null) => (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== "touch") preview(name);
+  };
+  // Only keyboard focus previews; a click's focus is followed by the choice itself.
+  const focus = (name: string) => (event: FocusEvent<HTMLButtonElement>) => {
+    if (event.currentTarget.matches(":focus-visible")) preview(name);
+  };
+  const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") preview(null);
+    roving.onKeyDown(event);
+  };
   return (
     <div className={cn("grid gap-2", pageTokens)}>
-      <div role="group" aria-label={label} onKeyDown={roving.onKeyDown} className="flex flex-wrap gap-x-2 gap-y-2.5 p-1">
+      <div role="group" aria-label={label} onKeyDown={keyDown} className="flex flex-wrap gap-x-2 gap-y-2.5 p-1">
         {presets.map((item) => (
           <button
             key={item.name}
@@ -156,6 +176,10 @@ function Looks({
             aria-pressed={item.name === value}
             tabIndex={roving.tabIndex(item.name)}
             onClick={(event) => choose(item.name, event)}
+            onPointerEnter={point(item.name)}
+            onPointerLeave={point(null)}
+            onFocus={focus(item.name)}
+            onBlur={() => preview(null)}
             className={optionClass}
           >
             <TouchTarget />
@@ -187,8 +211,10 @@ const TOUCH = "(pointer: coarse), (width < 40rem)";
 const sizesKnown: readonly string[] = ["md", "lg"];
 const presentationsKnown: readonly string[] = ["inline", "popover"];
 
-function ThemePickerView(props: ThemePickerProps & { chosen: string; choose: (name: string, event: MouseEvent<HTMLButtonElement>) => void }): JSX.Element {
-  const { presets, label = "Theme", describe = false, size: sizeProp, presentation: presentationProp, children, className, ref, chosen, choose } = props;
+function ThemePickerView(
+  props: ThemePickerProps & { chosen: string; choose: (name: string, event: MouseEvent<HTMLButtonElement>) => void; preview: (name: string | null) => void },
+): JSX.Element {
+  const { presets, label = "Theme", describe = false, size: sizeProp, presentation: presentationProp, children, className, ref, chosen, choose, preview } = props;
   const presentation: ThemePickerPresentation = presentationProp !== undefined && presentationsKnown.includes(presentationProp) ? (presentationProp as ThemePickerPresentation) : "inline";
   const size: ThemePickerSize = sizeProp !== undefined && sizesKnown.includes(sizeProp) ? (sizeProp as ThemePickerSize) : presentation === "popover" ? "md" : "lg";
   useAppearanceClassNameCheck(
@@ -213,7 +239,7 @@ function ThemePickerView(props: ThemePickerProps & { chosen: string; choose: (na
   );
   const touch = useMediaQuery(TOUCH, false);
   const popup = useRef<HTMLDivElement>(null);
-  const looks = <Looks presets={presets} value={chosen} choose={choose} label={label} size={size} describe={describe} />;
+  const looks = <Looks presets={presets} value={chosen} choose={choose} label={label} size={size} describe={describe} preview={preview} />;
   if (presentation === "inline") {
     return (
       <div ref={ref} data-ouro="theme-picker" data-presentation="inline" className={cn("grid", className)}>
@@ -258,14 +284,39 @@ function ThemePickerView(props: ThemePickerProps & { chosen: string; choose: (na
   );
 }
 
+/**
+ * Previews a look on `<html>` while the pointer or keyboard focus rests on it, and puts the chosen one back after,
+ * on leaving, on Escape and on unmount.
+ */
+function usePagePreview(chosen: string, onPreviewChange: ThemePickerProps["onPreviewChange"]): (name: string | null) => void {
+  const kept = useRef(chosen);
+  const showing = useRef(false);
+  useEffect(() => {
+    kept.current = chosen;
+  }, [chosen]);
+  useEffect(
+    () => () => {
+      if (showing.current) document.documentElement.setAttribute("data-theme", kept.current);
+    },
+    [],
+  );
+  return (name) => {
+    showing.current = name !== null;
+    document.documentElement.setAttribute("data-theme", name ?? kept.current);
+    onPreviewChange?.(name);
+  };
+}
+
 function StoredThemePicker(props: ThemePickerProps): JSX.Element {
   const { preset, setPreset } = useThemePreset(
     props.presets.map((item) => item.name),
     { storageKey: props.storageKey, defaultPreset: props.defaultPreset },
   );
+  const preview = usePagePreview(preset, props.onPreviewChange);
   return (
     <ThemePickerView
       {...props}
+      preview={preview}
       chosen={preset}
       choose={(name, event) => {
         setPreset(name);
@@ -280,7 +331,9 @@ function StoredThemePicker(props: ThemePickerProps): JSX.Element {
  * its primary, so the name is the specimen. The chosen look has a solid ring in the page's ink. The row is one Tab
  * stop, on the chosen look: the arrow keys, Home and End move focus along it, and a press chooses. With
  * `presentation="popover"` the looks sit behind a button that shows the chosen wordmark; Escape closes it and puts
- * focus back on the button, and on a touch screen a tap outside closes it without pressing what lies under the tap. A press switches the whole app at once, as `data-theme` on `<html>`, and keeps the choice
+ * focus back on the button, and on a touch screen a tap outside closes it without pressing what lies under the tap.
+ * Resting the pointer or keyboard focus on a look repaints the page in it as a preview; leaving or Escape puts the
+ * chosen one back (`onPreviewChange` with `value`). A press switches the whole app at once, as `data-theme` on `<html>`, and keeps the choice
  * in `localStorage`; `themePresetScript()` inline in `<head>` applies it before first paint. Pass `value` and
  * `onValueChange` to keep the choice yourself. A preset is CSS that keys on `[data-theme="<name>"]`, setting at least
  * `--background`, `--foreground`, `--primary` and `--font-heading`.
@@ -298,5 +351,6 @@ function StoredThemePicker(props: ThemePickerProps): JSX.Element {
 export function ThemePicker(props: ThemePickerProps): JSX.Element {
   if (props.value === undefined) return <StoredThemePicker {...props} />;
   const { onValueChange } = props;
-  return <ThemePickerView {...props} chosen={props.value} choose={(name, event) => onValueChange?.(name, event)} />;
+  const { onPreviewChange } = props;
+  return <ThemePickerView {...props} chosen={props.value} choose={(name, event) => onValueChange?.(name, event)} preview={(name) => onPreviewChange?.(name)} />;
 }

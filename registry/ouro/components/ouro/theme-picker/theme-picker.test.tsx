@@ -156,6 +156,56 @@ describe("ThemePicker", () => {
     expect(localStorage.getItem("ouro-theme-preset")).toBe("abyss");
   });
 
+  it("previews a look on the page while the pointer rests on it, and puts the choice back as it leaves", async () => {
+    const el = await render(<ThemePicker presets={three} />);
+    await userEvent.hover(option(el, "dusk"));
+    await expect.poll(() => html.getAttribute("data-theme")).toBe("dusk");
+    expect(option(el, "pearl").getAttribute("aria-pressed")).toBe("true");
+    await userEvent.unhover(option(el, "dusk"));
+    await expect.poll(() => html.getAttribute("data-theme")).toBe("pearl");
+    expect(localStorage.getItem("ouro-theme-preset")).toBeNull();
+  });
+
+  it("previews the look keyboard focus reaches, and puts the choice back on Escape and when focus leaves", async () => {
+    await render(<ThemePicker presets={three} defaultPreset="abyss" />);
+    await pressTab();
+    expect(html.getAttribute("data-theme")).toBe("abyss");
+    await userEvent.keyboard("{ArrowRight}");
+    expect(html.getAttribute("data-theme")).toBe("dusk");
+    await userEvent.keyboard("{Escape}");
+    expect(html.getAttribute("data-theme")).toBe("abyss");
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(html.getAttribute("data-theme")).toBe("abyss");
+    await userEvent.keyboard("{Home}");
+    expect(html.getAttribute("data-theme")).toBe("pearl");
+    await act(async () => (document.activeElement as HTMLElement).blur());
+    expect(html.getAttribute("data-theme")).toBe("abyss");
+  });
+
+  it("keeps a look chosen while previewing it, and puts the choice back if it unmounts mid-preview", async () => {
+    const el = await render(<ThemePicker presets={three} />);
+    await userEvent.hover(option(el, "dusk"));
+    await userEvent.click(option(el, "dusk"));
+    await userEvent.unhover(option(el, "dusk"));
+    await expect.poll(() => html.getAttribute("data-theme")).toBe("dusk");
+    expect(localStorage.getItem("ouro-theme-preset")).toBe("dusk");
+    await userEvent.hover(option(el, "abyss"));
+    await expect.poll(() => html.getAttribute("data-theme")).toBe("abyss");
+    await act(async () => root?.unmount());
+    root = undefined;
+    expect(html.getAttribute("data-theme")).toBe("dusk");
+  });
+
+  it("tells the app what to preview when it keeps the choice, and leaves the page alone", async () => {
+    const previewed = vi.fn();
+    const el = await render(<ThemePicker presets={three} value="abyss" onPreviewChange={previewed} />);
+    await userEvent.hover(option(el, "dusk"));
+    await expect.poll(() => previewed.mock.calls.at(-1)).toEqual(["dusk"]);
+    await userEvent.unhover(option(el, "dusk"));
+    await expect.poll(() => previewed.mock.calls.at(-1)).toEqual([null]);
+    expect(html.hasAttribute("data-theme")).toBe(false);
+  });
+
   it("names each look by its label, set in the look's own heading face, ending in a square of its primary", async () => {
     const el = await render(<ThemePicker presets={presets} />);
     const abyss = option(el, "abyss");

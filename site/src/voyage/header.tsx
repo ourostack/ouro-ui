@@ -15,7 +15,8 @@ import { FAMILY, FAMILY_CURRENT } from "../family";
 import { GUTTERS } from "../gutters";
 import { href } from "../paths";
 import type { Mode, ThemeChoice } from "../themes/prepaint";
-import { originOf, useLiveClock, useSiteTheme } from "./theme-store";
+import { originOf, previewTheme, useLiveClock, useSiteTheme } from "./theme-store";
+import { ThemeDots } from "./theme-dots";
 import { PICKER_PRESETS } from "./theme-dots";
 import { ThemePicker as OuroThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { sectionHref, SITE_SECTIONS, SiteMenu, SiteMenuFrame } from "./site-menu";
@@ -41,10 +42,25 @@ export function ThemePicker(): JSX.Element {
       presentation="popover"
       value={preset}
       onValueChange={(name, event) => setPreset(name as ThemeChoice, originOf(event))}
-      className="site-theme-picker"
+      onPreviewChange={(name) => previewTheme(name as ThemeChoice | null)}
+      className="site-theme-picker max-sm:hidden"
     >
       <SegmentedControl label="Light or dark" fullWidth items={MODE_ITEMS} value={scheme} onValueChange={(value) => setMode(value as Mode | "system")} />
     </OuroThemePicker>
+  );
+}
+
+/**
+ * The looks in the phone's menu, where the row fits and nothing needs opening, with Auto, Light or Dark under them. From
+ * 640px the header's button holds them instead.
+ */
+function MenuLooks(): JSX.Element {
+  const { scheme, setMode } = useSiteTheme();
+  return (
+    <section aria-label="Theme" className="mt-8 grid gap-4 border-0 border-t border-solid border-border pt-6 sm:hidden">
+      <ThemeDots label="Theme" size="lg" />
+      <SegmentedControl label="Light or dark" fullWidth items={MODE_ITEMS} value={scheme} onValueChange={(value) => setMode(value as Mode | "system")} />
+    </section>
   );
 }
 
@@ -235,6 +251,7 @@ export function VoyageHeader({
             }
           >
             {menu ?? <SiteMenu page={page} />}
+            <MenuLooks />
           </SiteMenuFrame>
         }
         actions={

@@ -49,15 +49,15 @@
     "file": "cormorant-garamond-5.3.0.woff2",
     "package": "@fontsource/cormorant-garamond",
     "version": "5.3.0",
-    "source": "files/cormorant-garamond-latin-600-normal.woff2",
+    "source": "files/cormorant-garamond-latin-700-normal.woff2",
     "weight": "300 800",
     "fallback": "Georgia, \"Times New Roman\", serif",
     "role": "display",
     "preload": false,
-    "modifications": "none; the one 600 file serves every heading weight",
+    "modifications": "none; the one 700 file serves every heading weight, since Cormorant's thin strokes read lighter than the other presets' faces at 600",
     "licence": "OFL-1.1",
-    "bytes": 23396,
-    "sha256": "ae062b6d5ae308e7edf61b28b07b9984bbb6e961b1f34d9b2c2f4389c33f21ea"
+    "bytes": 22340,
+    "sha256": "21a0fc1c5c22708cf4aa0c147fd32982e25bf9e21efec0ca31a4495ba41753eb"
   },
   {
     "family": "Chart Fell",
