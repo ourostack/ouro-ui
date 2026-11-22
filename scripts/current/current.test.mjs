@@ -2031,6 +2031,33 @@ test("a prerelease version carried twice in one file moves to the next number, a
   assert.deepEqual(JSON.parse(ahead.fileAt(BRANCH, "changelog.json")).versions[0], { version: "0.1.0-alpha.1184", changes: ["Waiting.", "Uses Ouro UI for Apple v0.9.0."] });
 });
 
+test("a version the npm registry already serves starts the next version, though the repository's latest release is behind it", async () => {
+  const rules = {
+    version: [{ path: "package.json", pattern: '^  "version": "([^"]+)"' }],
+    npm: "@acme/app",
+    changelog: { path: "changelog.json", json: "versions", text: "Uses {releases}." },
+  };
+  const pkg = '{\n  "name": "@acme/app",\n  "version": "0.1.0-alpha.1293"\n}\n';
+  const changelog = `${JSON.stringify({ versions: [{ version: "0.1.0-alpha.1293", changes: ["Waiting."] }] }, null, 2)}\n`;
+  const start = { "Package.swift": SWIFT, ".github/ouro-current.json": JSON.stringify(rules), "package.json": pkg, "changelog.json": changelog };
+  const asked = [];
+  const serving = (served) => async (url) => {
+    asked.push(url);
+    return { ok: served };
+  };
+  const out = fakeRepo(start, { latestRelease: "v0.1.0-alpha.1292" });
+  await keepRepo(out.gh, "o/r", RELEASES, {}, { fetchImpl: serving(true) });
+  assert.deepEqual(asked, ["https://registry.npmjs.org/@acme%2Fapp/0.1.0-alpha.1293"]);
+  assert.equal(out.fileAt(BRANCH, "package.json"), pkg.replace("1293", "1294"));
+  assert.deepEqual(JSON.parse(out.fileAt(BRANCH, "changelog.json")).versions[0], { version: "0.1.0-alpha.1294", changes: ["Uses Ouro UI for Apple v0.9.0."] });
+  assert.match(out.pulls[0].body, /which the npm registry already serves/);
+
+  const waiting = fakeRepo(start, { latestRelease: "v0.1.0-alpha.1292" });
+  await keepRepo(waiting.gh, "o/r", RELEASES, {}, { fetchImpl: serving(false) });
+  assert.equal(waiting.fileAt(BRANCH, "package.json"), pkg);
+  assert.deepEqual(JSON.parse(waiting.fileAt(BRANCH, "changelog.json")).versions[0], { version: "0.1.0-alpha.1293", changes: ["Waiting.", "Uses Ouro UI for Apple v0.9.0."] });
+});
+
 test("an update pull request with only merges of main on top of Ouro Current's commit is still Ouro Current's, and moves to the newest release (ourostack/ouroboros#1389)", async () => {
   const repo = fakeRepo({ "Package.swift": SWIFT, "README.md": "# App\n" });
   const first = await keepRepo(repo.gh, "o/r", RELEASES, {});

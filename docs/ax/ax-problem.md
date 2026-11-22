@@ -39,6 +39,7 @@ interface AxErrorShape {
   thing: string;
   problem: string;
   fix: string | null;
+  preciseFailure?: string;
 }
 ```
 

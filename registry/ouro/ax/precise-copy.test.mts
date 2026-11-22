@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkFailureCopyAllow, FAILURE_KEYS, vagueFailureIn, vagueFailuresIn } from "#ouro-ax/precise-copy.ts";
+import { checkFailureCopyAllow, FAILURE_KEYS, preciseFailureProblem, vagueFailureIn, vagueFailuresIn } from "#ouro-ax/precise-copy.ts";
 
 test("finds each vague phrase and a bare failure, and lets precise copy and allowed text through", () => {
   assert.equal(vagueFailureIn("Couldn't show this picture"), "couldn't");
@@ -95,4 +95,23 @@ test("an allow-list needs a match and a reason in every entry", () => {
       'the failure copy allow-list has 3 problems:\nentry 0 {"match":"","reason":"r"} needs a non-empty "match" and a "reason". Fix: { "match": "<part of the text>", "reason": "<why this wording is precise>" }.\nentry 1 {"match":"x"} needs a non-empty "match" and a "reason". Fix: { "match": "<part of the text>", "reason": "<why this wording is precise>" }.\nentry 2 null needs a non-empty "match" and a "reason". Fix: { "match": "<part of the text>", "reason": "<why this wording is precise>" }.',
   );
   assert.throws(() => checkFailureCopyAllow([{ match: "x", reason: " " }]), /has 1 problem:\n/);
+});
+
+test("a preciseFailure reason on an error, human or checks row lets its own texts through with that reason, and a blank one does not", () => {
+  const why = "names the mail service and its answer";
+  const outcome = {
+    ax: "outcome/1",
+    state: "failed",
+    summary: "Couldn't send",
+    error: { code: "send_failed", message: "Could not reach the mail service", preciseFailure: why },
+    human: { reason: "Unable to sign in", preciseFailure: " ", resume: { command: "mail login", why: "Sign in" } },
+  };
+  const found = vagueFailuresIn(outcome, { messagesOnly: true });
+  assert.deepEqual(found.map((f) => [f.where, f.allowed?.reason ?? null]), [["summary", null], ["error.message", why], ["human.reason", null]]);
+  const report = { ax: "checks/1", summary: "1 of 1 check failed", rows: [{ id: "mail", label: "Mail", state: "failed", detail: "Could not sign in", preciseFailure: why }] };
+  assert.deepEqual(vagueFailuresIn(report, { messagesOnly: true }).map((f) => [f.where, f.allowed?.reason ?? null]), [["rows[0].detail", why]]);
+  assert.equal(preciseFailureProblem({ preciseFailure: "" }), "preciseFailure needs a reason in words");
+  assert.equal(preciseFailureProblem({ preciseFailure: 3 }), "preciseFailure needs a reason in words");
+  assert.equal(preciseFailureProblem({}), null);
+  assert.equal(preciseFailureProblem({ preciseFailure: why }), null);
 });

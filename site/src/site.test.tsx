@@ -77,6 +77,13 @@ describe("home page", () => {
     expect(page.getByRole("navigation", { name: "Ouro UI" }).getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
   });
 
+  it("breaks a source path after its slashes, and inside a name only when the name alone is too wide", async () => {
+    const host = await renderPage("/docs/button/");
+    const path = host.querySelector("[data-site-path]");
+    expect(path?.querySelectorAll("wbr").length).toBeGreaterThan(0);
+    expect(getComputedStyle(path!).overflowWrap).toBe("break-word");
+  });
+
   it("shows two ships, the Nautilus and Spoonjoy, as showcases, each with its way in and its X-ray", async () => {
     await renderPage("/");
     const section = page.getByRole("region", { name: TWO_SHIPS.title });
@@ -1075,6 +1082,18 @@ describe("docs", () => {
       // The lost page asks for what it can't find, as the docs' searches do.
       expect(new URL(main.getByRole("status").getByRole("link").element().getAttribute("href")!).searchParams.get("title")).toBe("Component request: zzz");
     } finally {
+      history.replaceState(null, "", before);
+    }
+  });
+
+  it("opens X-ray on a docs page whose address asks for it", async () => {
+    const before = location.href;
+    history.replaceState(null, "", "/docs/button/?xray");
+    try {
+      await renderPage("/docs/button/");
+      await expect.poll(() => document.querySelector('[data-ouro="inspector"]') !== null).toBe(true);
+    } finally {
+      setXray(false);
       history.replaceState(null, "", before);
     }
   });
