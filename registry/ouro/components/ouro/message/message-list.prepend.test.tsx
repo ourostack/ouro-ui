@@ -232,6 +232,8 @@ describe("MessageList prepending older history", () => {
   // Chromium sometimes moves the scroll position a pixel or two by itself, in the frame after the list held the reader's place.
   it("puts back a scroll of a few pixels at rest that neither the reader nor the list made, just after the list held the reader's place", async () => {
     const { scroller, at } = await held();
+    // The stray comes after the scroll event the list's own write brings.
+    await frames(1);
     const reading = firstVisible(scroller);
     scroller.scrollTop = at - 2;
     await frames(2);
@@ -239,18 +241,38 @@ describe("MessageList prepending older history", () => {
     expect(Math.abs(firstVisible(scroller).top - reading.top)).toBeLessThanOrEqual(2);
   });
 
-  it("keeps a scroll of a few pixels that comes after the reader pressed, or long after the list's own write", async () => {
-    const pressed = await held();
-    pressed.scroller.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-    pressed.scroller.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
-    pressed.scroller.scrollTop = pressed.at - 2;
-    await frames(2);
-    expect(pressed.scroller.scrollTop).toBe(pressed.at - 2);
+  const inputs: [string, (scroller: HTMLElement) => void][] = [
+    // A press on a message whose own handler stops it still counts: the list hears it on the way down.
+    ["a press", (scroller) => {
+      const message = firstVisible(scroller).message as HTMLElement;
+      message.addEventListener("pointerdown", (event) => event.stopPropagation(), { once: true });
+      message.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    }],
+    ["a key", (scroller) => scroller.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }))],
+    ["a touch", (scroller) => scroller.dispatchEvent(new Event("touchstart", { bubbles: true }))],
+  ];
+  for (const [name, act] of inputs) {
+    it(`keeps a scroll of a few pixels that comes after ${name}`, async () => {
+      const { scroller, at } = await held();
+      act(scroller);
+      scroller.scrollTop = at - 2;
+      await frames(2);
+      expect(scroller.scrollTop).toBe(at - 2);
+    });
+  }
+
+  it("keeps a scroll of a few pixels long after the list's own write, or after a larger move", async () => {
     const later = await held();
     await new Promise((resolve) => setTimeout(resolve, 400));
     later.scroller.scrollTop = later.at - 2;
     await frames(2);
     expect(later.scroller.scrollTop).toBe(later.at - 2);
+    const moved = await held();
+    moved.scroller.scrollTop = moved.at - 10;
+    await frames(1);
+    moved.scroller.scrollTop = moved.at - 2;
+    await frames(2);
+    expect(moved.scroller.scrollTop).toBe(moved.at - 2);
   });
 
   chromiumOnly(`keeps layout still as three pages of older messages go in above a scrolled-up reader, with no layout shift, when every message is drawn`, async () => {

@@ -1555,7 +1555,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const before = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
     ownTop.current = scroller.scrollTop;
-    ownWrite.current = null;
+    heldAt.current = Number.NEGATIVE_INFINITY;
     springsRef.current?.moved(scroller.scrollTop - before);
   }, []);
 
@@ -1708,7 +1708,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const box = boxOf(target);
       scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
       ownTop.current = scroller.scrollTop;
-      ownWrite.current = null;
+      heldAt.current = Number.NEGATIVE_INFINITY;
     };
     const open = () => {
       if (content.querySelector(items) === null) return;
@@ -1802,7 +1802,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const before = scroller.scrollTop;
       scroller.scrollTop += by;
       ownTop.current = scroller.scrollTop;
-      ownWrite.current = null;
+      heldAt.current = Number.NEGATIVE_INFINITY;
       const applied = scroller.scrollTop - before;
       springsRef.current?.moved(applied);
       return applied;
@@ -1950,8 +1950,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (Math.abs(moved) >= 0.5) {
           const before = scroller.scrollTop;
           scroller.scrollTop += moved;
-          ownTop.current = ownWrite.current = scroller.scrollTop;
-          ownWriteAt.current = performance.now();
+          ownTop.current = heldTop.current = scroller.scrollTop;
+          heldAt.current = performance.now();
           const applied = scroller.scrollTop - before;
           springsRef.current?.moved(applied);
           // What rounding left over, carried: under a pixel. A move the browser did not apply in full (the list's end or start stopped it, smooth scrolling or snapping took it) is not a debt a later write can pay.
@@ -1987,15 +1987,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // pixel or two by itself in the frame after hold() wrote it through rows measured above the view, which moves what the reader is
       // reading. The list puts hold()'s position back. It stays the place to put back to through the scroll event its write brings, as
       // the stray move comes a frame later.
-      const wrote = ownWrite.current;
-      const stray = wrote === null ? 0 : scroller.scrollTop - wrote;
+      const stray = scroller.scrollTop - heldTop.current;
       const now = performance.now();
       // Stryker disable next-line EqualityOperator: a stray of exactly STRAY_PX is put back or kept, a pixel either way.
-      if (stray !== 0 && Math.abs(stray) <= STRAY_PX && now - ownWriteAt.current <= STRAY_MS && !turning() && now - inputAt > INPUT_MS) {
+      if (stray !== 0 && Math.abs(stray) <= STRAY_PX && now - heldAt.current <= STRAY_MS && !turning() && now - inputAt > INPUT_MS) {
         scrollOwn(-stray);
         return;
       }
-      if (stray !== 0) ownWrite.current = null;
+      // Any other move ends it: a scroll after that is the reader's or the app's, judged from where that move left the list.
+      if (stray !== 0) heldAt.current = Number.NEGATIVE_INFINITY;
       // Only the browser's own scroll, where it says when it ends. The first scroll after a turn is the wheel's when it comes
       // within WHEEL_START, which a loaded machine may take to begin it; judged by time alone, never by the frame the wheel turned
       // in, as a scroll the page makes in that frame (a scrollbar, a jump) is none of the wheel's, and with no scrollend after it
@@ -2098,8 +2098,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const ownTop = useRef<number | null>(null);
   // Where hold() last put the scroll position to keep the reader's place, and when: what a stray scroll just after it is put back to
   // (onScroll). Any other write of the list's clears it.
-  const ownWrite = useRef<number | null>(null);
-  const ownWriteAt = useRef(-Infinity);
+  const heldTop = useRef(0);
+  const heldAt = useRef(Number.NEGATIVE_INFINITY);
   // Where each slot drawn sits in the content, and its size, as last measured.
   const tops = useRef(new Map<string, { top: number; size: number }>());
   // How many messages each child drawn holds: a child that starts the conversation holds none.
