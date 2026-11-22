@@ -1,7 +1,7 @@
 // The baseline ratchet (design section 5): `ax/census.baseline.json` lists today's gaps, and the list only shrinks.
 // A gap not on the list fails, an entry that is no longer a gap fails, and a pull request that adds an entry compared
 // with its base fails. There is no override: agents merge their own pull requests, so a flag would be self-approved.
-import type { ProductWalker } from "./types.mts";
+import type { BookletAllow, ProductWalker } from "./types.mts";
 
 export interface BaselineInput {
   /** The ids the census counts against zero in this run (weak, undeclared, unwalked and stale). */
@@ -15,6 +15,8 @@ export interface BaselineInput {
   base: { baseline: readonly string[] | null; hasConfig: boolean; kinds?: readonly string[] } | null;
   /** The door kinds this census walks. */
   kinds: readonly string[];
+  /** Ids this pull request may add to the baseline: doors a check the product adopts in it makes weak. */
+  seed?: ReadonlySet<string>;
 }
 
 const kindOf = (id: string): string => (id.includes(":") ? id.slice(0, id.indexOf(":")) : id);
@@ -54,7 +56,7 @@ export function checkBaseline(input: BaselineInput): string[] {
       // A kind the base doesn't walk couldn't be on its baseline: the pull request that starts walking it seeds it.
       const walkedBefore = new Set(input.base.kinds ?? input.kinds);
       for (const id of entries) {
-        if (!before.has(id) && walkedBefore.has(kindOf(id))) problems.push(`${id}: added to the baseline. Fix: declare the door instead; the baseline only shrinks.`);
+        if (!before.has(id) && walkedBefore.has(kindOf(id)) && !input.seed?.has(id)) problems.push(`${id}: added to the baseline. Fix: declare the door instead; the baseline only shrinks.`);
       }
     } else if (input.base.hasConfig && entries.size > 0) {
       problems.push("ax/census.baseline.json: missing on the base branch, which already runs the census. Fix: restore it from the base.");
@@ -113,4 +115,25 @@ export function checkWalkers(walkers: Readonly<Record<string, ProductWalker>>, b
     if (now.module !== before.module) return [`${name}: the product walker moved from ${before.module} to ${now.module}. Fix: keep its module path; a new module can drop doors the old one found.`];
     return before.kinds.filter((k) => !now.kinds.includes(k)).map((k) => `${name}: the product walker no longer declares ${k}. Fix: keep every kind it walked on the base branch.`);
   });
+}
+
+const allowKey = (entry: BookletAllow): string => `${entry.door} ${entry.field} ${entry.word}`;
+
+/**
+ * The booklet-words ratchet: a product that checks booklet words on the base branch keeps checking them, and its
+ * allowlist only shrinks. `used` holds the entries some door's text still needs; any other entry is stale.
+ */
+export function checkBooklet(allow: readonly BookletAllow[] | null, baseAllow: readonly BookletAllow[] | null | undefined, used: ReadonlySet<string>): string[] {
+  const problems: string[] = [];
+  if (!allow) {
+    if (baseAllow) problems.push("bookletWords: the base branch checks booklet words. Fix: keep bookletWords in ax/census.config.json; the rule is never turned off.");
+    return problems;
+  }
+  const before = new Set((baseAllow ?? []).map(allowKey));
+  for (const entry of allow) {
+    const key = allowKey(entry);
+    if (baseAllow && !before.has(key)) problems.push(`${key}: added to the booklet allowlist. Fix: rewrite the text instead; the allowlist only shrinks.`);
+    if (!used.has(key)) problems.push(`${key}: on the booklet allowlist but the text doesn't say it. Fix: take it off bookletWords.allow.`);
+  }
+  return problems;
 }
