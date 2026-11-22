@@ -1832,9 +1832,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // reader. Where no end stopped the write, what has not landed stays carried, drawn by the translate, until a later write lands it.
       const top = scroller.scrollTop;
       const unlanded = wheeling && top > 0 && top < farthest() ? Math.round(by) - applied : 0;
+      // Stryker disable next-line EqualityOperator: a part of exactly one pixel kept carried or paid with the next write moves nothing on screen that WebKit shows, which keeps whole pixels.
       if (Math.abs(unlanded) >= 1) {
         carriedRef.current = unlanded;
         content.style.translate = `0 ${-unlanded}px`;
+        // Stryker disable next-line AssignmentOperator: the scroll event the write brings takes the anchors again, so `taken` is read stale only in the task of the write, as everywhere else it is paid.
         taken += applied;
         return rest();
       }

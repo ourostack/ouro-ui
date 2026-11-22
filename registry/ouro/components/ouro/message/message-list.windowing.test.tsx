@@ -955,7 +955,15 @@ describe("MessageList windowing", () => {
     // The reader nears the top while the wheel turns: the carry is paid, and the write lands in part.
     await act(async () => void (scroller.scrollTop = 40));
     await expect.poll(() => content.style.translate).not.toBe(held);
-    expect(content.style.translate).not.toBe("");
+    const carriedPx = (value: string) => -Number(/(-?[\d.]+)px$/.exec(value)![1]);
+    const landed = scroller.scrollTop - 40;
+    expect(landed).toBeGreaterThan(0);
+    expect(carriedPx(content.style.translate)).toBeCloseTo(Math.round(carriedPx(held)) - landed, 3);
+    // What goes in above meanwhile is still held, so the reader's place stays: the part landed moved the anchors with it.
+    const kept = carriedPx(content.style.translate);
+    from -= 20;
+    await rerender(chat());
+    expect(carriedPx(content.style.translate)).toBeGreaterThan(kept);
     // A later write lands in full, and the translate goes.
     lands = 1;
     now += 10_000;
