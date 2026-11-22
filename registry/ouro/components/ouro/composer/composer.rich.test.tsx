@@ -592,7 +592,8 @@ describe("Composer rich mode with a catalogue", () => {
   };
   const catalogue: EmojiCatalogue = { categories: [{ id: "people", label: "People", items: [party, wave] }] };
   const field = (editor: HTMLElement) => (editor.focus(), editor) as HTMLElement & { value: string };
-  const pictures = (editor: HTMLElement) => [...editor.querySelectorAll("img")];
+  // Lexical adds empty-alt images of its own beside an inline decorator in WebKit.
+  const pictures = (editor: HTMLElement) => [...editor.querySelectorAll("img:not([alt=\"\"])")];
   const withCatalogue = (props: Partial<React.ComponentProps<typeof Composer>> = {}) => rich({ catalogue, offsets: "markdown", ...props });
 
   it("draws a token the catalogue lists as its picture, named by the emoji's name, with the token as the Markdown", async () => {
