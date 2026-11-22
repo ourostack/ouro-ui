@@ -7,7 +7,7 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { agentExamples } from "../agents/examples";
-import { CodeBlock, Command, InlineCode } from "../components/code";
+import { CodeBlock, Command, InlineCode, InlinePath } from "../components/code";
 import { CatalogPreview } from "../components/catalog-preview";
 import { DocsShell } from "../components/docs-shell";
 import { SurpriseMe } from "../components/surprise-me";
@@ -232,7 +232,7 @@ function InSpoonjoy({ name }: { name: string }): JSX.Element | null {
           {use.sources.map((file, index) => (
             <span key={file}>
               {index > 0 && " · "}
-              <a href={file} className={linkClass}><InlineCode>{file.slice(file.indexOf("/blob/main/") + "/blob/main/".length)}</InlineCode></a>
+              <a href={file} className={linkClass}><InlinePath path={file.slice(file.indexOf("/blob/main/") + "/blob/main/".length)} /></a>
             </span>
           ))}
         </Text>

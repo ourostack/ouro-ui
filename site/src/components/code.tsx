@@ -12,6 +12,20 @@ export function InlineCode({ children }: { children: ReactNode }): JSX.Element {
   );
 }
 
+/** A file path inside running text: it breaks after a slash, and inside a name only when the name alone is wider than the line. */
+export function InlinePath({ path }: { path: string }): JSX.Element {
+  return (
+    <code data-site-path className="rounded-[calc(var(--radius)*0.267)] bg-muted px-[0.3em] py-[0.1em] font-mono [font-size-adjust:0.46] text-foreground [overflow-wrap:break-word]">
+      {path.split("/").map((part, index, parts) => (
+        <span key={index}>
+          {part}
+          {index < parts.length - 1 && <>/<wbr /></>}
+        </span>
+      ))}
+    </code>
+  );
+}
+
 /**
  * A block of code. It scrolls inside its own box on phones and is a tab stop so a keyboard can scroll it;
  * `wrap` wraps long lines instead, for a short snippet whose cut-off end would look broken.
