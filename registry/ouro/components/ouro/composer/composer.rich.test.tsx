@@ -664,4 +664,64 @@ describe("Composer rich mode with a catalogue", () => {
     (editor as HTMLElement & { setSelectionRange: (s: number, e: number) => void }).setSelectionRange(0, 9);
     await expect.poll(() => (editor as HTMLElement & { selectionEnd: number }).selectionEnd).toBe(9);
   });
+  it("draws each picture inline, undraggable, and keeps its tokens", async () => {
+    const { editor } = await render(withCatalogue({ defaultValue: "a :party: b :wave: c" }));
+    const [first, second] = pictures(editor) as HTMLImageElement[];
+    expect(first!.draggable).toBe(false);
+    expect(first!.className).toContain("inline-block");
+    expect(second!.getAttribute("alt")).toBe("Waving hand");
+    expect(field(editor).value).toBe("a :party: b :wave: c");
+  });
+
+  it("reads tokens among other colons and text, each one alone", async () => {
+    const { editor } = await render(withCatalogue({ defaultValue: "at 10:30:45 :party::wave: x:y :nope here: :wave:" }));
+    expect(pictures(editor).map((img) => img.getAttribute("alt"))).toEqual(["Party popper", "Waving hand", "Waving hand"]);
+    expect(field(editor).value).toBe("at 10:30:45 :party::wave: x:y :nope here: :wave:");
+  });
+
+  it.each([
+    [0, 0, "X:party: b"],
+    [7, 7, ":party:X b"],
+    [3, 0, "X:party: b"],
+    [8, 8, ":party: Xb"],
+  ])("puts the caret at %i before, after or over a picture by its token's Markdown offsets", async (at, expected, written) => {
+    const { editor } = await render(withCatalogue({ defaultValue: ":party: b" }));
+    const box = field(editor) as HTMLElement & { setSelectionRange: (s: number, e: number) => void; selectionStart: number; setRangeText: (t: string, s: number, e: number) => void };
+    box.setSelectionRange(at, at);
+    await expect.poll(() => box.selectionStart).toBe(expected);
+    await act(async () => box.setRangeText("X", expected, expected));
+    await expect.poll(() => box.value).toBe(written);
+  });
+
+  it("takes a catalogue that arrives after the first render", async () => {
+    const view = await render(rich({ offsets: "markdown" }));
+    await view.rerender(withCatalogue());
+    const editor = view.editor;
+    editor.focus();
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "🎉", bubbles: true, cancelable: true })));
+    await expect.poll(() => pictures(editor).length).toBe(1);
+  });
+
+  it("leaves typed text with no emoji, and a typed emoji with no catalogue, as text", async () => {
+    const { editor } = await render(withCatalogue());
+    editor.focus();
+    await userEvent.keyboard("ab");
+    expect(pictures(editor)).toEqual([]);
+    expect(field(editor).value).toBe("ab");
+    const bare = await render(rich());
+    bare.editor.focus();
+    await act(async () => void bare.editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "🎉", bubbles: true, cancelable: true })));
+    await expect.poll(() => field(bare.editor).value).toBe("🎉");
+  });
+
+  it("inserts plain text as text when there is no catalogue, by paste and by the editorRef", async () => {
+    const handle = createRef<ComposerEditor>();
+    const { editor } = await render(rich({ editorRef: handle }));
+    editor.focus();
+    const data = new DataTransfer();
+    data.setData("text/plain", "one :party:");
+    await act(async () => void editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data })));
+    await act(async () => handle.current!.insert(" two"));
+    expect(field(editor).value).toBe("one :party: two");
+  });
 });

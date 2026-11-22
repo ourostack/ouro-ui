@@ -75,12 +75,15 @@ class EmojiNode extends DecoratorNode<null> {
   __token: string;
   __name: string;
   __src: string;
+  // Stryker disable next-line BlockStatement: Lexical reads the type only to register the class and to name a node in saved JSON, which the editor never saves
   static override getType(): string {
+    // Stryker disable next-line StringLiteral: the same, any distinct name registers
     return "ouro-emoji";
   }
   static override clone(node: EmojiNode): EmojiNode {
     return new EmojiNode(node.__token, node.__name, node.__src, node.__key);
   }
+  // Stryker disable next-line BlockStatement: the editor never saves or loads its state as JSON; Lexical asks every node class to say how
   static override importJSON(json: SerializedEmojiNode): EmojiNode {
     return new EmojiNode(json.token, json.name, json.src);
   }
@@ -90,7 +93,9 @@ class EmojiNode extends DecoratorNode<null> {
     this.__name = name;
     this.__src = src;
   }
+    // Stryker disable next-line BlockStatement: the editor never saves its state as JSON
   override exportJSON(): SerializedEmojiNode {
+    // Stryker disable next-line ObjectLiteral: the same
     return { ...super.exportJSON(), token: this.__token, name: this.__name, src: this.__src };
   }
   override createDOM(): HTMLElement {
@@ -101,7 +106,9 @@ class EmojiNode extends DecoratorNode<null> {
     picture.className = "inline-block size-[1.25em] align-text-bottom";
     return picture;
   }
+  // Stryker disable next-line BlockStatement: the picture never changes, and a node that is never dirty is never asked
   override updateDOM(): false {
+    // Stryker disable next-line BooleanLiteral: the same
     return false;
   }
   override isInline(): true {
@@ -110,6 +117,7 @@ class EmojiNode extends DecoratorNode<null> {
   override getTextContent(): string {
     return this.__token;
   }
+  // Stryker disable next-line BlockStatement: a decorator must answer, and nothing reads the answer of one drawn by createDOM
   override decorate(): null {
     return null;
   }
@@ -118,11 +126,10 @@ const $isEmojiNode = (node: LexicalNode | null | undefined): node is EmojiNode =
 
 const $emojiNode = (found: Exclude<EmojiTextPart, string>) => new EmojiNode(found.source.startsWith(":") ? found.source : emojiToken(found.item, found.tone), found.item.name, toneOf(found.item, found.tone).src);
 
-// Writes an emoji as its token; the transformer that reads one in is made for the editor, which knows its catalogue.
-const emojiExport = (node: LexicalNode) => ($isEmojiNode(node) ? node.getTextContent() : null);
+// Reads a token in as its picture; the transformer is made for the editor, which knows its catalogue. An emoji goes out as its text, the token.
 const emojiTransformer = (catalogue: () => EmojiCatalogue | undefined): TextMatchTransformer => ({
+  // Stryker disable next-line ArrayDeclaration: Lexical only checks that the class is registered, which the editor's nodes do
   dependencies: [EmojiNode],
-  export: emojiExport,
   importRegExp: /:[^\s:]+:/,
   regExp: /:[^\s:]+:$/,
   trigger: ":",
@@ -141,7 +148,7 @@ function $insertWithEmoji(selection: RangeSelection, text: string, catalogue: Em
   }
 }
 
-const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK, { dependencies: [EmojiNode], export: emojiExport, regExp: /(?!)/, type: "text-match" }];
+const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK];
 
 const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
 
@@ -340,7 +347,7 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
     const fits = left <= size;
     if ($isDecoratorNode(child)) {
       // An emoji has no text point: the caret goes before it, or after it when the offset is past its token.
-      if (left <= size) return [element, left === size && size > 0 ? index + 1 : index, "element"];
+      if (left <= size) return [element, left === size ? index + 1 : index, "element"];
     // Stryker disable next-line all: equivalent: a line break child has size 1 and the text branch would give the same offset
     } else if ($isLineBreakNode(child)) {
       // Stryker disable next-line all: equivalent: past offset 0 the loop continues to the same point
@@ -543,12 +550,12 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       editor.registerCommand(
         CONTROLLED_TEXT_INSERTION_COMMAND,
         (payload) => {
-          const text = typeof payload === "string" ? payload : payload.data;
+          // Lexical hands over typed text as a string; anything else is left to it.
           const selection = $getSelection();
-          if (!emoji.current || !text || !$isRangeSelection(selection) || (typeof payload !== "string" && payload.isComposing)) return false;
-          if (!splitEmojiText(text, emoji.current).some((part) => typeof part !== "string")) return false;
-          if (typeof payload !== "string") payload.preventDefault();
-          $insertWithEmoji(selection, text, emoji.current);
+          // Stryker disable next-line ConditionalExpression: a typed key always meets a range selection here; the check narrows the type
+          if (typeof payload !== "string" || !emoji.current || !$isRangeSelection(selection)) return false;
+          if (!splitEmojiText(payload, emoji.current).some((part) => typeof part !== "string")) return false;
+          $insertWithEmoji(selection, payload, emoji.current);
           return true;
         },
         COMMAND_PRIORITY_HIGH,
