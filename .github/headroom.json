@@ -308,5 +308,10 @@
     "test": "* registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx > SnapPiP > is a focusable group named by its label, described by its corner and hint, which shows beside it on keyboard focus",
     "reason": "A shard measured it at 8 s against a budget of 15 s (#2965). Its own afterEach no longer pays a media round trip it never needed, since the test touches no media; it runs in under 400 ms on a clean ouro-webkit install with no contention across repeated isolated runs, both before and after that fix, so the remaining cost reads as CI-shard load on the real click, hover and Tab interactions the test dispatches, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
+  },
+  {
+    "test": "site site/src/voyage/chapters/chapter-three.test.tsx > Chapter III > keeps Dive and the organ off in the menu and the palette until the squid lets go, and a press on them changes nothing",
+    "reason": "A shard measured it at 7.7 s against a budget of 15 s (#2965), on chromium rather than WebKit, pointing at a cost shared across projects rather than one browser's automation latency. Chapter I, II and III's beforeEach set reduced motion and afterEach put it back on every test, paying a media round trip twice a test for a preference that never changes within the file; it now moves to a file-level beforeAll/afterAll, cutting that cost from twice a test to twice a file. A clean ouro-chromium run of the whole file shows no change (6.4 s and 7 s for 16 tests, both under budget and within the run-to-run spread this session has measured for other media-round-trip fixes), so the remaining cost still reads as CI-shard load, not an avoidable wait this fix left behind. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
   }
 ]
