@@ -56,7 +56,9 @@ afterEach(async () => {
   mounted = [];
   delete (navigator as { userAgentData?: unknown }).userAgentData;
   delete (navigator as { platform?: unknown }).platform;
-  await commands.emulateMedia({ reducedMotion: "no-preference" });
+  // Most tests never touch media: resetMedia skips the round trip when it is already at rest, instead
+  // of paying one on every test regardless, which a loaded WebKit shard feels most.
+  await commands.resetMedia();
 });
 
 /** Pretends the browser runs on `platform`, through the modern API and the legacy one, so a shortcut's form is deterministic. */

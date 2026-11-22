@@ -41,7 +41,6 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
-  await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
 const warnings = () => warn.mock.calls.map((call: unknown[]) => String(call[0]));
@@ -242,8 +241,12 @@ describe("Skeleton", () => {
     // Ends where it starts, so the loop has no seam.
     expect(frames.at(0)!["opacity"]).toBe(frames.at(-1)!["opacity"]);
     await commands.emulateMedia({ reducedMotion: "reduce" });
-    expect(getComputedStyle(skeleton).animationName).toBe("none");
-    expect(skeleton.getAnimations({ subtree: true })).toEqual([]);
+    try {
+      expect(getComputedStyle(skeleton).animationName).toBe("none");
+      expect(skeleton.getAnimations({ subtree: true })).toEqual([]);
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
   });
 
   it("joins one shared phase: a placeholder mounted mid-breath, or remounted, is where the others are, and reduced motion draws none", async () => {
@@ -260,8 +263,12 @@ describe("Skeleton", () => {
     const again = mounted.at(-2)!.querySelector<HTMLElement>('[data-ouro="skeleton"]')!;
     expect(Math.abs(phase(again) - phase(late))).toBeLessThan(150);
     await commands.emulateMedia({ reducedMotion: "reduce" });
-    expect(getComputedStyle(late).animationName).toBe("none");
-    expect(late.getAnimations()).toEqual([]);
+    try {
+      expect(getComputedStyle(late).animationName).toBe("none");
+      expect(late.getAnimations()).toEqual([]);
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
   });
 
   it("places a placeholder in the wave: a new wave after a quiet gap of more than a second, else the running one", () => {

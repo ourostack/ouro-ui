@@ -45,16 +45,6 @@
     "owner": "drain-3"
   },
   {
-    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command > scrolls a long list by the arrow keys from the search, which keeps focus and Tab, and passes axe",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command motion > fades and scales in from 0.96 on the Dialog's slow token, and only fades with reduced motion",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* registry/ouro/components/ouro/inspector/inspector.test.tsx > Inspector > leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
@@ -81,11 +71,6 @@
   },
   {
     "test": "* registry/ouro/components/ouro/reorderable/reorderable.test.tsx > Reorderable > disabled > with disabledReason, turns reordering off by itself, describes every handle by the reason and shows it as a tooltip",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/skeleton/skeleton.test.tsx > Skeleton > places a placeholder in the wave: a new wave after a quiet gap of more than a second, else the running one",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
@@ -161,11 +146,6 @@
   },
   {
     "test": "* registry/ouro/components/ouro/combobox/combobox.touch.test.tsx > Combobox on a phone > clears typed text to an empty string with allowCustomValue",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command > hides the empty list from assistive technology while nothing matches, so the gate passes with only the empty state",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
