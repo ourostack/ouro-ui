@@ -49,6 +49,13 @@ afterEach(async () => {
   toast.dismiss();
   // A theme reveal still running holds the page's pointer events, so the next test's first click would miss.
   await finishReveal();
+  // The mouse leaves where the next test's looks render, or the look under it would preview as that page loads. It rests
+  // in the top corner, on the family bar's paper, where no control opens on a hover.
+  const away = document.createElement("div");
+  away.style.cssText = "position: fixed; left: 0; top: 0; width: 4px; height: 4px; z-index: 2147483647";
+  document.body.append(away);
+  await userEvent.hover(away);
+  away.remove();
   await cleanupPage();
   localStorage.removeItem(THEME_KEY);
   root.removeAttribute("data-theme");
@@ -58,7 +65,6 @@ afterEach(async () => {
   clearLive(document);
   setScheme("light");
 });
-
 
 /** The hero's row of looks; the phone menu holds another, hidden from 640px. */
 const heroLooks = () => page.elementLocator(document.querySelector("[data-site-hero-paint] [role=group][aria-label=Theme]")!);

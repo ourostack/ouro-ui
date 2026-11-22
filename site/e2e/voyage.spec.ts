@@ -252,7 +252,7 @@ test("moves nothing under reduced motion: repainting, the picker and the dialog 
   expect(await page.evaluate(() => [...new Set((window as unknown as { __motion: string[] }).__motion)])).toEqual([]);
 });
 
-test("loads Geist and Geist Mono, and a preset's display face only once it is chosen", async ({ page }) => {
+test("loads Geist, Geist Mono and the looks' wordmark subsets, and a preset's display face only once it is chosen", async ({ page }) => {
   const requested: string[] = [];
   page.on("request", (request) => {
     const match = /\/fonts\/([^/]+\.woff2)$/.exec(new URL(request.url()).pathname);
@@ -261,14 +261,17 @@ test("loads Geist and Geist Mono, and a preset's display face only once it is ch
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
   await page.evaluate(() => document.fonts.ready);
+  // The picker names each look in its own face, from a subset holding just that name's letters (themes.mts, wordmark).
+  const wordmarks = ["chart-fell", "cormorant-garamond", "fraunces", "nunito", "space-grotesk"].map((face) => `${face}-wordmark-5.3.0.woff2`);
+  const wordmarkFamilies = ["Chart Fell Wordmark", "Cormorant Garamond Wordmark", "Fraunces Wordmark", "Nunito Wordmark", "Space Grotesk Wordmark"];
   // WebKit fetches a preloaded font a second time (from cache) when the @font-face uses it.
-  expect([...new Set(requested)].sort()).toEqual(["geist-5.3.0.woff2", "geist-mono-5.3.0.woff2"]);
+  expect([...new Set(requested)].sort()).toEqual(["geist-5.3.0.woff2", "geist-mono-5.3.0.woff2", ...wordmarks].sort());
   const loaded = () => page.evaluate(() => [...document.fonts].filter((face) => face.status === "loaded").map((face) => face.family.replaceAll('"', "")).sort());
-  expect(await loaded()).toEqual(["Geist", "Geist Mono"]);
+  expect(await loaded()).toEqual(["Geist", "Geist Mono", ...wordmarkFamilies].sort());
   await page.getByRole("group", { name: "Presets" }).getByRole("button", { name: "Abyss", exact: true }).click();
-  await expect.poll(loaded).toEqual(["Geist", "Geist Mono", "Space Grotesk"]);
+  await expect.poll(loaded).toEqual(["Geist", "Geist Mono", "Space Grotesk", ...wordmarkFamilies].sort());
   expect(requested).toContain("space-grotesk-5.3.0.woff2");
-  expect(requested.filter((file) => !/^(geist|geist-mono|space-grotesk)-/.test(file))).toEqual([]);
+  expect(requested.filter((file) => !/^(geist|geist-mono|space-grotesk)-5\.3\.0\.woff2$/.test(file) && !wordmarks.includes(file))).toEqual([]);
 });
 
 test("the header works from the keyboard: picker, mode, X-ray and the command palette, with focus returned", async ({ page }) => {

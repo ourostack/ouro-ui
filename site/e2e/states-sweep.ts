@@ -135,9 +135,10 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
             if (shot && wantsRetake(process.env["OURO_SWEEP_RETAKE"], tagged.key)) {
               const again = await picture(page, i);
               const unstable = instability(shot, again, { signature: tagged.key, page: path, state });
-              // A control that became another state between the takes (a Porthole's spot opens 300ms into a hover) shows
-              // that state in the second take, not an unsteady picture of this one.
-              if (unstable && (await marks()) === before) {
+              // A control that left the state between the takes shows another state in the second take, not an unsteady
+              // picture of this one: a Porthole's spot opens 300ms into a hover, and a control the picture scrolls out
+              // from under the mouse loses its hover (#3021).
+              if (unstable && (await marks()) === before && (await control.evaluate((el, p) => el.matches(p), pseudo))) {
                 unsteady.push(unstable);
                 // Both takes go in the report, so a finding shows what moved.
                 for (const [n, take] of [shot, again!].entries())

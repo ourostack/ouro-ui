@@ -114,8 +114,13 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * The docs' set again 2026-11-22 at 195,244 bytes, what CI measured on this pull request's run 44990113977 (e2e job
  * 137109213382), after a component page's install section put its namespace and tests commands under Collapsible's "More
  * ways": Collapsible and its code now load with every docs page's first script.
+ *
+ * The home page's set again 2026-11-22 at 292,756 bytes, what CI measured on #2987's run 45064226062 (e2e job
+ * 137337038721), 2,777 over its base at 434214b: the hero's looks and the header's picker became Ouro HX's ThemePicker
+ * (each look's name in its own face, the whole page previewed while a look is pointed at or focused, arrow keys across
+ * one Tab stop), which replaced the site's own dots, so every app that installs it gets the same picker.
  */
-const MEASURED = { voyage: 289_844, docs: 195_244 } as const;
+const MEASURED = { voyage: 292_756, docs: 195_244 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached

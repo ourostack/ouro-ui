@@ -53,11 +53,15 @@ export function applyStoredTheme(
 }
 
 /**
- * Marks the stored preset's buttons pressed (`[data-site-preset]`, and the ThemePicker's `data-preset` looks, aria-pressed) once the body is
+ * Marks the stored preset's buttons pressed (`[data-site-preset]`, and the ThemePicker's `data-preset` looks, aria-pressed), and shows it
+ * on the picker's trigger (`data-shows`), once the body is
  * parsed, so a screen reader hears the right one before the page hydrates; CSS keyed on
  * html[data-theme] paints the same choice. Serialized like applyStoredTheme: self-contained.
  */
-export function pressStoredPreset(document: { querySelectorAll(selector: string): ArrayLike<{ getAttribute(name: string): string | null; setAttribute(name: string, value: string): void }> }, preset: string): void {
+export function pressStoredPreset(
+  document: { querySelectorAll(selector: string): ArrayLike<{ getAttribute(name: string): string | null; setAttribute(name: string, value: string): void; removeAttribute(name: string): void }> },
+  preset: string,
+): void {
   const buttons = document.querySelectorAll("[data-site-preset]");
   for (let index = 0; index < buttons.length; index++) {
     const button = buttons[index]!;
@@ -70,6 +74,13 @@ export function pressStoredPreset(document: { querySelectorAll(selector: string)
     const chosen = look.getAttribute("data-preset") === preset;
     look.setAttribute("aria-pressed", chosen ? "true" : "false");
     look.setAttribute("tabindex", chosen ? "0" : "-1");
+  }
+  // The picker's trigger holds every look's wordmark and name, the chosen one shown (data-shows): it shows the stored one.
+  const shown = document.querySelectorAll('[data-ouro="theme-picker"] [data-shows]');
+  for (let index = 0; index < shown.length; index++) {
+    const item = shown[index]!;
+    if (item.getAttribute("data-shows") === preset) item.removeAttribute("hidden");
+    else item.setAttribute("hidden", "");
   }
 }
 
