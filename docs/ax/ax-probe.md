@@ -5,7 +5,7 @@
 How a doctor tells a local process's state from outside it, so it answers whatever state the app is in: an HTTP endpoint that answers is up, one that takes the request and gives no answer in time is stuck, and one that refuses it is down. A person needs to know which of those it is, and "not reachable" hides it.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-probe#v1.3.454
+npx shadcn@latest add ourostack/ouro-ui/ax-probe#v1.3.455
 ```
 
 It installs `lib/ouro/ax/probe.ts`, with `ax-doctor`. Its tests are `ax-probe-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
