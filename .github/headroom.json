@@ -25,32 +25,12 @@
     "owner": "drain-3"
   },
   {
-    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command > scrolls a long list by the arrow keys from the search, which keeps focus and Tab, and passes axe",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command motion > fades and scales in from 0.96 on the Dialog's slow token, and only fades with reduced motion",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/inspector/inspector.test.tsx > Inspector > leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* registry/ouro/components/ouro/message/message-list.switching.test.tsx > MessageList switching conversations > opens the newest message when every message gets a new key with no conversation named, as another conversation's messages would",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
   {
     "test": "* registry/ouro/components/ouro/message/message-list.windowing.test.tsx > MessageList windowing > measures each child by what it draws, its margins too, so once scrolled through it is exactly as tall as the whole list",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/popover/popover.test.tsx > Popover > keeps its fixed sizes at a compact --spacing: an 18rem panel",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
@@ -100,11 +80,6 @@
     "owner": "drain-3"
   },
   {
-    "test": "* registry/ouro/components/ouro/card/card.test.tsx > Card with href, zoomMedia and revealDescription > keeps a rising title and description at 4.5:1 on its glass over a bright picture and a dark one, in light and dark",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* registry/ouro/lib/ouro/testing/commands.touch.test.ts > a touch on a ::before box inside a frame waits for that frame",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
@@ -115,17 +90,7 @@
     "owner": "drain-3"
   },
   {
-    "test": "* registry/ouro/components/ouro/menu/menu.test.tsx > Menu items > passes the accessibility gate open, with every item type, in light and dark, inside the page's main landmark",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* registry/ouro/components/ouro/combobox/combobox.touch.test.tsx > Combobox on a phone > clears typed text to an empty string with allowCustomValue",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command > hides the empty list from assistive technology while nothing matches, so the gate passes with only the empty state",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
@@ -151,11 +116,6 @@
   },
   {
     "test": "* registry/ouro/components/ouro/text-field/text-field.weight.test.tsx > TextField's mount time > mounts a plain field, one of 100, in a bounded multiple*",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/toast/toaster.test.tsx > toast() > runs the action, then dismisses the toast",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
@@ -212,11 +172,6 @@
   {
     "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > signs on Jules, and the crew member who knows the name answers in place of the welcome",
     "reason": "A shard measured it at 7.8 s against a budget of 15 s (#3032). It runs in under 1 s on a clean site install with no contention, repeated across isolated runs, so the breach did not reproduce locally; it reads as CI-shard load, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/dialog/dialog.test.tsx > automatic presentation > renders a centered dialog at *px",
-    "reason": "A shard measured it at 7.6 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
     "owner": "drain-3"
   },
   {
