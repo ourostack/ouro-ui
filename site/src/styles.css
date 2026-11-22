@@ -44,13 +44,13 @@
   }
   [data-site-code-frame]::before {
     inset-inline-start: 0;
-    background: linear-gradient(to right, color-mix(in oklab, currentColor 14%, transparent), transparent);
+    background: linear-gradient(to right, color-mix(in oklab, var(--foreground) 14%, transparent), transparent);
     animation-name: site-code-shade-in;
     animation-range: 0 1rem;
   }
   [data-site-code-frame]::after {
     inset-inline-end: 0;
-    background: linear-gradient(to left, color-mix(in oklab, currentColor 14%, transparent), transparent);
+    background: linear-gradient(to left, color-mix(in oklab, var(--foreground) 14%, transparent), transparent);
     opacity: 1;
     animation-name: site-code-shade-out;
     animation-range: calc(100% - 1rem) 100%;
