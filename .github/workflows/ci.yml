@@ -235,8 +235,9 @@ jobs:
             echo "Everything runs: $EVENT on $REF${BASE_REF:+ into $BASE_REF}. Only a pull request into main runs what it can affect."
             echo "full=true" >> "$GITHUB_OUTPUT"
           fi
-      # The files a pull request into main changes, which the browser shards pass to the headroom
-      # reporter: on a pull request only tests in these files can fail it, and main judges every test.
+      # The files a pull request into main changes, which the browser and browser-fallback shards pass
+      # to the headroom reporter: on a pull request only tests in these files can fail it, and main
+      # judges every test.
       - id: changed
         name: Which files does the change touch?
         env:
@@ -1129,6 +1130,8 @@ jobs:
     # the files whose measured times make up its share and its slice of the sliced suites
     # (scripts/vitest-shards.mts), and uploads its coverage, which the ci job merges and holds to
     # 100%, and its motion evidence, which motion-coverage reads in place of the browser shards'.
+    # The headroom reporter judges it with the same HEADROOM_CHANGED scope as the browser shards, so
+    # a test over half its timeout in a file the pull request did not touch only reports, never fails.
     # Part of the ci check.
     needs: [plan, coverage]
     if: ${{ !cancelled() && needs.coverage.outputs.fallback == 'true' }}
@@ -1147,6 +1150,7 @@ jobs:
     name: browser fallback (${{ matrix.shard }}/28)
     env:
       SHARD: ${{ matrix.shard }}/28
+      HEADROOM_CHANGED: ${{ needs.plan.outputs.changed }}
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
