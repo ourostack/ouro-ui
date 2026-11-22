@@ -110,26 +110,41 @@ export default function ChatDemo(): JSX.Element {
   const [chats, setChats] = useState<Chat[]>(seed);
   const [openId, setOpenId] = useState<string | null>("launch");
   const [threadOpen, setThreadOpen] = useState(false);
-  const [typing, setTyping] = useState(false);
-  const [seen, setSeen] = useState<string | null>(null);
+  const [typing, setTyping] = useState<string | null>(null);
+  const [seen, setSeen] = useState<{ chat: string; line: string } | null>(null);
   const timers = useRef<number[]>([]);
+  const paneRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const moved = useRef<"open" | "back" | null>(null);
   const threadButton = useRef<HTMLElement | null>(null);
   const open = chats.find((chat) => chat.id === openId);
 
-  useEffect(() => () => timers.current.forEach((timer) => window.clearTimeout(timer)), []);
+  const stopReplies = () => {
+    timers.current.forEach((timer) => window.clearTimeout(timer));
+    timers.current = [];
+  };
+  useEffect(() => stopReplies, []);
+
+  // A phone shows one pane at a time, so hand focus to the pane that appears.
+  useEffect(() => {
+    if (moved.current === "open") paneRef.current?.focus();
+    if (moved.current === "back") listRef.current?.querySelector<HTMLElement>('[data-ouro-part="row"][tabindex="0"]')?.focus();
+    moved.current = null;
+  }, [openId]);
 
   const items: ConversationListItem[] = chats.map((chat) => ({ id: chat.id, title: chat.title, preview: chat.preview, time: chat.time, unread: chat.unread }));
 
   const send = (chatId: string, text: string, thread: boolean) => {
     const line: Line = { id: `m${Date.now()}`, who: ME, own: true, time: "now", text };
-    setChats((all) => all.map((chat) => (chat.id !== chatId ? chat : thread ? { ...chat, replies: [...chat.replies, line] } : { ...chat, messages: [...chat.messages, line], preview: text, time: "now" })));
+    setChats((all) => all.map((chat) => (chat.id !== chatId ? chat : thread ? { ...chat, replies: [...chat.replies, line] } : { ...chat, messages: [...chat.messages, line], preview: text, time: "now", unread: false })));
     if (thread) return;
+    stopReplies();
     setSeen(null);
     timers.current.push(
-      window.setTimeout(() => setTyping(true), REPLY_DELAY.typing),
+      window.setTimeout(() => setTyping(chatId), REPLY_DELAY.typing),
       window.setTimeout(() => {
-        setTyping(false);
-        setSeen(line.id);
+        setTyping(null);
+        setSeen({ chat: chatId, line: line.id });
       }, REPLY_DELAY.answer),
     );
   };
@@ -141,18 +156,26 @@ export default function ChatDemo(): JSX.Element {
       selectedId={openId}
       empty="Your conversations show up here once you start one."
       onSelect={(id) => {
+        if (id !== openId) {
+          stopReplies();
+          setTyping(null);
+          setSeen(null);
+        }
+        moved.current = "open";
         setOpenId(id);
         setThreadOpen(false);
-        setTyping(false);
         setChats((all) => all.map((chat) => (chat.id === id ? { ...chat, unread: false } : chat)));
       }}
     />
   );
 
   const conversation = open ? (
-    <div className="flex h-full min-h-0 flex-col">
+    <div ref={paneRef} tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
       <div className="md:[&_[data-ouro-part=back]]:hidden">
-        <ChatHeader title={open.title} members={open.members} onBack={() => setOpenId(null)} />
+        <ChatHeader title={open.title} members={open.members} onBack={() => {
+            moved.current = "back";
+            setOpenId(null);
+          }} />
       </div>
       <MessageList label={`Messages in ${open.title}`} conversation={open.id} className="min-h-0 flex-1">
         {open.messages.map((line, index) => {
@@ -166,7 +189,7 @@ export default function ChatDemo(): JSX.Element {
               time={line.time}
               continued={open.messages[index - 1]?.who === line.who}
               attachments={line.attachments?.map((file) => <Attachment key={file.name} name={file.name} size={file.size} href="#" />)}
-              footer={line.own && seen === line.id ? <ReadReceipt readers={open.members.filter((member) => member.name !== ME)} /> : undefined}
+              footer={line.own && seen?.chat === open.id && seen.line === line.id ? <ReadReceipt readers={open.members.filter((member) => member.name !== ME)} /> : undefined}
               thread={
                 open.replies.length > 0 && index === 2 ? (
                   <ThreadSummary
@@ -186,10 +209,10 @@ export default function ChatDemo(): JSX.Element {
           );
         })}
       </MessageList>
-      {typing ? <TypingIndicator people={open.members.filter((member) => member.name !== ME).slice(0, 1)} /> : null}
+      {typing === open.id ? <TypingIndicator people={open.members.filter((member) => member.name !== ME).slice(0, 1)} /> : null}
       <div className="border-t border-border p-2">
         <Autocomplete triggers={triggers}>
-          <Composer label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onSend={(text) => send(open.id, text, false)} />
+          <Composer key={open.id} label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onSend={(text) => send(open.id, text, false)} />
         </Autocomplete>
       </div>
     </div>
@@ -225,7 +248,7 @@ export default function ChatDemo(): JSX.Element {
       </div>
     ) : (
       <div className="group/app grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]" data-pane={open ? "chat" : "list"}>
-        <div className="min-h-0 overflow-auto border-e border-border p-2 max-md:group-data-[pane=chat]/app:hidden">{list}</div>
+        <div ref={listRef} className="min-h-0 overflow-auto border-e border-border p-2 max-md:group-data-[pane=chat]/app:hidden">{list}</div>
         <div className="min-h-0 min-w-0 max-md:group-data-[pane=list]/app:hidden">
           <ThreadLayout conversation={conversation} thread={thread} conversationLabel="Conversation" />
         </div>
