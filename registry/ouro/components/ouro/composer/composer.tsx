@@ -265,7 +265,7 @@ export interface ComposerOwnProps {
    * shortcodes: `ref` is the editor's element, which answers `value`, `selectionStart` and
    * `selectionEnd` over the text without its marks, and an input method's composition does not pick.
    * Attachments show as they do on the plain box. In rich mode `onPaste`
-   * and `pasteText` do not apply (`catalogue` and `highlights` do: see their notes), and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
+   * does not apply (`catalogue`, `highlights` and `pasteText` do: see their notes), and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
    *
    * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
    * @claim "as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code)
@@ -302,7 +302,11 @@ export interface ComposerOwnProps {
   editorRef?: Ref<ComposerEditor> | undefined;
   /**
    * Turns a paste into the box's text, such as formatted text into Markdown: return the text, or
-   * `undefined` for the browser's own paste.
+   * `undefined` for the browser's own paste. With `format="rich"` the text is Markdown, and it
+   * goes in as formatting before the clipboard's HTML reaches the allowlist.
+   *
+   * @example
+   * <Composer format="rich" pasteText={(data) => data.getData("text/plain").replace(/^/gm, "> ")} />
    */
   pasteText?: ((data: DataTransfer) => string | undefined) | undefined;
 
@@ -803,6 +807,7 @@ export function Composer(props: ComposerProps): JSX.Element {
               catalogue={catalogue}
               highlights={highlights}
               onHighlightsChange={onHighlightsChange}
+              pasteText={pasteText}
               label={label}
               value={text}
               onValueChange={change}

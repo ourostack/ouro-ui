@@ -962,3 +962,80 @@ describe("Composer rich mode Escape", () => {
     expect(document.activeElement).toBe(editor);
   });
 });
+
+describe("Composer rich mode pasteText", () => {
+  const paste = (editor: HTMLElement, text: string, html = "") => {
+    const data = new DataTransfer();
+    data.setData("text/plain", text);
+    if (html) data.setData("text/html", html);
+    const event = new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data });
+    return act(async () => void editor.dispatchEvent(event)).then(() => event);
+  };
+
+  it("takes the Markdown the app returns in place of the clipboard's HTML, and puts it in as formatted text", async () => {
+    const seen: string[] = [];
+    const given = vi.fn((data: DataTransfer) => `**${data.getData("text/plain")}**`);
+    const { editor } = await render(rich({ pasteText: given, onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    const event = await paste(editor, "bold", "<i>bold</i><script>x</script>");
+    await expect.poll(() => seen.at(-1)).toBe("**bold**");
+    expect(editor.querySelector("strong")!.textContent).toBe("bold");
+    expect(editor.querySelector("em")).toBeNull();
+    expect(event.defaultPrevented).toBe(true);
+    expect(given).toHaveBeenCalledTimes(1);
+  });
+
+  it("inserts the Markdown at the caret, among the text", async () => {
+    const { editor } = await render(rich({ defaultValue: "ab", pasteText: (data) => data.getData("text/plain") }));
+    editor.focus();
+    await act(async () => (editor as unknown as { setSelectionRange: (a: number, b: number) => void }).setSelectionRange(1, 1));
+    await paste(editor, " **x** ");
+    await expect.poll(() => editor.textContent).toBe("a x b");
+    expect(editor.querySelector("strong")!.textContent).toBe("x");
+  });
+
+  it("replaces the selected text with the Markdown, and leaves the caret after it", async () => {
+    const { editor } = await render(rich({ defaultValue: "one two three", pasteText: () => "**2**" }));
+    editor.focus();
+    const field = editor as unknown as { setSelectionRange: (a: number, b: number) => void; selectionStart: number };
+    await act(async () => field.setSelectionRange(4, 7));
+    await paste(editor, "x");
+    await expect.poll(() => editor.textContent).toBe("one 2 three");
+    expect(field.selectionStart).toBe(5);
+  });
+
+  it("puts Markdown that holds blocks in as those blocks", async () => {
+    const { editor } = await render(rich({ pasteText: (data) => data.getData("text/plain") }));
+    editor.focus();
+    await paste(editor, "- one\n- two");
+    await expect.poll(() => editor.querySelectorAll("li").length).toBe(2);
+  });
+
+  it("leaves a paste to the allowlist when the app returns undefined", async () => {
+    const { editor } = await render(rich({ pasteText: () => undefined }));
+    editor.focus();
+    await paste(editor, "plain", "<b>plain</b><script>x</script>");
+    await expect.poll(() => editor.querySelector("strong")?.textContent).toBe("plain");
+    expect(editor.querySelector("script")).toBeNull();
+  });
+
+  it("still sends a paste through the allowlist with no pasteText, and uses the callback of the last render", async () => {
+    const first = vi.fn(() => "first");
+    const second = vi.fn(() => "second");
+    const { editor, rerender } = await render(rich({ pasteText: first }));
+    await rerender(rich({ pasteText: second }));
+    editor.focus();
+    await paste(editor, "x");
+    await expect.poll(() => editor.textContent).toBe("second");
+    expect(first).not.toHaveBeenCalled();
+  });
+
+  it("draws the catalogue's emoji in the Markdown the app returns", async () => {
+    const party: EmojiItem = { id: "party", name: "Party popper", shortcodes: ["party"], text: "🎉", src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'/%3E" };
+    const catalogue: EmojiCatalogue = { categories: [{ id: "people", label: "People", items: [party] }] };
+    const { editor } = await render(rich({ catalogue, pasteText: () => "hi :party:" }));
+    editor.focus();
+    await paste(editor, "x");
+    await expect.poll(() => editor.querySelectorAll("img:not([alt=''])").length).toBe(1);
+  });
+});
