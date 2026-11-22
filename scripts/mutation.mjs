@@ -112,6 +112,12 @@ export const LONG_UNIT_MUTANTS = 32;
  */
 export const HANG_UNIT_MUTANTS = 3;
 
+/**
+ * The seconds of its own tests above which a file's units are cut as small as a hang-prone file's:
+ * every mutant reruns those tests, so one short range of them ran past the job limit (CI run 44972900462).
+ */
+export const HEAVY_TEST_SECONDS = 120;
+
 /** The nodes that lie wholly in a range (1-based, inclusive), each with whether it counts as a mutant (`estimateMutants`). */
 function nodesIn(text, path, range) {
   const ast = parse(text, { sourceType: "module", sourceFilename: path, errorRecovery: true, plugins: ["typescript", "jsx"] });
@@ -180,14 +186,15 @@ export function spanningMutants(text, path, range, parts) {
  * makes a spanning unit, keyed by the whole range, with its `parts`: it mutates the whole range
  * except what lies wholly in a part (`unitExclusions`), so each mutant runs in exactly one unit.
  */
-export function shardUnits(changed, { read = (path) => readFileSync(join(root, path), "utf8"), testsFor = (path) => testFilesFor([path]) } = {}) {
+export function shardUnits(changed, { read = (path) => readFileSync(join(root, path), "utf8"), testsFor = (path) => testFilesFor([path]), seconds = testSeconds() } = {}) {
   const units = {};
   for (const [path, ranges] of Object.entries(changed)) {
     if (!runtimeSource(path)) continue;
     const text = read(path);
     const tests = testsFor(path);
+    const heavy = tests.own.reduce((sum, file) => sum + (seconds[file] ?? unmeasuredSeconds), 0) >= HEAVY_TEST_SECONDS;
     for (const range of ranges) {
-      const parts = path in hangRates ? splitRange(text, path, range, HANG_UNIT_MUTANTS, HANG_UNIT_MUTANTS) : splitRange(text, path, range);
+      const parts = path in hangRates || heavy ? splitRange(text, path, range, HANG_UNIT_MUTANTS, HANG_UNIT_MUTANTS) : splitRange(text, path, range);
       for (const part of parts) units[`${path}:${part[0]}-${part[1]}`] = { path, range: part, mutants: estimateMutants(text, path, [part]), ...tests };
       const spanning = parts.length > 1 ? spanningMutants(text, path, range, parts) : null;
       if (spanning !== null) units[`${path}:${range[0]}-${range[1]}`] = { path, range, parts, mutants: spanning, ...tests };
