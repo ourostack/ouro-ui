@@ -18,16 +18,31 @@ afterEach(async () => {
 
 const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
-function Chat({ current, hasOlder, twice, tall, at, report }: { current: number; hasOlder?: boolean; twice?: boolean; tall?: boolean; at?: number; report: MessageListFindReport[] }) {
+function Chat({ current, hasOlder, twice, tall, at, shape, report }: { current: number; hasOlder?: boolean; twice?: boolean; tall?: boolean; at?: number; shape?: "pair" | "heading" | undefined; report: MessageListFindReport[] }) {
   const [reports] = useState(report);
   return (
     <MessageList label="Chat" style={{ height: 300, width: 360 }} hasOlder={hasOlder} find={{ query: "needle", current }} onFindMatches={(next) => reports.push(next)}>
-      {Array.from({ length: 400 }, (_, id) => (
+      {Array.from({ length: 400 }, (_, id) =>
+        id === 200 && shape === "heading" ? (
+          <h2 key={id} id="head" style={{ height: 80, margin: 0 }}>
+            Day needle
+          </h2>
+        ) : id === 200 && shape === "pair" ? (
+          <div key={id}>
+            <Message id="first" role="user" name="Ana" style={{ height: 80, boxSizing: "border-box" }}>
+              Pair needle
+            </Message>
+            <Message id="second" role="assistant" name="Ana" style={{ height: 80, boxSizing: "border-box" }}>
+              Pair second
+            </Message>
+          </div>
+        ) : (
         <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name="Ana" style={{ height: id === 200 && tall ? undefined : 80, boxSizing: "border-box" }}>
           {id === 200 && tall ? <div style={{ height: 1200 }} /> : null}
           {id === 200 && twice ? "Message 200 needle needle" : id === 3 || id === 200 || id === at ? `Message ${id} needle` : `Message ${id}`}
         </Message>
-      ))}
+        ),
+      )}
     </MessageList>
   );
 }
@@ -53,6 +68,47 @@ describe("MessageList find in a windowed list", () => {
     }).toBe(true);
     await expect.poll(() => [...(CSS.highlights.get("ouro-find-current") ?? [])].map((range) => range.toString())).toEqual(["needle"]);
     expect(report.at(-1)).toEqual({ count: 2, current: 1, partial: false });
+  });
+
+  it.each([
+    ["a message", undefined, "#m200"],
+    ["the first message of a child that holds several", "pair", "#first"],
+    ["a child that holds no message", "heading", "#head"],
+  ] as const)("centres %s that holds the match, not another", async (_name, shape, selector) => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const report: MessageListFindReport[] = [];
+    await act(async () => root.render(<Chat shape={shape} current={0} report={report} />));
+    await act(async () => root.render(<Chat shape={shape} current={1} report={report} />));
+    await expect.poll(() => host.querySelector(selector) !== null).toBe(true);
+    const scroller = host.querySelector<HTMLElement>("[data-ouro='message-list']")!.querySelector<HTMLElement>("[data-ouro-message-list-scroller]") ?? host.querySelector<HTMLElement>("[data-ouro='message-list']")!;
+    await expect.poll(async () => {
+      await frame();
+      const row = host.querySelector(selector)!.getBoundingClientRect();
+      const view = scroller.getBoundingClientRect();
+      return Math.round(Math.abs(row.top + row.height / 2 - (view.top + view.height / 2)) / 10);
+    }).toBe(0);
+  });
+
+  it("does not move a match that is drawn already to the middle of the list", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const report: MessageListFindReport[] = [];
+    await act(async () => root.render(<Chat at={5} current={0} report={report} />));
+    const scroller = host.querySelector<HTMLElement>("[data-ouro='message-list']")!.querySelector<HTMLElement>("[data-ouro-message-list-scroller]") ?? host.querySelector<HTMLElement>("[data-ouro='message-list']")!;
+    await expect.poll(() => host.querySelector("#m5") !== null).toBe(true);
+    await act(async () => root.render(<Chat at={5} current={1} report={report} />));
+    await frame();
+    await frame();
+    const row = host.querySelector("#m5")!.getBoundingClientRect();
+    const view = scroller.getBoundingClientRect();
+    expect(Math.abs(row.top + row.height / 2 - (view.top + view.height / 2))).toBeGreaterThan(30);
   });
 
   it("reports that more matches may lie in history that has not loaded", async () => {
