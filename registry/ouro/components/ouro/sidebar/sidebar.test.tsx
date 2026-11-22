@@ -657,15 +657,17 @@ describe("Sidebar items", () => {
 });
 
 describe("Sidebar long labels", () => {
-  it("cuts a label longer than the column with an ellipsis, inside the column's own edge", async () => {
+  it("wraps a label longer than the column onto more lines, inside the row, with no ellipsis", async () => {
     const label = "Add Ouro AX to an app you already have, in three short steps for a team";
     const { nav } = await render(<Sidebar label="Main" sections={[{ label: "Guides", items: [{ label, href: "/long" }, { label: "Short", href: "/short" }] }]} currentPath="/short" />);
     const link = page.getByRole("link", { name: label }).element();
     expect(link.getBoundingClientRect().right).toBeLessThanOrEqual(nav!.getBoundingClientRect().right);
     const text = link.querySelector<HTMLElement>("span:last-child")!;
-    expect(text.scrollWidth).toBeGreaterThan(text.clientWidth);
-    expect(getComputedStyle(text).textOverflow).toBe("ellipsis");
-    expect(text.title).toBe(label);
+    expect(text.scrollWidth).toBeLessThanOrEqual(text.clientWidth);
+    expect(getComputedStyle(text).textOverflow).not.toBe("ellipsis");
+    expect(text.title).toBe("");
+    expect(text.getBoundingClientRect().height).toBeGreaterThan(parseFloat(getComputedStyle(text).lineHeight) * 1.5);
+    expect(link.getBoundingClientRect().height).toBeGreaterThanOrEqual(text.getBoundingClientRect().height);
     const list = getComputedStyle(link.closest("ul")!);
     expect(list.display).toBe("grid");
     expect(list.gridTemplateColumns).toBe(`${link.closest("ul")!.clientWidth}px`);
