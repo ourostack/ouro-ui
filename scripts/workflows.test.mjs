@@ -1011,7 +1011,7 @@ test("the skeleton frame probe runs one measurement at a time, in WebKit, and ne
   assert.match(probe, /^concurrency:\n {2}group: skeleton-frames\n {2}cancel-in-progress: false$/m);
   const frames = jobIn(probe, "frames", "skeleton-frames.yml");
   assert.match(frames, /^ {6}max-parallel: 1\n {6}matrix:\n {8}project: \[webkit\]$/m);
-  assert.match(frames, /pnpm exec playwright test --config playwright\.probes\.config\.ts --project "\$PROJECT"/);
+  assert.match(frames, /pnpm exec playwright test registry\/ouro\/e2e\/probes\/skeleton-frames\.spec\.ts --config playwright\.probes\.config\.ts --project "\$PROJECT"/);
   const config = (await import("../playwright.probes.config.ts")).default;
   assert.deepEqual(config.projects.map((project) => project.name), ["webkit"]);
 });
@@ -1935,6 +1935,10 @@ test("the ci check requires the attribution job, which checks a pull request's c
   // Cheap: no install, and every commit without its trees, so any range reads.
   assert.doesNotMatch(block, /pnpm|npm |npx /);
   assert.match(block, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 0\n {10}filter: tree:0\n/);
+  // The partial clone fetches trees lazily while the log reads them, so the script tries its log again rather than fail on one dropped connection.
+  const attribution = readFileSync(new URL("./attribution.mjs", import.meta.url), "utf8");
+  assert.match(attribution, /LOG_TRIES = \d+;/);
+  assert.match(attribution, /if \(attempt >= LOG_TRIES\) throw error;/);
   const step = block.slice(block.search(/^ {6}- name: No AI attribution\n/m));
   for (const [name, value] of [["EVENT", "github.event_name"], ["BASE_REF", "github.base_ref"], ["PR_HEAD", "github.event.pull_request.head.sha"], ["QUEUE_BASE", "github.event.merge_group.base_sha"], ["QUEUE_HEAD", "github.event.merge_group.head_sha"]]) {
     assert.match(step, new RegExp(`^ {10}${name}: \\$\\{\\{ ${value.replace(/\./g, "\\.")} \\}\\}$`, "m"));
@@ -2130,6 +2134,11 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.match(jobs["sweeps-compare"], /pattern: sweeps-looks-\*\n {10}path: \.tmp\/looks\n {10}merge-multiple: true/);
   assert.match(jobs["sweeps-compare"], /run: node scripts\/sweeps-compare\.mjs \.tmp\/looks \.tmp\/timings$/m);
   assert.match(jobs["sweeps-compare"], /name: timings-sweeps-compare/);
+  // On a pull request the shard sets the scope in which a changed control's picture is taken twice (site/e2e/stable-take.ts), before the specs run.
+  const retake = stepScript(jobs["sweep-shard"], "Sweeps retake scope");
+  assert.match(retake, /GITHUB_EVENT_NAME" = pull_request/);
+  assert.match(retake, /node scripts\/sweeps-retake\.mjs "\$GITHUB_EVENT_NAME" \.tmp\/sweeps-changed\.txt/);
+  assert.ok(jobs["sweep-shard"].indexOf("Sweeps retake scope") < jobs["sweep-shard"].indexOf("name: Sweep specs"));
   // ci-budget reaches sweeps-compare through the e2e gate, which waits on it.
   // The sweeps run in shards of their own, so between the e2e and sweep shards every spec runs once.
   const { sweepFiles } = await import("./shard.mjs");
