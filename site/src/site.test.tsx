@@ -84,6 +84,15 @@ describe("home page", () => {
     expect(getComputedStyle(path!).overflowWrap).toBe("break-word");
   });
 
+  it("shades the edges of a code block that scrolls sideways, and leaves a wrapped one plain", async () => {
+    const host = await renderPage("/docs/button/");
+    const blocks = [...host.querySelectorAll<HTMLElement>("pre[data-site-code]")];
+    const scrolling = blocks.filter((pre) => getComputedStyle(pre).whiteSpace !== "pre-wrap");
+    expect(scrolling.length).toBeGreaterThan(0);
+    for (const pre of scrolling) expect(getComputedStyle(pre).backgroundAttachment).toContain("local");
+    for (const pre of blocks.filter((pre) => getComputedStyle(pre).whiteSpace === "pre-wrap")) expect(getComputedStyle(pre).backgroundImage).toBe("none");
+  });
+
   it("moves the commands link to the next line whole, never leaving its last words alone", async () => {
     const host = await renderPage("/");
     const link = host.querySelector(".site-install-more");
