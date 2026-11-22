@@ -803,6 +803,13 @@ export function Composer(props: ComposerProps): JSX.Element {
               onSelect={rest.onSelect as FormEventHandler<HTMLDivElement> | undefined}
               onFocus={rest.onFocus as FocusEventHandler<HTMLDivElement> | undefined}
               onBlur={rest.onBlur as FocusEventHandler<HTMLDivElement> | undefined}
+              comboboxProps={{
+                role: rest["aria-autocomplete"] ? "combobox" : rest.role,
+                "aria-expanded": rest["aria-autocomplete"] ? !!rest["aria-controls"] : undefined,
+                "aria-autocomplete": rest["aria-autocomplete"],
+                "aria-controls": rest["aria-controls"],
+                "aria-activedescendant": rest["aria-activedescendant"],
+              }}
               data-slot="composer-rich"
               className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", expanded && "w-full flex-auto")}
             />

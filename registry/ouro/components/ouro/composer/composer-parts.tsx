@@ -9,7 +9,7 @@ import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
 import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
-import type { FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
+import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiToken, splitEmojiText, toneOf } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
@@ -63,6 +63,8 @@ interface RichEditorProps {
   onSelect?: ((event: SyntheticEvent<HTMLDivElement>) => void) | undefined;
   onFocus?: FocusEventHandler<HTMLDivElement> | undefined;
   onBlur?: FocusEventHandler<HTMLDivElement> | undefined;
+  /** The role and states a wrapping Autocomplete sets (combobox, expanded, controls, active suggestion), which the editor carries over its own textbox role. */
+  comboboxProps: HTMLAttributes<HTMLDivElement>;
 }
 
 // Underline has no CommonMark mark; `++` is the one Composer's plain mode writes too.
@@ -448,13 +450,18 @@ function readMarkdownControl(editor: LexicalEditor, scratch: LexicalEditor) {
   return { value, start: Math.min(a, b), end: Math.max(a, b) };
 }
 
+/** The props that are set, so an unset one leaves the editor's own in place. */
+function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
+  return Object.fromEntries(Object.entries(props).filter(([, value]) => value !== undefined));
+}
+
 /**
  * The editor Composer swaps in for its textarea with `format="rich"`: a contenteditable that
  * reads and writes light Markdown.
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, comboboxProps, catalogue }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -691,12 +698,13 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         onFocus={onFocus}
         onBlur={onBlur}
         role="textbox"
-        aria-multiline="true"
+        aria-multiline={comboboxProps.role === "combobox" ? undefined : "true"}
         aria-label={label}
-        aria-placeholder={placeholder}
+        aria-placeholder={comboboxProps.role === "combobox" ? undefined : placeholder}
         aria-describedby={describedBy}
         aria-disabled={disabled || undefined}
         aria-readonly={readOnly || undefined}
+        {...definedOnly(comboboxProps)}
         contentEditable={!disabled && !readOnly}
         // A read-only box stays in the tab order, as a read-only textarea does, so its text can be read and copied.
         tabIndex={readOnly && !disabled ? 0 : undefined}

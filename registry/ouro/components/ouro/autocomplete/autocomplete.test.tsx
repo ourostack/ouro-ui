@@ -109,6 +109,40 @@ describe("Autocomplete", () => {
     expect(Math.abs(box.top - (at.bottom + 4))).toBeLessThan(2);
   });
 
+  it("names a rich composer's editor a combobox that says whether the list is open, and leaves a plain one its textarea role", async () => {
+    for (const format of ["plain", "rich"] as const) {
+      const { host } = await render(
+        <Autocomplete triggers={[peopleTrigger]}>
+          <Composer label={`Message ${format}`} format={format} onSend={() => {}} />
+        </Autocomplete>,
+      );
+      const find = () => host.querySelector<HTMLElement>(format === "rich" ? "[data-ouro-composer-editor]" : "textarea");
+      await expect.poll(find).not.toBeNull();
+      const box = find()!;
+      if (format === "plain") {
+        expect(box.getAttribute("role")).toBeNull();
+        expect(box.hasAttribute("aria-expanded")).toBe(false);
+        continue;
+      }
+      expect(box.getAttribute("role")).toBe("combobox");
+      expect(box.getAttribute("aria-expanded")).toBe("false");
+      expect(box.getAttribute("aria-autocomplete")).toBe("list");
+      expect(box.hasAttribute("aria-controls")).toBe(false);
+      expect(box.hasAttribute("aria-activedescendant")).toBe(false);
+      await type(box, "Thanks @av");
+      await expect.poll(() => `${format} ${box.getAttribute("aria-expanded")}`).toBe(`${format} true`);
+      expect(box.getAttribute("role")).toBe("combobox");
+      expect(box.getAttribute("aria-autocomplete")).toBe("list");
+      expect(document.getElementById(box.getAttribute("aria-controls")!)?.getAttribute("role")).toBe("listbox");
+      await expect.poll(() => box.getAttribute("aria-activedescendant")).toBe(options()[0]!.id);
+      expect(options()[0]!.getAttribute("role")).toBe("option");
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => box.getAttribute("aria-expanded")).toBe("false");
+      expect(box.hasAttribute("aria-controls")).toBe(false);
+      expect(box.hasAttribute("aria-activedescendant")).toBe(false);
+    }
+  });
+
   it("shows an avatar with initials or a picture, a glyph, and a description", async () => {
     const { control } = await render(
       <Autocomplete triggers={[peopleTrigger, emojiTrigger]}>
