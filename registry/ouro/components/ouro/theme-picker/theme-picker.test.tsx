@@ -1,7 +1,8 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { ThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const presets = [
@@ -49,6 +50,32 @@ describe("ThemePicker", () => {
     expect([swatch().width, swatch().height]).toEqual(["24px", "24px"]);
     host.style.setProperty("--spacing", "0.2rem");
     expect([swatch().width, swatch().height]).toEqual(["24px", "24px"]);
+  });
+  it("is one Tab stop on the chosen dot, moves with the arrow keys, and rings keyboard focus on the swatch", async () => {
+    const el = await render(<ThemePicker presets={[...presets, { name: "dusk", label: "Dusk" }]} defaultPreset="abyss" />);
+    const dots = [...el.querySelectorAll<HTMLButtonElement>("button")];
+    expect(dots.map((dot) => dot.tabIndex)).toEqual([-1, 0, -1]);
+    await pressTab();
+    expect(document.activeElement).toBe(dots[1]);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(dots[2]);
+    expect(dots[2]!.getAttribute("aria-pressed")).toBe("false");
+    const swatch = getComputedStyle(dots[2]!.querySelector("span")!);
+    expect([getComputedStyle(dots[2]!).outlineStyle, swatch.outlineStyle, swatch.outlineWidth, swatch.outlineOffset]).toEqual(["none", "solid", "2px", "2px"]);
+  });
+  it("rings a focused dot in a system colour under forced colours, so the chosen dot's Highlight cannot hide it", async () => {
+    const el = await render(<ThemePicker presets={presets} />);
+    const dot = el.querySelector<HTMLButtonElement>("button")!;
+    await pressTab();
+    expect(document.activeElement).toBe(dot);
+    const ring = () => getComputedStyle(dot.querySelector("span")!).outlineColor;
+    const normal = ring();
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      await expect.poll(ring).not.toBe(normal);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
   it("switches the page, keeps the choice and presses the chosen dot", async () => {
     const el = await render(<ThemePicker presets={presets} />);

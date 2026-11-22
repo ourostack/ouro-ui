@@ -293,7 +293,7 @@ export function Repaint(): JSX.Element {
                       setMade(true);
                     }}
                   >
-                    <span aria-hidden="true" className="block size-6 rounded-full bg-(--accent-dot)" />
+                    <span aria-hidden="true" data-site-accent="" className="block size-6 rounded-full bg-(--accent-dot)" />
                   </Button>
                 ))}
               </div>

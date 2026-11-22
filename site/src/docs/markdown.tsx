@@ -103,7 +103,20 @@ function sourceBody(text: string): ReactNode[] {
       </a>,
     );
   });
-  for (const [index, check] of checks.entries()) out.push(" ", <InlineCode key={`check-${index}`}>{`verify:${check}`}</InlineCode>);
+  if (checks.length > 0)
+    out.push(
+      " ",
+      <details key="checks" className="mt-1 text-sm text-muted-foreground">
+        <summary className="cursor-pointer">Checks</summary>
+        <ul className="mt-1 space-y-1">
+          {checks.map((check, index) => (
+            <li key={index}>
+              <InlineCode>{`verify:${check}`}</InlineCode>
+            </li>
+          ))}
+        </ul>
+      </details>,
+    );
   return out;
 }
 
