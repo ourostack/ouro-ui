@@ -171,7 +171,7 @@ export default function ChatDemo(): JSX.Element {
 
   const conversation = open ? (
     <div ref={paneRef} tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
-      <div className="md:[&_[data-ouro-part=back]]:hidden">
+      <div className="border-b border-border px-4 py-2 md:[&_[data-ouro-part=back]]:hidden">
         <ChatHeader title={open.title} members={open.members} onBack={() => {
             moved.current = "back";
             setOpenId(null);
