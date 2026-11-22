@@ -221,20 +221,23 @@ describe("Composer rich mode", () => {
     expect(editor.textContent).toBe("kept");
   });
 
-  it("takes no input while disabled alone, and none while read-only alone, and again once neither is set", async () => {
+  it("takes no input once it is disabled alone, or read-only alone, and takes it again when neither is set", async () => {
     const beforeInput = () => new InputEvent("beforeinput", { inputType: "insertText", data: "z", bubbles: true, cancelable: true });
-    const { editor, rerender } = await render(rich({ disabled: true }));
+    const { editor, rerender } = await render(rich({}));
+    editor.focus();
+    await rerender(rich({ disabled: true }));
     editor.dispatchEvent(beforeInput());
     await act(async () => {});
     expect(editor.textContent).toBe("");
+    await rerender(rich({}));
     await rerender(rich({ readOnly: true }));
     editor.dispatchEvent(beforeInput());
     await act(async () => {});
     expect(editor.textContent).toBe("");
     await rerender(rich({}));
     editor.focus();
-    await userEvent.keyboard("a");
-    await expect.poll(() => editor.textContent).toBe("a");
+    editor.dispatchEvent(beforeInput());
+    await expect.poll(() => editor.textContent).toBe("z");
   });
 
   it("brings the plain box back, and does not carry old focus into the editor, when format goes plain and rich again", async () => {
