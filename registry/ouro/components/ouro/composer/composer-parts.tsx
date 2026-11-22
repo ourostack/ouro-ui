@@ -427,6 +427,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           const [from, to] = [Math.min(Math.max(Math.min(start, end), 0), markdown.length), Math.min(Math.max(Math.max(start, end), 0), markdown.length)];
           editor.update(() => $convertFromMarkdownString(markdown.slice(0, from) + text + markdown.slice(to), transformers, undefined, true), { discrete: true });
           const at = textOffsetOf(editor, copy(), from + text.length);
+          // Stryker disable next-line ObjectLiteral,BooleanLiteral: the caret is placed in the same task either way, so only when it is drawn differs
           editor.update(() => $selectText(at, at), { discrete: true });
           return;
         }

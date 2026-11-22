@@ -548,6 +548,26 @@ describe("Composer rich mode with offsets in Markdown", () => {
     expect(field(editor).value).toBe("a **b**");
   });
 
+  it("has the caret in place as soon as setRangeText returns, and keeps the blank lines it was given", async () => {
+    const { editor } = await render(rich({ defaultValue: "ab", offsets: "markdown" }));
+    let at = -1;
+    await act(async () => {
+      field(editor).setRangeText("X", 0, 0);
+      at = field(editor).selectionStart;
+    });
+    expect(at).toBe(1);
+    await act(async () => field(editor).setRangeText("x\n\n\ny", 0, 0));
+    await expect.poll(() => field(editor).value).toBe("x\n\n\nyXab");
+  });
+
+  it("reads a caret in an empty line after a list, which is no text of its own", async () => {
+    const { editor } = await render(rich({ defaultValue: "- a", offsets: "markdown", sendOn: "mod-enter" }));
+    await act(async () => field(editor).setSelectionRange(3, 3));
+    await userEvent.keyboard("{Enter}{Enter}");
+    expect(field(editor).value).toBe("- a\n");
+    expect(field(editor).selectionStart).toBe(4);
+  });
+
   it("changes between the two as the prop does, with no remount", async () => {
     const { editor, rerender } = await render(rich({ defaultValue: "**b**" }));
     expect(field(editor).value).toBe("b");
