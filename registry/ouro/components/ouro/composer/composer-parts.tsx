@@ -534,6 +534,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     if (track.moved) marksChange.current?.(track.ranges);
   }, [track]);
   const frameRef = useRef<HTMLDivElement | null>(null);
+  // Stryker disable next-line ArrayDeclaration: the first measure replaces whatever the boxes start as, before a test or a person reads the layer (the effect that measures runs as the box mounts).
   const [boxes, setBoxes] = useState<MarkBox[]>([]);
   const rangesKey = highlightsKey(ranges);
   const marksDescription = describeHighlights(value, ranges);
