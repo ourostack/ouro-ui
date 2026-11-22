@@ -1,5 +1,6 @@
 import type { JSX, ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { TWO_SHIPS } from "./copy";
 import { href } from "../paths";
 import { Container } from "./layout";
@@ -116,9 +117,9 @@ export function TwoShips(): JSX.Element {
             <Button href={`${SPOONJOY_KITCHEN}?xray`} variant="outline" tone="secondary" aria-describedby="ship-spoonjoy-title">
               {spoonjoy.xray}
             </Button>
-            <a href={SPOONJOY_SOURCE} className="site-quiet-link">
+            <Link href={SPOONJOY_SOURCE} tone="secondary">
               {spoonjoy.source}
-            </a>
+            </Link>
           </Showcase>
         </div>
       </Container>
@@ -129,9 +130,7 @@ export function TwoShips(): JSX.Element {
             Ouro UI is one corner of Ouro's meadow. There's a desk, a toy factory and a picnic going on just over the hill.
           </p>
           <p className="mt-3 mb-0">
-            <a href={OURO_HOME} className="story-world-link font-medium">
-              Meet the neighbours
-            </a>
+            <Link href={OURO_HOME}>Meet the neighbours</Link>
           </p>
         </Container>
       </StoryWorld>
