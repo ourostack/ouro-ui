@@ -240,17 +240,18 @@ function $textOffset(node: LexicalNode, offset: number, type: "text" | "element"
   // Stryker disable next-line all: every point's leaf is in the leaves, so the loop returns before this fallback
   return start - 1 < 0 ? 0 : start - 1;
 }
-// Stryker disable EqualityOperator: at left === size the next child, or the trailing point, gives the same position
 function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "text" | "element"] {
   let left = offset;
   const children = element.getChildren();
   for (const [index, child] of children.entries()) {
     const size = child.getTextContentSize();
+    // Stryker disable next-line EqualityOperator: at left === size the next child, or the trailing point, gives the same position
+    const fits = left <= size;
     // Stryker disable next-line all: equivalent: a line break child has size 1 and the text branch would give the same offset
     if ($isLineBreakNode(child)) {
       // Stryker disable next-line all: equivalent: past offset 0 the loop continues to the same point
       if (left === 0) return [element, index, "element"];
-    } else if (left <= size) {
+    } else if (fits) {
       return $isElementNode(child) ? $pointAt(child, left) : [child, left, "text"];
     }
     left -= size;
@@ -258,7 +259,6 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
   // Stryker disable next-line all: the trailing point is reached only for a block ending in a line break, and its type is read back identically
   return [element, children.length, "element"];
 }
-// Stryker restore EqualityOperator
 // Stryker disable next-line StringLiteral: no test carries a zero-width mark, so the constant only matters to the editor's own caret marks
 const MARK = "\u200b";
 const withoutMarks = (text: string) => text.replaceAll(MARK, "");
