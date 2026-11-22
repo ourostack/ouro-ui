@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: MessageList's find reaches a match that is not drawn: stepping to a match in a windowed list draws its message and scrolls it into view, with focus left in the find box.
