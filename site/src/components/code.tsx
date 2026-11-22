@@ -54,6 +54,7 @@ export function CodeBlock({ code, label, wrap, copy, className }: { code: string
           data-site-code=""
           data-site-code-scroller={wrap ? undefined : ""}
           tabIndex={0}
+          data-test-harness=""
           className={cn("m-0 overflow-x-auto bg-(--site-code) px-4 py-3.5 font-mono text-sm leading-6 text-foreground outline-none", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
         >
           <code>{wrap ? atSlashes(code) : code}</code>
