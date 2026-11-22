@@ -1,0 +1,1 @@
+- New: `<Composer format="rich">` shows lists, quotes and code blocks as blocks, reads and writes them as Markdown, and Shift+Enter goes on or leaves a block while Enter still sends.

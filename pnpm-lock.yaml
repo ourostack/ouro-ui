@@ -16,10 +16,16 @@ importers:
       '@base-ui/react':
         specifier: ^1.8.0
         version: 1.8.0(patch_hash=117655d36ec64f51cdf4f1157c17472022022c90750a8592a23135c0e8f8dd24)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@lexical/code-core':
+        specifier: ^0.53.0
+        version: 0.53.0(typescript@6.0.3)
       '@lexical/history':
         specifier: ^0.53.0
         version: 0.53.0(typescript@6.0.3)
       '@lexical/link':
+        specifier: ^0.53.0
+        version: 0.53.0(typescript@6.0.3)
+      '@lexical/list':
         specifier: ^0.53.0
         version: 0.53.0(typescript@6.0.3)
       '@lexical/markdown':
