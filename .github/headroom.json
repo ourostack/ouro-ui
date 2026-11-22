@@ -138,5 +138,25 @@
     "test": "* registry/ouro/lib/ouro/testing/commands.test.ts > emulateMedia throws, naming the query, when the frame never matches it",
     "reason": "Waits out a deliberate ten second poll bound, so it takes half its timeout by design.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/card/card.test.tsx > Card with href, zoomMedia and revealDescription > keeps a rising title and description at 4.5:1 on its glass over a bright picture and a dark one, in light and dark",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/testing/commands.touch.test.ts > a touch on a ::before box inside a frame waits for that frame",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/voyage/stage/stage.test.tsx > the stage's controls > keeps the newest five lines in the log, the newest also under the porthole",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/menu/menu.test.tsx > Menu items > passes the accessibility gate open, with every item type, in light and dark, inside the page's main landmark",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
   }
 ]
