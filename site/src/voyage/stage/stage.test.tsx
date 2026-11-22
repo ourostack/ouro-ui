@@ -409,6 +409,19 @@ describe("the stage's controls", () => {
   });
 });
 
+describe("the porthole section's copy", () => {
+  it("starts at the top of the section beside the porthole, with no dead gap above the heading", async () => {
+    for (const width of [1100, 1440]) {
+      await page.viewport(width, 900);
+      await renderPage("/");
+      const section = document.querySelector<HTMLElement>(".site-console")!.getBoundingClientRect();
+      const heading = document.querySelector<HTMLElement>(".site-try-title")!.getBoundingClientRect();
+      expect(heading.top - section.top, `at ${width}px the heading sits low in its section`).toBeLessThan(80);
+      await cleanupPage();
+    }
+  });
+});
+
 describe("the console's instruments", () => {
   it("keeps Speed's label clear of the depth readout at every width the console takes", async () => {
     for (const width of [390, 1100, 1280, 1500]) {

@@ -59,6 +59,7 @@ Type: `ComposerProps`.
 | `expandedMaxRows` | `number` | `20` | Lines the expanded box grows to before it scrolls. |
 | `expandedRows` | `number` | `6` | Lines the expanded box starts with. |
 | `expandLabel` | `string` | `"Expand"` | The expand button's name, which its tooltip shows too. |
+| `format` | `"plain" \| "rich"` |  | `"rich"` swaps the text box for a rich-text editor: bold, italic, underline, strikethrough and code, as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E, and as light Markdown typed (`**bold**`, `_italic_`, `++underline++`, `~~strike~~`, a backtick for code). `value`, `defaultValue` and `onSend` stay Markdown text, the shape the plain box has. The editor loads on first use, so a page with only plain composers pays nothing for it; until it arrives, and on the server, a plain textarea shows. In rich mode `ref` is not set, `highlights`, `catalogue`, `onPaste` and `pasteText` do not apply, and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only. |
 | `formatting` | `boolean` |  | Teams' formatting keys in the box: ⌘B bold, ⌘I italic, ⌘U underline, ⌘⌥X strikethrough and ⌘⇧C code (Ctrl for ⌘, Alt for ⌥, off Apple platforms), each as a `ComposerFormat`. `composerShortcuts` (from `composer-styles`) has the keys, for your toolbar's tooltips. |
 | `hideSendDisabledReason` | `boolean` |  | Keeps the `sendDisabledReason` line from being drawn under the box. Sending stays off, the reason is still the box's description for screen readers, and Enter still says it. For two composers side by side, so the reason shows under the one being written in only. |
 | `highlights` | `readonly TextAreaHighlight[]` |  | Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. |
@@ -171,7 +172,7 @@ interface ComposerQuote {
 What sent the message: the Enter key in the box, or a press of the send button.
 
 ```ts
-type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement> | MouseEvent<HTMLButtonElement>;
+type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement | HTMLDivElement> | MouseEvent<HTMLButtonElement>;
 ```
 
 ### `EmojiCatalogue`

@@ -120,7 +120,7 @@ function sourceBody(text: string): ReactNode[] {
   sources.forEach((source, index) => {
     if (index > 0) out.push("; ");
     out.push(
-      <a key={`source-${index}`} href={sourceHref(source)} title={source} data-ouro-allow="leaked-value odd-timestamp" data-ouro-allow-why="a source names its test or file as written" className="font-medium text-primary underline underline-offset-4 [overflow-wrap:anywhere]">
+      <a key={`source-${index}`} data-test-harness="" href={sourceHref(source)} title={source} data-ouro-allow="leaked-value odd-timestamp" data-ouro-allow-why="a source names its test or file as written" className="font-medium text-primary underline underline-offset-4 [overflow-wrap:anywhere]">
         {sourceLabel(source)}
       </a>,
     );
@@ -165,7 +165,7 @@ export function inline(text: string, link: (href: string) => string = (href) => 
     else if (match[3] !== undefined)
       out.push(
         <sup key={match.index} className="ms-1 whitespace-nowrap">
-          <a href={`#source-${slug(match[3])}`} aria-label={`Source: ${match[3]}`} className="text-primary underline underline-offset-2">
+          <a data-test-harness="" href={`#source-${slug(match[3])}`} aria-label={`Source: ${match[3]}`} className="text-primary underline underline-offset-2">
             {match[3]}
           </a>
         </sup>,
@@ -173,7 +173,7 @@ export function inline(text: string, link: (href: string) => string = (href) => 
     else if (match[6] !== undefined) out.push(<strong key={match.index}>{inline(match[6], link)}</strong>);
     else
       out.push(
-        <a key={match.index} href={link(match[5]!)} className="font-medium text-primary underline underline-offset-4">
+        <a key={match.index} data-test-harness="" href={link(match[5]!)} className="font-medium text-primary underline underline-offset-4">
           {inline(match[4]!, link)}
         </a>,
       );
@@ -312,7 +312,7 @@ function Table({
       role="region"
       aria-label={label}
       tabIndex={0}
-      className="docs-scroll-x my-4 hidden overflow-x-auto rounded-sm outline-ring focus-visible:outline-2 focus-visible:outline-offset-4 sm:block [&_code]:[overflow-wrap:normal]"
+      data-test-harness="" className="docs-scroll-x my-4 hidden overflow-x-auto rounded-sm outline-ring focus-visible:outline-2 focus-visible:outline-offset-4 sm:block [&_code]:[overflow-wrap:normal]"
     >
       <table className="w-full border-collapse text-left text-sm">
         <thead>
