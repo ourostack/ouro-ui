@@ -214,6 +214,32 @@ describe("Composer rich mode", () => {
     expect(editor.getAttribute("aria-readonly")).toBe("true");
   });
 
+  it("describes the editor to assistive technology, sizes it in lines, and drops the placeholder once there is text", async () => {
+    const { host, editor } = await render(rich({ placeholder: "Write a message", rows: 2, maxRows: 5, "aria-describedby": "hint" } as never));
+    expect(editor.getAttribute("aria-placeholder")).toBe("Write a message");
+    expect(editor.getAttribute("aria-disabled")).toBeNull();
+    expect(editor.getAttribute("aria-readonly")).toBeNull();
+    expect(editor.spellcheck).toBe(true);
+    expect(editor.style.minHeight).toBe("2lh");
+    expect(editor.style.maxHeight).toBe("5lh");
+    expect(host.querySelector("[data-ouro-composer-placeholder]")?.getAttribute("aria-hidden")).toBe("true");
+    editor.focus();
+    await userEvent.keyboard("a");
+    await expect.poll(() => host.querySelector("[data-ouro-composer-placeholder]")).toBeNull();
+  });
+
+  it("keeps lines apart in the Markdown it reports, and puts the caret after a value the app sets while it has focus", async () => {
+    const seen: string[] = [];
+    const { editor, rerender } = await render(rich({ value: "a\nb", onValueChange: (value) => void seen.push(value) }));
+    expect(editor.querySelectorAll("p")).toHaveLength(2);
+    editor.focus();
+    await rerender(rich({ value: "c\nd", onValueChange: (value) => void seen.push(value) }));
+    await expect.poll(() => editor.textContent).toBe("cd");
+    await userEvent.keyboard("!");
+    await expect.poll(() => seen.at(-1)).toBe("c\nd!");
+    expect(seen).not.toContain("c\nd");
+  });
+
   it("disables the editor, and leaves it to the send button's state", async () => {
     const { editor, send } = await render(rich({ disabled: true, defaultValue: "hi" }));
     expect(editor.isContentEditable).toBe(false);

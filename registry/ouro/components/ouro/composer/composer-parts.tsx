@@ -36,6 +36,7 @@ interface RichEditorProps {
   rows: number;
   maxRows: number;
   className: string;
+  "data-slot": string;
   /** Sees keys before the editor does, so Enter can send and a mark's key can format. */
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   /** Focus the editor when it mounts, with the caret at the end: the person was in the plain box it replaces. */
@@ -50,6 +51,7 @@ const transformers = [BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, IN
 const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
 
 // What a change from the app, rather than the person, carries, so the editor does not report it back.
+// Stryker disable next-line StringLiteral: the tag is only compared with itself, so any other name reads the same.
 const synced = "composer-sync";
 
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
@@ -61,7 +63,7 @@ const toMarkdown = (editor: LexicalEditor) => editor.getEditorState().read(() =>
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, onKeyDown, autoFocus, handleRef }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, handleRef }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -76,9 +78,11 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
 
   useEffect(() => {
     const editor = createEditor({
+      // Stryker disable next-line StringLiteral: the namespace only labels the editor.
       namespace: "ouro-composer",
       // Lexical writes underline and strikethrough as classes only; bold, italic and code are elements.
       theme: { text: { underline: "underline", strikethrough: "line-through", underlineStrikethrough: "underline line-through" } },
+      // Stryker disable next-line BlockStatement: Lexical reports an error only for a state it cannot reach from the commands under test.
       onError: (error) => {
         throw error;
       },
@@ -178,7 +182,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   }));
 
   return (
-    <div className={cn("relative", className)}>
+    <div data-slot={slot} className={cn("relative", className)}>
       <div
         ref={rootRef}
         role="textbox"
@@ -193,6 +197,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         spellCheck
         data-ouro-control="composer"
         data-ouro-part="editor"
+        data-slot="composer-rich-editor"
         data-ouro-composer-editor=""
         // Lines are read from the font, so the box grows from `rows` to `maxRows` as the textarea does.
         style={{ minHeight: `${rows}lh`, maxHeight: `${maxRows}lh` }}
@@ -207,7 +212,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         className="m-0 box-content block min-w-0 overflow-y-auto border-0 bg-transparent px-0 py-(--ouro-text-area-py) text-base leading-6 text-inherit outline-0 [--ouro-text-area-py:calc(var(--spacing)*3)] [overflow-wrap:anywhere] whitespace-pre-wrap sm:pointer-fine:text-sm sm:pointer-fine:leading-5 [&_p]:m-0 [&_strong]:font-semibold [&_code]:rounded-ouro-sm [&_code]:bg-muted [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.9em]"
       />
       {empty && placeholder && (
-        <span aria-hidden="true" data-ouro-composer-placeholder="" className="pointer-events-none absolute inset-x-0 top-(--ouro-text-area-py) text-base leading-6 text-muted-foreground [--ouro-text-area-py:calc(var(--spacing)*3)] sm:pointer-fine:text-sm sm:pointer-fine:leading-5">
+        <span aria-hidden="true" data-slot="composer-rich-placeholder" data-ouro-composer-placeholder="" className="pointer-events-none absolute inset-x-0 top-(--ouro-text-area-py) text-base leading-6 text-muted-foreground [--ouro-text-area-py:calc(var(--spacing)*3)] sm:pointer-fine:text-sm sm:pointer-fine:leading-5">
           {placeholder}
         </span>
       )}
