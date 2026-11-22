@@ -14,6 +14,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { currentTrials } from "../agent-benchmark/page.mjs";
 import { summarize } from "../agent-benchmark/run.mjs";
+import { headline as reviewHeadline, publishedRuns as publishedReviews, seriesOf, tally } from "../model-reviews/page.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const configPath = join(here, "ledger.config.json");
@@ -626,11 +627,24 @@ export function measureBenchmark(ctx, config) {
   });
 }
 
+const MODEL_REVIEWS_PAGE = "https://ui.ouroboros.bot/docs/model-reviews/";
+
+/** The newest model review's verdicts, counted as its page counts them (scripts/model-reviews/page.mjs), from this checkout's results. */
+export function measureModelReviews(ctx, { runs = publishedReviews() } = {}) {
+  return attempt(ctx, MODEL_REVIEWS_PAGE, () => {
+    const latest = seriesOf(runs).at(-1);
+    if (!latest) return unmeasured(ctx, "no published review in scripts/model-reviews/results", MODEL_REVIEWS_PAGE);
+    const counts = tally(latest);
+    const when = latest.runs[0].startedAt.slice(0, 10);
+    const bar = counts.barMet ? "More than half chose Ouro UI, the bar for saying models choose it." : "Not more than half chose Ouro UI, so the bar for saying models choose it is not met.";
+    return cell(ctx, reviewHeadline(latest), { note: `The ${when} review: ${counts.tried} models asked, ${counts.completed} gave a verdict. ${bar}`, source: MODEL_REVIEWS_PAGE });
+  });
+}
+
 export function measureProgram(ctx, config, issues, latest, prsAll, giveBackCount, treeCount) {
   const programIssue = issues.program;
   const source = programIssue?.url ?? `https://github.com/${config.home}/issues?q=label%3A${config.label}`;
   const steps = programIssue ? parseSteps(programIssue.body).map((step) => ({ ...step, source })) : [];
-  const stepState = (id) => steps.find((step) => step.id === id)?.state;
   const headline = [];
   const add = (key, label, value, note, from) => headline.push({ key, label, ...cell(ctx, value, { note, source: from }) });
   for (const [key, entry] of Object.entries(latest)) add(`release-${key}`, `${entry.name} latest release`, entry.tag, entry.error ? `not measured: ${entry.error}` : `Published ${String(entry.at).slice(0, 10)}.`, entry.url);
@@ -638,7 +652,7 @@ export function measureProgram(ctx, config, issues, latest, prsAll, giveBackCoun
   add("merged-prs", "Merged pull requests across the three Ouro UI repositories", prsAll.length, "Counted from each repository's merged pull requests.", `https://github.com/${config.latest.web.repo}/pulls?q=is%3Apr+is%3Amerged`);
   add("give-back", "Merged pull requests that name a product", giveBackCount, "Distinct pull requests counted by the give-back column.", `https://github.com/${config.home}/issues?q=label%3A${config.label}`);
   headline.push({ key: "benchmark", label: "Benchmark against browser driving, an SDK-style bridge and plain MCP", ...measureBenchmark(ctx, config) });
-  add("model-reviews", "Frontier models pick Ouro UI in the model-reviews run", null, stepState("model-reviews-headline") === "done" ? "Not measured yet: the step is marked done but no result is read." : "not measured yet: the model-reviews headline step is not done.", source);
+  headline.push({ key: "model-reviews", label: "Frontier models pick Ouro UI in the model-reviews run", ...measureModelReviews(ctx) });
   return { issue: programIssue ? issueView(programIssue) : null, steps, headline, source, note: programIssue ? null : "not measured: the program tracking issue was not found" };
 }
 
