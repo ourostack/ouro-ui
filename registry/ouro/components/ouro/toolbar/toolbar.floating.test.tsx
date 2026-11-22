@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
@@ -97,6 +97,10 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
+});
+// Every test's own beforeEach sets 1280x800 regardless, so only the file's last test needs the
+// baseline restored, for whichever file the worker runs next.
+afterAll(async () => {
   await page.viewport(414, 896);
 });
 
