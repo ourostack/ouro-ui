@@ -20,6 +20,7 @@ test("claim-sets.json keeps every claim set a release shipped, newest first, eac
   assert.equal(tool, "ouro-ax-claim-sets");
   assert.equal(new Set(sets.map((set) => set.hash)).size, sets.length);
   assert.ok(sets.some((set) => set.version === "1.7.0" && set.firstRelease === "v1.3.315"), "1.7.0 first shipped in v1.3.315");
+  assert.ok(sets.some((set) => set.version === "1.8.0" && set.firstRelease === "v1.3.451"), "1.8.0 first shipped in v1.3.451, which came out before this file did");
   for (const set of sets) assert.match(set.hash, /^[0-9a-f]{64}$/);
 });
 
