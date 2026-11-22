@@ -38,6 +38,10 @@ export interface XrayValue {
   app: string | null;
   reportAt: string;
   run: string;
+  /** The surfaces the reports check (`cli`, `mcp`, `tools`, `app-intents`). Ledgers before 2026-11-22 lack it. */
+  surfaces?: string[];
+  /** The surfaces the config lists for the product that no report checks: the must check fails while any is left. */
+  missingSurfaces?: string[];
 }
 
 export interface Issue {

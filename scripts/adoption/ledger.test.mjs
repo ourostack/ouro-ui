@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { build, censusAtZero, configPath, createContext, gaveBack, isCurrent, measureActions, measureCensus, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, censusAtZero, configPath, createContext, gaveBack, isCurrent, measureActions, measureCensus, measureBenchmark, measureModelReviews, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
 import { execFileSync } from "node:child_process";
 import { rmSync, writeFileSync } from "node:fs";
 import { scratchDir } from "../scratch.mjs";
@@ -376,6 +376,23 @@ test("the benchmark cell counts the published runs as the benchmark's page does:
   assert.match(failing.note, /^not measured: HTTP 404/);
 });
 
+test("the model-reviews cell reads the newest review's own verdicts, as the page counts them", () => {
+  const context = createContext({ gh: () => { throw new Error("no gh call"); }, now: () => NOW, sleep: () => {} });
+  const review = (provider, verdict) => ({ provider, displayName: provider, verdict });
+  const runs = [
+    { folder: "2026-11-14-rerun--run-1", startedAt: "2026-11-14T01:00:00Z", reviews: [review("a", "A2UI"), review("b", "Ouro UI")], failures: [] },
+    { folder: "2026-11-19-latest--run-1", startedAt: "2026-11-19T02:00:00Z", reviews: [review("a", "Ouro UI"), review("b", "Ouro UI"), review("c", "A2UI")], failures: [{ provider: "d", error: "compacted" }] },
+  ];
+  const cell = measureModelReviews(context, { runs });
+  assert.equal(cell.value, "2 of 3 models chose Ouro UI; 1 chose A2UI.");
+  assert.match(cell.note, /^The 2026-11-19 review: 4 models asked, 3 gave a verdict\. More than half chose Ouro UI, the bar for saying models choose it\.$/);
+  assert.equal(cell.source, "https://ui.ouroboros.bot/docs/model-reviews/");
+  const short = measureModelReviews(context, { runs: [{ ...runs[0] }] });
+  assert.match(short.note, /Not more than half chose Ouro UI/);
+  assert.equal(measureModelReviews(context, { runs: [] }).value, null);
+  assert.match(measureModelReviews(context, { runs: [] }).note, /^not measured: no published review/);
+});
+
 test("an app's X-ray and its action claims report add up, the newest report of each checker counting once", () => {
   const dir = scratchDir("ledger-xray-");
   try {
@@ -394,7 +411,7 @@ test("an app's X-ray and its action claims report add up, the newest report of e
     };
     const gh = (args, { binary } = {}) => {
       const line = args.join(" ");
-      if (/workflows\/ci\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 10, html_url: "https://example.test/run/10" }, { id: 11, html_url: "https://example.test/run/11" }] });
+      if (/workflows\/ci\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 10, event: "push", head_branch: "main", head_repository: { full_name: "org/app" }, html_url: "https://example.test/run/10" }, { id: 11, event: "push", head_branch: "main", head_repository: { full_name: "org/app" }, html_url: "https://example.test/run/11" }] });
       if (/runs\/10\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 1, name: "xray", expired: false }, { id: 2, name: "actions-xray", expired: false }] });
       if (/runs\/11\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 3, name: "actions-xray", expired: false }] });
       const art = /artifacts\/(\d+)\/zip/.exec(line);
@@ -424,7 +441,7 @@ test("a report in a folder of its artifact is read, so an X-ray uploaded with ot
   const bytes = readFileSync(join(dir, "a.zip"));
   const gh = (args, { binary } = {}) => {
     const line = args.join(" ");
-    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 7, html_url: "https://example.test/run/7" }] });
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 7, event: "push", head_branch: "main", head_repository: { full_name: "org/cli" }, html_url: "https://example.test/run/7" }] });
     if (/runs\/7\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 9, name: "xray", expired: false }] });
     if (/artifacts\/9\/zip/.test(line) && binary) return bytes;
     throw new Error(`unexpected gh call: ${line}`);
@@ -679,4 +696,85 @@ test("the ledger says when it couldn't read Ouro UI's latest release, rather tha
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ---- Stricter X-ray: every surface the product lists, from a push to main ---------------------------------
+
+/** A gh that serves the given runs of `ax-xray.yml`, each with its reports as artifacts; `calls` records the lines. */
+function xrayGh(dir, runs, calls = []) {
+  const bytes = new Map();
+  let next = 1;
+  const served = runs.map((run) => ({ ...run, artifacts: run.reports.map((report) => {
+    const id = next++;
+    writeFileSync(join(dir, "report.json"), JSON.stringify(report));
+    execFileSync("zip", ["-q", "-j", join(dir, "a.zip"), join(dir, "report.json")]);
+    bytes.set(String(id), readFileSync(join(dir, "a.zip")));
+    rmSync(join(dir, "a.zip"));
+    return { id, name: report.tool === "ouro-actions" ? "actions-xray" : `xray-${id}`, expired: false };
+  }) }));
+  return (args, { binary } = {}) => {
+    const line = args.join(" ");
+    calls.push(line);
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: served.map((run) => Object.fromEntries(Object.entries(run).filter(([key]) => key !== "reports" && key !== "artifacts"))) });
+    const runArtifacts = /runs\/(\d+)\/artifacts/.exec(line);
+    if (runArtifacts) return JSON.stringify({ artifacts: served.find((run) => String(run.id) === runArtifacts[1]).artifacts });
+    const art = /artifacts\/(\d+)\/zip/.exec(line);
+    if (art && binary) return bytes.get(art[1]);
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+}
+const pushRun = (id, extra = {}) => ({ id, event: "push", head_branch: "main", head_repository: { full_name: "org/agents" }, html_url: `https://example.test/run/${id}`, ...extra });
+const xrayReport = (surface, at, must, mustHolding = must) => ({ tool: "ax-xray", at, checker: { version: "1.8.0" }, claimSet: { version: "1.8.0" }, target: { commit: "abc", [surface]: {} }, summary: { claims: must + 1, holding: mustHolding + 1, must, mustHolding, checks: must + 1 }, claims: [{ id: `${surface}.a`, surface, tier: "must" }, { id: `${surface}.b`, surface, tier: "should" }] });
+const actionsReport = (at) => ({ tool: "ouro-actions", at, checker: { version: "1.10.0" }, claimSet: { version: "0.1.0" }, target: { app: { name: "Agents" }, commit: "abc" }, summary: { claims: 3, holding: 3, must: 3, mustHolding: 3, checks: 3 } });
+const agents = { repo: "org/agents", xraySurfaces: ["cli", "mcp", "tools"], xray: [{ repo: "org/agents", workflow: "ax-xray.yml", branch: "main" }] };
+const xrayOf = (runs, surface = agents, calls = []) => {
+  const dir = scratchDir("ledger-xray-surfaces-");
+  try {
+    return measureXray(createContext({ gh: xrayGh(dir, runs, calls), now: () => NOW, sleep: () => {}, searchGapMs: 0 }), surface);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+};
+
+test("a product's X-ray counts the newest report of each surface, and must claims pass only when every surface it lists is checked", () => {
+  const partial = xrayOf([pushRun(10, { reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13), xrayReport("mcp", "2026-11-13T11:59:00Z", 2), actionsReport("2026-11-13T11:58:00Z")] })]);
+  assert.deepEqual(partial.value.surfaces, ["cli", "mcp"], "the CLI and MCP reports are both ax-xray, and both count");
+  assert.equal(partial.value.must, 18);
+  assert.equal(partial.value.mustHolding, 18);
+  assert.deepEqual(partial.value.missingSurfaces, ["tools"]);
+  assert.equal(mustPasses(partial), false, "every must claim holds, but the in-turn tools are not checked");
+  assert.match(partial.note, /^No X-ray report checks its tools doors yet, so its must claims can.t pass\. Adds up the newest report of each checker and surface: ax-xray cli, ax-xray mcp, ouro-actions\.$/);
+  const whole = xrayOf([pushRun(10, { reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13), xrayReport("mcp", "2026-11-13T11:59:00Z", 2), xrayReport("tools", "2026-11-13T11:57:00Z", 2), actionsReport("2026-11-13T11:58:00Z")] })]);
+  assert.deepEqual(whole.value.missingSurfaces, []);
+  assert.equal(mustPasses(whole), true);
+  const older = xrayOf([pushRun(10, { reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13, 12)] }), pushRun(11, { reports: [xrayReport("cli", "2026-11-12T12:00:00Z", 13), xrayReport("mcp", "2026-11-12T11:00:00Z", 2), xrayReport("tools", "2026-11-12T10:00:00Z", 2)] })]);
+  assert.equal(older.value.mustHolding, 16, "the newest CLI report, which fails one, counts over the older one; each surface's newest is kept");
+  assert.equal(mustPasses(older), false);
+});
+
+test("an X-ray report counts only from a successful push to main in the product's own repository", () => {
+  const calls = [];
+  const runs = [
+    pushRun(10, { event: "pull_request", reports: [xrayReport("tools", "2026-11-13T12:00:00Z", 2)] }),
+    pushRun(11, { head_repository: { full_name: "fork/agents" }, reports: [xrayReport("tools", "2026-11-13T11:00:00Z", 2)] }),
+    pushRun(12, { head_branch: "feature", reports: [xrayReport("tools", "2026-11-13T10:00:00Z", 2)] }),
+    pushRun(13, { reports: [xrayReport("cli", "2026-11-13T09:00:00Z", 13), xrayReport("mcp", "2026-11-13T09:00:00Z", 2)] }),
+  ];
+  const xray = xrayOf(runs, agents, calls);
+  assert.match(calls.find((line) => /workflows\/ax-xray\.yml\/runs/.test(line)), /branch=main&event=push/);
+  assert.deepEqual(xray.value.surfaces, ["cli", "mcp"], "the tools reports from a pull request, a fork and another branch don't count");
+  assert.equal(xray.value.run, "https://example.test/run/13");
+  const none = xrayOf([pushRun(10, { event: "pull_request", reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13)] })]);
+  assert.equal(none.value, null);
+  assert.match(none.note, /^not measured: no report from a push to main in org\/agents among the latest successful runs/);
+});
+
+test("every product with X-ray runs lists the surfaces they check, and a product that runs agents lists its in-turn tools", () => {
+  const real = JSON.parse(readFileSync(configPath, "utf8"));
+  for (const surface of real.surfaces) {
+    if (surface.xray.length) assert.ok(Array.isArray(surface.xraySurfaces) && surface.xraySurfaces.length > 0, `${surface.id} has X-ray runs but lists no xraySurfaces`);
+    if (surface.runsAgents) assert.ok(surface.xraySurfaces?.includes("tools"), `${surface.id} runs agents, so its xraySurfaces must include tools`);
+    for (const entry of surface.xray) assert.equal(entry.branch, "main", `${surface.id}'s ${entry.workflow} counts only from a push to main, so it names branch main`);
+  }
+  assert.equal(real.surfaces.find((surface) => surface.id === "harness").runsAgents, true);
 });

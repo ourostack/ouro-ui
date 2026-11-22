@@ -14,6 +14,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { currentTrials } from "../agent-benchmark/page.mjs";
 import { summarize } from "../agent-benchmark/run.mjs";
+import { headline as reviewHeadline, publishedRuns as publishedReviews, seriesOf, tally } from "../model-reviews/page.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const configPath = join(here, "ledger.config.json");
@@ -329,7 +330,13 @@ function readArtifactReport(ctx, repo, artifact, tmp, wanted = "report.json") {
   });
 }
 
-/** The newest ax-xray report, over a surface's sources, that is for the right app and still downloadable. */
+/** The surfaces a report checks: those its claims are about (`cli`, `mcp`, `tools`, `app-intents`). An action claims report has none. */
+const surfacesOf = (report) => [...new Set((report.claims ?? []).map((claim) => claim.surface).filter((surface) => typeof surface === "string"))].sort();
+
+/**
+ * The newest report of each checker and surface, over a surface's sources, from a successful push to main in the source's
+ * own repository, for the right app and still downloadable.
+ */
 export function measureXray(ctx, surface) {
   const source = `https://github.com/${surface.repo}/actions`;
   if (surface.xray.length === 0) return unmeasured(ctx, "no X-ray runs in CI for this product yet", source);
@@ -339,8 +346,11 @@ export function measureXray(ctx, surface) {
   try {
     for (const entry of surface.xray) {
       try {
-        const query = entry.branch ? `&branch=${entry.branch}` : "";
-        const runs = ctx.api(`repos/${entry.repo}/actions/workflows/${entry.workflow}/runs?status=success&per_page=3${query}`).workflow_runs;
+        // Only a push to main counts: a pull request, a fork's own `main` or another branch can't stand for the product.
+        const branch = entry.branch ?? "main";
+        const runs = ctx
+          .api(`repos/${entry.repo}/actions/workflows/${entry.workflow}/runs?status=success&per_page=3&branch=${branch}&event=push`)
+          .workflow_runs.filter((run) => run.event === "push" && run.head_branch === branch && run.head_repository?.full_name === entry.repo);
         for (const run of runs) {
           const artifacts = ctx.api(`repos/${entry.repo}/actions/runs/${run.id}/artifacts?per_page=50`).artifacts.filter((artifact) => !artifact.expired && /xray/i.test(artifact.name));
           for (const artifact of artifacts) {
@@ -352,9 +362,8 @@ export function measureXray(ctx, surface) {
             }
             const name = report.target?.app?.name;
             if (entry.app && name?.toLowerCase() !== entry.app.toLowerCase()) continue;
-            found.push({ report, run, entry, artifact });
+            found.push({ report, run, entry, artifact, key: `${report.tool} ${surfacesOf(report).join(",")}` });
           }
-          if (found.some((item) => item.run.id === run.id)) break;
         }
       } catch (error) {
         errors.push(error.message);
@@ -363,16 +372,22 @@ export function measureXray(ctx, surface) {
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
-  if (found.length === 0) return unmeasured(ctx, errors[0] ?? "no downloadable report in the latest successful runs", source);
+  if (found.length === 0) return unmeasured(ctx, errors[0] ?? `no report from a push to main in ${surface.xray.map((entry) => entry.repo).join(" or ")} among the latest successful runs`, source);
   found.sort((a, b) => b.report.at.localeCompare(a.report.at));
-  // One report per checker: the X-ray's own claim set, and ouro-actions' action claims beside it. Each checker's newest
-  // report counts, and their claims add up, so an app's action claims count as AX must claims with its X-ray's.
+  // One report per checker and surface: the CLI X-ray, the MCP X-ray, the in-turn tools X-ray and ouro-actions' action
+  // claims each count once, newest first, and their claims add up.
   const newest = [];
-  for (const item of found) if (!newest.some((kept) => kept.report.tool === item.report.tool)) newest.push(item);
+  for (const item of found) if (!newest.some((kept) => kept.key === item.key)) newest.push(item);
   const { report, run } = newest[0];
   const sum = (key) => newest.reduce((total, item) => total + (item.report.summary[key] ?? 0), 0);
   const must = sum("must");
   const scored = newest.find((item) => typeof item.report.summary.score === "number");
+  const surfaces = [...new Set(newest.flatMap((item) => surfacesOf(item.report)))].sort();
+  const missingSurfaces = (surface.xraySurfaces ?? []).filter((listed) => !surfaces.includes(listed));
+  const notes = [];
+  if (missingSurfaces.length) notes.push(`No X-ray report checks its ${orList(missingSurfaces)} doors yet, so its must claims can't pass.`);
+  if (must === 0) notes.push("The claim set has no must claims yet, so conforming is trivial.");
+  else if (newest.length > 1) notes.push(`Adds up the newest report of each checker and surface: ${newest.map((item) => [item.report.tool, ...surfacesOf(item.report)].join(" ")).join(", ")}.`);
   return cell(
     ctx,
     {
@@ -388,14 +403,19 @@ export function measureXray(ctx, surface) {
       commit: report.target?.commit ?? null,
       reportAt: report.at,
       run: run.html_url,
-      reports: newest.map((item) => ({ tool: `${item.report.tool} ${item.report.checker?.version ?? ""}`.trim(), claimSet: item.report.claimSet?.version ?? null, must: item.report.summary.must, mustHolding: item.report.summary.mustHolding, reportAt: item.report.at, run: item.run.html_url })),
+      surfaces,
+      missingSurfaces,
+      reports: newest.map((item) => ({ tool: `${item.report.tool} ${item.report.checker?.version ?? ""}`.trim(), surfaces: surfacesOf(item.report), claimSet: item.report.claimSet?.version ?? null, must: item.report.summary.must, mustHolding: item.report.summary.mustHolding, reportAt: item.report.at, run: item.run.html_url })),
     },
-    { note: must === 0 ? "The claim set has no must claims yet, so conforming is trivial." : newest.length > 1 ? `Adds up the newest report of each checker: ${newest.map((item) => item.report.tool).join(" and ")}.` : null, source: run.html_url },
+    { note: notes.length ? notes.join(" ") : null, source: run.html_url },
   );
 }
 
-/** AX `must` claims pass in CI: a report exists, has must claims, and every one holds. A claim set with none is vacuous. */
-export const mustPasses = (xrayCell) => Boolean(xrayCell.value) && xrayCell.value.must > 0 && xrayCell.value.mustHolding === xrayCell.value.must;
+/**
+ * AX `must` claims pass in CI: a report exists, has must claims, every one holds, and the reports check every surface the
+ * product lists. A claim set with none is vacuous.
+ */
+export const mustPasses = (xrayCell) => Boolean(xrayCell.value) && xrayCell.value.must > 0 && xrayCell.value.mustHolding === xrayCell.value.must && (xrayCell.value.missingSurfaces ?? []).length === 0;
 
 // ---- Ouro AX census --------------------------------------------------------------------------------------
 
@@ -607,11 +627,24 @@ export function measureBenchmark(ctx, config) {
   });
 }
 
+const MODEL_REVIEWS_PAGE = "https://ui.ouroboros.bot/docs/model-reviews/";
+
+/** The newest model review's verdicts, counted as its page counts them (scripts/model-reviews/page.mjs), from this checkout's results. */
+export function measureModelReviews(ctx, { runs = publishedReviews() } = {}) {
+  return attempt(ctx, MODEL_REVIEWS_PAGE, () => {
+    const latest = seriesOf(runs).at(-1);
+    if (!latest) return unmeasured(ctx, "no published review in scripts/model-reviews/results", MODEL_REVIEWS_PAGE);
+    const counts = tally(latest);
+    const when = latest.runs[0].startedAt.slice(0, 10);
+    const bar = counts.barMet ? "More than half chose Ouro UI, the bar for saying models choose it." : "Not more than half chose Ouro UI, so the bar for saying models choose it is not met.";
+    return cell(ctx, reviewHeadline(latest), { note: `The ${when} review: ${counts.tried} models asked, ${counts.completed} gave a verdict. ${bar}`, source: MODEL_REVIEWS_PAGE });
+  });
+}
+
 export function measureProgram(ctx, config, issues, latest, prsAll, giveBackCount, treeCount) {
   const programIssue = issues.program;
   const source = programIssue?.url ?? `https://github.com/${config.home}/issues?q=label%3A${config.label}`;
   const steps = programIssue ? parseSteps(programIssue.body).map((step) => ({ ...step, source })) : [];
-  const stepState = (id) => steps.find((step) => step.id === id)?.state;
   const headline = [];
   const add = (key, label, value, note, from) => headline.push({ key, label, ...cell(ctx, value, { note, source: from }) });
   for (const [key, entry] of Object.entries(latest)) add(`release-${key}`, `${entry.name} latest release`, entry.tag, entry.error ? `not measured: ${entry.error}` : `Published ${String(entry.at).slice(0, 10)}.`, entry.url);
@@ -619,7 +652,7 @@ export function measureProgram(ctx, config, issues, latest, prsAll, giveBackCoun
   add("merged-prs", "Merged pull requests across the three Ouro UI repositories", prsAll.length, "Counted from each repository's merged pull requests.", `https://github.com/${config.latest.web.repo}/pulls?q=is%3Apr+is%3Amerged`);
   add("give-back", "Merged pull requests that name a product", giveBackCount, "Distinct pull requests counted by the give-back column.", `https://github.com/${config.home}/issues?q=label%3A${config.label}`);
   headline.push({ key: "benchmark", label: "Benchmark against browser driving, an SDK-style bridge and plain MCP", ...measureBenchmark(ctx, config) });
-  add("model-reviews", "Frontier models pick Ouro UI in the model-reviews run", null, stepState("model-reviews-headline") === "done" ? "Not measured yet: the step is marked done but no result is read." : "not measured yet: the model-reviews headline step is not done.", source);
+  headline.push({ key: "model-reviews", label: "Frontier models pick Ouro UI in the model-reviews run", ...measureModelReviews(ctx) });
   return { issue: programIssue ? issueView(programIssue) : null, steps, headline, source, note: programIssue ? null : "not measured: the program tracking issue was not found" };
 }
 

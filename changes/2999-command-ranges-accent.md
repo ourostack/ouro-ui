@@ -1,0 +1,1 @@
+- Fixed: Command's search marks land correctly on a label or description holding a standalone accent (a middle dot, caret, backtick, diaeresis or acute), by folding characters apart and mapping positions back to the text as written.
