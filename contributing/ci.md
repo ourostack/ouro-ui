@@ -11,7 +11,7 @@ How Ouro UI's CI decides a pull request: the required `ci` check and its jobs, t
 
 ## Headroom
 
-- A browser shard fails a test that takes more than half its own timeout (the test's, else the project's `testTimeout`), naming the test, its time and its budget (`scripts/headroom-reporter.mts`, rule in `scripts/headroom.mjs`, tests in `scripts/headroom.test.mjs`). A test near its budget can pass on a quiet pull request runner and time out on a loaded shard, so the pull request that adds it sees it first. The tests already over half are named in `.github/headroom.json`, each with a `test` (`<project> <file> > <full name>`), a `reason` and an `owner`. Fix the test, or give it a larger timeout, rather than adding a name; a name whose test ran under two fifths of its budget fails as stale, so remove it. A name whose test did not run in a shard is left alone there.
+- Browser shards hold a test to half its own timeout (the test's, else the project's `testTimeout`): a slower test fails the run, and the message names the test, its time and its budget (`scripts/headroom-reporter.mts`, rule in `scripts/headroom.mjs`, tests in `scripts/headroom.test.mjs`). A test near its budget can pass on a quiet pull request runner and time out on a loaded shard, so the pull request that adds it sees it first. Tests already over half are named in `.github/headroom.json` as entries with a `test` (`<project> <file> > <full name>`), a `reason` and an `owner`. Fix the test or give it a larger timeout instead of adding a name. An entry whose test ran well under its budget fails as stale (`staleBelow` in `scripts/headroom.mjs`): remove it. A shard that skips an entry's test leaves the entry alone.
 
 ## Script tests
 

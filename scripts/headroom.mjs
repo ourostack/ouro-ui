@@ -14,6 +14,9 @@ export const exemptionsPath = join(dirname(fileURLToPath(import.meta.url)), ".."
 /** The named exemptions, `[{ test, reason, owner }]`, where `test` is `<project> <file> > <full name>`. */
 export const readExemptions = (path = exemptionsPath) => JSON.parse(readFileSync(path, "utf8"));
 
+/** The share of its timeout under which an exempt test is stale. */
+export const staleBelow = 0.4;
+
 const seconds = (ms) => `${(ms / 1000).toFixed(1)} s`;
 
 /** Whether an exemption names its test, a reason and an owner. */
@@ -35,7 +38,7 @@ export function headroomProblems(tests, exemptions) {
     if (over && !named.has(name)) {
       problems.push(`[ouro-ui] Headroom: ${name} took ${seconds(durationMs)} against a budget of ${seconds(timeoutMs)}; a test over half its budget can time out on a loaded shard. Fix: make it faster or give it a bigger timeout, or name it in .github/headroom.json with a reason and an owner.`);
     }
-    if (durationMs < timeoutMs * 0.4 && named.has(name)) {
+    if (durationMs < timeoutMs * staleBelow && named.has(name)) {
       problems.push(`[ouro-ui] Headroom: ${name} took ${seconds(durationMs)} against a budget of ${seconds(timeoutMs)}, under two fifths. Fix: remove its exemption from .github/headroom.json.`);
     }
   }
