@@ -40,6 +40,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   vi.restoreAllMocks();
+  vi.useRealTimers();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
@@ -171,6 +172,13 @@ describe("Composer rich mode", () => {
   });
 
   it("undoes and redoes typing with mod+Z and mod+Shift+Z", async () => {
+    // Lexical's history plugin merges consecutive character edits into one undo step only when
+    // Date.now() reads them under 300ms apart (registerHistory's delay). A busy runner can take
+    // longer than that to deliver the second keystroke, splitting "b" and "c" into two undo
+    // entries so one mod+Z lands on "ab" instead of "a" (ourostack/ouro-ui#3069). Holding the
+    // clock removes the race between that real elapsed time and the merge window, without
+    // widening the window or waiting on one.
+    vi.useFakeTimers({ toFake: ["Date"] });
     const { editor } = await render(rich({ defaultValue: "a" }));
     editor.focus();
     await userEvent.keyboard("bc");
@@ -179,6 +187,23 @@ describe("Composer rich mode", () => {
     await expect.poll(() => editor.textContent).toBe("a");
     await userEvent.keyboard("{Control>}{Shift>}z{/Shift}{/Control}");
     await expect.poll(() => editor.textContent).toBe("abc");
+  });
+
+  it("keeps one mod+Z merging typed characters however long the runner takes to deliver them (ourostack/ouro-ui#3069)", async () => {
+    // Holds Date so Lexical's history-merge window reads zero elapsed time between the two
+    // keystrokes, while a real wait between them stands in for a busy runner's actual delay.
+    // Without holding the clock, this delay alone reproduces the race: it reads over 300ms
+    // elapsed, splits "b" and "c" into two undo entries, and one mod+Z leaves "ab", not "a".
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const { editor } = await render(rich({ defaultValue: "a" }));
+    editor.focus();
+    await userEvent.keyboard("b");
+    await expect.poll(() => editor.textContent).toBe("ab");
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    await userEvent.keyboard("c");
+    await expect.poll(() => editor.textContent).toBe("abc");
+    await userEvent.keyboard("{Control>}z{/Control}");
+    await expect.poll(() => editor.textContent).toBe("a");
   });
 
   it("pastes the clipboard's formatting through the allowlist, never its scripts", async () => {
