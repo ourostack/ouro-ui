@@ -154,7 +154,7 @@ describe("the adoption page", () => {
     const row = host.querySelector<HTMLElement>(`#${id}`)!;
     expect(row.querySelector<HTMLElement>(".adoption-marks > li")?.dataset.state).toBe("unmeasured");
     expect(row.querySelector(".adoption-marks > li .adoption-hidden")?.textContent).toBe(`${surface(ledger, id).conditions.current.label}: not measured yet`);
-    expect(row.querySelector(".adoption-gaps")?.textContent).toContain("Private repository, so not readable");
+    expect(row.querySelector(".adoption-gaps")?.textContent).toContain("Private repository, so not\u00a0readable");
   });
 
   it("lights a star only for a product the ledger confirms, and an arc only between two lit neighbours", async () => {

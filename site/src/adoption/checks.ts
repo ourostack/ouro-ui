@@ -39,7 +39,7 @@ const plural = (count: number, word: string): string => `${count} ${word}${count
 
 /** The ledger's reason for a missing measurement, shortened where it is one the page knows. */
 const PRIVATE = /\bprivate\b/i;
-const unmeasured = (cell: LedgerCell<unknown>, otherwise?: string): string => (PRIVATE.test(cell.note ?? "") ? "Private repository, so not readable" : (otherwise ?? reason(cell, "not measured yet")));
+const unmeasured = (cell: LedgerCell<unknown>, otherwise?: string): string => (PRIVATE.test(cell.note ?? "") ? "Private repository, so not\u00a0readable" : (otherwise ?? reason(cell, "not measured yet")));
 
 function unmeasuredOrNa(cell: LedgerCell<unknown>): CheckState {
   return /^n\/a\b/i.test(cell.note ?? "") ? "na" : "unmeasured";
