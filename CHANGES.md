@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: a Table row header cell that holds a link of its own is left as written, instead of being wrapped in the row link.
