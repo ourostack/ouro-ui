@@ -30,10 +30,11 @@ const meta = {
   parameters: { layout: "padded" },
   args: { presets, defaultPreset: "ledger", storageKey: "ouro-theme-picker-story" },
   decorators: [
+    // The story first: a page's first element is what a spec waits to see (e2e/ouro/story.ts), and a <style> never shows.
     (Story) => (
       <>
-        <style>{LOOKS}</style>
         <Story />
+        <style>{LOOKS}</style>
       </>
     ),
   ],

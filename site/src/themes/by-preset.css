@@ -20,22 +20,22 @@ html:not([data-theme]) [data-site-when="pearl"] {
  * The header's ThemePicker button holds every choice's wordmark (data-shows); the one html[data-theme] (or
  * html[data-live]) names shows, before hydration and after, as above.
  */
-.site-theme-picker [data-ouro-part="trigger"] [data-shows] {
+[data-presentation="popover"] [data-ouro-part="trigger"] [data-shows] {
   display: none;
 }
-html[data-theme="pearl"]:not([data-live]) .site-theme-picker [data-shows="pearl"],
-html[data-theme="abyss"] .site-theme-picker [data-shows="abyss"],
-html[data-theme="brass"] .site-theme-picker [data-shows="brass"],
-html[data-theme="chart"] .site-theme-picker [data-shows="chart"],
-html[data-theme="coral"] .site-theme-picker [data-shows="coral"],
-html[data-theme="cookbook"] .site-theme-picker [data-shows="cookbook"],
-html[data-live] .site-theme-picker [data-shows="live"],
-html:not([data-theme]) .site-theme-picker [data-shows="pearl"] {
+html[data-theme="pearl"]:not([data-live]) [data-presentation="popover"] [data-shows="pearl"],
+html[data-theme="abyss"] [data-presentation="popover"] [data-shows="abyss"],
+html[data-theme="brass"] [data-presentation="popover"] [data-shows="brass"],
+html[data-theme="chart"] [data-presentation="popover"] [data-shows="chart"],
+html[data-theme="coral"] [data-presentation="popover"] [data-shows="coral"],
+html[data-theme="cookbook"] [data-presentation="popover"] [data-shows="cookbook"],
+html[data-live] [data-presentation="popover"] [data-shows="live"],
+html:not([data-theme]) [data-presentation="popover"] [data-shows="pearl"] {
   display: contents;
 }
 /* As tall as the header's links on a fine pointer. */
 @media (min-width: 40rem) {
-  .site-theme-picker [data-ouro-part="trigger"] {
+  [data-presentation="popover"] [data-ouro-part="trigger"] {
     height: 2.25rem;
   }
 }

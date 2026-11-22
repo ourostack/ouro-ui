@@ -107,12 +107,19 @@ test("each display face has a wordmark holding only its preset's label, unchange
   assert.ok(checkFonts(swap({ bytes: FONT_BUDGET.wordmark + 1 }), big).some((problem) => problem === "nunito-wordmark-5.3.0.woff2: 4097 bytes is over the 4096-byte wordmark budget"));
 });
 
-test("every preset sets --font-wordmark, its wordmark face before its heading's, or its heading's where it has none", () => {
+test("every preset sets --font-wordmark, its wordmark face before its heading's system fonts, or its heading's where it has none", () => {
   const css = build()["presets.generated.css"];
   for (const preset of presets) {
     const root = css.split(`[data-theme="${preset.name}"] {`)[1]?.split("}")[0] ?? "";
     const face = fonts.find((font) => font.family === preset.heading);
-    assert.ok(root.includes(face?.wordmark ? `--font-wordmark: "${preset.heading} Wordmark", var(--font-heading);` : "--font-wordmark: var(--font-heading);"), preset.name);
+    const line = /--font-wordmark: ([^;]+);/.exec(root)?.[1];
+    if (!face?.wordmark) {
+      assert.equal(line, "var(--font-heading)", preset.name);
+      continue;
+    }
+    assert.ok(line?.startsWith(`"${preset.heading} Wordmark", `), preset.name);
+    // No web font behind the wordmark: WebKit would fetch it while the wordmark loads.
+    assert.ok(!line.includes("var(") && !fonts.some((font) => line.includes(`"${font.family}"`)), `${preset.name}: ${line}`);
   }
   assert.ok(css.includes('font-family: "Cormorant Garamond Wordmark";'));
 });

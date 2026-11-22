@@ -238,8 +238,13 @@ export function buildPreset(preset: Preset, css: string, fonts: readonly Font[])
     .map((block) => {
       const lines = declarations(block.body);
       // Every preset sets --font-wordmark, its wordmark face or else its heading's, so a theme picker's name never takes
-      // the page's: a preset's wordmark face holds only its own label's letters.
-      const wordmark = used.find((font) => font.role === "display")?.wordmark ? `"${preset.heading} Wordmark", var(--font-heading)` : "var(--font-heading)";
+      // the page's: a preset's wordmark face holds only its own label's letters. Behind the wordmark come the heading's
+      // system fonts, not its web font: WebKit lays text out in the next family while a face loads, which fetched every
+      // look's whole display face with the page.
+      let headingStack = value("--font-heading")!;
+      for (let alias = /^var\((--[\w-]+)\)$/.exec(headingStack); alias && value(alias[1]!); alias = /^var\((--[\w-]+)\)$/.exec(headingStack)) headingStack = value(alias[1]!)!;
+      const fallback = headingStack.replace(`"${preset.heading}", `, "");
+      const wordmark = used.find((font) => font.role === "display")?.wordmark ? `"${preset.heading} Wordmark", ${fallback}` : "var(--font-heading)";
       const extra = block === root ? [`--font-sans: ${stack(sans)}`, `--font-mono: ${stack(mono)}`, `--font-wordmark: ${wordmark}`] : [];
       return rule(scopeSelector(block.selector, preset.name), [...lines, ...extra]);
     })
