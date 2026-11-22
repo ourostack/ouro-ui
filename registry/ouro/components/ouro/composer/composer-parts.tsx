@@ -355,8 +355,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           () => {
             $selectText(start, end);
             const selection = $getSelection();
+            // Stryker disable next-line ConditionalExpression: $selectText has just made a range selection, so the guard only narrows the type
             if ($isRangeSelection(selection)) selection.insertText(text);
           },
+          // Stryker disable next-line ObjectLiteral,BooleanLiteral: editor.read, which value and the offsets use, sees a pending update as an applied one
           { discrete: true },
         ),
     });
