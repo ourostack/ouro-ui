@@ -12,9 +12,9 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 Components: Web has 135 of 139, Apple has 21 of 139, Android has 27 of 139, Windows has 30 of 139.[^matrix]
 
-Claims covered: Web 7 of 13, Apple 13 of 13, Android 7 of 13, Windows 7 of 13.[^matrix]
+Claims covered: Web 7 of 14, Apple 14 of 14, Android 7 of 14, Windows 7 of 14.[^matrix]
 
-Gap cells: 361.[^matrix]
+Gap cells: 364.[^matrix]
 
 ### Components
 
@@ -172,6 +172,7 @@ Gap cells: 361.[^matrix]
 | `announce.urgency` | should | component | Partly | Covered | Covered | Covered |
 | `toast.action-stays` | must | component | Covered | Covered | Not yet | Not yet |
 | `dismiss.reachable` | must | component | Covered | Covered | Covered | Covered |
+| `content.holds-still` | must | component | Not yet | Covered | Not yet | Not yet |
 | `action.one-declaration` | should | action | Covered | Covered | Not yet | Not yet |
 | `action.projections-match` | must | action | Covered | Covered | Not yet | Not yet |
 | `action.person-only-refuses` | must | action | Covered | Covered | Not yet | Not yet |
