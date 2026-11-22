@@ -1,0 +1,1 @@
+- Fix: X-ray's `cli.optional-args` rule no longer flags an optional word shown bare in usage when a `| --flag` alternative, a separate usage line, or the schema's declared replacing flag already covers its absence.
