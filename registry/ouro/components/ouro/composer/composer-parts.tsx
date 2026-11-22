@@ -3,7 +3,7 @@
 import { $isCodeNode, CodeNode } from "@lexical/code-core";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
 import { $isListItemNode, ListItemNode, ListNode, registerList } from "@lexical/list";
-import { $convertFromMarkdownString, $convertToMarkdownString, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type Transformer } from "@lexical/markdown";
+import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
 import { $createParagraphNode, $getRoot, $isLineBreakNode, $getSelection, $isRangeSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type LexicalEditor, type TextFormatType } from "lexical";
@@ -148,6 +148,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       registerRichText(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
       registerList(editor),
+      registerMarkdownShortcuts(editor, transformers),
       // Enter sends, so Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, and each leaves from an empty one.
       editor.registerCommand(INSERT_LINE_BREAK_COMMAND, () => leaveOrContinueBlock(editor), COMMAND_PRIORITY_HIGH),
       // A caret is placed only when the box takes focus, so that loading it never moves focus.
