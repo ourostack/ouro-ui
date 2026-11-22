@@ -104,7 +104,7 @@ export interface ComposerOwnProps {
   defaultValue?: string | undefined;
   /**
    * Which conversation this box writes to, such as its id. An uncontrolled composer starts over from `defaultValue` when it
-   * changes, so a draft never follows the person into another conversation; a controlled one is the app's to reset.
+   * changes, so a draft stays in its own conversation; a controlled one is the app's to reset.
    */
   conversation?: string | undefined;
   /** Called with the new text when it changes. */
