@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, matchesGlob } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { changedLines, dryRunMinutes, inScope, mutationRunners, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { changedLines, dryRunMinutes, inScope, mutationRunners, HEAVY_TEST_SECONDS, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, inOtherShard, isClassList, testPhases } from "./mutation/plugins.mjs";
@@ -563,6 +563,16 @@ test("shardUnits cuts a file in hangRates into parts of a few mutants, inside a 
   assert.ok(Math.max(...parts.map((unit) => unit.mutants)) <= 4);
   const plain = shardUnits({ "registry/ouro/components/ouro/big/big.tsx": [[1, 16]] }, { read: () => text, testsFor: () => ({ own: ["big.test.tsx"], wider: [] }) });
   assert.equal(Object.keys(plain).length, 1);
+});
+
+test("shardUnits cuts a file whose own tests are slow into parts of a few mutants, so one short range of them cannot outrun the job limit", () => {
+  const file = "registry/ouro/components/ouro/heavy/heavy-parts.tsx";
+  const text = ["export function heavy(a) {", ...Array.from({ length: 7 }, (_, index) => `  const v${index} = a > ${index} && a < ${index + 9};`), "}"].join("\n");
+  const own = { read: () => text, testsFor: () => ({ own: ["heavy.test.tsx"], wider: [] }) };
+  const slow = shardUnits({ [file]: [[2, 8]] }, { ...own, seconds: { "heavy.test.tsx": HEAVY_TEST_SECONDS } });
+  const quick = shardUnits({ [file]: [[2, 8]] }, { ...own, seconds: { "heavy.test.tsx": HEAVY_TEST_SECONDS - 1 } });
+  assert.ok(Math.max(...Object.values(slow).filter((unit) => !unit.parts).map((unit) => unit.mutants)) <= 4);
+  assert.ok(Math.max(...Object.values(quick).filter((unit) => !unit.parts).map((unit) => unit.mutants)) > 4);
 });
 
 test("scopeReport and inScope drop the mutants of lines another shard owns, so a spanning unit reports only its own", () => {
