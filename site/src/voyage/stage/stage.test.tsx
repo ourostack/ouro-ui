@@ -422,6 +422,18 @@ describe("the console's instruments", () => {
     }
   });
 
+  it("keeps the Dive button inside the ballast panel at the widths where the console is narrowest", async () => {
+    for (const width of [1080, 1100, 1112, 1118]) {
+      await page.viewport(width, 900);
+      await renderPage("/");
+      const dive = document.querySelector<HTMLElement>(".stage-dive button")!.getBoundingClientRect();
+      const panel = document.querySelector<HTMLElement>(".stage-ballast")!.getBoundingClientRect();
+      expect(dive.right, `at ${width}px Dive runs past the panel's right edge`).toBeLessThanOrEqual(panel.right);
+      expect(dive.left).toBeGreaterThanOrEqual(panel.left);
+      await cleanupPage();
+    }
+  });
+
   it("are the porthole's brass and glass in every look: brass bezels on the sight glasses, a brass pipe and a brass-rimmed lamp", async () => {
     await renderPage("/");
     const context = document.createElement("canvas").getContext("2d")!;
