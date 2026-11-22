@@ -2,11 +2,13 @@
 
 # ax-xray
 
-The Ouro AX conformance checker: it calls a CLI, an HTTP API or an MCP server the way an agent would, and reports which claims hold on which surface, with the fix where a claim does not hold. It checks from outside, never by importing the interface's code. Reads run freely; what other people see is called only on paths that must refuse (a made-up target, no `--why`) or that act on nothing (`--dry-run`), and only against a target that proves it is a mock.
+The Ouro AX conformance checker: it calls a CLI, an HTTP API, an MCP server or a harness's in-turn tools the way an agent would, and reports which claims hold on which surface, with the fix where a claim does not hold. It checks from outside, never by importing the interface's code. Reads run freely; what other people see is called only on paths that must refuse (a made-up target, no `--why`) or that act on nothing (`--dry-run`), and only against a target that proves it is a mock.
 
 ```sh
-node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<command>"] [options]
+node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<command>"] [--tools "<command>"] [options]
 ```
+
+In-turn tools are the tools a harness gives a model inside a turn. `--tools` runs a command that serves them over stdio, one JSON-RPC message a line: `tools/list` answers `{ tools: [{ type: "function", function: { name, description, parameters }, ax: { effect, when, errors: [{ code, means, fix }], confirm? } }], errors? }`, where the top-level `errors` are the cards of the dispatcher's shared codes, and `tools/call` (`{ name, arguments }`) answers the call's typed outcome, `{ state, text, code? }`: `state` is an ax-outcome state, `text` is what the model reads, and `code` is the error card's code when it was not done.
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.446
@@ -69,13 +71,14 @@ function harvest(value: unknown, samples: Record<string, string>, key?: string |
 
 ### `Inventory`
 
-The surfaces an adopter generates from its own registration: CLI command names, HTTP `METHOD /path` routes, MCP tool names, and its components' bound reads and actions (`ui`, the entries `bindAx` returns), whose twins it checks.
+The surfaces an adopter generates from its own registration: CLI command names, HTTP `METHOD /path` routes, MCP tool names, in-turn tool names (`tools`), and its components' bound reads and actions (`ui`, the entries `bindAx` returns), whose twins it checks.
 
 ```ts
 interface Inventory {
   cli?: string[];
   http?: string[];
   mcp?: string[];
+  tools?: string[];
   ui?: UiEntry[];
 }
 ```
@@ -158,7 +161,7 @@ interface Report {
   checker: { version: string };
   claimSet: { version: string; hash: string };
   at: string;
-  target: { commit: string | null; app?: { name: string }; cli?: { name: string; calls: number; commands: number }; http?: { origin: string; routes: number; requests: number }; mcp?: { tools: number; revision: string } };
+  target: { commit: string | null; app?: { name: string }; cli?: { name: string; calls: number; commands: number }; http?: { origin: string; routes: number; requests: number }; mcp?: { tools: number; revision: string }; tools?: { tools: number } };
   safety: Safety;
   inventory: { given: boolean; surfaces: ClaimSurface[] };
   effects: { surface: string; note: string }[];
@@ -242,14 +245,16 @@ function xray(opts: XrayOptions): Promise<Report>
 
 ### `XRAY_VERSION`
 
-The Ouro AX conformance checker: it calls a CLI, an HTTP API or an MCP server the way an agent would, and reports which claims hold on which surface, with the fix where a claim does not hold. It checks from outside, never by importing the interface's code. Reads run freely; what other people see is called only on paths that must refuse (a made-up target, no `--why`) or that act on nothing (`--dry-run`), and only against a target that proves it is a mock.
+The Ouro AX conformance checker: it calls a CLI, an HTTP API, an MCP server or a harness's in-turn tools the way an agent would, and reports which claims hold on which surface, with the fix where a claim does not hold. It checks from outside, never by importing the interface's code. Reads run freely; what other people see is called only on paths that must refuse (a made-up target, no `--why`) or that act on nothing (`--dry-run`), and only against a target that proves it is a mock.
 
 ```sh
-node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<command>"] [options]
+node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<command>"] [--tools "<command>"] [options]
 ```
 
+In-turn tools are the tools a harness gives a model inside a turn. `--tools` runs a command that serves them over stdio, one JSON-RPC message a line: `tools/list` answers `{ tools: [{ type: "function", function: { name, description, parameters }, ax: { effect, when, errors: [{ code, means, fix }], confirm? } }], errors? }`, where the top-level `errors` are the cards of the dispatcher's shared codes, and `tools/call` (`{ name, arguments }`) answers the call's typed outcome, `{ state, text, code? }`: `state` is an ax-outcome state, `text` is what the model reads, and `code` is the error card's code when it was not done.
+
 ```ts
-const XRAY_VERSION: "1.7.0"
+const XRAY_VERSION: "1.8.0"
 ```
 
 ### `XrayOptions`
@@ -260,6 +265,7 @@ interface XrayOptions {
   http?: string | undefined;
   routes?: string | undefined;
   mcp?: string | undefined;
+  tools?: string | undefined;
   name?: string | undefined;
   env: Record<string, string>;
   guard?: string | undefined;
