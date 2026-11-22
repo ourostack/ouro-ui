@@ -1,0 +1,1 @@
+- Sidebar: a label cut short by the column shows in full as the row's tooltip.

@@ -665,6 +665,7 @@ describe("Sidebar long labels", () => {
     const text = link.querySelector<HTMLElement>("span:last-child")!;
     expect(text.scrollWidth).toBeGreaterThan(text.clientWidth);
     expect(getComputedStyle(text).textOverflow).toBe("ellipsis");
+    expect(text.title).toBe(label);
     const list = getComputedStyle(link.closest("ul")!);
     expect(list.display).toBe("grid");
     expect(list.gridTemplateColumns).toBe(`${link.closest("ul")!.clientWidth}px`);
