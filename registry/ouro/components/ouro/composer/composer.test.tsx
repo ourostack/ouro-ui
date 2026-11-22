@@ -1292,10 +1292,14 @@ describe("Composer formatting", () => {
     const onValueChange = vi.fn();
     const { textarea } = await render(<Composer label="Reply" formatting defaultValue="Ship it today" onValueChange={onValueChange} onSend={() => {}} />);
     textarea.focus();
-    // Selects two characters from `at` as a person does, with Shift and the arrow keys.
-    const select = async (at: number) => {
+    // Selects two characters from `at` as a person does, with Shift and the arrow keys, then holds the
+    // shortcut's modifiers, in one call: a round trip to the real browser is the cost worth cutting, not keystrokes.
+    const selectAndPress = async (at: number, keys: readonly string[]) => {
       textarea.setSelectionRange(at, at);
-      await userEvent.keyboard("{Shift>}{ArrowRight}{ArrowRight}{/Shift}");
+      const held = [mod(), ...keys.slice(0, -1).map((key) => ({ shift: "Shift", alt: "Alt" })[key]!)];
+      await userEvent.keyboard(
+        `{Shift>}{ArrowRight}{ArrowRight}{/Shift}${held.map((key) => `{${key}>}`).join("")}${keys.at(-1)}${held.reverse().map((key) => `{/${key}}`).join("")}`,
+      );
     };
     let before = "";
     for (const [keys, mark] of [
@@ -1305,8 +1309,7 @@ describe("Composer formatting", () => {
       [["alt", "x"], "~~"],
       [["shift", "c"], "`"],
     ] as const) {
-      await select(5);
-      await press(...keys);
+      await selectAndPress(5, keys);
       expect(marked(textarea), mark).toBe(`Ship ${mark}[it]${mark} today`);
       expect(onValueChange).toHaveBeenLastCalledWith(`Ship ${mark}it${mark} today`);
       await undo();
@@ -1315,8 +1318,7 @@ describe("Composer formatting", () => {
       await redo();
       expect(textarea.value, mark).toBe(`Ship ${mark}it${mark} today`);
       // The same key again takes the mark away.
-      await select(5 + mark.length);
-      await press(...keys);
+      await selectAndPress(5 + mark.length, keys);
       expect(marked(textarea), mark).toBe("Ship [it] today");
       before = mark;
     }
