@@ -178,6 +178,7 @@ export interface ComposerOwnProps {
    * `EmojiText` draws as its images. That includes an emoji joined from others and one with a
    * skin tone, which become the catalogue's emoji or tone for it; an emoji the catalogue does
    * not list stays as it is. The caret lands after what went in, and one undo takes it out.
+   * In `format="rich"` the box draws a token as the emoji's picture and the value stays the token.
    *
    * @claim "goes in as its `:shortcode:` token" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer with a catalogue > puts a typed emoji in as its token, with the caret after it, in one step undo takes out)
    * @claim "or pasted goes in as its" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer with a catalogue > puts pasted emoji in as their tokens, including joined and toned ones, and leaves those it does not list)
@@ -248,8 +249,8 @@ export interface ComposerOwnProps {
    * An `Autocomplete` around the composer works as around the plain box, for mentions and emoji
    * shortcodes: `ref` is the editor's element, which answers `value`, `selectionStart` and
    * `selectionEnd` over the text without its marks, and an input method's composition does not pick.
-   * Attachments show as they do on the plain box. In rich mode `highlights`, `catalogue`, `onPaste`
-   * and `pasteText` do not apply, and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
+   * Attachments show as they do on the plain box. In rich mode `highlights`, `onPaste`
+   * and `pasteText` do not apply (`catalogue` does: see its note), and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
    *
    * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
    * @claim "as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code)
@@ -772,6 +773,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           {ActiveEditor ? (
             <ActiveEditor
               handleRef={richRef}
+              catalogue={catalogue}
               label={label}
               value={text}
               onValueChange={change}
