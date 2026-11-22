@@ -1359,6 +1359,7 @@ describe("guides and exports without an item", () => {
     expect(sourceLabel("https://example.com/spec")).toBe("The page at example.com");
     expect(checkLabel("testExists(a/b.test.ts::x > y)")).toBe("A test with this name exists: x > y");
     expect(checkLabel("fileLine(a/b.css, /--x: 1;/)")).toBe("A line matching /--x: 1;/ is in b.css");
+    expect(checkLabel("urlOk(https://github.com/o/r/blob/99491ba2c96f39df5ad36cc7ebbd53b7dabf5064/a.md)")).toBe("The page it cites opens");
     const page = document.createElement("div");
     page.innerHTML = renderToStaticMarkup(<Markdown blocks={parse("Held.[^a]\n\n[^a]: test:a/b.test.ts::it works verify:testExists(a/b.test.ts::it works)")} />);
     expect(page.querySelector("sup")!.className).toContain("ms-1");

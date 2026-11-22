@@ -107,7 +107,7 @@ export function checkLabel(check: string): string {
   const [, kind, args] = call;
   if (kind === "testExists") return `A test with this name exists: ${args!.split("::").pop()}`;
   if (kind === "fileLine") return `A line matching ${args!.slice(args!.indexOf(",") + 1).trim()} is in ${args!.slice(0, args!.indexOf(",")).split("/").pop()}`;
-  if (kind === "urlOk") return `The page at ${args} opens`;
+  if (kind === "urlOk") return "The page it cites opens";
   return check;
 }
 
@@ -133,7 +133,7 @@ function sourceBody(text: string): ReactNode[] {
         <ul className="mt-1 space-y-1">
           {checks.map((check, index) => (
             <li key={index}>
-              <span title={`verify:${check}`} className="[overflow-wrap:anywhere]">{checkLabel(check)}</span>
+              <span title={`verify:${check}`} data-ouro-allow="leaked-value odd-timestamp" data-ouro-allow-why="a check names its test, file or pattern as written" className="[overflow-wrap:anywhere]">{checkLabel(check)}</span>
             </li>
           ))}
         </ul>
