@@ -104,6 +104,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           // Stryker disable next-line ConditionalExpression: a press puts the caret where it landed after this focus, over the end-of-text caret.
           if (!pressed.current) $getRoot().selectEnd();
           pressed.current = false;
+          // Stryker disable next-line BooleanLiteral: no other focus handler is registered, so whether this one stops the chain changes nothing.
           return false;
         },
         COMMAND_PRIORITY_HIGH,
@@ -114,6 +115,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         (event) => {
           const data = (event as ClipboardEvent).clipboardData;
           const selection = $getSelection();
+          // Stryker disable next-line BooleanLiteral: with no clipboard text or caret, the handlers after this one have nothing to insert either way.
           if (!data || !$isRangeSelection(selection)) return false;
           event.preventDefault();
           selection.insertRawText(data.getData("text/plain"));

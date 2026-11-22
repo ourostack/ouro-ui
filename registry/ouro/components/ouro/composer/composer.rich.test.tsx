@@ -221,6 +221,14 @@ describe("Composer rich mode", () => {
     expect(editor.textContent).toBe("kept");
   });
 
+  it("focuses the box at mount with autoFocus, caret after the text, and renders no hidden input without a name", async () => {
+    const { host, editor } = await render(rich({ defaultValue: "ab", autoFocus: true }));
+    await expect.poll(() => document.activeElement).toBe(editor);
+    await userEvent.keyboard("!");
+    await expect.poll(() => editor.textContent).toBe("ab!");
+    expect(host.querySelector('input[type="hidden"]')).toBeNull();
+  });
+
   it("takes no input once it is disabled alone, or read-only alone, and takes it again when neither is set", async () => {
     const beforeInput = () => new InputEvent("beforeinput", { inputType: "insertText", data: "z", bubbles: true, cancelable: true });
     const { editor, rerender } = await render(rich({}));
