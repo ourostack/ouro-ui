@@ -977,6 +977,31 @@ describe("Composer expanded", () => {
     expect(onSend).toHaveBeenCalledWith("Hi @ma", expect.anything());
   });
 
+  it("gives a rich composer's editor the combobox attributes of an open and a closed suggestion list", async () => {
+    const { host } = await render(
+      <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "mara", label: "Mara Quill" }] }]}>
+        <Composer label="Reply rich" format="rich" onSend={() => {}} />
+      </Autocomplete>,
+    );
+    const find = () => host.querySelector<HTMLElement>("[data-ouro-composer-editor]");
+    await expect.poll(find).not.toBeNull();
+    const box = find()!;
+    expect(box.getAttribute("role")).toBe("combobox");
+    expect(box.getAttribute("aria-expanded")).toBe("false");
+    expect(box.getAttribute("aria-autocomplete")).toBe("list");
+    expect(box.hasAttribute("aria-controls")).toBe(false);
+    expect(box.hasAttribute("aria-activedescendant")).toBe(false);
+    box.focus();
+    await userEvent.keyboard("Hi @ma");
+    await expect.poll(() => box.getAttribute("aria-expanded")).toBe("true");
+    expect(document.getElementById(box.getAttribute("aria-controls")!)?.getAttribute("role")).toBe("listbox");
+    await expect.poll(() => box.getAttribute("aria-activedescendant")).toMatch(/\S/);
+    expect(document.getElementById(box.getAttribute("aria-activedescendant")!)?.getAttribute("role")).toBe("option");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => box.getAttribute("aria-expanded")).toBe("false");
+    expect(box.hasAttribute("aria-controls")).toBe(false);
+  });
+
   it("keeps the text, focus and the caret when it expands and collapses", async () => {
     const { textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
     textarea.focus();
