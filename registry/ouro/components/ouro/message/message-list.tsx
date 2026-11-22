@@ -1956,6 +1956,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // in, as a scroll the page makes in that frame (a scrollbar, a jump) is none of the wheel's, and with no scrollend after it
       // would keep the place held by drawing for good. The list's own write is none of the wheel's, and leaves the turn's start.
       if (scroller.scrollTop !== ownTop.current) {
+        if (event.isTrusted && ended) endSoon();
         if (event.isTrusted && "onscrollend" in scroller && wheelStarts && performance.now() - wheelAt < WHEEL_START) wheelScrolling = true;
         wheelStarts = false;
       }
@@ -1969,10 +1970,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
       setShowJump(!pinned.current);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
-    const onScrollEnd = () => void (wheelScrolling = false);
+    // A loaded machine sends `scrollend` between the parts of one long wheel scroll: the wheel stops counting as turning only
+    // once no scroll has followed for the rest, so the carry is not paid into a scroll that goes on.
+    let ended = 0;
+    const endSoon = () => {
+      clearTimeout(ended);
+      ended = window.setTimeout(() => ((ended = 0), (wheelScrolling = false)), WHEEL_REST);
+    };
+    const onScrollEnd = endSoon;
     scroller.addEventListener("scrollend", onScrollEnd);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
+    return () => (scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,

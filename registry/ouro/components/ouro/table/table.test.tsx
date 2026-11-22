@@ -792,6 +792,20 @@ describe("Table sorting", () => {
 });
 
 describe("Table parts", () => {
+  it("keeps the row link on the row header when a plain cell comes before it", async () => {
+    await render(
+      <Table caption="Pantry">
+        <TableBody>
+          <TableRow href="#flour">
+            <TableCell>2 kg</TableCell>
+            <TableCell rowHeader>Flour</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    await expect.element(page.getByRole("link", { name: "Flour" })).toHaveAttribute("href", "#flour");
+  });
+
   it("builds the same table from parts, with a linked row and a footer", async () => {
     const { table } = await render(
       <Table caption="Pantry" striped>
@@ -873,6 +887,28 @@ describe("Table parts", () => {
     expect(warn).toHaveBeenCalledWith('[ouro-ui] TableRoot: "bg-muted" sets appearance, and className is for layout only. Fix: put the table inside a <Card> for a frame.');
     await render(<TableRoot {...({ children: null } as unknown as Parameters<typeof TableRoot>[0])} />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] TableRoot: caption is required; it names the table. Fix: <TableRoot caption="Pantry">, with hideCaption when a heading already shows it.');
+  });
+
+  it("leaves a link of the app's own in the row header unwrapped, so no link nests in another and the server HTML parses to the client's", () => {
+    const node = (
+      <Table caption="Pantry">
+        <TableBody>
+          <TableRow href="#flour">
+            <TableCell rowHeader>
+              <a href="#own">Flour</a>
+            </TableCell>
+            <TableCell>
+              <span data-kind="said">Pain</span>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(node);
+    expect(host.querySelectorAll("a")).toHaveLength(1);
+    expect(host.querySelector("th a")!.getAttribute("href")).toBe("#own");
+    expect(host.querySelector("td span[data-kind]")!.textContent).toBe("Pain");
   });
 
   it("warns when the row link would hold a control, or has no text to name it", async () => {
