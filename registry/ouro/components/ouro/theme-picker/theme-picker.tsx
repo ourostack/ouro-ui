@@ -110,10 +110,10 @@ const squareClass =
 /** A look's wordmark: its name in its heading face and ink, on its paper, ending in a square of its primary. */
 function Wordmark({ preset, size }: { preset: ThemePreset; size: keyof typeof tileSizes }): JSX.Element {
   return (
-    <span aria-hidden="true" data-theme={preset.theme ?? preset.name} data-preset={preset.name} data-ouro-squircle="" className={cn(tileClass, tileSizes[size])}>
+    <span aria-hidden="true" data-slot="theme-picker-wordmark" data-theme={preset.theme ?? preset.name} data-preset={preset.name} data-ouro-squircle="" className={cn(tileClass, tileSizes[size])}>
       <span data-ouro-surface="" style={{ zIndex: -1 }} />
-      <span className={nameClass}>{preset.label}</span>
-      <span data-ouro-squircle="" className={squareClass}>
+      <span data-slot="theme-picker-name" className={nameClass}>{preset.label}</span>
+      <span data-slot="theme-picker-square" data-ouro-squircle="" className={squareClass}>
         <span data-ouro-surface="" style={{ zIndex: -1 }} />
       </span>
     </span>
@@ -167,12 +167,13 @@ function Looks({
     roving.onKeyDown(event);
   };
   return (
-    <div className={cn("grid gap-2", pageTokens)}>
-      <div role="group" aria-label={label} onKeyDown={keyDown} className="flex flex-wrap gap-x-2 gap-y-2.5 p-1">
+    <div data-slot="theme-picker-looks" className={cn("grid gap-2", pageTokens)}>
+      <div data-slot="theme-picker-group" role="group" aria-label={label} onKeyDown={keyDown} className="flex flex-wrap gap-x-2 gap-y-2.5 p-1">
         {presets.map((item) => (
           <button
             key={item.name}
             type="button"
+            data-slot="theme-picker-option"
             data-ouro-control="theme-picker"
             data-ouro-part="preset"
             data-preset={item.name}
@@ -192,8 +193,8 @@ function Looks({
         ))}
       </div>
       {describe && chosen ? (
-        <p className="m-0 text-sm text-muted-foreground">
-          <strong className="me-1 font-semibold text-foreground">{chosen.label}</strong>
+        <p data-slot="theme-picker-description" className="m-0 text-sm text-muted-foreground">
+          <strong data-slot="theme-picker-description-name" className="me-1 font-semibold text-foreground">{chosen.label}</strong>
           {chosen.mood}
         </p>
       ) : null}
@@ -203,24 +204,25 @@ function Looks({
 
 function Chevron(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-ouro-3_5 opacity-60">
+    <svg aria-hidden="true" data-slot="theme-picker-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-ouro-3_5 opacity-60">
       <path d="m4.5 6.5 3.5 3.5 3.5-3.5" />
     </svg>
   );
 }
 
 /** A phone, or any touch screen. */
+// Stryker disable next-line StringLiteral: the popover's modality on a touch screen is the site's end-to-end tests' to check, in a real phone-sized browser.
 const TOUCH = "(pointer: coarse), (width < 40rem)";
 
-const sizesKnown: readonly string[] = ["md", "lg"];
-const presentationsKnown: readonly string[] = ["inline", "popover"];
+const sizesKnown: readonly (string | undefined)[] = ["md", "lg"];
+const presentationsKnown: readonly (string | undefined)[] = ["inline", "popover"];
 
 function ThemePickerView(
   props: ThemePickerProps & { chosen: string; choose: (name: string, event: MouseEvent<HTMLButtonElement>) => void; preview: (name: string | null) => void },
 ): JSX.Element {
   const { presets, label = "Theme", describe = false, size: sizeProp, presentation: presentationProp, children, className, ref, chosen, choose, preview } = props;
-  const presentation: ThemePickerPresentation = presentationProp !== undefined && presentationsKnown.includes(presentationProp) ? (presentationProp as ThemePickerPresentation) : "inline";
-  const size: ThemePickerSize = sizeProp !== undefined && sizesKnown.includes(sizeProp) ? (sizeProp as ThemePickerSize) : presentation === "popover" ? "md" : "lg";
+  const presentation: ThemePickerPresentation = presentationsKnown.includes(presentationProp) ? (presentationProp as ThemePickerPresentation) : "inline";
+  const size: ThemePickerSize = sizesKnown.includes(sizeProp) ? (sizeProp as ThemePickerSize) : presentation === "popover" ? "md" : "lg";
   useAppearanceClassNameCheck(
     "ThemePicker",
     className,
@@ -241,29 +243,30 @@ function ThemePickerView(
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // Stryker disable next-line BooleanLiteral: the server default feeds only the hydration render, which draws the same closed popover either way.
   const touch = useMediaQuery(TOUCH, false);
   const popup = useRef<HTMLDivElement>(null);
   const looks = <Looks presets={presets} value={chosen} choose={choose} label={label} size={size} describe={describe} preview={preview} />;
   if (presentation === "inline") {
     return (
-      <div ref={ref} data-ouro="theme-picker" data-presentation="inline" className={cn("grid", className)}>
+      <div ref={ref} data-slot="theme-picker" data-ouro="theme-picker" data-presentation="inline" className={cn("grid", className)}>
         {looks}
       </div>
     );
   }
   const current = presets.find((item) => item.name === chosen);
   return (
-    <div ref={ref} data-ouro="theme-picker" data-presentation="popover" className={cn("inline-flex", pageTokens, className)}>
+    <div ref={ref} data-slot="theme-picker" data-ouro="theme-picker" data-presentation="popover" className={cn("inline-flex", pageTokens, className)}>
       {/* Modal on a touch screen, where a tap outside closes it without also pressing whatever lies under the tap. */}
       <PopoverRoot modal={touch}>
         <PopoverTrigger
           render={
-            <Button variant="soft" tone="secondary" size="sm" data-ouro-control="theme-picker" data-ouro-part="trigger" className="gap-ouro-2 ps-ouro-1 pe-ouro-2">
+            <Button variant="soft" tone="secondary" size="sm" data-slot="theme-picker-trigger" data-ouro-control="theme-picker" data-ouro-part="trigger" className="gap-ouro-2 ps-ouro-1 pe-ouro-2">
               {/* Every look's wordmark and name, the chosen one shown, so a page's own head script can show the kept one before hydration (data-shows). */}
               {presets.map((item) => (
                 <span key={item.name} data-shows={item.name} hidden={item !== current}>
                   <Wordmark preset={item} size="sm" />
-                  <span className="sr-only">
+                  <span data-slot="theme-picker-trigger-label" className="sr-only">
                     {label}: {item.label}
                   </span>
                 </span>
@@ -276,7 +279,7 @@ function ThemePickerView(
           <PopoverPositioner side="bottom" align="end">
             {/* Flat: a page hairline and no shadow, so nothing in the picker is blurred. */}
             {/* It focuses the panel itself as it opens, and Tab reaches the chosen look: the panel is not yet placed on the frame focus moves in, so focusing a look there scrolled the page to the unplaced panel. */}
-            <PopoverPopupUnchecked ref={popup} initialFocus={popup} className={cn("w-auto max-w-[min(22rem,var(--available-width))] gap-3 p-3 shadow-none", pageTokens)}>
+            <PopoverPopupUnchecked data-slot="theme-picker-content" ref={popup} initialFocus={popup} className={cn("w-auto max-w-[min(22rem,var(--available-width))] gap-3 p-3 shadow-none", pageTokens)}>
               <PopoverTitle visuallyHidden>{label}</PopoverTitle>
               {looks}
               {children}
@@ -294,18 +297,15 @@ function ThemePickerView(
  */
 function usePagePreview(chosen: string, onPreviewChange: ThemePickerProps["onPreviewChange"]): (name: string | null) => void {
   const kept = useRef(chosen);
-  const showing = useRef(false);
   useEffect(() => {
     kept.current = chosen;
   }, [chosen]);
   useEffect(
-    () => () => {
-      if (showing.current) document.documentElement.setAttribute("data-theme", kept.current);
-    },
+    () => () => document.documentElement.setAttribute("data-theme", kept.current),
+    // Stryker disable next-line ArrayDeclaration: the cleanup reads the kept look from a ref, so running it more often puts back the same look.
     [],
   );
   return (name) => {
-    showing.current = name !== null;
     document.documentElement.setAttribute("data-theme", name ?? kept.current);
     onPreviewChange?.(name);
   };

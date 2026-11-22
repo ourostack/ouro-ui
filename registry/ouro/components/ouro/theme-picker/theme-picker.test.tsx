@@ -161,6 +161,41 @@ describe("ThemePicker", () => {
     expect(html.getAttribute("data-theme")).toBe("dusk");
   });
 
+  it("previews nothing for a finger, whose pointerenter comes with the tap, or for focus that is not the keyboard's", async () => {
+    const el = await render(<ThemePicker presets={three} />);
+    option(el, "dusk").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "touch" }));
+    option(el, "dusk").dispatchEvent(new PointerEvent("pointerenter", { pointerType: "touch" }));
+    option(el, "abyss").dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await act(async () => {});
+    expect(html.getAttribute("data-theme")).toBe("pearl");
+  });
+
+  it("keeps a preview through keys other than Escape", async () => {
+    const el = await render(<ThemePicker presets={three} />);
+    await pressTab();
+    await userEvent.hover(option(el, "dusk"));
+    await expect.poll(() => html.getAttribute("data-theme")).toBe("dusk");
+    await userEvent.keyboard("a");
+    expect(html.getAttribute("data-theme")).toBe("dusk");
+    await userEvent.keyboard("{Escape}");
+    expect(html.getAttribute("data-theme")).toBe("pearl");
+  });
+
+  it("previews safely when the app keeps the choice and asks for no preview", async () => {
+    const errors: unknown[] = [];
+    const onError = (event: ErrorEvent) => errors.push(event.error);
+    window.addEventListener("error", onError);
+    try {
+      const el = await render(<ThemePicker presets={three} value="abyss" />);
+      await userEvent.hover(option(el, "dusk"));
+      await userEvent.unhover(option(el, "dusk"));
+      expect(errors).toEqual([]);
+      expect(html.hasAttribute("data-theme")).toBe(false);
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+  });
+
   it("tells the app what to preview when it keeps the choice, and leaves the page alone", async () => {
     const previewed = vi.fn();
     const el = await render(<ThemePicker presets={three} value="abyss" onPreviewChange={previewed} />);
@@ -359,6 +394,30 @@ describe("ThemePicker", () => {
     expect(getComputedStyle(tile(option(md!, "pearl"))).height).toBe("40px");
     expect(getComputedStyle(tile(option(lg!, "pearl"))).height).toBe("44px");
   });
+
+  it("takes either size and either presentation as given, with no warning, and lays the inline row out as a grid", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const el = await render(
+      <>
+        <ThemePicker presets={presets} presentation="inline" size="md" />
+        <ThemePicker presets={presets} presentation="popover" size="lg" storageKey="other" />
+      </>,
+    );
+    const [inline, popover] = [...el.querySelectorAll<HTMLElement>('[data-ouro="theme-picker"]')];
+    expect(getComputedStyle(inline!).display).toBe("grid");
+    expect(getComputedStyle(tile(option(inline!, "pearl"))).height).toBe("40px");
+    expect(warn).not.toHaveBeenCalled();
+    const popup = await openPopover(popover!);
+    expect(getComputedStyle(tile(option(popup, "pearl"))).height).toBe("44px");
+  });
+
+  it("paints each tile and its square on a surface behind its text, with the page's squircle radius to clip it where corner-shape is missing", async () => {
+    const el = await render(<ThemePicker presets={presets} />);
+    const surfaces = [...option(el, "pearl").querySelectorAll<HTMLElement>("[data-ouro-surface]")];
+    expect(surfaces).toHaveLength(2);
+    for (const surface of surfaces) expect(getComputedStyle(surface).zIndex).toBe("-1");
+    expect(getComputedStyle(el.querySelector('[role="group"]')!).getPropertyValue("--ouro-tp-sq").trim()).not.toBe("");
+  });
 });
 
 describe("ThemePicker popover", () => {
@@ -373,6 +432,8 @@ describe("ThemePicker popover", () => {
     expect(shown.map((wordmark) => wordmark.dataset.shows)).toEqual(["dusk"]);
     expect(trigger.textContent).toContain("Theme: Dusk");
     expect(trigger.getAttribute("aria-label")).toBeNull();
+    // The chevron after the wordmark says the button opens something.
+    expect(trigger.querySelector("svg[aria-hidden='true']")).not.toBeNull();
     const popup = await openPopover(el);
     expect(popup.textContent).toContain("Light or dark");
     expect(option(popup, "dusk").getAttribute("aria-pressed")).toBe("true");

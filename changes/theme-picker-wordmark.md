@@ -2,3 +2,4 @@
 - New: `ThemePicker` takes `presentation="popover"` (a button showing the chosen wordmark, with the looks in a flat popover and `children` under them), `size`, `value` and `onValueChange`, and a preset's `theme` to paint it with another look's CSS.
 - New: resting the pointer or keyboard focus on a look in `ThemePicker` repaints the page in it as a preview, and leaving or Escape puts the chosen look back; with `value`, `onPreviewChange` tells the app which look to show.
 - New: `honesty()` in the testing kit finds any gradient, any corner that is not a squircle and any blurred shadow among the elements it is given.
+- New: `ThemePicker`'s parts carry `data-slot` names such as `theme-picker`, `theme-picker-option`, `theme-picker-wordmark`, `theme-picker-trigger` and `theme-picker-content`, for plain CSS to reach.
