@@ -1935,6 +1935,10 @@ test("the ci check requires the attribution job, which checks a pull request's c
   // Cheap: no install, and every commit without its trees, so any range reads.
   assert.doesNotMatch(block, /pnpm|npm |npx /);
   assert.match(block, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 0\n {10}filter: tree:0\n/);
+  // The partial clone fetches trees lazily while the log reads them, so the script tries its log again rather than fail on one dropped connection.
+  const attribution = readFileSync(new URL("./attribution.mjs", import.meta.url), "utf8");
+  assert.match(attribution, /LOG_TRIES = \d+;/);
+  assert.match(attribution, /if \(attempt >= LOG_TRIES\) throw error;/);
   const step = block.slice(block.search(/^ {6}- name: No AI attribution\n/m));
   for (const [name, value] of [["EVENT", "github.event_name"], ["BASE_REF", "github.base_ref"], ["PR_HEAD", "github.event.pull_request.head.sha"], ["QUEUE_BASE", "github.event.merge_group.base_sha"], ["QUEUE_HEAD", "github.event.merge_group.head_sha"]]) {
     assert.match(step, new RegExp(`^ {10}${name}: \\$\\{\\{ ${value.replace(/\./g, "\\.")} \\}\\}$`, "m"));
