@@ -104,6 +104,17 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     return () => observer.disconnect();
   }, []);
 
+  // A control scrolled into view below the stage can leave it before the browser's own intersection
+  // callback has had a turn to fire: that callback is never synchronous with the scroll, only queued
+  // after it, so offscreenRef can still read false for a frame or more past the true geometry. Read
+  // the stage's own rectangle instead, which needs no callback to land first.
+  const isOffscreen = (element: HTMLElement): boolean => {
+    const rect = element.getBoundingClientRect();
+    const viewHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewWidth = window.innerWidth || document.documentElement.clientWidth;
+    return rect.bottom <= 0 || rect.top >= viewHeight || rect.right <= 0 || rect.left >= viewWidth;
+  };
+
   // A screen too slow to swim the fish (frames over 100 ms apart, as on a machine drawing without its GPU) gets still water:
   // the speed goes to Stop, which its control shows, and Half or Full sets them swimming again. Moving fish there hold the
   // page between frames, so a press anywhere lands late. Judged once a visit, on the middle gap of a second of frames (so
@@ -135,7 +146,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       let start = 0;
       let last = 0;
       const tick = (now: number) => {
-        if (document.hidden || menuOpen() || offscreenRef.current) return;
+        if (document.hidden || menuOpen() || offscreenRef.current || (root.current && isOffscreen(root.current))) return;
         if (last) gaps.push(now - last);
         else start = now;
         last = now;
@@ -146,7 +157,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       // No verdict 2 s after judging starts means the frames never came (under three, or a second's worth, in that
       // time). Twice running, the screen is slow, though it never gets to say so in frames; once could be one long task.
       deadline = window.setTimeout(() => {
-        if (document.hidden || menuOpen() || offscreenRef.current) return;
+        if (document.hidden || menuOpen() || offscreenRef.current || (root.current && isOffscreen(root.current))) return;
         cancelAnimationFrame(frame);
         if (starved) verdict(true);
         else {
