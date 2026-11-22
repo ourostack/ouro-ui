@@ -29,5 +29,5 @@ test("a changed claim set goes first, and the ones before it stay", () => {
   assert.deepEqual(next.sets[0], currentClaimSet());
   assert.deepEqual(next.sets.slice(1), old.sets);
   assert.deepEqual(withCurrent(next), next, "the current set is listed once");
-  assert.deepEqual(check(old), [`registry/ouro/ax/claim-sets.json doesn't list Ouro AX's claim set ${CLAIM_SET.version} (${claimSetHash().slice(0, 12)}) first. Fix: node scripts/ax-claim-sets.mjs --write`]);
+  assert.deepEqual(check(old), [`scripts/ax-claim-sets.json doesn't list Ouro AX's claim set ${CLAIM_SET.version} (${claimSetHash().slice(0, 12)}) first. Fix: node scripts/ax-claim-sets.mjs --write`]);
 });

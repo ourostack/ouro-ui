@@ -805,7 +805,7 @@ function claimSetGh(dir, runs, calls = []) {
       calls.push(line);
       return UI_RELEASES.map((release) => JSON.stringify({ tag: release.tag, at: release.at, url: `https://example.test/r/${release.tag}` })).join("\n");
     }
-    const ref = /contents\/registry\/ouro\/ax\/claim-sets\.json\?ref=(v[\d.]+)/.exec(line);
+    const ref = /contents\/scripts\/ax-claim-sets\.json\?ref=(v[\d.]+)/.exec(line);
     if (ref) {
       calls.push(line);
       const release = UI_RELEASES.find((item) => item.tag === ref[1]);
@@ -867,7 +867,7 @@ test("a claim set can't be checked when Ouro UI's latest release can't be read o
     assert.equal(mustPasses(unread), false);
     assert.deepEqual(unread.value.claimSetProblems, ["Ouro UI's latest release couldn't be read (boom), so ax-xray mcp's claim set can't be checked"]);
     const old = measureXray(context, mcpOnly, { web: { repo: "ourostack/ouro-ui", tag: "v1.3.315" } });
-    assert.deepEqual(old.value.claimSetProblems, ["Ouro UI v1.3.315 publishes no claim sets (registry/ouro/ax/claim-sets.json), so ax-xray mcp's claim set can't be checked"]);
+    assert.deepEqual(old.value.claimSetProblems, ["Ouro UI v1.3.315 publishes no claim sets (scripts/ax-claim-sets.json), so ax-xray mcp's claim set can't be checked"]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

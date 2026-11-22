@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Keeps registry/ouro/ax/claim-sets.json: every Ouro AX claim set a release shipped, newest first, with the hash an X-ray
+// Keeps scripts/ax-claim-sets.json: every Ouro AX claim set a release shipped, newest first, with the hash an X-ray
 // report carries. The adoption ledger reads it at Ouro UI's latest release to tell a released claim set from a local
 // or branch build, and how far behind an older one is.
 //
@@ -10,8 +10,8 @@ import { URL, fileURLToPath } from "node:url";
 import { CLAIM_SET } from "../registry/ouro/ax/ax-claims.ts";
 import { claimSetHash } from "../registry/ouro/ax/xray.ts";
 
-export const CLAIM_SETS_PATH = fileURLToPath(new URL("../registry/ouro/ax/claim-sets.json", import.meta.url));
-const SHOWN_PATH = "registry/ouro/ax/claim-sets.json";
+export const CLAIM_SETS_PATH = fileURLToPath(new URL("./ax-claim-sets.json", import.meta.url));
+const SHOWN_PATH = "scripts/ax-claim-sets.json";
 
 /** The current claim set as the file lists it; the release it first ships in is found by the ledger. */
 export const currentClaimSet = () => ({

@@ -335,7 +335,7 @@ const surfacesOf = (report) => [...new Set((report.claims ?? []).map((claim) => 
 
 // ---- A released claim set ----------------------------------------------------------------------------------
 
-const CLAIM_SETS = "registry/ouro/ax/claim-sets.json";
+const CLAIM_SETS = "scripts/ax-claim-sets.json";
 /** The surfaces Ouro AX's claim set covers; an X-ray of other surfaces (App Intents) checks another kit's claim set. */
 const OURO_AX_SURFACES = ["cli", "http", "mcp", "tools", "ui"];
 
