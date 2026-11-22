@@ -451,7 +451,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
       throw error;
     }
   };
-  const published = async (name, version) => (await (fetchImpl ?? fetch)(`https://registry.npmjs.org/${name.replace("/", "%2F")}/${version}`)).ok;
+  const published = async (name, version) => (await (fetchImpl ?? globalThis.fetch)(`https://registry.npmjs.org/${name.replace("/", "%2F")}/${version}`)).ok;
   const newest = [...new Set(behind.map((pin) => pin.follows))].sort().map((follows) => `${NAMES[follows]} ${releases[follows].tag}`);
   const asked = await applyRules(rules, { read, latestRelease, published, releases: newest.join(" and "), newest: releases[behind[0].follows].tag });
   Object.assign(files, asked.files);
