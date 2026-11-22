@@ -89,8 +89,11 @@ describe("home page", () => {
     const blocks = [...host.querySelectorAll<HTMLElement>("pre[data-site-code]")];
     const scrolling = blocks.filter((pre) => getComputedStyle(pre).whiteSpace !== "pre-wrap");
     expect(scrolling.length).toBeGreaterThan(0);
-    for (const pre of scrolling) expect(getComputedStyle(pre).backgroundAttachment).toContain("local");
-    for (const pre of blocks.filter((pre) => getComputedStyle(pre).whiteSpace === "pre-wrap")) expect(getComputedStyle(pre).backgroundImage).toBe("none");
+    for (const pre of scrolling) {
+      expect(pre.parentElement!.hasAttribute("data-site-code-frame")).toBe(true);
+      expect(getComputedStyle(pre.parentElement!, "::before").animationName).toBe("site-code-shade-in");
+    }
+    for (const pre of blocks.filter((pre) => getComputedStyle(pre).whiteSpace === "pre-wrap")) expect(pre.parentElement!.hasAttribute("data-site-code-frame")).toBe(false);
   });
 
   it("moves the commands link to the next line whole, never leaving its last words alone", async () => {

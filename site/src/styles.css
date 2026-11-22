@@ -19,6 +19,44 @@
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+/* A scrolling code block shades the block's padding at each edge that has more code beyond it. The shade is a light veil over padding only, never a gradient behind the text, so contrast stays decidable. */
+@keyframes site-code-shade-in {
+  to { opacity: 1; }
+}
+@keyframes site-code-shade-out {
+  to { opacity: 0; }
+}
+@supports (animation-timeline: scroll()) {
+  [data-site-code-scroller] { scroll-timeline: --site-code-x x; }
+  [data-site-code-frame] { timeline-scope: --site-code-x; }
+  [data-site-code-frame]::before,
+  [data-site-code-frame]::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1rem;
+    pointer-events: none;
+    opacity: 0;
+    animation-fill-mode: both;
+    animation-timing-function: linear;
+    animation-timeline: --site-code-x;
+  }
+  [data-site-code-frame]::before {
+    inset-inline-start: 0;
+    background: linear-gradient(to right, color-mix(in oklab, currentColor 14%, transparent), transparent);
+    animation-name: site-code-shade-in;
+    animation-range: 0 1rem;
+  }
+  [data-site-code-frame]::after {
+    inset-inline-end: 0;
+    background: linear-gradient(to left, color-mix(in oklab, currentColor 14%, transparent), transparent);
+    opacity: 1;
+    animation-name: site-code-shade-out;
+    animation-range: calc(100% - 1rem) 100%;
+  }
+}
+
 :root {
   color-scheme: light;
   --site-code: color-mix(in oklab, var(--muted) 70%, var(--background));

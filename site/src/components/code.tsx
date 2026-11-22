@@ -44,31 +44,24 @@ export function CodeBlock({ code, label, wrap, copy, className }: { code: string
       ) : null}
       {/* Without a label, a Copy button sits in the block's corner and takes the exact code. */}
       {copy && !label ? (
-        <div style={{ position: "absolute", insetInlineEnd: "0.375rem", bottom: "0.375rem" }}>
+        <div style={{ position: "absolute", insetInlineEnd: "0.375rem", bottom: "0.375rem", zIndex: 1 }}>
           <CopyButton text={code} label={label ? `Copy ${label}` : "Copy the code"} />
         </div>
       ) : null}
-      <pre
-        style={{ ...(copy && !label ? { paddingInlineEnd: "5rem" } : null), ...(wrap ? null : scrollEdges) }}
-        data-site-code=""
-        tabIndex={0}
-        className={cn("m-0 overflow-x-auto rounded-xl border border-transparent bg-(--site-code) px-4 py-3.5 font-mono text-sm leading-6 text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
-      >
-        <code>{wrap ? atSlashes(code) : code}</code>
-      </pre>
+      <div data-site-code-frame={wrap ? undefined : ""} className="relative overflow-hidden rounded-xl border border-transparent bg-(--site-code) outline-ring has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2">
+        <pre
+          style={{ ...(copy && !label ? { paddingInlineEnd: "5rem" } : null) }}
+          data-site-code=""
+          data-site-code-scroller={wrap ? undefined : ""}
+          tabIndex={0}
+          className={cn("m-0 overflow-x-auto bg-(--site-code) px-4 py-3.5 font-mono text-sm leading-6 text-foreground outline-none", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
+        >
+          <code>{wrap ? atSlashes(code) : code}</code>
+        </pre>
+      </div>
     </figure>
   );
 }
-
-/** A shadow at each edge that has more code beyond it, so a block that scrolls sideways says so. The cover layers scroll with the code and hide a shadow at its end. */
-const scrollEdges = {
-  backgroundImage:
-    "linear-gradient(to right, var(--site-code), transparent), linear-gradient(to left, var(--site-code), transparent), radial-gradient(farthest-side at 0 50%, color-mix(in oklab, currentColor 22%, transparent), transparent), radial-gradient(farthest-side at 100% 50%, color-mix(in oklab, currentColor 22%, transparent), transparent)",
-  backgroundPosition: "left center, right center, left center, right center",
-  backgroundSize: "1.5rem 100%, 1.5rem 100%, 0.5rem 100%, 0.5rem 100%",
-  backgroundRepeat: "no-repeat",
-  backgroundAttachment: "local, local, scroll, scroll",
-} as const;
 
 /**
  * Wrapped code may break after any "/" that ends a part of an address, as the home page's hand-off does, so a long
