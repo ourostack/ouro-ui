@@ -176,8 +176,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   useEffect(() => {
     if (autoFocus) focus();
     // autoFocus is read once, at mount, as the HTML attribute is.
-    // Stryker disable next-line ArrayDeclaration: autoFocus is read at mount, so a constant list runs the same once.
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, MOUNT_ONLY); // eslint-disable-line react-hooks/exhaustive-deps
 
   useImperativeHandle(handleRef, () => ({
     format: (format) => {

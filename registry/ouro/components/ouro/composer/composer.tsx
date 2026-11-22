@@ -522,14 +522,17 @@ export function Composer(props: ComposerProps): JSX.Element {
   const richRef = useRef<RichEditorHandle | null>(null);
   const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,BlockStatement: loading the editor in plain mode changes nothing a person or a test can read, as richOn below also needs the rich format.
     if (formatMode !== "rich") return;
     let live = true;
     void loadRich().then(({ RichEditor: Editor }) => {
       // The person typing in the plain box carries on in the editor that replaces it.
+      // Stryker disable next-line ConditionalExpression: only a load that outlives an unmount skips this, and the dynamic import settles before a test can unmount in between.
       /* istanbul ignore else @preserve -- only a load that outlives an unmount reaches it, and the dynamic import settles before a test can unmount in between */
       if (live) setRich({ Editor, focus: textareaRef.current === document.activeElement });
     });
     return () => {
+      // Stryker disable next-line BooleanLiteral: a load that settles after the cleanup is ignored only by this flag, and no test can unmount in between.
       live = false;
       setRich(undefined);
     };

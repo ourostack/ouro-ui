@@ -190,6 +190,55 @@ describe("Composer rich mode", () => {
     await act(async () => void editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data })));
     await expect.poll(() => seen.at(-1)).toBe("plain");
     expect(editor.querySelector("strong, b")).toBeNull();
+    const second = new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data });
+    await act(async () => void editor.dispatchEvent(second));
+    expect(second.defaultPrevented).toBe(true);
+  });
+
+  it("leaves the box alone for a paste with no clipboard data, and for one with no caret in it", async () => {
+    const { editor } = await render(rich({ defaultValue: "kept" }));
+    const data = new DataTransfer();
+    data.setData("text/plain", "more");
+    await act(async () => void editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data })));
+    expect(editor.textContent).toBe("kept");
+    editor.focus();
+    await act(async () => void editor.dispatchEvent(new Event("paste", { bubbles: true, cancelable: true })));
+    expect(editor.textContent).toBe("kept");
+  });
+
+  it("takes no input while disabled alone, and none while read-only alone, and again once neither is set", async () => {
+    const beforeInput = () => new InputEvent("beforeinput", { inputType: "insertText", data: "z", bubbles: true, cancelable: true });
+    const { editor, rerender } = await render(rich({ disabled: true }));
+    editor.dispatchEvent(beforeInput());
+    await act(async () => {});
+    expect(editor.textContent).toBe("");
+    await rerender(rich({ readOnly: true }));
+    editor.dispatchEvent(beforeInput());
+    await act(async () => {});
+    expect(editor.textContent).toBe("");
+    await rerender(rich({}));
+    editor.focus();
+    await userEvent.keyboard("a");
+    await expect.poll(() => editor.textContent).toBe("a");
+  });
+
+  it("brings the plain box back, and does not carry old focus into the editor, when format goes plain and rich again", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const at = (format: "plain" | "rich") => <Composer label="Message Mia" format={format} onSend={() => {}} />;
+    await act(async () => root.render(at("plain")));
+    host.querySelector("textarea")!.focus();
+    await act(async () => root.render(at("rich")));
+    await expect.poll(() => host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    await act(async () => root.render(at("plain")));
+    await expect.poll(() => host.querySelector("textarea")).not.toBeNull();
+    (document.activeElement as HTMLElement).blur();
+    await act(async () => root.render(at("rich")));
+    await expect.poll(() => host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    expect(document.activeElement).toBe(document.body);
   });
 
   it("formats and inserts through editorRef, and ignores both in a read-only box", async () => {
