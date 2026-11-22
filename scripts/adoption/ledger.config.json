@@ -362,7 +362,60 @@
           "workflow": "ax-xray.yml",
           "branch": "main"
         }
-      ]
+      ],
+      "census": {
+        "workflow": "ax-xray.yml",
+        "product": "harness",
+        "kinds": [
+          "mcp",
+          "cli",
+          "tool",
+          "approval"
+        ]
+      }
+    },
+    {
+      "id": "shepherd",
+      "name": "Shepherd",
+      "kind": "terminal UI",
+      "repo": "ourostack/ouroboros",
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        },
+        {
+          "label": "Ouro HX (mailbox UI)",
+          "latest": "web",
+          "from": "json",
+          "file": ".github/ouro-hx-installed.json",
+          "key": "tag"
+        }
+      ],
+      "hx": {
+        "kind": "na",
+        "reason": "A terminal UI inside the harness; its Ouro UI pins are the harness's."
+      },
+      "ax": {
+        "search": "shepherd"
+      },
+      "giveBackTerms": [
+        "shepherd"
+      ],
+      "xray": [],
+      "census": {
+        "workflow": "ax-xray.yml",
+        "product": "shepherd",
+        "kinds": [
+          "mcp",
+          "cli",
+          "tool",
+          "approval"
+        ]
+      }
     },
     {
       "id": "desk",
@@ -840,6 +893,27 @@
           "branch": "main"
         }
       ]
+    },
+    {
+      "id": "butler",
+      "name": "Butler",
+      "kind": "agent and CLIs",
+      "repo": "arimendelow/sanctuary.ouro",
+      "privateRepo": true,
+      "scopeNote": "A private repository, so the public ledger can't read it yet. It is counted, so Confirmed can't skip it, and stays unmeasured until its CI publishes a census summary the ledger can read.",
+      "pins": [],
+      "hx": {
+        "kind": "na",
+        "reason": "No web or app UI of its own."
+      },
+      "ax": {
+        "kind": "na",
+        "reason": "Unmeasured while private."
+      },
+      "giveBackTerms": [
+        "sanctuary.ouro"
+      ],
+      "xray": []
     }
   ],
   "program": {

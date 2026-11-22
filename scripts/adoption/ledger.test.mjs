@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { build, configPath, createContext, gaveBack, isCurrent, measureActions, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, censusAtZero, configPath, createContext, gaveBack, isCurrent, measureActions, measureCensus, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
 import { execFileSync } from "node:child_process";
 import { rmSync, writeFileSync } from "node:fs";
 import { scratchDir } from "../scratch.mjs";
@@ -121,17 +121,16 @@ test("a product within a day of every release it lacks is current, and one a day
   assert.equal(isCurrent(measurePins(fresh("v1.2.13"), web, latest)), false, "v1.3.14 has been out for more than a day");
 });
 
-test("a product with no agent interface of its own passes the action and must checks as n/a, not as measured", () => {
+test("a product with no agent interface of its own passes the must check as n/a, not as measured", () => {
   const site = { id: "site", name: "A site", kind: "web site", repo: "org/web", pins: config.surfaces[0].pins, hx: config.surfaces[0].hx, ax: { kind: "na", reason: "A marketing site; no CLI or MCP." }, giveBackTerms: ["spoonjoy-v2"], xray: [] };
   const ledger = build(ctx([]), { ...config, surfaces: [site, { ...config.surfaces[0], id: "web2" }] });
   const [na, web] = ledger.surfaces;
-  assert.equal(na.conditions.oneAction.met, true);
   assert.equal(na.conditions.must.met, true);
   assert.match(na.cells.xray.note, /^n\/a: A marketing site/);
   assert.equal(na.cells.xray.value, null);
-  assert.equal(na.met, 3, "the pin is a day late, so only current fails");
+  assert.equal(na.met, 2, "the pin is a day late, and no census has found the site has no doors");
   assert.equal(web.conditions.must.met, false, "a product that has an agent interface still needs its X-ray");
-  assert.equal(ledger.summary.unmeasuredCells, 1, "only the web app's X-ray: the site's n/a cells are not counted as unmeasured");
+  assert.equal(ledger.summary.unmeasuredCells, 3, "the web app's X-ray and both censuses: the site's n/a X-ray is not counted as unmeasured");
 });
 
 test("a pin that cannot be read is null, never zero", () => {
@@ -459,4 +458,160 @@ test("a pin on a release published after the run read the releases is current, a
   assert.equal(measurePins(pinned("v9.9.9", null), web, latest).value[0].behind, null);
   const pre = measurePins(pinned("v1.3.16", { tag_name: "v1.3.16", published_at: "2099-01-01T00:00:00Z", draft: false, prerelease: true }), web, latest);
   assert.equal(pre.value[0].behind, null, "a prerelease is not a stable release");
+});
+
+// ---- Census at zero ----------------------------------------------------------------------------------------
+
+const CHECKER = "c".repeat(64);
+const HARNESS_KINDS = ["mcp", "cli", "tool", "approval"];
+const censusReport = (overrides = {}, product = {}) => ({
+  ax: "census/1",
+  tool: "ouro-census",
+  checker: { version: "0.1.0", sha256: CHECKER, walkers: [] },
+  target: { repo: "org/cli", ref: "refs/heads/main", commit: "abc123" },
+  at: "2026-11-13T20:00:00Z",
+  ...overrides,
+  products: [{ product: "harness", walked: { kinds: HARNESS_KINDS, finders: [] }, summary: { found: 492, declared: 492, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 3, baseline: 0 }, ...product }],
+});
+
+/** A gh that serves one main run with an `ax-census` artifact holding `report`, and the release's census manifest. */
+function censusGh(dir, report, { manifest = { tool: "ouro-census", version: "0.1.0", checker: CHECKER, files: {} }, artifact = "ax-census", headSha = "abc123", calls = [] } = {}) {
+  execFileSync("mkdir", ["-p", join(dir, "ax-census")]);
+  writeFileSync(join(dir, "ax-census", "census.json"), JSON.stringify(report));
+  writeFileSync(join(dir, "ax-census", "census.txt"), "harness: ...");
+  rmSync(join(dir, "a.zip"), { force: true });
+  execFileSync("zip", ["-q", "-r", "a.zip", "ax-census"], { cwd: dir });
+  const bytes = readFileSync(join(dir, "a.zip"));
+  return (args, { binary } = {}) => {
+    const line = args.join(" ");
+    calls.push(line);
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 7, head_sha: headSha, html_url: "https://example.test/run/7" }] });
+    if (/runs\/7\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 9, name: artifact, expired: false }] });
+    if (/artifacts\/9\/zip/.test(line) && binary) return bytes;
+    if (line.includes("contents/scripts/ouro-census/dist-manifest.json?ref=v1.3.15")) {
+      if (!manifest) throw new Error("gh api: Not Found");
+      return b64(manifest);
+    }
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+}
+
+const censusSurface = { id: "cli", repo: "org/cli", census: { workflow: "ax-xray.yml", product: "harness", kinds: HARNESS_KINDS } };
+const latestWeb = { web: { repo: "ourostack/ouro-ui", tag: "v1.3.15" } };
+const censusOf = (report, options = {}, surface = censusSurface) => {
+  const dir = scratchDir("ledger-census-");
+  try {
+    return measureCensus(createContext({ gh: censusGh(dir, report, options), now: () => NOW, sleep: () => {}, searchGapMs: 0 }), surface, latestWeb);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+};
+
+test("a product's census at zero, from its newest run on main with a released checker, is at zero", () => {
+  const census = censusOf(censusReport());
+  assert.equal(census.value.found, 492);
+  assert.equal(census.value.gaps, 0);
+  assert.deepEqual(census.value.missingKinds, []);
+  assert.equal(census.value.commit, "abc123");
+  assert.equal(census.value.run, "https://example.test/run/7");
+  assert.equal(census.source, "https://example.test/run/7");
+  assert.equal(censusAtZero(census), true);
+});
+
+test("a census with gaps, or one that walks only some of the product's door kinds, is not at zero", () => {
+  const gaps = censusOf(censusReport({}, { summary: { found: 492, declared: 480, weak: 1, undeclared: 9, unwalked: 1, stale: 1, excluded: 3, baseline: 12 } }));
+  assert.equal(gaps.value.gaps, 12);
+  assert.equal(censusAtZero(gaps), false);
+  assert.match(gaps.note, /480 of 492 doors declared; 12 gaps \(1 weak, 9 undeclared, 1 unwalked, 1 stale\)/);
+  const partial = censusOf(censusReport({}, { walked: { kinds: ["mcp", "cli"], finders: [] } }));
+  assert.deepEqual(partial.value.missingKinds, ["tool", "approval"]);
+  assert.equal(censusAtZero(partial), false);
+  assert.match(partial.note, /doesn't walk tool or approval doors yet/);
+  const empty = censusOf(censusReport({}, { summary: { found: 0, declared: 0, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 0, baseline: 0 } }));
+  assert.equal(censusAtZero(empty), false, "a census that finds nothing has nothing at zero");
+});
+
+test("a census report counts only from main at the run's own commit, with a released checker, within a week", () => {
+  const not = (cellValue, pattern) => {
+    assert.equal(cellValue.value, null);
+    assert.match(cellValue.note, pattern);
+    assert.equal(censusAtZero(cellValue), false);
+  };
+  not(censusOf(censusReport({ target: { repo: "org/cli", ref: "refs/pull/4/merge", commit: "abc123" } })), /^not measured: the census ran on refs\/pull\/4\/merge, not main/);
+  not(censusOf(censusReport(), { headSha: "fff999" }), /^not measured: the census reports commit abc123, but its run built fff999/);
+  not(censusOf(censusReport({ checker: { version: "0.1.0", sha256: "d".repeat(64), walkers: [] } })), /^not measured: the census's checker dddddd\S* is not the one Ouro UI v1\.3\.15 released/);
+  not(censusOf(censusReport(), { manifest: null }), /^not measured: Ouro UI v1\.3\.15 has no census manifest/);
+  not(censusOf(censusReport({ at: "2026-11-05T20:00:00Z" })), /^not measured: the newest census is from 2026-11-05, more than 7 days ago/);
+  not(censusOf(censusReport(), { artifact: "xray" }), /^not measured: no ax-census artifact in the latest successful runs on main/);
+  not(censusOf(censusReport({ ax: "census/0" })), /^not measured: the ax-census artifact holds no census\/1 report/);
+  not(censusOf(censusReport(), {}, { ...censusSurface, census: { ...censusSurface.census, product: "shepherd" } }), /^not measured: the census reports no shepherd product yet/);
+  const none = measureCensus(ctx([]), { id: "x", repo: "org/x" }, latestWeb);
+  not(none, /^not measured: no Ouro AX census runs in CI for this product yet/);
+});
+
+test("a product's own walkers are named in the census cell", () => {
+  const census = censusOf(censusReport({ checker: { version: "0.1.0", sha256: CHECKER, walkers: [{ name: "desk-skills", module: "ax/skills.mts", kinds: ["skill"], sha256: "e".repeat(64) }] } }));
+  assert.deepEqual(census.value.productWalkers, ["desk-skills"]);
+  assert.match(census.note, /with the product's own walker desk-skills/);
+});
+
+test("Census at zero replaces actions on the one-action model as a condition, and an n/a product needs a census that finds no doors", () => {
+  const ledger = build(ctx([]), config);
+  assert.equal(ledger.schema, 2, "schema 2 counts the census where schema 1 counted actions, so the site never reads one as the other");
+  const web = ledger.surfaces.find((surface) => surface.id === "web");
+  assert.equal(web.conditions.census.label, "Census at zero");
+  assert.equal(web.conditions.census.met, false);
+  assert.equal("oneAction" in web.conditions, false);
+  assert.match(web.cells.census.note, /^not measured: no Ouro AX census/);
+  assert.equal(web.cells.actions.value, 3, "the actions column stays, as information");
+  const site = { id: "site", name: "A site", kind: "web site", repo: "org/web", pins: config.surfaces[0].pins, hx: config.surfaces[0].hx, ax: { kind: "na", reason: "A marketing site; no CLI or MCP." }, giveBackTerms: [], xray: [] };
+  const naLedger = build(ctx([]), { ...config, surfaces: [site] });
+  assert.equal(naLedger.surfaces[0].conditions.census.met, false, "a written reason alone no longer holds the check");
+  assert.match(naLedger.surfaces[0].cells.census.note, /^not measured: no Ouro AX census/);
+});
+
+test("an n/a product whose census finds no doors holds Census at zero as n/a", () => {
+  const dir = scratchDir("ledger-census-na-");
+  try {
+    const report = censusReport({}, { product: "site", walked: { kinds: HARNESS_KINDS, finders: [] }, summary: { found: 0, declared: 0, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 0, baseline: 0 } });
+    const base = fakeGh();
+    const census = censusGh(dir, report, { headSha: "abc123" });
+    const gh = (args, options) => {
+      const line = args.join(" ");
+      return /actions\/|census/.test(line) && !line.includes("git/trees") ? census(args, options) : base(args, options);
+    };
+    const site = { id: "site", name: "A site", kind: "web site", repo: "org/web", pins: [], hx: { kind: "na", reason: "x" }, ax: { kind: "na", reason: "A marketing site; no CLI or MCP." }, giveBackTerms: [], xray: [], census: { workflow: "ax-xray.yml", product: "site", kinds: HARNESS_KINDS } };
+    const ledger = build(createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 }), { ...config, surfaces: [site] });
+    const [na] = ledger.surfaces;
+    assert.equal(na.conditions.census.met, true);
+    assert.match(na.cells.census.note, /^n\/a: A marketing site; no CLI or MCP\. Its census finds no doors\./);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("Shepherd and the Butler have ledger rows, read from the harness's census and left unmeasured while private", () => {
+  const real = JSON.parse(readFileSync(configPath, "utf8"));
+  const shepherd = real.surfaces.find((surface) => surface.id === "shepherd");
+  assert.equal(shepherd.repo, "ourostack/ouroboros");
+  assert.deepEqual([shepherd.census.workflow, shepherd.census.product], ["ax-xray.yml", "shepherd"]);
+  const butler = real.surfaces.find((surface) => surface.id === "butler");
+  assert.equal(butler.privateRepo, true);
+  assert.notEqual(butler.inScope, false, "counted, so Confirmed can't skip it");
+  const harness = real.surfaces.find((surface) => surface.id === "harness");
+  assert.deepEqual([harness.census.workflow, harness.census.product], ["ax-xray.yml", "harness"]);
+  for (const surface of real.surfaces.filter((item) => item.census)) assert.ok(surface.census.kinds.length > 0, surface.id);
+});
+
+test("a kind only a product's own walker walks counts once that walker's hash is on the reviewed list", () => {
+  const walker = { name: "desk-skills", module: "ax/skills.mts", kinds: ["skill"], sha256: "e".repeat(64) };
+  const report = censusReport({ checker: { version: "0.1.0", sha256: CHECKER, walkers: [walker] } }, { walked: { kinds: [...HARNESS_KINDS, "skill"], finders: [] } });
+  const surface = { ...censusSurface, census: { ...censusSurface.census, kinds: [...HARNESS_KINDS, "skill"] } };
+  const unreviewed = censusOf(report, {}, surface);
+  assert.deepEqual(unreviewed.value.missingKinds, ["skill"]);
+  assert.match(unreviewed.note, /skill doors are walked by desk-skills, whose code eeeeeeeeeeee is not on the reviewed list/);
+  assert.equal(censusAtZero(unreviewed), false);
+  const reviewed = censusOf(report, {}, { ...surface, census: { ...surface.census, reviewed: { "desk-skills": "e".repeat(64) } } });
+  assert.deepEqual(reviewed.value.missingKinds, []);
+  assert.equal(censusAtZero(reviewed), true);
 });

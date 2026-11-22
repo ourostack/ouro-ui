@@ -7,13 +7,13 @@ import type { Ledger, LedgerCell, Previous, Surface } from "./ledger";
  * the check does not apply; anything else is "missing".
  */
 
-export type CheckKey = "current" | "oneAction" | "must" | "gaveBack";
+export type CheckKey = "current" | "census" | "must" | "gaveBack";
 export type CheckState = "met" | "missing" | "unmeasured" | "na";
 
-export const CHECK_KEYS: readonly CheckKey[] = ["current", "oneAction", "must", "gaveBack"];
+export const CHECK_KEYS: readonly CheckKey[] = ["current", "census", "must", "gaveBack"];
 
 /** The column headings: one or two words each, the ledger's own label being the long form. */
-export const CHECK_SHORT: Record<CheckKey, string> = { current: "Current", oneAction: "Actions", must: "AX must", gaveBack: "Gave back" };
+export const CHECK_SHORT: Record<CheckKey, string> = { current: "Current", census: "Census", must: "AX must", gaveBack: "Gave back" };
 
 export const STATE_WORD: Record<CheckState, string> = { met: "passes", missing: "missing", unmeasured: "not measured yet", na: "does not apply" };
 
@@ -65,12 +65,20 @@ function current(surface: Surface): Omit<Check, "key" | "label"> {
   };
 }
 
-function oneAction(surface: Surface): Omit<Check, "key" | "label"> {
-  const cell = surface.cells.actions;
-  if (surface.conditions.oneAction.met) return { state: "met", why: null, source: cell.source };
-  if (cell.value === null) return { state: unmeasuredOrNa(cell), why: reason(cell, "not measured yet"), source: cell.source };
-  // The ledger's note says how it looked; the row needs only the gap, and the link carries the detail.
-  return { state: "missing", why: /not released/i.test(cell.note ?? "") ? reason(cell, "") : "Actions not declared yet", source: cell.source, generic: true };
+const orList = (items: readonly string[]): string => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items.at(-1)}`);
+
+function census(surface: Surface): Omit<Check, "key" | "label"> {
+  const cell = surface.cells.census;
+  if (surface.conditions.census.met) return { state: "met", why: null, source: cell.value?.run ?? cell.source };
+  if (cell.value === null) {
+    // The row needs only the gap when no census runs yet; any other reason (an old checker, a stale report) is particular.
+    const none = !PRIVATE.test(cell.note ?? "") && /no Ouro AX census runs/i.test(cell.note ?? "");
+    return { state: unmeasuredOrNa(cell), why: none ? "No census in CI yet" : unmeasured(cell), source: cell.source, ...(none ? { generic: true } : {}) };
+  }
+  const { found, gaps, missingKinds, run } = cell.value;
+  if (gaps > 0) return { state: "missing", why: `${gaps} of ${plural(found, "door")} without a valid card`, source: run };
+  if (missingKinds.length) return { state: "missing", why: `Doesn't walk ${orList(missingKinds)} doors yet`, source: run };
+  return { state: "missing", why: "The census finds no doors", source: run };
 }
 
 function must(surface: Surface): Omit<Check, "key" | "label"> {
@@ -92,9 +100,9 @@ function gaveBack(surface: Surface): Omit<Check, "key" | "label"> {
   return { state: "missing", why: "Nothing given back yet", source: cell.source, generic: true };
 }
 
-const READERS: Record<CheckKey, (surface: Surface) => Omit<Check, "key" | "label">> = { current, oneAction, must, gaveBack };
+const READERS: Record<CheckKey, (surface: Surface) => Omit<Check, "key" | "label">> = { current, census, must, gaveBack };
 
-const CELL_OF: Record<CheckKey, keyof Surface["cells"]> = { current: "pins", oneAction: "actions", must: "xray", gaveBack: "giveBack" };
+const CELL_OF: Record<CheckKey, keyof Surface["cells"]> = { current: "pins", census: "census", must: "xray", gaveBack: "giveBack" };
 
 /** A check the ledger counts as held because it does not apply (the upstream's give-back, AX on a site with no agent interface). */
 function notApplicable(surface: Surface, key: CheckKey): Omit<Check, "key" | "label"> | null {

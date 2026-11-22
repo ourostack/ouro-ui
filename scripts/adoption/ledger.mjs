@@ -316,14 +316,14 @@ export function measureActions(ctx, surface) {
 
 // ---- X-ray -----------------------------------------------------------------------------------------------
 
-function readArtifactReport(ctx, repo, artifact, tmp) {
-  return ctx.memo(`artifact:${repo}:${artifact.id}`, () => {
+function readArtifactReport(ctx, repo, artifact, tmp, wanted = "report.json") {
+  return ctx.memo(`artifact:${repo}:${artifact.id}:${wanted}`, () => {
     const file = join(tmp, `${artifact.id}.zip`);
     writeFileSync(file, ctx.gh(["api", `repos/${repo}/actions/artifacts/${artifact.id}/zip`], { binary: true }));
     // `report.json` at the artifact's root, or in a folder when the upload named several paths (`xray/report.json`).
-    const names = execFileSync("unzip", ["-Z1", file], { maxBuffer: 16 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] }).toString("utf8").split("\n").filter((name) => /(^|\/)report\.json$/.test(name));
+    const names = execFileSync("unzip", ["-Z1", file], { maxBuffer: 16 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] }).toString("utf8").split("\n").filter((name) => name === wanted || name.endsWith(`/${wanted}`));
     const name = names.sort((a, b) => a.split("/").length - b.split("/").length)[0];
-    if (!name) throw new Error(`artifact ${artifact.name} has no report.json`);
+    if (!name) throw new Error(`artifact ${artifact.name} has no ${wanted}`);
     const out = execFileSync("unzip", ["-p", file, name], { maxBuffer: 256 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] });
     return JSON.parse(out.toString("utf8"));
   });
@@ -396,6 +396,98 @@ export function measureXray(ctx, surface) {
 
 /** AX `must` claims pass in CI: a report exists, has must claims, and every one holds. A claim set with none is vacuous. */
 export const mustPasses = (xrayCell) => Boolean(xrayCell.value) && xrayCell.value.must > 0 && xrayCell.value.mustHolding === xrayCell.value.must;
+
+// ---- Ouro AX census --------------------------------------------------------------------------------------
+
+/** A census report older than this no longer says how the product's doors stand. */
+export const CENSUS_MAX_AGE_DAYS = 7;
+const CENSUS_FILE = "census.json";
+const CENSUS_MANIFEST = "scripts/ouro-census/dist-manifest.json";
+const GAP_KEYS = ["weak", "undeclared", "unwalked", "stale"];
+const orList = (items) => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items.at(-1)}`);
+
+/** The census checker hash Ouro UI's latest web release ships in its manifest. */
+function releasedChecker(ctx, web) {
+  return ctx.memo(`census-manifest:${web.repo}:${web.tag}`, () => {
+    let manifest;
+    try {
+      manifest = JSON.parse(ctx.text(`repos/${web.repo}/contents/${CENSUS_MANIFEST}?ref=${web.tag}`));
+    } catch {
+      throw new Error(`Ouro UI ${web.tag} has no census manifest (${CENSUS_MANIFEST})`);
+    }
+    if (manifest?.tool !== "ouro-census" || typeof manifest.checker !== "string") throw new Error(`Ouro UI ${web.tag}'s ${CENSUS_MANIFEST} names no checker hash`);
+    return manifest.checker;
+  });
+}
+
+/**
+ * A product's Ouro AX census: the `census.json` in the `ax-census` artifact of the newest successful run on main of its
+ * workflow. It counts only when the report is for main at that run's own commit, its checker is the one Ouro UI's
+ * latest release ships (so a product can't weaken a walker and keep reporting), and it is at most a week old.
+ */
+export function measureCensus(ctx, surface, latest) {
+  const census = surface.census;
+  const repo = census?.repo ?? surface.repo;
+  const source = `https://github.com/${repo}/actions`;
+  if (!census) return unmeasured(ctx, "no Ouro AX census runs in CI for this product yet", source);
+  return attempt(ctx, source, () => {
+    const runs = ctx.api(`repos/${repo}/actions/workflows/${census.workflow}/runs?status=success&per_page=3&branch=main`).workflow_runs;
+    const tmp = mkdtempSync(join(tmpdir(), "ouro-adoption-census-"));
+    let found = null;
+    try {
+      for (const run of runs) {
+        const artifact = ctx.api(`repos/${repo}/actions/runs/${run.id}/artifacts?per_page=50`).artifacts.find((item) => !item.expired && item.name === "ax-census");
+        if (!artifact) continue;
+        found = { run, report: readArtifactReport(ctx, repo, artifact, tmp, CENSUS_FILE) };
+        break;
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+    if (!found) throw new Error("no ax-census artifact in the latest successful runs on main");
+    const { run, report } = found;
+    if (report?.ax !== "census/1") throw new Error("the ax-census artifact holds no census/1 report");
+    if (report.target?.ref !== "refs/heads/main") throw new Error(`the census ran on ${report.target?.ref ?? "an unknown ref"}, not main`);
+    if (report.target?.commit !== run.head_sha) throw new Error(`the census reports commit ${short(report.target?.commit)}, but its run built ${short(run.head_sha)}`);
+    const checker = releasedChecker(ctx, latest.web);
+    if (report.checker?.sha256 !== checker) throw new Error(`the census's checker ${String(report.checker?.sha256).slice(0, 12)} is not the one Ouro UI ${latest.web.tag} released (${checker.slice(0, 12)})`);
+    const age = ctx.now().getTime() - new Date(report.at).getTime();
+    if (!(age <= CENSUS_MAX_AGE_DAYS * 86_400_000)) throw new Error(`the newest census is from ${String(report.at).slice(0, 10)}, more than ${CENSUS_MAX_AGE_DAYS} days ago`);
+    const product = (report.products ?? []).find((item) => item.product === census.product);
+    if (!product) throw new Error(`the census reports no ${census.product} product yet`);
+    const summary = product.summary;
+    const gaps = GAP_KEYS.reduce((total, key) => total + (summary[key] ?? 0), 0);
+    // The released checker's hash vouches for its built-in walkers only. A kind a product's own walker walks (a built-in
+    // kind too: the report doesn't say which walker found each door) counts once that walker's code, by its hash, is on
+    // the surface's reviewed list.
+    const walkers = report.checker.walkers ?? [];
+    const reviewed = census.reviewed ?? {};
+    const unreviewed = walkers.filter((walker) => reviewed[walker.name] !== walker.sha256);
+    const productOnly = (kind) => unreviewed.some((walker) => walker.kinds.includes(kind));
+    const walked = (product.walked?.kinds ?? []).filter((kind) => !productOnly(kind));
+    const notWalked = census.kinds.filter((kind) => !(product.walked?.kinds ?? []).includes(kind));
+    const missingKinds = census.kinds.filter((kind) => !walked.includes(kind));
+    const productWalkers = walkers.map((walker) => walker.name);
+    const parts = [`${summary.declared} of ${summary.found} doors declared; ${gaps === 0 ? "no gaps" : `${gaps} gaps (${GAP_KEYS.map((key) => `${summary[key] ?? 0} ${key}`).join(", ")})`}`];
+    if (notWalked.length) parts.push(`it doesn't walk ${orList(notWalked)} doors yet`);
+    for (const walker of unreviewed) {
+      const kinds = walker.kinds.filter((kind) => census.kinds.includes(kind) && productOnly(kind));
+      if (kinds.length) parts.push(`${orList(kinds)} doors are walked by ${walker.name}, whose code ${String(walker.sha256).slice(0, 12)} is not on the reviewed list`);
+    }
+    if (productWalkers.length) parts.push(`with the product's own walker${productWalkers.length === 1 ? "" : "s"} ${productWalkers.join(", ")}`);
+    return cell(
+      ctx,
+      { found: summary.found, declared: summary.declared, gaps, ...Object.fromEntries(GAP_KEYS.map((key) => [key, summary[key] ?? 0])), baseline: summary.baseline ?? 0, walked, missingKinds, productWalkers, checker: report.checker.sha256, commit: report.target.commit, reportAt: report.at, run: run.html_url },
+      { note: `${parts.join("; ")}.`, source: run.html_url },
+    );
+  });
+}
+
+/** Census at zero: the census finds doors, every one is declared with a valid card, and it walks every kind the product has. */
+export const censusAtZero = (censusCell) => Boolean(censusCell.value) && censusCell.value.found > 0 && censusCell.value.gaps === 0 && censusCell.value.missingKinds.length === 0;
+
+/** An n/a product's census holds only when it walks the product and finds no door at all. */
+const censusFindsNothing = (censusCell) => Boolean(censusCell.value) && censusCell.value.found === 0 && censusCell.value.gaps === 0 && censusCell.value.missingKinds.length === 0;
 
 // ---- Give-back -------------------------------------------------------------------------------------------
 
@@ -555,6 +647,7 @@ export function build(ctx, config, { only = null } = {}) {
     let xray;
     let giveBack;
     let actions;
+    let census;
     if (surface.privateRepo) {
       const why = "the repository is private, so a public run cannot read it";
       pins = unmeasured(ctx, why);
@@ -562,24 +655,27 @@ export function build(ctx, config, { only = null } = {}) {
       ax = unmeasured(ctx, why);
       xray = unmeasured(ctx, why);
       actions = unmeasured(ctx, why);
+      census = unmeasured(ctx, why);
     } else {
       pins = measurePins(ctx, surface, latest);
       hx = measureHx(ctx, surface);
       ax = measureAx(ctx, surface, config);
       xray = measureXray(ctx, surface);
       actions = measureActions(ctx, surface);
+      census = measureCensus(ctx, surface, latest);
     }
     giveBack = measureGiveBack(ctx, surface, prs, config);
     for (const pr of giveBack.prs) distinctGiveBack.add(pr.url);
-    // A product with no agent interface of its own (the config's AX is `n/a`, with its reason) has no actions to declare
-    // and nothing for the X-ray to check: those two checks do not apply, as give-back does not apply to the upstream.
+    // A product with no agent interface of its own (the config's AX is `n/a`, with its reason) has nothing for the X-ray
+    // to check, so that check does not apply, as give-back does not apply to the upstream. Census at zero is different:
+    // a written reason is not enough, and the product's own census has to find no doors for it to hold as n/a.
     const axNa = surface.ax.kind === "na" && !surface.privateRepo;
-    const declaredActions = typeof actions.value === "number" && actions.value > 0;
-    if (axNa && !declaredActions) actions = cell(ctx, null, { note: `n/a: ${surface.ax.reason}`, source: actions.source });
     if (axNa && !mustPasses(xray)) xray = cell(ctx, null, { note: `n/a: ${surface.ax.reason}`, source: xray.source });
+    const censusNa = axNa && censusFindsNothing(census);
+    if (censusNa) census = cell(ctx, null, { note: `n/a: ${surface.ax.reason} Its census finds no doors.`, source: census.source });
     const conditions = {
       current: { label: "On current Ouro UI", met: isCurrent(pins) },
-      oneAction: { label: "Actions on the one-action model", met: declaredActions || axNa },
+      census: { label: "Census at zero", met: censusAtZero(census) || censusNa },
       must: { label: "AX must claims pass in CI", met: mustPasses(xray) || axNa },
       gaveBack: { label: "Has given back", met: surface.upstream ? true : gaveBack(giveBack) },
     };
@@ -592,7 +688,7 @@ export function build(ctx, config, { only = null } = {}) {
       url,
       inScope: surface.inScope !== false,
       scopeNote: surface.scopeNote ?? null,
-      cells: { pins, hx, ax, actions, xray, giveBack, tracking },
+      cells: { pins, hx, ax, actions, census, xray, giveBack, tracking },
       conditions,
       met,
       confirmed: met === 4,
@@ -621,7 +717,7 @@ export function build(ctx, config, { only = null } = {}) {
   const order = [...inScope].sort((a, b) => a.met - b.met || (hxRank[a.cells.hx.value] ?? 3) - (hxRank[b.cells.hx.value] ?? 3) || a.name.localeCompare(b.name));
   const generatedAt = ctx.stamp();
   return {
-    schema: 1,
+    schema: 2,
     generatedAt,
     summary: { total: inScope.length, confirmed: inScope.filter((surface) => surface.confirmed).length, listed: surfaces.length, unmeasuredCells: surfaces.reduce((sum, surface) => sum + Object.values(surface.cells).filter(isUnmeasured).length, 0), releasesBehind, late, order: order.map((surface) => surface.id) },
     latest,
