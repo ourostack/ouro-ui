@@ -136,7 +136,8 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
           <Link href={href("/docs/installing/")}>Installing</Link>):
         </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}`} />
-        <Collapsible title="More ways" className="mt-2">
+        <div className="mt-2 bg-background" data-site-more-ways="">
+        <Collapsible title="More ways">
           <div className="grid gap-3 pt-2">
             <Text size="sm" tone="muted">
               Or, with the <Link href={`${href("/")}#install`}>@ouro namespace</Link> set
@@ -158,6 +159,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
             <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease} ourostack/ouro-ui/${item.name}-tests#${latestRelease}`} />
           </div>
         </Collapsible>
+        </div>
         <CodeBlock code={importLine} className="mt-2" />
         <Text size="sm" tone="muted">
           Paths use shadcn's default <InlineCode>@/</InlineCode> alias; the CLI rewrites them to yours.
