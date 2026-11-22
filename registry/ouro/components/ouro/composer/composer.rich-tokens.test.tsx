@@ -171,6 +171,69 @@ describe("Composer rich element reads", () => {
   });
 });
 
+type Control = HTMLElement & { value: string; selectionStart: number; selectionEnd: number; setSelectionRange(start: number, end: number): void; setRangeText(text: string, start: number, end: number): void };
+
+describe("Composer rich element selection", () => {
+  async function document_() {
+    const { host, ...mountedEditor } = await render(<Composer label="Message" format="rich" defaultValue={"ab **cd** ef\n\n- gh\n- ij"} onSend={() => {}} />);
+    const control = mountedEditor.editor as Control;
+    control.focus();
+    await userEvent.keyboard("{Control>}{End}{/Control}");
+    await userEvent.keyboard("{Shift>}{Enter}{/Shift}mn");
+    return { host, control };
+  }
+
+  it("takes any caret or range set by offset back unchanged, across blocks, list items and a line break", async () => {
+    const { control } = await document_();
+    const length = control.value.length;
+    expect(control.value).toBe("ab cd ef\n\ngh\nij\nmn");
+    for (let start = 0; start <= length; start++) {
+      control.setSelectionRange(start, start);
+      expect([start, control.selectionStart, control.selectionEnd]).toEqual([start, start, start]);
+      control.setSelectionRange(start, length);
+      expect([start, control.selectionStart, control.selectionEnd]).toEqual([start, start, length]);
+    }
+    control.setSelectionRange(length + 5, length + 9);
+    expect([control.selectionStart, control.selectionEnd]).toEqual([length, length]);
+  });
+
+  it("puts text where the offsets say, with a range replaced and the caret after it", async () => {
+    const { control } = await document_();
+    control.setRangeText("X", 3, 5);
+    expect(control.value).toBe("ab X ef\n\ngh\nij\nmn");
+    control.setRangeText("YY", 15, 15);
+    expect(control.value).toBe("ab X ef\n\ngh\nij\nYYmn");
+  });
+
+  it("reads a caret the page puts on an element, as the start or end of its line", async () => {
+    const { host, control } = await document_();
+    const paragraph = control.querySelector("p")!;
+    const items = [...control.querySelectorAll("li")];
+    const select = (node: Node, offset: number) => window.getSelection()!.setBaseAndExtent(node, offset, node, offset);
+    select(paragraph, 0);
+    expect(control.selectionStart).toBe(0);
+    select(paragraph, paragraph.childNodes.length);
+    expect(control.selectionStart).toBe(8);
+    select(items[0]!, 0);
+    expect(control.selectionStart).toBe(10);
+    select(items[0]!, items[0]!.childNodes.length);
+    expect(control.selectionStart).toBe(12);
+    select(control, 0);
+    expect(control.selectionStart).toBeGreaterThanOrEqual(0);
+    expect(host.contains(control)).toBe(true);
+  });
+
+  it("announces a change as an input event that is marked to bubble", async () => {
+    const { control } = await document_();
+    const seen: Event[] = [];
+    window.addEventListener("input", (event) => seen.push(event), true);
+    control.setRangeText("Z", 0, 0);
+    expect(control.value.startsWith("Z")).toBe(true);
+    await expect.poll(() => seen.length).toBeGreaterThan(0);
+    expect(seen.every((event) => event instanceof InputEvent && event.type === "input" && event.bubbles)).toBe(true);
+  });
+});
+
 describe("Composer rich attachments", () => {
   it("shows the attachments around a rich box, and keeps sending the Markdown", async () => {
     const onSend = vi.fn();
