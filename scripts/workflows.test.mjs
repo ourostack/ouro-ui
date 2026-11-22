@@ -3671,6 +3671,9 @@ test("the browser shards hold each test to half its timeout: vitest.config.ts ad
   assert.match(ciJobs().plan, /id: changed\n[\s\S]*git diff --name-only HEAD\^1 HEAD[\s\S]*files<<CHANGED_FILES_EOF/);
   assert.match(ciJobs().plan, /changed: \$\{\{ steps\.changed\.outputs\.files \}\}/);
   assert.match(ciJobs().browser, /HEADROOM_CHANGED: \$\{\{ needs\.plan\.outputs\.changed \}\}/);
+  // The full-suite fallback shards scope the same way: without this, a test over half its timeout
+  // in a file the pull request never touched failed the fallback run alone (ourostack/ouro-ui#2928).
+  assert.match(ciJobs()["browser-fallback"], /HEADROOM_CHANGED: \$\{\{ needs\.plan\.outputs\.changed \}\}/);
   // Off a pull request a breach is reported, not failed: the shards upload the list and headroom-report.yml files it in one issue.
   assert.match(ciJobs().browser, /github\.event_name != 'pull_request' \}\}\n\s+uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n\s+with:\n\s+name: headroom-browser-\$\{\{ matrix\.shard \}\}\n\s+path: \.tmp\/headroom\//);
   const report = workflow("headroom-report.yml");
