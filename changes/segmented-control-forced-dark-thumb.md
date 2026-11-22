@@ -1,0 +1,1 @@
+- Fix: SegmentedControl's pressed label stays readable under forced colours in the dark theme, where the thumb now keeps the Highlight fill instead of losing it to the dark tint.
