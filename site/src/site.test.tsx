@@ -151,7 +151,7 @@ describe("home page", () => {
   it("makes the header's theme chip as tall as the header links on a fine pointer", async () => {
     await page.viewport(1280, 800);
     const host = await renderPage("/docs/density/");
-    const chip = host.querySelector("[data-site-theme-trigger]")!.getBoundingClientRect().height;
+    const chip = host.querySelector(".site-theme-picker [data-ouro-part='trigger']")!.getBoundingClientRect().height;
     const heights = [...host.querySelectorAll("[data-ouro='navbar'] li a")].map((a) => a.getBoundingClientRect().height).filter((height) => height > 0);
     expect(heights.length).toBeGreaterThan(0);
     expect(heights).toEqual(heights.map(() => chip));

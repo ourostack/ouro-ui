@@ -1,0 +1,2 @@
+- Changed: `ThemePicker` draws each look as its wordmark, its name in its own heading face and ink on its own paper ending in a square of its primary, with a flat ring on the chosen one; the gradient dots are gone, and `describe` now defaults to off.
+- New: `ThemePicker` takes `presentation="popover"` (a button showing the chosen wordmark, with the looks in a flat popover and `children` under them), `size`, `value` and `onValueChange`, and a preset's `theme` to paint it with another look's CSS.

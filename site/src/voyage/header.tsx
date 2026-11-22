@@ -1,20 +1,9 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
+import { useCallback, useEffect, useState, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { FamilyBar } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { SkipLink } from "@/registry/ouro/components/ouro/skip-link/skip-link";
-import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
-import {
-  PopoverClose,
-  PopoverDescription,
-  PopoverPopup,
-  PopoverPortal,
-  PopoverPositioner,
-  PopoverRoot,
-  PopoverTitle,
-  PopoverTrigger,
-} from "@/registry/ouro/components/ouro/popover/popover-parts";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
@@ -25,10 +14,10 @@ import { HxLogo } from "../components/brand";
 import { FAMILY, FAMILY_CURRENT } from "../family";
 import { GUTTERS } from "../gutters";
 import { href } from "../paths";
-import type { Mode } from "../themes/prepaint";
-import { ByPreset, Swatch } from "./presets";
-import { useLiveClock, useSiteTheme } from "./theme-store";
-import { ThemeDots } from "./theme-dots";
+import type { Mode, ThemeChoice } from "../themes/prepaint";
+import { originOf, useLiveClock, useSiteTheme } from "./theme-store";
+import { PICKER_PRESETS } from "./theme-dots";
+import { ThemePicker as OuroThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { sectionHref, SITE_SECTIONS, SiteMenu, SiteMenuFrame } from "./site-menu";
 import { setXray, useXray } from "./xray-store";
 
@@ -39,76 +28,23 @@ export const MODE_ITEMS = [
   { value: "dark", label: "Submerged" },
 ] as const;
 
-function ChevronIcon(): JSX.Element {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5 opacity-60">
-      <path d="m4.5 6.5 3.5 3.5 3.5-3.5" />
-    </svg>
-  );
-}
-
-/** A phone, or any touch screen: where a tap that closes a popover should press nothing else. */
-const TOUCH = "(pointer: coarse), (width < 40rem)";
-const touchScreen = (changed: () => void) => {
-  const media = matchMedia(TOUCH);
-  media.addEventListener("change", changed);
-  return () => media.removeEventListener("change", changed);
-};
-
 /**
- * Live and the six presets, and Auto, Light or Dark, in a Popover from the header. Built from the
- * Popover parts to focus the panel itself when it opens: the panel is not yet positioned on the
- * frame Base UI moves focus in, so focusing its first button scrolled the page to the popup's
- * unplaced position. Tab reaches the choices from there.
+ * Live and the six presets, and Auto, Light or Dark: Ouro HX's ThemePicker in its popover, whose button shows the chosen
+ * look's wordmark. The head script shows the stored one's wordmark and presses its look before hydration (prepaint.ts).
  */
 export function ThemePicker(): JSX.Element {
-  const { preset, scheme, setMode } = useSiteTheme();
+  const { preset, scheme, setPreset, setMode } = useSiteTheme();
   useLiveClock(preset === "live");
-  const popup = useRef<HTMLDivElement>(null);
-  const touch = useSyncExternalStore(touchScreen, () => matchMedia(TOUCH).matches, () => false);
   return (
-    // Modal on a touch screen: a tap outside closes it without also pressing whatever lies under the tap, which with the
-    // popover across a phone is most of the page. A mouse keeps the page: it scrolls, and a click on a link follows it.
-    <PopoverRoot modal={touch}>
-      <PopoverTrigger
-        render={
-          <Button variant="soft" tone="secondary" size="sm" data-site-theme-trigger="" className="site-theme-trigger sm:h-9">
-            <ByPreset>
-              {(item) => (
-                <span className="inline-flex items-center gap-2">
-                  <Swatch preset={item.name} size="md" />
-                  <span className="max-sm:sr-only">
-                    <span className="sr-only">Theme: </span>
-                    {item.label}
-                  </span>
-                </span>
-              )}
-            </ByPreset>
-            <ChevronIcon />
-          </Button>
-        }
-      />
-      <PopoverPortal>
-        <PopoverPositioner side="bottom" align="end">
-          <PopoverPopup ref={popup} initialFocus={popup} className="w-[24rem] max-w-[calc(100vw-1rem)]">
-            <div className="grid gap-1">
-              <PopoverTitle>Theme</PopoverTitle>
-              <PopoverDescription>
-                {claim("Pick one and the whole ship repaints, down to the last rivet.", {
-                  source: { file: "site/scripts/themes.mts" },
-                  verify: { testExists: "site/scripts/themes.test.mjs::theme files parse into their top-level blocks and refuse anything else" },
-                })}
-              </PopoverDescription>
-            </div>
-            <div className="mt-3 grid gap-4">
-              <ThemeDots label="Themes" size="md" />
-              <SegmentedControl label="Light or dark" fullWidth items={MODE_ITEMS} value={scheme} onValueChange={(value) => setMode(value as Mode | "system")} />
-            </div>
-            <PopoverClose>Close</PopoverClose>
-          </PopoverPopup>
-        </PopoverPositioner>
-      </PopoverPortal>
-    </PopoverRoot>
+    <OuroThemePicker
+      presets={PICKER_PRESETS}
+      presentation="popover"
+      value={preset}
+      onValueChange={(name, event) => setPreset(name as ThemeChoice, originOf(event))}
+      className="site-theme-picker"
+    >
+      <SegmentedControl label="Light or dark" fullWidth items={MODE_ITEMS} value={scheme} onValueChange={(value) => setMode(value as Mode | "system")} />
+    </OuroThemePicker>
   );
 }
 

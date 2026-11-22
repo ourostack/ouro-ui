@@ -63,7 +63,7 @@ async function openers(page: Page, root: string): Promise<string[]> {
     };
     return [...document.querySelectorAll(selector)]
       .flatMap((scope) => [...scope.querySelectorAll("button[aria-haspopup], button[aria-expanded], [role='button'][aria-haspopup], [role='button'][aria-expanded], summary")])
-      .filter((element) => shown(element) && !element.closest("[data-site-theme-trigger]"))
+      .filter((element) => shown(element) && !element.closest(".site-theme-picker [data-ouro-part='trigger']"))
       .filter((element) => !(element.closest("[role='dialog']") && element.matches("[data-ouro-control='collapsible']:not([aria-haspopup])")))
       .map((element) => element.getAttribute("aria-label") ?? element.textContent!.trim());
   }, root);
@@ -351,7 +351,7 @@ test("on a phone the menu opens on the section you are in, its row just under th
 /** Opens the theme picker with one press, as `openMenu` opens the menu: a retried press could close it again (#681). */
 async function openPicker(page: Page) {
   const picker = page.getByRole("dialog", { name: "Theme" });
-  await page.locator("[data-site-theme-trigger]").click();
+  await page.locator(".site-theme-picker [data-ouro-part='trigger']").click();
   // real clock: the picker stays open until it is closed; no timer ends it.
   await expect(picker).toBeVisible();
   return picker;

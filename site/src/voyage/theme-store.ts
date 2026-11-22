@@ -95,7 +95,7 @@ function passClickThrough(event: MouseEvent): void {
   if (!running || event.target !== document.documentElement) return;
   const { clientX: x, clientY: y } = event;
   // The docs demos' looks too (components/demo-looks.tsx), which a reader flicks through one after another.
-  const dot = [...document.querySelectorAll<HTMLElement>("[data-site-preset], .site-dot, [data-site-demo-looks] button")].find((element) => {
+  const dot = [...document.querySelectorAll<HTMLElement>("[data-site-preset], .site-dot, [data-ouro='theme-picker'] button[data-preset], [data-ouro='popover'] button[data-preset], [data-site-demo-looks] button")].find((element) => {
     const box = element.getBoundingClientRect();
     return box.width > 0 && x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
   });
