@@ -700,15 +700,18 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
 
   // The boxes over the marked runs, measured from the editor once it exists and again as its text, size or scroll change.
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: with no ranges the measure yields no boxes, and the layer is not drawn for none either way.
     if (ranges.length === 0) return;
     const editor = editorRef.current!;
     const root = rootRef.current!;
+    // Stryker disable next-line StringLiteral,BlockStatement: the copy's namespace is never read, and its onError only receives the editor's own states.
     const scratch = createEditor({ namespace: "ouro-composer-marks", nodes: NODES, onError: /* istanbul ignore next @preserve -- the copy only receives the editor's own states */ (error) => { throw error; } });
     const measure = () => {
       const frame = frameRef.current;
       // Stryker disable next-line ConditionalExpression,BlockStatement: the box's own cleanup clears its root, and that update arrives after the frame is gone.
       if (frame) setBoxes(measureMarks(editor, scratch, frame, ranges));
     };
+    // Stryker disable next-line CallExpression: the observer reports the box's size as soon as it observes it, which measures once more.
     measure();
     const stop = editor.registerUpdateListener(measure);
     const observer = new ResizeObserver(measure);

@@ -888,6 +888,21 @@ describe("Composer rich mode highlights", () => {
     expect(host).toBeTruthy();
   });
 
+  it("stops measuring once the marks are taken away", async () => {
+    const { host, editor, rerender } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 6, end: 11, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    await rerender(rich({ defaultValue: "Hello world", highlights: [] }));
+    await expect.poll(() => layer(host)).toBeNull();
+    const measured = vi.spyOn(Range.prototype, "getClientRects");
+    await act(async () => void editor.dispatchEvent(new Event("scroll")));
+    host.style.width = "300px";
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await act(async () => void editor.focus());
+    await userEvent.keyboard("!");
+    await expect.poll(() => editor.textContent).toBe("Hello world!");
+    expect(measured).not.toHaveBeenCalled();
+  });
+
   it("marks over an emoji's picture and a list", async () => {
     const { host } = await render(rich({ defaultValue: "- one\n- two", highlights: [{ start: 8, end: 11, label: "a" }] }));
     await expect.poll(() => boxes(host).length).toBe(1);
