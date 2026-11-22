@@ -233,5 +233,20 @@
     "test": "* registry/ouro/lib/ouro/testing/commands.touch.test.ts > the kit waits for the frame under a pointer-events: none overlay, where the touch lands",
     "reason": "The test waits out the kit's own refusal timeout, which is the behaviour it proves, and ran past half its timeout in a pull request run. Shorten the kit's wait under test, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* test/message-list-windowing.bench.test.tsx > MessageList windowing benchmark > draws a conversation of 2000 messages in a fraction of the elements and time it takes drawn whole",
+    "reason": "The benchmark draws a long conversation whole to compare it with the windowed list, and a shard measured it past half its timeout. Draw the whole list from fewer messages or time the comparison from a smaller one, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/apple/apple.test.tsx > Ouro UI for Apple > renders * with its title, its section menu and a route",
+    "reason": "It renders each Apple page in turn, the first of them cold, and a shard measured one past half its timeout. Preload the route in a shared helper, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/stories.test.tsx > at * px > * > Lightbox/Photos has no axe violations, closed and with each overlay open",
+    "reason": "The story renders a grid of photos for the axe scan, and a shard measured it past half its timeout. Scan fewer photos in the story, then remove this entry.",
+    "owner": "drain-3"
   }
 ]
