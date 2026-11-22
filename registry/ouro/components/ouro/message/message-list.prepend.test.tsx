@@ -11,7 +11,10 @@ const chromiumOnly = it.skipIf(server.browser !== "chromium");
 
 /** The tolerance for where a message sits, in pixels: a sub-pixel rounding, as the windowing tests allow. */
 const ROUNDING = 2;
-const PAGE = 200;
+// A page needs enough messages to span several OLDER_CHUNK-sized frames of chunked insertion and
+// to clear WINDOW_ABOVE for the windowed cases; three chunks of OLDER_CHUNK (20) does both at a
+// fraction of the DOM size and poll time a much larger page costs, without losing either proof.
+const PAGE = 60;
 const PAGES = 3;
 const MESSAGE = '[data-ouro="message"]';
 

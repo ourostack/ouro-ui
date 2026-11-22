@@ -120,7 +120,9 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
-  await commands.emulateMedia({ reducedMotion: "no-preference" });
+  // Most tests never touch media: resetMedia skips the round trip when it is already at rest, instead
+  // of paying one on every test regardless, which a loaded WebKit shard feels most.
+  await commands.resetMedia();
 });
 
 describe("Porthole", () => {
@@ -180,9 +182,8 @@ describe("Porthole", () => {
     expect(view.host.querySelector('[data-porthole-part="light"]')).not.toBeNull();
   });
 
-  it("opens on a press into the detail lines, closes on a second press or Escape, and keeps focus on the spot", async () => {
-    const onKeyDown = vi.fn();
-    const view = await render(base(fixed([], { chats: area(Date.now(), null, "Chats"), calendar: area(Date.now() - 4 * MINUTE, null, "Calendar") }), { onKeyDown }));
+  it("opens on a press into the detail lines, closes on a second press, and keeps focus on the spot", async () => {
+    const view = await render(base(fixed([], { chats: area(Date.now(), null, "Chats"), calendar: area(Date.now() - 4 * MINUTE, null, "Calendar") })));
     expect(view.spot.getAttribute("aria-expanded")).toBe("false");
     expect(view.spot.hasAttribute("aria-controls")).toBe(false);
     expect(view.panel).toBeNull();
@@ -193,6 +194,11 @@ describe("Porthole", () => {
     expect(document.activeElement).toBe(view.spot);
     await userEvent.click(view.spot);
     expect(view.panel).toBeNull();
+  });
+
+  it("closes on Escape without losing focus, lets every Escape reach the app, and opens again on Enter", async () => {
+    const onKeyDown = vi.fn();
+    const view = await render(base(fixed(), { onKeyDown }));
     await userEvent.click(view.spot);
     await userEvent.keyboard("{Escape}");
     expect(view.panel).toBeNull();

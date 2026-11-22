@@ -293,5 +293,20 @@
     "test": "* registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox > shows the highlighted option in the system's highlight colours under forced colours, where its fill is dropped",
     "reason": "A shard measured it at 7.5 s against a budget of 15 s (#2961). It runs in under 200 ms on a clean ouro-webkit install with no contention; emulateMedia's own poll for the forced-colours match and the transition settle wait are not the cost, since the breach did not reproduce locally across repeated isolated runs. Reads as CI-shard load, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/porthole/porthole.test.tsx > Porthole > opens on a press into the detail lines, closes on a second press, and keeps focus on the spot",
+    "reason": "The original test, combining this check with the Escape case below, was measured at 7.5 s against a budget of 15 s (#2965). It is split in two here, each with half the interactions, and its afterEach no longer pays a media round trip it never needed. It runs in under 400 ms on a clean ouro-webkit install with no contention, so the remaining cost reads as CI-shard load on the real interactions webkit automation dispatches, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/porthole/porthole.test.tsx > Porthole > closes on Escape without losing focus, lets every Escape reach the app, and opens again on Enter",
+    "reason": "The original test, combining this check with the press-to-close case above, was measured at 7.5 s against a budget of 15 s (#2965). It is split in two here, each with half the interactions, and its afterEach no longer pays a media round trip it never needed. It runs in under 1 s on a clean ouro-webkit install with no contention, so the remaining cost reads as CI-shard load on the real interactions webkit automation dispatches, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx > SnapPiP > is a focusable group named by its label, described by its corner and hint, which shows beside it on keyboard focus",
+    "reason": "A shard measured it at 8 s against a budget of 15 s (#2965). Its own afterEach no longer pays a media round trip it never needed, since the test touches no media; it runs in under 400 ms on a clean ouro-webkit install with no contention across repeated isolated runs, both before and after that fix, so the remaining cost reads as CI-shard load on the real click, hover and Tab interactions the test dispatches, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
   }
 ]
