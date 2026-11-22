@@ -110,8 +110,12 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * The docs' set again 2026-11-21 at 193,959 bytes, what CI measured on main at 402e2c637 (run 44986937531), after the
  * ConversationFind catalog entry (#2829), the Sidebar fixes (#2871, #2882) and the code block's scroll shading (#2864)
  * reached the docs' first script (#2883).
+ *
+ * The docs' set again 2026-11-22 at 195,244 bytes, what CI measured on this pull request's run 44990113977 (e2e job
+ * 137109213382), after a component page's install section put its namespace and tests commands under Collapsible's "More
+ * ways": Collapsible and its code now load with every docs page's first script.
  */
-const MEASURED = { voyage: 289_844, docs: 193_959 } as const;
+const MEASURED = { voyage: 289_844, docs: 195_244 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
