@@ -16,10 +16,10 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, normalize, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { checkBaseline, checkSources, checkWalkers, type WalkerSource } from "./baseline.mts";
-import { checkCard, checkDeclaredBy } from "./cards.mts";
+import { checkBaseline, checkBooklet, checkSources, checkWalkers, type WalkerSource } from "./baseline.mts";
+import { BOOKLET_FIELDS, BOOKLET_WORDS, bookletTexts, bookletWordsIn, checkCard, checkDeclaredBy } from "./cards.mts";
 import { buildProductReport, renderText } from "./report.mts";
-import type { CensusReport, Door, GroupCard, ProductWalker, ProductWalkerReport, WalkResult } from "./types.mts";
+import type { BookletAllow, CensusReport, Door, GroupCard, ProductWalker, ProductWalkerReport, WalkResult } from "./types.mts";
 import { CENSUS_VERSION, checkerHash } from "./checker.mts";
 import { WALKERS } from "./walkers/registry.mts";
 
@@ -45,6 +45,8 @@ interface Config {
   groups: GroupCard[];
   /** The product's own walkers, by the name its sources use. */
   walkers: Record<string, ProductWalker>;
+  /** The booklet-words check's reviewed allowlist, once the product adopts the check; null before. */
+  booklet: BookletAllow[] | null;
 }
 
 const isClaims = (c: unknown): boolean =>
@@ -90,7 +92,21 @@ async function readConfig(path: string): Promise<Config> {
     if (other) throw new CensusFailure(`ax-census: ${path}: ${name}: ${module} is already the ${other} walker's module. Fix: give each product walker its own module.`);
     modules.set(module, name);
   }
-  return { product: config.product, sources: config.sources, groups: Array.isArray(config.groups) ? config.groups : [], walkers: walkers as Record<string, ProductWalker> };
+  const booklet = (config as { bookletWords?: { allow?: unknown } }).bookletWords;
+  let allow: BookletAllow[] | null = null;
+  if (booklet !== undefined) {
+    if (typeof booklet !== "object" || booklet === null || Array.isArray(booklet)) {
+      throw new CensusFailure(`ax-census: ${path}: bookletWords: adopt the rule with an object that has an allow list`);
+    }
+    const entries = booklet.allow ?? [];
+    const valid = (e: Partial<BookletAllow>) =>
+      typeof e?.door === "string" && BOOKLET_FIELDS.includes(e.field as BookletAllow["field"]) && BOOKLET_WORDS.includes(e.word as string) && typeof e.reason === "string" && e.reason.trim().length > 0;
+    if (!Array.isArray(entries) || !entries.every(valid)) {
+      throw new CensusFailure(`ax-census: ${path}: bookletWords.allow: each entry needs a door, a field (${BOOKLET_FIELDS.join(", ").replace(/, (?=[^,]*$)/, " or ")}), a booklet word and a reason`);
+    }
+    allow = entries as BookletAllow[];
+  }
+  return { product: config.product, sources: config.sources, groups: Array.isArray(config.groups) ? config.groups : [], walkers: walkers as Record<string, ProductWalker>, booklet: allow };
 }
 
 async function readBaseline(path: string): Promise<string[]> {
@@ -191,14 +207,14 @@ async function productWalkerReports(walkers: Readonly<Record<string, ProductWalk
  * The weak reasons per door id: a card's failed checks, or a door with no literal name. A door another door's card
  * declares (an approval prompt) is checked after its owner, and isn't compared with the others: it shares their card.
  */
-function weakDoors(doors: readonly Door[], groups: readonly GroupCard[]): Map<string, string[]> {
+function weakDoors(doors: readonly Door[], groups: readonly GroupCard[], booklet: readonly BookletAllow[] | null = null): Map<string, string[]> {
   const weak = new Map<string, string[]>();
   const own = doors.filter((d) => !d.declaredBy);
   for (const door of own) {
     if (door.card) {
       let reasons: string[];
       try {
-        reasons = checkCard(door, { groups, others: own });
+        reasons = checkCard(door, { groups, others: own, booklet });
       } catch (error) {
         reasons = [`card: malformed (${(error as Error).message})`];
       }
@@ -274,7 +290,12 @@ export async function run(options: { argv: readonly string[]; io: Io; root?: str
       throw new CensusFailure("ax-census: the walkers found no doors; a census that counts nothing is broken, not clean");
     }
 
-    const weak = weakDoors(doors, config.groups);
+    const weak = weakDoors(doors, config.groups, config.booklet);
+    // The pull request that adopts the booklet check may list the doors it alone makes weak.
+    const adopting = config.booklet !== null && baseConfig !== null && baseConfig.booklet === null;
+    const plain = adopting ? weakDoors(doors, config.groups) : null;
+    const seed = plain ? new Set(doors.filter((d) => weak.has(d.id) && !plain.has(d.id)).map((d) => d.id)) : undefined;
+    const used = new Set(doors.filter((d) => d.card && !d.declaredBy).flatMap((d) => bookletTexts(d).flatMap(({ field, text }) => bookletWordsIn(text).map((word) => `${d.id} ${field} ${word}`))));
     const gaps = [...doors.filter((d) => !d.card || weak.has(d.id)).map((d) => d.id), ...unwalked.map((g) => g.id)];
     const kindsOf = (c: Config) => [...new Set(c.sources.flatMap((s) => (Object.hasOwn(WALKERS, s.walker) ? WALKERS[s.walker]!.kinds : Object.hasOwn(c.walkers, s.walker) ? c.walkers[s.walker]!.kinds : [])))];
     const kinds = kindsOf(config);
@@ -283,9 +304,10 @@ export async function run(options: { argv: readonly string[]; io: Io; root?: str
     const seedless = (base: Config) => Object.entries(config.walkers).filter(([name]) => Object.hasOwn(base.walkers, name)).flatMap(([, w]) => w.kinds);
     const problems = [
       ...errors,
-      ...checkBaseline({ gaps, baseline, base: { baseline: baseBaseline, hasConfig: baseConfig !== null, ...(baseConfig ? { kinds: [...kindsOf(baseConfig), ...seedless(baseConfig)] } : {}) }, kinds }),
+      ...checkBaseline({ gaps, baseline, base: { baseline: baseBaseline, hasConfig: baseConfig !== null, ...(baseConfig ? { kinds: [...kindsOf(baseConfig), ...seedless(baseConfig)] } : {}) }, kinds, ...(seed ? { seed } : {}) }),
       ...checkSources(config.sources, baseConfig?.sources ?? null),
       ...checkWalkers(config.walkers, baseConfig?.walkers ?? null),
+      ...checkBooklet(config.booklet, baseConfig?.booklet, used),
     ];
 
     const report: CensusReport = {

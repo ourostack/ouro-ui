@@ -12,6 +12,23 @@ It started in the harness (`ourostack/ouroboros`, `.github/scripts/ax-census/`) 
 
 The walkers run in one child process with an empty `HOME` and `TMPDIR`, without credentials, and with a guard that refuses connections beyond loopback.[^isolation] A child that crashes, hangs past 10 seconds or prints nothing fails the census.[^child]
 
+## Booklet words
+
+A product can adopt one more weak-card check, booklet words: text that gives the reading agent a rule instead of saying what the door does. It comes from the Butler's productionization spec. It flags "always", "never", "do not", "use this whenever" and "you must" as whole words, quoted or not, in a door's description, its card's `when` and its errors' `fix` lines.[^booklet] The spec also asks for tool results, runtime rejections and prompts to be checked; this check reads card texts only. A product adopts it in its config:
+
+```json
+{ "bookletWords": { "allow": [{ "door": "tool:shell", "field": "when", "word": "never", "reason": "Says what the tool does: it never runs as root." }] } }
+```
+
+The pull request that adopts it may put the doors it alone makes weak on the baseline, and no door weak for another reason.[^booklet-seed] That pull request is a one-time window, like the one that adds a product walker, so its reviewer checks that it adds or rewords nothing else. After that, it works like the other checks:
+
+- a booklet word is a gap until the text is rewritten;
+- the base branch's check can't be turned off;
+- the allowlist only shrinks;
+- an allowlist entry whose text no longer says its word fails.[^booklet-ratchet]
+
+An entry names a door, a field and a word, with the reviewed reason.[^booklet-allow] A `fix` entry names the door, not one error, so it lets the word stand on any of that door's fix lines.[^booklet-allow]
+
 ## Running it
 
 ```sh
@@ -46,7 +63,7 @@ The report lists product walkers with their kinds and module hashes under `check
 
 ## The release manifest
 
-`dist-manifest.json` pins the files a product copies, and `checker` is the hash a report carries as `checker.sha256`.[^manifest] The adoption ledger is to accept a product's census only when that hash matches a released manifest, so a product can't weaken a walker and keep reporting. After changing any file here, run `node scripts/ouro-census/manifest.mts --write` and commit the result; `scripts/ouro-census.test.mjs` fails when it is out of date.
+`dist-manifest.json` pins the files a product copies, and `checker` is the hash a report carries as `checker.sha256`.[^manifest] The adoption ledger (`scripts/adoption/`) accepts a product's census only when that hash matches the manifest of a current release, so a product can't weaken a walker and keep reporting.[^ledger] After changing any file here, run `node scripts/ouro-census/manifest.mts --write` and commit the result; `scripts/ouro-census.test.mjs` fails when it is out of date.
 
 ## Tests
 
@@ -59,3 +76,8 @@ The report lists product walkers with their kinds and module hashes under `check
 [^child]: scripts/ouro-census/census.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/census.node-test.mts, /a child that crashes fails the census/) verify:fileLine(scripts/ouro-census/census.node-test.mts, /a child that hangs fails after 10 seconds/) verify:fileLine(scripts/ouro-census/census.node-test.mts, /a child that prints nothing fails the census/)
 [^hash]: scripts/ouro-census/census.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/census.node-test.mts, /the report hashes its file/)
 [^manifest]: scripts/ouro-census/manifest.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/manifest.node-test.mts, /the committed manifest pins every vendored file by hash/)
+[^booklet]: scripts/ouro-census/cards.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/cards.node-test.mts, /booklet words in a card's when, its fixes or the door's description are weak once the product adopts the rule/)
+[^booklet-ratchet]: scripts/ouro-census/census.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/census.node-test.mts, /booklet words: a product adopts the rule in one pull request, seeding its baseline, and can't drop it or grow its allowlist after/)
+[^booklet-seed]: scripts/ouro-census/census.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/census.node-test.mts, /the adopting pull request seeds only the doors the rule alone makes weak/)
+[^booklet-allow]: scripts/ouro-census/cards.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/cards.node-test.mts, /a reviewed allowlist entry lets one booklet word stand on one door's field/)
+[^ledger]: scripts/adoption/ledger.test.mjs verify:testExists(scripts/adoption/ledger.test.mjs::a census report counts only from main at the run's own commit, with a released checker, within a week)
