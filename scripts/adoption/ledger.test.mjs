@@ -414,6 +414,24 @@ test("an app's X-ray and its action claims report add up, the newest report of e
   }
 });
 
+test("checks that come as an object, since ax-xray 1.7.0, are counted rather than concatenated", () => {
+  const dir = scratchDir("ledger-checks-object-");
+  execFileSync("mkdir", ["-p", join(dir, "xray")]);
+  const report = { tool: "ax-xray", at: "2026-11-16T08:13:55Z", checker: { version: "1" }, claimSet: { version: "0.1.0" }, target: { commit: "abc" }, summary: { claims: 30, holding: 11, must: 12, mustHolding: 7, checks: { pass: 89, fail: 0, skip: 24 } } };
+  writeFileSync(join(dir, "xray", "report.json"), JSON.stringify(report));
+  execFileSync("zip", ["-q", "-r", "a.zip", "xray"], { cwd: dir });
+  const bytes = readFileSync(join(dir, "a.zip"));
+  const gh = (args, { binary } = {}) => {
+    const line = args.join(" ");
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 7, html_url: "https://example.test/run/7" }] });
+    if (/runs\/7\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 9, name: "xray", expired: false }] });
+    if (/artifacts\/9\/zip/.test(line) && binary) return bytes;
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+  const xray = measureXray(createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 }), { repo: "org/cli", xray: [{ repo: "org/cli", workflow: "ax-xray.yml", branch: "main" }] });
+  assert.equal(xray.value.checks, 113, "pass, fail and skip add up, instead of the object concatenating onto a number");
+});
+
 test("a report in a folder of its artifact is read, so an X-ray uploaded with other files still counts", () => {
   const dir = scratchDir("ledger-nested-");
   execFileSync("mkdir", ["-p", join(dir, "xray")]);

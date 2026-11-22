@@ -371,6 +371,11 @@ export function measureXray(ctx, surface) {
   for (const item of found) if (!newest.some((kept) => kept.report.tool === item.report.tool)) newest.push(item);
   const { report, run } = newest[0];
   const sum = (key) => newest.reduce((total, item) => total + (item.report.summary[key] ?? 0), 0);
+  // Since ax-xray 1.7.0 a report's summary.checks is an object ({ pass, fail, skip }), not a number: count its fields.
+  const checksOf = (summary) => {
+    const checks = summary.checks;
+    return typeof checks === "object" && checks !== null ? (checks.pass ?? 0) + (checks.fail ?? 0) + (checks.skip ?? 0) : (checks ?? 0);
+  };
   const must = sum("must");
   const scored = newest.find((item) => typeof item.report.summary.score === "number");
   return cell(
@@ -381,7 +386,7 @@ export function measureXray(ctx, surface) {
       must,
       mustHolding: sum("mustHolding"),
       score: scored?.report.summary.score ?? null,
-      checks: sum("checks"),
+      checks: newest.reduce((total, item) => total + checksOf(item.report.summary), 0),
       claimSet: report.claimSet?.version ?? null,
       tool: `${report.tool} ${report.checker?.version ?? ""}`.trim(),
       app: report.target?.app?.name ?? null,
