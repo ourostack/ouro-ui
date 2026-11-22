@@ -100,6 +100,13 @@ describe("Composer conversation", () => {
     await view.rerender(<Composer label="Message" conversation="b" defaultValue="Hi" onSend={() => {}} />);
     expect(view.textarea.value).toBe("Hi");
   });
+
+  it("empties the draft when conversation changes and the app gives no defaultValue", async () => {
+    const view = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    await userEvent.type(view.textarea, "half a thought");
+    await view.rerender(<Composer label="Message" conversation="b" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("");
+  });
 });
 
 describe("Composer", () => {
