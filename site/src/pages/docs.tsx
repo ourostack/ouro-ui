@@ -23,6 +23,7 @@ import { Markdown, parse, prose, type Block } from "../docs/markdown";
 import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, repositoryLink, type DocsPage } from "../docs/pages";
 import { href, routeFor } from "../routes";
 import { latestRelease } from "../latest-release";
+import ChatDemo from "../docs/chat-demo";
 import spoonjoy from "../docs/spoonjoy.json";
 import shipComponents from "../docs/ship-components.json";
 import { SHIP_PAGES } from "../docs/ships";
@@ -413,6 +414,9 @@ export function DocsIndex(): JSX.Element {
           <Door to="/docs/switching-from-shadcn/" title="Switching from shadcn">
             shadcn/ui components and props, and their Ouro HX equivalents.
           </Door>
+          <Door to="/docs/chat-demo/" title="A chat app">
+            The chat components composed into one app you can try.
+          </Door>
           <Door to="/docs/updating/" title="Updating components">
             Review upstream changes, then overwrite and reapply your edits.
           </Door>
@@ -498,6 +502,17 @@ export function Switching(): JSX.Element {
       <Lead>{switchingIntro}</Lead>
       <Markdown blocks={parse(switchingCoexist)} />
       <CodeBlock code={`${example.code}\n\n${example.devMessage}`} />
+    </DocsShell>
+  );
+}
+
+export function ChatDemoPage(): JSX.Element {
+  return (
+    <DocsShell current="/docs/chat-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A chat app" }}>
+      <Lead>
+        The chat components together, with made-up people: a conversation list, messages with a thread, a typing line, read receipts, and a plain and a rich composer. Try the keyboard, a narrow window and dark mode.
+      </Lead>
+      <ChatDemo />
     </DocsShell>
   );
 }
@@ -608,7 +623,7 @@ export async function prepare(path: string): Promise<void> {
 /** Whether the docs module has no page for a path, so it shows Not found. */
 function lost(path: string): boolean {
   const route = routeFor(path)?.path;
-  return route !== "/docs/" && route !== "/docs/demo/" && route !== "/docs/switching-from-shadcn/" && route !== "/docs/updating/" && !docFor(path);
+  return route !== "/docs/" && route !== "/docs/demo/" && route !== "/docs/switching-from-shadcn/" && route !== "/docs/updating/" && route !== "/docs/chat-demo/" && !docFor(path);
 }
 
 /** The docs module's page for a path: the index, a guide, a component's page, or Not found. */
@@ -618,6 +633,7 @@ export default function DocsRoute({ path }: { path: string }): JSX.Element {
   if (route === "/docs/demo/") return <DemoFrame />;
   if (route === "/docs/switching-from-shadcn/") return <Switching />;
   if (route === "/docs/updating/") return <Updating />;
+  if (route === "/docs/chat-demo/") return <ChatDemoPage />;
   if (lost(path)) return <NotFound />;
   const doc = docFor(path)!;
   return "item" in doc ? <DocsComponent item={doc.item} /> : <DocsPageView page={doc.page} />;
