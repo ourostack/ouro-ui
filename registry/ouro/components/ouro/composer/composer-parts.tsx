@@ -820,9 +820,9 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         className="col-start-1 row-start-1 m-0 box-content block min-w-0 overflow-y-auto border-0 bg-transparent px-0 py-(--ouro-text-area-py) text-base leading-6 text-inherit outline-0 [--ouro-text-area-py:calc(var(--spacing)*3)] [overflow-wrap:anywhere] whitespace-pre-wrap sm:pointer-fine:text-sm sm:pointer-fine:leading-5 [&_p]:m-0 [&_strong]:font-semibold [&_code]:rounded-ouro-sm [&_code]:bg-muted [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.9em]"
       />
       {ranges.length > 0 && boxes.length > 0 && (
-        <div aria-hidden="true" data-ouro-composer-marks="" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div aria-hidden="true" data-slot="composer-marks" data-ouro-composer-marks="" className="pointer-events-none absolute inset-0 overflow-hidden">
           {boxes.map((box, index) => (
-            <span key={index} data-ouro-highlight={box.tone} style={{ left: box.left, top: box.top, width: box.width, height: box.height }} className={cn("absolute rounded-xs border-b-2 forced-colors:border-[CanvasText]", markTones[box.tone])} />
+            <span key={index} data-slot="composer-mark" data-ouro-highlight={box.tone} style={{ left: box.left, top: box.top, width: box.width, height: box.height }} className={cn("absolute rounded-xs border-b-2 forced-colors:border-[CanvasText]", markTones[box.tone])} />
           ))}
         </div>
       )}

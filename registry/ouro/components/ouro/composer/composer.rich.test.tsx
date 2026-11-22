@@ -773,6 +773,14 @@ describe("Composer rich mode with a catalogue", () => {
     await act(async () => handle.current!.insert(" two"));
     expect(field(editor).value).toBe("one :party: two");
   });
+  it("marks a run that holds an emoji's picture, over the picture", async () => {
+    const { host, editor } = await render(withCatalogue({ defaultValue: "go :party: now", highlights: [{ start: 3, end: 10, label: "a" }] }));
+    await expect.poll(() => host.querySelectorAll("[data-ouro-highlight]").length).toBe(1);
+    const picture = pictures(editor)[0]!.getBoundingClientRect();
+    const box = host.querySelector("[data-ouro-highlight]")!.getBoundingClientRect();
+    expect(Math.abs(box.left - picture.left)).toBeLessThan(3);
+    expect(Math.abs(box.right - picture.right)).toBeLessThan(3);
+  });
 });
 
 describe("Composer rich mode highlights", () => {
