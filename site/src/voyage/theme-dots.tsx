@@ -38,7 +38,7 @@ export function ThemeDots({ label = "Theme", size = "lg", describe = true, nameC
             {(item) =>
               item.name === "live" ? (
                 <>
-                  <strong>Live</strong> {sky ? SKY_WORDS.now(sky.phase, sky.season) : item.mood}
+                  <strong>{item.label}</strong> {sky ? SKY_WORDS.now(sky.phase, sky.season) : item.mood}
                 </>
               ) : (
                 <>

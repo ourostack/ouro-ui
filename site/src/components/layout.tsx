@@ -1,4 +1,5 @@
 import type { JSX, ReactNode } from "react";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-footer";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FAMILY, FAMILY_CURRENT } from "../family";
@@ -10,9 +11,7 @@ export function Container({ children, className }: { children: ReactNode; classN
   return <div className={cn("mx-auto w-full max-w-[79rem] px-4 sm:px-8", className)}>{children}</div>;
 }
 
-const navLink =
-  "inline-flex min-h-11 items-center rounded-md px-2.5 text-sm text-muted-foreground no-underline transition-colors " +
-  "hover:text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2 sm:min-h-9";
+const navLink = "inline-flex min-h-11 items-center px-2.5 sm:min-h-9";
 
 /** The docs' footer: the Ouro family's sites (FamilyFooter, this one marked), then the site's own words and links. */
 export function SiteFooter(): JSX.Element {
@@ -30,14 +29,14 @@ export function SiteFooter(): JSX.Element {
             <ul className="m-0 -ms-2.5 flex list-none flex-wrap gap-x-1 gap-y-0 p-0 sm:ms-0 sm:-me-2.5">
               {links.map((link) => (
                 <li key={link.label}>
-                  <a href={link.url} className={navLink}>
+                  <Link href={link.url} tone="secondary" className={navLink}>
                     {link.label}
                     {link.url.startsWith("http") && (
                       <span aria-hidden="true" className="ms-1">
                         ↗
                       </span>
                     )}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

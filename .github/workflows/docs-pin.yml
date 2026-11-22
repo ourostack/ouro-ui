@@ -159,7 +159,9 @@ jobs:
       # Main moved, but the pull request's docs may already be what this run just generated: the same files, the same
       # contents. Then pushing again changes nothing the pull request would merge and only restarts its CI (about 12
       # minutes each time, so a pin could wait an hour behind a busy main). A pull request whose checks failed or were
-      # cancelled is pushed again, as before, so a red or superseded run still gets another.
+      # cancelled is pushed again, as before, so a red or superseded run still gets another. So is one GitHub doesn't call
+      # mergeable: a branch cut before the last pin merged holds these docs too, but conflicts with main on that pin's lines,
+      # and GitHub runs no CI on it, so only a rebuild from main can merge it (#2881).
       - if: steps.pin.outputs.result == 'changed'
         id: same
         name: Leave the pull request alone when it already holds these docs
@@ -169,6 +171,8 @@ jobs:
           set -uo pipefail
           number=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty') || exit 0
           [ -n "$number" ] || exit 0
+          mergeable=$(gh pr view "$number" --json mergeable --jq .mergeable) || exit 0
+          [ "$mergeable" = MERGEABLE ] || exit 0
           failing=$(gh pr view "$number" --json statusCheckRollup --jq '[.statusCheckRollup[]? | select(.conclusion == "FAILURE" or .conclusion == "CANCELLED" or .conclusion == "TIMED_OUT" or .conclusion == "ACTION_REQUIRED")] | length') || exit 0
           [ "$failing" = 0 ] || exit 0
           git add -A

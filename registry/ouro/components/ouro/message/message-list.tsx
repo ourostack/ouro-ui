@@ -1868,6 +1868,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only tells the browser the listener never cancels the wheel; no test can observe it.
     scroller.addEventListener("wheel", onWheel, { passive: true });
     const hold = () => {
+      // A list unmounted before this ran has no scroller left to hold.
+      if (scrollerRef.current === null) return;
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
       // A list at the old bottom follows. One that was following keeps on when its end came up, though something grew below
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was

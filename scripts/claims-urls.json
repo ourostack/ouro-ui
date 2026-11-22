@@ -495,10 +495,6 @@
     "status": 200,
     "checked": "2026-11-21"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/0191e5b9beb8450ff13f3a3e3ac39fd508249d3b/parity.json": {
-    "status": 200,
-    "checked": "2026-11-21"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45": {
     "status": 200,
     "checked": "2026-11-18"
@@ -510,6 +506,10 @@
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json": {
     "status": 200,
     "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/28f403ed02d04af3b2dd05672370765057d5cffb/parity.json": {
+    "status": 200,
+    "checked": "2026-11-22"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/2e8069b82fbcf88ae7fa01f7c409af5c4ae2a5a5/docs/decisions/2026-11-17-composed-fields.md": {
     "status": 200,
@@ -651,9 +651,9 @@
     "status": 200,
     "checked": "2026-11-19"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v1.8.0": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v1.9.0": {
     "status": 200,
-    "checked": "2026-11-21"
+    "checked": "2026-11-22"
   },
   "https://github.com/ourostack/ouro-ui-windows/blob/076c29cb1e582ddb902a08cb832aa5a21c65ee3b/src/Ouro.Actions/MessageBoxConfirm.cs": {
     "status": 200,
@@ -875,9 +875,9 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.362": {
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.434": {
     "status": 200,
-    "checked": "2026-11-20"
+    "checked": "2026-11-22"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.5": {
     "status": 200,

@@ -3439,14 +3439,17 @@ test("Docs pin changes nothing for a tag that is not the newest release, and say
   assert.match(changed.calls, /CALL node scripts\/latest-release\.mjs set/);
 });
 
-test("Docs pin leaves an open pull request alone only when it holds the same docs and no check failed", () => {
+test("Docs pin leaves an open pull request alone only when it holds the same docs, merges cleanly and no check failed", () => {
   const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
   const script = stepScript(pin, "Leave the pull request alone when it already holds these docs");
   const env = { BRANCH: "docs/point-at-release" };
-  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "pr view"*) echo ${o.failing ?? 0} ;; "pr diff"*) printf '${o.theirs ?? "a.md\\nb.md"}\\n' ;; esac; }\ngit() { case "$*" in "diff --cached --name-only") printf 'a.md\\nb.md\\n' ;; "diff --cached --quiet"*) return ${o.differs ? 1 : 0} ;; esac; }\n`;
+  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "pr view"*mergeable*) echo ${o.mergeable ?? "MERGEABLE"} ;; "pr view"*) echo ${o.failing ?? 0} ;; "pr diff"*) printf '${o.theirs ?? "a.md\\nb.md"}\\n' ;; esac; }\ngit() { case "$*" in "diff --cached --name-only") printf 'a.md\\nb.md\\n' ;; "diff --cached --quiet"*) return ${o.differs ? 1 : 0} ;; esac; }\n`;
   const same = runStep(fns({ number: 7 }) + script, env);
   assert.equal(same.output.same, "true", same.calls);
-  for (const o of [{}, { number: 7, failing: 1 }, { number: 7, theirs: "a.md" }, { number: 7, differs: true }]) {
+  // A branch cut from main before the last pin merged holds the same docs as a pin from main now, but conflicts with
+  // main on the lines that pin changed, and GitHub runs no CI on it, so it must be rebuilt (#2881). GitHub's answer can be
+  // UNKNOWN while it works it out; that is rebuilt too.
+  for (const o of [{}, { number: 7, failing: 1 }, { number: 7, theirs: "a.md" }, { number: 7, differs: true }, { number: 7, mergeable: "CONFLICTING" }, { number: 7, mergeable: "UNKNOWN" }]) {
     assert.notEqual(runStep(fns(o) + script, env).output.same, "true", JSON.stringify(o));
   }
   assert.equal(pin.split("steps.same.outputs.same != 'true'").length - 1, 3, "the push, the pull request and its CI start all wait on the check");
