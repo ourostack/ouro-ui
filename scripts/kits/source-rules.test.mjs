@@ -820,6 +820,13 @@ export function A() {
         expect(VAGUE_FAILURE_COPY_FIX).toContain("the next step as a working action or command");
         expect(VAGUE_FAILURE_COPY_FIX).toContain("failureCopyAllow in ouro-source-rules.json with a reason");
     });
+    it("names the phrase and the fix in the message for a copy kept by an ouro-allow comment", () => {
+        const fingerprint = "app/x.tsx::Photo::vague-failure-escape::couldn't::Couldn't show this picture";
+        const comparison = compareWithBaseline([{ fingerprint, file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([
+            `New vague failure copy kept by an ouro-allow comment ("couldn't"): ${fingerprint} (+1) at app/x.tsx:4. Say what failed and why instead of keeping "couldn't" with a comment`,
+        ]);
+    });
     it("stops on a failureCopyAllow that is not a list, or an entry with an empty match or no reason, naming the entry and the fix", () => {
         const load = (failureCopyAllow) => loadConfig("/repo", { readFile: () => JSON.stringify({ failureCopyAllow }), readdir: () => [] });
         const entry = { match: "could not be charged", reason: "names the service and its answer" };
