@@ -2,11 +2,12 @@
 
 import { $isCodeNode, CodeNode } from "@lexical/code-core";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
+import { $createLinkNode, $isLinkNode, $toggleLink, LinkNode } from "@lexical/link";
 import { $isListItemNode, ListItemNode, ListNode, registerList } from "@lexical/list";
-import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type Transformer } from "@lexical/markdown";
+import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
-import { $createParagraphNode, $getRoot, $isLineBreakNode, $getSelection, $isRangeSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type LexicalEditor, type TextFormatType } from "lexical";
+import { $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type LexicalEditor, type LexicalNode, type TextFormatType } from "lexical";
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { JSX, KeyboardEvent, Ref } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
@@ -51,7 +52,7 @@ interface RichEditorProps {
 
 // Underline has no CommonMark mark; `++` is the one Composer's plain mode writes too.
 const UNDERLINE: TextFormatTransformer = { format: ["underline"], tag: "++", type: "text-format" };
-const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE];
+const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK];
 
 const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
 
@@ -107,6 +108,86 @@ function separateBlocks(markdown: string): string {
   return out.join("\n");
 }
 
+// Only these addresses become links: a pasted `javascript:` address never does.
+const safeHref = (text: string): string | undefined => {
+  try {
+    const url = new URL(text.trim());
+    return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const htmlFormats: Record<string, TextFormatType> = { B: "bold", STRONG: "bold", I: "italic", EM: "italic", U: "underline", S: "strikethrough", DEL: "strikethrough", STRIKE: "strikethrough", CODE: "code" };
+const htmlBlocks = new Set(["P", "DIV", "LI", "BLOCKQUOTE", "PRE", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "TR", "TABLE"]);
+const htmlSkipped = new Set(["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT", "IFRAME", "OBJECT", "HEAD", "TITLE", "META", "SVG"]);
+
+// The allowlist for a formatted paste: bold, italic, underline, strikethrough, code, links to http, https and mailto addresses, line breaks and paragraphs. A list item, quote or heading comes in as a line, a list item and a quote with the Markdown that starts them; every other tag, style and attribute is dropped, keeping its text.
+function $nodesFromHtml(html: string): LexicalNode[][] {
+  const lines: LexicalNode[][] = [];
+  let line: LexicalNode[] = [];
+  const endLine = () => {
+    const first = line[0];
+    if ($isTextNode(first)) first.setTextContent(first.getTextContent().trimStart());
+    const last = line.at(-1);
+    if ($isTextNode(last)) last.setTextContent(last.getTextContent().trimEnd());
+    if (line.some((node) => !$isTextNode(node) || node.getTextContent() !== "")) lines.push(line);
+    line = [];
+  };
+  const walk = (node: Node, formats: TextFormatType[], inPre: boolean): LexicalNode[] => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = inPre ? node.textContent! : node.textContent!.replace(/\s+/g, " ");
+      const out = $createTextNode(text);
+      formats.forEach((format) => out.toggleFormat(format));
+      return [out];
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return [];
+    const element = node as Element;
+    const tag = element.tagName.toUpperCase();
+    if (htmlSkipped.has(tag)) return [];
+    if (tag === "BR") return [$createLineBreakNode()];
+    const format = htmlFormats[tag];
+    const next = format && !formats.includes(format) ? [...formats, format] : formats;
+    const block = htmlBlocks.has(tag);
+    if (block) endLine();
+    if (tag === "LI") {
+      const parent = element.parentElement;
+      line.push($createTextNode(parent?.tagName === "OL" ? `${[...parent.children].indexOf(element) + 1}. ` : "- "));
+    }
+    if (tag === "BLOCKQUOTE") line.push($createTextNode("> "));
+    const children = [...element.childNodes].flatMap((child) => {
+      const made = walk(child, next, inPre || tag === "PRE");
+      if (block) line.push(...made);
+      return block ? [] : made;
+    });
+    if (block) {
+      endLine();
+      return [];
+    }
+    const href = tag === "A" ? safeHref(element.getAttribute("href") ?? "") : undefined;
+    if (!href) return children;
+    const link = $createLinkNode(href);
+    link.append(...children);
+    return [link];
+  };
+  const body = new DOMParser().parseFromString(html, "text/html").body;
+  body.childNodes.forEach((child) => void line.push(...walk(child, [], false)));
+  endLine();
+  return lines;
+}
+
+// ⌘K: takes a link off a selection that holds one, makes a selected web address a link to itself, and otherwise asks for the address.
+function toggleLinkOfSelection(): void {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || selection.isCollapsed()) return;
+  if (selection.getNodes().some((node) => $isLinkNode(node) || $isLinkNode(node.getParent()))) {
+    $toggleLink(null);
+    return;
+  }
+  const href = safeHref(selection.getTextContent()) ?? safeHref(window.prompt("Link address") ?? "");
+  if (href) $toggleLink(href);
+}
+
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
 const toMarkdown = (editor: LexicalEditor) => separateBlocks(editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", ""));
 
@@ -127,6 +208,8 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   });
   // A press places the caret where it lands; any other way in puts it at the end.
   const pressed = useRef(false);
+  // ⌘⇧V was pressed, so the paste that follows takes the clipboard's text alone.
+  const plainPaste = useRef(false);
   // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: only the first paint reads it; the update listener sets it again from the editor before anyone can see.
   const [empty, setEmpty] = useState(value === "");
 
@@ -134,7 +217,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     const editor = createEditor({
       // Stryker disable next-line StringLiteral: the namespace only labels the editor.
       namespace: "ouro-composer",
-      nodes: [ListNode, ListItemNode, QuoteNode, CodeNode],
+      nodes: [ListNode, ListItemNode, QuoteNode, CodeNode, LinkNode],
       // Lexical writes underline and strikethrough as classes only; bold, italic and code are elements.
       theme: { text: { underline: "underline", strikethrough: "line-through", underlineStrikethrough: "underline line-through" } },
       // Stryker disable next-line BlockStatement: Lexical reports an error only for a state it cannot reach from the commands under test.
@@ -163,7 +246,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         },
         COMMAND_PRIORITY_HIGH,
       ),
-      // Only the clipboard's text goes in: the allowlist for formatted paste follows.
+      // A paste goes through the allowlist; ⌘⇧V, and a clipboard with no formatting, paste the text alone. A web address pasted over a selection makes the selection a link.
       editor.registerCommand(
         PASTE_COMMAND,
         (event) => {
@@ -172,7 +255,22 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           // Stryker disable next-line BooleanLiteral: with no clipboard text or caret, the handlers after this one have nothing to insert either way.
           if (!data || !$isRangeSelection(selection)) return false;
           event.preventDefault();
-          selection.insertRawText(data.getData("text/plain"));
+          const text = data.getData("text/plain");
+          const html = plainPaste.current ? "" : data.getData("text/html");
+          plainPaste.current = false;
+          const href = safeHref(text);
+          if (!selection.isCollapsed() && href && !/\s/.test(text.trim())) {
+            $toggleLink(href);
+            return true;
+          }
+          const lines = html ? $nodesFromHtml(html) : [];
+          if (lines.length === 0) {
+            selection.insertRawText(text);
+            return true;
+          }
+          const [only] = lines;
+          if (lines.length === 1) selection.insertNodes(only!);
+          else selection.insertNodes(lines.map((nodes) => $createParagraphNode().append(...nodes)));
           return true;
         },
         COMMAND_PRIORITY_HIGH,
@@ -282,6 +380,12 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           pressed.current = true;
         }}
         onKeyDownCapture={(event) => {
+          const mod = event.metaKey || event.ctrlKey;
+          if (mod && event.shiftKey && !event.altKey && event.key.toLowerCase() === "v") plainPaste.current = true;
+          if (mod && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "k" && !readOnly) {
+            event.preventDefault();
+            editorRef.current!.update(() => toggleLinkOfSelection());
+          }
           onKeyDown(event);
           if (event.defaultPrevented) event.stopPropagation();
         }}
