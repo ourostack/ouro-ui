@@ -903,6 +903,14 @@ describe("Composer rich mode highlights", () => {
     expect(measured).not.toHaveBeenCalled();
   });
 
+  it("measures the marks again when the box scrolls", async () => {
+    const { host, editor } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 6, end: 11, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const measured = vi.spyOn(Range.prototype, "getClientRects");
+    await act(async () => void editor.dispatchEvent(new Event("scroll")));
+    expect(measured).toHaveBeenCalled();
+  });
+
   it("marks over an emoji's picture and a list", async () => {
     const { host } = await render(rich({ defaultValue: "- one\n- two", highlights: [{ start: 8, end: 11, label: "a" }] }));
     await expect.poll(() => boxes(host).length).toBe(1);
