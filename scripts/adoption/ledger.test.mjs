@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { build, censusAtZero, configPath, createContext, gaveBack, hxFull, isCurrent, measureActions, measureCensus, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, censusAtZero, configPath, createContext, gaveBack, hxFull, isCurrent, measureActions, measureCensus, measureBenchmark, measureModelReviews, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
 import { execFileSync } from "node:child_process";
 import { rmSync, writeFileSync } from "node:fs";
 import { scratchDir } from "../scratch.mjs";
@@ -374,6 +374,23 @@ test("the benchmark cell counts the published runs as the benchmark's page does:
   const failing = measureBenchmark(createContext({ gh: () => { throw new Error("HTTP 404"); }, now: () => NOW }), config);
   assert.equal(failing.value, null);
   assert.match(failing.note, /^not measured: HTTP 404/);
+});
+
+test("the model-reviews cell reads the newest review's own verdicts, as the page counts them", () => {
+  const context = createContext({ gh: () => { throw new Error("no gh call"); }, now: () => NOW, sleep: () => {} });
+  const review = (provider, verdict) => ({ provider, displayName: provider, verdict });
+  const runs = [
+    { folder: "2026-11-14-rerun--run-1", startedAt: "2026-11-14T01:00:00Z", reviews: [review("a", "A2UI"), review("b", "Ouro UI")], failures: [] },
+    { folder: "2026-11-19-latest--run-1", startedAt: "2026-11-19T02:00:00Z", reviews: [review("a", "Ouro UI"), review("b", "Ouro UI"), review("c", "A2UI")], failures: [{ provider: "d", error: "compacted" }] },
+  ];
+  const cell = measureModelReviews(context, { runs });
+  assert.equal(cell.value, "2 of 3 models chose Ouro UI; 1 chose A2UI.");
+  assert.match(cell.note, /^The 2026-11-19 review: 4 models asked, 3 gave a verdict\. More than half chose Ouro UI, the bar for saying models choose it\.$/);
+  assert.equal(cell.source, "https://ui.ouroboros.bot/docs/model-reviews/");
+  const short = measureModelReviews(context, { runs: [{ ...runs[0] }] });
+  assert.match(short.note, /Not more than half chose Ouro UI/);
+  assert.equal(measureModelReviews(context, { runs: [] }).value, null);
+  assert.match(measureModelReviews(context, { runs: [] }).note, /^not measured: no published review/);
 });
 
 test("an app's X-ray and its action claims report add up, the newest report of each checker counting once", () => {

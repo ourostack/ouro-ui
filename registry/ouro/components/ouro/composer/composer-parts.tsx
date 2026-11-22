@@ -570,7 +570,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   }));
 
   return (
-    <div data-slot={slot} className={cn("relative", className)}>
+    <div data-slot={slot} className={cn("relative grid", className)}>
       {name !== undefined && <input type="hidden" name={name} value={value} disabled={disabled} />}
       <div
         ref={(element) => {
@@ -615,10 +615,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           onKeyDown(event);
           if (event.defaultPrevented) event.stopPropagation();
         }}
-        className="m-0 box-content block min-w-0 overflow-y-auto border-0 bg-transparent px-0 py-(--ouro-text-area-py) text-base leading-6 text-inherit outline-0 [--ouro-text-area-py:calc(var(--spacing)*3)] [overflow-wrap:anywhere] whitespace-pre-wrap sm:pointer-fine:text-sm sm:pointer-fine:leading-5 [&_p]:m-0 [&_strong]:font-semibold [&_code]:rounded-ouro-sm [&_code]:bg-muted [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.9em]"
+        className="col-start-1 row-start-1 m-0 box-content block min-w-0 overflow-y-auto border-0 bg-transparent px-0 py-(--ouro-text-area-py) text-base leading-6 text-inherit outline-0 [--ouro-text-area-py:calc(var(--spacing)*3)] [overflow-wrap:anywhere] whitespace-pre-wrap sm:pointer-fine:text-sm sm:pointer-fine:leading-5 [&_p]:m-0 [&_strong]:font-semibold [&_code]:rounded-ouro-sm [&_code]:bg-muted [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.9em]"
       />
       {empty && placeholder && (
-        <span aria-hidden="true" data-slot="composer-rich-placeholder" data-ouro-composer-placeholder="" className="pointer-events-none absolute inset-x-0 top-(--ouro-text-area-py) text-base leading-6 text-muted-foreground [--ouro-text-area-py:calc(var(--spacing)*3)] sm:pointer-fine:text-sm sm:pointer-fine:leading-5">
+        <span aria-hidden="true" data-slot="composer-rich-placeholder" data-ouro-composer-placeholder="" className="pointer-events-none col-start-1 row-start-1 min-w-0 py-(--ouro-text-area-py) text-base leading-6 text-muted-foreground [--ouro-text-area-py:calc(var(--spacing)*3)] sm:pointer-fine:text-sm sm:pointer-fine:leading-5">
           {placeholder}
         </span>
       )}

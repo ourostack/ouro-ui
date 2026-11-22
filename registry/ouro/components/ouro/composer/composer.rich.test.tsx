@@ -389,6 +389,14 @@ describe("Composer rich mode", () => {
     await expect.poll(() => host.querySelector("[data-ouro-composer-placeholder]")).toBeNull();
   });
 
+  it("draws the placeholder where the typed text starts, whatever padding the app gives the editor's box", async () => {
+    const { host, editor } = await render(<div style={{ width: 320 }}>{rich({ placeholder: "Write a message", className: "ps-3 pe-2" } as never)}</div>);
+    await expect.poll(() => host.querySelector("[data-ouro-composer-placeholder]")).not.toBeNull();
+    const placeholder = host.querySelector("[data-ouro-composer-placeholder]")!.getBoundingClientRect();
+    expect(placeholder.left).toBe(editor.getBoundingClientRect().left);
+    expect(placeholder.top).toBe(editor.getBoundingClientRect().top);
+  });
+
   it("keeps lines apart in the Markdown it reports, and puts the caret after a value the app sets while it has focus", async () => {
     const seen: string[] = [];
     const { editor, rerender } = await render(rich({ value: "a\nb", onValueChange: (value) => void seen.push(value) }));
