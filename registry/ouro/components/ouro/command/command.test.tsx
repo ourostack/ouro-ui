@@ -899,6 +899,11 @@ describe("Command match highlighting", () => {
     ]);
   });
 
+  it("keeps a standalone accent in place, so a word folding to a different length does not shift a match", () => {
+    expect(queryRanges("The launch list is done. \u00b7 Two left", "launch")).toEqual([[4, 10]]);
+    expect(queryRanges("Re^set filters", "set")).toEqual([[3, 6]]);
+  });
+
   it("merges the search's words where they meet or overlap, in the text's order", async () => {
     await openPalette({
       items: [
@@ -914,7 +919,7 @@ describe("Command match highlighting", () => {
     await expect.poll(() => marks(row("Labs"))).toEqual(["Labs"]);
   });
 
-  it("marks nothing in a text whose letters folding would change in number, and only the part an app's ranges leave out", async () => {
+  it("marks a word in a label that holds a part whose folding changes length, mapping its range back", async () => {
     await openPalette({
       items: [
         { label: "한글 notes", onSelect: run },
@@ -924,7 +929,7 @@ describe("Command match highlighting", () => {
     });
     await userEvent.type(input(), "notes");
     await expect.poll(options).toEqual(["한글 notes", "Launch notes"]);
-    expect(marks(row("한글 notes"))).toEqual([]);
+    expect(marks(row("한글 notes"))).toEqual(["notes"]);
     expect(marks(row("Launch notes"))).toEqual(["Launch"]);
   });
 
