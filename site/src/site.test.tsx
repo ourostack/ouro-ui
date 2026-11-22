@@ -59,6 +59,14 @@ beforeEach(async () => {
   setScheme("light");
 });
 afterEach(async () => {
+  // A look still previewed would be painted back as the picker unmounts, and a look under the mouse would preview as the
+  // next page loads: the preview ends with the test, and the mouse rests in the top corner, where no look renders.
+  document.documentElement.removeAttribute("data-preview-from");
+  const away = document.createElement("div");
+  away.style.cssText = "position: fixed; left: 0; top: 0; width: 4px; height: 4px; z-index: 2147483647";
+  document.body.append(away);
+  await userEvent.hover(away);
+  away.remove();
   await cleanupPage();
   setScheme("light");
 });
@@ -78,6 +86,8 @@ describe("home page", () => {
     });
     afterEach(async () => {
       await finishReveal();
+      // The dot pressed keeps its preview while the mouse rests on it; ended here, it cannot paint its look back later.
+      root.removeAttribute("data-preview-from");
       if (was === null) localStorage.removeItem(THEME_KEY);
       else localStorage.setItem(THEME_KEY, was);
       if (theme === null) root.removeAttribute("data-theme");
@@ -951,7 +961,7 @@ describe("docs", () => {
     await page.viewport(1280, 900);
     const root = document.documentElement;
     const was = localStorage.getItem(THEME_KEY);
-    const attributes = ["data-theme", "data-live", "data-sky", "data-season", "data-weather"].map((name) => [name, root.getAttribute(name)] as const);
+    const attributes = ["data-theme", "data-preview-from", "data-live", "data-sky", "data-season", "data-weather"].map((name) => [name, root.getAttribute(name)] as const);
     const live = document.getElementById("ouro-live")?.textContent;
     try {
       await renderPage("/docs/button/");
