@@ -42,6 +42,8 @@ interface RichEditorProps {
   catalogue?: EmojiCatalogue | undefined;
   /** The runs of the Markdown to mark, as Markdown offsets, which move with the text. */
   highlights?: readonly TextAreaHighlight[] | undefined;
+  /** Turns a paste into Markdown before the allowlist reads the clipboard; `undefined` leaves the paste to the allowlist. */
+  pasteText?: ((data: DataTransfer) => string | undefined) | undefined;
   /** Told the marks that came of an edit. */
   onHighlightsChange?: ((highlights: TextAreaHighlight[]) => void) | undefined;
   label: string;
@@ -508,7 +510,7 @@ function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, comboboxProps }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -549,8 +551,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   });
   const emoji = useRef(catalogue);
   const readingRef = useRef<Transformer[]>(transformers);
+  const pasting = useRef(pasteText);
   useEffect(() => {
     emoji.current = catalogue;
+    pasting.current = pasteText;
   });
   // ⌘⇧V was pressed, so the paste that follows takes the clipboard's text alone.
   const plainPaste = useRef(false);
@@ -587,6 +591,15 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     });
     // The text offset a Markdown offset stands at.
     const place = (offset: number) => (inMarkdown.current ? textOffsetOf(editor, copy(), offset) : offset);
+    // Puts Markdown in place of the Markdown between two offsets, and the caret after it.
+    const putMarkdown = (text: string, start: number, end: number) => {
+      const markdown = toMarkdown(editor);
+      const [from, to] = [Math.min(Math.max(Math.min(start, end), 0), markdown.length), Math.min(Math.max(Math.max(start, end), 0), markdown.length)];
+      editor.update(() => $convertFromMarkdownString(markdown.slice(0, from) + text + markdown.slice(to), reading, undefined, true), { discrete: true });
+      const at = textOffsetOf(editor, copy(), from + text.length);
+      // Stryker disable next-line ObjectLiteral,BooleanLiteral: the caret is placed in the same task either way, so only when it is drawn differs
+      editor.update(() => $selectText(at, at), { discrete: true });
+    };
     Object.assign(root, {
       setSelectionRange: (start: number, end: number) => {
         const [from, to] = [place(start), place(end)];
@@ -595,12 +608,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       setRangeText: (text: string, start: number, end: number) => {
         if (inMarkdown.current) {
           if (root.getAttribute("contenteditable") !== "true") return;
-          const markdown = toMarkdown(editor);
-          const [from, to] = [Math.min(Math.max(Math.min(start, end), 0), markdown.length), Math.min(Math.max(Math.max(start, end), 0), markdown.length)];
-          editor.update(() => $convertFromMarkdownString(markdown.slice(0, from) + text + markdown.slice(to), reading, undefined, true), { discrete: true });
-          const at = textOffsetOf(editor, copy(), from + text.length);
-          // Stryker disable next-line ObjectLiteral,BooleanLiteral: the caret is placed in the same task either way, so only when it is drawn differs
-          editor.update(() => $selectText(at, at), { discrete: true });
+          putMarkdown(text, start, end);
           return;
         }
         editor.update(
@@ -663,6 +671,15 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           // Stryker disable next-line BooleanLiteral: with no clipboard text or caret, the handlers after this one have nothing to insert either way.
           if (!data || !$isRangeSelection(selection)) return false;
           event.preventDefault();
+          const given = pasting.current?.(data);
+          if (given !== undefined) {
+            // The Markdown goes in once this update has ended, as the editorRef's setRangeText puts it in.
+            queueMicrotask(() => {
+              const { start, end } = readMarkdownControl(editor, copy());
+              putMarkdown(given, start, end);
+            });
+            return true;
+          }
           const text = data.getData("text/plain");
           const html = plain ? "" : data.getData("text/html");
           const href = safeHref(text);
