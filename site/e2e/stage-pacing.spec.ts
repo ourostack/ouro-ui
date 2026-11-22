@@ -310,3 +310,66 @@ test("the stage judges the screen only once the site menu over it has closed", a
   // The crew says why, through React's scheduler: if that were held up after the menu closes, this line would not come.
   await expect(lastLog(page)).toContainText(LOG.stillWater.text);
 });
+
+// A tick already queued when the stage leaves the screen races the state update that says so: the state is read only
+// once React has committed it, a frame or more later, while the queued tick runs on the real clock regardless. A
+// control below the stage, pictured twice for the sweeps' retake guard, can catch the stage mid-verdict on the first
+// take and past it on the second (ourostack/ouro-ui#2879).
+test("a tick already queued when the stage leaves the screen is dropped, not judged as if still in view", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // A stand-in IntersectionObserver the test fires by hand, and a requestAnimationFrame the test can hold back once
+  // told to: together they land a queued tick exactly in the gap between the stage leaving the screen (a state
+  // update, not yet committed) and React's cleanup cancelling it.
+  await page.addInitScript(() => {
+    const realFrame = window.requestAnimationFrame.bind(window);
+    const realCancel = window.cancelAnimationFrame.bind(window);
+    let holding = false;
+    const held = new Map<number, FrameRequestCallback>();
+    let nextId = -1;
+    window.requestAnimationFrame = (callback) => {
+      if (!holding) return realFrame(callback);
+      const id = nextId--;
+      held.set(id, callback);
+      return id;
+    };
+    window.cancelAnimationFrame = (id) => {
+      if (id < 0) held.delete(id);
+      else realCancel(id);
+    };
+    (window as unknown as { __holdFrames: () => void }).__holdFrames = () => (holding = true);
+    (window as unknown as { __runHeldFrames: () => void }).__runHeldFrames = () => {
+      const now = performance.now();
+      for (const callback of [...held.values()]) callback(now);
+      held.clear();
+    };
+    let onIntersect: (entries: { isIntersecting: boolean }[]) => void = () => {};
+    class StubObserver {
+      constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
+        onIntersect = callback;
+      }
+      observe() {
+        onIntersect([{ isIntersecting: true }]);
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    window.IntersectionObserver = StubObserver as unknown as typeof IntersectionObserver;
+    (window as unknown as { __goOffscreen: () => void }).__goOffscreen = () => onIntersect([{ isIntersecting: false }]);
+  });
+  await open(page);
+  await bringUp(page);
+  // real clock: past the stage's beat and into the second of frames its judging reads, so the next queued tick is
+  // the one that would otherwise reach a verdict.
+  await page.waitForTimeout(1400);
+  await page.evaluate(() => (window as unknown as { __holdFrames: () => void }).__holdFrames());
+  await page.waitForTimeout(150);
+  // Both in the same turn: going offscreen updates the ref a queued tick reads synchronously, before React has had
+  // any turn to commit the state update the old code waited on instead.
+  await page.evaluate(() => {
+    (window as unknown as { __goOffscreen: () => void }).__goOffscreen();
+    (window as unknown as { __runHeldFrames: () => void }).__runHeldFrames();
+  });
+  await page.waitForTimeout(2500);
+  await expect(page.locator("[data-stage]")).not.toHaveAttribute("data-paced", "");
+  await expect(lastLog(page)).not.toContainText(LOG.stillWater.text);
+});
