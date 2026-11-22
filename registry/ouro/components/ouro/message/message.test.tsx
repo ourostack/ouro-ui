@@ -2406,6 +2406,35 @@ describe("Message actions", () => {
     expect(message.getAttribute("data-ouro-message-active")).toBe("");
   });
 
+  it("keeps the focus ring off a continued message's time in the leading gutter", async () => {
+    const { host } = await render(
+      <>
+        <button type="button">Before</button>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:11 AM" dateTime="2026-05-04T09:11" continued tabIndex={0}>
+          The venue confirmed.
+        </Message>
+      </>,
+    );
+    const message = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+    host.querySelector("button")!.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(message);
+    const style = getComputedStyle(message);
+    expect(style.outlineStyle).toBe("solid");
+    const widthPx = Number.parseFloat(style.outlineWidth);
+    const offsetPx = Number.parseFloat(style.outlineOffset);
+    const box = message.getBoundingClientRect();
+    // The ring's own band, drawn along the article's leading edge, outside the box by its offset.
+    const ringInner = box.left - offsetPx;
+    const time = message.querySelector("time")!;
+    const range = document.createRange();
+    range.selectNodeContents(time);
+    const glyph = range.getClientRects()[0]!;
+    expect(glyph.width).toBeGreaterThan(0);
+    expect(widthPx).toBeGreaterThan(0);
+    expect(glyph.left).toBeGreaterThanOrEqual(ringInner);
+  });
+
   it.each(["default", "chat"] as const)("draws a rounded focus ring on a %s message that takes keyboard focus, as one in a MessageList does", async (variant) => {
     const { host } = await render(
       <>

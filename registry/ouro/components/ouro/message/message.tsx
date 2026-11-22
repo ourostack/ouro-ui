@@ -1032,7 +1032,8 @@ export function Message(props: MessageProps): JSX.Element {
               <time
                 aria-hidden="true"
                 dateTime={dateTime}
-                className="mt-2.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
+                // Centered wider than the gutter, so its first glyph would otherwise sit under the row's focus ring; ms-1.5 clears it.
+                className="mt-2.5 ms-1.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
               >
                 {time}
               </time>
