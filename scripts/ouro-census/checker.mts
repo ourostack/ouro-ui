@@ -12,6 +12,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 
 /** The files whose hash is the checker's identity; the ledger compares it with a released manifest. */
 export const CHECKER_FILES = [
+  "base.mts",
   "baseline.mts",
   "cards.mts",
   "census.mts",

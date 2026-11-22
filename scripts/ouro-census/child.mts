@@ -31,10 +31,16 @@ async function productWalkers(walkers: Readonly<Record<string, ProductWalker>>, 
     loaded[name] = async (options) => {
       const result = await (walk as Walker)(options);
       const foreign = result.doors.filter((d) => !kinds.includes(d.kind));
+      // Exclusions are a closed list with checked proof, so only the built-in walkers make them.
+      const { excluded = [], ...rest } = result;
       return {
-        ...result,
+        ...rest,
         doors: result.doors.filter((d) => kinds.includes(d.kind)),
-        errors: [...result.errors, ...foreign.map((d) => `${name}: returned ${d.id}, a ${d.kind} door, but declares only ${kinds.join(", ")}`)],
+        errors: [
+          ...result.errors,
+          ...foreign.map((d) => `${name}: returned ${d.id}, a ${d.kind} door, but declares only ${kinds.join(", ")}`),
+          ...excluded.map((e) => `${name}: excluded ${e.hit} as ${e.category}, but only the built-in walkers may exclude a hit`),
+        ],
       };
     };
   }
@@ -52,9 +58,9 @@ export async function runChild(configPath: string, builtIn: Readonly<Record<stri
   try {
     const walkers = { ...(await productWalkers(config.walkers ?? {}, errors)), ...builtIn };
     for (const source of config.sources) {
-      const walker = walkers[source.walker];
+      const walker = Object.hasOwn(walkers, source.walker) ? walkers[source.walker] : undefined;
       if (!walker) {
-        if (!config.walkers?.[source.walker]) errors.push(`${source.walker}: no such walker`);
+        if (!Object.hasOwn(config.walkers ?? {}, source.walker)) errors.push(`${source.walker}: no such walker`);
         continue;
       }
       const { walker: name, ...where } = source;

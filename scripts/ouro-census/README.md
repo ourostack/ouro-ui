@@ -35,7 +35,14 @@ A product adds a walker for doors the built-in ones don't know without editing t
 }
 ```
 
-The module exports `walk`, a `Walker` from `types.mts`: it gets the source's options and returns `{ doors, errors }`. It runs in the same guarded child, and may return doors of its declared kinds only; any other door is a census error. It can't take a built-in walker's name. Like a source, a walker the base branch has can't be dropped, moved to another module or lose a kind. The report lists each product walker with its module's SHA-256 under `checker.walkers`, beside the built-in checker's own hash.
+The module exports `walk`, a `Walker` from `types.mts`: it gets the source's options and returns `{ doors, errors }`. It runs in the same guarded child, and may return doors of its declared kinds only; any other door is a census error. The rules:
+
+- It can't take a built-in walker's name, share another walker's module, or walk `unwalked`, the census's own kind.
+- It can't exclude a hit. Exclusions are a closed list that only the built-in walkers make.
+- Like a source, a walker the base branch has can't be dropped, moved to another module or lose a kind.
+- Only the pull request that adds a walker may put its doors on the baseline. A walker the base already has can't take on a kind and list that kind's doors as gaps.
+
+The report lists each product walker with its kinds and its module's SHA-256 under `checker.walkers`, beside the built-in checker's own hash. That hash vouches for the built-in walkers only: the ledger counts a kind a product walker walks once that walker's hash is on its reviewed list.
 
 ## The release manifest
 

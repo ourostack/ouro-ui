@@ -1,5 +1,5 @@
-// The one list of walkers: the name a config uses, the door kinds each finds, and the function. Closed on purpose, so
-// a config can't bring its own walker.
+// The built-in walkers: the name a config uses, the door kinds each finds, and the function. The checker's hash vouches
+// for these only; a product's own walkers (the config's `walkers`) are listed in the report with their own hashes.
 import type { Walker } from "../types.mts";
 import { walkArgvEntries } from "./argv-entries.mts";
 import { walkMcpSchemas } from "./mcp-schemas.mts";

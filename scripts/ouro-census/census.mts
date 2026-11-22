@@ -14,7 +14,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, normalize, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { checkBaseline, checkSources, checkWalkers, type WalkerSource } from "./baseline.mts";
 import { checkCard, checkDeclaredBy } from "./cards.mts";
@@ -78,11 +78,17 @@ async function readConfig(path: string): Promise<Config> {
   if (typeof walkers !== "object" || walkers === null || Array.isArray(walkers)) {
     throw new CensusFailure(`ax-census: ${path}: walkers must map each product walker's name to { module, kinds }`);
   }
+  const modules = new Map<string, string>();
   for (const [name, w] of Object.entries(walkers as Record<string, Partial<ProductWalker>>)) {
-    if (WALKERS[name]) throw new CensusFailure(`ax-census: ${path}: ${name}: a built-in walker's name. Fix: give the product's own walker another name in ax/census.config.json.`);
+    if (Object.hasOwn(WALKERS, name)) throw new CensusFailure(`ax-census: ${path}: ${name}: a built-in walker's name. Fix: give the product's own walker another name in ax/census.config.json.`);
     if (typeof w?.module !== "string" || w.module.length === 0 || !Array.isArray(w.kinds) || w.kinds.length === 0 || !w.kinds.every((k) => typeof k === "string" && /^[a-z][a-z0-9-]*$/.test(k))) {
       throw new CensusFailure(`ax-census: ${path}: ${name}: each of walkers needs a module path and a non-empty list of door kinds (lowercase words)`);
     }
+    if (w.kinds.includes("unwalked")) throw new CensusFailure(`ax-census: ${path}: ${name}: unwalked is the census's own kind. Fix: report code the walker can't walk as unwalked gaps instead.`);
+    const module = normalize(w.module);
+    const other = modules.get(module);
+    if (other) throw new CensusFailure(`ax-census: ${path}: ${name}: ${module} is already the ${other} walker's module. Fix: give each product walker its own module.`);
+    modules.set(module, name);
   }
   return { product: config.product, sources: config.sources, groups: Array.isArray(config.groups) ? config.groups : [], walkers: walkers as Record<string, ProductWalker> };
 }
@@ -270,11 +276,14 @@ export async function run(options: { argv: readonly string[]; io: Io; root?: str
 
     const weak = weakDoors(doors, config.groups);
     const gaps = [...doors.filter((d) => !d.card || weak.has(d.id)).map((d) => d.id), ...unwalked.map((g) => g.id)];
-    const kindsOf = (c: Config) => [...new Set(c.sources.flatMap((s) => WALKERS[s.walker]?.kinds ?? c.walkers[s.walker]?.kinds ?? []))];
+    const kindsOf = (c: Config) => [...new Set(c.sources.flatMap((s) => (Object.hasOwn(WALKERS, s.walker) ? WALKERS[s.walker]!.kinds : Object.hasOwn(c.walkers, s.walker) ? c.walkers[s.walker]!.kinds : [])))];
     const kinds = kindsOf(config);
+    // A kind new on the base may seed the baseline only when the product walker that walks it is new too: a walker the
+    // base has can't take on a kind and list that kind's doors as gaps.
+    const seedless = (base: Config) => Object.entries(config.walkers).filter(([name]) => Object.hasOwn(base.walkers, name)).flatMap(([, w]) => w.kinds);
     const problems = [
       ...errors,
-      ...checkBaseline({ gaps, baseline, base: { baseline: baseBaseline, hasConfig: baseConfig !== null, ...(baseConfig ? { kinds: kindsOf(baseConfig) } : {}) }, kinds }),
+      ...checkBaseline({ gaps, baseline, base: { baseline: baseBaseline, hasConfig: baseConfig !== null, ...(baseConfig ? { kinds: [...kindsOf(baseConfig), ...seedless(baseConfig)] } : {}) }, kinds }),
       ...checkSources(config.sources, baseConfig?.sources ?? null),
       ...checkWalkers(config.walkers, baseConfig?.walkers ?? null),
     ];

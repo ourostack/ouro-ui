@@ -626,3 +626,57 @@ test("a config's walkers must be an object of named walkers", async () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("a product walker doesn't walk the census's own unwalked kind or share another walker's module", async () => {
+  const dir = scratch();
+  try {
+    const empty = baselineFile(dir, []);
+    const write = (walkers: unknown) => {
+      const file = join(dir, "config.json");
+      writeFileSync(file, JSON.stringify({ product: "desk", walkers, sources: [{ walker: "mcp-schemas", module: "walkers/fixtures/mcp-ok.cjs", source: "walkers/fixtures/mcp-ok.ts" }], groups: [] }));
+      return ["--config", file, "--baseline", empty, "--base-baseline", "none", "--base-config", "absent"];
+    };
+    await failsWith(write({ skills: { module: "fixtures/walker-skills.mts", kinds: ["skill", "unwalked"] } }), "skills: unwalked is the census's own kind. Fix: report code the walker can't walk as unwalked gaps instead.");
+    await failsWith(write({ skills: { module: "fixtures/walker-skills.mts", kinds: ["skill"] }, more: { module: "./fixtures/walker-skills.mts", kinds: ["skill2"] } }), "more: fixtures/walker-skills.mts is already the skills walker's module. Fix: give each product walker its own module.");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("only a product walker new on the base branch seeds the baseline with its kind's gaps", async () => {
+  const dir = scratch();
+  try {
+    const config = JSON.parse(readFileSync(join(fixtures, "config-plugin.json"), "utf8"));
+    const mcpGaps = ["mcp:ask", "mcp:status", "mcp:catchup"];
+    const gaps = [...mcpGaps, "skill:start-task", "skill:lesson-capture"];
+    const baseBaseline = baselineFile(dir, mcpGaps, "base-baseline.json");
+    const withBase = (baseConfig: unknown, current = join(fixtures, "config-plugin.json")) => {
+      const file = join(dir, "base-config.json");
+      writeFileSync(file, JSON.stringify(baseConfig));
+      return ["--config", current, "--baseline", baselineFile(dir, gaps), "--base-baseline", baseBaseline, "--base-config", file];
+    };
+    // The pull request that adds the walker may list the doors it finds.
+    const { err, io } = capture();
+    equal(await run({ argv: withBase({ ...config, walkers: {}, sources: config.sources.filter((s: { walker: string }) => s.walker !== "skills") }), io, root: here }), 0, err.join("\n"));
+    // A walker the base already has can't take on a new kind and list its doors as gaps.
+    const current = join(dir, "config.json");
+    writeFileSync(current, JSON.stringify({ ...config, walkers: { skills: { module: "fixtures/walker-skills.mts", kinds: ["older", "skill"] } } }));
+    await failsWith(withBase({ ...config, walkers: { skills: { module: "fixtures/walker-skills.mts", kinds: ["older"] } } }, current), "skill:start-task: added to the baseline.");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a product walker can't exclude a hit, and a walker name is never read from an object's prototype", async () => {
+  const dir = scratch();
+  try {
+    const empty = baselineFile(dir, []);
+    const file = join(dir, "config.json");
+    writeFileSync(file, JSON.stringify({ product: "desk", walkers: { skills: { module: "fixtures/walker-excluded.mts", kinds: ["skill"] } }, sources: [{ walker: "skills", module: "", source: "skills" }], groups: [] }));
+    await failsWith(["--config", file, "--baseline", empty, "--base-baseline", "none", "--base-config", "absent"], "skills: excluded skills/secret as vendored, but only the built-in walkers may exclude a hit");
+    writeFileSync(file, JSON.stringify({ product: "desk", walkers: { constructor: { module: "fixtures/walker-skills.mts", kinds: ["skill"] } }, sources: [{ walker: "toString", module: "", source: "skills" }, { walker: "constructor", module: "", source: "skills" }], groups: [] }));
+    await failsWith(["--config", file, "--baseline", empty, "--base-baseline", "none", "--base-config", "absent"], "toString: no such walker");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

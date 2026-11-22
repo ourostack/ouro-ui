@@ -12,8 +12,8 @@ import { CENSUS_VERSION, CHECKER_FILES, checkerHash } from "./checker.mts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-/** What a product copies: the checker's files, and the helper CI uses to find a pull request's base commit. */
-export const VENDORED_FILES: readonly string[] = [...CHECKER_FILES, "base.mts"].sort();
+/** What a product copies: the checker's files, the helper CI uses to find a pull request's base commit among them. */
+export const VENDORED_FILES: readonly string[] = [...CHECKER_FILES].sort();
 
 export interface CensusManifest {
   tool: "ouro-census";
