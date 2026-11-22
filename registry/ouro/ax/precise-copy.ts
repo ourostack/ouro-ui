@@ -104,8 +104,8 @@ const AX_KEYS: ReadonlySet<string> = new Set(["summary", "detail"]);
 const PRECISE_FAILURE_KEY = "preciseFailure";
 
 /**
- * What is wrong with a record's `preciseFailure`, or null when the record has none or it holds a reason. A blank or
- * non-text value is no reason, so the detectors keep reading the record's text.
+ * What is wrong with a record's `preciseFailure`, or null when the field is absent or holds a reason. A blank or
+ * non-text value is skipped, so the detectors keep reading the record's text.
  *
  * @example
  * preciseFailureProblem({ code: "x", preciseFailure: " " }); // "preciseFailure needs a reason in words"
@@ -179,8 +179,8 @@ const allowedBy = (text: string, allow: readonly FailureCopyAllow[]) => allow.fi
  * Every vague failure message in a value: a message, a `help --json`, an outcome, a refusal or a checks report. A
  * finding an allow-list entry lets through carries the entry. With `messagesOnly`, only what is under
  * {@link FAILURE_KEYS}, and an Ouro AX answer's `summary` and `detail`; a `code` is never read. A record with a
- * `preciseFailure` reason (an outcome's `error` or `human`, a checks row) lets its own short texts, and a list of them, through, each
- * finding carrying the reason as its allow entry; the X-ray's `copy.precise-failure` reads the same list.
+ * `preciseFailure` reason (an outcome's `error` or `human`, a checks row) lets its own short texts, and a list of them, through, with
+ * the reason carried as the allow entry; the X-ray's `copy.precise-failure` reads the same list.
  *
  * @claim "a `code` is never read" registry/ouro/ax/precise-copy.test.mts verify:testExists(registry/ouro/ax/precise-copy.test.mts::walks a value, reading an outcome's error, human reason and summary and a checks report's findings, not the person's data)
  * @claim "Every vague failure message in a value" registry/ouro/ax/precise-copy.test.mts verify:testExists(registry/ouro/ax/precise-copy.test.mts::walks a value, reading an outcome's error, human reason and summary and a checks report's findings, not the person's data)
