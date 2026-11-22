@@ -1535,7 +1535,7 @@ test("the plan's merge commit has its base: the checkout fetches the merge commi
   assert.match(ciJobs().plan, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 2\n/);
 });
 
-test("a push to main, or a merge queue entry, whose tree already passed runs only install-github; the entry's squash message is still checked", () => {
+test("a push to main whose tree already passed runs only install-github", () => {
   const jobs = ciJobs();
   assert.match(jobs.plan, /^ {6}- id: squash\n {8}name: The squash commit's message is clean\n {8}if: github\.event_name == 'merge_group'\n {8}continue-on-error: true\n/m);
   assert.match(jobs.plan, /node scripts\/attribution\.mjs "\$QUEUE_BASE" "\$QUEUE_HEAD"/);
