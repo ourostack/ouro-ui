@@ -97,10 +97,11 @@ const tileSizes = {
   lg: "h-ouro-11 px-ouro-3_5 text-xl",
 } as const;
 
-// The name in the look's own heading face. A face with a small x-height (Cormorant) is scaled to the others' with
-// font-size-adjust, so no look reads lighter than the rest.
+// The name in the look's own heading face: its --font-wordmark where it sets one (a small file of the face holding only
+// the name's letters, so a page showing every look does not fetch every heading font), else its --font-heading. A face
+// with a small x-height (Cormorant) is scaled to the others' with font-size-adjust, so no look reads lighter than the rest.
 const nameClass =
-  "relative font-[family-name:var(--font-heading,inherit)] leading-none font-semibold tracking-[-0.01em] [font-size-adjust:ex-height_0.53]";
+  "relative font-[family-name:var(--font-wordmark,var(--font-heading,inherit))] leading-none font-semibold tracking-[-0.01em] [font-size-adjust:ex-height_0.53]";
 
 // One flat square of the look's primary, a squircle too, sitting on the baseline after the name.
 const squareClass =

@@ -3,3 +3,4 @@
 - New: resting the pointer or keyboard focus on a look in `ThemePicker` repaints the page in it as a preview, and leaving or Escape puts the chosen look back; with `value`, `onPreviewChange` tells the app which look to show.
 - New: `honesty()` in the testing kit finds any gradient, any corner that is not a squircle and any blurred shadow among the elements it is given.
 - New: `ThemePicker`'s parts carry `data-slot` names such as `theme-picker`, `theme-picker-option`, `theme-picker-wordmark`, `theme-picker-trigger` and `theme-picker-content`, for plain CSS to reach.
+- New: `ThemePicker` sets a look's name in its `--font-wordmark` where the look gives one, before its `--font-heading`: a small file of the face holding only the name's letters, so a row of looks costs a few kilobytes of font rather than a heading face apiece.

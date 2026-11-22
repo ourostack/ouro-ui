@@ -22,6 +22,7 @@ import {
   SITE,
   sha256,
   themesDir,
+  wordmarkFace,
 } from "./themes.mts";
 
 const fonts = readFonts();
@@ -86,6 +87,34 @@ test("every font is OFL, unchanged and within budget: 90 KB preloaded, 40 KB per
   const big = (file) => (file === "nunito-5.3.0.woff2" ? Buffer.alloc(FONT_BUDGET.face + 1) : readFileSync(`site/public/fonts/${file}`));
   assert.ok(checkFonts(heavy, big).some((problem) => problem.includes("over the 40960-byte face budget")));
   assert.deepEqual(checkFonts([{ ...fonts[2], licence: "Proprietary" }]), ["space-grotesk-5.3.0.woff2: licence Proprietary is not OFL-1.1"]);
+});
+
+test("each display face has a wordmark holding only its preset's label, unchanged and within 4 KB, served as \"<family> Wordmark\"", () => {
+  const display = fonts.filter((font) => font.role === "display");
+  assert.deepEqual(
+    display.map((font) => [font.family, font.wordmark?.text]),
+    display.map((font) => [font.family, presets.find((preset) => preset.heading === font.family)?.label]),
+  );
+  const nunito = fonts.find((font) => font.family === "Nunito");
+  assert.match(wordmarkFace(nunito, ""), /font-family: "Nunito Wordmark";\n[^]*src: url\("\/fonts\/nunito-wordmark-5\.3\.0\.woff2"\) format\("woff2"\);/);
+  const swap = (change) => fonts.map((font) => (font === nunito ? { ...font, wordmark: { ...font.wordmark, ...change } } : font));
+  assert.deepEqual(checkFonts(swap({ sha256: "0".repeat(64) })), ["nunito-wordmark-5.3.0.woff2: checksum differs from fonts.json"]);
+  assert.deepEqual(checkFonts(swap({ bytes: 1 })), [`nunito-wordmark-5.3.0.woff2: ${nunito.wordmark.bytes} bytes, fonts.json says 1`]);
+  assert.deepEqual(checkFonts(swap({ text: "Reef" })), ['nunito-wordmark-5.3.0.woff2: holds "Reef", but Nunito\'s preset is labelled "Coral"; cut it again']);
+  assert.ok(checkFonts(swap({ file: "nunito-mark.woff2" })).includes("nunito-mark.woff2: name it nunito-wordmark-5.3.0.woff2"));
+  assert.ok(checkFonts(swap({ file: "nunito-mark.woff2" })).includes("nunito-mark.woff2: missing from site/public/fonts"));
+  const big = (file) => (file === "nunito-wordmark-5.3.0.woff2" ? Buffer.alloc(FONT_BUDGET.wordmark + 1) : readFileSync(`site/public/fonts/${file}`));
+  assert.ok(checkFonts(swap({ bytes: FONT_BUDGET.wordmark + 1 }), big).some((problem) => problem === "nunito-wordmark-5.3.0.woff2: 4097 bytes is over the 4096-byte wordmark budget"));
+});
+
+test("every preset sets --font-wordmark, its wordmark face before its heading's, or its heading's where it has none", () => {
+  const css = build()["presets.generated.css"];
+  for (const preset of presets) {
+    const root = css.split(`[data-theme="${preset.name}"] {`)[1]?.split("}")[0] ?? "";
+    const face = fonts.find((font) => font.family === preset.heading);
+    assert.ok(root.includes(face?.wordmark ? `--font-wordmark: "${preset.heading} Wordmark", var(--font-heading);` : "--font-wordmark: var(--font-heading);"), preset.name);
+  }
+  assert.ok(css.includes('font-family: "Cormorant Garamond Wordmark";'));
 });
 
 const tailwindFixture = `@import "tailwindcss";

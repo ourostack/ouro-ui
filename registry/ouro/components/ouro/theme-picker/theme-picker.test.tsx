@@ -263,6 +263,19 @@ describe("ThemePicker", () => {
     expect(getComputedStyle(square).backgroundColor).toBe("rgb(15, 118, 110)");
   });
 
+  it("sets a look's name in its --font-wordmark where the look gives one, a face holding only the name's letters", async () => {
+    const wordmark = document.createElement("style");
+    wordmark.textContent = '[data-theme="abyss"] { --font-wordmark: fantasy; }';
+    document.head.append(wordmark);
+    try {
+      const el = await render(<ThemePicker presets={presets} />);
+      expect(getComputedStyle(tile(option(el, "abyss")).children[1]!).fontFamily).toBe("fantasy");
+      expect(getComputedStyle(tile(option(el, "pearl")).children[1]!).fontFamily).toContain("sans-serif");
+    } finally {
+      wordmark.remove();
+    }
+  });
+
   it("shows each look's own paper, ink and primary whatever is chosen, light and dark", async () => {
     const el = await render(<ThemePicker presets={three} />);
     for (const dark of [false, true]) {

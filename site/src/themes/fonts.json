@@ -42,7 +42,14 @@
     "modifications": "none; the one 600 file serves every heading weight",
     "licence": "OFL-1.1",
     "bytes": 13284,
-    "sha256": "685bbbf69fa616df1ef81847c85fc76be097ddfb3468ff2257be54511ab3130f"
+    "sha256": "685bbbf69fa616df1ef81847c85fc76be097ddfb3468ff2257be54511ab3130f",
+    "wordmark": {
+      "file": "space-grotesk-wordmark-5.3.0.woff2",
+      "text": "Abyss",
+      "modifications": "space-grotesk-5.3.0.woff2 cut to the letters of \"Abyss\" with fontTools 4.60.1: pyftsubset --text=\"Abyss\" --layout-features=kern --no-hinting --desubroutinize --flavor=woff2",
+      "bytes": 892,
+      "sha256": "b588183d4f17e9fe4e18934ac8c1e8d9965d4273e8d7df1e7ccd2293018f45d8"
+    }
   },
   {
     "family": "Cormorant Garamond",
@@ -57,7 +64,14 @@
     "modifications": "none; the one 700 file serves every heading weight, since Cormorant's thin strokes read lighter than the other presets' faces at 600",
     "licence": "OFL-1.1",
     "bytes": 22340,
-    "sha256": "21a0fc1c5c22708cf4aa0c147fd32982e25bf9e21efec0ca31a4495ba41753eb"
+    "sha256": "21a0fc1c5c22708cf4aa0c147fd32982e25bf9e21efec0ca31a4495ba41753eb",
+    "wordmark": {
+      "file": "cormorant-garamond-wordmark-5.3.0.woff2",
+      "text": "Brass",
+      "modifications": "cormorant-garamond-5.3.0.woff2 cut to the letters of \"Brass\" with fontTools 4.60.1: pyftsubset --text=\"Brass\" --layout-features=kern --no-hinting --desubroutinize --flavor=woff2",
+      "bytes": 1192,
+      "sha256": "6999ae0dc89aaaf82803cf828eb84e15a966bc0e7f83cce45c22355687a10d54"
+    }
   },
   {
     "family": "Chart Fell",
@@ -72,7 +86,14 @@
     "modifications": "IM FELL English Roman, subset with fontTools pyftsubset to U+0020-007E, U+00A0, U+00B7, U+00E9, U+2013, U+2014, U+2018, U+2019, U+201C, U+201D, U+2026 (--layout-features=kern --no-hinting --desubroutinize) to fit the 40 KB face budget, and renamed Chart Fell, because the OFL reserves the name IM FELL English Roman for unmodified fonts",
     "licence": "OFL-1.1",
     "bytes": 38348,
-    "sha256": "444f8f5bb27644ef6a72179fe68c809ebe1aa0e5c64e1442de86b6846561f2a1"
+    "sha256": "444f8f5bb27644ef6a72179fe68c809ebe1aa0e5c64e1442de86b6846561f2a1",
+    "wordmark": {
+      "file": "chart-fell-wordmark-5.3.0.woff2",
+      "text": "Chart",
+      "modifications": "chart-fell-5.3.0.woff2 cut to the letters of \"Chart\" with fontTools 4.60.1: pyftsubset --text=\"Chart\" --layout-features=kern --no-hinting --desubroutinize --flavor=woff2",
+      "bytes": 2652,
+      "sha256": "52a9f9db0ac8373bf14045ba8163783bf0fc8d08422f4289c07e7730bb39dabf"
+    }
   },
   {
     "family": "Nunito",
@@ -87,7 +108,14 @@
     "modifications": "none; the one 800 file serves every heading weight",
     "licence": "OFL-1.1",
     "bytes": 16520,
-    "sha256": "2363d3ed037283ebb961e8c4b4917e40a8bc8853cf9965cf1ea7b4daa1df630a"
+    "sha256": "2363d3ed037283ebb961e8c4b4917e40a8bc8853cf9965cf1ea7b4daa1df630a",
+    "wordmark": {
+      "file": "nunito-wordmark-5.3.0.woff2",
+      "text": "Coral",
+      "modifications": "nunito-5.3.0.woff2 cut to the letters of \"Coral\" with fontTools 4.60.1: pyftsubset --text=\"Coral\" --layout-features=kern --no-hinting --desubroutinize --flavor=woff2",
+      "bytes": 1080,
+      "sha256": "d8ab6739ebe8fb2bba0b77a38f284b5a1ef49ef4ff4592f6e8b838f9242666bf"
+    }
   },
   {
     "family": "Fraunces",
@@ -102,6 +130,13 @@
     "modifications": "none; the one 600 file serves every heading weight",
     "licence": "OFL-1.1",
     "bytes": 18096,
-    "sha256": "3a1de7711d147bad4422825045f87597fd77cca72e7c96d3b0a81735d00dda82"
+    "sha256": "3a1de7711d147bad4422825045f87597fd77cca72e7c96d3b0a81735d00dda82",
+    "wordmark": {
+      "file": "fraunces-wordmark-5.3.0.woff2",
+      "text": "Cookbook",
+      "modifications": "fraunces-5.3.0.woff2 cut to the letters of \"Cookbook\" with fontTools 4.60.1: pyftsubset --text=\"Cookbook\" --layout-features=kern --no-hinting --desubroutinize --flavor=woff2",
+      "bytes": 1248,
+      "sha256": "6b760fe577372f24eedec477e3545428c6adc2aacefac43dd3678e7288104867"
+    }
   }
 ]

@@ -63,6 +63,46 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+@font-face {
+  font-family: "Space Grotesk Wordmark";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 800;
+  src: url("/fonts/space-grotesk-wordmark-5.3.0.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Cormorant Garamond Wordmark";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 800;
+  src: url("/fonts/cormorant-garamond-wordmark-5.3.0.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Chart Fell Wordmark";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 800;
+  src: url("/fonts/chart-fell-wordmark-5.3.0.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Nunito Wordmark";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 900;
+  src: url("/fonts/nunito-wordmark-5.3.0.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Fraunces Wordmark";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 800;
+  src: url("/fonts/fraunces-wordmark-5.3.0.woff2") format("woff2");
+}
+
 [data-theme="pearl"] {
   --radius: 1.125rem;
   --background: #ffffff;
@@ -105,6 +145,7 @@
   --ouro-backdrop-color: #1d1d1f;
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-wordmark: var(--font-heading);
 }
 
 .dark[data-theme="pearl"],
@@ -190,6 +231,7 @@
   --ouro-backdrop-color: oklch(0.2 0.05 225);
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-wordmark: "Space Grotesk Wordmark", var(--font-heading);
 }
 
 .dark[data-theme="abyss"],
@@ -275,6 +317,7 @@
   --ouro-backdrop-color: oklch(0.2 0.03 50);
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-wordmark: "Cormorant Garamond Wordmark", var(--font-heading);
 }
 
 .dark[data-theme="brass"],
@@ -360,6 +403,7 @@
   --ouro-backdrop-color: oklch(0.25 0.045 262);
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-wordmark: "Chart Fell Wordmark", var(--font-heading);
 }
 
 .dark[data-theme="chart"],
@@ -445,6 +489,7 @@
   --ouro-backdrop-color: oklch(0.25 0.05 30);
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-wordmark: "Nunito Wordmark", var(--font-heading);
 }
 
 .dark[data-theme="coral"],
@@ -559,6 +604,7 @@
   --ouro-shadow-sheet-right: -8px 0 32px rgb(0 0 0 / 0.12);
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-wordmark: "Fraunces Wordmark", var(--font-heading);
 }
 
 .dark[data-theme="cookbook"],
