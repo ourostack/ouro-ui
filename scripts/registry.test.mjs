@@ -404,9 +404,9 @@ test("Ouro AX items depend on the ax items they import", () => {
   assert.equal(itemForFile("registry/ouro/ax/fixtures/notes.mts"), "ax-xray-tests");
   assert.equal(itemForFile("registry/ouro/ax/fixtures/flows-suite.mts"), "ax-flows-tests");
   assert.deepEqual(item("ax-problem").registryDependencies, undefined);
-  assert.deepEqual(item("ax-outcome").registryDependencies, ["ax-effects", "ax-exit-codes", "ax-problem"].map(repo));
+  assert.deepEqual(item("ax-outcome").registryDependencies, ["ax-effects", "ax-exit-codes", "ax-precise-copy", "ax-problem"].map(repo));
   assert.deepEqual(item("ax-xray").registryDependencies, ["ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-exit-codes", "ax-outcome", "ax-precise-copy", "ax-problem", "ax-terminal", "ax-wait", "ax-work-event"].map(repo));
-  assert.deepEqual(item("ax-checks").registryDependencies, ["ax-dev-commands", "ax-exit-codes", "ax-outcome", "ax-terminal"].map(repo));
+  assert.deepEqual(item("ax-checks").registryDependencies, ["ax-dev-commands", "ax-exit-codes", "ax-outcome", "ax-precise-copy", "ax-terminal"].map(repo));
   assert.deepEqual(item("ax-terminal").registryDependencies, ["ax-outcome", "ax-voice"].map(repo));
   assert.deepEqual(item("ax-voice").registryDependencies, ["ax-outcome"].map(repo));
   assert.deepEqual(item("ax-flows").registryDependencies, ["ax-cli", "ax-command", "ax-outcome", "ax-problem"].map(repo));
