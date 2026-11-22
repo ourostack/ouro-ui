@@ -487,3 +487,20 @@ export const EmojiTokens: Story = {
   parameters: { plainOpeners: ["Insert emoji"] },
   render: () => <EmojiTokensStory />,
 };
+
+/**
+ * `format="rich"`: the box formats as you type. ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E mark the selection, and
+ * `**bold**`, `_italic_`, `++underline++`, `~~strike~~` and a backtick write the same marks. What
+ * the app gets is light Markdown. The editor loads on first use; until then a plain box shows.
+ */
+export const Rich: Story = {
+  render: () => (
+    <Surface>
+      <Composer label="Write a message" format="rich" defaultValue="Ship **it** on _Friday_" placeholder="Write a message" onSend={() => {}} />
+    </Surface>
+  ),
+  play: async ({ canvasElement }) => {
+    // The editor loads after the first render; the story shows it, not the plain box it starts as.
+    while (!canvasElement.querySelector("[data-ouro-composer-editor]")) await new Promise((resolve) => requestAnimationFrame(resolve));
+  },
+};
