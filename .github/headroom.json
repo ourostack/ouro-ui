@@ -333,5 +333,10 @@
     "test": "ouro-webkit registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > typing > never reports a typed date outside min and max, and shows the out-of-range message",
     "reason": "ouro-webkit at 7.5s of 15s in #3000 (run 45060816478). Measured clean locally with per-step timing: the whole test is ~250ms, spread evenly across four distinct typed 10-character dates (below-min, above-max, a disabled date, a newly-allowed date) and their clears, 7-34ms each, with no single dominant round trip. The file's own beforeEach/afterEach carry no redundant reset (no viewport bounce back and forth). Reducing the typed cases would drop real boundary coverage this test proves. No avoidable wait found. Reads as CI-shard load on real typing round trips. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* test/stories.test.tsx > at * px > * > MessageList/Switching has no axe violations, closed and with each overlay open",
+    "reason": "Ran past half its timeout in a pull request run, again after #2994 already cut its one identifiable repeat scan (two reactions to one). Timed locally alone: passes near instantly, but under concurrent load it varies widely, once timing out waiting for a hover its own retry loop drives, because the scan opens every tooltip on the story in turn and each open is a real hover. The remaining cost is the axe scan itself over a message list wide enough to need the scroll it demonstrates, not a mechanical repeat left to cut.",
+    "owner": "drain-3"
   }
 ]
