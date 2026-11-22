@@ -1534,7 +1534,7 @@ describe("MessageList windowing", () => {
         await act(async () => root.render(<Chat items={items} />));
         // A chat that sticks to the bottom itself, on top of the list's own following.
         if (app) await act(async () => void (scroller.scrollTop = scroller.scrollHeight));
-        if (next % 10 === 9) await settle(scroller);
+        if (next % 50 === 49) await settle(scroller);
         most = Math.max(most, messages(scroller).length);
       }
       await settle(scroller);
