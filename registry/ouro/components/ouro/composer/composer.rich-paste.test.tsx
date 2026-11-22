@@ -127,6 +127,16 @@ describe("Composer rich paste", () => {
     await expect.poll(() => seen.at(-1)).toBe("a**x**b");
   });
 
+  it("pastes one formatted line inside a code block as plain text, staying in it", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ defaultValue: "```\nab\n```", onValueChange: (v: string) => void seen.push(v) }));
+    editor.focus();
+    await userEvent.keyboard("{ControlOrMeta>}{ArrowRight}{/ControlOrMeta}");
+    await userEvent.keyboard("{ArrowLeft}");
+    await paste(editor, { "text/html": "<b>x</b>" });
+    await expect.poll(() => seen.at(-1)).toBe("```\naxb\n```");
+  });
+
   it("makes a link of a web address with spaces or a line break around it, over a selection", async () => {
     const seen: string[] = [];
     const editor = await render(rich({ defaultValue: "docs", onValueChange: (value: string) => void seen.push(value) }));

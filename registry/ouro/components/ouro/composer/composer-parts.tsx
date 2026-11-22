@@ -111,12 +111,12 @@ function separateBlocks(markdown: string): string {
 // Only these addresses become links: a pasted `javascript:` address never does.
 const safeHref = (text: string): string | undefined => {
   try {
-    const url = new URL(text.trim());
-    return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : undefined;
-  // Stryker disable next-line BlockStatement: an empty handler falls off the end and returns undefined as well.
+    const url = new URL(text);
+    if (["http:", "https:", "mailto:"].includes(url.protocol)) return url.href;
   } catch {
-    return undefined;
+    /* not an address */
   }
+  return undefined;
 };
 
 const htmlFormats: Record<string, TextFormatType> = { B: "bold", STRONG: "bold", I: "italic", EM: "italic", U: "underline", S: "strikethrough", DEL: "strikethrough", STRIKE: "strikethrough", CODE: "code" };
@@ -168,6 +168,7 @@ function $nodesFromHtml(html: string): LexicalNode[][] {
     const children = [...element.childNodes].flatMap((child) => {
       const made = walk(child, next, inPre || tag === "PRE");
       if (block) line.push(...made);
+      // Stryker disable next-line ArrayDeclaration: a block's children are never read, so what it returns here is unused.
       return block ? [] : made;
     });
     if (block) {
