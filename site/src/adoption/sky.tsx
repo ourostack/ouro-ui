@@ -4,7 +4,7 @@ import { CHECK_KEYS, checksOf, type CheckState } from "./checks";
 
 /*
  * The ring: every counted product is a star on one orbit around Ouro UI. A star has four rays, one per check (up: on
- * current Ouro UI; right: actions on the action model; down: AX must claims pass; left: has given back): a passing
+ * current Ouro UI; right: census at zero; down: AX must claims pass; left: has given back): a passing
  * check is a full ray, a missing one a stub, one not measured yet a dotted ray, and one that does not apply no ray. A
  * star lights green only when the ledger confirms the product, and the arc between two lit neighbours lights with them,
  * so the ring closes, the snake meeting its tail, when the last product turns green. It is a picture of the list beside
