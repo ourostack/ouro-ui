@@ -468,6 +468,20 @@ export class Looks {
       }
       if (clusters.length < 2) continue;
       clusters.sort((a, b) => b.length - a.length);
+      if (id.startsWith("collapsible|trigger")) {
+        const maj = clusters[0]![0]!.crop!;
+        for (const c of clusters.slice(1)) {
+          const b = c[0]!.crop!;
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, n = 0;
+          const w = Math.min(maj.width, b.width), h = Math.min(maj.height, b.height);
+          for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+            const i = (y * maj.width + x) * 4, k = (y * b.width + x) * 4;
+            const d = Math.max(Math.abs(maj.data[i]! - b.data[k]!), Math.abs(maj.data[i + 1]! - b.data[k + 1]!), Math.abs(maj.data[i + 2]! - b.data[k + 2]!));
+            if (d > 40) { n++; minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); }
+          }
+          console.log(`DEBUG diff ${c[0]!.where} vs ${clusters[0]![0]!.where}: ${n} px of ${w * h}, box ${minX},${minY}-${maxX},${maxY}`);
+        }
+      }
       for (const c of clusters.slice(1)) out.push(`${id} looks different on ${[...new Set(c.map((s) => s.where))].slice(0, 3).join(", ")}`);
     }
     return out.filter((line) => !waived(line));
