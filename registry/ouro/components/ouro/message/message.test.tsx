@@ -2915,6 +2915,18 @@ describe("Message pending", () => {
       }
     });
 
+    it("says Not sent once for a message that fails without having been pending", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const { rerender } = await mount(<Message variant="chat" role="user" name="Ana">Hola</Message>);
+        await rerender(<Message variant="chat" role="user" name="Ana" failed={{ onRetry: () => {} }}>Hola</Message>);
+        await expect.poll(() => announced.count("Not sent")).toBe(1);
+        expect(announced.count("Sent")).toBe(0);
+      } finally {
+        announced.stop();
+      }
+    });
+
     it("stays quiet when a failed message is cleared, when a label changes, and when a send goes pending again", async () => {
       const announced = watchAnnouncements();
       try {
