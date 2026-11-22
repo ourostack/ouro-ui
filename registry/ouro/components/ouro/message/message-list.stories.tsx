@@ -587,7 +587,11 @@ interface ChatItem {
   reactions?: Reaction[];
 }
 
-/** One long conversation with someone: text, with a picture every 7th message, a file every 11th and reactions every 4th. */
+/**
+ * One long conversation with someone: text, with a picture every 7th message, a file every 11th and
+ * one reaction (the 3rd message). A second reaction proves the same ReactionBar tooltip again, so
+ * Switching's axe scan (every tooltip, open and closed) keeps it to one (#2991).
+ */
 function chatWith(person: (typeof chatPeople)[number], count: number): ChatItem[] {
   return Array.from({ length: count }, (_, index) => ({
     id: `${person.id}-${index}`,
@@ -595,7 +599,7 @@ function chatWith(person: (typeof chatPeople)[number], count: number): ChatItem[
     text: index % 3 === 1 ? questions[index % questions.length]! : answers[index % answers.length]!,
     ...(index % 7 === 3 && { picture: person.hue + index }),
     ...(index % 11 === 5 && { file: true }),
-    ...(index % 4 === 2 && { reactions: [{ key: "like", label: "Like", emoji: "👍", count: 1 + (index % 3), mine: index % 8 === 2 }] }),
+    ...(index === 2 && { reactions: [{ key: "like", label: "Like", emoji: "👍", count: 3, mine: true }] }),
   }));
 }
 
