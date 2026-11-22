@@ -1,0 +1,1 @@
+- Composer takes a `conversation` prop: an uncontrolled composer starts its draft over when it changes, so a draft no longer follows a person into another conversation.

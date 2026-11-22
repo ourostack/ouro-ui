@@ -91,6 +91,24 @@ function onPlatform(platform: "macOS" | "Windows") {
   Object.defineProperty(navigator, "platform", { configurable: true, value: legacy });
 }
 
+describe("Composer conversation", () => {
+  it("starts an uncontrolled draft over when conversation changes, and keeps it while it stays", async () => {
+    const view = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    await userEvent.type(view.textarea, "half a thought");
+    await view.rerender(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("half a thought");
+    await view.rerender(<Composer label="Message" conversation="b" defaultValue="Hi" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("Hi");
+  });
+
+  it("empties the draft when conversation changes and the app gives no defaultValue", async () => {
+    const view = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    await userEvent.type(view.textarea, "half a thought");
+    await view.rerender(<Composer label="Message" conversation="b" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("");
+  });
+});
+
 describe("Composer", () => {
   it("keeps its text box's flex basis at 12rem, and follows a compact --spacing, which sizes it on the spacing scale", async () => {
     const { host } = await render(<Composer label="Message Mia" placeholder="Write a message" onSend={() => {}} />);
