@@ -81,6 +81,8 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
           if (!key || (taken.get(key) ?? 0) >= SAMPLES) continue;
           taken.set(key, (taken.get(key) ?? 0) + 1);
           const control = page.locator(`[data-sweep-look="${i}"]`);
+          // A page that removed or re-rendered the control since the inventory has no control to read: skip it.
+          if ((await control.count()) !== 1) continue;
           // The site scrolls smoothly (html's scroll-behavior), so a plain scrollIntoView is still moving when the box is
           // read, and the mouse lands where the control was (#1453): instant, so the hover is on the control.
           await control.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }));
@@ -90,7 +92,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
           const before = await marks();
           // What the control is, read with the mark: a hover or press that lands on another element (a later island moved
           // it) is skipped, never recorded under this control's key.
-          const identity = () => control.evaluate((el) => `${el.dataset["ouroControl"]}/${el.dataset["ouroPart"] ?? ""}|${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 40)}`);
+          const identity = () => control.evaluate((el) => `${el.dataset["ouroControl"]}/${el.dataset["ouroPart"] ?? ""}`);
           const who = await identity();
           const record = async (state: string, pseudo: string) => {
             if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await identity()) !== who) return;
