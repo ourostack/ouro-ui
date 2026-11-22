@@ -160,7 +160,7 @@ The test titles, in the words of the specs, so a reader sees the claim before op
 - **command**
   - Command reads each command the arrow keys reach from the search, which keeps focus
 - **composer**
-  - Composer's box and send button are announced with their names and roles, and a send leaves focus in the box
+  - Composer's box and send button are announced with their names and roles, and Tab reaches Send
 - **dialog**
   - Dialog is announced with its title and role when it opens, and its trigger again when it closes
 - **item**
