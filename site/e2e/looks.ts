@@ -466,6 +466,11 @@ export class Looks {
       }
       if (clusters.length < 2) continue;
       clusters.sort((a, b) => b.length - a.length);
+      if (id.startsWith("collapsible|trigger")) for (const c of clusters) {
+        const crop = c[0]!.crop!;
+        const b64 = sharp(crop.data, { raw: { width: crop.width, height: crop.height, channels: 4 } }).png().toBuffer();
+        void b64.then((b) => console.log(`CROP ${c.length} ${c[0]!.where} ${b.toString("base64")}`));
+      }
       for (const c of clusters.slice(1)) out.push(`${id} looks different on ${[...new Set(c.map((s) => s.where))].slice(0, 3).join(", ")}`);
     }
     return out.filter((line) => !waived(line));
