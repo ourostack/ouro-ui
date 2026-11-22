@@ -160,10 +160,27 @@ function passingOpeners(host: HTMLElement): (PassingOpener & { key: string })[] 
             // Measured once the trigger is in view: off screen, nothing is at its centre, and a trigger below the fold
             // (a MessageList reaction at 390 px) was taken for a covered one and given the extra move.
             element.scrollIntoView({ block: "nearest", inline: "nearest" });
-            const box = element.getBoundingClientRect();
-            const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
-            if (!hit || !element.contains(hit)) await userEvent.hover(element, { force: true, position: { x: 1, y: 1 } });
-            await userEvent.hover(element);
+            const nudgeIfCovered = async () => {
+              const box = element.getBoundingClientRect();
+              const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+              if (!hit || !element.contains(hit)) await userEvent.hover(element, { force: true, position: { x: 1, y: 1 } });
+            };
+            await nudgeIfCovered();
+            // A bar auto-hides again while this waits, on a runner slow enough that the real hover below takes longer
+            // than the bar's own delay, since nothing but this hover's pointer move is left to hold it open (Toolbar/AutoHide,
+            // job 137149132362 and 137140709588, ourostack/ouro-ui#2930): a short hover, re-nudged between tries, recovers from that; one hover given
+            // the whole scan's remaining time does not, since a failing actionability wait never itself moves the pointer.
+            const deadline = Date.now() + waitOptions.timeout;
+            for (;;) {
+              try {
+                await userEvent.hover(element, { timeout: 2_000 });
+                break;
+              }
+              catch (error) {
+                if (Date.now() >= deadline) throw error;
+                await nudgeIfCovered();
+              }
+            }
           }
           else if (opensOn === "press") await userEvent.click(element);
           else {
