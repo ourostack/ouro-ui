@@ -628,6 +628,14 @@ describe("Composer rich mode with a catalogue", () => {
     expect(pictures(editor)).toEqual([]);
   });
 
+  it("turns a token typed after one the catalogue does not list into its picture", async () => {
+    const { editor } = await render(withCatalogue());
+    editor.focus();
+    await userEvent.keyboard("hi :nope: :party:");
+    await expect.poll(() => pictures(editor).length).toBe(1);
+    expect(field(editor).value).toBe("hi :nope: :party:");
+  });
+
   it("leaves a typed token the catalogue does not list as text", async () => {
     const { editor } = await render(withCatalogue());
     editor.focus();
@@ -686,7 +694,7 @@ describe("Composer rich mode with a catalogue", () => {
     [8, 8, ":party: Xb"],
   ])("puts the caret at %i before, after or over a picture by its token's Markdown offsets", async (at, expected, written) => {
     const { editor } = await render(withCatalogue({ defaultValue: ":party: b" }));
-    const box = field(editor) as HTMLElement & { setSelectionRange: (s: number, e: number) => void; selectionStart: number; setRangeText: (t: string, s: number, e: number) => void };
+    const box = field(editor) as unknown as HTMLElement & { value: string; setSelectionRange: (s: number, e: number) => void; selectionStart: number; setRangeText: (t: string, s: number, e: number) => void };
     box.setSelectionRange(at, at);
     await expect.poll(() => box.selectionStart).toBe(expected);
     await act(async () => box.setRangeText("X", expected, expected));

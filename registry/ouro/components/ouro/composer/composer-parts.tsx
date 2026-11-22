@@ -122,8 +122,8 @@ class EmojiNode extends DecoratorNode<null> {
     return null;
   }
 }
-const $isEmojiNode = (node: LexicalNode | null | undefined): node is EmojiNode => node instanceof EmojiNode;
 
+// Stryker disable next-line MethodExpression: a token starts and ends with a colon, and a character with neither, so endsWith tells them apart as startsWith does
 const $emojiNode = (found: Exclude<EmojiTextPart, string>) => new EmojiNode(found.source.startsWith(":") ? found.source : emojiToken(found.item, found.tone), found.item.name, toneOf(found.item, found.tone).src);
 
 // Reads a token in as its picture; the transformer is made for the editor, which knows its catalogue. An emoji goes out as its text, the token.
@@ -134,6 +134,7 @@ const emojiTransformer = (catalogue: () => EmojiCatalogue | undefined): TextMatc
   regExp: /:[^\s:]+:$/,
   trigger: ":",
   replace: (node, match) => {
+    // Stryker disable next-line ArrayDeclaration: with no catalogue the parts are not one emoji whatever they hold, so nothing is replaced
     const parts = catalogue() ? splitEmojiText(match[0], catalogue()!) : [];
     if (parts.length === 1 && typeof parts[0] !== "string") node.replace($emojiNode(parts[0]!));
   },
@@ -347,6 +348,7 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
     const fits = left <= size;
     if ($isDecoratorNode(child)) {
       // An emoji has no text point: the caret goes before it, or after it when the offset is past its token.
+      // Stryker disable next-line EqualityOperator,StringLiteral: at left === size the next child gives the same position, and the point's kind is read only as "text"
       if (left <= size) return [element, left === size ? index + 1 : index, "element"];
     // Stryker disable next-line all: equivalent: a line break child has size 1 and the text branch would give the same offset
     } else if ($isLineBreakNode(child)) {
@@ -554,6 +556,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           const selection = $getSelection();
           // Stryker disable next-line ConditionalExpression: a typed key always meets a range selection here; the check narrows the type
           if (typeof payload !== "string" || !emoji.current || !$isRangeSelection(selection)) return false;
+          // Stryker disable next-line ConditionalExpression,StringLiteral: the check only hands plain typing back to Lexical, whose insertion of the same text is the same
           if (!splitEmojiText(payload, emoji.current).some((part) => typeof part !== "string")) return false;
           $insertWithEmoji(selection, payload, emoji.current);
           return true;
