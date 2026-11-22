@@ -248,5 +248,40 @@
     "test": "* test/stories.test.tsx > at * px > * > Lightbox/Photos has no axe violations, closed and with each overlay open",
     "reason": "The story renders a grid of photos for the axe scan, and a shard measured it past half its timeout. Scan fewer photos in the story, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > typing > marks what is not an allowed date invalid, with a translatable message, so the form does not submit it",
+    "reason": "A shard measured it at 8.2 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox keys > keeps a read-only field as it is",
+    "reason": "A shard measured it at 7.6 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > signs on Ana, and the crew member who knows the name answers in place of the welcome",
+    "reason": "A shard measured it at 8.7 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/dialog/dialog.test.tsx > automatic presentation > renders a centered dialog at *px",
+    "reason": "A shard measured it at 7.6 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* test/patterns.test.tsx > SettingsPage > deletes the account only once the person confirms, then starts the form over",
+    "reason": "A shard measured it at 8.4 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx > EmojiPicker content > keeps its fixed sizes at a compact --spacing: an emoji's square, a category's box and icon, and a skin tone's ring",
+    "reason": "A shard measured it at 8.3 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > lets the crew speak only when it adds something: five ticks in order give at most three lines, and a tick out of order warns",
+    "reason": "A shard measured it at 8 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
+    "owner": "drain-3"
   }
 ]
