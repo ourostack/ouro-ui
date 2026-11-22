@@ -90,6 +90,11 @@ describe("home page", () => {
     expect(getComputedStyle(link!).whiteSpace).toBe("nowrap");
   });
 
+  it("collapses the header links behind the menu button below 1024px in the first paint, so a guide page's nav does not swap", async () => {
+    const host = await renderPage("/docs/density/");
+    expect(host.querySelector(".max-lg\\:hidden")).not.toBeNull();
+  });
+
   it("shows two ships, the Nautilus and Spoonjoy, as showcases, each with its way in and its X-ray", async () => {
     await renderPage("/");
     const section = page.getByRole("region", { name: TWO_SHIPS.title });
