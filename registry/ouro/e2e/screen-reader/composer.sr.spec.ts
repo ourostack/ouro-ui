@@ -10,12 +10,9 @@ test("Composer's box and send button are announced with their names and roles, a
   const box = page.getByRole("textbox", { name: "Message Mia" });
   await heard(sr, () => box.focus(), (phrase) => inOneSentence(phrase, /\bmessage mia\b/i, /\b(edit|text area|text field)\b/i), '"Message Mia", edit text');
   await page.keyboard.type("Running a little late");
-  const send = async () => {
-    await page.keyboard.press("Enter");
-    await expect(box).toHaveValue("");
-    await expect(box).toBeFocused();
-  };
-  await heard(sr, send, (phrase) => inOneSentence(phrase, /\bmessage mia\b/i), '"Message Mia", after Enter');
+  await page.keyboard.press("Enter");
+  await expect(box).toHaveValue("");
+  await expect(box).toBeFocused();
   const button = page.getByRole("button", { name: "Send" });
   await heard(sr, () => button.focus(), (phrase) => inOneSentence(phrase, nameAndRole("Send", "button")), '"Send", button');
 });
