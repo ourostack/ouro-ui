@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ghApi, isQueueRun, PREFIX, prove } from "./ci-proof.mjs";
+import { ghApi, isQueueRun, PREFIX, prove, queuePull } from "./ci-proof.mjs";
 
 // The tree proof (scripts/ci-proof.mjs): a push to main skips the suite only when the merge queue's run passed on
 // that very commit, or when the newest run of the pull request merged as it passed the full suite on the same tree.
@@ -126,4 +126,26 @@ test("the API reads ci.yml's runs on a commit, a run's latest jobs, and the pull
   assert.deepEqual(api.jobs(1).map((entry) => entry.name), ["a", "b"]);
   assert.ok(calls.includes(`api --paginate --slurp repos/o/r/actions/workflows/ci.yml/runs?head_sha=${head}&per_page=100`));
   assert.ok(calls.includes("api --paginate --slurp repos/o/r/actions/runs/1/jobs?filter=latest&per_page=100"));
+});
+
+test("a merge queue entry is proved by the pull request its ref names, whose tree equals the entry's", async () => {
+  const queue = run(9, { event: "merge_group", sha: main, status: "in_progress", conclusion: null, branch: "gh-readonly-queue/main/pr-7-abc" });
+  const jobs = { 1: [job(PREFIX + tree)] };
+  assert.equal(await proved(fake({ runs: [run(1), queue], jobs, heads: [] }), { heads: [head] }), 1);
+  // Main moved after the pull request's run: its tree-proof names another tree.
+  assert.equal(await proved(fake({ runs: [run(1), queue], jobs: { 1: [job(PREFIX + other)] }, heads: [] }), { heads: [head] }), null);
+  // The entry's own unfinished run proves nothing, and with no head to read nothing else does.
+  assert.equal(await proved(fake({ runs: [queue], jobs, heads: [] }), { heads: [] }), null);
+});
+
+test("queuePull reads the pull request number from a merge queue ref, and nothing else", () => {
+  const sha = "a".repeat(40);
+  assert.equal(queuePull(`refs/heads/gh-readonly-queue/main/pr-2832-${sha}`), "2832");
+  assert.equal(queuePull(`gh-readonly-queue/main/pr-5-${sha}`), "5");
+  for (const ref of ["refs/heads/main", `refs/heads/gh-readonly-queue/other/pr-5-${sha}`, "refs/heads/gh-readonly-queue/main/pr-x-abc", "", undefined]) assert.equal(queuePull(ref), null, String(ref));
+});
+
+test("the API reads a pull request's head", () => {
+  const api = ghApi("o/r", (args) => (args.at(-1) === "repos/o/r/pulls/7" ? JSON.stringify({ head: { sha: head } }) : "{}"));
+  assert.equal(api.pullHead(7), head);
 });
