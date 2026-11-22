@@ -459,7 +459,26 @@
           "branch": "main",
           "app": "Desk MCP"
         }
-      ]
+      ],
+      "census": {
+        "workflow": "ax-xray.yml",
+        "product": "desk",
+        "kinds": [
+          "mcp",
+          "cli",
+          "skill",
+          "agent",
+          "hook",
+          "http"
+        ],
+        "reviewed": {
+          "desk-mcp": "a97f93828e1106385266e94c4442a40aa82d2070d1aa6d4f3c868a9398e244ce",
+          "desk-cli": "9eaf8212f871aece51c9537af419436c8dc73553bee125718665717a95f412ab",
+          "desk-skills": "28c243b3a8d8b09b97c84cf2ebe31124ed9bd8eeffb1912e5811129041fb3f1e",
+          "desk-hooks": "31cffd10019d111309391f888eab03cd30b5bc8924a93b8b03f181ba2af68326",
+          "desk-http": "883339a51dc95e1bade962bf7b274947c6a7ad7c59f00b039ddfaac581e571cd"
+        }
+      }
     },
     {
       "id": "desk-browser",
