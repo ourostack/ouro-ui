@@ -1,0 +1,2905 @@
+{
+  "tool": "ouro-ax-claim-sets",
+  "sets": [
+    {
+      "version": "1.8.0",
+      "hash": "66beb968158af7b37b1d6d219cb4d7365ad1fcb551a2752ef298b53bc6ba4fe1",
+      "firstRelease": null,
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.optional-args",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.plain-pipe",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.check-verdict",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-in-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-when-piped",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.fact-before-voice",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.audience-named",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-refs",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.named-is-listed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-dev-commands",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "copy.precise-failure",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-size",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "tools.listed",
+          "surface": "tools",
+          "tier": "should"
+        },
+        {
+          "id": "tools.effect-declared",
+          "surface": "tools",
+          "tier": "must"
+        },
+        {
+          "id": "tools.when-line",
+          "surface": "tools",
+          "tier": "should"
+        },
+        {
+          "id": "tools.consequential-confirms",
+          "surface": "tools",
+          "tier": "must"
+        },
+        {
+          "id": "tools.bad-call-teaches",
+          "surface": "tools",
+          "tier": "should"
+        },
+        {
+          "id": "tools.typed-outcome",
+          "surface": "tools",
+          "tier": "should"
+        },
+        {
+          "id": "tools.unknown-tool",
+          "surface": "tools",
+          "tier": "should"
+        },
+        {
+          "id": "tools.inventory",
+          "surface": "tools",
+          "tier": "must"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-exists",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-effect-matches",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.person-only-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.reserved-person-only",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.self-scope-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.listening-needs-yes",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.read-fields",
+          "surface": "ui",
+          "tier": "should"
+        },
+        {
+          "id": "cli.listening-push-filtered",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.listening-cursor",
+          "surface": "cli",
+          "tier": "should"
+        }
+      ]
+    },
+    {
+      "version": "1.7.0",
+      "hash": "f827e7573421a0b1515e8770a23874aa9bdda5bea14fc2e1f750ae9b9cc74899",
+      "firstRelease": "v1.3.315",
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.optional-args",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.plain-pipe",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.check-verdict",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-in-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-when-piped",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.fact-before-voice",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.audience-named",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-refs",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.named-is-listed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-dev-commands",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "copy.precise-failure",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-size",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-exists",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-effect-matches",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.person-only-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.reserved-person-only",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.self-scope-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.listening-needs-yes",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.read-fields",
+          "surface": "ui",
+          "tier": "should"
+        },
+        {
+          "id": "cli.listening-push-filtered",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.listening-cursor",
+          "surface": "cli",
+          "tier": "should"
+        }
+      ]
+    },
+    {
+      "version": "1.6.0",
+      "hash": "f754c005cf49f73187e49dd91f3bc067da30be200707fbe4c823d0ba4bc0a6f0",
+      "firstRelease": "v1.3.226",
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.plain-pipe",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.check-verdict",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-in-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-when-piped",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.fact-before-voice",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.audience-named",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-refs",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.named-is-listed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-dev-commands",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "copy.precise-failure",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-size",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-exists",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-effect-matches",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.person-only-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.reserved-person-only",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.self-scope-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.listening-needs-yes",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.read-fields",
+          "surface": "ui",
+          "tier": "should"
+        },
+        {
+          "id": "cli.listening-push-filtered",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.listening-cursor",
+          "surface": "cli",
+          "tier": "should"
+        }
+      ]
+    },
+    {
+      "version": "1.5.0",
+      "hash": "dfcf73422b9f718d709d2210649ec1e3b98c5d19650cc1180b358368fb6b1feb",
+      "firstRelease": "v1.3.6",
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.plain-pipe",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.check-verdict",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-in-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-when-piped",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.fact-before-voice",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.audience-named",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-refs",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.named-is-listed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-dev-commands",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "copy.precise-failure",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-size",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-exists",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-effect-matches",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.person-only-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.reserved-person-only",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.self-scope-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.listening-needs-yes",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.read-fields",
+          "surface": "ui",
+          "tier": "should"
+        },
+        {
+          "id": "cli.listening-push-filtered",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.listening-cursor",
+          "surface": "cli",
+          "tier": "should"
+        }
+      ]
+    },
+    {
+      "version": "1.5.0",
+      "hash": "62ec383601b12d4ce1452f5719e22d6bdf6e43d1d517cf72f8f8c591d39f3ba3",
+      "firstRelease": "v1.3.5",
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.plain-pipe",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.check-verdict",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-in-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-when-piped",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.fact-before-voice",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.audience-named",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-refs",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.named-is-listed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-dev-commands",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-size",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-exists",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-effect-matches",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.person-only-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.reserved-person-only",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.self-scope-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.listening-needs-yes",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.read-fields",
+          "surface": "ui",
+          "tier": "should"
+        },
+        {
+          "id": "cli.listening-push-filtered",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.listening-cursor",
+          "surface": "cli",
+          "tier": "should"
+        }
+      ]
+    },
+    {
+      "version": "1.4.0",
+      "hash": "abff930fa65a2bbe97d92110819087abd6dd4fed60a8278f95a73e58fbfb103b",
+      "firstRelease": "v1.3.4",
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.plain-pipe",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.check-verdict",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-in-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-when-piped",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.fact-before-voice",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.audience-named",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-refs",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.named-is-listed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-dev-commands",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-size",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-exists",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-effect-matches",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.person-only-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.reserved-person-only",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.listening-needs-yes",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.read-fields",
+          "surface": "ui",
+          "tier": "should"
+        },
+        {
+          "id": "cli.listening-push-filtered",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.listening-cursor",
+          "surface": "cli",
+          "tier": "should"
+        }
+      ]
+    },
+    {
+      "version": "1.2.0",
+      "hash": "66c1c6eab91c132d94d83523b95b88b96a6ceb2eba41351129001ee325f0853b",
+      "firstRelease": "v1.3.3",
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-in-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-when-piped",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.fact-before-voice",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.audience-named",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-refs",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.named-is-listed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-size",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-exists",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-effect-matches",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.person-only-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.reserved-person-only",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.listening-needs-yes",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.read-fields",
+          "surface": "ui",
+          "tier": "should"
+        },
+        {
+          "id": "cli.listening-push-filtered",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.listening-cursor",
+          "surface": "cli",
+          "tier": "should"
+        }
+      ]
+    },
+    {
+      "version": "1.1.0",
+      "hash": "ccec9abb398ec3897951feabf3618dedeb4c7474d36d215674dca0a760d183c5",
+      "firstRelease": "v1.3.2",
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-in-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-when-piped",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.fact-before-voice",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.audience-named",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-refs",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.named-is-listed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-size",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        }
+      ]
+    },
+    {
+      "version": "1.1.0",
+      "hash": "0ad68772d970ec66f25b57598d37661592e1d88dbc69bb538b0deaa8f4ca7120",
+      "firstRelease": "v1.3.1",
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-in-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-when-piped",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.fact-before-voice",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.audience-named",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-refs",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.named-is-listed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-size",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        }
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "hash": "70e37a5e78c80a6b8244257c8db19fc8fa8f65061098df82e24bbb92a3e7c11f",
+      "firstRelease": "v1.3.0",
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        }
+      ]
+    }
+  ]
+}
