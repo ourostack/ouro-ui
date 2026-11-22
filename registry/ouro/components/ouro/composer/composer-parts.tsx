@@ -119,10 +119,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         },
         COMMAND_PRIORITY_HIGH,
       ),
-      editor.registerUpdateListener(({ tags, dirtyElements, dirtyLeaves }) => {
+      editor.registerUpdateListener(({ tags }) => {
         const markdown = toMarkdown(editor);
         setEmpty(markdown === "");
-        if (tags.has(synced) || (dirtyElements.size === 0 && dirtyLeaves.size === 0) || markdown === held.current) return;
+        if (tags.has(synced) || markdown === held.current) return;
         held.current = markdown;
         report.current(markdown);
       }),
