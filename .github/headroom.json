@@ -265,6 +265,11 @@
     "owner": "drain-3"
   },
   {
+    "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > signs on Jules, and the crew member who knows the name answers in place of the welcome",
+    "reason": "A shard measured it at 7.8 s against a budget of 15 s (#3032). It runs in under 1 s on a clean site install with no contention, repeated across isolated runs, so the breach did not reproduce locally; it reads as CI-shard load, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
     "test": "* registry/ouro/components/ouro/dialog/dialog.test.tsx > automatic presentation > renders a centered dialog at *px",
     "reason": "A shard measured it at 7.6 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
     "owner": "drain-3"
