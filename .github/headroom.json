@@ -343,5 +343,10 @@
     "test": "ouro-touch registry/ouro/components/ouro/command/command.touch.test.tsx > Command on a phone > keeps the commands and the loading rows 44px to a finger at a compact --spacing",
     "reason": "ouro-touch at 7.8s of 15s on #3032 (run 45072536276). Measured clean locally: the test body itself finishes quickly; the file's shared afterEach pays rotate()'s CDP round trips every test regardless, even though this test never rotates the viewport itself. That is the same repo-wide touch-test safety convention already exempted for select.touch.test.tsx above (rotate.ts: catch any stray zoom, not only an explicit rotate() call), used across 40+ *.touch.test.tsx files; narrowing it to only run when a test mutated state would weaken that guarantee just for this file. No avoidable cost found in the test body or a safe per-file narrowing. Reads as CI-shard load on the shared reset's real CDP round trips. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/lib/ouro/testing/axe.test.ts > audit > measures a long list's rows from pictures of the box that scrolls them, not one picture per row",
+    "reason": "ouro-webkit at 8.0s of 15s on #3032 (run 45075449817). Measured clean locally: the test, including its row scan and the real screenshot calls the audit counts, finishes in well under a second. The afterEach it shares with the rest of the file only clears document.body; no media round trip, no rotate(). No avoidable cost found in the test body. Reads as CI-shard load on the scan's real screenshot round trips. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
   }
 ]
