@@ -4,7 +4,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { AUTHORS, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, OURO_CURRENT, problems, readCommits, textProblems, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
+import { LOG_TRIES, AUTHORS, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, OURO_CURRENT, problems, readCommits, textProblems, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const script = join(dirname(fileURLToPath(import.meta.url)), "attribution.mjs");
@@ -188,9 +188,33 @@ test("attribution never passes a range it cannot read: a missing or unknown end,
     if (args[0] === "rev-parse") return "";
     throw new Error("fatal: bad object");
   };
-  assert.throws(() => readCommits("a", "b", failing), /bad object/);
-  assert.equal(main(["a", "b"], { git: failing, log: (line) => lines.push(line), actions: false }), 1);
+  assert.throws(() => readCommits("a", "b", failing, () => {}), /bad object/);
+  assert.equal(main(["a", "b"], { git: failing, log: (line) => lines.push(line), actions: false, pause: () => {} }), 1);
   assert.match(lines.join("\n"), /^attribution: fatal: bad object/);
+});
+
+test("attribution tries the log again when the partial clone's lazy fetch drops, and still fails once the tries run out", () => {
+  const { dir, shas } = repository([{ message: "Start" }, { message: "Next" }]);
+  const real = (args) => execFileSync("git", args, { cwd: dir, encoding: "utf8" });
+  let logs = 0;
+  const pauses = [];
+  const flaky = (args) => {
+    if (!args.includes("log")) return real(args);
+    if (++logs < LOG_TRIES) throw new Error("fatal: could not fetch abc from promisor remote");
+    return real(args);
+  };
+  const commits = readCommits(shas[0], shas[1], flaky, (ms) => pauses.push(ms));
+  assert.equal(commits.length, 1);
+  assert.equal(logs, LOG_TRIES);
+  assert.equal(pauses.length, LOG_TRIES - 1);
+  let tries = 0;
+  const down = (args) => {
+    if (!args.includes("log")) return real(args);
+    tries++;
+    throw new Error("fatal: could not fetch abc from promisor remote");
+  };
+  assert.throws(() => readCommits(shas[0], shas[1], down, () => {}), /promisor remote/);
+  assert.equal(tries, LOG_TRIES);
 });
 
 test("attribution passes Dependabot's dependency-bump commit, and only that", () => {
