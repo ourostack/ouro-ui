@@ -39,6 +39,12 @@ interface Line {
 }
 
 const ME = "Priya Okafor";
+const names = ["Mara Quill", "Theo Brandt", "Ana Lind"];
+const withMentions = (text: string): JSX.Element => (
+  <>
+    {text.split(new RegExp(`(@(?:${names.join("|")}))`)).map((part, at) => (at % 2 ? <span key={at} className="font-medium text-primary">{part}</span> : part))}
+  </>
+);
 const mention = (name: string): JSX.Element => <span className="font-medium text-primary">@{name}</span>;
 
 const people = {
@@ -135,7 +141,7 @@ export default function ChatDemo(): JSX.Element {
   const items: ConversationListItem[] = chats.map((chat) => ({ id: chat.id, title: chat.title, preview: chat.preview, time: chat.time, unread: chat.unread }));
 
   const send = (chatId: string, text: string, thread: boolean) => {
-    const line: Line = { id: `m${Date.now()}`, who: ME, own: true, time: "now", text };
+    const line: Line = { id: `m${Date.now()}`, who: ME, own: true, time: "now", text: withMentions(text.replace(/ {2,}/g, " ").trim()) };
     setChats((all) => all.map((chat) => (chat.id !== chatId ? chat : thread ? { ...chat, replies: [...chat.replies, line] } : { ...chat, messages: [...chat.messages, line], preview: text, time: "now", unread: false })));
     if (thread) return;
     stopReplies();
