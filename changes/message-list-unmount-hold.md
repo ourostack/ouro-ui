@@ -1,0 +1,1 @@
+- Fixed: a MessageList unmounted in the task it opened in no longer throws when it tries to hold its place afterwards.

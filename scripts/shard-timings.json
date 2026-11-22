@@ -909,6 +909,7 @@
     "registry/ouro/e2e/ouro/composed-surface.spec.ts": 10219,
     "registry/ouro/e2e/ouro/composer.spec.ts": 42588,
     "registry/ouro/e2e/ouro/confirm-dialog.spec.ts": 17060,
+    "registry/ouro/e2e/ouro/conversation-find.spec.ts": 3000,
     "registry/ouro/e2e/ouro/conversation-list.spec.ts": 8183,
     "registry/ouro/e2e/ouro/copy-button.spec.ts": 2724,
     "registry/ouro/e2e/ouro/cover.spec.ts": 2835,

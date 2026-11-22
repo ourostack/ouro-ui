@@ -10,11 +10,11 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 |---|---|---|---|---|
 | Kit | this repository | [ourostack/ouro-ui-apple v1.7.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.7.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.7.0") | [ourostack/ouro-ui-android v0.12.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.12.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.12.0") | [ourostack/ouro-ui-windows v0.12.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.12.0") |
 
-Components: Web has 134 of 138, Apple has 21 of 138, Android has 27 of 138, Windows has 30 of 138.[^matrix]
+Components: Web has 135 of 139, Apple has 21 of 139, Android has 27 of 139, Windows has 30 of 139.[^matrix]
 
 Claims covered: Web 7 of 13, Apple 13 of 13, Android 7 of 13, Windows 7 of 13.[^matrix]
 
-Gap cells: 358.[^matrix]
+Gap cells: 361.[^matrix]
 
 ### Components
 
@@ -152,6 +152,7 @@ Gap cells: 358.[^matrix]
 | [read-receipt](https://ui.ouroboros.bot/docs/read-receipt/) | `read-receipt` | Not yet | Not yet | Not yet |
 | [theme-picker](https://ui.ouroboros.bot/docs/theme-picker/) | `theme-picker` | Not yet | Not yet | Not yet |
 | [page-shell](https://ui.ouroboros.bot/docs/page-shell/) | `page-shell` | Not yet | Not yet | Not yet |
+| [conversation-find](https://ui.ouroboros.bot/docs/conversation-find/) | `conversation-find` | Not yet | Not yet | Not yet |
 | [freshness](https://ui.ouroboros.bot/docs/freshness/) | `freshness` | Not yet | Not yet | Not yet |
 | [preview-bar](https://ui.ouroboros.bot/docs/preview-bar/) | `preview-bar` | Not yet | Not yet | Not yet |
 | immersive-controls | Not yet | `OuroImmersiveControls` | Not yet | Not yet |
