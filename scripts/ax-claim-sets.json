@@ -4,7 +4,7 @@
     {
       "version": "1.8.0",
       "hash": "66beb968158af7b37b1d6d219cb4d7365ad1fcb551a2752ef298b53bc6ba4fe1",
-      "firstRelease": null,
+      "firstRelease": "v1.3.451",
       "claims": [
         {
           "id": "cli.help-parses",
