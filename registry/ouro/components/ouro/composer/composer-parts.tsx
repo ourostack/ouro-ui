@@ -7,10 +7,11 @@ import { $isListItemNode, ListItemNode, ListNode, registerList } from "@lexical/
 import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
-import { $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type LexicalEditor, type LexicalNode, type TextFormatType } from "lexical";
+import { $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType } from "lexical";
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
-import type { JSX, KeyboardEvent, Ref } from "react";
+import type { FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
+import { attachRef } from "@/registry/ouro/lib/ouro/refs";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 
 export { RichEditor };
@@ -48,6 +49,13 @@ interface RichEditorProps {
   /** The form field name the Markdown submits under. */
   name?: string | undefined;
   handleRef: Ref<RichEditorHandle>;
+  /** Points an app's ref, such as Autocomplete's, at the editor's element, which reads and selects text as a textarea does. */
+  controlRef?: Ref<HTMLDivElement> | undefined;
+  /** The handlers Autocomplete watches; the editor announces an input after a change the person makes. */
+  onInput?: FormEventHandler<HTMLDivElement> | undefined;
+  onSelect?: ((event: SyntheticEvent<HTMLDivElement>) => void) | undefined;
+  onFocus?: FocusEventHandler<HTMLDivElement> | undefined;
+  onBlur?: FocusEventHandler<HTMLDivElement> | undefined;
 }
 
 // Underline has no CommonMark mark; `++` is the one Composer's plain mode writes too.
@@ -205,13 +213,111 @@ function toggleLinkOfSelection(): void {
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
 const toMarkdown = (editor: LexicalEditor) => separateBlocks(editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", ""));
 
+// The editor's element answers as a textarea does, over the text without its marks, one line to each block, so Autocomplete finds a trigger at the caret and puts a pick in place of it.
+const $isLeaf = (node: ElementNode) => !node.getChildren().some((child) => $isElementNode(child) && !child.isInline());
+function $leaves(node: ElementNode): ElementNode[] {
+  // Stryker disable next-line LogicalOperator,MethodExpression,ConditionalExpression: a block that is not a leaf holds only block children, so the filter keeps every child however it is written
+  const blocks = node.getChildren().filter((child): child is ElementNode => $isElementNode(child) && !child.isInline());
+  return blocks.flatMap((block) => ($isLeaf(block) ? [block] : $leaves(block)));
+}
+const $lengthBefore = (node: LexicalNode) => node.getPreviousSiblings().reduce((sum, sibling) => sum + sibling.getTextContentSize(), 0);
+function $textOffset(node: LexicalNode, offset: number, type: "text" | "element"): number {
+  const leaves = $leaves($getRoot());
+  // Stryker disable next-line all: Lexical hands this shim element points only at offset 0 or at a line break, where both branches give the same sum
+  let at = type === "text" ? offset : 0;
+  // Stryker disable next-line all: an element point's offset is 0 here except beside a line break, which the element reduce and the fallback sum identically
+  if (type === "element" && $isElementNode(node)) at = node.getChildren().slice(0, offset).reduce((sum, child) => sum + child.getTextContentSize(), 0);
+  let cursor: LexicalNode | null = node;
+  while (cursor && !leaves.some((candidate) => candidate.is(cursor))) {
+    /* istanbul ignore else @preserve -- the loop ends at the root, so only the root lacks a parent and it stops the loop first */
+    // Stryker disable next-line all: the root has no siblings, so $lengthBefore adds 0 for it
+    if (cursor.getParent()) at += $lengthBefore(cursor);
+    cursor = cursor.getParent();
+  }
+  const leaf = cursor as ElementNode | null;
+  let start = 0;
+  for (const candidate of leaves) {
+    if (candidate.is(leaf)) return start + at;
+    start += candidate.getTextContentSize() + 1;
+  }
+  /* istanbul ignore next @preserve -- unreachable: the point's leaf is always among the leaves */
+  // Stryker disable next-line all: every point's leaf is in the leaves, so the loop returns before this fallback
+  return start - 1 < 0 ? 0 : start - 1;
+}
+function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "text" | "element"] {
+  let left = offset;
+  const children = element.getChildren();
+  for (const [index, child] of children.entries()) {
+    const size = child.getTextContentSize();
+    // Stryker disable next-line EqualityOperator: at left === size the next child, or the trailing point, gives the same position
+    const fits = left <= size;
+    // Stryker disable next-line all: equivalent: a line break child has size 1 and the text branch would give the same offset
+    if ($isLineBreakNode(child)) {
+      // Stryker disable next-line all: equivalent: past offset 0 the loop continues to the same point
+      if (left === 0) return [element, index, "element"];
+    } else if (fits) {
+      return $isElementNode(child) ? $pointAt(child, left) : [child, left, "text"];
+    }
+    left -= size;
+  }
+  // Stryker disable next-line all: the trailing point is reached only for a block ending in a line break, and its type is read back identically
+  return [element, children.length, "element"];
+}
+// Stryker disable next-line StringLiteral: no test carries a zero-width mark, so the constant only matters to the editor's own caret marks
+const MARK = "\u200b";
+// Stryker disable next-line StringLiteral: no test puts a zero-width mark in the text, so what replaces it is never read
+const withoutMarks = (text: string) => text.replaceAll(MARK, "");
+function $selectText(cleanStart: number, cleanEnd: number) {
+  const leaves = $leaves($getRoot());
+  const raw = leaves.map((leaf) => leaf.getTextContent()).join("\n");
+  const rawAt = (clean: number) => {
+    let index = 0;
+    // Stryker disable next-line all: the offset past the end of the raw text is clamped by the loop bound either way
+    for (let seen = 0; seen < clean && index < raw.length; index++) /* istanbul ignore else @preserve -- no test text holds a zero-width mark */ if (raw[index] !== MARK) seen++;
+    return index;
+  };
+  const start = rawAt(cleanStart);
+  const end = rawAt(cleanEnd);
+  const find = (offset: number) => {
+    let from = 0;
+    for (const leaf of leaves) {
+      const size = leaf.getTextContentSize();
+      if (offset <= from + size) return $pointAt(leaf, offset - from);
+      from += size + 1;
+    }
+    /* istanbul ignore next @preserve -- unreachable: every offset lies within some leaf */
+    // Stryker disable next-line all: every offset is within some leaf, so the fallback is unreachable
+    return $pointAt(leaves.at(-1)!, leaves.at(-1)!.getTextContentSize());
+  };
+  const selection = $createRangeSelection();
+  const [anchorNode, anchorOffset, anchorType] = find(start);
+  const [focusNode, focusOffset, focusType] = find(end);
+  selection.anchor.set(anchorNode.getKey(), anchorOffset, anchorType);
+  selection.focus.set(focusNode.getKey(), focusOffset, focusType);
+  $setSelection(selection);
+}
+function readControl(editor: LexicalEditor) {
+  return editor.read(() => {
+    const leaves = $leaves($getRoot());
+    const raw = leaves.map((leaf) => leaf.getTextContent()).join("\n");
+    const value = withoutMarks(raw);
+    const dom = window.getSelection();
+    // Stryker disable next-line OptionalChaining: the root element is set for as long as the editor is mounted, so the guard cannot see null
+    const selection = dom && editor.getRootElement()?.contains(dom.anchorNode) ? $createRangeSelectionFromDom(dom, editor) : $getSelection();
+    if (!$isRangeSelection(selection)) return { value, start: value.length, end: value.length };
+    const a = withoutMarks(raw.slice(0, $textOffset(selection.anchor.getNode(), selection.anchor.offset, selection.anchor.type))).length;
+    const b = withoutMarks(raw.slice(0, $textOffset(selection.focus.getNode(), selection.focus.offset, selection.focus.type))).length;
+    return { value, start: Math.min(a, b), end: Math.max(a, b) };
+  });
+}
+
 /**
  * The editor Composer swaps in for its textarea with `format="rich"`: a contenteditable that
  * reads and writes light Markdown.
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -239,8 +345,29 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         throw error;
       },
     });
-    editor.setRootElement(rootRef.current);
+    const root = rootRef.current!;
+    editor.setRootElement(root);
     editorRef.current = editor;
+    Object.defineProperties(root, {
+      value: { configurable: true, get: () => readControl(editor).value },
+      selectionStart: { configurable: true, get: () => readControl(editor).start },
+      selectionEnd: { configurable: true, get: () => readControl(editor).end },
+    });
+    Object.assign(root, {
+      setSelectionRange: (start: number, end: number) => editor.update(() => $selectText(start, end), { discrete: true }),
+      setRangeText: (text: string, start: number, end: number) =>
+        editor.update(
+          () => {
+            $selectText(start, end);
+            const selection = $getSelection();
+            /* istanbul ignore else @preserve -- $selectText has just made a range selection */
+            // Stryker disable next-line ConditionalExpression: $selectText has just made a range selection, so the guard only narrows the type
+            if ($isRangeSelection(selection)) selection.insertText(text);
+          },
+          // Stryker disable next-line ObjectLiteral,BooleanLiteral: editor.read, which value and the offsets use, sees a pending update as an applied one
+          { discrete: true },
+        ),
+    });
     const stops = [
       registerRichText(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
@@ -296,6 +423,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         if (tags.has(synced) || markdown === held.current) return;
         held.current = markdown;
         report.current(markdown);
+        rootRef.current!.dispatchEvent(new InputEvent("input", { bubbles: true }));
       }),
     ];
     editor.update(
@@ -369,7 +497,14 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     <div data-slot={slot} className={cn("relative", className)}>
       {name !== undefined && <input type="hidden" name={name} value={value} disabled={disabled} />}
       <div
-        ref={rootRef}
+        ref={(element) => {
+          rootRef.current = element;
+          return attachRef(controlRef, element);
+        }}
+        onInput={onInput}
+        onSelect={onSelect}
+        onFocus={onFocus}
+        onBlur={onBlur}
         role="textbox"
         aria-multiline="true"
         aria-label={label}
