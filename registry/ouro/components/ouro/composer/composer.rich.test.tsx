@@ -472,3 +472,88 @@ describe("Composer rich mode", () => {
     await expect.poll(() => host.querySelector("textarea")?.value).toBe("hi");
   });
 });
+
+describe("Composer rich mode with offsets in Markdown", () => {
+  // The box has the focus, as it does for a person who has a selection in it.
+  const field = (editor: HTMLElement) => (editor.focus(), editor) as HTMLElement & { value: string; selectionStart: number; selectionEnd: number; setSelectionRange: (start: number, end: number) => void; setRangeText: (text: string, start: number, end: number) => void };
+
+  it("answers value and selection over the text without its marks by default, and over the Markdown with offsets=\"markdown\"", async () => {
+    const plain = await render(rich({ defaultValue: "a **b** c" }));
+    expect(field(plain.editor).value).toBe("a b c");
+    await act(async () => field(plain.editor).setSelectionRange(2, 3));
+    expect([field(plain.editor).selectionStart, field(plain.editor).selectionEnd]).toEqual([2, 3]);
+    const { editor } = await render(rich({ defaultValue: "a **b** c", offsets: "markdown" }));
+    expect(field(editor).value).toBe("a **b** c");
+    await act(async () => field(editor).setSelectionRange(4, 5));
+    // The Markdown offset 4 is inside the bold, which is the text offset 2 before it as well; the same two characters are selected.
+    expect([field(editor).selectionStart, field(editor).selectionEnd]).toEqual([2, 5]);
+    await act(async () => field(editor).setRangeText("X", 4, 5));
+    await expect.poll(() => field(editor).value).toBe("a **X** c");
+    await act(async () => field(editor).setSelectionRange(0, 9));
+    expect([field(editor).selectionStart, field(editor).selectionEnd]).toEqual([0, 9]);
+  });
+
+  it("reads a caret in the Markdown after the person moves it, one block to a line and a blank line between blocks", async () => {
+    const { editor } = await render(rich({ defaultValue: "- one\n- two\n\nend", offsets: "markdown" }));
+    expect(field(editor).value).toBe("- one\n- two\n\nend");
+    await act(async () => field(editor).setSelectionRange(8, 8));
+    expect([field(editor).selectionStart, field(editor).selectionEnd]).toEqual([8, 8]);
+    editor.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => field(editor).selectionStart).toBe(9);
+    await act(async () => field(editor).setSelectionRange(15, 15));
+    expect(field(editor).selectionStart).toBe(15);
+    await userEvent.keyboard("!");
+    await expect.poll(() => field(editor).value).toBe("- one\n- two\n\nen!d");
+  });
+
+  it("puts the caret at the end of the Markdown when the box holds no selection yet, and keeps an empty line's place", async () => {
+    const { editor } = await render(rich({ defaultValue: "- a\n\n\nb", offsets: "markdown" }));
+    expect(field(editor).selectionStart).toBe(field(editor).value.length);
+    await act(async () => field(editor).setSelectionRange(5, 5));
+    expect(field(editor).selectionStart).toBe(5);
+  });
+
+  it("replaces a range of the Markdown with Markdown, reports it, and leaves the caret after it", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ defaultValue: "a **b** c", offsets: "markdown", onValueChange: (value) => void seen.push(value) }));
+    await act(async () => field(editor).setRangeText("X", 4, 5));
+    await expect.poll(() => field(editor).value).toBe("a **X** c");
+    expect(seen.at(-1)).toBe("a **X** c");
+    expect([field(editor).selectionStart, field(editor).selectionEnd]).toEqual([5, 5]);
+    await act(async () => field(editor).setRangeText("_new_ ", 0, 0));
+    await expect.poll(() => field(editor).value).toBe("_new_ a **X** c");
+    expect(editor.querySelector("em")?.textContent).toBe("new");
+    expect(field(editor).selectionStart).toBe(6);
+  });
+
+  it("clamps a range past the end, as a textarea does", async () => {
+    const { editor } = await render(rich({ defaultValue: "ab", offsets: "markdown" }));
+    await act(async () => field(editor).setRangeText("!", 9, 12));
+    await expect.poll(() => field(editor).value).toBe("ab!");
+    await act(async () => field(editor).setSelectionRange(0, 99));
+    expect([field(editor).selectionStart, field(editor).selectionEnd]).toEqual([0, 3]);
+  });
+
+  it("names the fix for an offsets value that is not one, and answers over the text", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { editor } = await render(rich({ defaultValue: "**b**", offsets: "bytes" as "text" }));
+    expect(field(editor).value).toBe("b");
+    expect(warn.mock.calls.some(([m]) => String(m).includes('offsets="bytes" is not an offset; use "text" or "markdown"'))).toBe(true);
+  });
+
+  it("takes no change from setRangeText in a read-only box", async () => {
+    const { editor } = await render(rich({ defaultValue: "a **b**", offsets: "markdown", readOnly: true }));
+    await act(async () => field(editor).setRangeText("X", 0, 1));
+    expect(field(editor).value).toBe("a **b**");
+  });
+
+  it("changes between the two as the prop does, with no remount", async () => {
+    const { editor, rerender } = await render(rich({ defaultValue: "**b**" }));
+    expect(field(editor).value).toBe("b");
+    await rerender(rich({ defaultValue: "**b**", offsets: "markdown" }));
+    expect(field(editor).value).toBe("**b**");
+    await rerender(rich({ defaultValue: "**b**", offsets: "text" }));
+    expect(field(editor).value).toBe("b");
+  });
+});
