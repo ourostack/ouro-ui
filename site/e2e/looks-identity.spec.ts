@@ -76,12 +76,14 @@ test("the More ways trigger hovers to one picture on every docs page", async ({ 
     await page.evaluate(describe, { selector: LOOK_SELECTOR, only: index });
     const trigger = page.locator(`[data-sweep-look="${index}"]`);
     await expect(trigger).toHaveText("More ways");
-    await trigger.scrollIntoViewIfNeeded();
+    // picture() centres the element, so centre it first: the mouse then stays over it through the picture.
+    await trigger.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }));
     const at = (await trigger.boundingBox())!;
     await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
     await expect.poll(() => trigger.evaluate((el) => el.matches(":hover"))).toBe(true);
     const crop = await picture(page, index);
     expect(crop, `${name} pictured`).not.toBeNull();
+    expect(await trigger.evaluate((el) => el.matches(":hover")), `${name} still hovered`).toBe(true);
     seen.push({ name, width: crop!.width, height: crop!.height, data: crop!.data });
   }
   const first = seen[0]!;
