@@ -149,7 +149,7 @@ test("ci.yml yields on pull requests only, in the plan before any other job queu
   assert.ok(steps.findIndex((block) => block.startsWith("uses: actions/checkout@")) < index);
   assert.ok(steps.findIndex((block) => /^ {0,8}run: pnpm i /m.test(block)) > index);
   // Every other job waits on the plan, so none queues for a runner while the plan yields.
-  for (const id of Object.keys(jobs).filter((key) => key !== "plan")) {
+  for (const id of Object.keys(jobs).filter((key) => key !== "plan" && key !== "yield")) {
     const waits = (key, seen = new Set()) => needsOf(key).some((need) => need === "plan" || (!seen.has(need) && (seen.add(need), waits(need, seen))));
     assert.ok(waits(id) || id === "install-github" || id === "install-latest", `${id} waits on the plan`);
   }

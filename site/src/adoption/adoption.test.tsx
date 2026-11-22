@@ -237,6 +237,14 @@ describe("reading the checks", () => {
     expect(checksOf(withCells({ xray: { value: two, note: null, source: null, measuredAt: at } }))[2]).toMatchObject({ why: "X-ray doesn't check its tools or http doors yet" });
   });
 
+  it("says when an X-ray's claim set isn't one an Ouro UI release published, or a newer one adds a claim it doesn't check", () => {
+    const value = { claims: 10, holding: 10, must: 18, mustHolding: 18, score: null, tool: "x", app: null, reportAt: at, run: "https://example.com/run", surfaces: ["mcp"], missingSurfaces: [] };
+    const read = (claimSetProblems: string[]) => checksOf(withCells({ xray: { value: { ...value, claimSetProblems }, note: null, source: null, measuredAt: at } }))[2];
+    expect(read(["ax-xray mcp's claim set 1.9.0 (bbbbbbbbbbbb) isn't one an Ouro UI release published, so it came from a local or branch build"])).toMatchObject({ state: "missing", why: "X-ray's claim set isn't from an Ouro UI release", source: "https://example.com/run" });
+    expect(read(["Ouro UI's claim set 1.9.0 adds cli.b for its cli doors, which ax-xray cli's 1.8.0 doesn't check"])).toMatchObject({ why: "A newer Ouro UI claim set adds claims its X-ray doesn't check" });
+    expect(read(["Ouro UI's latest release couldn't be read (boom), so ax-xray mcp's claim set can't be checked"])).toMatchObject({ why: "X-ray's claim set can't be checked against a release" });
+  });
+
   it("marks a check that does not apply, and one with nothing given back", () => {
     const giveBack = (value: number | null, note: string) => ({ value, note, source: "https://example.com/prs", measuredAt: at, prs: [] });
     expect(checksOf(withCells({ giveBack: giveBack(null, "n/a: this is the upstream; it is where the others give back to.") }))[3]).toMatchObject({ state: "na", why: "This is the upstream; it is where the others give back to" });

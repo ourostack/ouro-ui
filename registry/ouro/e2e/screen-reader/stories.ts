@@ -11,6 +11,7 @@ export const storyIds = {
   checkbox: "forms-checkbox--playground",
   celebrate: "feedback-celebrate--in-context",
   checklist: "lists-checklist--in-context",
+  composerBasic: "chat-composer--basic",
   colorSchemeToggle: "actions-colorschemetoggle--segmented",
   command: "menus-command--playground",
   dialog: "overlays-dialog--playground",

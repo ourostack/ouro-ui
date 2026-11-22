@@ -17,7 +17,7 @@ Some specs pass a step through a fallback or only log it, and the lane's advisor
 
 ## Per component
 
-Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 18 of 116 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
+Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 19 of 116 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
 
 | Component | Stories | Conformance declarations | Screen-reader spec (VoiceOver and NVDA) |
 | --- | --- | --- | --- |
@@ -52,7 +52,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [combobox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/combobox) | 5 | 0 | none yet |
 | [command](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/command) | 7 | 0 | [command.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/command.sr.spec.ts): 1 test on `menus-command--playground` |
 | [composed-surface](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/composed-surface) | 2 | 0 | none yet |
-| [composer](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/composer) | 13 | 0 | none yet |
+| [composer](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/composer) | 13 | 0 | [composer.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/composer.sr.spec.ts): 1 test on `chat-composer--basic` |
 | [conversation-find](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/conversation-find) | 3 | 0 | none yet |
 | [conversation-list](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/conversation-list) | 10 | 0 | none yet |
 | [copy-button](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/copy-button) | 2 | 0 | none yet |
@@ -159,6 +159,8 @@ The test titles, in the words of the specs, so a reader sees the claim before op
   - ColorSchemeToggle is announced as a radio group of schemes, and the scheme chosen with the arrow keys as checked
 - **command**
   - Command reads each command the arrow keys reach from the search, which keeps focus
+- **composer**
+  - Composer's box and send button are announced with their names and roles, and Tab reaches Send
 - **dialog**
   - Dialog is announced with its title and role when it opens, and its trigger again when it closes
 - **item**
