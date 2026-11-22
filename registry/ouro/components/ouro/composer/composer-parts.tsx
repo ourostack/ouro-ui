@@ -261,6 +261,7 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
 }
 // Stryker disable next-line StringLiteral: no test carries a zero-width mark, so the constant only matters to the editor's own caret marks
 const MARK = "\u200b";
+// Stryker disable next-line StringLiteral: no test puts a zero-width mark in the text, so what replaces it is never read
 const withoutMarks = (text: string) => text.replaceAll(MARK, "");
 function $selectText(cleanStart: number, cleanEnd: number) {
   const leaves = $leaves($getRoot());
