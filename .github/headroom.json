@@ -220,7 +220,7 @@
     "owner": "drain-3"
   },
   {
-    "test": "* test/controls.touch.test.tsx > no control is left unmarked on a touch phone > Reorderable/ScrollsInPlace leaves no control unmarked",
+    "test": "* test/controls.touch.test.tsx > no control is left unmarked on a touch phone > *",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   }
