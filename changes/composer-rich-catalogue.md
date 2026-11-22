@@ -1,0 +1,1 @@
+- New: `catalogue` works in `format="rich"`: the box draws emoji tokens as the catalogue's pictures, and the Markdown value keeps the `:shortcode:` tokens.

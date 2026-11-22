@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
+import type { EmojiCatalogue, EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -583,5 +584,193 @@ describe("Composer rich mode with offsets in Markdown", () => {
     expect(field(editor).value).toBe("**b**");
     await rerender(rich({ defaultValue: "**b**", offsets: "text" }));
     expect(field(editor).value).toBe("b");
+  });
+});
+
+describe("Composer rich mode with a catalogue", () => {
+  const image = (name: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><title>${name}</title></svg>`)}`;
+  const party: EmojiItem = { id: "party", name: "Party popper", shortcodes: ["party", "tada"], text: "🎉", src: image("party") };
+  const wave: EmojiItem = {
+    id: "wave",
+    name: "Waving hand",
+    shortcodes: ["wave"],
+    text: "👋",
+    src: image("wave"),
+    skinTones: [1, 2, 3, 4, 5].map((tone) => ({ id: `wave-tone${tone}`, src: image(`wave tone${tone}`), text: `👋${String.fromCodePoint(0x1f3fa + tone)}` })),
+  };
+  const catalogue: EmojiCatalogue = { categories: [{ id: "people", label: "People", items: [party, wave] }] };
+  const field = (editor: HTMLElement) => (editor.focus(), editor) as HTMLElement & { value: string };
+  // Lexical adds empty-alt images of its own beside an inline decorator in WebKit.
+  const pictures = (editor: HTMLElement) => [...editor.querySelectorAll("img:not([alt=\"\"])")];
+  const withCatalogue = (props: Partial<React.ComponentProps<typeof Composer>> = {}) => rich({ catalogue, offsets: "markdown", ...props });
+
+  it("draws a token the catalogue lists as its picture, named by the emoji's name, with the token as the Markdown", async () => {
+    const { editor } = await render(withCatalogue({ defaultValue: "hi :party: and :tada: :wave:" }));
+    const drawn = pictures(editor);
+    expect(drawn.map((img) => img.getAttribute("alt"))).toEqual(["Party popper", "Party popper", "Waving hand"]);
+    expect(drawn[0]!.getAttribute("src")).toBe(party.src);
+    expect(field(editor).value).toBe("hi :party: and :tada: :wave:");
+  });
+
+  it("draws a skin tone's own picture, and keeps text a token that names nothing", async () => {
+    const { editor } = await render(withCatalogue({ defaultValue: ":wave-tone3: :nope: :party" }));
+    expect(pictures(editor).map((img) => img.getAttribute("src"))).toEqual([image("wave tone3")]);
+    expect(field(editor).value).toBe(":wave-tone3: :nope: :party");
+  });
+
+  it("draws nothing without a catalogue, and tokens stay text", async () => {
+    const { editor } = await render(rich({ defaultValue: "hi :party:" }));
+    expect(pictures(editor)).toEqual([]);
+    expect(editor.textContent).toBe("hi :party:");
+  });
+
+  it("turns a token the person types into its picture, and reports the token", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(withCatalogue({ onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("go :party:");
+    await expect.poll(() => pictures(editor).length).toBe(1);
+    expect(seen.at(-1)).toBe("go :party:");
+    await userEvent.keyboard("{Backspace}");
+    await expect.poll(() => seen.at(-1)).toBe("go ");
+    expect(pictures(editor)).toEqual([]);
+  });
+
+  it("turns a token typed after one the catalogue does not list into its picture", async () => {
+    const { editor } = await render(withCatalogue());
+    editor.focus();
+    await userEvent.keyboard("hi :nope: :party:");
+    await expect.poll(() => pictures(editor).length).toBe(1);
+    expect(field(editor).value).toBe("hi :nope: :party:");
+  });
+
+  it("keeps a half-formed token as text, and draws it once its colon closes it", async () => {
+    const { editor } = await render(withCatalogue());
+    editor.focus();
+    await userEvent.keyboard("party: :party");
+    expect(pictures(editor)).toEqual([]);
+    await userEvent.keyboard(":");
+    await expect.poll(() => pictures(editor).length).toBe(1);
+    expect(field(editor).value).toBe("party: :party:");
+  });
+
+  it("leaves a typed token the catalogue does not list as text", async () => {
+    const { editor } = await render(withCatalogue());
+    editor.focus();
+    await userEvent.keyboard(":nope:");
+    expect(pictures(editor)).toEqual([]);
+    expect(field(editor).value).toBe(":nope:");
+  });
+
+  it("puts an emoji the system inserts in as its token, drawn as the picture", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(withCatalogue({ onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "a🎉b", bubbles: true, cancelable: true })));
+    await expect.poll(() => pictures(editor).length).toBe(1);
+    expect(seen.at(-1)).toBe("a:party:b");
+  });
+
+  it("puts emoji in pasted text, and in the editorRef's insert, in as pictures", async () => {
+    const handle = createRef<ComposerEditor>();
+    const { editor } = await render(withCatalogue({ editorRef: handle }));
+    editor.focus();
+    const data = new DataTransfer();
+    data.setData("text/plain", "🎉 :wave:");
+    await act(async () => void editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data })));
+    await expect.poll(() => pictures(editor).length).toBe(2);
+    await act(async () => handle.current!.insert(" :tada:"));
+    await expect.poll(() => pictures(editor).length).toBe(3);
+    expect(field(editor).value).toBe(":party: :wave: :tada:");
+  });
+
+  it("copies a picture and pastes it back as the same picture, through Lexical's own clipboard format", async () => {
+    const { editor } = await render(withCatalogue({ defaultValue: ":party:" }));
+    editor.focus();
+    (editor as HTMLElement & { setSelectionRange: (s: number, e: number) => void }).setSelectionRange(0, 7);
+    const data = new DataTransfer();
+    await act(async () => void editor.dispatchEvent(new ClipboardEvent("copy", { bubbles: true, cancelable: true, clipboardData: data })));
+    expect(data.getData("application/x-lexical-editor")).toContain(":party:");
+    (editor as HTMLElement & { setSelectionRange: (s: number, e: number) => void }).setSelectionRange(7, 7);
+    await act(async () => void editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data })));
+    await expect.poll(() => pictures(editor).length).toBe(2);
+    expect(field(editor).value).toBe(":party::party:");
+  });
+
+  it("loads a saved state back with its pictures, by the type each node saves", async () => {
+    const { editor } = await render(withCatalogue({ defaultValue: "a :party: b" }));
+    const lexical = (editor as unknown as { __lexicalEditor: { getEditorState(): { toJSON(): unknown }; parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    const json = lexical.getEditorState().toJSON();
+    expect(JSON.stringify(json)).toContain('"type":"ouro-emoji"');
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(json)));
+    await expect.poll(() => pictures(editor).length).toBe(1);
+    expect(field(editor).value).toBe("a :party: b");
+  });
+
+  it("keeps a plain selection's text offsets over a token, as the token's own text", async () => {
+    const { editor } = await render(rich({ catalogue, defaultValue: "a :party: b" }));
+    expect(field(editor).value).toBe("a :party: b");
+    (editor as HTMLElement & { setSelectionRange: (s: number, e: number) => void }).setSelectionRange(0, 9);
+    await expect.poll(() => (editor as HTMLElement & { selectionEnd: number }).selectionEnd).toBe(9);
+  });
+  it("draws each picture inline, undraggable, and keeps its tokens", async () => {
+    const { editor } = await render(withCatalogue({ defaultValue: "a :party: b :wave: c" }));
+    const [first, second] = pictures(editor) as HTMLImageElement[];
+    expect(first!.draggable).toBe(false);
+    expect(first!.className).toContain("inline-block");
+    expect(second!.getAttribute("alt")).toBe("Waving hand");
+    expect(field(editor).value).toBe("a :party: b :wave: c");
+  });
+
+  it("reads tokens among other colons and text, each one alone", async () => {
+    const { editor } = await render(withCatalogue({ defaultValue: "at 10:30:45 :party::wave: x:y :nope here: :wave:" }));
+    expect(pictures(editor).map((img) => img.getAttribute("alt"))).toEqual(["Party popper", "Waving hand", "Waving hand"]);
+    expect(field(editor).value).toBe("at 10:30:45 :party::wave: x:y :nope here: :wave:");
+  });
+
+  it.each([
+    [0, 0, "X:party: b"],
+    [7, 7, ":party:X b"],
+    [3, 0, "X:party: b"],
+    [8, 8, ":party: Xb"],
+  ])("puts the caret at %i before, after or over a picture by its token's Markdown offsets", async (at, expected, written) => {
+    const { editor } = await render(withCatalogue({ defaultValue: ":party: b" }));
+    const box = field(editor) as unknown as HTMLElement & { value: string; setSelectionRange: (s: number, e: number) => void; selectionStart: number; setRangeText: (t: string, s: number, e: number) => void };
+    box.setSelectionRange(at, at);
+    await expect.poll(() => box.selectionStart).toBe(expected);
+    await act(async () => box.setRangeText("X", expected, expected));
+    await expect.poll(() => box.value).toBe(written);
+  });
+
+  it("takes a catalogue that arrives after the first render", async () => {
+    const view = await render(rich({ offsets: "markdown" }));
+    await view.rerender(withCatalogue());
+    const editor = view.editor;
+    editor.focus();
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "🎉", bubbles: true, cancelable: true })));
+    await expect.poll(() => pictures(editor).length).toBe(1);
+  });
+
+  it("leaves typed text with no emoji, and a typed emoji with no catalogue, as text", async () => {
+    const { editor } = await render(withCatalogue());
+    editor.focus();
+    await userEvent.keyboard("ab");
+    expect(pictures(editor)).toEqual([]);
+    expect(field(editor).value).toBe("ab");
+    const bare = await render(rich());
+    bare.editor.focus();
+    await act(async () => void bare.editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "🎉", bubbles: true, cancelable: true })));
+    await expect.poll(() => field(bare.editor).value).toBe("🎉");
+  });
+
+  it("inserts plain text as text when there is no catalogue, by paste and by the editorRef", async () => {
+    const handle = createRef<ComposerEditor>();
+    const { editor } = await render(rich({ editorRef: handle }));
+    editor.focus();
+    const data = new DataTransfer();
+    data.setData("text/plain", "one :party:");
+    await act(async () => void editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data })));
+    await act(async () => handle.current!.insert(" two"));
+    expect(field(editor).value).toBe("one :party: two");
   });
 });
