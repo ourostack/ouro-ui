@@ -281,6 +281,17 @@ describe("Composer rich mode", () => {
     await expect.poll(() => host.querySelector("[data-ouro-composer-editor]")!.textContent).toBe("abc");
   });
 
+  it("keeps a blank line the app sets, and leaves focus where it was when the app sets a value", async () => {
+    const { editor, rerender } = await render(rich({ value: "", onValueChange: () => {} }));
+    const other = document.createElement("button");
+    document.body.append(other);
+    mounted.push(other);
+    other.focus();
+    await rerender(rich({ value: "a\n\nb", onValueChange: () => {} }));
+    await expect.poll(() => editor.querySelectorAll("p").length).toBe(3);
+    expect(document.activeElement).toBe(other);
+  });
+
   it("describes the editor to assistive technology, sizes it in lines, and drops the placeholder once there is text", async () => {
     const { host, editor } = await render(rich({ placeholder: "Write a message", rows: 2, maxRows: 5, "aria-describedby": "hint" } as never));
     expect(editor.getAttribute("aria-placeholder")).toBe("Write a message");

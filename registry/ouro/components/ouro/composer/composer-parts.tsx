@@ -97,6 +97,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       editor.registerCommand(
         FOCUS_COMMAND,
         () => {
+          // Stryker disable next-line ConditionalExpression: a press puts the caret where it landed after this focus, over the end-of-text caret.
           if (!pressed.current) $getRoot().selectEnd();
           pressed.current = false;
           return false;
@@ -128,12 +129,14 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       () => {
         $convertFromMarkdownString(held.current, transformers, undefined, true);
       },
-      // Stryker disable next-line BooleanLiteral: an update that waits a microtask instead of running at once shows the same content by the time a test or a person looks.
+      // Stryker disable next-line ObjectLiteral,ArrayDeclaration,StringLiteral,BooleanLiteral: the history keeps nothing for the update that fills an empty editor, so no test can tell its tag, and an update that waits a microtask instead of running at once shows the same content by the time a test or a person looks.
       { tag: [synced, "history-merge"], discrete: true },
     );
+    // Stryker disable next-line BlockStatement: nothing is left on the page to read once the box has gone.
     return () => {
       // Stryker disable next-line BlockStatement,ArrowFunction,CallExpression: the cleanup runs as the box leaves the page, where nothing is left to read.
       stops.forEach((stop) => stop());
+      // Stryker disable next-line CallExpression: the editor is dropped with the box, so the cleared root is never read.
       editor.setRootElement(null);
       editorRef.current = null;
     };
@@ -212,7 +215,9 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         // Lines are read from the font, so the box grows from `rows` to `maxRows` as the textarea does.
         style={{ minHeight: `${rows}lh`, maxHeight: `${maxRows}lh` }}
         // The capture phase is before the editor's own listener, so a key the composer takes never reaches it.
+        // Stryker disable next-line BlockStatement: a press places its own caret after focus, so the flag only spares the end-of-text one.
         onPointerDownCapture={() => {
+          // Stryker disable next-line BooleanLiteral: see the press handler above.
           pressed.current = true;
         }}
         onKeyDownCapture={(event) => {
