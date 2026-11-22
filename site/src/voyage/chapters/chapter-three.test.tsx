@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, voice } from "../../../test/readability";
@@ -21,8 +21,17 @@ await loadPageCode("/nautilus/");
 
 const root = document.documentElement;
 
-beforeEach(async () => {
+// Every test in this file wants the same reduced-motion preference, so it is set once for the whole
+// file instead of toggled on and off around each test, which paid two round trips to the browser
+// a test instead of the file's two.
+beforeAll(async () => {
   await commands.emulateMedia({ reducedMotion: "reduce" });
+});
+afterAll(async () => {
+  await commands.emulateMedia({ reducedMotion: "no-preference" });
+});
+
+beforeEach(async () => {
   await page.viewport(1280, 900);
   root.setAttribute("data-theme", "pearl");
   setScheme("light");
@@ -31,7 +40,6 @@ afterEach(async () => {
   toast.dismiss();
   await cleanupPage();
   root.removeAttribute("data-theme");
-  await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
 const scene = () => document.querySelector<HTMLElement>(".site-porthole")!;
