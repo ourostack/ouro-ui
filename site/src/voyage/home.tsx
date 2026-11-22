@@ -130,7 +130,9 @@ export function TwoShips(): JSX.Element {
             Ouro UI is one corner of Ouro's meadow. There's a desk, a toy factory and a picnic going on just over the hill.
           </p>
           <p className="mt-3 mb-0">
-            <Link href={OURO_HOME}>Meet the neighbours</Link>
+            <Link href={OURO_HOME} tone="secondary" inline={false}>
+              Meet the neighbours
+            </Link>
           </p>
         </Container>
       </StoryWorld>
