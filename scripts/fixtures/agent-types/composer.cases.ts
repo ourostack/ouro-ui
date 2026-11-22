@@ -1,4 +1,4 @@
-import { type AgentCase, hint } from "./shared.ts";
+import { type AgentCase, hint, notAssignable } from "./shared.ts";
 
 /** The composer snippets in composer.snippets.tsx that make mistakes, in file order. */
 export const agentCases: AgentCase[] = [
@@ -44,7 +44,14 @@ export const agentCases: AgentCase[] = [
     dev: "<Composer defaultExpanded={false}>",
     names: ["tsc", "dev"],
   },
+  {
+    id: "composer07",
+    habit: "markdown for the rich format",
+    tsc: [notAssignable('"markdown"', `"plain" | (string & { 'Use "plain" (the default) or "rich"': never; }) | "rich" | undefined`)],
+    dev: '<Composer format="rich">',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid composer snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["composerOk01", "composerOk02", "composerOk03", "composerOk04"];
+export const validSnippets: string[] = ["composerOk01", "composerOk02", "composerOk03", "composerOk04", "composerOk05"];

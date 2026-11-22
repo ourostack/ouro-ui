@@ -1,0 +1,216 @@
+"use client";
+
+import { createEmptyHistoryState, registerHistory } from "@lexical/history";
+import { $convertFromMarkdownString, $convertToMarkdownString, BOLD_STAR, INLINE_CODE, ITALIC_UNDERSCORE, STRIKETHROUGH, type TextFormatTransformer } from "@lexical/markdown";
+import { registerRichText } from "@lexical/rich-text";
+import { $getRoot, $getSelection, $isRangeSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, PASTE_COMMAND, type LexicalEditor, type TextFormatType } from "lexical";
+import { useEffect, useImperativeHandle, useRef, useState } from "react";
+import type { JSX, KeyboardEvent, Ref } from "react";
+import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
+
+export { RichEditor };
+export type { RichEditorHandle, RichEditorProps };
+
+// Composer's rich mode, loaded only once a composer asks for it, so a page that never does pays for none of Lexical.
+
+/** What Composer drives the rich editor with. @internal */
+interface RichEditorHandle {
+  /** Applies a mark to the selection, or takes it away when the selection has it already. */
+  format: (format: ComposerFormat) => void;
+  /** Puts plain text in place of the selection. */
+  insert: (text: string) => void;
+  /** Puts the caret at the end of the text and focuses the editor. */
+  focus: () => void;
+}
+
+/** @internal */
+interface RichEditorProps {
+  label: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  placeholder: string | undefined;
+  disabled: boolean;
+  readOnly: boolean | undefined;
+  describedBy: string | undefined;
+  rows: number;
+  maxRows: number;
+  className: string;
+  /** Sees keys before the editor does, so Enter can send and a mark's key can format. */
+  onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+  /** Focus the editor when it mounts, with the caret at the end: the person was in the plain box it replaces. */
+  autoFocus: boolean;
+  handleRef: Ref<RichEditorHandle>;
+}
+
+// Underline has no CommonMark mark; `++` is the one Composer's plain mode writes too.
+const UNDERLINE: TextFormatTransformer = { format: ["underline"], tag: "++", type: "text-format" };
+const transformers = [BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE];
+
+const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
+
+// What a change from the app, rather than the person, carries, so the editor does not report it back.
+const synced = "composer-sync";
+
+// An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
+const toMarkdown = (editor: LexicalEditor) => editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", "");
+
+/**
+ * The editor Composer swaps in for its textarea with `format="rich"`: a contenteditable that
+ * reads and writes light Markdown.
+ *
+ * @internal
+ */
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, onKeyDown, autoFocus, handleRef }: RichEditorProps): JSX.Element {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<LexicalEditor | null>(null);
+  // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
+  const held = useRef(value);
+  const report = useRef(onValueChange);
+  useEffect(() => {
+    report.current = onValueChange;
+  });
+  // A press places the caret where it lands; any other way in puts it at the end.
+  const pressed = useRef(false);
+  const [empty, setEmpty] = useState(value === "");
+
+  useEffect(() => {
+    const editor = createEditor({
+      namespace: "ouro-composer",
+      // Lexical writes underline and strikethrough as classes only; bold, italic and code are elements.
+      theme: { text: { underline: "underline", strikethrough: "line-through", underlineStrikethrough: "underline line-through" } },
+      onError: (error) => {
+        throw error;
+      },
+    });
+    editor.setRootElement(rootRef.current);
+    editorRef.current = editor;
+    const stops = [
+      registerRichText(editor),
+      registerHistory(editor, createEmptyHistoryState(), 300),
+      // A caret is placed only when the box takes focus, so that loading it never moves focus.
+      editor.registerCommand(
+        FOCUS_COMMAND,
+        () => {
+          if (!pressed.current) $getRoot().selectEnd();
+          pressed.current = false;
+          return false;
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
+      // Only the clipboard's text goes in: the allowlist for formatted paste follows.
+      editor.registerCommand(
+        PASTE_COMMAND,
+        (event) => {
+          const data = (event as ClipboardEvent).clipboardData;
+          const selection = $getSelection();
+          if (!data || !$isRangeSelection(selection)) return false;
+          event.preventDefault();
+          selection.insertRawText(data.getData("text/plain"));
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
+      editor.registerUpdateListener(({ tags, dirtyElements, dirtyLeaves }) => {
+        const markdown = toMarkdown(editor);
+        setEmpty(markdown === "");
+        if (tags.has(synced) || (dirtyElements.size === 0 && dirtyLeaves.size === 0) || markdown === held.current) return;
+        held.current = markdown;
+        report.current(markdown);
+      }),
+    ];
+    editor.update(
+      () => {
+        $convertFromMarkdownString(held.current, transformers, undefined, true);
+      },
+      { tag: [synced, "history-merge"], discrete: true },
+    );
+    return () => {
+      stops.forEach((stop) => stop());
+      editor.setRootElement(null);
+      editorRef.current = null;
+    };
+  }, []);
+
+  // A value the app sets, such as the empty one after a send, replaces what the editor holds.
+  useEffect(() => {
+    const editor = editorRef.current!;
+    if (value === held.current) return;
+    held.current = value;
+    const focused = document.activeElement === rootRef.current;
+    editor.update(
+      () => {
+        $convertFromMarkdownString(value, transformers, undefined, true);
+        if (focused) $getRoot().selectEnd();
+      },
+      { tag: [synced, "history-merge"], discrete: true },
+    );
+  }, [value]);
+
+  useEffect(() => {
+    editorRef.current!.setEditable(!disabled && !readOnly);
+  }, [disabled, readOnly]);
+
+  const focus = () => {
+    const editor = editorRef.current!;
+    editor.update(() => $getRoot().selectEnd(), { discrete: true });
+    rootRef.current!.focus({ preventScroll: true });
+  };
+  useEffect(() => {
+    if (autoFocus) focus();
+    // autoFocus is read once, at mount, as the HTML attribute is.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useImperativeHandle(handleRef, () => ({
+    format: (format) => {
+      const command = markCommands[format];
+      if (command && !readOnly) editorRef.current!.dispatchCommand(FORMAT_TEXT_COMMAND, command);
+    },
+    insert: (text) => {
+      if (readOnly) return;
+      editorRef.current!.update(() => {
+        const selection = $getSelection();
+        ($isRangeSelection(selection) ? selection : $getRoot().selectEnd()).insertText(text);
+      });
+    },
+    focus,
+  }));
+
+  return (
+    <div className={cn("relative", className)}>
+      <div
+        ref={rootRef}
+        role="textbox"
+        aria-multiline="true"
+        aria-label={label}
+        aria-placeholder={placeholder}
+        aria-describedby={describedBy}
+        aria-disabled={disabled || undefined}
+        aria-readonly={readOnly || undefined}
+        contentEditable={!disabled && !readOnly}
+        suppressContentEditableWarning
+        spellCheck
+        data-ouro-control="composer"
+        data-ouro-part="editor"
+        data-ouro-composer-editor=""
+        // Lines are read from the font, so the box grows from `rows` to `maxRows` as the textarea does.
+        style={{ minHeight: `${rows}lh`, maxHeight: `${maxRows}lh` }}
+        // The capture phase is before the editor's own listener, so a key the composer takes never reaches it.
+        onPointerDownCapture={() => {
+          pressed.current = true;
+        }}
+        onKeyDownCapture={(event) => {
+          onKeyDown(event);
+          if (event.defaultPrevented) event.stopPropagation();
+        }}
+        className="m-0 box-content block min-w-0 overflow-y-auto border-0 bg-transparent px-0 py-(--ouro-text-area-py) text-base leading-6 text-inherit outline-0 [--ouro-text-area-py:calc(var(--spacing)*3)] [overflow-wrap:anywhere] whitespace-pre-wrap sm:pointer-fine:text-sm sm:pointer-fine:leading-5 [&_p]:m-0 [&_strong]:font-semibold [&_code]:rounded-ouro-sm [&_code]:bg-muted [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.9em]"
+      />
+      {empty && placeholder && (
+        <span aria-hidden="true" data-ouro-composer-placeholder="" className="pointer-events-none absolute inset-x-0 top-(--ouro-text-area-py) text-base leading-6 text-muted-foreground [--ouro-text-area-py:calc(var(--spacing)*3)] sm:pointer-fine:text-sm sm:pointer-fine:leading-5">
+          {placeholder}
+        </span>
+      )}
+    </div>
+  );
+}

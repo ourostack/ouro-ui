@@ -4,7 +4,8 @@ import "@/registry/ouro/lib/ouro/last-input";
 import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { ClipboardEvent, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { composerShortcuts, formatEdit, isApple, markFormats, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
+import type { RichEditor, RichEditorHandle } from "@/registry/ouro/components/ouro/composer/composer-parts";
+import { composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiTextToTokens } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
@@ -20,7 +21,16 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 
 /** What sent the message: the Enter key in the box, or a press of the send button. */
-export type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement> | MouseEvent<HTMLButtonElement>;
+export type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement | HTMLDivElement> | MouseEvent<HTMLButtonElement>;
+
+type RichModule = typeof import("@/registry/ouro/components/ouro/composer/composer-parts");
+
+let richLoading: Promise<RichModule> | undefined;
+
+// Loads the rich editor once, by a dynamic import, so Lexical stays out of a plain page's build.
+function loadRich(): Promise<RichModule> {
+  return (richLoading ??= import("@/registry/ouro/components/ouro/composer/composer-parts"));
+}
 
 /** The message a reply quotes, for Composer's `quote`: who wrote it and a line of what they wrote. */
 export interface ComposerQuote {
@@ -226,6 +236,21 @@ export interface ComposerOwnProps {
    */
   formatting?: boolean | undefined;
   /**
+   * `"rich"` swaps the text box for a rich-text editor: bold, italic, underline, strikethrough and
+   * code, as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E, and as light Markdown typed (`**bold**`, `_italic_`,
+   * `++underline++`, `~~strike~~`, a backtick for code). `value`, `defaultValue` and `onSend` stay
+   * Markdown text, the shape the plain box has. The editor loads on first use, so a page with only
+   * plain composers pays nothing for it; until it arrives, and on the server, a plain textarea
+   * shows. In rich mode `ref` is not set, `highlights`, `catalogue`, `onPaste` and `pasteText` do not apply, and ⌘⇧X is
+   * strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
+   *
+   * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
+   * @claim "as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code)
+   * @claim "so a page with only plain composers pays nothing for it" scripts/composer-weight.test.mjs verify:testExists(scripts/composer-weight.test.mjs::a page with a plain Composer loads no Lexical with it: the rich editor is a chunk fetched on first use)
+   * @claim "until it arrives, and on the server, a plain textarea shows" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > renders the plain textarea on the server and until the editor has loaded, so the first render never touches the editor)
+   */
+  format?: "plain" | "rich" | (string & { 'Use "plain" (the default) or "rich"': never }) | undefined;
+  /**
    * A handle that formats the text and inserts into it, for a formatting bar, an emoji button or
    * a link dialog. Every change it makes, a key's format and a `pasteText` paste go through the
    * browser's own editing, as typing does, so Undo (⌘Z) and Redo (⌘⇧Z) step through them. WebKit
@@ -267,7 +292,7 @@ const sendKeys = ["enter", "mod-enter"] as const;
 // text has focus; the textarea inside draws neither.
 const frameClass =
   "relative box-border flex min-w-0 flex-col rounded-ouro-lg border border-solid border-input bg-card text-card-foreground " +
-  "ouro-field-cue outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid " +
+  "ouro-field-cue outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid has-[[data-ouro-composer-editor]:focus-visible]:outline-2 has-[[data-ouro-composer-editor]:focus-visible]:outline-solid " +
   "[&_textarea:focus-visible]:outline-0";
 
 // The quote: a box on the muted surface with a hairline, which fades in when it appears after the
@@ -452,6 +477,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     className,
     ref,
     formatting = false,
+    format: formatMode = "plain",
     editorRef,
     pasteText,
     onKeyDown,
@@ -493,6 +519,23 @@ export function Composer(props: ComposerProps): JSX.Element {
   const rowRef = useRef<HTMLDivElement | null>(null);
   const height = useRef<{ expanded: boolean; px: number } | null>(null);
   const setRef = useMergedRef(ref, textareaRef);
+  const richRef = useRef<RichEditorHandle | null>(null);
+  const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
+  useEffect(() => {
+    if (formatMode !== "rich") return;
+    let live = true;
+    void loadRich().then(({ RichEditor: Editor }) => {
+      // The person typing in the plain box carries on in the editor that replaces it.
+      /* istanbul ignore else @preserve -- only a load that outlives an unmount reaches it, and the dynamic import settles before a test can unmount in between */
+      if (live) setRich({ Editor, focus: textareaRef.current === document.activeElement });
+    });
+    return () => {
+      live = false;
+      setRich(undefined);
+    };
+  }, [formatMode]);
+  const richOn = formatMode === "rich" && rich !== undefined;
+  const focusText = () => (richOn ? richRef.current!.focus() : textareaRef.current!.focus({ preventScroll: true }));
   const id = useId();
   const hasAttachments = Children.toArray(attachments).length > 0;
   const blocked = disabled || sending || sendDisabledReason !== undefined;
@@ -511,6 +554,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           !(sendKeys as readonly string[]).includes(sendOnProp) && [`sendOn="${String(sendOnProp)}" is not a key; use "enter" or "mod-enter"`, '<Composer sendOn="enter">'],
+          !(["plain", "rich"] as readonly string[]).includes(formatMode) && [`format="${String(formatMode)}" is not a format; use "plain" or "rich"`, '<Composer format="rich">'],
           onSubmit !== undefined && ["onSubmit is not a prop; sending calls onSend", "<Composer onSend={(text) => send(text)}>"],
           submitOnEnter !== undefined && ["submitOnEnter is not a prop", '<Composer sendOn="enter">'],
           enterToSend !== undefined && ["enterToSend is not a prop", '<Composer sendOn="enter">'],
@@ -534,7 +578,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     setOwn("");
     // After a press of Send, the person goes on writing; after Enter, focus is there already. No
     // box around the composer scrolls for it.
-    textareaRef.current!.focus({ preventScroll: true });
+    focusText();
   };
   const setExpanded = (next: boolean) => {
     setOwnExpanded(next);
@@ -543,12 +587,12 @@ export function Composer(props: ComposerProps): JSX.Element {
   const toggleExpanded = () => {
     setExpanded(!expanded);
     // The person goes on writing where they were: the textarea keeps its caret while it has no focus.
-    textareaRef.current!.focus({ preventScroll: true });
+    focusText();
   };
   const removeQuote = () => {
     quote!.onRemove();
     // The remove button goes with the quote, so focus goes back to the text, scrolling no box around it.
-    textareaRef.current!.focus({ preventScroll: true });
+    focusText();
   };
 
   // After every render, once TextArea has fitted the box: a render that expands or collapses it
@@ -583,27 +627,28 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (!textarea.readOnly) change(textarea);
   };
   const format = (kind: ComposerFormat) =>
-    edit((textarea) => {
+    richOn ? richRef.current!.format(kind) : edit((textarea) => {
       const change = formatEdit(textarea.value, textarea.selectionStart, textarea.selectionEnd, kind);
       insertText(textarea, change.from, change.to, change.text);
       textarea.setSelectionRange(change.start, change.end);
     });
-  const insert = (text: string) => edit((textarea) => insertText(textarea, textarea.selectionStart, textarea.selectionEnd, text));
+  const insert = (text: string) => richOn ? richRef.current!.insert(text) : edit((textarea) => insertText(textarea, textarea.selectionStart, textarea.selectionEnd, text));
   useImperativeHandle(editorRef, () => ({ format, insert }));
-  const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    onKeyDown?.(event);
+  const keyDown = (event: KeyboardEvent<HTMLTextAreaElement | HTMLDivElement>) => {
+    onKeyDown?.(event as KeyboardEvent<HTMLTextAreaElement>);
     // A word an input method is still composing ends with Enter, and Escape cancels it; those keys are the input method's.
     if (event.defaultPrevented || event.nativeEvent.isComposing || event.keyCode === 229) return;
     const apple = isApple();
-    if (canExpand && pressed(event, composerShortcuts.expand, apple)) {
-      event.preventDefault();
-      setExpanded(!expanded);
-      return;
-    }
-    const key = formatting ? markFormats.find((kind) => pressed(event, composerShortcuts[kind], apple)) : undefined;
+    const keys = richOn ? richShortcuts : composerShortcuts;
+    const key = formatting || richOn ? markFormats.find((kind) => pressed(event, keys[kind], apple)) : undefined;
     if (key) {
       event.preventDefault();
       format(key);
+      return;
+    }
+    if (canExpand && pressed(event, composerShortcuts.expand, apple)) {
+      event.preventDefault();
+      setExpanded(!expanded);
       return;
     }
     if (event.key === "Escape" && quote && text === "") {
@@ -630,7 +675,7 @@ export function Composer(props: ComposerProps): JSX.Element {
 
   // With a catalogue, an emoji typed (from the system's emoji panel, which inserts it whole) goes in as its token.
   useEffect(() => {
-    if (!catalogue) return;
+    if (!catalogue || richOn) return;
     const control = textareaRef.current!;
     const typed = (event: InputEvent) => {
       // A word an input method is composing is the input method's until it ends; a replacement without text inserts none.
@@ -639,7 +684,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     };
     control.addEventListener("beforeinput", typed);
     return () => control.removeEventListener("beforeinput", typed);
-  }, [catalogue]);
+  }, [catalogue, richOn]);
   const paste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     onPaste?.(event);
     if (event.defaultPrevented) return;
@@ -691,6 +736,23 @@ export function Composer(props: ComposerProps): JSX.Element {
         )}
         {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. */}
         <div ref={rowRef} data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end">
+          {richOn && rich ? (
+            <rich.Editor
+              handleRef={richRef}
+              label={label}
+              value={text}
+              onValueChange={change}
+              placeholder={placeholder}
+              disabled={disabled}
+              readOnly={rest.readOnly}
+              describedBy={describedBy}
+              rows={rows}
+              maxRows={maxRows}
+              onKeyDown={keyDown}
+              autoFocus={rich.focus}
+              className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", expanded && "w-full flex-auto")}
+            />
+          ) : (
           <TextArea
             {...rest}
             ref={setRef}
@@ -713,6 +775,7 @@ export function Composer(props: ComposerProps): JSX.Element {
             // Expanded, the text takes the whole width, and the buttons go on a row under it.
             className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:[--ouro-text-area-py:calc(var(--spacing)*3)] [&_textarea]:ps-3 [&_textarea]:pe-2", expanded && "w-full flex-auto")}
           />
+          )}
           <div className="ms-auto flex shrink-0 items-center gap-0.5 p-1">
             {canExpand && (
               <Tooltip
