@@ -12,14 +12,14 @@ export function InlineCode({ children }: { children: ReactNode }): JSX.Element {
   );
 }
 
-/** A file path inside running text: it breaks after a slash, and inside a name only when the name alone is wider than the line. */
+/** A file path inside running text: it breaks after a slash (never after the first, so a short top folder is not left alone on a line), and inside a name only when the name alone is wider than the line. */
 export function InlinePath({ path }: { path: string }): JSX.Element {
   return (
     <code data-site-path className="rounded-[calc(var(--radius)*0.267)] bg-muted px-[0.3em] py-[0.1em] font-mono [font-size-adjust:0.46] text-foreground [overflow-wrap:break-word]">
       {path.split("/").map((part, index, parts) => (
         <span key={index}>
           {part}
-          {index < parts.length - 1 && <>/<wbr /></>}
+          {index < parts.length - 1 && <>/{index > 0 && <wbr />}</>}
         </span>
       ))}
     </code>

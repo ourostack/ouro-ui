@@ -180,7 +180,7 @@ describe("Composer rich mode", () => {
     await expect.poll(() => editor.textContent).toBe("abc");
   });
 
-  it("pastes the clipboard's plain text only", async () => {
+  it("pastes the clipboard's formatting through the allowlist, never its scripts", async () => {
     const seen: string[] = [];
     const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
     editor.focus();
@@ -188,8 +188,8 @@ describe("Composer rich mode", () => {
     data.setData("text/plain", "plain");
     data.setData("text/html", "<b>plain</b><script>x</script>");
     await act(async () => void editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data })));
-    await expect.poll(() => seen.at(-1)).toBe("plain");
-    expect(editor.querySelector("strong, b")).toBeNull();
+    await expect.poll(() => seen.at(-1)).toBe("**plain**");
+    expect(editor.querySelector("script")).toBeNull();
     const second = new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data });
     await act(async () => void editor.dispatchEvent(second));
     expect(second.defaultPrevented).toBe(true);

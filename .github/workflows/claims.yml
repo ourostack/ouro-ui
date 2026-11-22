@@ -90,3 +90,4 @@ jobs:
           git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
           CLAIMS_BASE_REF="HEAD^1" node scripts/claims.mjs ratchet
           REAL_CLOCK_BASE_REF="HEAD^1" node scripts/real-clock-ratchet.mjs
+          HEADROOM_BASE_REF="HEAD^1" node scripts/headroom-ratchet.mjs

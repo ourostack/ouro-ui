@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { recordMatched } from "./waivers";
-import { describe, LOOK_SELECTOR, Looks, picture, quiet, routeGuard, routes, settled } from "./looks";
+import { instability, wantsRetake } from "./stable-take";
+import { describe, LOOK_SELECTOR, Looks, loaded, picture, quiet, routeGuard, routes, settled } from "./looks";
 
 // Every control, as each page shows it, is put through hover, keyboard focus and press, in both engines and
 // both themes. Controls are deduped by component, part, variant, size and checked or disabled state, and a
@@ -15,10 +16,11 @@ const SAMPLES = 2;
 // read after it on that page would wear another look, and their own states are those of a plain Button the sweep reads.
 const CONTROL = "[data-ouro-control]:not(a):not([href]):not([disabled]):not([aria-hidden=true]):not([data-ouro-part=hidden-input]):not([data-ouro-part=input]):not([data-site-demo-looks] *)";
 
-async function broken(page: Page, selector: string, index: number): Promise<string[]> {
+// The control is the element holding the mark the inventory pass wrote, not whatever sits at that position now.
+async function broken(page: Page, index: number): Promise<string[]> {
   return page.evaluate(
-    ([sel, i]) => {
-      const el = document.querySelectorAll<HTMLElement>(sel as string)[i as number];
+    (i) => {
+      const el = document.querySelector<HTMLElement>(`[data-sweep-look="${i}"]`);
       if (!el) return [];
       const out: string[] = [];
       const name = `${el.dataset["ouroControl"]}/${el.dataset["ouroPart"] ?? ""}`;
@@ -43,7 +45,7 @@ async function broken(page: Page, selector: string, index: number): Promise<stri
       }
       return out;
     },
-    [selector, index] as const,
+    index,
   );
 }
 
@@ -55,6 +57,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
     page.setDefaultTimeout(5_000);
     await context.addInitScript((m) => localStorage.setItem("ouro-site-theme", JSON.stringify({ preset: "pearl", mode: m })), mode);
     const found: string[] = [];
+    const unsteady: string[] = [];
     const looks = new Looks();
     const taken = new Map<string, number>();
     const guard = routeGuard(context, page);
@@ -63,6 +66,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
         await page.goto(path);
         await settled(page);
         await quiet(page);
+        await loaded(page);
         const { looks: rest } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
         const candidates = await page.evaluate(
           ([all, control]) =>
@@ -76,7 +80,9 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
           const key = rest.find((l) => l.index === i)?.key;
           if (!key || (taken.get(key) ?? 0) >= SAMPLES) continue;
           taken.set(key, (taken.get(key) ?? 0) + 1);
-          const control = page.locator(LOOK_SELECTOR).nth(i);
+          const control = page.locator(`[data-sweep-look="${i}"]`);
+          // A page that removed or re-rendered the control since the inventory has no control to read: skip it.
+          if ((await control.count()) !== 1) continue;
           // The site scrolls smoothly (html's scroll-behavior), so a plain scrollIntoView is still moving when the box is
           // read, and the mouse lands where the control was (#1453): instant, so the hover is on the control.
           await control.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }));
@@ -84,8 +90,12 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
           if (!box) continue;
           const marks = () => control.evaluate((el) => el.getAttributeNames().filter((n) => n.startsWith("data-") || n.startsWith("aria-")).map((n) => `${n}=${el.getAttribute(n)}`).sort().join(" "));
           const before = await marks();
+          // What the control is, read with the mark: a hover or press that lands on another element (a later island moved
+          // it) is skipped, never recorded under this control's key.
+          const identity = () => control.evaluate((el) => `${el.dataset["ouroControl"]}/${el.dataset["ouroPart"] ?? ""}`);
+          const who = await identity();
           const record = async (state: string, pseudo: string) => {
-            if (!(await control.evaluate((el, p) => el.matches(p), pseudo))) return;
+            if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await identity()) !== who) return;
             // A press that picks the control (a calendar day) changes what it is, so it no longer has this state's look.
             if ((await marks()) !== before) return;
             // A transition can start a frame or two after the state does, so wait until none runs for several frames.
@@ -104,7 +114,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
               }
             });
             if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await marks()) !== before) return;
-            found.push(...(await broken(page, LOOK_SELECTOR, i)).map((m) => `${path} ${state}: ${m}`));
+            found.push(...(await broken(page, i)).map((m) => `${path} ${state}: ${m}`));
             // A state's style can land a frame after the state itself (#1404: a hover read with the resting border while
             // :hover matched), so the look is read until two reads, a couple of frames apart, agree.
             const read = () => page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
@@ -120,7 +130,12 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
             if (!look) return;
             const tagged = { ...look, key: `${look.key}|${state}` };
             const label = await control.evaluate((el) => (el.getAttribute("aria-label") || el.closest("label, [data-ouro]")?.textContent || "").trim().slice(0, 40));
-            looks.add(path, tagged, tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null, label);
+            const shot = tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null;
+            if (shot && wantsRetake(process.env["OURO_SWEEP_RETAKE"], tagged.key)) {
+              const unstable = instability(shot, await picture(page, i), { signature: tagged.key, page: path, state });
+              if (unstable) unsteady.push(unstable);
+            }
+            looks.add(path, tagged, shot, label);
           };
           // Nothing keeps focus into the hover and press reads: a control focused before (by the page, or by the last
           // control's press handing focus to a sibling) would read its focus ring as part of the hover (#2235).
@@ -143,6 +158,8 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
     for (const side of looks.sides()) console.log(`SIDES ${browserName} ${mode}: ${side}`);
     expect.soft(guard.skipped.length, `routes skipped as too slow: ${guard.skipped.join(", ")}`).toBeLessThanOrEqual(3);
     recordMatched(`states-${mode}-${chunk}-${browserName}`);
+    for (const f of unsteady) console.log(`FINDING ${browserName} ${mode}: ${f}`);
+    expect.soft(unsteady, "a control's picture differs between two takes in a state").toEqual([]);
     expect.soft([...new Set(found)], "a control leaves its shape in a state").toEqual([]);
     expect.soft(looks.differences(), "a control's properties differ from page to page in a state").toEqual([]);
     expect.soft(looks.pixelDifferences(), "a control's picture differs from page to page in a state").toEqual([]);

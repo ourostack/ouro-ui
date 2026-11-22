@@ -1132,7 +1132,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [mounted, setMounted] = useState(false);
   useEffect(
     () => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMounted(true);
     },
     // Stryker disable next-line ArrayDeclaration: an effect that only sets a flag to true runs the same whatever its list holds.
@@ -1825,12 +1824,26 @@ export function MessageList(props: MessageListProps): JSX.Element {
       };
       // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
       if (by === 0) return letGo();
-      carriedRef.current = 0;
+      const wheeling = turning();
       content.style.removeProperty("translate");
       const before = scroller.scrollTop;
       // In whole pixels: WebKit drops the fraction of a scroll position written to it, so a carry of 3,499.99 px moved the
       // reader's place a whole pixel there (ourostack/ouro-ui#2648).
       const applied = scrollOwn(Math.round(by));
+      // A scroll position written while the wheel turns may land in part there, and the rest settles frames later against the
+      // reader. Where no end stopped the write, what has not landed stays carried, drawn by the translate, until a later write lands it.
+      const top = scroller.scrollTop;
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: at the end a write that was stopped leaves its rest drawn by the translate only until the wheel rests, where the next pay finds nothing to land and lets it go.
+      const unlanded = wheeling && top > 0 && top < farthest() ? Math.round(by) - applied : 0;
+      // Stryker disable next-line EqualityOperator: a part of exactly one pixel kept carried or paid with the next write moves nothing on screen that WebKit shows, which keeps whole pixels.
+      if (Math.abs(unlanded) >= 1) {
+        carriedRef.current = unlanded;
+        content.style.translate = `0 ${-unlanded}px`;
+        // Stryker disable next-line AssignmentOperator: the scroll event the write brings takes the anchors again, so `taken` is read stale only in the task of the write, as everywhere else it is paid.
+        taken += applied;
+        return rest();
+      }
+      carriedRef.current = 0;
       // What the list's start stops, the part of the move past it, goes above the content instead, so the content stays where the
       // reader sees it.
       setSlack(slack + Math.max(0, -(before + by)));
