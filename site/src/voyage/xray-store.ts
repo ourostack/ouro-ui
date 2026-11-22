@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 /**
  * Whether X-ray (HX Inspector) is on. Kept outside React so that turning it on re-renders only what
@@ -43,3 +43,26 @@ export function spotlightFrom(search: string): string | undefined {
   if (!name) return undefined;
   return name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 }
+
+/** X-ray on at load when the address asks for it (`?xray`), as the home page's "X-ray it" link does. */
+export function useXrayFromAddress(): void {
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("xray")) setXray(true);
+  }, []);
+}
+
+/**
+ * The component the address names for X-ray to point out (`?xray=Switch`), as each docs page's
+ * links do, or `undefined`. The address stays put while the page is open, and the server has none.
+ * Only X-ray reads it: a page that re-rendered with it as it hydrates would drop the server's HTML
+ * of a chapter still waiting to hydrate.
+ */
+export function useSpotlight(): string | undefined {
+  return useSyncExternalStore(
+    noSubscription,
+    () => spotlightFrom(window.location.search),
+    () => undefined,
+  );
+}
+
+const noSubscription = () => () => {};

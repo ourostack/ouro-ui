@@ -1079,6 +1079,18 @@ describe("docs", () => {
     }
   });
 
+  it("opens X-ray on a docs page whose address asks for it", async () => {
+    const before = location.href;
+    history.replaceState(null, "", "/docs/button/?xray");
+    try {
+      await renderPage("/docs/button/");
+      await expect.poll(() => document.querySelector('[data-ouro="inspector"]') !== null).toBe(true);
+    } finally {
+      setXray(false);
+      history.replaceState(null, "", before);
+    }
+  });
+
   it("links a component on the ship pages and in Spoonjoy, each opening X-ray pointed at it", async () => {
     await renderPage("/docs/switch/");
     const ship = page.getByRole("region", { name: "On this site" });
