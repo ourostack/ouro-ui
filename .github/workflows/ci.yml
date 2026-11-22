@@ -682,6 +682,15 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
+      # The tests over half their timeout on a run that only reports them (headroom-report.yml files them in one issue).
+      - if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: headroom-browser-${{ matrix.shard }}
+          path: .tmp/headroom/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
       # A failed test's screenshot, which shows where a timed-out test stood: its error names only the test, not the step it
       # waited on (ourostack/ouro-ui#2730).
       - if: failure()

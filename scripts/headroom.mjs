@@ -72,3 +72,19 @@ export function changedFiles(value) {
   const files = (value ?? "").split("\n").map((line) => line.trim()).filter(Boolean);
   return files.length === 0 ? null : new Set(files);
 }
+
+/** The events whose runs only report a breach: a pull request fails it, and the others (main, the merge queue, a schedule) file it. */
+export const reportOnly = (event) => event !== undefined && event !== "" && event !== "pull_request";
+
+/**
+ * Judges one run. `tests` are `{ name, file, durationMs, timeoutMs }`; on a pull request (`changed` set) only tests in
+ * its changed files count. `failures` fail the run; on a report-only `event` a breach is a `warnings` annotation
+ * (and one `breaches` line) instead, while a malformed or stale exemption fails everywhere.
+ */
+export function judge({ tests, exemptions, event, changed }) {
+  const judged = changed ? tests.filter(({ file }) => changed.has(file)) : tests;
+  const breaches = headroomProblems(judged, exemptions).filter((problem) => !exemptionProblems(exemptions).includes(problem));
+  const failures = [...exemptionProblems(exemptions), ...staleExemptions(exemptions)];
+  if (!reportOnly(event)) return { failures: [...failures, ...breaches], warnings: [], breaches: [] };
+  return { failures, warnings: breaches.map((breach) => `::warning title=Headroom::${breach}`), breaches };
+}
