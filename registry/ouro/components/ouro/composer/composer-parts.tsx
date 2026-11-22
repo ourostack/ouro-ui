@@ -59,7 +59,7 @@ interface RichEditorProps {
   onFocus?: FocusEventHandler<HTMLDivElement> | undefined;
   onBlur?: FocusEventHandler<HTMLDivElement> | undefined;
   /** The role and states a wrapping Autocomplete sets (combobox, expanded, controls, active suggestion), which the editor carries over its own textbox role. */
-  comboboxProps?: HTMLAttributes<HTMLDivElement> | undefined;
+  comboboxProps: HTMLAttributes<HTMLDivElement>;
 }
 
 // Underline has no CommonMark mark; `++` is the one Composer's plain mode writes too.
@@ -365,8 +365,8 @@ function readMarkdownControl(editor: LexicalEditor, scratch: LexicalEditor) {
 }
 
 /** The props that are set, so an unset one leaves the editor's own in place. */
-function definedOnly(props: HTMLAttributes<HTMLDivElement> | undefined) {
-  return Object.fromEntries(Object.entries(props ?? {}).filter(([, value]) => value !== undefined));
+function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
+  return Object.fromEntries(Object.entries(props).filter(([, value]) => value !== undefined));
 }
 
 /**
@@ -589,9 +589,9 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         onFocus={onFocus}
         onBlur={onBlur}
         role="textbox"
-        aria-multiline={comboboxProps?.role === "combobox" ? undefined : "true"}
+        aria-multiline={comboboxProps.role === "combobox" ? undefined : "true"}
         aria-label={label}
-        aria-placeholder={comboboxProps?.role === "combobox" ? undefined : placeholder}
+        aria-placeholder={comboboxProps.role === "combobox" ? undefined : placeholder}
         aria-describedby={describedBy}
         aria-disabled={disabled || undefined}
         aria-readonly={readOnly || undefined}
