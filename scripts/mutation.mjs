@@ -17,7 +17,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { dirname, join, relative, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
-import { componentsDir, libDir, planShards, pruneChangedFiles, recordSources, recordTests, runtimeSource, scopeReport, shardCost, shardCount, testFilesFor, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
+import { componentsDir, hangRates, libDir, planShards, pruneChangedFiles, recordSources, recordTests, runtimeSource, scopeReport, shardCost, shardCount, testFilesFor, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
 import { ignoreReason } from "./mutation/plugins.mjs";
 
 export { runtimeSource, testFilesFor };
@@ -106,6 +106,12 @@ export const UNIT_MUTANTS = 8;
  */
 export const LONG_UNIT_MUTANTS = 32;
 
+/**
+ * The mutants a part of a file in `hangRates` gathers, inside a node too: each of its mutants may
+ * wait out Stryker's timeout, so a part of thirteen ran past the job limit (CI run 44969180641).
+ */
+export const HANG_UNIT_MUTANTS = 3;
+
 /** The nodes that lie wholly in a range (1-based, inclusive), each with whether it counts as a mutant (`estimateMutants`). */
 function nodesIn(text, path, range) {
   const ast = parse(text, { sourceType: "module", sourceFilename: path, errorRecovery: true, plugins: ["typescript", "jsx"] });
@@ -181,7 +187,7 @@ export function shardUnits(changed, { read = (path) => readFileSync(join(root, p
     const text = read(path);
     const tests = testsFor(path);
     for (const range of ranges) {
-      const parts = splitRange(text, path, range);
+      const parts = path in hangRates ? splitRange(text, path, range, HANG_UNIT_MUTANTS, HANG_UNIT_MUTANTS) : splitRange(text, path, range);
       for (const part of parts) units[`${path}:${part[0]}-${part[1]}`] = { path, range: part, mutants: estimateMutants(text, path, [part]), ...tests };
       const spanning = parts.length > 1 ? spanningMutants(text, path, range, parts) : null;
       if (spanning !== null) units[`${path}:${range[0]}-${range[1]}`] = { path, range, parts, mutants: spanning, ...tests };

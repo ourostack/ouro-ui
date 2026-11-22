@@ -266,6 +266,8 @@ test("planShards weighs each mutant by its own tests' measured time and each sha
   // A file whose tests were never timed counts as a few seconds of tests, not none.
   const list = "registry/ouro/components/ouro/message/message-list.tsx";
   assert.equal(shardCost([list], { [list]: { mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * 31 + 30 + 10 * hangRates[list] * strykerTimeout(60));
+  // A unit of a changed range is keyed by its range, and its hang rate is its file's.
+  assert.equal(shardCost([`${list}:10-90`], { [`${list}:10-90`]: { path: list, mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * 31 + 30 + 10 * hangRates[list] * strykerTimeout(60));
   assert.equal(shardCost(["new.tsx"], { "new.tsx": { mutants: 2, own: ["new.test.tsx"], wider: [] } }, {}), 2 * (1 + 0.5 * unmeasuredSeconds) + 0.5 * unmeasuredSeconds + hang(2, unmeasuredSeconds));
 });
 
@@ -549,6 +551,18 @@ test("shardUnits adds a spanning unit for a range cut across a node, and unitExc
   assert.deepEqual(unitExclusions([`${file}:1-43`, partIds[0]], units), { [file]: spanning.parts.slice(1) });
   assert.deepEqual(unitExclusions(partIds, units), {});
   assert.deepEqual(unitChanges([`${file}:1-43`], units), { [file]: [[1, 43]] });
+});
+
+test("shardUnits cuts a file in hangRates into parts of a few mutants, inside a node too, so slow mutants spread across shards", () => {
+  const file = "registry/ouro/components/ouro/message/message-list.tsx";
+  const body = Array.from({ length: 13 }, (_, index) => `  const v${index} = a > ${index};`);
+  const text = ["export function list(a) {", ...body, "  return a;", "}"].join("\n");
+  const units = shardUnits({ [file]: [[1, 16]] }, { read: () => text, testsFor: () => ({ own: ["list.test.tsx"], wider: [] }) });
+  const parts = Object.values(units).filter((unit) => !unit.parts);
+  assert.ok(parts.length >= 4, "thirteen mutants spread over four or more parts");
+  assert.ok(Math.max(...parts.map((unit) => unit.mutants)) <= 4);
+  const plain = shardUnits({ "registry/ouro/components/ouro/big/big.tsx": [[1, 16]] }, { read: () => text, testsFor: () => ({ own: ["big.test.tsx"], wider: [] }) });
+  assert.equal(Object.keys(plain).length, 1);
 });
 
 test("scopeReport and inScope drop the mutants of lines another shard owns, so a spanning unit reports only its own", () => {
