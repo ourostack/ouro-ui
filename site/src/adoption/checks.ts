@@ -73,12 +73,12 @@ function census(surface: Surface): Omit<Check, "key" | "label"> {
   if (cell.value === null) {
     // The row needs only the gap when no census runs yet; any other reason (an old checker, a stale report) is particular.
     const none = !PRIVATE.test(cell.note ?? "") && /no Ouro AX census runs/i.test(cell.note ?? "");
-    return { state: unmeasuredOrNa(cell), why: none ? "No census in CI yet" : unmeasured(cell), source: cell.source, ...(none ? { generic: true } : {}) };
+    return { state: unmeasuredOrNa(cell), why: none ? "Census not in CI yet" : unmeasured(cell), source: cell.source, ...(none ? { generic: true } : {}) };
   }
   const { found, gaps, missingKinds, run } = cell.value;
   if (gaps > 0) return { state: "missing", why: `${plural(gaps, "gap")} among ${plural(found, "door")}`, source: run };
   if (missingKinds.length) return { state: "missing", why: `Doesn't walk ${orList(missingKinds)} doors yet`, source: run };
-  return { state: "missing", why: "The census finds no doors", source: run };
+  return { state: "missing", why: "The census finds nothing to count", source: run };
 }
 
 function must(surface: Surface): Omit<Check, "key" | "label"> {

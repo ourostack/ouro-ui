@@ -63,7 +63,7 @@ The report lists product walkers with their kinds and module hashes under `check
 
 ## The release manifest
 
-`dist-manifest.json` pins the files a product copies, and `checker` is the hash a report carries as `checker.sha256`.[^manifest] The adoption ledger is to accept a product's census only when that hash matches a released manifest, so a product can't weaken a walker and keep reporting. After changing any file here, run `node scripts/ouro-census/manifest.mts --write` and commit the result; `scripts/ouro-census.test.mjs` fails when it is out of date.
+`dist-manifest.json` pins the files a product copies, and `checker` is the hash a report carries as `checker.sha256`.[^manifest] The adoption ledger (`scripts/adoption/`) accepts a product's census only when that hash matches the manifest of a current release, so a product can't weaken a walker and keep reporting.[^ledger] After changing any file here, run `node scripts/ouro-census/manifest.mts --write` and commit the result; `scripts/ouro-census.test.mjs` fails when it is out of date.
 
 ## Tests
 
@@ -80,3 +80,4 @@ The report lists product walkers with their kinds and module hashes under `check
 [^booklet-ratchet]: scripts/ouro-census/census.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/census.node-test.mts, /booklet words: a product adopts the rule in one pull request, seeding its baseline, and can't drop it or grow its allowlist after/)
 [^booklet-seed]: scripts/ouro-census/census.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/census.node-test.mts, /the adopting pull request seeds only the doors the rule alone makes weak/)
 [^booklet-allow]: scripts/ouro-census/cards.node-test.mts verify:testExists(scripts/ouro-census.test.mjs::the census's tests pass and cover every line and function of the census) verify:fileLine(scripts/ouro-census/cards.node-test.mts, /a reviewed allowlist entry lets one booklet word stand on one door's field/)
+[^ledger]: scripts/adoption/ledger.test.mjs verify:testExists(scripts/adoption/ledger.test.mjs::a census report counts only from main at the run's own commit, with a released checker, within a week)

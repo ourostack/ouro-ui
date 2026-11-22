@@ -85,7 +85,7 @@ describe("the adoption page", () => {
 
   it("leaves out a line that only says what the marks say", async () => {
     const host = await renderPage("/adoption/");
-    for (const generic of ["Doesn't use Ouro UI yet", "No census in CI yet", "X-ray doesn't run in CI yet", "Nothing given back yet"]) {
+    for (const generic of ["Doesn't use Ouro UI yet", "Census not in CI yet", "X-ray doesn't run in CI yet", "Nothing given back yet"]) {
       for (const gaps of host.querySelectorAll(".adoption-gaps")) expect(gaps.textContent).not.toContain(generic);
     }
   });
@@ -247,10 +247,10 @@ describe("reading the checks", () => {
     const census = (value: Partial<CensusValue>) => ({ value: { found: 492, declared: 480, gaps: 12, weak: 0, undeclared: 12, unwalked: 0, stale: 0, baseline: 12, walked: ["mcp", "cli", "tool", "approval"], missingKinds: [], productWalkers: [], checker: "c", commit: "abc", reportAt: at, run: "https://example.com/run", ...value }, note: null, source: "https://example.com/run", measuredAt: at });
     expect(checksOf(withCells({ census: census({}) }))[1]).toMatchObject({ state: "missing", why: "12 gaps among 492 doors", source: "https://example.com/run" });
     expect(checksOf(withCells({ census: census({ gaps: 0, missingKinds: ["tool", "approval"] }) }))[1]).toMatchObject({ state: "missing", why: "Doesn't walk tool or approval doors yet" });
-    expect(checksOf(withCells({ census: census({ found: 0, gaps: 0 }) }))[1]).toMatchObject({ state: "missing", why: "The census finds no doors" });
+    expect(checksOf(withCells({ census: census({ found: 0, gaps: 0 }) }))[1]).toMatchObject({ state: "missing", why: "The census finds nothing to count" });
     expect(checksOf(withCells({ census: census({ gaps: 0 }) }, { census: true }))[1]).toMatchObject({ state: "met", why: null });
     const none = { value: null, note: "not measured: no Ouro AX census runs in CI for this product yet", source: "https://example.com/actions", measuredAt: at };
-    expect(checksOf(withCells({ census: none }))[1]).toMatchObject({ state: "unmeasured", why: "No census in CI yet", generic: true });
+    expect(checksOf(withCells({ census: none }))[1]).toMatchObject({ state: "unmeasured", why: "Census not in CI yet", generic: true });
     const old = { value: null, note: "not measured: the census's checker dddddddddddd is not the one Ouro UI v1.3.200 released (cccccccccccc)", source: "https://example.com/actions", measuredAt: at };
     expect(checksOf(withCells({ census: old }))[1]).toMatchObject({ state: "unmeasured", why: "The census's checker dddddddddddd is not the one Ouro UI v1.3.200 released (cccccccccccc)" });
   });
