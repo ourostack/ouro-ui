@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { exemptionProblems, headroomProblems, headroomReason, ratchetProblems, readExemptions, staleExemptions } from "./headroom.mjs";
+import { changedFiles, exemptionProblems, headroomProblems, headroomReason, ratchetProblems, readExemptions, staleExemptions } from "./headroom.mjs";
 
 const named = (test) => ({ test, reason: "slow", owner: "drain-3" });
 

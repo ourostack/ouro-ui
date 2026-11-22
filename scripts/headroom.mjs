@@ -66,3 +66,9 @@ export function ratchetProblems({ base, head, body }) {
   if (head.length <= base.length || headroomReason(body) !== null) return [];
   return [`[ouro-ui] Headroom: .github/headroom.json grows from ${base.length} to ${head.length} exemptions. Fix: make the test faster instead, or put "headroom: <why it cannot be>" on its own line in the pull request's description.`];
 }
+
+/** The files a pull request changes, from `HEADROOM_CHANGED` (one path per line), or null where the run judges every test. */
+export function changedFiles(value) {
+  const files = (value ?? "").split("\n").map((line) => line.trim()).filter(Boolean);
+  return files.length === 0 ? null : new Set(files);
+}

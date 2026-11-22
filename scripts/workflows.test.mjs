@@ -3667,4 +3667,8 @@ test("the browser shards hold each test to half its timeout: vitest.config.ts ad
   assert.match(config, /\.\.\.\(browserShard \? \[new HeadroomReporter\(\)\] : \[\]\)/);
   assert.match(ciJobs().browser, /vitest run[^\n]*--shard=/);
   assert.ok(existsSync(join(root, ".github/headroom.json")));
+  // A pull request judges only the tests in the files it changes: the plan lists them, the shards read them.
+  assert.match(ciJobs().plan, /id: changed\n[\s\S]*git diff --name-only HEAD\^1 HEAD[\s\S]*files<<CHANGED_FILES_EOF/);
+  assert.match(ciJobs().plan, /changed: \$\{\{ steps\.changed\.outputs\.files \}\}/);
+  assert.match(ciJobs().browser, /HEADROOM_CHANGED: \$\{\{ needs\.plan\.outputs\.changed \}\}/);
 });
