@@ -57,9 +57,9 @@ export function offline(probe: string, sys: System = system): Block {
 }
 
 /**
- * How long a host's lookup may take. A fresh Mac's first lookup of a host can wait 30 s for an answer that never comes
- * (login.windows.net on GitHub's macOS runners, 2 of 3 in a row), and the network's ranges and its probe carry the hold
- * without that host's own addresses; the evidence names a host given up on.
+ * How long a host's lookup may take. A fresh Mac's first lookup of a host can sit out the resolver's own limit for an
+ * answer that doesn't come (login.windows.net, on GitHub's macOS runners), and the network's ranges and its probe carry
+ * the hold without that host's own addresses; the evidence names a host given up on.
  */
 export const RESOLVE_MS = 3_000;
 
