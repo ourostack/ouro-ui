@@ -666,6 +666,19 @@ describe("Composer rich mode with a catalogue", () => {
     expect(field(editor).value).toBe(":party: :wave: :tada:");
   });
 
+  it("copies a picture and pastes it back as the same picture, through Lexical's own clipboard format", async () => {
+    const { editor } = await render(withCatalogue({ defaultValue: ":party:" }));
+    editor.focus();
+    (editor as HTMLElement & { setSelectionRange: (s: number, e: number) => void }).setSelectionRange(0, 7);
+    const data = new DataTransfer();
+    await act(async () => void editor.dispatchEvent(new ClipboardEvent("copy", { bubbles: true, cancelable: true, clipboardData: data })));
+    expect(data.getData("application/x-lexical-editor")).toContain(":party:");
+    (editor as HTMLElement & { setSelectionRange: (s: number, e: number) => void }).setSelectionRange(7, 7);
+    await act(async () => void editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data })));
+    await expect.poll(() => pictures(editor).length).toBe(2);
+    expect(field(editor).value).toBe(":party::party:");
+  });
+
   it("keeps a plain selection's text offsets over a token, as the token's own text", async () => {
     const { editor } = await render(rich({ catalogue, defaultValue: "a :party: b" }));
     expect(field(editor).value).toBe("a :party: b");
