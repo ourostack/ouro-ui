@@ -68,6 +68,37 @@ const INIT = "npx shadcn@latest init --base base --preset nova --yes --no-monore
 const upgradeCommands = parse(upgrading).flatMap((block) => (block.kind === "code" ? [block.text] : []));
 
 describe("home page", () => {
+  it("sets the headline at one height in every look beside the story, so choosing a look moves nothing below it", async () => {
+    const root = document.documentElement;
+    const was = localStorage.getItem(THEME_KEY);
+    const theme = root.getAttribute("data-theme");
+    try {
+      for (const width of [1024, 1100, 1279]) {
+        await page.viewport(width, 900);
+        await renderPage("/");
+        const heading = document.querySelector<HTMLElement>(".site-voyage-hero h1")!;
+        const dots = [...document.querySelectorAll<HTMLElement>("[data-site-hero-paint] button")];
+        expect(dots.length).toBe(choiceList.length);
+        const heights = new Set<number>();
+        for (const dot of dots) {
+          await userEvent.click(dot, { force: true });
+          await expect.poll(() => dot.getAttribute("aria-pressed")).toBe("true");
+          await finishReveal();
+          heights.add(Math.round(heading.getBoundingClientRect().height));
+        }
+        expect([width, [...heights]]).toEqual([width, [[...heights][0]]]);
+        const lineHeight = parseFloat(getComputedStyle(heading).lineHeight);
+        expect(heading.getBoundingClientRect().height / lineHeight).toBeCloseTo(2, 0);
+      }
+    } finally {
+      await finishReveal();
+      if (was === null) localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, was);
+      if (theme === null) root.removeAttribute("data-theme");
+      else root.setAttribute("data-theme", theme);
+    }
+  });
+
   it("opens on the Nautilus hero, and Come aboard goes to the Nautilus's page", async () => {
     await renderPage("/");
     const heading = page.getByRole("heading", { level: 1 });
