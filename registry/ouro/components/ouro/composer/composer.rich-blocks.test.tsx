@@ -143,6 +143,7 @@ describe("Composer rich blocks", () => {
     ["keeps a nested list in its list", "- a\n    - b"],
     ["numbers a list past nine as a list", `${Array.from({ length: 10 }, (_, i) => `${i + 1}. n${i + 1}`).join("\n")}\n\nafter`],
     ["does not take a line with a dash inside it for a list item", "x\na- b"],
+    ["does not take a line that starts with a word and a period for a list item", "Note. call back\nsoon"],
     ["keeps a blank line around a fence with a language", "para\n\n```js\ncode\n```\n\nafter"],
   ])("%s, as Markdown", async (_, markdown) => {
     const seen: string[] = [];
