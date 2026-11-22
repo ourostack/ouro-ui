@@ -3,6 +3,7 @@ import "../themes/presets.generated.css";
 import "../themes/by-preset.css";
 import type { JSX, ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
+import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
@@ -132,27 +133,31 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         <Text size="sm" tone="muted">
           Then the component.{" "}
           {claim("From v0.8.0 it installs only the helpers it imports and never touches your stylesheet", { source: { spec: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }, verify: [{ urlOk: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }, { testExists: "scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them" }, { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }] })} (
-          <a href={href("/docs/installing/")} className="text-primary underline underline-offset-4">Installing</a>):
+          <Link href={href("/docs/installing/")}>Installing</Link>):
         </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}`} />
-        <Text size="sm" tone="muted">
-          Or, with the <a href={`${href("/")}#install`} className="text-primary underline underline-offset-4">@ouro namespace</a> set
-          up:
-        </Text>
-        <Command command={`npx shadcn@latest add @ouro/ouro-base @ouro/${item.name}`} />
-        <Text size="sm" tone="muted">
-          Its tests, stories and Playwright spec are optional.{" "}
-          {claim("They need Vitest 4.1.11 or later, and from v0.8.0 never change a version your app has", {
-            source: [{ file: "scripts/registry.mts" }, { spec: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }],
-            verify: [
-              { fileLine: "scripts/registry.mts", pattern: 'vitest: "4\\.1\\.11"' },
-              { urlOk: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" },
-              { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
-            ],
-          })}{" "}
-          (<a href={href("/docs/testing/")} className="text-primary underline underline-offset-4">Testing</a>):
-        </Text>
-        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease} ourostack/ouro-ui/${item.name}-tests#${latestRelease}`} />
+        <Collapsible title="More ways" className="mt-2">
+          <div className="grid gap-3 pt-2">
+            <Text size="sm" tone="muted">
+              Or, with the <Link href={`${href("/")}#install`}>@ouro namespace</Link> set
+              up:
+            </Text>
+            <Command command={`npx shadcn@latest add @ouro/ouro-base @ouro/${item.name}`} />
+            <Text size="sm" tone="muted">
+              Its tests, stories and Playwright spec are optional.{" "}
+              {claim("They need Vitest 4.1.11 or later, and from v0.8.0 never change a version your app has", {
+                source: [{ file: "scripts/registry.mts" }, { spec: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }],
+                verify: [
+                  { fileLine: "scripts/registry.mts", pattern: 'vitest: "4\\.1\\.11"' },
+                  { urlOk: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" },
+                  { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
+                ],
+              })}{" "}
+              (<Link href={href("/docs/testing/")}>Testing</Link>):
+            </Text>
+            <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease} ourostack/ouro-ui/${item.name}-tests#${latestRelease}`} />
+          </div>
+        </Collapsible>
         <CodeBlock code={importLine} className="mt-2" />
         <Text size="sm" tone="muted">
           Paths use shadcn's default <InlineCode>@/</InlineCode> alias; the CLI rewrites them to yours.
@@ -173,8 +178,6 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
   );
 }
 
-const linkClass = "text-primary underline underline-offset-4";
-
 /**
  * The site's own ship pages that show the component, each linked with X-ray on and pointed at it
  * (`?xray=<item>`), from the list the build makes of what those pages render.
@@ -192,7 +195,7 @@ function OnThisSite({ name, title }: { name: string; title: string }): JSX.Eleme
         {SHIP_PAGES.filter((ship) => paths.includes(ship.path)).map((ship, index) => (
           <span key={ship.path}>
             {index > 0 && " · "}
-            <a href={href(`${ship.path}?xray=${name}`)} className={linkClass}>{ship.label}</a>
+            <Link href={href(`${ship.path}?xray=${name}`)}>{ship.label}</Link>
           </span>
         ))}
       </Text>
@@ -210,9 +213,9 @@ function InSpoonjoy({ name }: { name: string }): JSX.Element | null {
         In Spoonjoy
       </Heading>
       <Text tone="muted">
-        <a href="https://spoonjoy.app/" className={linkClass}>Spoonjoy</a>, a recipe app,{" "}
+        <Link href="https://spoonjoy.app/">Spoonjoy</Link>, a recipe app,{" "}
         {claim("is built with Ouro HX", { source: { spec: "https://spoonjoy.app/ouro-provenance.json" }, verify: { testExists: "site/scripts/spoonjoy.test.mjs::the committed Spoonjoy data names only registry components, Spoonjoy's own pages and its source on GitHub" } })}{" "}
-        (<a href={spoonjoy.guide} className={linkClass}>how</a>).
+        (<Link href={spoonjoy.guide}>how</Link>).
       </Text>
       {use.pages.length > 0 && (
         <Text size="sm" tone="muted">
@@ -221,7 +224,7 @@ function InSpoonjoy({ name }: { name: string }): JSX.Element | null {
             <span key={page.url}>
               {index > 0 && " · "}
               {/* X-ray on, pointed at the component where Spoonjoy's X-ray can spotlight one. */}
-              <a href={`${page.url}?xray=${name}`} className={linkClass}>{page.label}</a>
+              <Link href={`${page.url}?xray=${name}`}>{page.label}</Link>
             </span>
           ))}
         </Text>
@@ -232,7 +235,7 @@ function InSpoonjoy({ name }: { name: string }): JSX.Element | null {
           {use.sources.map((file, index) => (
             <span key={file}>
               {index > 0 && " · "}
-              <a href={file} className={linkClass}><InlinePath path={file.slice(file.indexOf("/blob/main/") + "/blob/main/".length)} /></a>
+              <Link href={file}><InlinePath path={file.slice(file.indexOf("/blob/main/") + "/blob/main/".length)} /></Link>
             </span>
           ))}
         </Text>
@@ -323,7 +326,7 @@ function Door({ to, title, preview, children }: { to: string; title: string; pre
     return (
       <li className="relative flex items-center gap-4 border-t border-border/70 py-4">
         {preview}
-        <a href={href(to)} className="group grid min-w-0 flex-1 gap-1 rounded-sm no-underline outline-ring after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-4">
+        <a data-test-harness="" href={href(to)} className="group grid min-w-0 flex-1 gap-1 rounded-sm no-underline outline-ring after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-4">
           <span className="font-medium text-foreground transition-colors group-hover:text-primary">
             {title}{" "}
             <span aria-hidden="true" className="text-primary opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 pointer-coarse:opacity-100">
@@ -337,7 +340,7 @@ function Door({ to, title, preview, children }: { to: string; title: string; pre
   }
   return (
     <li className="border-t border-border/70">
-      <a href={href(to)} className="group grid gap-1 rounded-sm py-4 no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-4">
+      <a data-test-harness="" href={href(to)} className="group grid gap-1 rounded-sm py-4 no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-4">
         <span className="font-medium text-foreground transition-colors group-hover:text-primary">
           {title}{" "}
           <span aria-hidden="true" className="text-primary opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 pointer-coarse:opacity-100">
@@ -390,9 +393,11 @@ export function DocsIndex(): JSX.Element {
         <ul className="m-0 flex list-none flex-wrap gap-x-5 gap-y-2 p-0">
           {exportPages.map((page) => (
             <li key={page.name}>
-              <a href={href(`/docs/${page.name}/`)} className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4 sm:min-h-6">
-                {page.title}
-              </a>
+              <Text size="sm">
+                <Link href={href(`/docs/${page.name}/`)} inline={false}>
+                  {page.title}
+                </Link>
+              </Text>
             </li>
           ))}
         </ul>
@@ -504,7 +509,7 @@ export function Updating(): JSX.Element {
     <DocsShell current="/docs/updating/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "Updating components" }}>
       <Lead>
         Ouro HX components are copied into your project, so they're yours to edit (
-        <a href={href("/docs/installing/#changing-a-component")} className={linkClass}>Changing a component</a>). To take an upstream change, compare first, then decide.
+        <Link href={href("/docs/installing/#changing-a-component")}>Changing a component</Link>). To take an upstream change, compare first, then decide.
       </Lead>
       <ol className="m-0 grid list-none gap-12 p-0">
         <li className="grid gap-3">
@@ -567,7 +572,7 @@ export function Updating(): JSX.Element {
             The <InlineCode>@ouro</InlineCode>{" "}
             {claim("namespace serves the newest release,", { source: { file: ".github/workflows/pages.yml" }, verify: { testExists: "scripts/workflows.test.mjs::Pages names GitHub's newest release before it builds, whatever main's package.json says" } })}{" "}
             <InlineCode>{latestRelease}</InlineCode>. Releases are listed on{" "}
-            <a href={`${GITHUB}/releases`} className="text-primary underline underline-offset-4">GitHub</a>.
+            <Link href={`${GITHUB}/releases`}>GitHub</Link>.
           </Text>
         </li>
       </ol>
