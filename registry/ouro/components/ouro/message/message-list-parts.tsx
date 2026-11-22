@@ -71,6 +71,7 @@ function MessageFindLayer({
     if (targetKey === undefined) return;
     const drawnNow = [...content.current!.querySelectorAll(`[${slot}]`)].some((element) => element.getAttribute(slot) === targetKey);
     if (!drawnNow) request.current({ key: targetKey, id: null, child: true, forward: true, focus: false, block: "center" });
+  // Stryker disable next-line ArrayDeclaration: with no dependencies the effect asks to draw on every render, and each draw renders again, so the test run never ends.
   }, [content, slot, targetKey, targetOccurrence, query, request]);
   let currentIndex: number | null = null;
   if (target !== null) {
