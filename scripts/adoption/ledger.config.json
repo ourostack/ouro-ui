@@ -472,8 +472,8 @@
           "http"
         ],
         "reviewed": {
-          "desk-mcp": "a97f93828e1106385266e94c4442a40aa82d2070d1aa6d4f3c868a9398e244ce",
-          "desk-cli": "09b8377ae1ed794770c66246890d76fb31db40e1d51f3657cde362dc69b8b9b0",
+          "desk-mcp": "ec9a9b03cf4197b2dcef1949e11d930d42654f83eb5b4d4f87cf7f933f7301b6",
+          "desk-cli": "40dffbe8a71b37886b849c4eceaf69698c8eedeabd8cc58bd52892b30212f0de",
           "desk-skills": "28c243b3a8d8b09b97c84cf2ebe31124ed9bd8eeffb1912e5811129041fb3f1e",
           "desk-hooks": "31cffd10019d111309391f888eab03cd30b5bc8924a93b8b03f181ba2af68326",
           "desk-http": "883339a51dc95e1bade962bf7b274947c6a7ad7c59f00b039ddfaac581e571cd"
