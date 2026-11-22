@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fix: the home page's Live theme stops repainting its sky on its ambient timer in an automated browser (navigator.webdriver), so a sweep's retake of the same page sees a matching picture.
