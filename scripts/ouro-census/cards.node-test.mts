@@ -153,3 +153,24 @@ test("an approval prompt is weak unless its tool's card is valid, consequential 
     "confirm: required for consequential",
   ]);
 });
+
+test("booklet words in a card's when, its fixes or the door's description are weak once the product adopts the rule", () => {
+  const booklet = door({ description: "Ask the agent something. You must wait for it." }, { when: "Always ask the agent before guessing, and never answer from memory.", errors: [{ code: "agent-unreachable", means: "The agent's daemon isn't running.", fix: "Do not retry; run ouro up." }] });
+  deepEqual(checkCard(booklet, ctx), [], "off until the product adopts the rule");
+  deepEqual(checkCard(booklet, { ...ctx, booklet: [] }), [
+    'description: says "you must", a rule for the reader; say what the door does instead',
+    'when: says "always", a rule for the reader; say what the door does instead',
+    'when: says "never", a rule for the reader; say what the door does instead',
+    'errors[0].fix: says "do not", a rule for the reader; say what the door does instead',
+  ]);
+  const whenever = door({}, { when: "Use this whenever the agent's answer is needed in this turn." });
+  deepEqual(checkCard(whenever, { ...ctx, booklet: [] }), ['when: says "use this whenever", a rule for the reader; say what the door does instead']);
+  deepEqual(checkCard(door({ description: "Nevermore, always-on, Donot." }), { ...ctx, booklet: [] }), [], "whole words only");
+});
+
+test("a reviewed allowlist entry lets one booklet word stand on one door's field", () => {
+  const booklet = door({ description: "Ask the agent something; it never writes." });
+  const allow = [{ door: "mcp:ask", field: "description", word: "never", reason: "States what the door does." }];
+  deepEqual(checkCard(booklet, { ...ctx, booklet: allow }), []);
+  deepEqual(checkCard(booklet, { ...ctx, booklet: [{ ...allow[0]!, door: "mcp:status" }] }), ['description: says "never", a rule for the reader; say what the door does instead']);
+});

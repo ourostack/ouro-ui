@@ -680,3 +680,41 @@ test("a product walker can't exclude a hit, and a walker name is never read from
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("booklet words: a product adopts the rule in one pull request, seeding its baseline, and can't drop it or grow its allowlist after", async () => {
+  const dir = scratch();
+  try {
+    const config = (extra: Record<string, unknown>) => {
+      const file = join(dir, `config-${Object.keys(extra).length}-${Math.random().toString(36).slice(2)}.json`);
+      writeFileSync(file, JSON.stringify({ product: "harness", sources: [{ walker: "mcp-schemas", module: "walkers/fixtures/mcp-booklet.cjs", source: "walkers/fixtures/mcp-booklet.ts" }], groups: [{ id: "agent", when: "Talk to and steer a running Ouro agent from a coding tool." }], ...extra }));
+      return file;
+    };
+    const off = config({});
+    const on = config({ bookletWords: { allow: [] } });
+    const argv = (current: string, gaps: string[], base: string | null, baseGaps: string[] = []) => ["--config", current, "--baseline", baselineFile(dir, gaps), "--base-baseline", base ? baselineFile(dir, baseGaps, "base-baseline.json") : "none", "--base-config", base ?? "absent"];
+    const passes = async (args: string[]) => {
+      const { err, out, io } = capture();
+      equal(await run({ argv: args, io, root: here }), 0, err.join("\n"));
+      return out;
+    };
+    // Without the rule the card is valid.
+    await passes(argv(off, [], off));
+    // The pull request that adopts the rule may put the doors it makes weak on the baseline.
+    const out = await passes(argv(on, ["mcp:ask"], off));
+    ok(out.some((line) => line.includes('description: says "always"')), out.join("\n"));
+    // After that, a booklet word is a gap like any other: the baseline doesn't grow.
+    await failsWith(argv(on, ["mcp:ask"], on), "mcp:ask: added to the baseline.");
+    // Dropping the rule fails.
+    await failsWith(argv(off, [], on), "bookletWords: the base branch checks booklet words. Fix: keep bookletWords in ax/census.config.json; the rule is never turned off.");
+    // The allowlist only shrinks, and an entry that matches nothing fails.
+    const allow = { door: "mcp:ask", field: "description", word: "always", reason: "Reviewed." };
+    const allowed = config({ bookletWords: { allow: [allow] } });
+    await failsWith(argv(allowed, [], on), "mcp:ask description always: added to the booklet allowlist. Fix: rewrite the text instead; the allowlist only shrinks.");
+    await passes(argv(allowed, [], allowed));
+    const stale = config({ bookletWords: { allow: [allow, { ...allow, word: "never" }] } });
+    await failsWith(argv(stale, [], stale), "mcp:ask description never: on the booklet allowlist but the text doesn't say it. Fix: take it off bookletWords.allow.");
+    await failsWith(argv(config({ bookletWords: { allow: [{ door: "mcp:ask", word: "always" }] } }), [], null), "bookletWords.allow: each entry needs a door, a field (description, when or fix), a booklet word and a reason");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

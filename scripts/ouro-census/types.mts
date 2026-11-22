@@ -10,6 +10,14 @@ export interface ErrorCard {
   fix: string;
 }
 
+/** A reviewed booklet word one door's field may keep, with why (scripts/ouro-census/README.md). */
+export interface BookletAllow {
+  door: string;
+  field: "description" | "when" | "fix";
+  word: string;
+  reason: string;
+}
+
 /** A namespace an agent loads doors in, with the one line that says when to load it. */
 export interface GroupCard {
   id: string;

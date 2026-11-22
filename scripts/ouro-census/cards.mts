@@ -2,7 +2,7 @@
 // check is weak, and weak counts against zero. Slice 1 applies the checks that need only the cards and the code the
 // walker read. An error code must appear in the door's handler file outside any card (`evidence.raises`, when the
 // walker can tell); the server-level `unknown-door` card is the walker's check, because it belongs to no one door.
-import type { Consent, Door, DoorCard, ErrorCard, GroupCard } from "./types.mts";
+import type { BookletAllow, Consent, Door, DoorCard, ErrorCard, GroupCard } from "./types.mts";
 
 const CONSENTS: readonly Consent[] = ["read", "write", "consequential", "person-only"];
 
@@ -15,6 +15,42 @@ const STOP_WORDS = new Set([
 ]);
 
 const KEBAB = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+
+/**
+ * Booklet words: text that tells the reading agent a rule instead of saying what the door does (butler-productionization
+ * R11.6). A product adopts the check with `bookletWords` in its config; a reviewed allowlist entry lets one word stand
+ * on one door's field.
+ */
+export const BOOKLET_WORDS: readonly string[] = ["always", "never", "do not", "use this whenever", "you must"];
+export const BOOKLET_FIELDS: readonly BookletAllow["field"][] = ["description", "when", "fix"];
+
+const bookletPattern = (word: string) => new RegExp(`(?<![a-z0-9'-])${word.replace(/ /g, "\\s+")}(?![a-z0-9'-])`, "i");
+
+/** Each booklet word a text says, in the list's order. */
+export function bookletWordsIn(text: unknown): string[] {
+  return typeof text === "string" ? BOOKLET_WORDS.filter((word) => bookletPattern(word).test(text)) : [];
+}
+
+/** The texts the booklet check reads on a door, each with the field an allowlist entry names and the label a reason uses. */
+export function bookletTexts(door: Door): { field: BookletAllow["field"]; label: string; text: unknown }[] {
+  const card = door.card!;
+  return [
+    { field: "description", label: "description", text: door.description },
+    { field: "when", label: "when", text: card.when },
+    ...(Array.isArray(card.errors) ? card.errors.map((error, i) => ({ field: "fix" as const, label: `errors[${i}].fix`, text: error?.fix })) : []),
+  ];
+}
+
+function bookletReasons(door: Door, allow: readonly BookletAllow[]): string[] {
+  const reasons: string[] = [];
+  for (const { field, label, text } of bookletTexts(door)) {
+    for (const word of bookletWordsIn(text)) {
+      if (allow.some((entry) => entry.door === door.id && entry.field === field && entry.word === word)) continue;
+      reasons.push(`${label}: says "${word}", a rule for the reader; say what the door does instead`);
+    }
+  }
+  return reasons;
+}
 
 function words(text: string): string[] {
   return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length > 1);
@@ -100,7 +136,7 @@ function effectReasons(door: Door): string[] {
  * include `door` itself), used for the checks that compare cards. A door with `card: null` is undeclared, not weak,
  * and is not passed here.
  */
-export function checkCard(door: Door, ctx: { groups: readonly GroupCard[]; others: readonly Door[] }): string[] {
+export function checkCard(door: Door, ctx: { groups: readonly GroupCard[]; others: readonly Door[]; booklet?: readonly BookletAllow[] | null }): string[] {
   const card = door.card!;
   const reasons: string[] = [];
   if (card.id !== door.id) reasons.push(`id: card says ${card.id}`);
@@ -121,6 +157,7 @@ export function checkCard(door: Door, ctx: { groups: readonly GroupCard[]; other
   reasons.push(...groupReasons(card, ctx.groups));
   reasons.push(...errorReasons(door, ctx.others));
   reasons.push(...effectReasons(door));
+  if (ctx.booklet) reasons.push(...bookletReasons(door, ctx.booklet));
   return reasons;
 }
 
