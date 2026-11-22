@@ -28,10 +28,11 @@ test("the round corner check catches a round control, check or theme corner shap
   assert.doesNotMatch("--ouro-corner-shape: squircle;", ROUND);
 });
 
-test("the Cookbook theme makes its controls squircle capsules: a full control radius, no corner-shape token, and checks on the theme's corners", () => {
+test("the Cookbook theme makes its controls continuous capsules: a full control radius in superellipse(1.05), never round, and checks on the theme's corners", () => {
   for (const file of ["site/src/themes/cookbook.css", "site/public/css/themes/cookbook.css"]) {
     const css = read(file);
     assert.match(css, /--ouro-control-radius:\s*9999px;/, file);
-    assert.doesNotMatch(css, /--ouro-(?:control|check)-corner-shape\s*:|--ouro-check-radius\s*:/, file);
+    assert.match(css, /--ouro-control-corner-shape:\s*superellipse\(1\.05\);/, file);
+    assert.doesNotMatch(css, /--ouro-check-corner-shape\s*:|--ouro-check-radius\s*:|corner-shape:\s*round/, file);
   }
 });

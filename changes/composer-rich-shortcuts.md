@@ -1,0 +1,1 @@
+- New: `<Composer format="rich">` turns Markdown you type into formatting as you go: a dash, a number or `>` and a space start a list or quote, a fence starts a code block, and `**bold**` or `_italic_` format on the closing mark.

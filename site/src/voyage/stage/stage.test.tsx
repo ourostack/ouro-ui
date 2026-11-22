@@ -122,16 +122,16 @@ describe("the hero", () => {
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
 
-  it("points a person setting Ouro UI up themselves to the commands in the install section, on a wide screen", async () => {
+  it("points a person setting Ouro UI up themselves to the commands in the install section, on a wide screen and a phone", async () => {
     await renderPage("/");
     const link = page.getByRole("link", { name: HANDOFF.commands.text, exact: true });
     await expect.element(link).toHaveAttribute("href", "#install");
     expect(link.element().closest("[data-site-handoff] [data-slot='caption']")).not.toBeNull();
     expect(document.getElementById("install")).not.toBeNull();
-    // On a phone it waits: a phone's reader hands Ouro UI to an agent, and the release sits on the label's line.
+    // On a phone it stays, under the line, and the release sits on the label's line.
     const anchor = link.element();
     await page.viewport(390, 844);
-    await expect.poll(() => anchor.checkVisibility()).toBe(false);
+    await expect.poll(() => anchor.checkVisibility()).toBe(true);
     const label = document.querySelector<HTMLElement>("[data-site-handoff] [data-slot='label']")!.getBoundingClientRect();
     const release = document.querySelector<HTMLElement>("[data-site-release]")!.getBoundingClientRect();
     expect(release.top).toBeLessThan(label.bottom);
@@ -409,6 +409,19 @@ describe("the stage's controls", () => {
   });
 });
 
+describe("the porthole section's copy", () => {
+  it("starts at the top of the section beside the porthole, with no dead gap above the heading", async () => {
+    for (const width of [1100, 1440]) {
+      await page.viewport(width, 900);
+      await renderPage("/");
+      const section = document.querySelector<HTMLElement>(".site-console")!.getBoundingClientRect();
+      const heading = document.querySelector<HTMLElement>(".site-try-title")!.getBoundingClientRect();
+      expect(heading.top - section.top, `at ${width}px the heading sits low in its section`).toBeLessThan(80);
+      await cleanupPage();
+    }
+  });
+});
+
 describe("the console's instruments", () => {
   it("keeps Speed's label clear of the depth readout at every width the console takes", async () => {
     for (const width of [390, 1100, 1280, 1500]) {
@@ -418,6 +431,18 @@ describe("the console's instruments", () => {
       const speed = document.querySelector<HTMLElement>(".stage-speed-head")!.getBoundingClientRect();
       const apart = readout.right + 8 <= speed.left || speed.right <= readout.left || readout.bottom <= speed.top || speed.bottom <= readout.top;
       expect(apart, `at ${width}px the Speed label overlaps the depth readout`).toBe(true);
+      await cleanupPage();
+    }
+  });
+
+  it("keeps the Dive button inside the ballast panel at the widths where the console is narrowest", async () => {
+    for (const width of [1080, 1100, 1112, 1118]) {
+      await page.viewport(width, 900);
+      await renderPage("/");
+      const dive = document.querySelector<HTMLElement>(".stage-dive button")!.getBoundingClientRect();
+      const panel = document.querySelector<HTMLElement>(".stage-ballast")!.getBoundingClientRect();
+      expect(dive.right, `at ${width}px Dive runs past the panel's right edge`).toBeLessThanOrEqual(panel.right);
+      expect(dive.left).toBeGreaterThanOrEqual(panel.left);
       await cleanupPage();
     }
   });

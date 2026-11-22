@@ -1077,9 +1077,10 @@
   column-gap: 0.75rem;
   row-gap: 0.75rem;
 }
-@container (min-width: 30rem) {
+/* The stage is about 3.25rem wider than the manifold (the console's padding and borders); the manifold needs 28rem for three tanks and Dive. */
+@container (min-width: 31.5rem) {
   .stage-manifold {
-    grid-template-columns: repeat(3, var(--tank)) minmax(0, 1fr);
+    grid-template-columns: repeat(3, var(--tank)) minmax(7rem, 1fr);
   }
 }
 .stage-pipe {
@@ -1101,7 +1102,7 @@
   box-shadow: 0 1px 2px color-mix(in oklab, black 20%, transparent);
   overflow: hidden;
 }
-@container (min-width: 30rem) {
+@container (min-width: 31.5rem) {
   .stage-pipe {
     grid-column: 1 / 4;
     margin-inline: calc(var(--tank) / 2) -0.75rem;
@@ -1144,7 +1145,7 @@
   gap: 0.5rem;
 }
 /* Narrow: each tank's name sits over its switch, so three fit across. */
-@container (max-width: 29.99rem) {
+@container (max-width: 31.49rem) {
   .stage-tank {
     grid-template-rows: var(--glass) auto;
   }
@@ -1255,7 +1256,7 @@
   justify-items: stretch;
   text-align: center;
 }
-@container (min-width: 30rem) {
+@container (min-width: 31.5rem) {
   .stage-dive {
     grid-row: 1;
     grid-column: 4;

@@ -193,6 +193,16 @@ describe("the header and the theme section", () => {
     }
   });
 
+  it("names the sky-following look Sky, a name like its neighbours', not a state", async () => {
+    root.setAttribute("data-theme", "pearl");
+    await renderPage("/");
+    const group = page.getByRole("group", { name: "Theme", exact: true });
+    await expect.element(group.getByRole("button", { name: "Sky", exact: true })).toBeVisible();
+    expect(group.getByRole("button", { name: "Live" }).elements()).toHaveLength(0);
+    await userEvent.click(group.getByRole("button", { name: "Sky", exact: true }), { force: true });
+    await expect.poll(() => document.querySelector("[data-site-hero-paint] [role=group][aria-label=Theme]")?.parentElement?.querySelector("p strong")?.textContent).toBe("Sky");
+  });
+
   it("draws each paint dot as a circle with a round ring when chosen, Live's paint on the same diagonal as the presets'", async () => {
     root.setAttribute("data-theme", "pearl");
     await renderPage("/");
@@ -213,7 +223,7 @@ describe("the header and the theme section", () => {
       }
     }
     // The chosen dot, Live too, wears the ring; the others none.
-    for (const name of ["Live", "Abyss"]) {
+    for (const name of ["Sky", "Abyss"]) {
       await userEvent.click(page.getByRole("group", { name: "Theme", exact: true }).getByRole("button", { name, exact: true }), { force: true });
       // The ring hugs the swatch itself, a hair outside it, not the button's wider hit area.
       await expect.poll(() => dots().filter((dot) => swatch(dot).outlineStyle === "solid").map((dot) => dot.getAttribute("aria-label"))).toEqual([name]);

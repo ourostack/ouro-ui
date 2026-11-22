@@ -12,14 +12,14 @@ export function InlineCode({ children }: { children: ReactNode }): JSX.Element {
   );
 }
 
-/** A file path inside running text: it breaks after a slash, and inside a name only when the name alone is wider than the line. */
+/** A file path inside running text: it breaks after a slash (never after the first, so a short top folder is not left alone on a line), and inside a name only when the name alone is wider than the line. */
 export function InlinePath({ path }: { path: string }): JSX.Element {
   return (
     <code data-site-path className="rounded-[calc(var(--radius)*0.267)] bg-muted px-[0.3em] py-[0.1em] font-mono [font-size-adjust:0.46] text-foreground [overflow-wrap:break-word]">
       {path.split("/").map((part, index, parts) => (
         <span key={index}>
           {part}
-          {index < parts.length - 1 && <>/<wbr /></>}
+          {index < parts.length - 1 && <>/{index > 0 && <wbr />}</>}
         </span>
       ))}
     </code>
@@ -44,17 +44,22 @@ export function CodeBlock({ code, label, wrap, copy, className }: { code: string
       ) : null}
       {/* Without a label, a Copy button sits in the block's corner and takes the exact code. */}
       {copy && !label ? (
-        <div style={{ position: "absolute", insetInlineEnd: "0.375rem", bottom: "0.375rem" }}>
+        <div style={{ position: "absolute", insetInlineEnd: "0.375rem", bottom: "0.375rem", zIndex: 1 }}>
           <CopyButton text={code} label={label ? `Copy ${label}` : "Copy the code"} />
         </div>
       ) : null}
-      <pre
-        style={copy && !label ? { paddingInlineEnd: "5rem" } : undefined}
-        tabIndex={0}
-        className={cn("m-0 overflow-x-auto rounded-xl border border-transparent bg-(--site-code) px-4 py-3.5 font-mono text-sm leading-6 text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
-      >
-        <code>{wrap ? atSlashes(code) : code}</code>
-      </pre>
+      <div data-site-code-frame={wrap ? undefined : ""} className="relative overflow-hidden rounded-xl border border-transparent bg-(--site-code) outline-ring has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2">
+        <pre
+          style={{ ...(copy && !label ? { paddingInlineEnd: "5rem" } : null) }}
+          data-site-code=""
+          data-site-code-scroller={wrap ? undefined : ""}
+          tabIndex={0}
+          data-test-harness=""
+          className={cn("m-0 overflow-x-auto bg-(--site-code) px-4 py-3.5 font-mono text-sm leading-6 text-foreground outline-none", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
+        >
+          <code>{wrap ? atSlashes(code) : code}</code>
+        </pre>
+      </div>
     </figure>
   );
 }

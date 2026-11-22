@@ -1011,7 +1011,7 @@ test("the skeleton frame probe runs one measurement at a time, in WebKit, and ne
   assert.match(probe, /^concurrency:\n {2}group: skeleton-frames\n {2}cancel-in-progress: false$/m);
   const frames = jobIn(probe, "frames", "skeleton-frames.yml");
   assert.match(frames, /^ {6}max-parallel: 1\n {6}matrix:\n {8}project: \[webkit\]$/m);
-  assert.match(frames, /pnpm exec playwright test --config playwright\.probes\.config\.ts --project "\$PROJECT"/);
+  assert.match(frames, /pnpm exec playwright test registry\/ouro\/e2e\/probes\/skeleton-frames\.spec\.ts --config playwright\.probes\.config\.ts --project "\$PROJECT"/);
   const config = (await import("../playwright.probes.config.ts")).default;
   assert.deepEqual(config.projects.map((project) => project.name), ["webkit"]);
 });
@@ -1708,16 +1708,16 @@ test("the required ci job runs the claims ratchet on a pull request, against its
   const script = `git() { printf 'CALL git %s\\n' "$*" >&2; }\n${stepScript(block, "Claims")}`;
   const pull = runStep(script, { BASE_REF: "main", GITHUB_SHA: "f00d" });
   assert.equal(pull.status, 0);
-  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=2 origin f00d\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL node scripts\/patch-guard\.mjs\nCALL pnpm claims:check --network=changed$/m);
+  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=2 origin f00d\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL node scripts\/headroom-ratchet\.mjs\nCALL node scripts\/patch-guard\.mjs\nCALL pnpm claims:check --network=changed$/m);
   // Against the merge's first parent, main as GitHub merged the pull request into it, never main's tip, which may have
   // moved since: its changes would read as the pull request's (#726).
   const exemptions = workflow("claims.yml").slice(workflow("claims.yml").search(/^ {6}- name: Exemptions against the base\n/m));
-  for (const name of ["CLAIMS_BASE_REF", "REAL_CLOCK_BASE_REF", "PATCH_GUARD_BASE_REF"]) {
+  for (const name of ["CLAIMS_BASE_REF", "REAL_CLOCK_BASE_REF", "HEADROOM_BASE_REF", "PATCH_GUARD_BASE_REF"]) {
     assert.doesNotMatch(step, new RegExp(`${name}="origin/`));
     assert.doesNotMatch(exemptions, new RegExp(`${name}="origin/`));
   }
-  assert.match(exemptions, /git fetch --no-tags --depth=2 origin "\$GITHUB_SHA"\n {10}CLAIMS_BASE_REF="HEAD\^1" node scripts\/claims\.mjs ratchet\n {10}REAL_CLOCK_BASE_REF="HEAD\^1" node scripts\/real-clock-ratchet\.mjs/);
-  assert.equal(step.match(/(?:CLAIMS|REAL_CLOCK|PATCH_GUARD)_BASE_REF="HEAD\^1"/g)?.length, 4);
+  assert.match(exemptions, /git fetch --no-tags --depth=2 origin "\$GITHUB_SHA"\n {10}CLAIMS_BASE_REF="HEAD\^1" node scripts\/claims\.mjs ratchet\n {10}REAL_CLOCK_BASE_REF="HEAD\^1" node scripts\/real-clock-ratchet\.mjs\n {10}HEADROOM_BASE_REF="HEAD\^1" node scripts\/headroom-ratchet\.mjs/);
+  assert.equal(step.match(/(?:CLAIMS|REAL_CLOCK|HEADROOM|PATCH_GUARD)_BASE_REF="HEAD\^1"/g)?.length, 5);
   // A failing ratchet fails the job.
   assert.notEqual(runStep(script, { BASE_REF: "main" }, { nodeStatus: 1 }).status, 0);
   assert.doesNotMatch(runStep(script, { BASE_REF: "" }).calls, /ratchet/);
@@ -1935,6 +1935,10 @@ test("the ci check requires the attribution job, which checks a pull request's c
   // Cheap: no install, and every commit without its trees, so any range reads.
   assert.doesNotMatch(block, /pnpm|npm |npx /);
   assert.match(block, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 0\n {10}filter: tree:0\n/);
+  // The partial clone fetches trees lazily while the log reads them, so the script tries its log again rather than fail on one dropped connection.
+  const attribution = readFileSync(new URL("./attribution.mjs", import.meta.url), "utf8");
+  assert.match(attribution, /LOG_TRIES = \d+;/);
+  assert.match(attribution, /if \(attempt >= LOG_TRIES\) throw error;/);
   const step = block.slice(block.search(/^ {6}- name: No AI attribution\n/m));
   for (const [name, value] of [["EVENT", "github.event_name"], ["BASE_REF", "github.base_ref"], ["PR_HEAD", "github.event.pull_request.head.sha"], ["QUEUE_BASE", "github.event.merge_group.base_sha"], ["QUEUE_HEAD", "github.event.merge_group.head_sha"]]) {
     assert.match(step, new RegExp(`^ {10}${name}: \\$\\{\\{ ${value.replace(/\./g, "\\.")} \\}\\}$`, "m"));
@@ -2130,6 +2134,11 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.match(jobs["sweeps-compare"], /pattern: sweeps-looks-\*\n {10}path: \.tmp\/looks\n {10}merge-multiple: true/);
   assert.match(jobs["sweeps-compare"], /run: node scripts\/sweeps-compare\.mjs \.tmp\/looks \.tmp\/timings$/m);
   assert.match(jobs["sweeps-compare"], /name: timings-sweeps-compare/);
+  // On a pull request the shard sets the scope in which a changed control's picture is taken twice (site/e2e/stable-take.ts), before the specs run.
+  const retake = stepScript(jobs["sweep-shard"], "Sweeps retake scope");
+  assert.match(retake, /GITHUB_EVENT_NAME" = pull_request/);
+  assert.match(retake, /node scripts\/sweeps-retake\.mjs "\$GITHUB_EVENT_NAME" \.tmp\/sweeps-changed\.txt/);
+  assert.ok(jobs["sweep-shard"].indexOf("Sweeps retake scope") < jobs["sweep-shard"].indexOf("name: Sweep specs"));
   // ci-budget reaches sweeps-compare through the e2e gate, which waits on it.
   // The sweeps run in shards of their own, so between the e2e and sweep shards every spec runs once.
   const { sweepFiles } = await import("./shard.mjs");
@@ -3439,14 +3448,17 @@ test("Docs pin changes nothing for a tag that is not the newest release, and say
   assert.match(changed.calls, /CALL node scripts\/latest-release\.mjs set/);
 });
 
-test("Docs pin leaves an open pull request alone only when it holds the same docs and no check failed", () => {
+test("Docs pin leaves an open pull request alone only when it holds the same docs, merges cleanly and no check failed", () => {
   const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
   const script = stepScript(pin, "Leave the pull request alone when it already holds these docs");
   const env = { BRANCH: "docs/point-at-release" };
-  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "pr view"*) echo ${o.failing ?? 0} ;; "pr diff"*) printf '${o.theirs ?? "a.md\\nb.md"}\\n' ;; esac; }\ngit() { case "$*" in "diff --cached --name-only") printf 'a.md\\nb.md\\n' ;; "diff --cached --quiet"*) return ${o.differs ? 1 : 0} ;; esac; }\n`;
+  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "pr view"*mergeable*) echo ${o.mergeable ?? "MERGEABLE"} ;; "pr view"*) echo ${o.failing ?? 0} ;; "pr diff"*) printf '${o.theirs ?? "a.md\\nb.md"}\\n' ;; esac; }\ngit() { case "$*" in "diff --cached --name-only") printf 'a.md\\nb.md\\n' ;; "diff --cached --quiet"*) return ${o.differs ? 1 : 0} ;; esac; }\n`;
   const same = runStep(fns({ number: 7 }) + script, env);
   assert.equal(same.output.same, "true", same.calls);
-  for (const o of [{}, { number: 7, failing: 1 }, { number: 7, theirs: "a.md" }, { number: 7, differs: true }]) {
+  // A branch cut from main before the last pin merged holds the same docs as a pin from main now, but conflicts with
+  // main on the lines that pin changed, and GitHub runs no CI on it, so it must be rebuilt (#2881). GitHub's answer can be
+  // UNKNOWN while it works it out; that is rebuilt too.
+  for (const o of [{}, { number: 7, failing: 1 }, { number: 7, theirs: "a.md" }, { number: 7, differs: true }, { number: 7, mergeable: "CONFLICTING" }, { number: 7, mergeable: "UNKNOWN" }]) {
     assert.notEqual(runStep(fns(o) + script, env).output.same, "true", JSON.stringify(o));
   }
   assert.equal(pin.split("steps.same.outputs.same != 'true'").length - 1, 3, "the push, the pull request and its CI start all wait on the check");
@@ -3648,4 +3660,26 @@ test("browser and fallback shards upload a failed test's screenshots, so a timeo
       id,
     );
   }
+});
+
+test("the browser shards hold each test to half its timeout: vitest.config.ts adds the headroom reporter to a browser shard only, and the browser job runs a shard", () => {
+  const config = readFileSync(join(root, "vitest.config.ts"), "utf8");
+  assert.match(config, /\.\.\.\(browserShard \? \[new HeadroomReporter\(\)\] : \[\]\)/);
+  assert.match(ciJobs().browser, /vitest run[^\n]*--shard=/);
+  assert.ok(existsSync(join(root, ".github/headroom.json")));
+  // A pull request judges only the tests in the files it changes: the plan lists them, the shards read them.
+  assert.match(ciJobs().plan, /id: changed\n[\s\S]*git diff --name-only HEAD\^1 HEAD[\s\S]*files<<CHANGED_FILES_EOF/);
+  assert.match(ciJobs().plan, /changed: \$\{\{ steps\.changed\.outputs\.files \}\}/);
+  assert.match(ciJobs().browser, /HEADROOM_CHANGED: \$\{\{ needs\.plan\.outputs\.changed \}\}/);
+  // The full-suite fallback shards scope the same way: without this, a test over half its timeout
+  // in a file the pull request never touched failed the fallback run alone (ourostack/ouro-ui#2928).
+  assert.match(ciJobs()["browser-fallback"], /HEADROOM_CHANGED: \$\{\{ needs\.plan\.outputs\.changed \}\}/);
+  // Off a pull request a breach is reported, not failed: the shards upload the list and headroom-report.yml files it in one issue.
+  assert.match(ciJobs().browser, /github\.event_name != 'pull_request' \}\}\n\s+uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n\s+with:\n\s+name: headroom-browser-\$\{\{ matrix\.shard \}\}\n\s+path: \.tmp\/headroom\//);
+  const report = workflow("headroom-report.yml");
+  assert.match(report, /workflows: \[CI\]\n\s+types: \[completed\]/);
+  assert.match(report, /if: \$\{\{ github\.event\.workflow_run\.event != 'pull_request' \}\}/);
+  assert.match(report, /permissions:\n\s+contents: read\n\s+actions: read[^\n]*\n\s+issues: write/);
+  assert.match(report, /scripts\/scheduled-failure\.sh "\$RUN" "Headroom breaches on main"/);
+  assert.doesNotMatch(workflow("ci.yml"), /issues: write/);
 });

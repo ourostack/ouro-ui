@@ -6,11 +6,12 @@ import { latestRelease, upgrading } from "./release";
 import { demos } from "./docs/demos";
 import { followSystemScheme, THEME_KEY } from "./themes/prepaint";
 import { choiceList } from "./voyage/presets";
-import { finishReveal } from "./voyage/theme-store";
+import { finishReveal, storeTheme } from "./voyage/theme-store";
 import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
 import { PhoneStatus, phoneTime } from "./components/phone-status";
+import { collectControls } from "../../test/controls";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { createRoot } from "react-dom/client";
 import { SURPRISES, surpriseNav } from "./components/surprise-me";
@@ -19,7 +20,7 @@ import { tries } from "./docs/tries";
 import { docsPages, guidePages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
+import { checkLabel, Markdown, parse, prose, sourceHref, sourceLabel } from "./docs/markdown";
 import { headTags, homeStructuredData, SITE } from "./head";
 import { componentPrompt, GUIDE_TASKS, PROMPT_SITE, withInstall } from "./docs/agent-prompt";
 import { headerPath } from "./components/docs-header";
@@ -67,6 +68,54 @@ const INIT = "npx shadcn@latest init --base base --preset nova --yes --no-monore
 const upgradeCommands = parse(upgrading).flatMap((block) => (block.kind === "code" ? [block.text] : []));
 
 describe("home page", () => {
+  describe("the headline beside the story", () => {
+    const root = document.documentElement;
+    let was: string | null;
+    let theme: string | null;
+    beforeEach(() => {
+      was = localStorage.getItem(THEME_KEY);
+      theme = root.getAttribute("data-theme");
+    });
+    afterEach(async () => {
+      await finishReveal();
+      if (was === null) localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, was);
+      if (theme === null) root.removeAttribute("data-theme");
+      else root.setAttribute("data-theme", theme);
+    });
+
+    const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    const lines = (heading: HTMLElement) => Math.round(heading.getBoundingClientRect().height / parseFloat(getComputedStyle(heading).lineHeight));
+
+    // The looks are applied through the store the dots use, at once; one test below clicks a dot.
+    it.each([1024, 1100, 1279])("is two lines in every look at %i px, so a look moves nothing below it", async (width) => {
+      await page.viewport(width, 900);
+      await renderPage("/");
+      const heading = document.querySelector<HTMLElement>(".site-voyage-hero h1")!;
+      const seen: [string, number][] = [];
+      for (const choice of choiceList) {
+        storeTheme({ preset: choice.name });
+        await document.fonts.ready;
+        await frame();
+        seen.push([choice.name, lines(heading)]);
+      }
+      expect(seen).toEqual(choiceList.map((choice) => [choice.name, 2]));
+    });
+
+    it("stays two lines when a look is chosen from its dot", async () => {
+      await page.viewport(1100, 900);
+      await renderPage("/");
+      const heading = document.querySelector<HTMLElement>(".site-voyage-hero h1")!;
+      const dot = document.querySelector<HTMLElement>('[data-site-hero-paint] button[aria-label="Chart"]')!;
+      await userEvent.click(dot, { force: true });
+      await expect.poll(() => dot.getAttribute("aria-pressed")).toBe("true");
+      await finishReveal();
+      await document.fonts.ready;
+      await frame();
+      expect(lines(heading)).toBe(2);
+    });
+  });
+
   it("opens on the Nautilus hero, and Come aboard goes to the Nautilus's page", async () => {
     await renderPage("/");
     const heading = page.getByRole("heading", { level: 1 });
@@ -77,11 +126,54 @@ describe("home page", () => {
     expect(page.getByRole("navigation", { name: "Ouro UI" }).getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
   });
 
+  it("never breaks a source path after its first folder, so no short stub is left alone on a line", async () => {
+    const host = await renderPage("/docs/dialog/");
+    for (const path of host.querySelectorAll("[data-site-path]")) {
+      const first = path.firstElementChild!;
+      expect(first.textContent).toMatch(/^[^/]+\/$/);
+      expect(first.querySelector("wbr")).toBeNull();
+    }
+  });
+
+  it("gives the docs page's install steps no history of v0.8.0 in running text", async () => {
+    const host = await renderPage("/docs/dialog/");
+    expect(host.textContent).not.toContain("From v0.8.0 it installs only");
+  });
+
+  it("shows the commands link in the hero on a phone, so the hand-off points to the install steps", async () => {
+    await page.viewport(390, 844);
+    const host = await renderPage("/");
+    const link = host.querySelector(".site-install-more")!;
+    expect(getComputedStyle(link).display).not.toBe("none");
+    expect(link.getBoundingClientRect().height).toBeGreaterThan(0);
+  });
+
+  it("makes the header's theme chip as tall as the header links on a fine pointer", async () => {
+    await page.viewport(1280, 800);
+    const host = await renderPage("/docs/density/");
+    const chip = host.querySelector("[data-site-theme-trigger]")!.getBoundingClientRect().height;
+    const heights = [...host.querySelectorAll("[data-ouro='navbar'] li a")].map((a) => a.getBoundingClientRect().height).filter((height) => height > 0);
+    expect(heights.length).toBeGreaterThan(0);
+    expect(heights).toEqual(heights.map(() => chip));
+  });
+
   it("breaks a source path after its slashes, and inside a name only when the name alone is too wide", async () => {
     const host = await renderPage("/docs/button/");
     const path = host.querySelector("[data-site-path]");
     expect(path?.querySelectorAll("wbr").length).toBeGreaterThan(0);
     expect(getComputedStyle(path!).overflowWrap).toBe("break-word");
+  });
+
+  it("shades the edges of a code block that scrolls sideways, and leaves a wrapped one plain", async () => {
+    const host = await renderPage("/docs/button/");
+    const blocks = [...host.querySelectorAll<HTMLElement>("pre[data-site-code]")];
+    const scrolling = blocks.filter((pre) => getComputedStyle(pre).whiteSpace !== "pre-wrap");
+    expect(scrolling.length).toBeGreaterThan(0);
+    for (const pre of scrolling) {
+      expect(pre.parentElement!.hasAttribute("data-site-code-frame")).toBe(true);
+      expect(getComputedStyle(pre.parentElement!, "::before").animationName).toBe("site-code-shade-in");
+    }
+    for (const pre of blocks.filter((pre) => getComputedStyle(pre).whiteSpace === "pre-wrap")) expect(pre.parentElement!.hasAttribute("data-site-code-frame")).toBe(false);
   });
 
   it("moves the commands link to the next line whole, never leaving its last words alone", async () => {
@@ -1064,15 +1156,37 @@ describe("docs", () => {
     for (const name of names) expect(routes.map((route) => route.path)).toContain(`/docs/${name}/`);
   });
 
-  it.each(sliced(docsItems, "site: docs items"))("docs/$name shows a live demo, the init step, both install commands, the tests item and the guard props", async ({ name }) => {
+  it.each(sliced(docsItems, "site: docs items"))("docs/$name shows a live demo, the init step, the add commands, the tests item in a closed More ways, and the guard props", async ({ name }) => {
     await renderPage(`/docs/${name}/`);
     await expect.element(page.getByText(INIT, { exact: true })).toBeVisible();
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease}`, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`npx shadcn@latest add @ouro/ouro-base @ouro/${name}`, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease} ourostack/ouro-ui/${name}-tests#${latestRelease}`, { exact: true })).toBeVisible();
+    const more = page.getByRole("button", { name: "More ways" });
+    await expect.element(more).toHaveAttribute("aria-expanded", "false");
+    const namespace = page.getByText(`npx shadcn@latest add @ouro/ouro-base @ouro/${name}`, { exact: true });
+    const tests = page.getByText(`npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease} ourostack/ouro-ui/${name}-tests#${latestRelease}`, { exact: true });
+    expect(namespace.element()).toBeTruthy();
+    await expect.element(namespace).not.toBeVisible();
+    await expect.element(tests).not.toBeVisible();
+    more.element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(more).toHaveAttribute("aria-expanded", "true");
+    await expect.element(namespace).toBeVisible();
+    await expect.element(tests).toBeVisible();
     await expect.element(page.getByRole("region", { name: "Live demo" })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Props", level: 2 })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Use instead when", level: 2 })).toBeVisible();
+  });
+
+  it("draws the More ways trigger the same on every docs page: one box, colour and padding", async () => {
+    const seen: string[] = [];
+    for (const name of ["badge", "dialog", "button", "tabs", "text-field"]) {
+      await renderPage(`/docs/${name}/`);
+      const trigger = page.getByRole("button", { name: "More ways" }).element() as HTMLElement;
+      const box = trigger.getBoundingClientRect();
+      const cs = getComputedStyle(trigger);
+      seen.push([Math.round(box.width), Math.round(box.height), cs.color, cs.paddingInline, cs.textDecorationLine].join("|"));
+    }
+    expect(new Set(seen).size, seen.join("\n")).toBe(1);
   });
 
   it("is lost at sea at an address with no page: the way home, a guess at what it meant, and a search", async () => {
@@ -1352,6 +1466,21 @@ describe("guides and exports without an item", () => {
     const ref = document.querySelector<HTMLAnchorElement>("sup a[href^='#source-']")!;
     expect(document.getElementById(ref.getAttribute("href")!.slice(1))).not.toBeNull();
   });
+
+  it("reads a claim source and its checks as words, keeps the raw form in the title, and sets a footnote mark apart from its sentence", async () => {
+    expect(sourceLabel("test:scripts/claims.test.mjs::lint > a name")).toBe("The test that proves it: lint > a name");
+    expect(sourceLabel("scripts/claims.mjs#L12")).toBe("The source file claims.mjs");
+    expect(sourceLabel("https://example.com/spec")).toBe("The page at example.com");
+    expect(checkLabel("testExists(a/b.test.ts::x > y)")).toBe("A test with this name exists: x > y");
+    expect(checkLabel("fileLine(a/b.css, /--x: 1;/)")).toBe("A line matching /--x: 1;/ is in b.css");
+    expect(checkLabel("urlOk(https://github.com/o/r/blob/99491ba2c96f39df5ad36cc7ebbd53b7dabf5064/a.md)")).toBe("The page it cites opens");
+    const page = document.createElement("div");
+    page.innerHTML = renderToStaticMarkup(<Markdown blocks={parse("Held.[^a]\n\n[^a]: test:a/b.test.ts::it works verify:testExists(a/b.test.ts::it works)")} />);
+    expect(page.querySelector("sup")!.className).toContain("ms-1");
+    expect(page.querySelector("li a")!.textContent).toBe("The test that proves it: it works");
+    expect(page.querySelector("li a")!.getAttribute("title")).toBe("test:a/b.test.ts::it works");
+    expect(page.querySelector("li")!.textContent).not.toMatch(/verify:|\.test\.ts/);
+  });
 });
 
 describe("docs running text", () => {
@@ -1497,15 +1626,31 @@ describe("platforms", () => {
 });
 
 describe("install addresses", () => {
+  // The page scan reads the rendered text, and the commands under a closed disclosure too: innerText leaves those out.
+  const textNodes = (root: Node): string[] => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const found: string[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) found.push(node.textContent ?? "");
+    return found;
+  };
+  const pageText = () => [document.body.innerText, ...[...document.querySelectorAll("[data-ouro=\"collapsible\"]")].flatMap(textNodes)].join("\n");
+
   it.each(sliced(routes, "site: pins"))("$path pins each ourostack/ouro-ui address to a release, or says it is for contributors", async ({ path }) => {
     await renderPage(path);
-    expect(unpinnedAddresses(document.body.innerText)).toEqual([]);
+    expect(unpinnedAddresses(pageText())).toEqual([]);
   });
 
-  // The page scan reads the rendered text: an item's docs page names its install addresses there.
   it("finds the install addresses on an item's docs page", async () => {
     await renderPage("/docs/dialog/");
-    expect(document.body.innerText.split("ourostack/ouro-ui/").length - 1).toBeGreaterThan(2);
+    expect(pageText().split("ourostack/ouro-ui/").length - 1).toBeGreaterThan(2);
+  });
+
+  it("marks every control on a docs page with its Ouro item, so X-ray names it", async () => {
+    await page.viewport(1100, 900);
+    for (const path of ["/docs/", "/docs/dialog/", "/docs/radio/", "/docs/density/", "/docs/button/"]) {
+      await renderPage(path);
+      const unmarked = collectControls().filter((element) => !element.closest("[data-ouro-control]"));
+      expect(unmarked.map((element) => `${path} ${element.tagName.toLowerCase()} ${element.getAttribute("href") ?? element.textContent?.trim().slice(0, 30)}`)).toEqual([]);
+    }
   });
 });
-

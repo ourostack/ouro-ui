@@ -22,6 +22,7 @@ const patterns = import.meta.glob<Record<string, unknown>>(["../registry/ouro/pa
 /** Demos whose mount reads layout, by item name, each with what it reads and why it stays. A waiver that stops reading fails, so it goes with the fix. */
 const waivers: Record<string, string> = {
   "chart": "the plot reads its box's client size and font (getComputedStyle) before paint to lay out its axes and marks, so the first frame shows the plot rather than an empty box that fills a frame later",
+  "conversation-find": "its demo mounts a message list, which pins the first frame to the newest message and needs scroll and client sizes to do so, and the find box takes focus on open",
   "composer": "the composer measures its action row's offsetHeight before paint so the text box and its buttons are sized in the first frame",
   "family-bar": "the bar measures which chips fit before paint, or the first frame would show chips that overflow and then drop them",
   "hero": "the hero checks whether its picture is shown (getComputedStyle) before paint, to choose between the picture and its fallback in the first frame",

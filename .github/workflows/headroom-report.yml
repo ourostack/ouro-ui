@@ -1,0 +1,54 @@
+name: Headroom report
+# A browser test over half its timeout fails a pull request (scripts/headroom-reporter.mts), but on a push to main, in the
+# merge queue and on a schedule it only annotates the run, since a loaded shard makes a near-budget test slow for reasons
+# the change did not add. After each such CI run this reads the breaches the shards uploaded (the artifacts
+# headroom-browser-<shard>) and opens or comments on one issue, "Headroom breaches on main", with the list. Main stays green:
+# the fix is a faster test, or a named exemption in .github/headroom.json.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+permissions:
+  contents: read
+  actions: read # the breach lists, artifacts of the run
+  issues: write # the one issue for the breaches (scripts/scheduled-failure.sh)
+concurrency:
+  group: headroom-report
+  cancel-in-progress: false
+jobs:
+  report:
+    name: File the headroom breaches
+    if: ${{ github.event.workflow_run.event != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read the breaches the shards listed
+        id: breaches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          gh run download "$RUN_ID" --pattern 'headroom-browser-*' --dir .tmp/headroom || true
+          list=$(cat .tmp/headroom/*/breaches.txt 2>/dev/null | sort -u | sed 's/^/- /' || true)
+          {
+            echo "list<<HEADROOM_LIST_EOF"
+            echo "$list"
+            echo "HEADROOM_LIST_EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Open or comment on the issue for the breaches
+        if: steps.breaches.outputs.list != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          LIST: ${{ steps.breaches.outputs.list }}
+          RUN: ${{ github.event.workflow_run.html_url }}
+        run: |
+          scripts/scheduled-failure.sh "$RUN" "Headroom breaches on main" "Browser tests ran over half their timeout:
+          $LIST
+          " "Still over half their timeout:
+          $LIST
+          Run: $RUN"

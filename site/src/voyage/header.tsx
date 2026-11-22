@@ -72,7 +72,7 @@ export function ThemePicker(): JSX.Element {
     <PopoverRoot modal={touch}>
       <PopoverTrigger
         render={
-          <Button variant="soft" tone="secondary" size="sm" data-site-theme-trigger="" className="site-theme-trigger">
+          <Button variant="soft" tone="secondary" size="sm" data-site-theme-trigger="" className="site-theme-trigger sm:h-9">
             <ByPreset>
               {(item) => (
                 <span className="inline-flex items-center gap-2">
@@ -261,6 +261,7 @@ export function VoyageHeader({
             href={href("/")}
             className="-ms-1 inline-flex min-h-11 items-center gap-2 rounded-[calc(var(--radius)*0.8)] px-1 font-[family-name:var(--font-heading)] text-lg font-semibold tracking-[-0.015em] text-foreground no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-2"
             data-site-brand=""
+            data-test-harness=""
           >
             <HxLogo size={32} className="size-8" />
             Ouro UI

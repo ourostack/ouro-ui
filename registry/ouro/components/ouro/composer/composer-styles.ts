@@ -1,6 +1,6 @@
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 
-export { composerShortcuts, formatEdit, isApple, markFormats, pressed };
+export { composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts };
 export type { ComposerEdit };
 
 // The text edits and keys Composer's formatting uses, apart from the component so its file
@@ -21,6 +21,16 @@ const composerShortcuts = {
   strike: ["mod", "alt", "x"],
   code: ["mod", "shift", "c"],
   expand: ["mod", "shift", "x"],
+} as const satisfies Record<string, readonly string[]>;
+
+/**
+ * The keys of a rich composer (`format="rich"`): Teams' bold, italic and underline, with
+ * strikethrough on ⌘⇧X and code on ⌘⇧E. ⌘⇧X is strikethrough there, so it no longer expands the box.
+ */
+const richShortcuts = {
+  ...composerShortcuts,
+  strike: ["mod", "shift", "x"],
+  code: ["mod", "shift", "e"],
 } as const satisfies Record<string, readonly string[]>;
 
 /** The formats that wrap the selection in a mark, which the keys apply. */

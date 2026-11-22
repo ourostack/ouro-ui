@@ -32,7 +32,7 @@ import {
   type Vocabulary,
 } from "../../registry/ouro/check/first-run-judges.ts";
 import { dataPaths, leftovers, loginItemsOn, reset, type App } from "../../registry/ouro/check/first-run-machine.ts";
-import { offline, reachable, unreachable } from "../../registry/ouro/check/first-run-network.ts";
+import { offline, reachable, RESOLVE_MS, unreachable } from "../../registry/ouro/check/first-run-network.ts";
 import { system, type System } from "../../registry/ouro/check/first-run-system.ts";
 
 // The first-run harness's units, each driven with made-up accessibility trees, a made-up machine (a `System` that records
@@ -779,6 +779,18 @@ describe("first-run harness: the network", () => {
     assert.equal(block.evidence, "the sign-in unreachable (4 address ranges refused): https://login.example.com can't be reached");
     assert.deepEqual(m.lines().slice(0, 2), ["dscacheutil -q host -a name login.example.com", "dscacheutil -q host -a name nowhere.example.com"]);
     assert.equal(m.calls.find((c) => c.input !== undefined)!.input, "block return out quick inet proto { tcp udp } to { 1.2.3.4, 20.190.128.0 }\nblock return out quick inet6 proto { tcp udp } to { 2603:1006::/40, ::1 }\n");
+  });
+
+  test("unreachable gives each host's lookup 3 s, holds without one that doesn't answer, and names it", () => {
+    const m = machine((cmd, args) => {
+      if (cmd === "curl") return { status: 7 };
+      if (cmd === "dscacheutil") return args.at(-1) === "slow.example.com" ? { status: null } : { stdout: "ip_address: 1.2.3.4\n" };
+      return {};
+    });
+    const block = unreachable({ hosts: ["login.example.com", "slow.example.com"], ranges: ["20.190.128.0/18"], probe: "https://login.example.com" }, undefined, undefined, m.sys);
+    assert.equal(block.ok, true);
+    assert.deepEqual(m.calls.filter((c) => c.cmd === "dscacheutil").map((c) => c.timeout), [RESOLVE_MS, RESOLVE_MS]);
+    assert.equal(block.evidence, "the sign-in unreachable (2 address ranges refused; slow.example.com not resolved in 3 s): https://login.example.com can't be reached");
   });
 
   test("unreachable can hang instead of refusing, and holds only the address families it has", () => {
