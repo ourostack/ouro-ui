@@ -82,6 +82,8 @@ describe("home page", () => {
     const path = host.querySelector("[data-site-path]");
     expect(path?.querySelectorAll("wbr").length).toBeGreaterThan(0);
     expect(getComputedStyle(path!).overflowWrap).toBe("break-word");
+  });
+
   it("moves the commands link to the next line whole, never leaving its last words alone", async () => {
     const host = await renderPage("/");
     const link = host.querySelector(".site-install-more");
