@@ -195,6 +195,21 @@ describe("Composer rich mode", () => {
     expect(second.defaultPrevented).toBe(true);
   });
 
+  it("posts the Markdown under its name in a form, and a read-only box can still be reached with Tab", async () => {
+    const { host, editor, rerender } = await render(
+      <form>
+        {rich({ name: "body", defaultValue: "**hi**" })}
+      </form>,
+    );
+    expect(new FormData(host.querySelector("form")!).get("body")).toBe("**hi**");
+    expect(editor.hasAttribute("tabindex")).toBe(false);
+    await rerender(<form>{rich({ name: "body", readOnly: true })}</form>);
+    expect(editor.tabIndex).toBe(0);
+    await rerender(<form>{rich({ name: "body", readOnly: true, disabled: true })}</form>);
+    expect(editor.hasAttribute("tabindex")).toBe(false);
+    expect(new FormData(host.querySelector("form")!).get("body")).toBeNull();
+  });
+
   it("leaves the box alone for a paste with no clipboard data, and for one with no caret in it", async () => {
     const { editor } = await render(rich({ defaultValue: "kept" }));
     const data = new DataTransfer();

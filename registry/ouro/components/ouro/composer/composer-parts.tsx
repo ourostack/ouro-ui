@@ -41,6 +41,8 @@ interface RichEditorProps {
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   /** Focus the editor when it mounts, with the caret at the end: the person was in the plain box it replaces. */
   autoFocus: boolean;
+  /** The form field name the Markdown submits under. */
+  name?: string | undefined;
   handleRef: Ref<RichEditorHandle>;
 }
 
@@ -65,7 +67,7 @@ const toMarkdown = (editor: LexicalEditor) => editor.getEditorState().read(() =>
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, handleRef }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -196,6 +198,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
 
   return (
     <div data-slot={slot} className={cn("relative", className)}>
+      {name !== undefined && <input type="hidden" name={name} value={value} disabled={disabled} />}
       <div
         ref={rootRef}
         role="textbox"
@@ -206,6 +209,8 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         aria-disabled={disabled || undefined}
         aria-readonly={readOnly || undefined}
         contentEditable={!disabled && !readOnly}
+        // A read-only box stays in the tab order, as a read-only textarea does, so its text can be read and copied.
+        tabIndex={readOnly && !disabled ? 0 : undefined}
         suppressContentEditableWarning
         spellCheck
         data-ouro-control="composer"

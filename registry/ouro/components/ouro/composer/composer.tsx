@@ -757,6 +757,7 @@ export function Composer(props: ComposerProps): JSX.Element {
               maxRows={maxRows}
               onKeyDown={keyDown}
               autoFocus={rich!.focus}
+              name={name}
               data-slot="composer-rich"
               className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", expanded && "w-full flex-auto")}
             />
