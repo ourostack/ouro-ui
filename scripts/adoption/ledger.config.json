@@ -677,7 +677,22 @@
           "workflow": "ax.yml",
           "branch": "main"
         }
-      ]
+      ],
+      "census": {
+        "workflow": "ax.yml",
+        "product": "housesitter",
+        "kinds": [
+          "cli",
+          "mcp",
+          "skill",
+          "agent"
+        ],
+        "reviewed": {
+          "housesitter-cli": "a07c2993bf91ee9940bed804cbc736b47e12ff41c4f2aeb5b80058671019928f",
+          "housesitter-mcp": "786eafb413c82b94f3b411538a771198a7170fd68b52c7b1249f4c82b00955fb",
+          "housesitter-skills": "f606fcb9bb83dca8f599ba07cc8a9a72f83c355786cf15877f385712b04eedad"
+        }
+      }
     },
     {
       "id": "m365crawl",
@@ -751,7 +766,18 @@
           "workflow": "ax-xray.yml",
           "branch": "main"
         }
-      ]
+      ],
+      "census": {
+        "workflow": "ax-xray.yml",
+        "product": "friends",
+        "kinds": [
+          "mcp",
+          "cli"
+        ],
+        "reviewed": {
+          "friends-mcp": "cbe433c57fd200b0c0623c4f9dc0647a87d2ab22012b02fcbcff2d925a0995fa"
+        }
+      }
     },
     {
       "id": "flow-review",
