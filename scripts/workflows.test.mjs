@@ -1537,7 +1537,11 @@ test("the plan's merge commit has its base: the checkout fetches the merge commi
 
 test("a push to main whose tree already passed runs only install-github", () => {
   const jobs = ciJobs();
-  assert.match(jobs.plan, /^ {6}- id: tested\n {8}name: Has this tree already passed\?\n {8}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\n {8}timeout-minutes: 5\n {8}continue-on-error: true\n/m);
+  assert.match(jobs.plan, /^ {6}- id: squash\n {8}name: The squash commit's message is clean\n {8}if: github\.event_name == 'merge_group'\n {8}continue-on-error: true\n/m);
+  assert.match(jobs.plan, /node scripts\/attribution\.mjs "\$QUEUE_BASE" "\$QUEUE_HEAD"/);
+  assert.match(jobs.plan, /node "\$guard\/check\.mjs" "\$QUEUE_BASE\.\.\$QUEUE_HEAD"/);
+  assert.match(jobs.plan, /QUEUE_REF: \$\{\{ github\.event_name == 'merge_group' && github\.ref \|\| '' \}\}/);
+  assert.match(jobs.plan, /^ {6}- id: tested\n {8}name: Has this tree already passed\?\n {8}if: \$\{\{ \(github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\) \|\| \(github\.event_name == 'merge_group' && steps\.squash\.outcome == 'success'\) \}\}\n {8}timeout-minutes: 5\n {8}continue-on-error: true\n/m);
   // It waits up to 3 minutes for the merged pull request's run to finish, within the step's 5 and the plan's 15 on a push, which keeps its 10 besides.
   assert.match(jobs.plan, /^ {8}run: node scripts\/ci-proof\.mjs "\$GITHUB_SHA" --wait 180$/m);
   assert.match(jobs.plan, /^ {4}timeout-minutes: \$\{\{ github\.event_name == 'pull_request' && 20 \|\| 15 \}\}$/m);
