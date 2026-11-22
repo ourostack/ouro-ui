@@ -230,6 +230,13 @@ describe("reading the checks", () => {
     expect(checksOf(withCells({ xray: xray(4, 4) }, { must: true }))[2]).toMatchObject({ state: "met", why: null });
   });
 
+  it("says which surfaces no X-ray checks yet, before counting must claims", () => {
+    const value = { claims: 10, holding: 10, must: 18, mustHolding: 18, score: null, tool: "x", app: null, reportAt: at, run: "https://example.com/run", surfaces: ["cli", "mcp"], missingSurfaces: ["tools"] };
+    expect(checksOf(withCells({ xray: { value, note: null, source: null, measuredAt: at } }))[2]).toMatchObject({ state: "missing", why: "X-ray doesn't check its tools doors yet", source: "https://example.com/run" });
+    const two = { ...value, mustHolding: 17, missingSurfaces: ["tools", "http"] };
+    expect(checksOf(withCells({ xray: { value: two, note: null, source: null, measuredAt: at } }))[2]).toMatchObject({ why: "X-ray doesn't check its tools or http doors yet" });
+  });
+
   it("marks a check that does not apply, and one with nothing given back", () => {
     const giveBack = (value: number | null, note: string) => ({ value, note, source: "https://example.com/prs", measuredAt: at, prs: [] });
     expect(checksOf(withCells({ giveBack: giveBack(null, "n/a: this is the upstream; it is where the others give back to.") }))[3]).toMatchObject({ state: "na", why: "This is the upstream; it is where the others give back to" });
