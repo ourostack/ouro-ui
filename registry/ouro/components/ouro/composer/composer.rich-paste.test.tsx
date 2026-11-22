@@ -73,8 +73,8 @@ describe("Composer rich paste", () => {
     const seen: string[] = [];
     const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
     editor.focus();
-    await paste(editor, { "text/html": "<p>first<br>second</p><ul><li>a</li><li>b</li></ul><ol><li>c</li></ol><blockquote>q</blockquote><pre>x  y</pre>" });
-    await expect.poll(() => seen.at(-1)).toBe("first\nsecond\n\n- a\n- b\n1. c\n\n> q\n\nx  y");
+    await paste(editor, { "text/html": "<p>first<br>second</p><ul><li>a</li><li>b</li></ul><ol><li>c</li></ol><blockquote>q</blockquote><pre>x  y\nz</pre><ul><li><p>wrapped</p></li></ul><blockquote><p>quoted</p></blockquote>" });
+    await expect.poll(() => seen.at(-1)).toBe("first\nsecond\n\n- a\n- b\n1. c\n\n> q\n\nx  y\nz\n\n- wrapped\n\n> quoted");
   });
 
   it("keeps the formatting inside a link, and one formatting tag nested in itself once", async () => {
@@ -83,6 +83,16 @@ describe("Composer rich paste", () => {
     editor.focus();
     await paste(editor, { "text/html": '<a href="mailto:a@b.test"><b><strong>mail</strong></b></a>' });
     await expect.poll(() => seen.at(-1)).toBe("[**mail**](mailto:a@b.test)");
+  });
+
+  it("lets an ordinary paste keep its formatting after a ⌘⇧V that pasted nothing", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
+    await key(editor, { key: "v", metaKey: true, shiftKey: true });
+    await paste(editor, { "text/html": "<b>no caret</b>" });
+    editor.focus();
+    await paste(editor, { "text/html": "<b>bold</b>" });
+    await expect.poll(() => seen.at(-1)).toBe("**bold**");
   });
 
   it("pastes plain text for a clipboard with no HTML, and for ⌘⇧V, once", async () => {

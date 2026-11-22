@@ -126,20 +126,27 @@ const htmlSkipped = new Set(["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT", "IFRAME"
 function $nodesFromHtml(html: string): LexicalNode[][] {
   const lines: LexicalNode[][] = [];
   let line: LexicalNode[] = [];
+  let pending = "";
   const endLine = () => {
     const first = line[0];
     if ($isTextNode(first)) first.setTextContent(first.getTextContent().trimStart());
     const last = line.at(-1);
     if ($isTextNode(last)) last.setTextContent(last.getTextContent().trimEnd());
-    if (line.some((node) => !$isTextNode(node) || node.getTextContent() !== "")) lines.push(line);
+    if (line.some((node) => !$isTextNode(node) || node.getTextContent() !== "")) {
+      if (pending) line.unshift($createTextNode(pending));
+      pending = "";
+      lines.push(line);
+    }
     line = [];
   };
   const walk = (node: Node, formats: TextFormatType[], inPre: boolean): LexicalNode[] => {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = inPre ? node.textContent! : node.textContent!.replace(/\s+/g, " ");
-      const out = $createTextNode(text);
-      formats.forEach((format) => out.toggleFormat(format));
-      return [out];
+      return text.split("\n").flatMap((part, index) => {
+        const out = $createTextNode(part);
+        formats.forEach((format) => out.toggleFormat(format));
+        return index === 0 ? [out] : [$createLineBreakNode(), out];
+      });
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return [];
     const element = node as Element;
@@ -152,9 +159,9 @@ function $nodesFromHtml(html: string): LexicalNode[][] {
     if (block) endLine();
     if (tag === "LI") {
       const parent = element.parentElement;
-      line.push($createTextNode(parent?.tagName === "OL" ? `${[...parent.children].indexOf(element) + 1}. ` : "- "));
+      pending = parent?.tagName === "OL" ? `${[...parent.children].indexOf(element) + 1}. ` : "- ";
     }
-    if (tag === "BLOCKQUOTE") line.push($createTextNode("> "));
+    if (tag === "BLOCKQUOTE") pending = "> ";
     const children = [...element.childNodes].flatMap((child) => {
       const made = walk(child, next, inPre || tag === "PRE");
       if (block) line.push(...made);
@@ -251,13 +258,14 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         PASTE_COMMAND,
         (event) => {
           const data = (event as ClipboardEvent).clipboardData;
+          const plain = plainPaste.current;
+          plainPaste.current = false;
           const selection = $getSelection();
           // Stryker disable next-line BooleanLiteral: with no clipboard text or caret, the handlers after this one have nothing to insert either way.
           if (!data || !$isRangeSelection(selection)) return false;
           event.preventDefault();
           const text = data.getData("text/plain");
-          const html = plainPaste.current ? "" : data.getData("text/html");
-          plainPaste.current = false;
+          const html = plain ? "" : data.getData("text/html");
           const href = safeHref(text);
           if (!selection.isCollapsed() && href && !/\s/.test(text.trim())) {
             $toggleLink(href);
