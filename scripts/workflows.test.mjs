@@ -1011,7 +1011,7 @@ test("the skeleton frame probe runs one measurement at a time, in WebKit, and ne
   assert.match(probe, /^concurrency:\n {2}group: skeleton-frames\n {2}cancel-in-progress: false$/m);
   const frames = jobIn(probe, "frames", "skeleton-frames.yml");
   assert.match(frames, /^ {6}max-parallel: 1\n {6}matrix:\n {8}project: \[webkit\]$/m);
-  assert.match(frames, /pnpm exec playwright test --config playwright\.probes\.config\.ts --project "\$PROJECT"/);
+  assert.match(frames, /pnpm exec playwright test registry\/ouro\/e2e\/probes\/skeleton-frames\.spec\.ts --config playwright\.probes\.config\.ts --project "\$PROJECT"/);
   const config = (await import("../playwright.probes.config.ts")).default;
   assert.deepEqual(config.projects.map((project) => project.name), ["webkit"]);
 });
