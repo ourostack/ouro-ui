@@ -15,7 +15,7 @@ test("Composer's box and send button are announced with their names and roles, a
     await expect(box).toHaveValue("");
     await expect(box).toBeFocused();
   };
-  await heard(sr, send, (phrase) => /\brunning a little late\b/i.test(phrase) || /\bmessage mia\b/i.test(phrase), "the sent message or the box, after Enter");
+  await heard(sr, send, (phrase) => inOneSentence(phrase, /\bmessage mia\b/i), '"Message Mia", after Enter');
   const button = page.getByRole("button", { name: "Send" });
   await heard(sr, () => button.focus(), (phrase) => inOneSentence(phrase, nameAndRole("Send", "button")), '"Send", button');
 });
