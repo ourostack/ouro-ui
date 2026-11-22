@@ -64,7 +64,7 @@ const MOUNT_ONLY: never[] = [];
 // A quote ends on its empty last line, which the line break there makes; a list and a code block end the way Enter ends them.
 function leaveOrContinueBlock(editor: LexicalEditor): boolean {
   const selection = $getSelection();
-  /* istanbul ignore next -- a line break is only asked for with a caret or a range @preserve */
+  /* istanbul ignore next @preserve -- a line break is only asked for with a caret or a range */
   // Stryker disable next-line all: the same unreachable guard
   if (!$isRangeSelection(selection)) return false;
   const node = selection.anchor.getNode();
