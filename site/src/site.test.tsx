@@ -834,7 +834,7 @@ describe("docs", () => {
     chosen.focus();
     await userEvent.keyboard("{ArrowRight}{ArrowLeft}");
     expect(getComputedStyle(chosen).outlineStyle).toBe("none");
-    expect(ring(chosen)).toEqual(chosenRing);
+    expect(ring(chosen)).toEqual([chosenRing[0], "3px"]);
   });
 
   it("repaints the page, demo and all, from a look under the demo, and keeps its room so nothing moves", async () => {
