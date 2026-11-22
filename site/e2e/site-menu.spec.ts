@@ -357,36 +357,17 @@ async function openPicker(page: Page) {
   return picker;
 }
 
-/** The middle of a link on the page that is in view and clear of the picker, to tap through it. */
-async function linkBeside(page: Page, picker: ReturnType<Page["getByRole"]>): Promise<{ x: number; y: number; href: string }> {
-  const box = (await picker.boundingBox())!;
-  return page.evaluate((popup) => {
-    const { innerWidth: width, innerHeight: height } = window;
-    for (const link of document.querySelectorAll<HTMLAnchorElement>("main a[href], footer a[href]")) {
-      const spot = link.getBoundingClientRect();
-      const x = spot.x + spot.width / 2;
-      const y = spot.y + spot.height / 2;
-      const clear = y > popup.y + popup.height + 8 || y < popup.y - 8;
-      if (spot.width > 0 && x > 0 && x < width && y > 60 && y < height - 8 && clear) return { x, y, href: link.href };
-    }
-    throw new Error("no link in view beside the picker");
-  }, box);
-}
-
-test("on a phone a tap outside the theme picker closes it without pressing the link under the tap", async ({ page }) => {
+test("on a phone the menu shows the looks in a row, with no button in the bar, and a press there repaints the page", async ({ page }) => {
   await open(page, "docs/button/");
-  const url = page.url();
-  // The page's scene and its demo fill a phone's first screen: bring the first link in the page up to three quarters down
-  // it, below where the picker opens. The page's CSS scrolls smoothly, and a scroll still under way when the picker opens
-  // is cut short, leaving the link below the screen (#765), so this one is made at once.
-  await page.locator("main a[href]").first().evaluate((link) => scrollBy({ top: link.getBoundingClientRect().top - innerHeight * 0.75, behavior: "instant" }));
-  const picker = await openPicker(page);
-  const link = await linkBeside(page, picker);
-  expect(link.href).not.toBe(url);
-  await page.mouse.click(link.x, link.y);
-  await expect(picker).toHaveCount(0);
-  await page.waitForLoadState();
-  expect(page.url()).toBe(url);
+  await expect(page.locator(".site-theme-picker [data-ouro-part='trigger']")).toBeHidden();
+  await openMenu(page);
+  const looks = sheet(page).getByRole("group", { name: "Theme", exact: true });
+  await expect(looks.getByRole("button", { name: "Brass", exact: true })).toBeVisible();
+  await looks.getByRole("button", { name: "Abyss", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "abyss");
+  await expect(looks.getByRole("button", { name: "Abyss", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await sheet(page).getByRole("radio", { name: "Submerged" }).click();
+  await expect(page.locator("html")).toHaveClass(/\bdark\b/);
 });
 
 test("on a wide screen the theme picker leaves the page as it is: a click on a link outside it follows the link", async ({ page }) => {
