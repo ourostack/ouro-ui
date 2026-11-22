@@ -534,6 +534,7 @@ export function Composer(props: ComposerProps): JSX.Element {
       setRich(undefined);
     };
   }, [formatMode]);
+  // Stryker disable next-line LogicalOperator,ConditionalExpression: the effect clears the loaded editor when the format changes, so only one render between them could tell.
   const richOn = formatMode === "rich" && rich !== undefined;
   const focusText = () => (richOn ? richRef.current!.focus() : textareaRef.current!.focus({ preventScroll: true }));
   const id = useId();
@@ -554,6 +555,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           !(sendKeys as readonly string[]).includes(sendOnProp) && [`sendOn="${String(sendOnProp)}" is not a key; use "enter" or "mod-enter"`, '<Composer sendOn="enter">'],
+          // Stryker disable next-line StringLiteral: the example only shows in the console message.
           !(["plain", "rich"] as readonly string[]).includes(formatMode) && [`format="${String(formatMode)}" is not a format; use "plain" or "rich"`, '<Composer format="rich">'],
           onSubmit !== undefined && ["onSubmit is not a prop; sending calls onSend", "<Composer onSend={(text) => send(text)}>"],
           submitOnEnter !== undefined && ["submitOnEnter is not a prop", '<Composer sendOn="enter">'],
@@ -736,6 +738,7 @@ export function Composer(props: ComposerProps): JSX.Element {
         )}
         {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. */}
         <div ref={rowRef} data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end">
+          {/* Stryker disable next-line LogicalOperator: richOn is true only when rich is loaded, so either side alone reads the same. */}
           {richOn && rich ? (
             <rich.Editor
               handleRef={richRef}

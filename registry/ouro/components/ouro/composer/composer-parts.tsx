@@ -74,6 +74,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   });
   // A press places the caret where it lands; any other way in puts it at the end.
   const pressed = useRef(false);
+  // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: only the first paint reads it; the update listener sets it again from the editor before anyone can see.
   const [empty, setEmpty] = useState(value === "");
 
   useEffect(() => {
@@ -127,26 +128,32 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       () => {
         $convertFromMarkdownString(held.current, transformers, undefined, true);
       },
+      // Stryker disable next-line BooleanLiteral: an update that waits a microtask instead of running at once shows the same content by the time a test or a person looks.
       { tag: [synced, "history-merge"], discrete: true },
     );
     return () => {
+      // Stryker disable next-line BlockStatement,ArrowFunction,CallExpression: the cleanup runs as the box leaves the page, where nothing is left to read.
       stops.forEach((stop) => stop());
       editor.setRootElement(null);
       editorRef.current = null;
     };
+  // Stryker disable next-line ArrayDeclaration: a list with one constant item runs the effect once, as an empty list does.
   }, []);
 
   // A value the app sets, such as the empty one after a send, replaces what the editor holds.
   useEffect(() => {
     const editor = editorRef.current!;
+    // Stryker disable next-line ConditionalExpression: converting the Markdown the editor already holds leaves the same content.
     if (value === held.current) return;
     held.current = value;
     const focused = document.activeElement === rootRef.current;
     editor.update(
       () => {
         $convertFromMarkdownString(value, transformers, undefined, true);
+        // Stryker disable next-line ConditionalExpression: the conversion leaves the caret at the end already.
         if (focused) $getRoot().selectEnd();
       },
+      // Stryker disable next-line ObjectLiteral,ArrayDeclaration,StringLiteral,BooleanLiteral: the held-Markdown guard in the update listener already keeps an app-set value from being reported or undone.
       { tag: [synced, "history-merge"], discrete: true },
     );
   }, [value]);
@@ -157,18 +164,21 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
 
   const focus = () => {
     const editor = editorRef.current!;
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: the focus call on the next line flushes the update either way.
     editor.update(() => $getRoot().selectEnd(), { discrete: true });
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: scrolling on focus is the browser's, which a test cannot tell from the caret moving.
     rootRef.current!.focus({ preventScroll: true });
   };
   useEffect(() => {
     if (autoFocus) focus();
     // autoFocus is read once, at mount, as the HTML attribute is.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // Stryker disable next-line ArrayDeclaration: autoFocus is read at mount, so a constant list runs the same once.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useImperativeHandle(handleRef, () => ({
     format: (format) => {
       const command = markCommands[format];
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: Lexical drops a format command whose type is missing, and a read-only box takes none.
       if (command && !readOnly) editorRef.current!.dispatchCommand(FORMAT_TEXT_COMMAND, command);
     },
     insert: (text) => {

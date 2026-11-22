@@ -214,6 +214,73 @@ describe("Composer rich mode", () => {
     expect(editor.getAttribute("aria-readonly")).toBe("true");
   });
 
+  it("reports to the newest onValueChange, not the one it first mounted with", async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const { editor, rerender } = await render(rich({ defaultValue: "a", onValueChange: first }));
+    await rerender(rich({ defaultValue: "a", onValueChange: second }));
+    editor.focus();
+    await userEvent.keyboard("b");
+    await expect.poll(() => second.mock.calls.at(-1)?.[0]).toBe("ab");
+    expect(first).not.toHaveBeenCalled();
+  });
+
+  it("keeps the loaded value out of the undo history, so undoing never empties the box", async () => {
+    const { editor } = await render(rich({ defaultValue: "hello" }));
+    editor.focus();
+    await userEvent.keyboard("{Control>}z{/Control}");
+    await expect.poll(() => editor.textContent).toBe("hello");
+  });
+
+  it("draws underline and strikethrough together as one class pair", async () => {
+    const handle = createRef<ComposerEditor>();
+    const { editor } = await render(rich({ editorRef: handle }));
+    editor.focus();
+    await act(async () => {
+      handle.current!.format("underline");
+      handle.current!.format("strike");
+      handle.current!.insert("both");
+    });
+    await expect.poll(() => editor.querySelector("span")?.className).toBe("underline line-through");
+  });
+
+  it("puts the caret where a press lands, and at the end for focus by any other way", async () => {
+    const { editor } = await render(rich({ defaultValue: "abcd" }));
+    await page.elementLocator(editor).click({ position: { x: 1, y: 10 } });
+    await userEvent.keyboard("X");
+    await expect.poll(() => editor.textContent).toBe("Xabcd");
+    editor.blur();
+    editor.focus();
+    await userEvent.keyboard("Y");
+    await expect.poll(() => editor.textContent).toBe("XabcdY");
+  });
+
+  it("takes input again when the box stops being disabled, and not while it is read-only", async () => {
+    const { editor, rerender } = await render(rich({ disabled: true }));
+    await rerender(rich({}));
+    editor.focus();
+    await userEvent.keyboard("a");
+    await expect.poll(() => editor.textContent).toBe("a");
+    await rerender(rich({ readOnly: true }));
+    editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "z", bubbles: true, cancelable: true }));
+    await act(async () => {});
+    expect(editor.textContent).toBe("a");
+  });
+
+  it("moves focus into the editor, caret at the end, when the plain box that had it is replaced", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(rich({ format: "plain", defaultValue: "ab" })));
+    host.querySelector("textarea")!.focus();
+    await act(async () => root.render(rich({ defaultValue: "ab" })));
+    await expect.poll(() => document.activeElement?.hasAttribute("data-ouro-composer-editor")).toBe(true);
+    await userEvent.keyboard("c");
+    await expect.poll(() => host.querySelector("[data-ouro-composer-editor]")!.textContent).toBe("abc");
+  });
+
   it("describes the editor to assistive technology, sizes it in lines, and drops the placeholder once there is text", async () => {
     const { host, editor } = await render(rich({ placeholder: "Write a message", rows: 2, maxRows: 5, "aria-describedby": "hint" } as never));
     expect(editor.getAttribute("aria-placeholder")).toBe("Write a message");
@@ -223,6 +290,7 @@ describe("Composer rich mode", () => {
     expect(editor.style.minHeight).toBe("2lh");
     expect(editor.style.maxHeight).toBe("5lh");
     expect(host.querySelector("[data-ouro-composer-placeholder]")?.getAttribute("aria-hidden")).toBe("true");
+    expect(getComputedStyle(editor.parentElement!).position).toBe("relative");
     editor.focus();
     await userEvent.keyboard("a");
     await expect.poll(() => host.querySelector("[data-ouro-composer-placeholder]")).toBeNull();
