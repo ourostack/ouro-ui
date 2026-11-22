@@ -103,9 +103,11 @@ export interface ComposerOwnProps {
   /** The starting text, for an uncontrolled composer, which clears itself after a send. */
   defaultValue?: string | undefined;
   /**
-   * Which conversation this box writes to, such as its id. An uncontrolled composer keeps each conversation's unsent draft in
-   * memory, so it is back when the person returns, and shows `defaultValue` for one with no draft; it holds only the most
-   * recent drafts, and a controlled one is the app's to keep and reset.
+   * Which conversation this box writes to, such as its id. An uncontrolled composer keeps the unsent draft of a conversation in
+   * memory, so it is back when the person returns, and shows `defaultValue` for one with no draft; it holds a bounded number of
+   * drafts, and a controlled one is the app's to keep and reset.
+   *
+   * @claim "An uncontrolled composer keeps the unsent draft of a conversation in memory, so it is back when the person returns, and shows `defaultValue` for one with no draft; it holds a bounded number of drafts, and a controlled one is the app's to keep and reset." registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer drafts > gives a draft back when the person returns to its conversation)
    */
   conversation?: string | undefined;
   /** Called with the new text when it changes. */
@@ -547,9 +549,8 @@ export function Composer(props: ComposerProps): JSX.Element {
   const modEnter = expanded || sendOnProp === "mod-enter";
   const [own, setOwn] = useState(defaultValue ?? "");
   const [ownConversation, setOwnConversation] = useState(conversation);
-  const drafts = useRef(new Map<string | undefined, string>());
+  const [kept] = useState(() => new Map<string | undefined, string>());
   if (conversation !== ownConversation) {
-    const kept = drafts.current;
     // The draft left behind waits for its conversation; the oldest of more than `draftLimit` are dropped.
     kept.delete(ownConversation);
     if (own !== "") kept.set(ownConversation, own);

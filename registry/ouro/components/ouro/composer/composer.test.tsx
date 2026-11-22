@@ -130,17 +130,29 @@ describe("Composer drafts", () => {
     await expect.poll(() => editor().textContent).toBe("half a thought");
   });
 
-  it("keeps only the most recent drafts, so many conversations do not grow it without limit", async () => {
+  it("keeps only the most recent drafts, and counts a draft written again as recent", async () => {
     const view = await render(<Composer label="Message" conversation="c0" onSend={() => {}} />);
-    await userEvent.type(view.textarea, "first");
-    for (let i = 1; i <= 51; i++) {
-      await view.rerender(<Composer label="Message" conversation={`c${i}`} onSend={() => {}} />);
-      await userEvent.type(view.textarea, `draft ${i}`);
+    // Set by the native setter, so filling fifty drafts costs no typing.
+    const write = (text: string) =>
+      act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(view.textarea, text);
+        view.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    const go = (id: string) => view.rerender(<Composer label="Message" conversation={id} onSend={() => {}} />);
+    await write("first");
+    await go("c1");
+    await write("second");
+    await go("c0");
+    await write("first again");
+    for (let i = 2; i <= 50; i++) {
+      await go(`c${i}`);
+      await write(`draft ${i}`);
     }
-    await view.rerender(<Composer label="Message" conversation="c0" onSend={() => {}} />);
+    await go("c51");
+    await go("c1");
     expect(view.textarea.value).toBe("");
-    await view.rerender(<Composer label="Message" conversation="c2" onSend={() => {}} />);
-    expect(view.textarea.value).toBe("draft 2");
+    await go("c0");
+    expect(view.textarea.value).toBe("first again");
   });
 
   it("leaves a controlled value to the app", async () => {
