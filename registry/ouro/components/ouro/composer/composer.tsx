@@ -189,9 +189,16 @@ export interface ComposerOwnProps {
    * @claim "or pasted goes in as its" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer with a catalogue > puts pasted emoji in as their tokens, including joined and toned ones, and leaves those it does not list)
    */
   catalogue?: EmojiCatalogue | undefined;
-  /** Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. */
+  /**
+   * Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. In `format="rich"` the ranges are indexes into the Markdown `value`, which the box marks over the formatted text.
+   *
+   * @example
+   * ```tsx
+   * <Composer label="Message" format="rich" defaultValue="Meet at noon" highlights={[{ start: 8, end: 12, label: "Suggested time" }]} />
+   * ```
+   */
   highlights?: readonly TextAreaHighlight[] | undefined;
-  /** Called with the highlights moved to fit the text after the person edits it, as TextArea's. */
+  /** Called with the highlights moved to fit the text after the person edits it, as TextArea's; in rich mode the ranges stay Markdown indexes. */
   onHighlightsChange?: ((highlights: TextAreaHighlight[]) => void) | undefined;
   /**
    * The bigger box for a long message, as a chat app's format button opens: taller (`expandedRows`,
@@ -254,8 +261,8 @@ export interface ComposerOwnProps {
    * An `Autocomplete` around the composer works as around the plain box, for mentions and emoji
    * shortcodes: `ref` is the editor's element, which answers `value`, `selectionStart` and
    * `selectionEnd` over the text without its marks, and an input method's composition does not pick.
-   * Attachments show as they do on the plain box. In rich mode `highlights`, `onPaste`
-   * and `pasteText` do not apply (`catalogue` does: see its note), and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
+   * Attachments show as they do on the plain box. In rich mode `onPaste`
+   * and `pasteText` do not apply (`catalogue` and `highlights` do: see their notes), and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
    *
    * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
    * @claim "as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code)
@@ -785,6 +792,8 @@ export function Composer(props: ComposerProps): JSX.Element {
             <ActiveEditor
               handleRef={richRef}
               catalogue={catalogue}
+              highlights={highlights}
+              onHighlightsChange={onHighlightsChange}
               label={label}
               value={text}
               onValueChange={change}

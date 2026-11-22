@@ -774,3 +774,118 @@ describe("Composer rich mode with a catalogue", () => {
     expect(field(editor).value).toBe("one :party: two");
   });
 });
+
+describe("Composer rich mode highlights", () => {
+  const layer = (host: HTMLElement) => host.querySelector("[data-ouro-composer-marks]");
+  const boxes = (host: HTMLElement) => [...(layer(host)?.children ?? [])] as HTMLElement[];
+  const marked = [{ start: 8, end: 12, label: "Suggested" }];
+
+  it("draws a box over the run the Markdown offsets name, on the formatted text and not on its marks", async () => {
+    const { host, editor } = await render(rich({ defaultValue: "Hello **bold** world", highlights: marked }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const bold = editor.querySelector("strong")!.getBoundingClientRect();
+    const box = boxes(host)[0]!.getBoundingClientRect();
+    expect(Math.abs(box.left - bold.left)).toBeLessThan(1.5);
+    expect(Math.abs(box.width - bold.width)).toBeLessThan(1.5);
+    expect(Math.abs(box.top - bold.top)).toBeLessThan(2);
+    expect(layer(host)!.getAttribute("aria-hidden")).toBe("true");
+    expect(getComputedStyle(layer(host)!).pointerEvents).toBe("none");
+  });
+
+  it("describes the marks to a screen reader, with their label and the words, beside the description the app gave", async () => {
+    const { host, editor } = await render(rich({ defaultValue: "Hello **bold** world", highlights: marked, description: "Be kind" }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const ids = editor.getAttribute("aria-describedby")!.split(" ");
+    expect(ids).toHaveLength(2);
+    expect(document.getElementById(ids[1]!)!.textContent).toBe("Suggested: “bold”.");
+    expect(document.getElementById(ids[1]!)!.hidden).toBe(true);
+    expect(document.getElementById(ids[0]!)!.textContent).toBe("Be kind");
+  });
+
+  it("draws a tone's own line, and an unknown tone as primary", async () => {
+    const { host } = await render(rich({ defaultValue: "one two three", highlights: [{ start: 0, end: 3, label: "a", tone: "destructive" }, { start: 4, end: 7, label: "b", tone: "warning" }, { start: 8, end: 13, label: "c", tone: "nope" as "primary" }] }));
+    await expect.poll(() => boxes(host).length).toBe(3);
+    expect(boxes(host).map((box) => box.dataset.ouroHighlight)).toEqual(["destructive", "warning", "primary"]);
+    expect(getComputedStyle(boxes(host)[0]!).borderBottomStyle).toBe("dashed");
+    expect(getComputedStyle(boxes(host)[2]!).borderBottomStyle).toBe("dotted");
+  });
+
+  it("draws nothing, and describes nothing, with no marks or marks that cover nothing", async () => {
+    const { host, editor, rerender } = await render(rich({ defaultValue: "Hello" }));
+    expect(layer(host)).toBeNull();
+    expect(editor.getAttribute("aria-describedby")).toBeNull();
+    await rerender(rich({ defaultValue: "Hello", highlights: [{ start: 3, end: 3, label: "x" }, { start: 40, end: 50, label: "y" }] }));
+    expect(layer(host)).toBeNull();
+    expect(editor.getAttribute("aria-describedby")).toBeNull();
+  });
+
+  it("follows the marks the app gives, and takes them away", async () => {
+    const { host, rerender } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 0, end: 5, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const first = boxes(host)[0]!.getBoundingClientRect().left;
+    await rerender(rich({ defaultValue: "Hello world", highlights: [{ start: 6, end: 11, label: "a" }] }));
+    await expect.poll(() => boxes(host)[0]!.getBoundingClientRect().left).toBeGreaterThan(first + 10);
+    await rerender(rich({ defaultValue: "Hello world", highlights: [] }));
+    await expect.poll(() => layer(host)).toBeNull();
+  });
+
+  it("moves the marks with the text the person types, tells the app, and leaves what is typed unmarked", async () => {
+    const changes = vi.fn();
+    const { host, editor } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 6, end: 11, label: "a" }], onHighlightsChange: changes }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const before = boxes(host)[0]!.getBoundingClientRect().left;
+    editor.focus();
+    await act(async () => (editor as unknown as { setSelectionRange: (a: number, b: number) => void }).setSelectionRange(0, 0));
+    await userEvent.keyboard("ab");
+    await expect.poll(() => editor.textContent).toBe("abHello world");
+    await expect.poll(() => changes.mock.calls.at(-1)?.[0]).toEqual([{ start: 8, end: 13, label: "a" }]);
+    await expect.poll(() => boxes(host)[0]!.getBoundingClientRect().left).toBeGreaterThan(before + 5);
+    expect(boxes(host)).toHaveLength(1);
+    expect(changes).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not tell the app of marks an edit left where they were", async () => {
+    const changes = vi.fn();
+    const { host, editor } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 0, end: 5, label: "a" }], onHighlightsChange: changes }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    editor.focus();
+    await userEvent.keyboard("{Control>}{End}{/Control}!");
+    await expect.poll(() => editor.textContent).toBe("Hello world!");
+    expect(changes).not.toHaveBeenCalled();
+  });
+
+  it("moves the marks when the app changes the value, and drops one whose text is gone", async () => {
+    const changes = vi.fn();
+    const props = { highlights: [{ start: 6, end: 11, label: "a" }], onHighlightsChange: changes };
+    const { rerender, host } = await render(rich({ value: "Hello world", ...props }));
+    await rerender(rich({ value: ">> Hello world", ...props }));
+    await expect.poll(() => changes.mock.calls.at(-1)?.[0]).toEqual([{ start: 9, end: 14, label: "a" }]);
+    await rerender(rich({ value: ">> Hello", ...props }));
+    await expect.poll(() => changes.mock.calls.at(-1)?.[0]).toEqual([]);
+    await expect.poll(() => layer(host)).toBeNull();
+  });
+
+  it("draws the marks again when the box is resized, and as its text scrolls", async () => {
+    const lines = Array.from({ length: 12 }, (_, index) => `line ${index}`).join("\n\n");
+    const { host, editor } = await render(rich({ defaultValue: lines, maxRows: 3, highlights: [{ start: 0, end: 6, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const top = boxes(host)[0]!.getBoundingClientRect().top;
+    editor.scrollTop = 40;
+    await expect.poll(() => boxes(host)[0]!.getBoundingClientRect().top).toBeLessThan(top - 20);
+    const wide = await render(rich({ defaultValue: "aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn oooo pppp qqqq rrrr", highlights: [{ start: 80, end: 84, label: "a" }] }));
+    await expect.poll(() => boxes(wide.host).length).toBe(1);
+    const lower = boxes(wide.host)[0]!.getBoundingClientRect().top;
+    wide.host.style.width = "900px";
+    await expect.poll(() => boxes(wide.host)[0]!.getBoundingClientRect().top).toBeLessThan(lower);
+    expect(host).toBeTruthy();
+  });
+
+  it("marks over an emoji's picture and a list", async () => {
+    const { host } = await render(rich({ defaultValue: "- one\n- two", highlights: [{ start: 8, end: 11, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const item = host.querySelectorAll("li")[1]!.getBoundingClientRect();
+    const box = boxes(host)[0]!.getBoundingClientRect();
+    expect(box.top).toBeGreaterThan(item.top - 2);
+    expect(box.bottom).toBeLessThan(item.bottom + 2);
+  });
+});
