@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from "react";
+import { useState, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Porthole } from "@/registry/ouro/components/ouro/porthole/porthole";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
@@ -26,17 +26,17 @@ function pretendService() {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    lastBeatAt: () => beat,
+    // A live heartbeat is always "now": it needs no interval to keep it fresh, so a page an automated sweep
+    // revisits (or a build slow enough to let real seconds pass between a hover picture's two takes) never
+    // catches a beat that fell behind and only later caught up (ourostack/ouro-ui#2879).
+    lastBeatAt: () => (beating ? Date.now() : beat),
   };
   const others = (id: string) => snapshot.items.filter((item) => item.id !== id);
   return {
     source,
-    tick: () => {
-      if (beating) beat = Date.now();
-    },
     setBeating: (on: boolean) => {
       beating = on;
-      beat = Date.now();
+      if (!on) beat = Date.now();
     },
     setHung: (on: boolean) => send({ ...snapshot, areas: { ...snapshot.areas, calendar: { label: "Calendar", lastVerifiedAt: snapshot.areas["calendar"]!.lastVerifiedAt, troubleSince: on ? Date.now() : null } } }),
     offerUpdate: () => send({ ...snapshot, items: [...others("update"), { id: "update", priority: "action", label: "Version 2.4 is ready", action: { id: "restart", label: "Restart" }, since: Date.now() }] }),
@@ -49,10 +49,6 @@ export default function PortholeDemo(): JSX.Element {
   const [service] = useState(pretendService);
   const [beating, setBeating] = useState(true);
   const [hung, setHung] = useState(false);
-  useEffect(() => {
-    const beats = setInterval(service.tick, 1_000);
-    return () => clearInterval(beats);
-  }, [service]);
   return (
     <div className="grid min-h-56 justify-items-start gap-3">
       <Porthole source={service.source} label="Status" onAction={service.restart} onDismiss={service.dismiss} />

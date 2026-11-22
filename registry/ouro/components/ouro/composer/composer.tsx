@@ -102,6 +102,11 @@ export interface ComposerOwnProps {
   value?: string | undefined;
   /** The starting text, for an uncontrolled composer, which clears itself after a send. */
   defaultValue?: string | undefined;
+  /**
+   * Which conversation this box writes to, such as its id. An uncontrolled composer starts over from `defaultValue` when it
+   * changes, so a draft stays in its own conversation; a controlled one is the app's to reset.
+   */
+  conversation?: string | undefined;
   /** Called with the new text when it changes. */
   onValueChange?: ((value: string) => void) | undefined;
   /** An example of what to write, shown on the first line while the box is empty. */
@@ -257,6 +262,22 @@ export interface ComposerOwnProps {
    * @claim "until it arrives, and on the server, a plain textarea shows" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > renders the plain textarea on the server and until the editor has loaded, so the first render never touches the editor)
    */
   format?: "plain" | "rich" | (string & { 'Use "plain" (the default) or "rich"': never }) | undefined;
+  /**
+   * What the rich editor's element (`ref`) answers `value`, `selectionStart`, `selectionEnd`,
+   * `setSelectionRange` and `setRangeText` over. `"text"` (the default) is the text without its
+   * marks, which is what an `Autocomplete` around the composer reads. `"markdown"` is the Markdown
+   * `value` and `onValueChange` carry, so an app that keeps its draft as Markdown, such as one
+   * co-edited by another writer, compares `element.value` with its draft and places a caret by the
+   * same offsets: `setRangeText` replaces a range of the Markdown with Markdown and leaves the caret
+   * after it. It reads at the time it is asked, so the prop can change while the box is open. It
+   * does nothing with `format="plain"`, where the textarea reads its own text.
+   *
+   * @example
+   * ```tsx
+   * <Composer label="Reply" format="rich" offsets="markdown" ref={box} onSend={send} />
+   * ```
+   */
+  offsets?: "text" | "markdown" | (string & { 'Use "text" (the default) or "markdown"': never }) | undefined;
   /**
    * A handle that formats the text and inserts into it, for a formatting bar, an emoji button or
    * a link dialog. Every change it makes, a key's format and a `pasteText` paste go through the
@@ -454,6 +475,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     onSend,
     value,
     defaultValue,
+    conversation,
     onValueChange,
     placeholder,
     sendOn: sendOnProp = "enter",
@@ -486,6 +508,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     formatting = false,
     format: formatMode = "plain",
     editorRef,
+    offsets = "text",
     pasteText,
     onKeyDown,
     onPaste,
@@ -520,6 +543,11 @@ export function Composer(props: ComposerProps): JSX.Element {
   // Any other value is enter, as the default; expanded, Enter is a new line.
   const modEnter = expanded || sendOnProp === "mod-enter";
   const [own, setOwn] = useState(defaultValue ?? "");
+  const [ownConversation, setOwnConversation] = useState(conversation);
+  if (conversation !== ownConversation) {
+    setOwnConversation(conversation);
+    setOwn(defaultValue ?? "");
+  }
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   // The row around the text, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
@@ -569,6 +597,8 @@ export function Composer(props: ComposerProps): JSX.Element {
           !(sendKeys as readonly string[]).includes(sendOnProp) && [`sendOn="${String(sendOnProp)}" is not a key; use "enter" or "mod-enter"`, '<Composer sendOn="enter">'],
           // Stryker disable next-line StringLiteral: the example only shows in the console message.
           !(["plain", "rich"] as readonly string[]).includes(formatMode) && [`format="${String(formatMode)}" is not a format; use "plain" or "rich"`, '<Composer format="rich">'],
+          // Stryker disable next-line StringLiteral: the example only shows in the console message.
+          !(["text", "markdown"] as readonly string[]).includes(offsets) && [`offsets="${String(offsets)}" is not an offset; use "text" or "markdown"`, '<Composer format="rich" offsets="markdown">'],
           onSubmit !== undefined && ["onSubmit is not a prop; sending calls onSend", "<Composer onSend={(text) => send(text)}>"],
           submitOnEnter !== undefined && ["submitOnEnter is not a prop", '<Composer sendOn="enter">'],
           enterToSend !== undefined && ["enterToSend is not a prop", '<Composer sendOn="enter">'],
@@ -766,6 +796,7 @@ export function Composer(props: ComposerProps): JSX.Element {
               autoFocus={rich!.focus}
               name={name}
               controlRef={ref as Ref<HTMLDivElement> | undefined}
+              markdownOffsets={offsets === "markdown"}
               onInput={rest.onInput as FormEventHandler<HTMLDivElement> | undefined}
               onSelect={rest.onSelect as FormEventHandler<HTMLDivElement> | undefined}
               onFocus={rest.onFocus as FocusEventHandler<HTMLDivElement> | undefined}

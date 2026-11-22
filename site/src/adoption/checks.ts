@@ -7,13 +7,13 @@ import type { Ledger, LedgerCell, Previous, Surface } from "./ledger";
  * the check does not apply; anything else is "missing".
  */
 
-export type CheckKey = "current" | "oneAction" | "must" | "gaveBack";
+export type CheckKey = "current" | "census" | "must" | "gaveBack";
 export type CheckState = "met" | "missing" | "unmeasured" | "na";
 
-export const CHECK_KEYS: readonly CheckKey[] = ["current", "oneAction", "must", "gaveBack"];
+export const CHECK_KEYS: readonly CheckKey[] = ["current", "census", "must", "gaveBack"];
 
 /** The column headings: one or two words each, the ledger's own label being the long form. */
-export const CHECK_SHORT: Record<CheckKey, string> = { current: "Current", oneAction: "Actions", must: "AX must", gaveBack: "Gave back" };
+export const CHECK_SHORT: Record<CheckKey, string> = { current: "Current", census: "Census", must: "AX must", gaveBack: "Gave back" };
 
 export const STATE_WORD: Record<CheckState, string> = { met: "passes", missing: "missing", unmeasured: "not measured yet", na: "does not apply" };
 
@@ -39,7 +39,7 @@ const plural = (count: number, word: string): string => `${count} ${word}${count
 
 /** The ledger's reason for a missing measurement, shortened where it is one the page knows. */
 const PRIVATE = /\bprivate\b/i;
-const unmeasured = (cell: LedgerCell<unknown>, otherwise?: string): string => (PRIVATE.test(cell.note ?? "") ? "Private repository, so not readable" : (otherwise ?? reason(cell, "not measured yet")));
+const unmeasured = (cell: LedgerCell<unknown>, otherwise?: string): string => (PRIVATE.test(cell.note ?? "") ? "Private repository, so not\u00a0readable" : (otherwise ?? reason(cell, "not measured yet")));
 
 function unmeasuredOrNa(cell: LedgerCell<unknown>): CheckState {
   return /^n\/a\b/i.test(cell.note ?? "") ? "na" : "unmeasured";
@@ -65,12 +65,20 @@ function current(surface: Surface): Omit<Check, "key" | "label"> {
   };
 }
 
-function oneAction(surface: Surface): Omit<Check, "key" | "label"> {
-  const cell = surface.cells.actions;
-  if (surface.conditions.oneAction.met) return { state: "met", why: null, source: cell.source };
-  if (cell.value === null) return { state: unmeasuredOrNa(cell), why: reason(cell, "not measured yet"), source: cell.source };
-  // The ledger's note says how it looked; the row needs only the gap, and the link carries the detail.
-  return { state: "missing", why: /not released/i.test(cell.note ?? "") ? reason(cell, "") : "Actions not declared yet", source: cell.source, generic: true };
+const orList = (items: readonly string[]): string => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items.at(-1)}`);
+
+function census(surface: Surface): Omit<Check, "key" | "label"> {
+  const cell = surface.cells.census;
+  if (surface.conditions.census.met) return { state: "met", why: null, source: cell.value?.run ?? cell.source };
+  if (cell.value === null) {
+    // The row needs only the gap when no census runs yet; any other reason (an old checker, a stale report) is particular.
+    const none = !PRIVATE.test(cell.note ?? "") && /no Ouro AX census runs/i.test(cell.note ?? "");
+    return { state: unmeasuredOrNa(cell), why: none ? "Census not in CI yet" : unmeasured(cell), source: cell.source, ...(none ? { generic: true } : {}) };
+  }
+  const { found, gaps, missingKinds, run } = cell.value;
+  if (gaps > 0) return { state: "missing", why: `${plural(gaps, "gap")} among ${plural(found, "door")}`, source: run };
+  if (missingKinds.length) return { state: "missing", why: `Doesn't walk ${orList(missingKinds)} doors yet`, source: run };
+  return { state: "missing", why: "The census finds nothing to count", source: run };
 }
 
 function must(surface: Surface): Omit<Check, "key" | "label"> {
@@ -80,7 +88,8 @@ function must(surface: Surface): Omit<Check, "key" | "label"> {
     const xrayMissing = !PRIVATE.test(cell.note ?? "") && /x-ray/i.test(cell.note ?? "");
     return { state: unmeasuredOrNa(cell), why: unmeasured(cell, xrayMissing ? "X-ray doesn't run in CI yet" : undefined), source: cell.source, ...(xrayMissing ? { generic: true } : {}) };
   }
-  const { must: total, mustHolding, run } = cell.value;
+  const { must: total, mustHolding, run, missingSurfaces = [] } = cell.value;
+  if (missingSurfaces.length) return { state: "missing", why: `X-ray doesn't check its ${orList(missingSurfaces)} doors yet`, source: run ?? cell.source };
   if (total === 0) return { state: "missing", why: "Must claims not written yet", source: run ?? cell.source };
   return { state: "missing", why: `${total - mustHolding} of ${plural(total, "must claim")} fail`, source: run ?? cell.source };
 }
@@ -92,9 +101,9 @@ function gaveBack(surface: Surface): Omit<Check, "key" | "label"> {
   return { state: "missing", why: "Nothing given back yet", source: cell.source, generic: true };
 }
 
-const READERS: Record<CheckKey, (surface: Surface) => Omit<Check, "key" | "label">> = { current, oneAction, must, gaveBack };
+const READERS: Record<CheckKey, (surface: Surface) => Omit<Check, "key" | "label">> = { current, census, must, gaveBack };
 
-const CELL_OF: Record<CheckKey, keyof Surface["cells"]> = { current: "pins", oneAction: "actions", must: "xray", gaveBack: "giveBack" };
+const CELL_OF: Record<CheckKey, keyof Surface["cells"]> = { current: "pins", census: "census", must: "xray", gaveBack: "giveBack" };
 
 /** A check the ledger counts as held because it does not apply (the upstream's give-back, AX on a site with no agent interface). */
 function notApplicable(surface: Surface, key: CheckKey): Omit<Check, "key" | "label"> | null {

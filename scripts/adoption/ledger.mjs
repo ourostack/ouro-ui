@@ -14,6 +14,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { currentTrials } from "../agent-benchmark/page.mjs";
 import { summarize } from "../agent-benchmark/run.mjs";
+import { headline as reviewHeadline, publishedRuns as publishedReviews, seriesOf, tally } from "../model-reviews/page.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const configPath = join(here, "ledger.config.json");
@@ -316,20 +317,26 @@ export function measureActions(ctx, surface) {
 
 // ---- X-ray -----------------------------------------------------------------------------------------------
 
-function readArtifactReport(ctx, repo, artifact, tmp) {
-  return ctx.memo(`artifact:${repo}:${artifact.id}`, () => {
+function readArtifactReport(ctx, repo, artifact, tmp, wanted = "report.json") {
+  return ctx.memo(`artifact:${repo}:${artifact.id}:${wanted}`, () => {
     const file = join(tmp, `${artifact.id}.zip`);
     writeFileSync(file, ctx.gh(["api", `repos/${repo}/actions/artifacts/${artifact.id}/zip`], { binary: true }));
     // `report.json` at the artifact's root, or in a folder when the upload named several paths (`xray/report.json`).
-    const names = execFileSync("unzip", ["-Z1", file], { maxBuffer: 16 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] }).toString("utf8").split("\n").filter((name) => /(^|\/)report\.json$/.test(name));
+    const names = execFileSync("unzip", ["-Z1", file], { maxBuffer: 16 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] }).toString("utf8").split("\n").filter((name) => name === wanted || name.endsWith(`/${wanted}`));
     const name = names.sort((a, b) => a.split("/").length - b.split("/").length)[0];
-    if (!name) throw new Error(`artifact ${artifact.name} has no report.json`);
+    if (!name) throw new Error(`artifact ${artifact.name} has no ${wanted}`);
     const out = execFileSync("unzip", ["-p", file, name], { maxBuffer: 256 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] });
     return JSON.parse(out.toString("utf8"));
   });
 }
 
-/** The newest ax-xray report, over a surface's sources, that is for the right app and still downloadable. */
+/** The surfaces a report checks: those its claims are about (`cli`, `mcp`, `tools`, `app-intents`). An action claims report has none. */
+const surfacesOf = (report) => [...new Set((report.claims ?? []).map((claim) => claim.surface).filter((surface) => typeof surface === "string"))].sort();
+
+/**
+ * The newest report of each checker and surface, over a surface's sources, from a successful push to main in the source's
+ * own repository, for the right app and still downloadable.
+ */
 export function measureXray(ctx, surface) {
   const source = `https://github.com/${surface.repo}/actions`;
   if (surface.xray.length === 0) return unmeasured(ctx, "no X-ray runs in CI for this product yet", source);
@@ -339,8 +346,11 @@ export function measureXray(ctx, surface) {
   try {
     for (const entry of surface.xray) {
       try {
-        const query = entry.branch ? `&branch=${entry.branch}` : "";
-        const runs = ctx.api(`repos/${entry.repo}/actions/workflows/${entry.workflow}/runs?status=success&per_page=3${query}`).workflow_runs;
+        // Only a push to main counts: a pull request, a fork's own `main` or another branch can't stand for the product.
+        const branch = entry.branch ?? "main";
+        const runs = ctx
+          .api(`repos/${entry.repo}/actions/workflows/${entry.workflow}/runs?status=success&per_page=3&branch=${branch}&event=push`)
+          .workflow_runs.filter((run) => run.event === "push" && run.head_branch === branch && run.head_repository?.full_name === entry.repo);
         for (const run of runs) {
           const artifacts = ctx.api(`repos/${entry.repo}/actions/runs/${run.id}/artifacts?per_page=50`).artifacts.filter((artifact) => !artifact.expired && /xray/i.test(artifact.name));
           for (const artifact of artifacts) {
@@ -352,9 +362,8 @@ export function measureXray(ctx, surface) {
             }
             const name = report.target?.app?.name;
             if (entry.app && name?.toLowerCase() !== entry.app.toLowerCase()) continue;
-            found.push({ report, run, entry, artifact });
+            found.push({ report, run, entry, artifact, key: `${report.tool} ${surfacesOf(report).join(",")}` });
           }
-          if (found.some((item) => item.run.id === run.id)) break;
         }
       } catch (error) {
         errors.push(error.message);
@@ -363,16 +372,22 @@ export function measureXray(ctx, surface) {
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
-  if (found.length === 0) return unmeasured(ctx, errors[0] ?? "no downloadable report in the latest successful runs", source);
+  if (found.length === 0) return unmeasured(ctx, errors[0] ?? `no report from a push to main in ${surface.xray.map((entry) => entry.repo).join(" or ")} among the latest successful runs`, source);
   found.sort((a, b) => b.report.at.localeCompare(a.report.at));
-  // One report per checker: the X-ray's own claim set, and ouro-actions' action claims beside it. Each checker's newest
-  // report counts, and their claims add up, so an app's action claims count as AX must claims with its X-ray's.
+  // One report per checker and surface: the CLI X-ray, the MCP X-ray, the in-turn tools X-ray and ouro-actions' action
+  // claims each count once, newest first, and their claims add up.
   const newest = [];
-  for (const item of found) if (!newest.some((kept) => kept.report.tool === item.report.tool)) newest.push(item);
+  for (const item of found) if (!newest.some((kept) => kept.key === item.key)) newest.push(item);
   const { report, run } = newest[0];
   const sum = (key) => newest.reduce((total, item) => total + (item.report.summary[key] ?? 0), 0);
   const must = sum("must");
   const scored = newest.find((item) => typeof item.report.summary.score === "number");
+  const surfaces = [...new Set(newest.flatMap((item) => surfacesOf(item.report)))].sort();
+  const missingSurfaces = (surface.xraySurfaces ?? []).filter((listed) => !surfaces.includes(listed));
+  const notes = [];
+  if (missingSurfaces.length) notes.push(`No X-ray report checks its ${orList(missingSurfaces)} doors yet, so its must claims can't pass.`);
+  if (must === 0) notes.push("The claim set has no must claims yet, so conforming is trivial.");
+  else if (newest.length > 1) notes.push(`Adds up the newest report of each checker and surface: ${newest.map((item) => [item.report.tool, ...surfacesOf(item.report)].join(" ")).join(", ")}.`);
   return cell(
     ctx,
     {
@@ -388,14 +403,147 @@ export function measureXray(ctx, surface) {
       commit: report.target?.commit ?? null,
       reportAt: report.at,
       run: run.html_url,
-      reports: newest.map((item) => ({ tool: `${item.report.tool} ${item.report.checker?.version ?? ""}`.trim(), claimSet: item.report.claimSet?.version ?? null, must: item.report.summary.must, mustHolding: item.report.summary.mustHolding, reportAt: item.report.at, run: item.run.html_url })),
+      surfaces,
+      missingSurfaces,
+      reports: newest.map((item) => ({ tool: `${item.report.tool} ${item.report.checker?.version ?? ""}`.trim(), surfaces: surfacesOf(item.report), claimSet: item.report.claimSet?.version ?? null, must: item.report.summary.must, mustHolding: item.report.summary.mustHolding, reportAt: item.report.at, run: item.run.html_url })),
     },
-    { note: must === 0 ? "The claim set has no must claims yet, so conforming is trivial." : newest.length > 1 ? `Adds up the newest report of each checker: ${newest.map((item) => item.report.tool).join(" and ")}.` : null, source: run.html_url },
+    { note: notes.length ? notes.join(" ") : null, source: run.html_url },
   );
 }
 
-/** AX `must` claims pass in CI: a report exists, has must claims, and every one holds. A claim set with none is vacuous. */
-export const mustPasses = (xrayCell) => Boolean(xrayCell.value) && xrayCell.value.must > 0 && xrayCell.value.mustHolding === xrayCell.value.must;
+/**
+ * AX `must` claims pass in CI: a report exists, has must claims, every one holds, and the reports check every surface the
+ * product lists. A claim set with none is vacuous.
+ */
+export const mustPasses = (xrayCell) => Boolean(xrayCell.value) && xrayCell.value.must > 0 && xrayCell.value.mustHolding === xrayCell.value.must && (xrayCell.value.missingSurfaces ?? []).length === 0;
+
+// ---- Ouro AX census --------------------------------------------------------------------------------------
+
+/** A census report older than this no longer says how the product's doors stand. */
+export const CENSUS_MAX_AGE_DAYS = 7;
+const CENSUS_FILE = "census.json";
+const CENSUS_MANIFEST = "scripts/ouro-census/dist-manifest.json";
+const GAP_KEYS = ["weak", "undeclared", "unwalked", "stale"];
+const orList = (items) => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items.at(-1)}`);
+
+/** The census checker hash an Ouro UI release ships in its manifest, or null when that release has none. */
+function releasedChecker(ctx, repo, tag) {
+  return ctx.memo(`census-manifest:${repo}:${tag}`, () => {
+    let manifest;
+    try {
+      manifest = JSON.parse(ctx.text(`repos/${repo}/contents/${CENSUS_MANIFEST}?ref=${tag}`));
+    } catch {
+      return null;
+    }
+    return manifest?.tool === "ouro-census" && typeof manifest.checker === "string" ? manifest.checker : null;
+  });
+}
+
+/**
+ * The checker hashes a census may carry: the latest web release's, and those of the releases it replaced less than a day
+ * ago, since a product has a day to take a release (the "On current Ouro UI" grace).
+ */
+function acceptedCheckers(ctx, web) {
+  if (!web.tag) throw new Error(`Ouro UI's latest release couldn't be read (${web.error ?? "no release"}), so the census's checker can't be checked`);
+  const latest = releasedChecker(ctx, web.repo, web.tag);
+  if (!latest) throw new Error(`Ouro UI ${web.tag} has no census manifest (${CENSUS_MANIFEST})`);
+  const accepted = new Map([[latest, web.tag]]);
+  let releases = [];
+  try {
+    releases = ctx.releases(web.repo);
+  } catch {
+    // The latest release alone is the strict reading.
+  }
+  for (let i = 1; i < releases.length; i += 1) {
+    // A release stays accepted until the one after it has been out for a day.
+    if (ctx.now().getTime() - new Date(releases[i - 1].at).getTime() > LATE_AFTER_MS) break;
+    const checker = releasedChecker(ctx, web.repo, releases[i].tag);
+    if (checker && !accepted.has(checker)) accepted.set(checker, releases[i].tag);
+  }
+  return { latest, accepted };
+}
+
+const isCount = (value) => Number.isInteger(value) && value >= 0;
+const shown = (value) => (typeof value === "string" ? JSON.stringify(value) : String(value));
+
+/**
+ * A product's Ouro AX census: the `census.json` in the `ax-census` artifact of the newest successful push to main of its
+ * workflow, in its own repository. It counts only when the report is for main at that run's own commit, its checker is
+ * one Ouro UI released (so a product can't weaken a walker and keep reporting), it is at most a week old and its counts
+ * add up.
+ */
+export function measureCensus(ctx, surface, latest) {
+  const census = surface.census;
+  const repo = census?.repo ?? surface.repo;
+  const source = `https://github.com/${repo}/actions`;
+  if (!census) return unmeasured(ctx, "no Ouro AX census runs in CI for this product yet", source);
+  return attempt(ctx, source, () => {
+    if (!Array.isArray(census.kinds) || census.kinds.length === 0) throw new Error(`the ledger config lists no door kinds for ${census.product}'s census`);
+    // Only a push to main counts: a pull request from a fork's own `main` branch also matches `branch=main`.
+    const [run] = ctx.api(`repos/${repo}/actions/workflows/${census.workflow}/runs?status=success&per_page=1&branch=main&event=push`).workflow_runs;
+    if (!run) throw new Error("no successful census run on main yet");
+    if (run.event !== "push") throw new Error(`the newest census run on main was a ${run.event} run, not a push`);
+    if (run.head_branch !== "main") throw new Error(`the newest census run on main ran on ${run.head_branch}`);
+    if (run.head_repository?.full_name !== repo) throw new Error(`the newest census run on main came from ${run.head_repository?.full_name ?? "another repository"}, not ${repo}`);
+    const artifact = ctx.api(`repos/${repo}/actions/runs/${run.id}/artifacts?per_page=50`).artifacts.find((item) => !item.expired && item.name === "ax-census");
+    if (!artifact) throw new Error("no ax-census artifact in the latest successful run on main");
+    const tmp = mkdtempSync(join(tmpdir(), "ouro-adoption-census-"));
+    let report;
+    try {
+      report = readArtifactReport(ctx, repo, artifact, tmp, CENSUS_FILE);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+    if (report?.ax !== "census/1") throw new Error("the ax-census artifact holds no census/1 report");
+    if (report.target?.ref !== "refs/heads/main") throw new Error(`the census ran on ${report.target?.ref ?? "an unknown ref"}, not main`);
+    if (report.target?.commit !== run.head_sha) throw new Error(`the census reports commit ${short(report.target?.commit)}, but its run built ${short(run.head_sha)}`);
+    const { latest: checker, accepted } = acceptedCheckers(ctx, latest.web);
+    if (!accepted.has(report.checker?.sha256)) throw new Error(`the census's checker ${String(report.checker?.sha256).slice(0, 12)} is not one Ouro UI released in the last day (${latest.web.tag} ships ${checker.slice(0, 12)})`);
+    const at = new Date(report.at).getTime();
+    const age = ctx.now().getTime() - at;
+    if (age < -5 * 60_000) throw new Error(`the census is dated ${report.at}, after the ledger's own clock`);
+    if (!(age <= CENSUS_MAX_AGE_DAYS * 86_400_000)) throw new Error(`the newest census is from ${String(report.at).slice(0, 10)}, more than ${CENSUS_MAX_AGE_DAYS} days ago`);
+    const product = (report.products ?? []).find((item) => item.product === census.product);
+    if (!product) throw new Error(`the census reports no ${census.product} product yet`);
+    const summary = product.summary ?? {};
+    for (const key of ["found", "declared", ...GAP_KEYS]) if (!isCount(summary[key])) throw new Error(`the census's summary has ${key} ${shown(summary[key])}, not a count`);
+    if (summary.declared + summary.weak + summary.undeclared !== summary.found) throw new Error(`the census's summary doesn't add up: ${summary.declared} declared and ${summary.weak + summary.undeclared} weak or undeclared of ${summary.found} found`);
+    const gaps = GAP_KEYS.reduce((total, key) => total + summary[key], 0);
+    // The released checker's hash vouches for its built-in walkers only. A kind a product's own walker walks (a built-in
+    // kind too: the report doesn't say which walker found each door) counts once that walker's code, by its hash, is on
+    // the surface's reviewed list.
+    const walkers = report.checker.walkers ?? [];
+    if (walkers.some((walker) => typeof walker?.name !== "string")) throw new Error("the census lists a product walker with no name");
+    const reviewed = census.reviewed ?? {};
+    const unreviewed = walkers.filter((walker) => typeof walker.sha256 !== "string" || !Object.hasOwn(reviewed, walker.name) || reviewed[walker.name] !== walker.sha256);
+    const productOnly = (kind) => unreviewed.some((walker) => Array.isArray(walker.kinds) && walker.kinds.includes(kind));
+    const walkedKinds = product.walked?.kinds ?? [];
+    const walked = walkedKinds.filter((kind) => !productOnly(kind));
+    const notWalked = census.kinds.filter((kind) => !walkedKinds.includes(kind));
+    const missingKinds = census.kinds.filter((kind) => !walked.includes(kind));
+    // Doors of kinds the config doesn't list (say, from a walker nobody reviewed) don't make the census find something.
+    const listedFound = product.byKind ? census.kinds.reduce((total, kind) => total + (product.byKind[kind]?.found ?? 0), 0) : summary.found;
+    const productWalkers = walkers.map((walker) => walker.name);
+    const parts = [`${summary.declared} of ${summary.found} doors declared; ${gaps === 0 ? "no gaps" : `${gaps} gaps (${GAP_KEYS.map((key) => `${summary[key]} ${key}`).join(", ")})`}`];
+    if (notWalked.length) parts.push(`it doesn't walk ${orList(notWalked)} doors yet`);
+    for (const walker of unreviewed) {
+      const kinds = (walker.kinds ?? []).filter((kind) => census.kinds.includes(kind));
+      if (kinds.length) parts.push(`${orList(kinds)} doors are walked by ${walker.name}, whose code ${String(walker.sha256).slice(0, 12)} is not on the reviewed list`);
+    }
+    if (productWalkers.length) parts.push(`with the product's own walker${productWalkers.length === 1 ? "" : "s"} ${productWalkers.join(", ")}`);
+    return cell(
+      ctx,
+      { found: listedFound, declared: summary.declared, gaps, ...Object.fromEntries(GAP_KEYS.map((key) => [key, summary[key]])), baseline: summary.baseline ?? 0, walked, missingKinds, productWalkers, checker: report.checker.sha256, commit: report.target.commit, reportAt: report.at, run: run.html_url },
+      { note: `${parts.join("; ")}.`, source: run.html_url },
+    );
+  });
+}
+
+/** Census at zero: the census finds doors, every one is declared with a valid card, and it walks every kind the product has. */
+export const censusAtZero = (censusCell) => Boolean(censusCell.value) && censusCell.value.found > 0 && censusCell.value.gaps === 0 && censusCell.value.missingKinds.length === 0;
+
+/** An n/a product's census holds only when it walks the product and finds no door at all. */
+const censusFindsNothing = (censusCell) => Boolean(censusCell.value) && censusCell.value.found === 0 && censusCell.value.gaps === 0 && censusCell.value.missingKinds.length === 0;
 
 // ---- Give-back -------------------------------------------------------------------------------------------
 
@@ -479,11 +627,24 @@ export function measureBenchmark(ctx, config) {
   });
 }
 
+const MODEL_REVIEWS_PAGE = "https://ui.ouroboros.bot/docs/model-reviews/";
+
+/** The newest model review's verdicts, counted as its page counts them (scripts/model-reviews/page.mjs), from this checkout's results. */
+export function measureModelReviews(ctx, { runs = publishedReviews() } = {}) {
+  return attempt(ctx, MODEL_REVIEWS_PAGE, () => {
+    const latest = seriesOf(runs).at(-1);
+    if (!latest) return unmeasured(ctx, "no published review in scripts/model-reviews/results", MODEL_REVIEWS_PAGE);
+    const counts = tally(latest);
+    const when = latest.runs[0].startedAt.slice(0, 10);
+    const bar = counts.barMet ? "More than half chose Ouro UI, the bar for saying models choose it." : "Not more than half chose Ouro UI, so the bar for saying models choose it is not met.";
+    return cell(ctx, reviewHeadline(latest), { note: `The ${when} review: ${counts.tried} models asked, ${counts.completed} gave a verdict. ${bar}`, source: MODEL_REVIEWS_PAGE });
+  });
+}
+
 export function measureProgram(ctx, config, issues, latest, prsAll, giveBackCount, treeCount) {
   const programIssue = issues.program;
   const source = programIssue?.url ?? `https://github.com/${config.home}/issues?q=label%3A${config.label}`;
   const steps = programIssue ? parseSteps(programIssue.body).map((step) => ({ ...step, source })) : [];
-  const stepState = (id) => steps.find((step) => step.id === id)?.state;
   const headline = [];
   const add = (key, label, value, note, from) => headline.push({ key, label, ...cell(ctx, value, { note, source: from }) });
   for (const [key, entry] of Object.entries(latest)) add(`release-${key}`, `${entry.name} latest release`, entry.tag, entry.error ? `not measured: ${entry.error}` : `Published ${String(entry.at).slice(0, 10)}.`, entry.url);
@@ -491,7 +652,7 @@ export function measureProgram(ctx, config, issues, latest, prsAll, giveBackCoun
   add("merged-prs", "Merged pull requests across the three Ouro UI repositories", prsAll.length, "Counted from each repository's merged pull requests.", `https://github.com/${config.latest.web.repo}/pulls?q=is%3Apr+is%3Amerged`);
   add("give-back", "Merged pull requests that name a product", giveBackCount, "Distinct pull requests counted by the give-back column.", `https://github.com/${config.home}/issues?q=label%3A${config.label}`);
   headline.push({ key: "benchmark", label: "Benchmark against browser driving, an SDK-style bridge and plain MCP", ...measureBenchmark(ctx, config) });
-  add("model-reviews", "Frontier models pick Ouro UI in the model-reviews run", null, stepState("model-reviews-headline") === "done" ? "Not measured yet: the step is marked done but no result is read." : "not measured yet: the model-reviews headline step is not done.", source);
+  headline.push({ key: "model-reviews", label: "Frontier models pick Ouro UI in the model-reviews run", ...measureModelReviews(ctx) });
   return { issue: programIssue ? issueView(programIssue) : null, steps, headline, source, note: programIssue ? null : "not measured: the program tracking issue was not found" };
 }
 
@@ -555,6 +716,7 @@ export function build(ctx, config, { only = null } = {}) {
     let xray;
     let giveBack;
     let actions;
+    let census;
     if (surface.privateRepo) {
       const why = "the repository is private, so a public run cannot read it";
       pins = unmeasured(ctx, why);
@@ -562,24 +724,27 @@ export function build(ctx, config, { only = null } = {}) {
       ax = unmeasured(ctx, why);
       xray = unmeasured(ctx, why);
       actions = unmeasured(ctx, why);
+      census = unmeasured(ctx, why);
     } else {
       pins = measurePins(ctx, surface, latest);
       hx = measureHx(ctx, surface);
       ax = measureAx(ctx, surface, config);
       xray = measureXray(ctx, surface);
       actions = measureActions(ctx, surface);
+      census = measureCensus(ctx, surface, latest);
     }
     giveBack = measureGiveBack(ctx, surface, prs, config);
     for (const pr of giveBack.prs) distinctGiveBack.add(pr.url);
-    // A product with no agent interface of its own (the config's AX is `n/a`, with its reason) has no actions to declare
-    // and nothing for the X-ray to check: those two checks do not apply, as give-back does not apply to the upstream.
+    // A product with no agent interface of its own (the config's AX is `n/a`, with its reason) has nothing for the X-ray
+    // to check, so that check does not apply, as give-back does not apply to the upstream. Census at zero is different:
+    // a written reason is not enough, and the product's own census has to find no doors for it to hold as n/a.
     const axNa = surface.ax.kind === "na" && !surface.privateRepo;
-    const declaredActions = typeof actions.value === "number" && actions.value > 0;
-    if (axNa && !declaredActions) actions = cell(ctx, null, { note: `n/a: ${surface.ax.reason}`, source: actions.source });
     if (axNa && !mustPasses(xray)) xray = cell(ctx, null, { note: `n/a: ${surface.ax.reason}`, source: xray.source });
+    const censusNa = axNa && censusFindsNothing(census);
+    if (censusNa) census = cell(ctx, null, { note: `n/a: ${surface.ax.reason} Its census finds no doors.`, source: census.source });
     const conditions = {
       current: { label: "On current Ouro UI", met: isCurrent(pins) },
-      oneAction: { label: "Actions on the one-action model", met: declaredActions || axNa },
+      census: { label: "Census at zero", met: censusAtZero(census) || censusNa },
       must: { label: "AX must claims pass in CI", met: mustPasses(xray) || axNa },
       gaveBack: { label: "Has given back", met: surface.upstream ? true : gaveBack(giveBack) },
     };
@@ -592,7 +757,7 @@ export function build(ctx, config, { only = null } = {}) {
       url,
       inScope: surface.inScope !== false,
       scopeNote: surface.scopeNote ?? null,
-      cells: { pins, hx, ax, actions, xray, giveBack, tracking },
+      cells: { pins, hx, ax, actions, census, xray, giveBack, tracking },
       conditions,
       met,
       confirmed: met === 4,
@@ -621,7 +786,7 @@ export function build(ctx, config, { only = null } = {}) {
   const order = [...inScope].sort((a, b) => a.met - b.met || (hxRank[a.cells.hx.value] ?? 3) - (hxRank[b.cells.hx.value] ?? 3) || a.name.localeCompare(b.name));
   const generatedAt = ctx.stamp();
   return {
-    schema: 1,
+    schema: 2,
     generatedAt,
     summary: { total: inScope.length, confirmed: inScope.filter((surface) => surface.confirmed).length, listed: surfaces.length, unmeasuredCells: surfaces.reduce((sum, surface) => sum + Object.values(surface.cells).filter(isUnmeasured).length, 0), releasesBehind, late, order: order.map((surface) => surface.id) },
     latest,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { page } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderFixture, renderPage, scan, setScheme, settle } from "../../test/render";
-import { isNewer, SNAPSHOT, stamp, type Ledger, type Surface } from "./ledger";
+import { isNewer, SNAPSHOT, stamp, type CensusValue, type Ledger, type Surface } from "./ledger";
 import { boardOf, changesBetween, checksOf } from "./checks";
 import { AdoptionPage } from "./adoption";
 import { routes } from "../routes";
@@ -85,7 +85,7 @@ describe("the adoption page", () => {
 
   it("leaves out a line that only says what the marks say", async () => {
     const host = await renderPage("/adoption/");
-    for (const generic of ["Doesn't use Ouro UI yet", "Actions not declared yet", "X-ray doesn't run in CI yet", "Nothing given back yet"]) {
+    for (const generic of ["Doesn't use Ouro UI yet", "Census not in CI yet", "X-ray doesn't run in CI yet", "Nothing given back yet"]) {
       for (const gaps of host.querySelectorAll(".adoption-gaps")) expect(gaps.textContent).not.toContain(generic);
     }
   });
@@ -154,7 +154,7 @@ describe("the adoption page", () => {
     const row = host.querySelector<HTMLElement>(`#${id}`)!;
     expect(row.querySelector<HTMLElement>(".adoption-marks > li")?.dataset.state).toBe("unmeasured");
     expect(row.querySelector(".adoption-marks > li .adoption-hidden")?.textContent).toBe(`${surface(ledger, id).conditions.current.label}: not measured yet`);
-    expect(row.querySelector(".adoption-gaps")?.textContent).toContain("Private repository, so not readable");
+    expect(row.querySelector(".adoption-gaps")?.textContent).toContain("Private repository, so not\u00a0readable");
   });
 
   it("lights a star only for a product the ledger confirms, and an arc only between two lit neighbours", async () => {
@@ -230,6 +230,13 @@ describe("reading the checks", () => {
     expect(checksOf(withCells({ xray: xray(4, 4) }, { must: true }))[2]).toMatchObject({ state: "met", why: null });
   });
 
+  it("says which surfaces no X-ray checks yet, before counting must claims", () => {
+    const value = { claims: 10, holding: 10, must: 18, mustHolding: 18, score: null, tool: "x", app: null, reportAt: at, run: "https://example.com/run", surfaces: ["cli", "mcp"], missingSurfaces: ["tools"] };
+    expect(checksOf(withCells({ xray: { value, note: null, source: null, measuredAt: at } }))[2]).toMatchObject({ state: "missing", why: "X-ray doesn't check its tools doors yet", source: "https://example.com/run" });
+    const two = { ...value, mustHolding: 17, missingSurfaces: ["tools", "http"] };
+    expect(checksOf(withCells({ xray: { value: two, note: null, source: null, measuredAt: at } }))[2]).toMatchObject({ why: "X-ray doesn't check its tools or http doors yet" });
+  });
+
   it("marks a check that does not apply, and one with nothing given back", () => {
     const giveBack = (value: number | null, note: string) => ({ value, note, source: "https://example.com/prs", measuredAt: at, prs: [] });
     expect(checksOf(withCells({ giveBack: giveBack(null, "n/a: this is the upstream; it is where the others give back to.") }))[3]).toMatchObject({ state: "na", why: "This is the upstream; it is where the others give back to" });
@@ -237,16 +244,22 @@ describe("reading the checks", () => {
   });
 
   it("draws a check the ledger holds because it does not apply as not applying, never as passing", () => {
-    const na = { value: null, note: "n/a: A marketing site; no CLI or MCP.", source: "https://example.com/site", measuredAt: at };
-    const [, actions, must] = checksOf(withCells({ actions: na, xray: na }, { oneAction: true, must: true }));
-    expect(actions).toMatchObject({ state: "na", why: "A marketing site; no CLI or MCP" });
-    expect(must).toMatchObject({ state: "na", why: "A marketing site; no CLI or MCP" });
+    const na = { value: null, note: "n/a: A marketing site; no CLI or MCP. Its census finds no doors.", source: "https://example.com/site", measuredAt: at };
+    const [, census, must] = checksOf(withCells({ census: na, xray: na }, { census: true, must: true }));
+    expect(census).toMatchObject({ state: "na", why: "A marketing site; no CLI or MCP. Its census finds no doors" });
+    expect(must).toMatchObject({ state: "na", why: "A marketing site; no CLI or MCP. Its census finds no doors" });
   });
 
-  it("says an undeclared action set in a few words, and keeps the ledger's reason while the model is unreleased", () => {
-    const actions = (note: string) => ({ value: 0, note, source: "https://example.com/actions", measuredAt: at });
-    expect(checksOf(withCells({ actions: actions("No actions declared on the one-action model: no actions.json written by ouro-actions in the repository.") }))[1]).toMatchObject({ state: "missing", why: "Actions not declared yet", source: "https://example.com/actions" });
-    expect(checksOf(withCells({ actions: actions("The one-action model is not released yet, so no product has actions on it.") }))[1]).toMatchObject({ why: "The one-action model is not released yet, so no product has actions on it" });
+  it("says what keeps a census from zero: gaps, kinds it doesn't walk yet, or no census at all", () => {
+    const census = (value: Partial<CensusValue>) => ({ value: { found: 492, declared: 480, gaps: 12, weak: 0, undeclared: 12, unwalked: 0, stale: 0, baseline: 12, walked: ["mcp", "cli", "tool", "approval"], missingKinds: [], productWalkers: [], checker: "c", commit: "abc", reportAt: at, run: "https://example.com/run", ...value }, note: null, source: "https://example.com/run", measuredAt: at });
+    expect(checksOf(withCells({ census: census({}) }))[1]).toMatchObject({ state: "missing", why: "12 gaps among 492 doors", source: "https://example.com/run" });
+    expect(checksOf(withCells({ census: census({ gaps: 0, missingKinds: ["tool", "approval"] }) }))[1]).toMatchObject({ state: "missing", why: "Doesn't walk tool or approval doors yet" });
+    expect(checksOf(withCells({ census: census({ found: 0, gaps: 0 }) }))[1]).toMatchObject({ state: "missing", why: "The census finds nothing to count" });
+    expect(checksOf(withCells({ census: census({ gaps: 0 }) }, { census: true }))[1]).toMatchObject({ state: "met", why: null });
+    const none = { value: null, note: "not measured: no Ouro AX census runs in CI for this product yet", source: "https://example.com/actions", measuredAt: at };
+    expect(checksOf(withCells({ census: none }))[1]).toMatchObject({ state: "unmeasured", why: "Census not in CI yet", generic: true });
+    const old = { value: null, note: "not measured: the census's checker dddddddddddd is not the one Ouro UI v1.3.200 released (cccccccccccc)", source: "https://example.com/actions", measuredAt: at };
+    expect(checksOf(withCells({ census: old }))[1]).toMatchObject({ state: "unmeasured", why: "The census's checker dddddddddddd is not the one Ouro UI v1.3.200 released (cccccccccccc)" });
   });
 
   it("tells which checks turned, either way, and leaves out products the earlier ledger lacks", () => {
@@ -270,10 +283,18 @@ describe("reading the checks", () => {
 });
 
 describe("the ledger data", () => {
+  it("checks every product's census, and lists Shepherd and the Butler", () => {
+    for (const item of SNAPSHOT.surfaces) expect(item.conditions.census.label).toBe("Census at zero");
+    expect(SNAPSHOT.surfaces.find((item) => item.id === "shepherd")?.inScope).toBe(true);
+    expect(SNAPSHOT.surfaces.find((item) => item.id === "butler")?.inScope).toBe(true);
+  });
+
   it("takes a fetched ledger only when it has the same schema and is newer", () => {
     expect(isNewer({ ...SNAPSHOT, generatedAt: "2999-01-01T00:00:00Z" }, SNAPSHOT)).toBe(true);
     expect(isNewer(SNAPSHOT, SNAPSHOT)).toBe(false);
-    expect(isNewer({ ...SNAPSHOT, schema: 2, generatedAt: "2999-01-01T00:00:00Z" }, SNAPSHOT)).toBe(false);
+    // Schema 2 counts Census at zero where schema 1 counted actions on the one-action model, so a schema 1 ledger is never read.
+    expect(SNAPSHOT.schema).toBe(2);
+    expect(isNewer({ ...SNAPSHOT, schema: 1, generatedAt: "2999-01-01T00:00:00Z" }, SNAPSHOT)).toBe(false);
     expect(isNewer(null, SNAPSHOT)).toBe(false);
     expect(isNewer({ schema: 1, generatedAt: "2999-01-01T00:00:00Z" }, SNAPSHOT)).toBe(false);
   });

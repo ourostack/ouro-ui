@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { build, configPath, createContext, gaveBack, isCurrent, measureActions, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, censusAtZero, configPath, createContext, gaveBack, isCurrent, measureActions, measureCensus, measureBenchmark, measureModelReviews, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
 import { execFileSync } from "node:child_process";
 import { rmSync, writeFileSync } from "node:fs";
 import { scratchDir } from "../scratch.mjs";
@@ -121,17 +121,16 @@ test("a product within a day of every release it lacks is current, and one a day
   assert.equal(isCurrent(measurePins(fresh("v1.2.13"), web, latest)), false, "v1.3.14 has been out for more than a day");
 });
 
-test("a product with no agent interface of its own passes the action and must checks as n/a, not as measured", () => {
+test("a product with no agent interface of its own passes the must check as n/a, not as measured", () => {
   const site = { id: "site", name: "A site", kind: "web site", repo: "org/web", pins: config.surfaces[0].pins, hx: config.surfaces[0].hx, ax: { kind: "na", reason: "A marketing site; no CLI or MCP." }, giveBackTerms: ["spoonjoy-v2"], xray: [] };
   const ledger = build(ctx([]), { ...config, surfaces: [site, { ...config.surfaces[0], id: "web2" }] });
   const [na, web] = ledger.surfaces;
-  assert.equal(na.conditions.oneAction.met, true);
   assert.equal(na.conditions.must.met, true);
   assert.match(na.cells.xray.note, /^n\/a: A marketing site/);
   assert.equal(na.cells.xray.value, null);
-  assert.equal(na.met, 3, "the pin is a day late, so only current fails");
+  assert.equal(na.met, 2, "the pin is a day late, and no census has found the site has no doors");
   assert.equal(web.conditions.must.met, false, "a product that has an agent interface still needs its X-ray");
-  assert.equal(ledger.summary.unmeasuredCells, 1, "only the web app's X-ray: the site's n/a cells are not counted as unmeasured");
+  assert.equal(ledger.summary.unmeasuredCells, 3, "the web app's X-ray and both censuses: the site's n/a X-ray is not counted as unmeasured");
 });
 
 test("a pin that cannot be read is null, never zero", () => {
@@ -377,6 +376,23 @@ test("the benchmark cell counts the published runs as the benchmark's page does:
   assert.match(failing.note, /^not measured: HTTP 404/);
 });
 
+test("the model-reviews cell reads the newest review's own verdicts, as the page counts them", () => {
+  const context = createContext({ gh: () => { throw new Error("no gh call"); }, now: () => NOW, sleep: () => {} });
+  const review = (provider, verdict) => ({ provider, displayName: provider, verdict });
+  const runs = [
+    { folder: "2026-11-14-rerun--run-1", startedAt: "2026-11-14T01:00:00Z", reviews: [review("a", "A2UI"), review("b", "Ouro UI")], failures: [] },
+    { folder: "2026-11-19-latest--run-1", startedAt: "2026-11-19T02:00:00Z", reviews: [review("a", "Ouro UI"), review("b", "Ouro UI"), review("c", "A2UI")], failures: [{ provider: "d", error: "compacted" }] },
+  ];
+  const cell = measureModelReviews(context, { runs });
+  assert.equal(cell.value, "2 of 3 models chose Ouro UI; 1 chose A2UI.");
+  assert.match(cell.note, /^The 2026-11-19 review: 4 models asked, 3 gave a verdict\. More than half chose Ouro UI, the bar for saying models choose it\.$/);
+  assert.equal(cell.source, "https://ui.ouroboros.bot/docs/model-reviews/");
+  const short = measureModelReviews(context, { runs: [{ ...runs[0] }] });
+  assert.match(short.note, /Not more than half chose Ouro UI/);
+  assert.equal(measureModelReviews(context, { runs: [] }).value, null);
+  assert.match(measureModelReviews(context, { runs: [] }).note, /^not measured: no published review/);
+});
+
 test("an app's X-ray and its action claims report add up, the newest report of each checker counting once", () => {
   const dir = scratchDir("ledger-xray-");
   try {
@@ -395,7 +411,7 @@ test("an app's X-ray and its action claims report add up, the newest report of e
     };
     const gh = (args, { binary } = {}) => {
       const line = args.join(" ");
-      if (/workflows\/ci\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 10, html_url: "https://example.test/run/10" }, { id: 11, html_url: "https://example.test/run/11" }] });
+      if (/workflows\/ci\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 10, event: "push", head_branch: "main", head_repository: { full_name: "org/app" }, html_url: "https://example.test/run/10" }, { id: 11, event: "push", head_branch: "main", head_repository: { full_name: "org/app" }, html_url: "https://example.test/run/11" }] });
       if (/runs\/10\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 1, name: "xray", expired: false }, { id: 2, name: "actions-xray", expired: false }] });
       if (/runs\/11\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 3, name: "actions-xray", expired: false }] });
       const art = /artifacts\/(\d+)\/zip/.exec(line);
@@ -425,7 +441,7 @@ test("a report in a folder of its artifact is read, so an X-ray uploaded with ot
   const bytes = readFileSync(join(dir, "a.zip"));
   const gh = (args, { binary } = {}) => {
     const line = args.join(" ");
-    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 7, html_url: "https://example.test/run/7" }] });
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 7, event: "push", head_branch: "main", head_repository: { full_name: "org/cli" }, html_url: "https://example.test/run/7" }] });
     if (/runs\/7\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 9, name: "xray", expired: false }] });
     if (/artifacts\/9\/zip/.test(line) && binary) return bytes;
     throw new Error(`unexpected gh call: ${line}`);
@@ -459,4 +475,306 @@ test("a pin on a release published after the run read the releases is current, a
   assert.equal(measurePins(pinned("v9.9.9", null), web, latest).value[0].behind, null);
   const pre = measurePins(pinned("v1.3.16", { tag_name: "v1.3.16", published_at: "2099-01-01T00:00:00Z", draft: false, prerelease: true }), web, latest);
   assert.equal(pre.value[0].behind, null, "a prerelease is not a stable release");
+});
+
+// ---- Census at zero ----------------------------------------------------------------------------------------
+
+const CHECKER = "c".repeat(64);
+const HARNESS_KINDS = ["mcp", "cli", "tool", "approval"];
+const censusReport = (overrides = {}, product = {}) => ({
+  ax: "census/1",
+  tool: "ouro-census",
+  checker: { version: "0.1.0", sha256: CHECKER, walkers: [] },
+  target: { repo: "org/cli", ref: "refs/heads/main", commit: "abc123" },
+  at: "2026-11-13T20:00:00Z",
+  ...overrides,
+  products: [{ product: "harness", walked: { kinds: HARNESS_KINDS, finders: [] }, summary: { found: 492, declared: 492, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 3, baseline: 0 }, ...product }],
+});
+
+/** A gh that serves one main run with an `ax-census` artifact holding `report`, and the release's census manifest. */
+function censusGh(dir, report, { manifest = { tool: "ouro-census", version: "0.1.0", checker: CHECKER, files: {} }, manifests = {}, artifact = "ax-census", headSha = "abc123", run = {}, calls = [] } = {}) {
+  execFileSync("mkdir", ["-p", join(dir, "ax-census")]);
+  writeFileSync(join(dir, "ax-census", "census.json"), JSON.stringify(report));
+  writeFileSync(join(dir, "ax-census", "census.txt"), "harness: ...");
+  rmSync(join(dir, "a.zip"), { force: true });
+  execFileSync("zip", ["-q", "-r", "a.zip", "ax-census"], { cwd: dir });
+  const bytes = readFileSync(join(dir, "a.zip"));
+  return (args, { binary } = {}) => {
+    const line = args.join(" ");
+    calls.push(line);
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) {
+      assert.match(line, /branch=main&event=push/, "only pushes to main count, never a pull request from a fork's main");
+      return JSON.stringify({ workflow_runs: [{ id: 7, head_sha: headSha, head_branch: "main", event: "push", head_repository: { full_name: "org/cli" }, html_url: "https://example.test/run/7", ...run }] });
+    }
+    if (/runs\/7\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 9, name: artifact, expired: false }] });
+    if (/artifacts\/9\/zip/.test(line) && binary) return bytes;
+    const release = /repos\/ourostack\/ouro-ui\/releases/.test(line);
+    if (release) return releases["ourostack/ouro-ui"].map((item) => JSON.stringify({ tag: item.tag_name, at: item.published_at, url: item.html_url })).join("\n");
+    const ref = /contents\/scripts\/ouro-census\/dist-manifest\.json\?ref=(v[\d.]+)/.exec(line);
+    if (ref) {
+      const found = ref[1] === "v1.3.15" ? manifest : manifests[ref[1]];
+      if (!found) throw new Error("gh api: Not Found");
+      return b64(found);
+    }
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+}
+
+const censusSurface = { id: "cli", repo: "org/cli", census: { workflow: "ax-xray.yml", product: "harness", kinds: HARNESS_KINDS } };
+const latestWeb = { web: { repo: "ourostack/ouro-ui", tag: "v1.3.15", at: "2026-11-13T10:00:00Z" } };
+const censusOf = (report, options = {}, surface = censusSurface) => {
+  const dir = scratchDir("ledger-census-");
+  try {
+    return measureCensus(createContext({ gh: censusGh(dir, report, options), now: () => NOW, sleep: () => {}, searchGapMs: 0 }), surface, latestWeb);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+};
+
+test("a product's census at zero, from its newest run on main with a released checker, is at zero", () => {
+  const census = censusOf(censusReport());
+  assert.equal(census.value.found, 492);
+  assert.equal(census.value.gaps, 0);
+  assert.deepEqual(census.value.missingKinds, []);
+  assert.equal(census.value.commit, "abc123");
+  assert.equal(census.value.run, "https://example.test/run/7");
+  assert.equal(census.source, "https://example.test/run/7");
+  assert.equal(censusAtZero(census), true);
+});
+
+test("a census with gaps, or one that walks only some of the product's door kinds, is not at zero", () => {
+  const gaps = censusOf(censusReport({}, { summary: { found: 492, declared: 480, weak: 1, undeclared: 11, unwalked: 1, stale: 1, excluded: 3, baseline: 14 } }));
+  assert.equal(gaps.value.gaps, 14);
+  assert.equal(censusAtZero(gaps), false);
+  assert.match(gaps.note, /480 of 492 doors declared; 14 gaps \(1 weak, 11 undeclared, 1 unwalked, 1 stale\)/);
+  const partial = censusOf(censusReport({}, { walked: { kinds: ["mcp", "cli"], finders: [] } }));
+  assert.deepEqual(partial.value.missingKinds, ["tool", "approval"]);
+  assert.equal(censusAtZero(partial), false);
+  assert.match(partial.note, /doesn't walk tool or approval doors yet/);
+  const empty = censusOf(censusReport({}, { summary: { found: 0, declared: 0, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 0, baseline: 0 } }));
+  assert.equal(censusAtZero(empty), false, "a census that finds nothing has nothing at zero");
+});
+
+test("a census report counts only from main at the run's own commit, with a released checker, within a week", () => {
+  const not = (cellValue, pattern) => {
+    assert.equal(cellValue.value, null);
+    assert.match(cellValue.note, pattern);
+    assert.equal(censusAtZero(cellValue), false);
+  };
+  not(censusOf(censusReport({ target: { repo: "org/cli", ref: "refs/pull/4/merge", commit: "abc123" } })), /^not measured: the census ran on refs\/pull\/4\/merge, not main/);
+  not(censusOf(censusReport(), { headSha: "fff999" }), /^not measured: the census reports commit abc123, but its run built fff999/);
+  not(censusOf(censusReport({ checker: { version: "0.1.0", sha256: "d".repeat(64), walkers: [] } })), /^not measured: the census's checker dddddddddddd is not one Ouro UI released in the last day \(v1\.3\.15 ships cccccccccccc\)/);
+  not(censusOf(censusReport(), { manifest: null }), /^not measured: Ouro UI v1\.3\.15 has no census manifest/);
+  not(censusOf(censusReport({ at: "2026-11-05T20:00:00Z" })), /^not measured: the newest census is from 2026-11-05, more than 7 days ago/);
+  not(censusOf(censusReport(), { artifact: "xray" }), /^not measured: no ax-census artifact in the latest successful run on main/);
+  not(censusOf(censusReport({ ax: "census/0" })), /^not measured: the ax-census artifact holds no census\/1 report/);
+  not(censusOf(censusReport(), {}, { ...censusSurface, census: { ...censusSurface.census, product: "shepherd" } }), /^not measured: the census reports no shepherd product yet/);
+  const none = measureCensus(ctx([]), { id: "x", repo: "org/x" }, latestWeb);
+  not(none, /^not measured: no Ouro AX census runs in CI for this product yet/);
+});
+
+test("a product's own walkers are named in the census cell", () => {
+  const census = censusOf(censusReport({ checker: { version: "0.1.0", sha256: CHECKER, walkers: [{ name: "desk-skills", module: "ax/skills.mts", kinds: ["skill"], sha256: "e".repeat(64) }] } }));
+  assert.deepEqual(census.value.productWalkers, ["desk-skills"]);
+  assert.match(census.note, /with the product's own walker desk-skills/);
+});
+
+test("Census at zero replaces actions on the one-action model as a condition, and an n/a product needs a census that finds no doors", () => {
+  const ledger = build(ctx([]), config);
+  assert.equal(ledger.schema, 2, "schema 2 counts the census where schema 1 counted actions, so the site never reads one as the other");
+  const web = ledger.surfaces.find((surface) => surface.id === "web");
+  assert.equal(web.conditions.census.label, "Census at zero");
+  assert.equal(web.conditions.census.met, false);
+  assert.equal("oneAction" in web.conditions, false);
+  assert.match(web.cells.census.note, /^not measured: no Ouro AX census/);
+  assert.equal(web.cells.actions.value, 3, "the actions column stays, as information");
+  const site = { id: "site", name: "A site", kind: "web site", repo: "org/web", pins: config.surfaces[0].pins, hx: config.surfaces[0].hx, ax: { kind: "na", reason: "A marketing site; no CLI or MCP." }, giveBackTerms: [], xray: [] };
+  const naLedger = build(ctx([]), { ...config, surfaces: [site] });
+  assert.equal(naLedger.surfaces[0].conditions.census.met, false, "a written reason alone no longer holds the check");
+  assert.match(naLedger.surfaces[0].cells.census.note, /^not measured: no Ouro AX census/);
+});
+
+test("an n/a product whose census finds no doors holds Census at zero as n/a", () => {
+  const dir = scratchDir("ledger-census-na-");
+  try {
+    const report = censusReport({}, { product: "site", walked: { kinds: HARNESS_KINDS, finders: [] }, summary: { found: 0, declared: 0, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 0, baseline: 0 } });
+    const base = fakeGh();
+    const census = censusGh(dir, report, { headSha: "abc123", run: { head_repository: { full_name: "org/web" } } });
+    const gh = (args, options) => {
+      const line = args.join(" ");
+      return /actions\/|census/.test(line) && !line.includes("git/trees") ? census(args, options) : base(args, options);
+    };
+    const site = { id: "site", name: "A site", kind: "web site", repo: "org/web", pins: [], hx: { kind: "na", reason: "x" }, ax: { kind: "na", reason: "A marketing site; no CLI or MCP." }, giveBackTerms: [], xray: [], census: { workflow: "ax-xray.yml", product: "site", kinds: HARNESS_KINDS } };
+    const ledger = build(createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 }), { ...config, surfaces: [site] });
+    const [na] = ledger.surfaces;
+    assert.equal(na.conditions.census.met, true);
+    assert.match(na.cells.census.note, /^n\/a: A marketing site; no CLI or MCP\. Its census finds no doors\./);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("Shepherd and the Butler have ledger rows, read from the harness's census and left unmeasured while private", () => {
+  const real = JSON.parse(readFileSync(configPath, "utf8"));
+  const shepherd = real.surfaces.find((surface) => surface.id === "shepherd");
+  assert.equal(shepherd.repo, "ourostack/ouroboros");
+  assert.deepEqual([shepherd.census.workflow, shepherd.census.product], ["ax-xray.yml", "shepherd"]);
+  const butler = real.surfaces.find((surface) => surface.id === "butler");
+  assert.equal(butler.privateRepo, true);
+  assert.notEqual(butler.inScope, false, "counted, so Confirmed can't skip it");
+  const harness = real.surfaces.find((surface) => surface.id === "harness");
+  assert.deepEqual([harness.census.workflow, harness.census.product], ["ax-xray.yml", "harness"]);
+  for (const surface of real.surfaces.filter((item) => item.census)) assert.ok(surface.census.kinds.length > 0, surface.id);
+});
+
+test("a kind only a product's own walker walks counts once that walker's hash is on the reviewed list", () => {
+  const walker = { name: "desk-skills", module: "ax/skills.mts", kinds: ["skill"], sha256: "e".repeat(64) };
+  const report = censusReport({ checker: { version: "0.1.0", sha256: CHECKER, walkers: [walker] } }, { walked: { kinds: [...HARNESS_KINDS, "skill"], finders: [] } });
+  const surface = { ...censusSurface, census: { ...censusSurface.census, kinds: [...HARNESS_KINDS, "skill"] } };
+  const unreviewed = censusOf(report, {}, surface);
+  assert.deepEqual(unreviewed.value.missingKinds, ["skill"]);
+  assert.match(unreviewed.note, /skill doors are walked by desk-skills, whose code eeeeeeeeeeee is not on the reviewed list/);
+  assert.equal(censusAtZero(unreviewed), false);
+  const reviewed = censusOf(report, {}, { ...surface, census: { ...surface.census, reviewed: { "desk-skills": "e".repeat(64) } } });
+  assert.deepEqual(reviewed.value.missingKinds, []);
+  assert.equal(censusAtZero(reviewed), true);
+});
+
+test("a census run that isn't a push to main in the product's own repository doesn't count", () => {
+  const not = (run, pattern) => {
+    const census = censusOf(censusReport(), { run });
+    assert.equal(census.value, null);
+    assert.match(census.note, pattern);
+  };
+  not({ head_repository: { full_name: "someone/fork" } }, /^not measured: the newest census run on main came from someone\/fork, not org\/cli/);
+  not({ head_branch: "feature" }, /^not measured: the newest census run on main ran on feature/);
+  not({ event: "pull_request" }, /^not measured: the newest census run on main was a pull_request run, not a push/);
+});
+
+test("a census dated after the run, or with counts that aren't whole numbers that add up, doesn't count", () => {
+  const not = (report, pattern) => {
+    const census = censusOf(report);
+    assert.equal(census.value, null);
+    assert.match(census.note, pattern);
+  };
+  not(censusReport({ at: "2026-11-14T22:00:00Z" }), /^not measured: the census is dated 2026-11-14T22:00:00Z, after the ledger's own clock/);
+  const summary = (extra) => censusReport({}, { summary: { found: 492, declared: 492, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 3, baseline: 0, ...extra } });
+  not(summary({ weak: -1, undeclared: 1, declared: 492 }), /^not measured: the census's summary has weak -1, not a count/);
+  not(summary({ found: "492" }), /^not measured: the census's summary has found "492", not a count/);
+  not(summary({ stale: undefined }), /^not measured: the census's summary has stale undefined, not a count/);
+  not(summary({ declared: 400 }), /^not measured: the census's summary doesn't add up: 400 declared and 0 weak or undeclared of 492 found/);
+  not(censusReport({ checker: { version: "0.1.0", sha256: CHECKER, walkers: [{ module: "x.mts", kinds: ["skill"] }] } }), /^not measured: the census lists a product walker with no name/);
+});
+
+test("a product walker with no hash is never taken as reviewed", () => {
+  const report = censusReport({ checker: { version: "0.1.0", sha256: CHECKER, walkers: [{ name: "desk-skills", module: "ax/skills.mts", kinds: ["skill"] }] } }, { walked: { kinds: [...HARNESS_KINDS, "skill"], finders: [] } });
+  const surface = { ...censusSurface, census: { ...censusSurface.census, kinds: [...HARNESS_KINDS, "skill"] } };
+  assert.deepEqual(censusOf(report, {}, surface).value.missingKinds, ["skill"]);
+  assert.deepEqual(censusOf(report, {}, { ...surface, census: { ...surface.census, reviewed: { other: undefined } } }).value.missingKinds, ["skill"]);
+});
+
+test("a checker from a release out less than a day counts beside the latest one, and an older one doesn't", () => {
+  const old = (tag) => censusOf(censusReport({ checker: { version: "0.1.0", sha256: "b".repeat(64), walkers: [] } }), { manifests: { [tag]: { tool: "ouro-census", version: "0.1.0", checker: "b".repeat(64), files: {} } } });
+  assert.equal(censusAtZero(old("v1.3.14")), true, "v1.3.14 came out at 2026-11-12T10:00Z, 36 hours before the ledger ran, but v1.3.15, which replaced it, is under a day old");
+  const stale = old("v1.2.13");
+  assert.equal(stale.value, null);
+  assert.match(stale.note, /^not measured: the census's checker bbbbbbbbbbbb is not one Ouro UI released in the last day \(v1\.3\.15 ships cccccccccccc\)/);
+});
+
+test("a product's census needs the door kinds it has listed, and its doors counted only over those kinds", () => {
+  const none = censusOf(censusReport(), {}, { ...censusSurface, census: { ...censusSurface.census, kinds: [] } });
+  assert.match(none.note, /^not measured: the ledger config lists no door kinds for harness's census/);
+  const onlySkills = censusReport({}, { walked: { kinds: [...HARNESS_KINDS, "skill"], finders: [] }, byKind: { mcp: { found: 0 }, cli: { found: 0 }, tool: { found: 0 }, approval: { found: 0 }, skill: { found: 4 } }, summary: { found: 4, declared: 4, weak: 0, undeclared: 0, unwalked: 0, stale: 0, excluded: 0, baseline: 0 } });
+  assert.equal(censusAtZero(censusOf(onlySkills)), false, "doors of a kind the config doesn't list don't make a census of the listed kinds find something");
+});
+
+test("the ledger says when it couldn't read Ouro UI's latest release, rather than naming a null release", () => {
+  const dir = scratchDir("ledger-census-norelease-");
+  try {
+    const census = measureCensus(createContext({ gh: censusGh(dir, censusReport()), now: () => NOW, sleep: () => {}, searchGapMs: 0 }), censusSurface, { web: { repo: "ourostack/ouro-ui", tag: null, error: "boom" } });
+    assert.match(census.note, /^not measured: Ouro UI's latest release couldn't be read \(boom\), so the census's checker can't be checked/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ---- Stricter X-ray: every surface the product lists, from a push to main ---------------------------------
+
+/** A gh that serves the given runs of `ax-xray.yml`, each with its reports as artifacts; `calls` records the lines. */
+function xrayGh(dir, runs, calls = []) {
+  const bytes = new Map();
+  let next = 1;
+  const served = runs.map((run) => ({ ...run, artifacts: run.reports.map((report) => {
+    const id = next++;
+    writeFileSync(join(dir, "report.json"), JSON.stringify(report));
+    execFileSync("zip", ["-q", "-j", join(dir, "a.zip"), join(dir, "report.json")]);
+    bytes.set(String(id), readFileSync(join(dir, "a.zip")));
+    rmSync(join(dir, "a.zip"));
+    return { id, name: report.tool === "ouro-actions" ? "actions-xray" : `xray-${id}`, expired: false };
+  }) }));
+  return (args, { binary } = {}) => {
+    const line = args.join(" ");
+    calls.push(line);
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: served.map((run) => Object.fromEntries(Object.entries(run).filter(([key]) => key !== "reports" && key !== "artifacts"))) });
+    const runArtifacts = /runs\/(\d+)\/artifacts/.exec(line);
+    if (runArtifacts) return JSON.stringify({ artifacts: served.find((run) => String(run.id) === runArtifacts[1]).artifacts });
+    const art = /artifacts\/(\d+)\/zip/.exec(line);
+    if (art && binary) return bytes.get(art[1]);
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+}
+const pushRun = (id, extra = {}) => ({ id, event: "push", head_branch: "main", head_repository: { full_name: "org/agents" }, html_url: `https://example.test/run/${id}`, ...extra });
+const xrayReport = (surface, at, must, mustHolding = must) => ({ tool: "ax-xray", at, checker: { version: "1.8.0" }, claimSet: { version: "1.8.0" }, target: { commit: "abc", [surface]: {} }, summary: { claims: must + 1, holding: mustHolding + 1, must, mustHolding, checks: must + 1 }, claims: [{ id: `${surface}.a`, surface, tier: "must" }, { id: `${surface}.b`, surface, tier: "should" }] });
+const actionsReport = (at) => ({ tool: "ouro-actions", at, checker: { version: "1.10.0" }, claimSet: { version: "0.1.0" }, target: { app: { name: "Agents" }, commit: "abc" }, summary: { claims: 3, holding: 3, must: 3, mustHolding: 3, checks: 3 } });
+const agents = { repo: "org/agents", xraySurfaces: ["cli", "mcp", "tools"], xray: [{ repo: "org/agents", workflow: "ax-xray.yml", branch: "main" }] };
+const xrayOf = (runs, surface = agents, calls = []) => {
+  const dir = scratchDir("ledger-xray-surfaces-");
+  try {
+    return measureXray(createContext({ gh: xrayGh(dir, runs, calls), now: () => NOW, sleep: () => {}, searchGapMs: 0 }), surface);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+};
+
+test("a product's X-ray counts the newest report of each surface, and must claims pass only when every surface it lists is checked", () => {
+  const partial = xrayOf([pushRun(10, { reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13), xrayReport("mcp", "2026-11-13T11:59:00Z", 2), actionsReport("2026-11-13T11:58:00Z")] })]);
+  assert.deepEqual(partial.value.surfaces, ["cli", "mcp"], "the CLI and MCP reports are both ax-xray, and both count");
+  assert.equal(partial.value.must, 18);
+  assert.equal(partial.value.mustHolding, 18);
+  assert.deepEqual(partial.value.missingSurfaces, ["tools"]);
+  assert.equal(mustPasses(partial), false, "every must claim holds, but the in-turn tools are not checked");
+  assert.match(partial.note, /^No X-ray report checks its tools doors yet, so its must claims can.t pass\. Adds up the newest report of each checker and surface: ax-xray cli, ax-xray mcp, ouro-actions\.$/);
+  const whole = xrayOf([pushRun(10, { reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13), xrayReport("mcp", "2026-11-13T11:59:00Z", 2), xrayReport("tools", "2026-11-13T11:57:00Z", 2), actionsReport("2026-11-13T11:58:00Z")] })]);
+  assert.deepEqual(whole.value.missingSurfaces, []);
+  assert.equal(mustPasses(whole), true);
+  const older = xrayOf([pushRun(10, { reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13, 12)] }), pushRun(11, { reports: [xrayReport("cli", "2026-11-12T12:00:00Z", 13), xrayReport("mcp", "2026-11-12T11:00:00Z", 2), xrayReport("tools", "2026-11-12T10:00:00Z", 2)] })]);
+  assert.equal(older.value.mustHolding, 16, "the newest CLI report, which fails one, counts over the older one; each surface's newest is kept");
+  assert.equal(mustPasses(older), false);
+});
+
+test("an X-ray report counts only from a successful push to main in the product's own repository", () => {
+  const calls = [];
+  const runs = [
+    pushRun(10, { event: "pull_request", reports: [xrayReport("tools", "2026-11-13T12:00:00Z", 2)] }),
+    pushRun(11, { head_repository: { full_name: "fork/agents" }, reports: [xrayReport("tools", "2026-11-13T11:00:00Z", 2)] }),
+    pushRun(12, { head_branch: "feature", reports: [xrayReport("tools", "2026-11-13T10:00:00Z", 2)] }),
+    pushRun(13, { reports: [xrayReport("cli", "2026-11-13T09:00:00Z", 13), xrayReport("mcp", "2026-11-13T09:00:00Z", 2)] }),
+  ];
+  const xray = xrayOf(runs, agents, calls);
+  assert.match(calls.find((line) => /workflows\/ax-xray\.yml\/runs/.test(line)), /branch=main&event=push/);
+  assert.deepEqual(xray.value.surfaces, ["cli", "mcp"], "the tools reports from a pull request, a fork and another branch don't count");
+  assert.equal(xray.value.run, "https://example.test/run/13");
+  const none = xrayOf([pushRun(10, { event: "pull_request", reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13)] })]);
+  assert.equal(none.value, null);
+  assert.match(none.note, /^not measured: no report from a push to main in org\/agents among the latest successful runs/);
+});
+
+test("every product with X-ray runs lists the surfaces they check, and a product that runs agents lists its in-turn tools", () => {
+  const real = JSON.parse(readFileSync(configPath, "utf8"));
+  for (const surface of real.surfaces) {
+    if (surface.xray.length) assert.ok(Array.isArray(surface.xraySurfaces) && surface.xraySurfaces.length > 0, `${surface.id} has X-ray runs but lists no xraySurfaces`);
+    if (surface.runsAgents) assert.ok(surface.xraySurfaces?.includes("tools"), `${surface.id} runs agents, so its xraySurfaces must include tools`);
+    for (const entry of surface.xray) assert.equal(entry.branch, "main", `${surface.id}'s ${entry.workflow} counts only from a push to main, so it names branch main`);
+  }
+  assert.equal(real.surfaces.find((surface) => surface.id === "harness").runsAgents, true);
 });

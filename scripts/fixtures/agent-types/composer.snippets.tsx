@@ -8,8 +8,10 @@ export const composer04 = <Composer label="Message" onSend={() => {}} sendDisabl
 export const composer05 = <Composer label="Message" onSend={() => {}} replyTo="message-1" />;
 export const composer06 = <Composer label="Message" onSend={() => {}} expandable />;
 export const composer07 = <Composer label="Message" onSend={() => {}} format="markdown" />;
+export const composer08 = <Composer label="Message" onSend={() => {}} format="rich" offsets="bytes" />;
 export const composerOk01 = <Composer label="Message Mia" placeholder="Write a message" defaultValue="Hi" sendOn="mod-enter" sendLabel="Post" sendDisabledReason="Sending is off" description="Ctrl+Enter to send" highlights={[{ start: 0, end: 2, label: "Suggested" }]} onHighlightsChange={() => {}} rows={2} maxRows={6} onSend={(text) => void text} />;
 export const composerOk02 = <Composer label="Reply to Ana" quote={{ author: "Ana Lind", excerpt: "Lunch on Friday?", onRemove: () => {}, onActivate: () => {}, label: "Quoting Ana", removeLabel: "Remove quote from Ana" }} onSend={(text) => void text} />;
 export const composerOk03 = <Composer label="Reply" defaultExpanded={false} expandLabel="Long message" expandedRows={8} expandedMaxRows={24} onExpandedChange={(expanded) => void expanded} onSend={(text) => void text} />;
 export const composerOk04 = <Composer label="Reply" formatting editorRef={{ current: null }} pasteText={(data) => data.getData("text/plain") || undefined} onSend={(text) => void text} />;
 export const composerOk05 = <Composer label="Message" format="rich" onSend={(text) => void text} />;
+export const composerOk06 = <Composer label="Message" format="rich" offsets="markdown" onSend={(text) => void text} />;
