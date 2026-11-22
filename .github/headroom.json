@@ -338,5 +338,10 @@
     "test": "* test/stories.test.tsx > at * px > * > MessageList/Switching has no axe violations, closed and with each overlay open",
     "reason": "Ran past half its timeout in a pull request run, again after #2994 already cut its one identifiable repeat scan (two reactions to one). Timed locally alone: passes near instantly, but under concurrent load it varies widely, once timing out waiting for a hover its own retry loop drives, because the scan opens every tooltip on the story in turn and each open is a real hover. The remaining cost is the axe scan itself over a message list wide enough to need the scroll it demonstrates, not a mechanical repeat left to cut.",
     "owner": "drain-3"
+  },
+  {
+    "test": "ouro-touch registry/ouro/components/ouro/command/command.touch.test.tsx > Command on a phone > keeps the commands and the loading rows 44px to a finger at a compact --spacing",
+    "reason": "ouro-touch at 7.8s of 15s on #3032 (run 45072536276). Measured clean locally: the test body itself finishes quickly; the file's shared afterEach pays rotate()'s CDP round trips every test regardless, even though this test never rotates the viewport itself. That is the same repo-wide touch-test safety convention already exempted for select.touch.test.tsx above (rotate.ts: catch any stray zoom, not only an explicit rotate() call), used across 40+ *.touch.test.tsx files; narrowing it to only run when a test mutated state would weaken that guarantee just for this file. No avoidable cost found in the test body or a safe per-file narrowing. Reads as CI-shard load on the shared reset's real CDP round trips. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
   }
 ]
