@@ -229,6 +229,13 @@ describe("Composer rich mode", () => {
     expect(host.querySelector('input[type="hidden"]')).toBeNull();
   });
 
+  it("inserts at the end when the box holds no selection yet", async () => {
+    const handle = createRef<ComposerEditor>();
+    const { editor } = await render(rich({ editorRef: handle, defaultValue: "hi" }));
+    await act(async () => handle.current!.insert(" there"));
+    await expect.poll(() => editor.textContent).toBe("hi there");
+  });
+
   it("takes no input once it is disabled alone, or read-only alone, and takes it again when neither is set", async () => {
     const beforeInput = () => new InputEvent("beforeinput", { inputType: "insertText", data: "z", bubbles: true, cancelable: true });
     const { editor, rerender } = await render(rich({}));
