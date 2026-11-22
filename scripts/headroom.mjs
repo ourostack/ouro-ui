@@ -3,9 +3,9 @@
 // loaded shard (a home headline test took about 17 s against a 15 s budget, passed on a quiet
 // runner and timed out on main's shards). The tests that already exceed it are named in
 // .github/headroom.json, each with a reason and an owner; the run fails a test over half that
-// is not named there, and a name whose test ran under two fifths of its budget (the gap keeps a
-// test that hovers at half from failing a quiet run for being listed).
-import { readFileSync } from "node:fs";
+// is not named there, and a name whose test file or title is gone from the source is stale.
+// Run times are too noisy to judge staleness from, so staleness is read from the source.
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,8 +14,18 @@ export const exemptionsPath = join(dirname(fileURLToPath(import.meta.url)), ".."
 /** The named exemptions, `[{ test, reason, owner }]`, where `test` is `<project> <file> > <full name>`. */
 export const readExemptions = (path = exemptionsPath) => JSON.parse(readFileSync(path, "utf8"));
 
-/** The share of its timeout under which an exempt test is stale. */
-export const staleBelow = 0.4;
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+/** The exemptions whose test file is gone, or whose title no longer appears in it. */
+export function staleExemptions(exemptions, base = root) {
+  return exemptions.flatMap(({ test }) => {
+    const file = test.match(/(\S+\.test\.(?:tsx?|mjs))/)?.[1];
+    const title = test.split(" > ").at(-1);
+    const parts = [title.slice(0, 20), title.slice(-20)];
+    const source = file && existsSync(join(base, file)) ? readFileSync(join(base, file), "utf8") : null;
+    return source && parts.some((part) => source.includes(part)) ? [] : [`[ouro-ui] Headroom: ${test} names a test that is gone. Fix: remove its exemption from .github/headroom.json.`];
+  });
+}
 
 const seconds = (ms) => `${(ms / 1000).toFixed(1)} s`;
 
@@ -27,8 +37,7 @@ export const exemptionProblems = (exemptions) =>
 
 /**
  * The problems of one run. `tests` are `{ name, durationMs, timeoutMs }`; a test over half its timeout
- * fails unless exempt, and an exemption whose test ran under two fifths of its timeout fails as stale. An exemption whose
- * test did not run in this shard is left alone: another shard runs it.
+ * fails unless exempt. A stale exemption is found by `staleExemptions`.
  */
 export function headroomProblems(tests, exemptions) {
   const named = new Map(exemptions.map((entry) => [entry.test, entry]));
@@ -37,9 +46,6 @@ export function headroomProblems(tests, exemptions) {
     const over = durationMs > timeoutMs / 2;
     if (over && !named.has(name)) {
       problems.push(`[ouro-ui] Headroom: ${name} took ${seconds(durationMs)} against a budget of ${seconds(timeoutMs)}; a test over half its budget can time out on a loaded shard. Fix: make it faster or give it a bigger timeout, or name it in .github/headroom.json with a reason and an owner.`);
-    }
-    if (durationMs < timeoutMs * staleBelow && named.has(name)) {
-      problems.push(`[ouro-ui] Headroom: ${name} took ${seconds(durationMs)} against a budget of ${seconds(timeoutMs)}, under two fifths. Fix: remove its exemption from .github/headroom.json.`);
     }
   }
   return problems;

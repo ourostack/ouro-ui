@@ -133,5 +133,30 @@
     "test": "squircle-webkit-fallback (webkit) registry/ouro/lib/ouro/squircle/parse.test.ts > isTransparentColor > detects transparent colors",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "ouro-chromium (chromium) registry/ouro/components/ouro/message/message-list.windowing.test.tsx > MessageList windowing > measures each child by what it draws, its margins too, so once scrolled through it is exactly as tall as the whole list",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-chromium (chromium) registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx > EmojiPicker search > matches the start of any word in the name or keywords, ignoring case and accents, and hides the categories",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx > EmojiPicker search > matches the start of any word in the name or keywords, ignoring case and accents, and hides the categories",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-chromium (chromium) registry/ouro/lib/ouro/testing/commands.test.ts > emulateMedia throws, naming the query, when the frame never matches it",
+    "reason": "Waits out a deliberate ten second poll bound, so it takes half its timeout by design.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/lib/ouro/testing/commands.test.ts > emulateMedia throws, naming the query, when the frame never matches it",
+    "reason": "Waits out a deliberate ten second poll bound, so it takes half its timeout by design.",
+    "owner": "drain-3"
   }
 ]

@@ -3,7 +3,7 @@
 // problem and fails the run.
 import { relative, sep } from "node:path";
 import type { Reporter, TestModule, Vitest } from "vitest/node";
-import { headroomProblems, readExemptions } from "./headroom.mjs";
+import { headroomProblems, readExemptions, staleExemptions } from "./headroom.mjs";
 
 export class HeadroomReporter implements Reporter {
   #vitest: Vitest | undefined;
@@ -25,7 +25,7 @@ export class HeadroomReporter implements Reporter {
         tests.push({ name: `${module.project.name} ${file} > ${test.fullName}`, durationMs, timeoutMs });
       }
     }
-    const problems = headroomProblems(tests, readExemptions());
+    const problems = [...headroomProblems(tests, readExemptions()), ...staleExemptions(readExemptions())];
     for (const problem of problems) process.stderr.write(`${problem}\n`);
     if (problems.length > 0) process.exitCode = 1;
   }

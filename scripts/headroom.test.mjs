@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { exemptionProblems, headroomProblems, readExemptions } from "./headroom.mjs";
+import { exemptionProblems, headroomProblems, readExemptions, staleExemptions } from "./headroom.mjs";
 
 const named = (test) => ({ test, reason: "slow", owner: "drain-3" });
 
@@ -22,15 +22,16 @@ test("headroom lets a named exemption's test run over half", () => {
   assert.deepEqual(headroomProblems([{ name: "a", durationMs: 20_000, timeoutMs: 30_000 }], [named("a")]), []);
 });
 
-test("headroom fails an exemption whose test now runs well under its budget, and keeps one that hovers near half", () => {
-  const stale = headroomProblems([{ name: "a", durationMs: 5_000, timeoutMs: 30_000 }], [named("a")]);
+test("headroom fails an exemption whose test file or title is gone, and keeps a present one", () => {
+  const stale = staleExemptions([{ test: `p (c) scripts/headroom.test.mjs > a > ${["absent", "title", "text"].join(" ")}`, reason: "r", owner: "o" }]);
   assert.equal(stale.length, 1);
   assert.match(stale[0], /remove its exemption/);
-  assert.deepEqual(headroomProblems([{ name: "a", durationMs: 13_000, timeoutMs: 30_000 }], [named("a")]), []);
+  assert.equal(staleExemptions([{ test: "p (c) scripts/missing.test.mjs > a > b", reason: "r", owner: "o" }]).length, 1);
+  assert.deepEqual(staleExemptions([{ test: "p (c) scripts/headroom.test.mjs > a > headroom fails a test over half", reason: "r", owner: "o" }]), []);
 });
 
-test("headroom leaves an exemption alone when its test did not run in this shard", () => {
-  assert.deepEqual(headroomProblems([{ name: "b", durationMs: 1_000, timeoutMs: 30_000 }], [named("a")]), []);
+test("every committed exemption still names a test in the source", () => {
+  assert.deepEqual(staleExemptions(readExemptions()), []);
 });
 
 test("an exemption with no reason or owner fails", () => {

@@ -4,4 +4,4 @@ export interface HeadroomTest { name: string; durationMs: number; timeoutMs: num
 export function readExemptions(path?: string): HeadroomExemption[];
 export function exemptionProblems(exemptions: readonly HeadroomExemption[]): string[];
 export function headroomProblems(tests: readonly HeadroomTest[], exemptions: readonly HeadroomExemption[]): string[];
-export const staleBelow: number;
+export function staleExemptions(exemptions: readonly HeadroomExemption[], base?: string): string[];
