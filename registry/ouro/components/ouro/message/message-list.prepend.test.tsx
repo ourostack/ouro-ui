@@ -249,7 +249,8 @@ describe("MessageList prepending older history", () => {
       message.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     }],
     ["a key", (scroller) => scroller.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }))],
-    ["a touch", (scroller) => scroller.dispatchEvent(new Event("touchstart", { bubbles: true }))],
+    // The touch event the list reads, in any browser (WebKit on a desktop makes no TouchEvent).
+    ["a touch", (scroller) => scroller.dispatchEvent(Object.assign(new Event("touchstart", { bubbles: true }), { touches: [{ clientY: 100 }] }))],
   ];
   for (const [name, act] of inputs) {
     it(`keeps a scroll of a few pixels that comes after ${name}`, async () => {
