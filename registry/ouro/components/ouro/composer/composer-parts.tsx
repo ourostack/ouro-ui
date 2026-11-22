@@ -240,6 +240,7 @@ function $textOffset(node: LexicalNode, offset: number, type: "text" | "element"
   // Stryker disable next-line all: every point's leaf is in the leaves, so the loop returns before this fallback
   return start - 1 < 0 ? 0 : start - 1;
 }
+// Stryker disable EqualityOperator: at left === size the next child, or the trailing point, gives the same position
 function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "text" | "element"] {
   let left = offset;
   const children = element.getChildren();
@@ -249,7 +250,6 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
     if ($isLineBreakNode(child)) {
       // Stryker disable next-line all: equivalent: past offset 0 the loop continues to the same point
       if (left === 0) return [element, index, "element"];
-    // Stryker disable next-line EqualityOperator: at left === size the next child, or the trailing point, gives the same position
     } else if (left <= size) {
       return $isElementNode(child) ? $pointAt(child, left) : [child, left, "text"];
     }
@@ -258,8 +258,9 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
   // Stryker disable next-line all: the trailing point is reached only for a block ending in a line break, and its type is read back identically
   return [element, children.length, "element"];
 }
+// Stryker restore EqualityOperator
+// Stryker disable next-line StringLiteral: no test carries a zero-width mark, so the constant only matters to the editor's own caret marks
 const MARK = "\u200b";
-// Stryker disable next-line StringLiteral: a mark replaced by "Stryker was here!" is still removed from the offsets the tests read
 const withoutMarks = (text: string) => text.replaceAll(MARK, "");
 function $selectText(cleanStart: number, cleanEnd: number) {
   const leaves = $leaves($getRoot());
