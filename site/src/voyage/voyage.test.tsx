@@ -306,6 +306,14 @@ describe("the header and the theme section", () => {
     expect(root.getAttribute("data-theme")).toBe("coral");
   });
 
+  it("names the Search button Search, and gives its shortcut as the platform's own aria-keyshortcuts, not in its name", async () => {
+    await renderPage("/");
+    const apple = /Mac|iPhone|iPad/.test(navigator.platform);
+    const search = page.getByRole("button", { name: "Search", exact: true });
+    await expect.element(search).toHaveAttribute("aria-keyshortcuts", apple ? "Meta+K" : "Control+K");
+    expect(search.element().textContent).toContain(apple ? "⌘" : "Ctrl");
+  });
+
   it("finds a component in the command palette by the name another kit gives it", async () => {
     await renderPage("/");
     await userEvent.keyboard(/Mac|iPhone|iPad/.test(navigator.platform) ? "{Meta>}k{/Meta}" : "{Control>}k{/Control}");

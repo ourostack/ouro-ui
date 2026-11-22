@@ -221,6 +221,13 @@ describe("findDesignIssues: cramped-heading", () => {
     render(`<section><div style="height:100px;background:#3a7"></div><div style="display:flex;padding-top:14px"><span style="display:none;height:20px"></span><h2 style="margin:0;font-size:24px">Hidden child</h2></div></section>`);
     expect(of("cramped-heading")).toEqual([]);
   });
+
+  it("leaves a closed details' hidden children out of what is drawn, and draws them once it is open", () => {
+    render(`<details style="border:1px solid #888;border-radius:12px;padding:3px"><summary>Checks</summary><div style="border:1px solid #888;height:40px"></div></details>`);
+    expect(of("nested-frame")).toEqual([]);
+    host.querySelector("details")!.open = true;
+    expect(of("nested-frame")).toHaveLength(1);
+  });
 });
 
 describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a frame, drawn by a border, an outline or a ring, once each", () => {

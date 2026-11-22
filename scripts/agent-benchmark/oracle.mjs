@@ -123,6 +123,9 @@ const policies = {
   },
 };
 
+// App Intents serve the same tool names as the generated MCP tools, for Pantry's tasks.
+policies["apple-app-intents"] = Object.fromEntries(["add-item", "recipe-to-list", "check-off"].map((id) => [id, policies["action-model"][id]]));
+
 /**
  * Runs the scripted agent for `armId` and `taskId` against `opened.tools`; returns the calls it made. A person-only
  * task's path is no call at all: the right move is to tell the person it is theirs to do.

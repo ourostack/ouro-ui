@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { URL } from "node:url";
@@ -129,8 +129,13 @@ test("a release commit's site build takes the install line from its own registry
   assert.deepEqual(currentInstall(dir), expected);
   // What the site build loads as virtual:site-proof (site/vite.config.ts).
   const plugin = proofPlugin(dir);
+  // Computed when Vite starts, outside the module runner's 60 s for a module, and served from there.
+  plugin.buildStart();
+  const own = readFileSync(join(dir, "registry.json"));
+  rmSync(join(dir, "registry.json"));
   const module = plugin.load(plugin.resolveId("virtual:site-proof"));
   assert.ok(module.includes(`export const install = ${JSON.stringify(expected)};`), module);
+  writeFileSync(join(dir, "registry.json"), own);
   // Another tag still comes from git, and one that origin lacks fails.
   // One that origin lacks fails after its tries, naming what git said first and last.
   assert.throws(() => registryAt("v9.9.8", dir, 0), /git fetch of v9\.9\.8 failed 4 times, 0 ms apart, each within 10000 ms\. First: .*refs\/tags\/v9\.9\.8.*\. Last: .*refs\/tags\/v9\.9\.8/s);

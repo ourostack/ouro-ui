@@ -506,8 +506,20 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+/* Keyboard focus draws the chosen ring's own circle, the same 2px ring one pixel further out, so focus and choice are one shape and the chosen dot still shows focus. */
+.site-dot:focus-visible,
+[data-site-demo-looks] button:focus-visible {
+  outline: none;
+}
+.site-dot:focus-visible [data-theme],
+.site-dot:focus-visible [data-site-accent],
+[data-site-demo-looks] button:focus-visible [data-theme] {
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 3px !important;
+}
 @media (forced-colors: active) {
-  .site-dot [data-theme] {
+  .site-dot [data-theme],
+  .site-dot [data-site-accent] {
     outline-color: Highlight;
   }
   html[data-theme="pearl"]:not([data-live]) [data-site-preset="pearl"],
@@ -803,11 +815,22 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
 }
 /*
  * On a phone the headline is a step smaller than the display size, so "Delightful interfaces," holds one line in any
- * Geist metrics and no word is left alone on a line (Ouro check's one-word-line).
+ * Geist metrics and no word is left alone on a line (Ouro check's one-word-line). At 2rem it also stays on two lines in
+ * every look's heading font, so choosing a look does not move what is below it.
+ *
+ * The hand-off (the agent prompt and its Copy button) comes before the scene on a phone, so Copy is on the first screen.
  */
 @media (max-width: 40rem) {
   .site-voyage-hero h1 {
-    font-size: 2.25rem;
+    font-size: 2rem;
     line-height: 1.1;
+  }
+  .site-voyage-hero > :first-child > [data-slot="more"] {
+    order: 1;
+    margin-top: 0;
+  }
+  .site-voyage-hero > [data-slot="media"],
+  .site-voyage-hero::after {
+    order: 2;
   }
 }

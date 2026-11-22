@@ -20,6 +20,12 @@ export const scoped = [
     components: false,
     reason: "a CI or release helper that only the workflows and the Node script tests run",
   },
+  {
+    pattern: /^scripts\/current\//,
+    tiers: ["installs"],
+    components: false,
+    reason: "Ouro Current, which only the install test's current variant and the Node script tests run (install-check.mjs takes its stylesheet module); no browser shard, design shard or heavy job loads it",
+  },
   { pattern: /^scripts\/claims-urls\.json$/, tiers: [], components: false, reason: "the claim URL list, which only the Node script tests read" },
   { pattern: /^scripts\/model-reviews\//, tiers: ["screens"], components: false, reason: "the model reviews and their pages, which the Node script tests read and the site renders at install (#2600)" },
   {
@@ -45,7 +51,7 @@ export const runsAll = {
   scripts: [
     "a11y-evidence/", "addresses.d.mts", "addresses.mjs", "adoption/", "agent-benchmark/", "agent-usability/", "apple-release.mjs", "attribution.mjs", "ax-docs.mts",
     "browser-deps.sh", "catalog-groups.mts", "changes.mjs", "check/", "ci-paths.mjs", "ci-relevance.mjs", "claims.mjs", "components.mts", "conformance-exemptions.mjs", "control-matrix.mts",
-    "core-bundle.mts", "coverage-merge.mjs", "cross-kit/", "current/", "docs-summary.mts", "drift/", "fixtures/", "form-answer-impact.mjs", "gen-docs.mts", "generate.mjs",
+    "core-bundle.mts", "coverage-merge.mjs", "cross-kit/", "docs-summary.mts", "drift/", "fixtures/", "form-answer-impact.mjs", "gen-docs.mts", "generate.mjs",
     "generated-files.d.mts", "generated-files.mjs", "git-hooks/", "goto-timeout-reporter.mjs", "images/", "install-check.mjs", "install-folders.mts", "install-hooks.mjs",
     "kit-pin.mjs", "kits/", "latency-quiet.mjs", "latest-release.mjs", "local-test-gate.sh", "layout-animation-allowed.json", "links.mjs", "lint/", "mcp-app.mts", "mcp-app/", "mirror/", 
     "motion-coverage.mts", "motion-reporter.mts", "motion-states.mts", "mutation.mjs", "mutation/", "namespace.sh", "ouro-actions/", "parity-matrix.mjs",
