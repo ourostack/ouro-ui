@@ -84,3 +84,9 @@ test("a breach on a push to main annotates and stays green; a pull request fails
 test("a malformed exemption fails the run on main too", () => {
   assert.equal(judge({ tests: [], exemptions: [{ test: "x", reason: "", owner: "o" }], event: "push", changed: null }).failures.length >= 1, true);
 });
+
+test("changedFiles reads a pull request's files, and judges every test where it gets none", () => {
+  assert.deepEqual([...changedFiles("a.test.tsx\n b/c.test.ts \n\n")], ["a.test.tsx", "b/c.test.ts"]);
+  assert.equal(changedFiles(undefined), null);
+  assert.equal(changedFiles(" \n"), null);
+});
