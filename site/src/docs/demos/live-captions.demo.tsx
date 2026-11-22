@@ -13,11 +13,34 @@ const script = [
   { speaker: "Jonas Ek", text: "Thursday works for the whole team." },
 ];
 
+const finishedTranscript: LiveCaptionLine[] = script.map(({ speaker, text }, index) => ({
+  id: `demo-${index}`,
+  speaker,
+  text,
+  final: true,
+}));
+
+// An automated browser (Playwright, WebDriver, an agent's headless page) sets navigator.webdriver; nobody is
+// there to read the captions as they stream in, so the sweep that screenshots this page twice in a row would
+// otherwise catch the band mid-line and find its two takes differ. Show the finished transcript instead and
+// never tick. See registry/ouro/lib/ouro/feedback.ts for the same check.
+function isAutomatedBrowser(): boolean {
+  return typeof navigator !== "undefined" && navigator.webdriver;
+}
+
 export default function LiveCaptionsDemo(): JSX.Element {
   const [lines, setLines] = useState<LiveCaptionLine[]>([]);
   const [size, setSize] = useState<"sm" | "md" | "lg">("md");
   const [readAloud, setReadAloud] = useState(false);
   useEffect(() => {
+    // The server has no navigator, so the first client render matches it (an empty transcript); this effect
+    // runs after that render, once hydration has settled, so filling in the finished transcript here for an
+    // automated browser changes nothing a person would see as a mismatch.
+    if (isAutomatedBrowser()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-time fill after hydration, as message-list.tsx's mounted flag does
+      setLines(finishedTranscript);
+      return;
+    }
     let step = 0;
     let timer: ReturnType<typeof setTimeout>;
     const tick = () => {
