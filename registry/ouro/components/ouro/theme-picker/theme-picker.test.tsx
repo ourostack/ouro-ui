@@ -263,6 +263,14 @@ describe("ThemePicker", () => {
     expect(getComputedStyle(square).backgroundColor).toBe("rgb(15, 118, 110)");
   });
 
+  it("tells Ouro check that the chosen look's ring, standing off its wordmark, is a mark and not a second border", async () => {
+    const el = await render(<ThemePicker presets={presets} />);
+    for (const name of ["pearl", "abyss"]) {
+      expect(option(el, name).getAttribute("data-ouro-allow")).toBe("nested-frame");
+      expect(option(el, name).getAttribute("data-ouro-allow-why")).toBe("the chosen look's ring stands off its wordmark by a gap of page paper, marking the choice, not a second border");
+    }
+  });
+
   it("sets a look's name in its --font-wordmark where the look gives one, a face holding only the name's letters", async () => {
     const wordmark = document.createElement("style");
     wordmark.textContent = '[data-theme="abyss"] { --font-wordmark: fantasy; }';

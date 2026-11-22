@@ -175,6 +175,8 @@ function Looks({
             key={item.name}
             type="button"
             data-slot="theme-picker-option"
+            data-ouro-allow="nested-frame"
+            data-ouro-allow-why="the chosen look's ring stands off its wordmark by a gap of page paper, marking the choice, not a second border"
             data-ouro-control="theme-picker"
             data-ouro-part="preset"
             data-preset={item.name}
