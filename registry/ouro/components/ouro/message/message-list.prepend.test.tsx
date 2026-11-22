@@ -108,6 +108,11 @@ async function mountScrolledUp(windowing?: boolean) {
   await settle(scroller);
   return {
     scroller,
+    /** Makes the first messages, far above the view, longer: the list holds the reader's place by writing its scroll position. */
+    grow: () => {
+      items = items.map((item, index) => (index < 5 ? { ...item, text: `${item.text} ${"more ".repeat(60)}` } : item));
+      return draw();
+    },
     startLoading: () => draw(true),
     prepend: (page: number) => {
       items = [...history(PAGE, -PAGE * page), ...items];
@@ -214,6 +219,39 @@ describe("MessageList prepending older history", () => {
       expect(added.reduce((sum, count) => sum + count, 0)).toBe(PAGE);
     });
   }
+
+  /** Grows the messages above a scrolled-up reader, and returns the scroll position the list wrote to hold their place. */
+  async function held() {
+    const list = await mountScrolledUp(false);
+    const before = list.scroller.scrollTop;
+    await list.grow();
+    await expect.poll(() => list.scroller.scrollTop).not.toBe(before);
+    return { ...list, at: list.scroller.scrollTop };
+  }
+
+  // Chromium sometimes moves the scroll position a pixel or two by itself, in the frame after the list held the reader's place.
+  it("puts back a scroll of a few pixels at rest that neither the reader nor the list made, just after the list held the reader's place", async () => {
+    const { scroller, at } = await held();
+    const reading = firstVisible(scroller);
+    scroller.scrollTop = at - 2;
+    await frames(2);
+    expect(scroller.scrollTop).toBe(at);
+    expect(Math.abs(firstVisible(scroller).top - reading.top)).toBeLessThanOrEqual(2);
+  });
+
+  it("keeps a scroll of a few pixels that comes after the reader pressed, or long after the list's own write", async () => {
+    const pressed = await held();
+    pressed.scroller.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    pressed.scroller.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+    pressed.scroller.scrollTop = pressed.at - 2;
+    await frames(2);
+    expect(pressed.scroller.scrollTop).toBe(pressed.at - 2);
+    const later = await held();
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    later.scroller.scrollTop = later.at - 2;
+    await frames(2);
+    expect(later.scroller.scrollTop).toBe(later.at - 2);
+  });
 
   chromiumOnly(`keeps layout still as three pages of older messages go in above a scrolled-up reader, with no layout shift, when every message is drawn`, async () => {
     const pages = await prependPages(false);
