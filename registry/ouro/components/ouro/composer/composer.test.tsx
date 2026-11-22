@@ -977,6 +977,27 @@ describe("Composer expanded", () => {
     expect(onSend).toHaveBeenCalledWith("Hi @ma", expect.anything());
   });
 
+  it("leaves a rich composer's editor a multiline textbox with its placeholder without an Autocomplete, and a combobox with neither inside one", async () => {
+    const bare = await render(<Composer label="Bare rich" format="rich" placeholder="Say hi" onSend={() => {}} />);
+    await expect.poll(() => bare.host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    const plain = bare.host.querySelector<HTMLElement>("[data-ouro-composer-editor]")!;
+    expect(plain.getAttribute("role")).toBe("textbox");
+    expect(plain.getAttribute("aria-multiline")).toBe("true");
+    expect(plain.getAttribute("aria-placeholder")).toBe("Say hi");
+    expect(plain.hasAttribute("aria-expanded")).toBe(false);
+    expect(plain.hasAttribute("aria-autocomplete")).toBe(false);
+    const wrapped = await render(
+      <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "mara", label: "Mara Quill" }] }]}>
+        <Composer label="Wrapped rich" format="rich" placeholder="Say hi" onSend={() => {}} />
+      </Autocomplete>,
+    );
+    await expect.poll(() => wrapped.host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    const boxed = wrapped.host.querySelector<HTMLElement>("[data-ouro-composer-editor]")!;
+    expect(boxed.getAttribute("role")).toBe("combobox");
+    expect(boxed.hasAttribute("aria-multiline")).toBe(false);
+    expect(boxed.hasAttribute("aria-placeholder")).toBe(false);
+  });
+
   it("gives a rich composer's editor the combobox attributes of an open and a closed suggestion list", async () => {
     const { host } = await render(
       <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "mara", label: "Mara Quill" }] }]}>
