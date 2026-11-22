@@ -33,7 +33,7 @@ export function HandOff({ full = true }: { full?: boolean }): JSX.Element {
         full ? (
           <>
             {HANDOFF.caption}{" "}
-            <span className="site-install-more">
+            <span className="site-install-more whitespace-nowrap">
               <Link href={HANDOFF.commands.href} tone="secondary" inline>
                 {HANDOFF.commands.text}
               </Link>
