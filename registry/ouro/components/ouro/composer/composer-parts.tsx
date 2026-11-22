@@ -405,6 +405,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     editorRef.current = editor;
     // A copy of the editor that Markdown offsets are worked out in, made when first asked.
     let scratch: LexicalEditor | undefined;
+    // Stryker disable next-line ObjectLiteral,StringLiteral,BlockStatement: the copy only receives the editor's own state and writes a mark into it, so its options, namespace and error handler are never read
     const copy = () => (scratch ??= createEditor({ namespace: "ouro-composer-offsets", nodes: NODES, onError: /* istanbul ignore next @preserve -- the copy only writes text into states that already hold */ (error) => { throw error; } }));
     const read = () => (inMarkdown.current ? readMarkdownControl(editor, copy()) : readControl(editor));
     Object.defineProperties(root, {
