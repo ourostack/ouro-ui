@@ -102,6 +102,11 @@ export interface ComposerOwnProps {
   value?: string | undefined;
   /** The starting text, for an uncontrolled composer, which clears itself after a send. */
   defaultValue?: string | undefined;
+  /**
+   * Which conversation this box writes to, such as its id. An uncontrolled composer starts over from `defaultValue` when it
+   * changes, so a draft stays in its own conversation; a controlled one is the app's to reset.
+   */
+  conversation?: string | undefined;
   /** Called with the new text when it changes. */
   onValueChange?: ((value: string) => void) | undefined;
   /** An example of what to write, shown on the first line while the box is empty. */
@@ -470,6 +475,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     onSend,
     value,
     defaultValue,
+    conversation,
     onValueChange,
     placeholder,
     sendOn: sendOnProp = "enter",
@@ -537,6 +543,11 @@ export function Composer(props: ComposerProps): JSX.Element {
   // Any other value is enter, as the default; expanded, Enter is a new line.
   const modEnter = expanded || sendOnProp === "mod-enter";
   const [own, setOwn] = useState(defaultValue ?? "");
+  const [ownConversation, setOwnConversation] = useState(conversation);
+  if (conversation !== ownConversation) {
+    setOwnConversation(conversation);
+    setOwn(defaultValue ?? "");
+  }
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   // The row around the text, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
