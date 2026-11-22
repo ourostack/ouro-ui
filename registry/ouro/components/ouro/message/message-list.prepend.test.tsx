@@ -286,7 +286,7 @@ describe("MessageList prepending older history", () => {
       const { scroller, at } = await held();
       if (name === "scrollTo") scroller.scrollTo({ top: at - 400, behavior: "smooth" });
       else scroller.scrollBy({ top: -400, behavior: "smooth" });
-      await expect.poll(() => scroller.scrollTop, { timeout: 3000 }).toBe(at - 400);
+      await expect.poll(() => scroller.scrollTop).toBe(at - 400);
     });
   }
 
