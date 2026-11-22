@@ -158,5 +158,30 @@
     "test": "* registry/ouro/components/ouro/menu/menu.test.tsx > Menu items > passes the accessibility gate open, with every item type, in light and dark, inside the page's main landmark",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/combobox/combobox.touch.test.tsx > Combobox on a phone > clears typed text to an empty string with allowCustomValue",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command > hides the empty list from assistive technology while nothing matches, so the gate passes with only the empty state",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/dialog/dialog.touch.test.tsx > initial focus in the centered dialog (landscape phone, * > focuses the popup, not the input, after a tap, so no keyboard pops up",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/adoption/adoption.test.tsx > the adoption page > has a route and leads with the count of green products out of the total",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/voyage/voyage.test.tsx > the header and the theme section > turns X-ray on from the header's switch and from See how it's built",
+    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
   }
 ]
