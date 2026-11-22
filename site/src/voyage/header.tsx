@@ -252,6 +252,8 @@ export function VoyageHeader({
       />
       <Navbar
         label="Primary"
+        // The links, and the Search and X-ray beside them, need more than a tablet's width: collapsing in the server HTML means the links never draw, then give way to the menu button, when the page measures them.
+        collapseBelow="lg"
         // Sticky, but on the docs only on a phone: from 640px the docs sidebar sticks to the top itself, and would sit under it.
         className={`${gutters === "voyage" ? "sticky top-0 z-40" : "relative z-40 max-sm:sticky max-sm:top-0"} ${GUTTERS[gutters]}`}
         brand={

@@ -49,12 +49,12 @@ test.describe("Live, at every sky, light and dark", () => {
     await expect(page.locator("html")).toHaveAttribute("data-sky", "dusk");
     await expect(page.locator("#ouro-live")).toHaveCount(1);
     const dots = page.getByRole("group", { name: "Theme", exact: true });
-    await expect(dots.getByRole("button", { name: "Live", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(dots.getByRole("button", { name: "Sky", exact: true })).toHaveAttribute("aria-pressed", "true");
     await dots.getByRole("button", { name: "Coral", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "coral");
     await expect(page.locator("html")).not.toHaveAttribute("data-live", /.*/);
     await expect(page.locator("#ouro-live")).toHaveCount(0);
-    await dots.getByRole("button", { name: "Live", exact: true }).click();
+    await dots.getByRole("button", { name: "Sky", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-sky", "dusk");
     await expect(page.locator("#ouro-live")).toHaveCount(1);
   });

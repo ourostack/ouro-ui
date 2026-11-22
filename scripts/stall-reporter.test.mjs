@@ -174,6 +174,24 @@ test("slowTestText says Node was not held up when no hold reached 50 ms, and sho
   );
 });
 
+test("slowTestText names a heavy neighbour sharing the event loop when Node was held up", () => {
+  const entry = { project: "ouro-webkit (webkit)", file: "registry/ouro/components/ouro/command/command.test.tsx", name: "Command > forgives one slip" };
+  const inFlight = [
+    { project: "ouro-webkit (webkit)", file: "registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx", name: "lays out a conversation of many mosaics quickly in WebKit", startedAt: now - 10_000 },
+  ];
+  assert.equal(
+    slowTestText(entry, 9_000, 15_000, 337, inFlight, now),
+    "[ouro-ui] Vitest: ouro-webkit (webkit) registry/ouro/components/ouro/command/command.test.tsx > Command > forgives one slip has run for 9s of its 15 s timeout. Node's event loop was held up for 337 ms while it ran, so an answer from Node may have waited behind it. Sharing the event loop: ouro-webkit (webkit) registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx > lays out a conversation of many mosaics quickly in WebKit (running 10s). The reporter cannot see the browser command a test awaits; a timeout names it.",
+  );
+});
+
+test("slowTestText names no neighbour when none was in flight, or when Node was not held up", () => {
+  const entry = { project: "", file: "test/a.test.tsx", name: "A > b" };
+  const inFlight = [{ project: "", file: "test/c.test.tsx", name: "C > d", startedAt: now - 1_000 }];
+  assert.equal(slowTestText(entry, 7_600, 15_000, 100, [], now), slowTestText(entry, 7_600, 15_000, 100));
+  assert.doesNotMatch(slowTestText(entry, 480, 1_000, 0, inFlight, now), /Sharing the event loop/);
+});
+
 /** Holds Node's event loop for `ms`, as work in the same process does, so no timer or answer runs meanwhile. */
 function holdNode(ms) {
   const end = Date.now() + ms;

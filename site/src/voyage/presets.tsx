@@ -16,7 +16,7 @@ export interface PresetInfo {
 export const presetList = presets as (PresetInfo & { name: PresetName })[];
 
 /** Live: Pearl under the reader's own sky (themes/live.ts), so Pearl's type, corners and CSS. */
-export const LIVE: PresetInfo = { ...presetList[0]!, name: "live", label: "Live", mood: "Follows your sky, from first light to moonrise" };
+export const LIVE: PresetInfo = { ...presetList[0]!, name: "live", label: "Sky", mood: "Follows your sky, from first light to moonrise" };
 
 /** Everything a reader can pick, Live first. */
 export const choiceList: readonly PresetInfo[] = [LIVE, ...presetList];

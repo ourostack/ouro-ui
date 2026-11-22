@@ -316,7 +316,7 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await pressTab(page);
   await expect(theme("Pearl")).toBeFocused();
   await page.keyboard.press("ArrowLeft");
-  await expect(theme("Live")).toBeFocused();
+  await expect(theme("Sky")).toBeFocused();
   for (const name of ["Pearl", "Abyss"]) {
     await page.keyboard.press("ArrowRight");
     await expect(theme(name)).toBeFocused();

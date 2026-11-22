@@ -63,7 +63,8 @@ export const testShare = 0.5;
 /**
  * What a shard of files costs, in seconds: each mutant's overhead and its share of its own file's
  * tests, plus the first run over every test file the shard needs, the importers' of a lib/ file
- * included. `files` maps each path to `{ mutants, own, wider }`.
+ * included. `files` maps each path, or a unit's `path:start-end` id, to `{ mutants, own, wider }`,
+ * with the unit's `path` when the key is an id.
  */
 export function shardCost(paths, files, seconds) {
   const time = (file) => seconds[file] ?? unmeasuredSeconds;
@@ -71,9 +72,9 @@ export function shardCost(paths, files, seconds) {
   let hangs = 0;
   const tests = new Set();
   for (const path of paths) {
-    const { mutants, own, wider } = files[path];
+    const { mutants, own, wider, path: source = path } = files[path];
     total += mutants * (mutantOverhead + testShare * own.reduce((sum, file) => sum + time(file), 0));
-    hangs += mutants * (hangRates[path] ?? timeoutRate);
+    hangs += mutants * (hangRates[source] ?? timeoutRate);
     for (const file of [...own, ...wider]) tests.add(file);
   }
   let testSeconds = 0;

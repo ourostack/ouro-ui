@@ -91,14 +91,24 @@ export function holdText(heldMs: number, inFlight: readonly InFlight[], now: num
  * The line written once a test case has run for half its timeout: how long it has run, and the longest hold on
  * Node's event loop while it ran (`heldMs`, 0 when no hold reached HOLD_MS). A hold is what a browser command's
  * answer waits behind, since Node answers every browser command. The reporter cannot see the browser command
- * a test awaits, so the line says so.
+ * a test awaits, so the line says so. When Node was held up, it also names whatever else was in flight at the
+ * same time (`inFlight`, this test left out): a heavy neighbour sharing the same event loop is what a hold
+ * usually waits on (issue #2469).
  */
-export function slowTestText(entry: Pick<InFlight, "project" | "file" | "name">, runningMs: number, timeoutMs: number, heldMs: number): string {
+export function slowTestText(
+  entry: Pick<InFlight, "project" | "file" | "name">,
+  runningMs: number,
+  timeoutMs: number,
+  heldMs: number,
+  inFlight: readonly InFlight[] = [],
+  now = Date.now(),
+): string {
   const loop =
     heldMs >= HOLD_MS
       ? `Node's event loop was held up for ${spanOf(heldMs)} while it ran, so an answer from Node may have waited behind it.`
       : `Node's event loop was not held up for ${HOLD_MS} ms or more while it ran, so the wait is not in Node.`;
-  return `[ouro-ui] Vitest: ${label(entry.project, entry.file)} > ${entry.name} has run for ${spanOf(runningMs)} of its ${threshold(timeoutMs)} timeout. ${loop} The reporter cannot see the browser command a test awaits; a timeout names it.`;
+  const neighbours = heldMs >= HOLD_MS && inFlight.length > 0 ? ` Sharing the event loop: ${inFlight.map((other) => describeInFlight(other, now)).join("; ")}.` : "";
+  return `[ouro-ui] Vitest: ${label(entry.project, entry.file)} > ${entry.name} has run for ${spanOf(runningMs)} of its ${threshold(timeoutMs)} timeout. ${loop}${neighbours} The reporter cannot see the browser command a test awaits; a timeout names it.`;
 }
 
 /** One in-flight entry: a test case with its running time, or a file in the phase or hook it is in. */
@@ -722,7 +732,8 @@ export class StallReporter implements Reporter {
         continue;
       }
       kase.named = true;
-      process.stderr.write(`${slowTestText(kase.entry, now - kase.entry.startedAt, kase.timeout, this.#heldSince(kase.entry.startedAt))}\n`);
+      const neighbours = this.#inFlight().filter((other) => other !== kase.entry);
+      process.stderr.write(`${slowTestText(kase.entry, now - kase.entry.startedAt, kase.timeout, this.#heldSince(kase.entry.startedAt), neighbours, now)}\n`);
     }
   }
 

@@ -122,12 +122,19 @@ export const readSource = (element: Element): SourceStyles | null => {
   if (!shapes) {
     return null;
   }
+  const radii = RADIUS_LONGHANDS.map((prop) =>
+    parseRadiusLonghand(cs.getPropertyValue(prop))
+  ) as CornerRadiusList;
+  // Every corner is 0 — a squircle this flat is a plain rectangle already, so there is nothing to
+  // draw. Bailing here skips the caller's offsetWidth/offsetHeight read (a forced layout) for the
+  // many non-rounded elements a broad corner-shape selector can match.
+  if (radii.every(({ x, y }) => x.value === 0 && y.value === 0)) {
+    return null;
+  }
 
   return {
     shapes,
-    radii: RADIUS_LONGHANDS.map((prop) =>
-      parseRadiusLonghand(cs.getPropertyValue(prop))
-    ) as CornerRadiusList,
+    radii,
     border: readBorder(cs),
     shadows: parseBoxShadow(cs.boxShadow),
     outline: readOutline(cs),
