@@ -223,5 +223,10 @@
     "test": "* test/controls.touch.test.tsx > no control is left unmarked on a touch phone > *",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/current/current.test.tsx > Ouro Current's page > has a route, leads with what it does and has one Install button",
+    "reason": "The first test of the file loads the page's route and renders it cold, and ran past half its timeout in a pull request run. Preload the route in a shared helper, then remove this entry.",
+    "owner": "drain-3"
   }
 ]
