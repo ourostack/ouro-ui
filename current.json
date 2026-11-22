@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-22T17:25:52.979Z",
+  "generatedAt": "2026-11-22T17:53:57.734Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -366,14 +366,14 @@
     },
     {
       "repo": "spoonjoy/spoonjoy-v2",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.445",
+          "current": "v1.3.446",
           "latest": "v1.3.446",
-          "behind": true
+          "behind": false
         },
         {
           "file": "vendor/ouro-ui-core/pin.json",
@@ -383,10 +383,7 @@
           "behind": false
         }
       ],
-      "pr": {
-        "number": 853,
-        "url": "https://github.com/spoonjoy/spoonjoy-v2/pull/853"
-      }
+      "pr": null
     }
   ]
 }
