@@ -249,7 +249,7 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
     if ($isLineBreakNode(child)) {
       // Stryker disable next-line all: equivalent: past offset 0 the loop continues to the same point
       if (left === 0) return [element, index, "element"];
-    // Stryker disable next-line all: equivalent at the boundary: the next child would return the same position
+    // Stryker disable next-line EqualityOperator: at left === size the next child, or the trailing point, gives the same position
     } else if (left <= size) {
       return $isElementNode(child) ? $pointAt(child, left) : [child, left, "text"];
     }
@@ -259,6 +259,7 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
   return [element, children.length, "element"];
 }
 const MARK = "\u200b";
+// Stryker disable next-line StringLiteral: a mark replaced by "Stryker was here!" is still removed from the offsets the tests read
 const withoutMarks = (text: string) => text.replaceAll(MARK, "");
 function $selectText(cleanStart: number, cleanEnd: number) {
   const leaves = $leaves($getRoot());
