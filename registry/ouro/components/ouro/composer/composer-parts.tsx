@@ -214,10 +214,9 @@ function toggleLinkOfSelection(): void {
 const toMarkdown = (editor: LexicalEditor) => separateBlocks(editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", ""));
 
 // The editor's element answers as a textarea does, over the text without its marks, one line to each block, so Autocomplete finds a trigger at the caret and puts a pick in place of it.
-// Stryker disable next-line LogicalOperator: this editor has no inline element nodes, so a child is a block exactly when it is an element
 const $isLeaf = (node: ElementNode) => !node.getChildren().some((child) => $isElementNode(child) && !child.isInline());
 function $leaves(node: ElementNode): ElementNode[] {
-  // Stryker disable next-line ConditionalExpression,LogicalOperator,ArrayDeclaration: the root holds blocks only, and a block with no child block is a leaf, so every walk ends at the same leaves
+  // Stryker disable next-line LogicalOperator: every child that is not an element node (text, line break) is inline, so `||` selects the same children
   return node.getChildren().flatMap((child) => ($isElementNode(child) && !child.isInline() ? ($isLeaf(child) ? [child] : $leaves(child)) : []));
 }
 const $lengthBefore = (node: LexicalNode) => node.getPreviousSiblings().reduce((sum, sibling) => sum + sibling.getTextContentSize(), 0);

@@ -250,6 +250,21 @@ describe("Composer rich element selection", () => {
     expect(host.contains(control)).toBe(true);
   });
 
+  it("reads a link as part of its line, not as a block, beside a nested list", async () => {
+    const { host, ...mounted } = await render(<Composer label="Message" format="rich" defaultValue={"[ab](https://x.test) cd\n\n- one [two](https://x.test) end\n  - nest"} onSend={() => {}} />);
+    const control = mounted.editor as Control;
+    expect(control.querySelector("a")).not.toBeNull();
+    control.focus();
+    expect(control.value).toBe("ab cd\n\none two end\nnest");
+    control.setSelectionRange(3, 3);
+    expect([control.selectionStart, control.selectionEnd]).toEqual([3, 3]);
+    control.setSelectionRange(11, 14);
+    expect([control.selectionStart, control.selectionEnd]).toEqual([11, 14]);
+    control.setRangeText("X", 11, 14);
+    expect(control.value).toBe("ab cd\n\none X end\nnest");
+    void host;
+  });
+
   it("announces a change as an input event that is marked to bubble", async () => {
     const { control } = await document_();
     const seen: Event[] = [];
