@@ -93,7 +93,7 @@ describe("Composer rich paste", () => {
     expect(prompt).toHaveBeenCalledWith("Link address");
   });
 
-  it.each(["script", "style", "noscript", "iframe", "object", "title", "svg"])("drops <%s> with its text", async (tag) => {
+  it.each(["script", "style", "noscript", "iframe", "object", "noembed", "noframes", "title", "svg"])("drops <%s> with its text", async (tag) => {
     const seen: string[] = [];
     const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
     editor.focus();

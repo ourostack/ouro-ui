@@ -121,7 +121,7 @@ const safeHref = (text: string): string | undefined => {
 
 const htmlFormats: Record<string, TextFormatType> = { B: "bold", STRONG: "bold", I: "italic", EM: "italic", U: "underline", S: "strikethrough", DEL: "strikethrough", STRIKE: "strikethrough", CODE: "code" };
 const htmlBlocks = new Set(["P", "DIV", "LI", "BLOCKQUOTE", "PRE", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "TR"]);
-const htmlSkipped = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "IFRAME", "OBJECT", "TITLE", "SVG"]);
+const htmlSkipped = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "IFRAME", "OBJECT", "NOEMBED", "NOFRAMES", "TITLE", "SVG"]);
 
 // The allowlist for a formatted paste: bold, italic, underline, strikethrough, code, links to http, https and mailto addresses, line breaks and paragraphs. A list item, quote or heading comes in as a line, a list item and a quote with the Markdown that starts them; every other tag, style and attribute is dropped, keeping its text.
 function $nodesFromHtml(html: string): LexicalNode[][] {
