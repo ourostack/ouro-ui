@@ -1,0 +1,1 @@
+- Sidebar: a label longer than the column wraps onto more lines instead of ending in an ellipsis, so touch and keyboard readers see the whole title.
