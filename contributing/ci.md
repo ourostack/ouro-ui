@@ -11,7 +11,7 @@ How Ouro UI's CI decides a pull request: the required `ci` check and its jobs, t
 
 ## Sweeps stability guard
 
-On a pull request, the sweeps shards set `OURO_SWEEP_RETAKE` (`scripts/sweeps-retake.mjs`, from the files the change touches), and `site/e2e/states-sweep.ts` then takes the picture of a control that a changed component or shared stylesheet reaches twice, and reports a finding naming the control signature, page and state when the two takes differ. Main's runs take each picture once. To try it by hand, set `OURO_SWEEP_RETAKE=all` (or `names:<component>,<component>`) before running a states spec; the logic and its tests are in `site/e2e/stable-take.ts` and `scripts/sweeps-retake.test.mjs`.
+The sweeps shards on a pull request set `OURO_SWEEP_RETAKE` (`scripts/sweeps-retake.mjs`, from the files the change touches). `site/e2e/states-sweep.ts` then repeats the picture of a control that a changed component or shared stylesheet reaches, and reports a finding naming the control signature, page and state when the repeat differs. Main's runs are left as they were. To try it by hand, set `OURO_SWEEP_RETAKE=all` (or `names:<component>,<component>`) before running a states spec; the logic and its tests are in `site/e2e/stable-take.ts` and `scripts/sweeps-retake.test.mjs`.
 
 ## Script tests
 
