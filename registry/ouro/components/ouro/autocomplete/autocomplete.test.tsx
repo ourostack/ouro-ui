@@ -126,11 +126,20 @@ describe("Autocomplete", () => {
       }
       expect(box.getAttribute("role")).toBe("combobox");
       expect(box.getAttribute("aria-expanded")).toBe("false");
+      expect(box.getAttribute("aria-autocomplete")).toBe("list");
+      expect(box.hasAttribute("aria-controls")).toBe(false);
+      expect(box.hasAttribute("aria-activedescendant")).toBe(false);
       await type(box, "Thanks @av");
       await expect.poll(() => `${format} ${box.getAttribute("aria-expanded")}`).toBe(`${format} true`);
+      expect(box.getAttribute("role")).toBe("combobox");
+      expect(box.getAttribute("aria-autocomplete")).toBe("list");
       expect(document.getElementById(box.getAttribute("aria-controls")!)?.getAttribute("role")).toBe("listbox");
+      await expect.poll(() => box.getAttribute("aria-activedescendant")).toBe(options()[0]!.id);
+      expect(options()[0]!.getAttribute("role")).toBe("option");
       await userEvent.keyboard("{Escape}");
       await expect.poll(() => box.getAttribute("aria-expanded")).toBe("false");
+      expect(box.hasAttribute("aria-controls")).toBe(false);
+      expect(box.hasAttribute("aria-activedescendant")).toBe(false);
     }
   });
 

@@ -364,7 +364,7 @@ function readMarkdownControl(editor: LexicalEditor, scratch: LexicalEditor) {
   return { value, start: Math.min(a, b), end: Math.max(a, b) };
 }
 
-/** The props that are set, so an unset one never replaces the editor's own. */
+/** The props that are set, so an unset one leaves the editor's own in place. */
 function definedOnly(props: HTMLAttributes<HTMLDivElement> | undefined) {
   return Object.fromEntries(Object.entries(props ?? {}).filter(([, value]) => value !== undefined));
 }
