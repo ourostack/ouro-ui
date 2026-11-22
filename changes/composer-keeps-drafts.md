@@ -1,0 +1,1 @@
+- Composer: an uncontrolled composer keeps each conversation's unsent draft in memory, so it is back when the person returns to that conversation; only the most recent drafts are kept.
