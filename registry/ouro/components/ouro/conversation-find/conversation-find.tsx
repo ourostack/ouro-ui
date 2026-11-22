@@ -111,16 +111,41 @@ export function ConversationFind({
   useEffect(() => {
     latest.current = { current, count, onCurrentChange, onClose };
   });
+  // A step that landed with no match to land on because the count a parent passes down is still the old search's, or not in
+  // yet: resolved against the count once it arrives, instead of lost, so a step pressed while a search is still pending still lands.
+  const pendingStep = useRef<1 | -1 | null>(null);
 
   const step = (direction: 1 | -1) => {
     const next = stepFrom(latest.current.current, latest.current.count, direction);
-    if (next !== null) latest.current.onCurrentChange(next);
+    if (next !== null) {
+      pendingStep.current = null;
+      latest.current.onCurrentChange(next);
+    } else {
+      pendingStep.current = direction;
+    }
   };
   const close = () => {
     latest.current.onClose();
     // Stryker disable next-line OptionalChaining: a page's activeElement is null only in a document with no body.
     opener?.focus();
   };
+
+  useEffect(() => {
+    pendingStep.current = null;
+  }, [query]);
+
+  useEffect(
+    () => {
+      if (pendingStep.current === null || count === 0) return;
+      const direction = pendingStep.current;
+      pendingStep.current = null;
+      const next = stepFrom(current, count, direction);
+      if (next !== null) onCurrentChange(next);
+    },
+    // Stryker disable next-line ArrayDeclaration: only count turns a pending step into a resolved one; current and onCurrentChange come from the same render as this count.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs only when count changes; current and onCurrentChange are read as of that same render
+    [count],
+  );
 
   useEffect(
     () => {
@@ -130,8 +155,7 @@ export function ConversationFind({
         const again = event.code === "KeyG" && event.metaKey !== event.ctrlKey;
         if (!find && !again) return;
         event.preventDefault();
-        const next = stepFrom(latest.current.current, latest.current.count, event.shiftKey ? -1 : 1);
-        if (next !== null) latest.current.onCurrentChange(next);
+        step(event.shiftKey ? -1 : 1);
       };
       document.addEventListener("keydown", onKey);
       return () => document.removeEventListener("keydown", onKey);

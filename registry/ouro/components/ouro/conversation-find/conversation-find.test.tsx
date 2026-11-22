@@ -115,6 +115,23 @@ describe("ConversationFind", () => {
     expect([enter.defaultPrevented, escape.defaultPrevented]).toEqual([true, true]);
   });
 
+  it("lands a step pressed while the count for the query has not arrived yet, once it does", async () => {
+    const { root } = await render(<Bar count={0} start={null} />);
+    await userEvent.keyboard("{Enter}");
+    expect(seen.steps).toEqual([]);
+    await act(async () => root.render(<Bar count={4} start={null} />));
+    expect(seen.steps).toEqual([0]);
+  });
+
+  it("drops a step pressed before a count arrives when the query changes first, instead of landing it on the new query's matches", async () => {
+    const { root } = await render(<Bar count={0} start={null} query="zebra" />);
+    await userEvent.keyboard("{Enter}");
+    expect(seen.steps).toEqual([]);
+    await act(async () => root.render(<Bar count={0} start={null} query="lunch" />));
+    await act(async () => root.render(<Bar count={3} start={null} query="lunch" />));
+    expect(seen.steps).toEqual([]);
+  });
+
   it("draws the box and its three buttons, names its placeholder, and reports what is typed", async () => {
     const typed: string[] = [];
     await render(<ConversationFind label="Find in conversation" query="" onQueryChange={(value) => typed.push(value)} count={0} current={null} onCurrentChange={() => {}} onClose={() => {}} />);
