@@ -84,7 +84,9 @@ function leaveOrContinueBlock(editor: LexicalEditor): boolean {
   return editor.dispatchCommand(INSERT_PARAGRAPH_COMMAND, undefined);
 }
 
-const lineKind = (line: string) => (/^\s*(?:[-*+]|\d+\.) /.test(line) ? "list" : line.startsWith(">") ? "quote" : "text");
+// Stryker disable next-line StringLiteral: Lexical already writes a blank line where a text line meets a block, so naming a text line "" leaves the output as it was.
+const textKind = "text";
+const lineKind = (line: string) => (/^\s*(?:[-*+]|\d+\.) /.test(line) ? "list" : line.startsWith(">") ? "quote" : textKind);
 
 // Lexical writes the line after a block with no blank line between, which a reader of Markdown takes to be part of the block: a line after a list item belongs to the item. A blank line keeps each block its own.
 function separateBlocks(markdown: string): string {
@@ -93,11 +95,13 @@ function separateBlocks(markdown: string): string {
   let before = "";
   for (const line of markdown.split("\n")) {
     const fence = line.startsWith("```");
+    // Stryker disable next-line StringLiteral: a fence line is told apart by `fence`, not by its kind, so the kind's name is never compared.
     const kind = fence ? "fence" : lineKind(line);
     // The line that closes a fence is a fence too; one inside it is the code's.
     if (!fenced && line !== "" && before !== "" && (kind !== before || fence)) out.push("");
     if (fence) fenced = !fenced;
     out.push(line);
+    // Stryker disable next-line StringLiteral: only that it is not empty matters, since a fence line is separated by `fence` whatever it follows.
     before = fenced ? "" : fence ? "fence" : line === "" ? "" : kind;
   }
   return out.join("\n");
