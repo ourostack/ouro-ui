@@ -192,9 +192,13 @@ describe("useFindHighlights", () => {
     await expect.poll(() => scrollTo.mock.calls.length).toBe(2);
     await act(async () => root.render(<Harness query="last" current={0} roomy />));
     await act(async () => root.render(<Harness query="last" current={0} roomy shortA={false} />));
+    await frame();
+    await frame();
     await expect.poll(() => scrollTo.mock.calls.length).toBe(2);
     scrollTo.mockClear();
     await act(async () => root.render(<Harness query="last" current={0} tall />));
+    await frame();
+    await frame();
     expect(scrollTo).not.toHaveBeenCalled();
   });
 
