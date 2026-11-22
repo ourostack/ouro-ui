@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: `highlights` and `onHighlightsChange` now work on a `format="rich"` Composer, marking runs of the Markdown value as another writer's with their label read aloud.
