@@ -3,6 +3,7 @@ import "../themes/presets.generated.css";
 import "../themes/by-preset.css";
 import type { JSX, ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
+import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
@@ -135,24 +136,28 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
           <a href={href("/docs/installing/")} className="text-primary underline underline-offset-4">Installing</a>):
         </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}`} />
-        <Text size="sm" tone="muted">
-          Or, with the <a href={`${href("/")}#install`} className="text-primary underline underline-offset-4">@ouro namespace</a> set
-          up:
-        </Text>
-        <Command command={`npx shadcn@latest add @ouro/ouro-base @ouro/${item.name}`} />
-        <Text size="sm" tone="muted">
-          Its tests, stories and Playwright spec are optional.{" "}
-          {claim("They need Vitest 4.1.11 or later, and from v0.8.0 never change a version your app has", {
-            source: [{ file: "scripts/registry.mts" }, { spec: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }],
-            verify: [
-              { fileLine: "scripts/registry.mts", pattern: 'vitest: "4\\.1\\.11"' },
-              { urlOk: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" },
-              { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
-            ],
-          })}{" "}
-          (<a href={href("/docs/testing/")} className="text-primary underline underline-offset-4">Testing</a>):
-        </Text>
-        <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease} ourostack/ouro-ui/${item.name}-tests#${latestRelease}`} />
+        <Collapsible title="More ways" className="mt-2">
+          <div className="grid gap-3 pt-2">
+            <Text size="sm" tone="muted">
+              Or, with the <a href={`${href("/")}#install`} className="text-primary underline underline-offset-4">@ouro namespace</a> set
+              up:
+            </Text>
+            <Command command={`npx shadcn@latest add @ouro/ouro-base @ouro/${item.name}`} />
+            <Text size="sm" tone="muted">
+              Its tests, stories and Playwright spec are optional.{" "}
+              {claim("They need Vitest 4.1.11 or later, and from v0.8.0 never change a version your app has", {
+                source: [{ file: "scripts/registry.mts" }, { spec: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }],
+                verify: [
+                  { fileLine: "scripts/registry.mts", pattern: 'vitest: "4\\.1\\.11"' },
+                  { urlOk: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" },
+                  { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
+                ],
+              })}{" "}
+              (<a href={href("/docs/testing/")} className="text-primary underline underline-offset-4">Testing</a>):
+            </Text>
+            <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease} ourostack/ouro-ui/${item.name}-tests#${latestRelease}`} />
+          </div>
+        </Collapsible>
         <CodeBlock code={importLine} className="mt-2" />
         <Text size="sm" tone="muted">
           Paths use shadcn's default <InlineCode>@/</InlineCode> alias; the CLI rewrites them to yours.
