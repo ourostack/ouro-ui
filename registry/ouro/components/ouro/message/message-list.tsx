@@ -1679,8 +1679,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // as a conversation opens) moves no node the mutation observer hears of, and the resize observer runs only after the
       // frame's animation callbacks: until then the mark would hold the view past the messages. Once the task's work is
       // done, the end is followed to where it settled.
-      // A list unmounted in that task has no scroller left to hold.
-      if (floor !== 0) queueMicrotask(() => scrollerRef.current !== null && content.offsetHeight !== floor && hold());
+      if (floor !== 0) queueMicrotask(() => content.offsetHeight !== floor && hold());
     };
     // Whether the list has opened: at its first messages, at `initialAnchor` if it holds that message, else at the newest.
     let opened = false;
@@ -1869,6 +1868,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only tells the browser the listener never cancels the wheel; no test can observe it.
     scroller.addEventListener("wheel", onWheel, { passive: true });
     const hold = () => {
+      // A list unmounted before this ran has no scroller left to hold.
+      if (scrollerRef.current === null) return;
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
       // A list at the old bottom follows. One that was following keeps on when its end came up, though something grew below
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
