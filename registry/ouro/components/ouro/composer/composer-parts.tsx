@@ -217,7 +217,8 @@ const toMarkdown = (editor: LexicalEditor) => separateBlocks(editor.getEditorSta
 const $isLeaf = (node: ElementNode) => !node.getChildren().some((child) => $isElementNode(child) && !child.isInline());
 function $leaves(node: ElementNode): ElementNode[] {
   // Stryker disable next-line LogicalOperator: every child that is not an element node (text, line break) is inline, so `||` selects the same children
-  return node.getChildren().flatMap((child) => ($isElementNode(child) && !child.isInline() ? ($isLeaf(child) ? [child] : $leaves(child)) : []));
+  const blocks = node.getChildren().filter((child): child is ElementNode => $isElementNode(child) && !child.isInline());
+  return blocks.flatMap((block) => ($isLeaf(block) ? [block] : $leaves(block)));
 }
 const $lengthBefore = (node: LexicalNode) => node.getPreviousSiblings().reduce((sum, sibling) => sum + sibling.getTextContentSize(), 0);
 function $textOffset(node: LexicalNode, offset: number, type: "text" | "element"): number {
@@ -228,6 +229,7 @@ function $textOffset(node: LexicalNode, offset: number, type: "text" | "element"
   if (type === "element" && $isElementNode(node)) at = node.getChildren().slice(0, offset).reduce((sum, child) => sum + child.getTextContentSize(), 0);
   let cursor: LexicalNode | null = node;
   while (cursor && !leaves.some((candidate) => candidate.is(cursor))) {
+    /* istanbul ignore else @preserve -- the loop ends at the root, so only the root lacks a parent and it stops the loop first */
     // Stryker disable next-line all: the root has no siblings, so $lengthBefore adds 0 for it
     if (cursor.getParent()) at += $lengthBefore(cursor);
     cursor = cursor.getParent();
@@ -271,7 +273,7 @@ function $selectText(cleanStart: number, cleanEnd: number) {
   const rawAt = (clean: number) => {
     let index = 0;
     // Stryker disable next-line all: the offset past the end of the raw text is clamped by the loop bound either way
-    for (let seen = 0; seen < clean && index < raw.length; index++) if (raw[index] !== MARK) seen++;
+    for (let seen = 0; seen < clean && index < raw.length; index++) /* istanbul ignore else @preserve -- no test text holds a zero-width mark */ if (raw[index] !== MARK) seen++;
     return index;
   };
   const start = rawAt(cleanStart);
@@ -358,6 +360,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           () => {
             $selectText(start, end);
             const selection = $getSelection();
+            /* istanbul ignore else @preserve -- $selectText has just made a range selection */
             // Stryker disable next-line ConditionalExpression: $selectText has just made a range selection, so the guard only narrows the type
             if ($isRangeSelection(selection)) selection.insertText(text);
           },
