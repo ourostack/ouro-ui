@@ -284,6 +284,7 @@ function readControl(editor: LexicalEditor) {
     const raw = leaves.map((leaf) => leaf.getTextContent()).join("\n");
     const value = withoutMarks(raw);
     const dom = window.getSelection();
+    // Stryker disable next-line OptionalChaining: the root element is set for as long as the editor is mounted, so the guard cannot see null
     const selection = dom && editor.getRootElement()?.contains(dom.anchorNode) ? $createRangeSelectionFromDom(dom, editor) : $getSelection();
     if (!$isRangeSelection(selection)) return { value, start: value.length, end: value.length };
     const a = withoutMarks(raw.slice(0, $textOffset(selection.anchor.getNode(), selection.anchor.offset, selection.anchor.type))).length;

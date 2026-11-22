@@ -156,15 +156,18 @@ describe("Composer rich element reads", () => {
         <p id="outside">elsewhere</p>
       </>,
     );
-    const editor = mountedEditor.editor as HTMLElement & { selectionStart: number; selectionEnd: number };
+    const editor = mountedEditor.editor as HTMLElement & { selectionStart: number; selectionEnd: number; setSelectionRange(start: number, end: number): void };
     editor.focus();
     await userEvent.keyboard("{Control>}{End}{/Control}");
     const text = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT).nextNode()!;
     window.getSelection()!.setBaseAndExtent(text, 2, text, 4);
     expect([editor.selectionStart, editor.selectionEnd]).toEqual([2, 4]);
+    editor.setSelectionRange(5, 5);
     const outside = host.querySelector("#outside")!.firstChild!;
     window.getSelection()!.setBaseAndExtent(outside, 1, outside, 3);
-    expect([editor.selectionStart, editor.selectionEnd]).toEqual([11, 11]);
+    expect([editor.selectionStart, editor.selectionEnd]).toEqual([5, 5]);
+    window.getSelection()!.removeAllRanges();
+    expect([editor.selectionStart, editor.selectionEnd]).toEqual([5, 5]);
   });
 });
 
