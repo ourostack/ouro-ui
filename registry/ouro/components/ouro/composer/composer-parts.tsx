@@ -1,9 +1,12 @@
 "use client";
 
+import { $isCodeNode, CodeNode } from "@lexical/code-core";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
-import { $convertFromMarkdownString, $convertToMarkdownString, BOLD_STAR, INLINE_CODE, ITALIC_UNDERSCORE, STRIKETHROUGH, type TextFormatTransformer } from "@lexical/markdown";
-import { registerRichText } from "@lexical/rich-text";
-import { $getRoot, $getSelection, $isRangeSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, PASTE_COMMAND, type LexicalEditor, type TextFormatType } from "lexical";
+import { $isListItemNode, ListItemNode, ListNode, registerList } from "@lexical/list";
+import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type Transformer } from "@lexical/markdown";
+import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
+import { $findMatchingParent } from "@lexical/utils";
+import { $createParagraphNode, $getRoot, $isLineBreakNode, $getSelection, $isRangeSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type LexicalEditor, type TextFormatType } from "lexical";
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { JSX, KeyboardEvent, Ref } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
@@ -48,7 +51,7 @@ interface RichEditorProps {
 
 // Underline has no CommonMark mark; `++` is the one Composer's plain mode writes too.
 const UNDERLINE: TextFormatTransformer = { format: ["underline"], tag: "++", type: "text-format" };
-const transformers = [BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE];
+const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE];
 
 const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
 
@@ -58,8 +61,54 @@ const synced = "composer-sync";
 // Stryker disable next-line ArrayDeclaration: a list with one constant item runs an effect once, as an empty list does.
 const MOUNT_ONLY: never[] = [];
 
+// A quote ends on its empty last line, which the line break there makes; a list and a code block end the way Enter ends them.
+function leaveOrContinueBlock(editor: LexicalEditor): boolean {
+  const selection = $getSelection();
+  /* istanbul ignore next @preserve -- a line break is only asked for with a caret or a range */
+  // Stryker disable next-line all: the same unreachable guard
+  if (!$isRangeSelection(selection)) return false;
+  const node = selection.anchor.getNode();
+  const quote = $findMatchingParent(node, $isQuoteNode);
+  if (quote) {
+    const tail = quote.getLastChild();
+    // Stryker disable next-line ConditionalExpression: a caret at the quote's end is placed on the text before it, so a last child that is no line break never meets the caret checks below.
+    if (!$isLineBreakNode(tail)) return false;
+    if (!selection.isCollapsed() || selection.anchor.offset !== quote.getChildrenSize() || !node.is(quote)) return false;
+    tail.remove();
+    const after = $createParagraphNode();
+    quote.insertAfter(after);
+    after.select();
+    return true;
+  }
+  if (!$findMatchingParent(node, (parent) => $isListItemNode(parent) || $isCodeNode(parent))) return false;
+  return editor.dispatchCommand(INSERT_PARAGRAPH_COMMAND, undefined);
+}
+
+// Stryker disable next-line StringLiteral: Lexical already writes a blank line where a text line meets a block, so naming a text line "" leaves the output as it was.
+const textKind = "text";
+const lineKind = (line: string) => (/^\s*(?:[-*+]|\d+\.) /.test(line) ? "list" : line.startsWith(">") ? "quote" : textKind);
+
+// Lexical writes the line after a block with no blank line between, which a reader of Markdown takes to be part of the block: a line after a list item belongs to the item. A blank line keeps each block its own.
+function separateBlocks(markdown: string): string {
+  const out: string[] = [];
+  let fenced = false;
+  let before = "";
+  for (const line of markdown.split("\n")) {
+    const fence = line.startsWith("```");
+    // Stryker disable next-line StringLiteral: a fence line is told apart by `fence`, not by its kind, so the kind's name is never compared.
+    const kind = fence ? "fence" : lineKind(line);
+    // The line that closes a fence is a fence too; one inside it is the code's.
+    if (!fenced && line !== "" && before !== "" && (kind !== before || fence)) out.push("");
+    if (fence) fenced = !fenced;
+    out.push(line);
+    // Stryker disable next-line StringLiteral: only that it is not empty matters, since a fence line is separated by `fence` whatever it follows.
+    before = fenced ? "" : fence ? "fence" : line === "" ? "" : kind;
+  }
+  return out.join("\n");
+}
+
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
-const toMarkdown = (editor: LexicalEditor) => editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", "");
+const toMarkdown = (editor: LexicalEditor) => separateBlocks(editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", ""));
 
 /**
  * The editor Composer swaps in for its textarea with `format="rich"`: a contenteditable that
@@ -85,6 +134,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     const editor = createEditor({
       // Stryker disable next-line StringLiteral: the namespace only labels the editor.
       namespace: "ouro-composer",
+      nodes: [ListNode, ListItemNode, QuoteNode, CodeNode],
       // Lexical writes underline and strikethrough as classes only; bold, italic and code are elements.
       theme: { text: { underline: "underline", strikethrough: "line-through", underlineStrikethrough: "underline line-through" } },
       // Stryker disable next-line BlockStatement: Lexical reports an error only for a state it cannot reach from the commands under test.
@@ -97,6 +147,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     const stops = [
       registerRichText(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
+      registerList(editor),
+      registerMarkdownShortcuts(editor, transformers),
+      // Enter sends, so Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, and each leaves from an empty one.
+      editor.registerCommand(INSERT_LINE_BREAK_COMMAND, () => leaveOrContinueBlock(editor), COMMAND_PRIORITY_HIGH),
       // A caret is placed only when the box takes focus, so that loading it never moves focus.
       editor.registerCommand(
         FOCUS_COMMAND,

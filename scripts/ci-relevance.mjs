@@ -75,7 +75,7 @@ export const targets = {
       [/^\.github\/(?!workflows\/ci\.yml$)/, "another workflow or repository setting"],
       ...unreadBy("browser"),
     ],
-    readers: [/^(registry|test|site)\/.+\.(ts|tsx|mts|mjs)$/, /^vitest[^/]*\.config\.[cm]?[jt]s$/, /^scripts\/(vitest-shards|motion-reporter)\.mts$/],
+    readers: [/^(registry|test|site)\/.+\.(ts|tsx|mts|mjs)$/, /^vitest[^/]*\.config\.[cm]?[jt]s$/, /^scripts\/(vitest-shards|motion-reporter|headroom-reporter)\.mts$/, /^scripts\/headroom\.mjs$/, /^\.github\/headroom\.json$/],
   },
   screens: {
     name: "Screens",

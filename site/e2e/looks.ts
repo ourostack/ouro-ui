@@ -121,18 +121,21 @@ export function describe(arg: { selector: string; only?: number }): Described {
   // between the two (an island that loads as the scroll nears it), which moved a position-based lookup onto another
   // element (#1463). A mark is written only when it changes, and a mark another element still holds for the same index
   // goes, so one index names one element.
-  const marked = new Set<Element>();
-  all.forEach((el, index) => {
-    if (arg.only !== undefined && arg.only !== index) return;
-    if (el.getAttribute("data-sweep-look") !== String(index)) el.setAttribute("data-sweep-look", String(index));
-    marked.add(el);
-  });
-  for (const other of document.querySelectorAll("[data-sweep-look]")) {
-    if (marked.has(other)) continue;
-    if (arg.only === undefined || other.getAttribute("data-sweep-look") === String(arg.only)) other.removeAttribute("data-sweep-look");
+  // With `only`, the element described is the one holding that mark, wherever the page has moved it in the document since;
+  // nothing is re-marked, because a position-based mark lands on whatever now sits at that position (the sweep's hover
+  // read of a control an island had pushed down the page described and pictured another control).
+  const held = arg.only === undefined ? null : document.querySelector(`[data-sweep-look="${arg.only}"]`);
+  if (arg.only === undefined) {
+    const marked = new Set<Element>();
+    all.forEach((el, index) => {
+      if (el.getAttribute("data-sweep-look") !== String(index)) el.setAttribute("data-sweep-look", String(index));
+      marked.add(el);
+    });
+    for (const other of document.querySelectorAll("[data-sweep-look]")) if (!marked.has(other)) other.removeAttribute("data-sweep-look");
   }
-  all.forEach((el, index) => {
-    if (arg.only !== undefined && arg.only !== index) return;
+  all.forEach((el, position) => {
+    if (arg.only !== undefined && el !== held) return;
+    const index = arg.only ?? position;
     const root = el.closest<HTMLElement>("[data-ouro]");
     const cs = getComputedStyle(el);
     const rect = el.getBoundingClientRect();
@@ -503,6 +506,27 @@ function same(a: Crop, b: Crop): boolean {
  * 5 s left /docs/calendar/ two reads, then cut off a third that matched (ourostack/ouro-ui#2428).
  */
 export const SETTLE_MS = 30_000;
+
+/**
+ * Waits for the page to finish loading: the load event, the fonts, and a count of the elements the sweeps look at that
+ * stays the same across several frames, so an island that mounts late has done so before any control is read.
+ */
+export async function loaded(page: Page): Promise<void> {
+  await page.waitForLoadState("load");
+  await page.evaluate(async ([selector]) => {
+    await document.fonts.ready;
+    const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const deadline = Date.now() + 10_000;
+    let last = -1;
+    let same = 0;
+    while (same < 6 && Date.now() < deadline) {
+      await frame();
+      const count = document.querySelectorAll(selector as string).length;
+      same = count === last ? same + 1 : 0;
+      last = count;
+    }
+  }, [LOOK_SELECTOR] as const);
+}
 
 export async function settled(page: Page): Promise<void> {
   await siteReady(page);

@@ -36,6 +36,8 @@ afterEach(async () => {
 });
 
 const capsule = { "--ouro-control-radius": "9999px", "--ouro-control-corner-shape": "round" };
+/** Spoonjoy's capsule: Apple's continuous capsule, whose ends are superellipse(1.05) (the Cookbook theme). */
+const continuousCapsule = { "--ouro-control-radius": "9999px", "--ouro-control-corner-shape": "superellipse(1.05)" };
 const circleChecks = { "--ouro-check-radius": "9999px", "--ouro-check-corner-shape": "round" };
 
 /** The px radius of an element's top start corner. */
@@ -143,6 +145,37 @@ describe("control shape tokens", () => {
     const field = frames(host).numberField;
     const stepper = host.querySelector<HTMLElement>('[data-ouro="number-field"] button')!;
     expect(radiusOf(stepper)).toBeCloseTo(radiusOf(field) - 1, 0);
+  });
+
+  it("make every control a continuous capsule at 9999px and superellipse(1.05), its radius half its height", async () => {
+    const host = await mount(controls(), continuousCapsule);
+    for (const [name, frame] of Object.entries(frames(host))) {
+      expect(radiusOf(frame), name).toBeCloseTo(frame.getBoundingClientRect().height / 2, 0);
+      expect(varOf(frame, "--corner-shape"), name).toBe("superellipse(1.05)");
+    }
+  });
+
+  it("clip a continuous capsule's surface to its superellipse where the engine has no corner-shape, with or without shape()", async () => {
+    applyFallback();
+    const pill = await mount(<Button variant="outline">Save</Button>, continuousCapsule);
+    const surface = pill.querySelector<HTMLElement>("[data-ouro-surface]")!;
+    const half = pill.querySelector("button")!.getBoundingClientRect().height / 2;
+    const clip = getComputedStyle(surface).clipPath;
+    // A corner runs from the side, half the height down, to the top at half the height in: one Bézier curve whose handles
+    // reach 0.4253 of that from each end, or the polygon's points on the curve where shape() is not drawn.
+    const curve = /^shape\(from 0px ([\d.]+)px, curve to ([\d.]+)px 0px with 0px ([\d.]+)px/.exec(clip);
+    const points = /^polygon\(0px ([\d.]+)px, ([\d.]+)px ([\d.]+)px/.exec(clip);
+    expect(curve ?? points, clip).not.toBeNull();
+    if (curve) {
+      expect(Number(curve[1])).toBeCloseTo(half, 1);
+      expect(Number(curve[2])).toBeCloseTo(half, 1);
+      expect(Number(curve[3]) / half).toBeCloseTo(0.4253, 3);
+    } else {
+      expect(Number(points![1])).toBeCloseTo(half, 1);
+      expect(Number(points![2]) / half).toBeCloseTo(0.0186, 3);
+      expect(Number(points![3]) / half).toBeCloseTo(0.7937, 3);
+    }
+    expect(Number.parseFloat(getComputedStyle(surface, "::after").borderTopLeftRadius)).toBeCloseTo(half, 0);
   });
 
   it("leave cards and the checkbox's box on the theme's corners when only the control tokens are set", async () => {

@@ -1708,16 +1708,16 @@ test("the required ci job runs the claims ratchet on a pull request, against its
   const script = `git() { printf 'CALL git %s\\n' "$*" >&2; }\n${stepScript(block, "Claims")}`;
   const pull = runStep(script, { BASE_REF: "main", GITHUB_SHA: "f00d" });
   assert.equal(pull.status, 0);
-  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=2 origin f00d\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL node scripts\/patch-guard\.mjs\nCALL pnpm claims:check --network=changed$/m);
+  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=2 origin f00d\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL node scripts\/headroom-ratchet\.mjs\nCALL node scripts\/patch-guard\.mjs\nCALL pnpm claims:check --network=changed$/m);
   // Against the merge's first parent, main as GitHub merged the pull request into it, never main's tip, which may have
   // moved since: its changes would read as the pull request's (#726).
   const exemptions = workflow("claims.yml").slice(workflow("claims.yml").search(/^ {6}- name: Exemptions against the base\n/m));
-  for (const name of ["CLAIMS_BASE_REF", "REAL_CLOCK_BASE_REF", "PATCH_GUARD_BASE_REF"]) {
+  for (const name of ["CLAIMS_BASE_REF", "REAL_CLOCK_BASE_REF", "HEADROOM_BASE_REF", "PATCH_GUARD_BASE_REF"]) {
     assert.doesNotMatch(step, new RegExp(`${name}="origin/`));
     assert.doesNotMatch(exemptions, new RegExp(`${name}="origin/`));
   }
-  assert.match(exemptions, /git fetch --no-tags --depth=2 origin "\$GITHUB_SHA"\n {10}CLAIMS_BASE_REF="HEAD\^1" node scripts\/claims\.mjs ratchet\n {10}REAL_CLOCK_BASE_REF="HEAD\^1" node scripts\/real-clock-ratchet\.mjs/);
-  assert.equal(step.match(/(?:CLAIMS|REAL_CLOCK|PATCH_GUARD)_BASE_REF="HEAD\^1"/g)?.length, 4);
+  assert.match(exemptions, /git fetch --no-tags --depth=2 origin "\$GITHUB_SHA"\n {10}CLAIMS_BASE_REF="HEAD\^1" node scripts\/claims\.mjs ratchet\n {10}REAL_CLOCK_BASE_REF="HEAD\^1" node scripts\/real-clock-ratchet\.mjs\n {10}HEADROOM_BASE_REF="HEAD\^1" node scripts\/headroom-ratchet\.mjs/);
+  assert.equal(step.match(/(?:CLAIMS|REAL_CLOCK|HEADROOM|PATCH_GUARD)_BASE_REF="HEAD\^1"/g)?.length, 5);
   // A failing ratchet fails the job.
   assert.notEqual(runStep(script, { BASE_REF: "main" }, { nodeStatus: 1 }).status, 0);
   assert.doesNotMatch(runStep(script, { BASE_REF: "" }).calls, /ratchet/);
@@ -3660,4 +3660,11 @@ test("browser and fallback shards upload a failed test's screenshots, so a timeo
       id,
     );
   }
+});
+
+test("the browser shards hold each test to half its timeout: vitest.config.ts adds the headroom reporter to a browser shard only, and the browser job runs a shard", () => {
+  const config = readFileSync(join(root, "vitest.config.ts"), "utf8");
+  assert.match(config, /\.\.\.\(browserShard \? \[new HeadroomReporter\(\)\] : \[\]\)/);
+  assert.match(ciJobs().browser, /vitest run[^\n]*--shard=/);
+  assert.ok(existsSync(join(root, ".github/headroom.json")));
 });
