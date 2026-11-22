@@ -88,6 +88,7 @@ export function ReadReceipt(props: ReadReceiptProps): JSX.Element | null {
   // already seen (a message drawn again) stay quiet.
   const seen = readers.length > 0;
   const wasSeen = useRef(seen);
+  // Stryker disable next-line ConditionalExpression,StringLiteral: the words are read only when seen, so the unseen branch is never observed.
   const words = seen ? label(readers.map((reader) => reader.name)) : "";
   useEffect(() => {
     const before = wasSeen.current;
