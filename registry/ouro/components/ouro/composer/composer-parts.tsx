@@ -75,12 +75,15 @@ class EmojiNode extends DecoratorNode<null> {
   __token: string;
   __name: string;
   __src: string;
+  // Stryker disable next-line BlockStatement: Lexical reads the type only to register the class and to name a node in saved JSON, which the editor never saves
   static override getType(): string {
+    // Stryker disable next-line StringLiteral: the same, any distinct name registers
     return "ouro-emoji";
   }
   static override clone(node: EmojiNode): EmojiNode {
     return new EmojiNode(node.__token, node.__name, node.__src, node.__key);
   }
+  // Stryker disable next-line BlockStatement: the editor never loads its state from JSON; Lexical asks every node class to say how
   static override importJSON(json: SerializedEmojiNode): EmojiNode {
     return new EmojiNode(json.token, json.name, json.src);
   }
