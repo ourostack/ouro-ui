@@ -167,7 +167,10 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // bytes as `css-size <page> <bytes> of <ceiling>`, and a raise records its measurement there with its reason. Measured on
 // the split at 29751c13: the index 50,374 bytes with the theme presets, the shell alone 24,407, the badge page 29,424 and
 // the heaviest component page (composed-surface) 34,346.
-const CSS_CEILINGS = { voyage: 47 * 1024, docs: 50 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+// Raised a KiB each (voyage 48,143 and docs 51,207 bytes measured in CI, 15 and 7 over the old ceilings) for the look
+// swatches' focus ring: the picker is on every page, so the rule that gives a chosen swatch its own focus ring is
+// paid by every page that shows it (#2836, per #2728).
+const CSS_CEILINGS = { voyage: 48 * 1024, docs: 51 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the

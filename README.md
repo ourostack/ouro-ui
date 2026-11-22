@@ -623,6 +623,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-refs`,
 `lib-return-focus`,
 `lib-router-link`,
+`lib-roving-row`,
 `lib-row-hover`,
 `lib-scroll-fade`,
 `lib-server-element`,

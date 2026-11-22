@@ -506,8 +506,20 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+/* Keyboard focus draws the chosen ring's own circle, the same 2px ring one pixel further out, so focus and choice are one shape and the chosen dot still shows focus. */
+.site-dot:focus-visible,
+[data-site-demo-looks] button:focus-visible {
+  outline: none;
+}
+.site-dot:focus-visible [data-theme],
+.site-dot:focus-visible [data-site-accent],
+[data-site-demo-looks] button:focus-visible [data-theme] {
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 3px !important;
+}
 @media (forced-colors: active) {
-  .site-dot [data-theme] {
+  .site-dot [data-theme],
+  .site-dot [data-site-accent] {
     outline-color: Highlight;
   }
   html[data-theme="pearl"]:not([data-live]) [data-site-preset="pearl"],

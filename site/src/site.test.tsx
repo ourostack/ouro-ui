@@ -810,6 +810,33 @@ describe("docs", () => {
     }
   });
 
+  it("makes a row of looks one Tab stop, moves between them with the arrow keys, and rings focus as it rings the chosen look", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/button/");
+    const looks = page.getByRole("group", { name: "Try a look" });
+    await expect.element(looks).toBeVisible();
+    const dots = looks.getByRole("button").elements() as HTMLElement[];
+    expect(dots.filter((dot) => dot.tabIndex === 0)).toHaveLength(1);
+    const stop = dots.find((dot) => dot.tabIndex === 0)!;
+    stop.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(dots[(dots.indexOf(stop) + 1) % dots.length]);
+    await userEvent.keyboard("{End}");
+    expect(document.activeElement).toBe(dots.at(-1));
+    await userEvent.keyboard("{Home}{ArrowLeft}");
+    expect(document.activeElement).toBe(dots.at(-1));
+    const ring = (dot: HTMLElement) => {
+      const swatch = getComputedStyle(dot.querySelector("[data-theme]")!);
+      return [swatch.outlineWidth, swatch.outlineOffset];
+    };
+    const chosen = dots.find((dot) => dot.getAttribute("aria-pressed") === "true")!;
+    const chosenRing = ring(chosen);
+    chosen.focus();
+    await userEvent.keyboard("{ArrowRight}{ArrowLeft}");
+    expect(getComputedStyle(chosen).outlineStyle).toBe("none");
+    expect(ring(chosen)).toEqual([chosenRing[0], "3px"]);
+  });
+
   it("repaints the page, demo and all, from a look under the demo, and keeps its room so nothing moves", async () => {
     await page.viewport(1280, 900);
     const root = document.documentElement;
