@@ -1,2 +1,4 @@
-- Changed: `ThemePicker` draws each look as its wordmark, its name in its own heading face and ink on its own paper ending in a square of its primary, with a flat ring on the chosen one; the gradient dots are gone, and `describe` now defaults to off.
+- Changed: `ThemePicker` draws a look as its wordmark, its name in its own heading face and ink on its own paper ending in a square of its primary, with a flat ring on the chosen one; the gradient dots are gone, and `describe` now defaults to off.
 - New: `ThemePicker` takes `presentation="popover"` (a button showing the chosen wordmark, with the looks in a flat popover and `children` under them), `size`, `value` and `onValueChange`, and a preset's `theme` to paint it with another look's CSS.
+- New: resting the pointer or keyboard focus on a look in `ThemePicker` repaints the page in it as a preview, and leaving or Escape puts the chosen look back; with `value`, `onPreviewChange` tells the app which look to show.
+- New: `honesty()` in the testing kit finds any gradient, any corner that is not a squircle and any blurred shadow among the elements it is given.

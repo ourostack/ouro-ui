@@ -30,7 +30,10 @@ export interface ThemePreset {
   theme?: string | undefined;
 }
 
-/** How big the wordmarks are: `md` (40px) for a popover or a toolbar, `lg` (44px) for a menu or a settings page. */
+/**
+ * How big the wordmarks are: `md` (40px) for a popover or a toolbar, `lg` (44px) for a menu or a settings page.
+ * @claim "How big the wordmarks are" registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx verify:testExists(registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx::ThemePicker > draws md wordmarks 40px tall and lg ones 44px, at a compact --spacing too)
+ */
 export type ThemePickerSize = "md" | "lg";
 
 /** Where the looks show: in a row that wraps (`inline`), or behind a trigger that shows the chosen one (`popover`). */
@@ -62,6 +65,7 @@ export interface ThemePickerProps extends ThemePresetOptions {
    * Called with a look's name while the pointer rests on it or keyboard focus reaches it, and with `null` when it
    * leaves or Escape is pressed, so the app can repaint the page as a preview and put it back. With no `value` the
    * picker previews on `<html>` itself.
+   * @claim "With no `value` the picker previews" registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx verify:testExists(registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx::ThemePicker > previews a look on the page while the pointer rests on it, and puts the choice back as it leaves)
    */
   onPreviewChange?: ((name: string | null) => void) | undefined;
   /** More controls under the looks in the popover, such as a light and dark switch. Only with `presentation="popover"`. */
@@ -150,7 +154,7 @@ function Looks({
     value,
   );
   const chosen = presets.find((item) => item.name === value);
-  // A finger has no hover: its pointerenter comes with the tap, which chooses.
+  // A finger cannot rest on a look without pressing it: its pointerenter comes with the tap, which chooses.
   const point = (name: string | null) => (event: PointerEvent<HTMLButtonElement>) => {
     if (event.pointerType !== "touch") preview(name);
   };
@@ -345,6 +349,8 @@ function StoredThemePicker(props: ThemePickerProps): JSX.Element {
  * @see https://ui.ouroboros.bot/docs/theme-picker
  * @example
  * <ThemePicker presets={[{ name: "pearl", label: "Pearl" }, { name: "abyss", label: "Abyss" }]} presentation="popover" />
+ * @claim "The look chooser: each look's name" registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx verify:testExists(registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx::ThemePicker > names each look by its label, set in the look's own heading face, ending in a square of its primary)
+ * @claim "Resting the pointer or keyboard focus" registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx verify:testExists(registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx::ThemePicker > previews the look keyboard focus reaches, and puts the choice back on Escape and when focus leaves)
  * @claim "A press switches the whole app at" registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx verify:testExists(registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx::ThemePicker > switches the page, keeps the choice and presses the chosen look)
  * @claim "Escape closes it and puts focus" registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx verify:testExists(registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx::ThemePicker popover > shows the chosen wordmark, opens the looks, and closes on Escape with focus back on the button)
  */

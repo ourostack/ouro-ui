@@ -5,6 +5,7 @@ import { commands, userEvent } from "vitest/browser";
 import { ThemePicker, type ThemePickerProps } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { honesty } from "@/registry/ouro/lib/ouro/testing/honesty";
 
 // Two looks with their own paper, ink, primary and heading face, light and dark, so each wordmark can be checked
 // against the look it names.
@@ -50,42 +51,6 @@ afterEach(async () => {
 
 const option = (el: ParentNode, name: string) => el.querySelector<HTMLButtonElement>(`button[data-preset="${name}"]`)!;
 const tile = (button: HTMLElement) => button.querySelector<HTMLElement>("[data-theme]")!;
-
-/**
- * The honesty check, ported from the design prototype: nothing in the picker paints a gradient, every corner with a
- * radius is a squircle, and no shadow is blurred (a blur reads as a gradient). Returns each problem as a line.
- */
-function honesty(elements: readonly Element[]): { elements: number; rounded: number; problems: string[] } {
-  const problems: string[] = [];
-  let rounded = 0;
-  for (const el of elements) {
-    const style = getComputedStyle(el);
-    const id = `${el.tagName.toLowerCase()}${el.getAttribute("data-preset") ? `[${el.getAttribute("data-preset")}]` : ""}.${[...el.classList].slice(0, 3).join(".")}`;
-    for (const property of ["background-image", "border-image-source", "mask-image", "list-style-image"]) {
-      if (style.getPropertyValue(property).includes("gradient")) problems.push(`${id}: ${property} has a gradient`);
-    }
-    const corners = ["top-left", "top-right", "bottom-right", "bottom-left"];
-    for (const corner of corners) {
-      if (parseFloat(style.getPropertyValue(`border-${corner}-radius`)) > 0) {
-        rounded++;
-        const shape = (style.getPropertyValue(`corner-${corner}-shape`) || style.getPropertyValue("corner-shape")).replace(/\s/g, "");
-        if (!(shape.includes("squircle") || shape === "superellipse(2)")) problems.push(`${id}: ${corner} corner is "${shape || "unsupported"}", not a squircle`);
-      }
-    }
-    const shadow = style.getPropertyValue("box-shadow");
-    if (shadow && shadow !== "none") {
-      for (const part of shadow.split(/,(?![^(]*\))/)) {
-        const lengths = part
-          .replace(/(rgba?|oklch|oklab|color|lab|lch)\([^)]*\)/g, "")
-          .trim()
-          .split(/\s+/)
-          .filter((token) => /px$/.test(token));
-        if (lengths.length >= 3 && parseFloat(lengths[2]!) > 0) problems.push(`${id}: blurred box-shadow ${part.trim()}`);
-      }
-    }
-  }
-  return { elements: elements.length, rounded, problems };
-}
 
 const pickerParts = () => [
   ...document.querySelectorAll('[data-ouro="theme-picker"], [data-ouro="theme-picker"] *, [data-ouro="popover"]:has([data-preset]), [data-ouro="popover"]:has([data-preset]) *'),
@@ -204,6 +169,51 @@ describe("ThemePicker", () => {
     await userEvent.unhover(option(el, "dusk"));
     await expect.poll(() => previewed.mock.calls.at(-1)).toEqual([null]);
     expect(html.hasAttribute("data-theme")).toBe(false);
+  });
+
+  it("shows each look's own page colour and primary in its swatch whatever is chosen, light and dark", async () => {
+    // What mendelow.me's check-swatches.mjs checked on the built site, as a component test: each swatch paints from
+    // its own preset's tokens in the page's scheme, never the chosen look's.
+    const looks = document.createElement("style");
+    looks.textContent = [
+      '[data-theme="pearl"] { --background: rgb(255, 255, 255); --primary: rgb(0, 102, 204); }',
+      '[data-theme="abyss"] { --background: rgb(230, 246, 244); --primary: rgb(15, 118, 110); }',
+      '[data-theme="dusk"] { --background: rgb(246, 239, 224); --primary: rgb(138, 83, 28); }',
+      '.dark [data-theme="pearl"], .dark[data-theme="pearl"] { --background: rgb(0, 0, 0); --primary: rgb(41, 151, 255); }',
+      '.dark [data-theme="abyss"], .dark[data-theme="abyss"] { --background: rgb(3, 26, 24); --primary: rgb(45, 212, 191); }',
+      '.dark [data-theme="dusk"], .dark[data-theme="dusk"] { --background: rgb(28, 20, 12); --primary: rgb(224, 164, 88); }',
+    ].join("\n");
+    document.head.append(looks);
+    try {
+      const el = await render(<ThemePicker presets={three} />);
+      const tokens = (element: Element) => {
+        const style = getComputedStyle(element);
+        return { background: style.getPropertyValue("--background").trim(), primary: style.getPropertyValue("--primary").trim() };
+      };
+      for (const dark of [false, true]) {
+        html.classList.toggle("dark", dark);
+        const expected = Object.fromEntries(
+          three.map((look) => {
+            const probe = document.createElement("div");
+            probe.setAttribute("data-theme", look.name);
+            document.body.append(probe);
+            const read = tokens(probe);
+            probe.remove();
+            return [look.name, read];
+          }),
+        );
+        expect(new Set(Object.values(expected).map((look) => look.background)).size).toBe(three.length);
+        for (const chosen of three) {
+          await act(async () => el.querySelector<HTMLButtonElement>(`[aria-label="${chosen.label}"]`)!.click());
+          expect(tokens(html), `${dark ? "dark" : "light"}: choosing ${chosen.name} paints the page with it`).toEqual(expected[chosen.name]);
+          const shown = Object.fromEntries([...el.querySelectorAll("span[data-theme]")].map((swatch) => [swatch.getAttribute("data-theme"), tokens(swatch)]));
+          expect(shown, `${dark ? "dark" : "light"}, ${chosen.name} chosen`).toEqual(expected);
+        }
+      }
+    } finally {
+      looks.remove();
+      html.classList.remove("dark");
+    }
   });
 
   it("names each look by its label, set in the look's own heading face, ending in a square of its primary", async () => {
@@ -409,7 +419,7 @@ describe("ThemePicker honesty", () => {
     look.style.backgroundImage = "linear-gradient(red, blue)";
     look.style.setProperty("corner-shape", "round");
     look.style.boxShadow = "0 4px 12px black";
-    const problems = honesty(pickerParts()).problems.filter((line) => line.startsWith("button[abyss]"));
+    const problems = honesty(pickerParts()).problems.filter((line) => line.startsWith("button[preset][abyss]"));
     expect(problems.some((line) => line.includes("gradient"))).toBe(true);
     expect(problems.some((line) => line.includes("not a squircle"))).toBe(true);
     expect(problems.some((line) => line.includes("blurred box-shadow"))).toBe(true);
