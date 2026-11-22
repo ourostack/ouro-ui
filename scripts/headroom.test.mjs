@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { changedFiles, exemptionProblems, judge, headroomProblems, headroomReason, ratchetProblems, readExemptions, staleExemptions } from "./headroom.mjs";
+import { changedFiles, exemptionProblems, judge, headroomProblems, headroomReason, ratchetProblems, readExemptions, staleExemptions, unsuffixedProjectExemptions } from "./headroom.mjs";
 
 const named = (test) => ({ test, reason: "slow", owner: "drain-3" });
 
@@ -38,6 +38,18 @@ test("headroom fails an exemption whose test file or title is gone, and keeps a 
 
 test("every committed exemption still names a test in the source", () => {
   assert.deepEqual(staleExemptions(readExemptions()), []);
+});
+
+test("an exemption's explicit project name carries Vitest's own (browser) suffix, so it matches a real test", () => {
+  assert.deepEqual(unsuffixedProjectExemptions([{ test: "* a.test.tsx > b" }]), []);
+  assert.deepEqual(unsuffixedProjectExemptions([{ test: "site (chromium) a.test.tsx > b" }]), []);
+  const broken = unsuffixedProjectExemptions([{ test: "site a.test.tsx > b" }]);
+  assert.equal(broken.length, 1);
+  assert.match(broken[0], /never reports as is for a browser project/);
+});
+
+test("every committed exemption's project name carries Vitest's own (browser) suffix", () => {
+  assert.deepEqual(unsuffixedProjectExemptions(readExemptions()), []);
 });
 
 test("an exemption with no reason or owner fails", () => {
@@ -83,6 +95,11 @@ test("a breach on a push to main annotates and stays green; a pull request fails
 
 test("a malformed exemption fails the run on main too", () => {
   assert.equal(judge({ tests: [], exemptions: [{ test: "x", reason: "", owner: "o" }], event: "push", changed: null }).failures.length >= 1, true);
+});
+
+test("an exemption with an unsuffixed project name fails the run on main too", () => {
+  const exemptions = [{ test: "site scripts/headroom.test.mjs > headroom fails a test over half", reason: "r", owner: "o" }];
+  assert.equal(judge({ tests: [], exemptions, event: "push", changed: null }).failures.length, 1);
 });
 
 test("changedFiles reads a pull request's files, and judges every test where it gets none", () => {
