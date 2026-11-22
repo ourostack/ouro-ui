@@ -21,6 +21,12 @@
 // minutes: #3064 and the sightings it names (#1316, #2149) each spent that wait on a page already confirmed
 // unresponsive. So once the warn-level read finds one, the reporter fails right there instead of waiting for
 // `failAfter`, cutting a confirmed hang's cost from five minutes idle to the length of the page read alone.
+// A stall that begins late in the CI step's own fixed budget can leave the fixed five-minute fail threshold with no
+// room before the step's own timeout kills the job with no test named (ci.yml's `Browser tests` step,
+// `timeout-minutes: 15`): a run of 45029884851 stalled at ten minutes in and the step's hard timeout fired ten
+// seconds before the fail threshold could. OURO_CI_STEP_BUDGET_MS, set from that step's own timeout-minutes, lets
+// the reporter tighten its fail (and warn) threshold so the fail path, including the page diagnostic and a safety
+// margin for the exit to land, always finishes before the step's own deadline, however late a stall begins.
 import { relative, sep } from "node:path";
 import type { Reporter, ReportedHookContext, TestCase, TestModule, TestSpecification, TestSuite, Vitest } from "vitest/node";
 
@@ -529,10 +535,38 @@ const envMs = (name: string, fallback: number) => {
   return process.env[name] !== undefined && Number.isFinite(value) && value > 0 ? value : fallback;
 };
 
+/**
+ * Time the fail path needs after the fail threshold is reached: the page diagnostic (at most `diagnosticMs`) plus a
+ * margin for the fail line and the process exit to land before the step's own hard timeout kills the job outright.
+ */
+const FAIL_EXIT_MARGIN_MS = 20_000;
+
+/** The fail threshold never tightens below this, so a near-exhausted budget still names what is in flight. */
+const MIN_FAIL_AFTER_MS = 10_000;
+
+/**
+ * Tightens `warnAfter` and `failAfter` to fit the CI step's own remaining budget, so the fail path (the page
+ * diagnostic, the fail line, and the process exit) finishes before the step's hard timeout, however late a stall
+ * begins within the step. `elapsedMs` is the time since the run started (`onTestRunStart`, close enough to the
+ * step's own start, which launches Vitest directly). A finite `budgetMs` comes from OURO_CI_STEP_BUDGET_MS, set in
+ * ci.yml from the same step's `timeout-minutes`; unset (the default, `Infinity`, for local runs and tests not
+ * exercising this) leaves both thresholds exactly as configured.
+ */
+export function effectiveStallOptions(options: StallOptions, elapsedMs: number, budgetMs: number, diagnosticMs: number): StallOptions {
+  if (!Number.isFinite(budgetMs)) return options;
+  const remaining = budgetMs - elapsedMs;
+  const safeFailAfter = remaining - diagnosticMs - FAIL_EXIT_MARGIN_MS;
+  const failAfter = Math.max(MIN_FAIL_AFTER_MS, Math.min(options.failAfter, safeFailAfter));
+  const warnAfter = Math.min(options.warnAfter, Math.floor(failAfter / 2));
+  return { warnAfter, failAfter };
+}
+
 /** The options the reporter takes; each one defaults to the real behaviour, and the tests inject the rest. */
 export interface StallReporterOptions {
   warnAfter?: number;
   failAfter?: number;
+  /** The CI step's own budget in ms, tightening the two thresholds to fit inside it (OURO_CI_STEP_BUDGET_MS). */
+  budgetMs?: number;
   intervalMs?: number;
   /** Finds the pages the page diagnostic reads. */
   pages?: PageLookup;
@@ -554,6 +588,7 @@ interface ModuleEntry {
 /** Watches for a stall, and for a test that has run long, every second, from the run's start to its end (see the file's comment). */
 export class StallReporter implements Reporter {
   readonly #options: StallOptions;
+  readonly #budgetMs: number;
   readonly #intervalMs: number;
   readonly #pages: PageLookup;
   readonly #exit: (code: number) => void;
@@ -567,6 +602,7 @@ export class StallReporter implements Reporter {
   #root = process.cwd();
   #vitest: Vitest | undefined;
   #lastFinish = Date.now();
+  #runStartedAt = Date.now();
   #warned = false;
   #pagesWarned = false;
   #failing = false;
@@ -577,12 +613,14 @@ export class StallReporter implements Reporter {
   constructor({
     warnAfter = envMs("OURO_VITEST_STALL_WARN_MS", 120_000),
     failAfter = envMs("OURO_VITEST_STALL_FAIL_MS", 300_000),
+    budgetMs = envMs("OURO_CI_STEP_BUDGET_MS", Infinity),
     intervalMs = 1_000,
     pages = browserPageSources,
     exit = (code: number) => process.exit(code),
     diagnosticMs = DIAGNOSTIC_DEADLINE_MS,
   }: StallReporterOptions = {}) {
     this.#options = { warnAfter, failAfter };
+    this.#budgetMs = budgetMs;
     this.#intervalMs = intervalMs;
     this.#pages = pages;
     this.#exit = exit;
@@ -596,6 +634,7 @@ export class StallReporter implements Reporter {
 
   onTestRunStart(specifications: ReadonlyArray<TestSpecification>): void {
     this.#lastFinish = Date.now();
+    this.#runStartedAt = this.#lastFinish;
     this.#pagesWarned = false;
     this.#modules.clear();
     this.#cases.clear();
@@ -745,7 +784,8 @@ export class StallReporter implements Reporter {
     const now = Date.now();
     this.#watchCases(now);
     const pending: PendingRun = { notStarted: [...this.#pending.values()], finished: this.#finished, total: this.#total };
-    const report = stallReport(this.#inFlight(), this.#lastFinish, now, this.#options, pending);
+    const options = effectiveStallOptions(this.#options, now - this.#runStartedAt, this.#budgetMs, this.#diagnosticMs);
+    const report = stallReport(this.#inFlight(), this.#lastFinish, now, options, pending);
     if (report.level === "warn" && !this.#warned) {
       this.#warned = true;
       process.stderr.write(`${report.text}\n`);

@@ -619,6 +619,9 @@ jobs:
       COMPONENTS: ${{ needs.plan.outputs.components }}
       SHARD: ${{ matrix.shard }}/22
       HEADROOM_CHANGED: ${{ needs.plan.outputs.changed }}
+      # Matches the Browser tests step's own timeout-minutes below, so a late-starting stall still fails with the
+      # test's name before this fifteen-minute step hits its own hard timeout (ourostack/ouro-ui, run 45029884851).
+      OURO_CI_STEP_BUDGET_MS: "900000"
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1173,6 +1176,8 @@ jobs:
     env:
       SHARD: ${{ matrix.shard }}/28
       HEADROOM_CHANGED: ${{ needs.plan.outputs.changed }}
+      # Matches the Browser tests step's own timeout-minutes below; see the browser job's env for why.
+      OURO_CI_STEP_BUDGET_MS: "900000"
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
