@@ -43,10 +43,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node site/scripts/sync-storybook.mjs main
+      # plan-ship's crops (site/public/plan-ship/) are cut from two synced scenes, and plan-ship.test.mjs fails until they
+      # are cut again, so a sync that changes either scene recuts them here and commits them with the art. It installs
+      # only sharp, at the version package.json pins, which is all plan-ship.mts imports.
+      - name: Recut plan-ship when its scenes changed
+        run: |
+          sources=$(sed -n '/^export const SOURCES = {/,/^}/p' site/scripts/plan-ship.mts | grep -oE '"site/[^"]+"' | tr -d '"')
+          if [ -n "$(git status --porcelain -- $sources)" ]; then
+            version=$(node -p 'const p = require("./package.json"); (p.dependencies || {}).sharp || (p.devDependencies || {}).sharp')
+            npm install --silent --no-save --no-package-lock --prefix "$RUNNER_TEMP/sharp" "sharp@$version"
+            mkdir -p node_modules
+            for d in "$RUNNER_TEMP"/sharp/node_modules/*; do [ -e "node_modules/$(basename "$d")" ] || ln -s "$d" node_modules/; done
+            node site/scripts/plan-ship.mts
+          fi
       - id: changes
         name: See whether it changed
         run: |
-          if [ -z "$(git status --porcelain -- site/public/brand/storybook)" ]; then
+          if [ -z "$(git status --porcelain -- site/public/brand/storybook site/public/plan-ship)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -61,7 +74,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -q -c "$BRANCH"
-          git add site/public/brand/storybook
+          git add site/public/brand/storybook site/public/plan-ship
           git commit -q -m "$title"
           git push -q --force origin "$BRANCH"
           body="A brand merge changed art this site serves. Sync brand art copied it byte for byte with site/scripts/sync-storybook.mjs; this pull request merges once the required checks pass."
