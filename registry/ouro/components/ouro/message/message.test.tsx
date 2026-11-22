@@ -2884,6 +2884,37 @@ describe("Message pending", () => {
       }
     });
 
+    it("says Sent once when a pending send is confirmed, quick or slow, and never for a message that was not pending", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const { rerender } = await mount(sending(true, "Enviando"));
+        await wait(600);
+        await rerender(sending(false, "Enviando"));
+        await expect.poll(() => announced.count("Sent")).toBe(1);
+        await wait(2000);
+        expect(announced.count("Sent")).toBe(1);
+        await rerender(<Message variant="chat" role="user" name="Ana">Hola</Message>);
+        await wait(500);
+        expect(announced.count("Sent")).toBe(1);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("says Not sent once when a pending send fails, and Sent for none of them", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const { rerender } = await mount(<Message variant="chat" role="user" name="Ana" pending>Hola</Message>);
+        await rerender(<Message variant="chat" role="user" name="Ana" failed={{ onRetry: () => {} }}>Hola</Message>);
+        await expect.poll(() => announced.count("Not sent")).toBe(1);
+        await wait(1500);
+        expect(announced.count("Not sent")).toBe(1);
+        expect(announced.count("Sent")).toBe(0);
+      } finally {
+        announced.stop();
+      }
+    });
+
     it("says nothing for a send confirmed within the second", async () => {
       const announced = watchAnnouncements();
       try {

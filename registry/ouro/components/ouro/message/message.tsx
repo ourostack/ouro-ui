@@ -344,6 +344,13 @@ export interface MessageOwnProps {
   pendingLabel?: string | undefined;
   /** What the marker under a `failed` message says, for other languages. @default "Not sent" */
   failedLabel?: string | undefined;
+  /**
+   * What screen readers hear once a `pending` message is confirmed, for other languages. The sender hears Sent
+   * when the send is confirmed, or the failed label when it fails, and these words are not the message's own.
+   * @default "Sent"
+   * @claim "The sender hears Sent when the send is confirmed" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message pending > announcements > says Sent once when a pending send is confirmed, quick or slow, and never for a message that was not pending)
+   */
+  sentLabel?: string | undefined;
   /** The name of a `failed` message's retry button, for other languages. @default "Retry" */
   retryLabel?: string | undefined;
   /** The name of a `failed` message's delete button, for other languages. @default "Delete" */
@@ -616,6 +623,7 @@ export function Message(props: MessageProps): JSX.Element {
     pendingLabel = "Sending",
     pendingSince,
     failedLabel = "Not sent",
+    sentLabel = "Sent",
     retryLabel = "Retry",
     deleteLabel = "Delete",
     className,
@@ -744,6 +752,17 @@ export function Message(props: MessageProps): JSX.Element {
       setShown(false);
     };
   }, [isPending, pendingSince, pendingLabel]);
+  // The sender hears the outcome too, never the message's own words: Sent once a pending send is confirmed, and the
+  // failed label once a send fails.
+  const outcome = isFailed ? "failed" : isPending ? "pending" : "idle";
+  const lastOutcome = useRef(outcome);
+  useEffect(() => {
+    const before = lastOutcome.current;
+    lastOutcome.current = outcome;
+    if (before === outcome || outcome === "pending") return;
+    if (outcome === "idle" && before !== "pending") return;
+    return announce(outcome === "failed" ? failedLabel : sentLabel);
+  }, [outcome, failedLabel, sentLabel]);
   const showing = isPending && shown;
   const marker = isFailed ? failedId : showing ? pendingId : undefined;
   const describedBy = marker ? [rest["aria-describedby"], marker].filter(Boolean).join(" ") : rest["aria-describedby"];
