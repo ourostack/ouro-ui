@@ -237,8 +237,8 @@ function $textOffset(node: LexicalNode, offset: number, type: "text" | "element"
     if (candidate.is(leaf)) return start + at;
     start += candidate.getTextContentSize() + 1;
   }
-  // Stryker disable next-line all: every point's leaf is in the leaves, so the loop returns before this fallback
   /* istanbul ignore next @preserve -- unreachable: the point's leaf is always among the leaves */
+  // Stryker disable next-line all: every point's leaf is in the leaves, so the loop returns before this fallback
   return start - 1 < 0 ? 0 : start - 1;
 }
 function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "text" | "element"] {
@@ -282,8 +282,8 @@ function $selectText(cleanStart: number, cleanEnd: number) {
       if (offset <= from + size) return $pointAt(leaf, offset - from);
       from += size + 1;
     }
-    // Stryker disable next-line all: every offset is within some leaf, so the fallback is unreachable
     /* istanbul ignore next @preserve -- unreachable: every offset lies within some leaf */
+    // Stryker disable next-line all: every offset is within some leaf, so the fallback is unreachable
     return $pointAt(leaves.at(-1)!, leaves.at(-1)!.getTextContentSize());
   };
   const selection = $createRangeSelection();
