@@ -347,6 +347,7 @@ export class Looks {
     const list = this.groups.get(look.key) ?? [];
     this.groups.set(look.key, list);
     list.push({ where, sig: look.sig, ...(label ? { label } : {}) });
+    if (look.key.startsWith("collapsible|trigger")) console.log(`DEBUG add ${where} ${look.key} crop=${!!crop} sig=${look.sig}`);
     if (crop) {
       const id = `${look.key}|${look.size}|${look.behind}`;
       const pics = this.pictures.get(id) ?? [];
@@ -457,6 +458,7 @@ export class Looks {
   pixelDifferences(): string[] {
     const out: string[] = [];
     for (const [id, samples] of this.pictures) {
+      if (id.startsWith("collapsible|trigger")) console.log(`DEBUG pictures ${id}: ${samples.map((s) => `${s.where}(${s.crop!.width}x${s.crop!.height}@${s.crop!.scale})`).join(", ")}`);
       if (samples.length < 3) continue;
       const clusters: Sample[][] = [];
       for (const s of samples) {
