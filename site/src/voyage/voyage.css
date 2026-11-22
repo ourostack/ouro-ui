@@ -814,6 +814,15 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
   }
 }
 /*
+ * Beside the story the headline's column is narrow, and a look's heading face can set it a line longer, which moved the
+ * page below it. Up to 80rem the headline is sized to the column so every look sets it in two lines.
+ */
+@media (min-width: 64rem) and (max-width: 79.99rem) {
+  .site-voyage-hero h1 {
+    font-size: 4.2vw;
+  }
+}
+/*
  * On a phone the headline is a step smaller than the display size, so "Delightful interfaces," holds one line in any
  * Geist metrics and no word is left alone on a line (Ouro check's one-word-line). At 2rem it also stays on two lines in
  * every look's heading font, so choosing a look does not move what is below it.
