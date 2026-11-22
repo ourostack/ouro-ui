@@ -1,5 +1,5 @@
-// Has this push to main's, or merge queue entry's, tree already passed CI? (.github/workflows/ci.yml, the plan job's
-// "Has this tree already passed?" step, on a push to main and a merge group; and release.yml, which passes the proving run to
+// Has this push to main's tree already passed CI? (.github/workflows/ci.yml, the plan job's "Has this tree
+// already passed?" step, on a push to main only; and release.yml, which passes the proving run to
 // scripts/required-ci.sh beside main's own.) Then main's run tests nothing a second time.
 //
 // Two kinds of run prove a main commit:
@@ -16,10 +16,6 @@
 // A pull request merges as soon as its required checks pass, while tree-proof, which runs beside ci-budget, may
 // still be finishing, so it waits up to `wait` seconds for that run to end. A tree-proof job that names another
 // tree ends the wait at once: the pull request tested a main that has moved since.
-//
-// A merge queue entry (QUEUE_REF, the queue branch's ref, gh-readonly-queue/main/pr-<number>-<base sha>) has no merged
-// pull request yet, so the pull request's number comes from the ref and its head from the API. A tree that matches
-// proves the same files passed; main having moved, or another pull request in the group, makes the trees differ.
 //
 // It fails closed: anything it cannot read, an unfinished run, a red run or a skipped tree-proof job proves
 // nothing, and the full suite runs.
@@ -48,7 +44,7 @@ export const isQueueRun = (run) => run.event === "merge_group" || (run.event ===
  * tree(sha), mergedHeads(sha) (heads of pull requests merged as sha), runs(headSha) (ci.yml's runs on a
  * commit), jobs(runId) (a run's latest jobs). It throws when GitHub cannot be read; the caller fails closed.
  */
-export async function prove(api, sha, { heads: given = null, wait = 0, pollMs = POLL_MS, now = () => Date.now(), pause = sleep } = {}) {
+export async function prove(api, sha, { wait = 0, pollMs = POLL_MS, now = () => Date.now(), pause = sleep } = {}) {
   const lines = [];
   const own = await api.runs(sha);
   const queue = own.find((run) => isQueueRun(run) && run.status === "completed" && run.conclusion === "success");
@@ -58,7 +54,7 @@ export async function prove(api, sha, { heads: given = null, wait = 0, pollMs = 
   }
   const tree = await api.tree(sha);
   const want = PREFIX + tree;
-  const heads = (given ?? (await api.mergedHeads(sha))).filter((head) => head !== sha);
+  const heads = (await api.mergedHeads(sha)).filter((head) => head !== sha);
   lines.push(`Main commit ${sha.slice(0, 7)} has tree ${tree}; a pull request's run proves it with a passed job named "${want}".`);
   if (heads.length === 0) lines.push("No pull request was merged as this commit (a direct push?).");
   // One deadline for every head, so the whole wait stays within `wait`.
@@ -103,9 +99,6 @@ export async function prove(api, sha, { heads: given = null, wait = 0, pollMs = 
   return { run: null, lines };
 }
 
-/** The pull request number a merge queue ref names, or null for any other ref. */
-export const queuePull = (ref) => /^(?:refs\/heads\/)?gh-readonly-queue\/main\/pr-(\d+)-[0-9a-f]{40}$/.exec(ref ?? "")?.[1] ?? null;
-
 /** gh with fixed arguments, never through a shell: the API's JSON for `path`, every page of a list. */
 export function ghApi(repo, gh = (args) => execFileSync("gh", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })) {
   const get = (path, ...extra) => JSON.parse(gh(["api", ...extra, `repos/${repo}/${path}`]));
@@ -120,7 +113,6 @@ export function ghApi(repo, gh = (args) => execFileSync("gh", args, { encoding: 
         .filter((pull) => pull.merged_at && pull.merge_commit_sha === sha)
         .map((pull) => pull.head.sha),
     runs: (sha) => pages(`actions/workflows/ci.yml/runs?head_sha=${sha}&per_page=100`, "workflow_runs"),
-    pullHead: (number) => get(`pulls/${number}`).head.sha,
     jobs: (id) => pages(`actions/runs/${id}/jobs?filter=latest&per_page=100`, "jobs"),
   };
 }
@@ -136,13 +128,7 @@ async function main(argv) {
   }
   let result;
   try {
-    const api = ghApi(repo);
-    const number = queuePull(process.env.QUEUE_REF);
-    if (process.env.QUEUE_REF && !number) {
-      console.log("The queue's ref names no single pull request, so everything runs.");
-      return 0;
-    }
-    result = await prove(api, sha, { wait, heads: number ? [api.pullHead(number)] : null });
+    result = await prove(ghApi(repo), sha, { wait });
   } catch (error) {
     console.log(`::warning title=Tree proof::Could not read GitHub (${String(error.message ?? error).split("\n")[0]}), so everything runs.`);
     return 0;
