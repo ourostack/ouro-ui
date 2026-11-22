@@ -174,6 +174,33 @@ describe("Composer rich element reads", () => {
 type Control = HTMLElement & { value: string; selectionStart: number; selectionEnd: number; setSelectionRange(start: number, end: number): void; setRangeText(text: string, start: number, end: number): void };
 
 describe("Composer rich element selection", () => {
+  async function broken() {
+    const { host, ...mounted } = await render(<Composer label="Message" format="rich" defaultValue={"- ab"} onSend={() => {}} />);
+    const control = mounted.editor as Control;
+    control.focus();
+    await userEvent.keyboard("{Control>}{End}{/Control}");
+    const data = new DataTransfer();
+    data.setData("text/html", "<p>x<br>cd<br><br>ef</p>");
+    await act(async () => void control.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data })));
+    return { host, control };
+  }
+
+  it("counts a pasted soft line break as a line, for a caret set by offset and for one the page puts on its item", async () => {
+    const { control } = await broken();
+    expect(control.value).toBe("abx\ncd\n\nef");
+    for (let at = 0; at <= 10; at++) {
+      control.setSelectionRange(at, at);
+      expect([at, control.selectionStart, control.selectionEnd]).toEqual([at, at, at]);
+    }
+    const item = control.querySelector("li")!;
+    const seen: number[] = [];
+    for (let child = 0; child <= item.childNodes.length; child++) {
+      window.getSelection()!.setBaseAndExtent(item, child, item, child);
+      seen.push(control.selectionStart);
+    }
+    expect(seen).toEqual([0, 3, 4, 6, 7, 8, 10]);
+  });
+
   async function document_() {
     const { host, ...mountedEditor } = await render(<Composer label="Message" format="rich" defaultValue={"ab **cd** ef\n\n- gh\n- ij"} onSend={() => {}} />);
     const control = mountedEditor.editor as Control;

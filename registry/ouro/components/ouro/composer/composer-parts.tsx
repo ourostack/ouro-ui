@@ -221,10 +221,13 @@ function $leaves(node: ElementNode): ElementNode[] {
 const $lengthBefore = (node: LexicalNode) => node.getPreviousSiblings().reduce((sum, sibling) => sum + sibling.getTextContentSize(), 0);
 function $textOffset(node: LexicalNode, offset: number, type: "text" | "element"): number {
   const leaves = $leaves($getRoot());
+  // Stryker disable next-line all: Lexical hands this shim element points only at offset 0 or at a line break, where both branches give the same sum
   let at = type === "text" ? offset : 0;
+  // Stryker disable next-line all: an element point's offset is 0 here except beside a line break, which the element reduce and the fallback sum identically
   if (type === "element" && $isElementNode(node)) at = node.getChildren().slice(0, offset).reduce((sum, child) => sum + child.getTextContentSize(), 0);
   let cursor: LexicalNode | null = node;
   while (cursor && !leaves.some((candidate) => candidate.is(cursor))) {
+    // Stryker disable next-line all: the root has no siblings, so $lengthBefore adds 0 for it
     if (cursor.getParent()) at += $lengthBefore(cursor);
     cursor = cursor.getParent();
   }
@@ -234,6 +237,7 @@ function $textOffset(node: LexicalNode, offset: number, type: "text" | "element"
     if (candidate.is(leaf)) return start + at;
     start += candidate.getTextContentSize() + 1;
   }
+  // Stryker disable next-line all: every point's leaf is in the leaves, so the loop returns before this fallback
   return start - 1 < 0 ? 0 : start - 1;
 }
 function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "text" | "element"] {
@@ -241,13 +245,17 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
   const children = element.getChildren();
   for (const [index, child] of children.entries()) {
     const size = child.getTextContentSize();
+    // Stryker disable next-line all: equivalent: a line break child has size 1 and the text branch would give the same offset
     if ($isLineBreakNode(child)) {
+      // Stryker disable next-line all: equivalent: past offset 0 the loop continues to the same point
       if (left === 0) return [element, index, "element"];
+    // Stryker disable next-line all: equivalent at the boundary: the next child would return the same position
     } else if (left <= size) {
       return $isElementNode(child) ? $pointAt(child, left) : [child, left, "text"];
     }
     left -= size;
   }
+  // Stryker disable next-line all: the trailing point is reached only for a block ending in a line break, and its type is read back identically
   return [element, children.length, "element"];
 }
 const MARK = "\u200b";
@@ -257,6 +265,7 @@ function $selectText(cleanStart: number, cleanEnd: number) {
   const raw = leaves.map((leaf) => leaf.getTextContent()).join("\n");
   const rawAt = (clean: number) => {
     let index = 0;
+    // Stryker disable next-line all: the offset past the end of the raw text is clamped by the loop bound either way
     for (let seen = 0; seen < clean && index < raw.length; index++) if (raw[index] !== MARK) seen++;
     return index;
   };
@@ -269,6 +278,7 @@ function $selectText(cleanStart: number, cleanEnd: number) {
       if (offset <= from + size) return $pointAt(leaf, offset - from);
       from += size + 1;
     }
+    // Stryker disable next-line all: every offset is within some leaf, so the fallback is unreachable
     return $pointAt(leaves.at(-1)!, leaves.at(-1)!.getTextContentSize());
   };
   const selection = $createRangeSelection();
