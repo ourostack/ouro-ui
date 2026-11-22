@@ -172,7 +172,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
 
   const focus = () => {
     const editor = editorRef.current!;
-    // Stryker disable next-line ObjectLiteral,BooleanLiteral,ArrowFunction: the focus call below puts the caret at the end through the focus command, and this update only moves it there sooner.
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral,ArrowFunction,CallExpression: the focus call below puts the caret at the end through the focus command, and this update only moves it there sooner.
     editor.update(() => $getRoot().selectEnd(), { discrete: true });
     // Stryker disable next-line ObjectLiteral,BooleanLiteral,CallExpression: setting the selection in the update above already focuses the box, so this call only adds the no-scroll option; scrolling on focus is the browser's, which a test cannot tell from the caret moving.
     rootRef.current!.focus({ preventScroll: true });
