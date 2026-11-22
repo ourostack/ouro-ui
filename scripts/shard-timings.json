@@ -1023,7 +1023,7 @@
     "site/e2e/frames.spec.ts": 7344,
     "site/e2e/hero-preload.spec.ts": 16546,
     "site/e2e/latency-rules.spec.ts": 93998,
-    "site/e2e/looks-identity.spec.ts": 2500,
+    "site/e2e/looks-identity.spec.ts": 20000,
     "site/e2e/ready.spec.ts": 2755,
     "site/e2e/restyle-scope.spec.ts": 2562,
     "site/e2e/sameness-dark-chromium.spec.ts": 263589,

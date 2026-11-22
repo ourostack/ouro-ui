@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { describe, LOOK_SELECTOR, loaded, picture } from "./looks";
+import { describe, LOOK_SELECTOR, loaded, picture, quiet, settled } from "./looks";
 
 // A late island mounts ahead of a control between the sweep's inventory pass and its hover pass. The hover pass must still
 // describe, hover and picture the control the inventory named, not whatever now sits at its position in the document.
@@ -58,4 +58,39 @@ test("loaded waits until a late island has mounted, so the inventory already hol
   }, html);
   await loaded(page);
   expect(await page.locator(LOOK_SELECTOR).count()).toBe(3);
+});
+
+// The same disclosure trigger on different component pages is one picture when hovered: what differs between pages (the
+// scroll offset, the islands above it) must not reach its box, colour or hover.
+test("the More ways trigger hovers to one picture on every docs page", async ({ page }) => {
+  const seen: { name: string; width: number; height: number; data: Buffer }[] = [];
+  for (const name of ["badge", "button", "card", "command", "dialog", "image-cropper"]) {
+    await page.goto(`./docs/${name}/`);
+    await settled(page);
+    await quiet(page);
+    await loaded(page);
+    const { looks } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
+    const found = looks.filter((l) => l.key.startsWith("collapsible|trigger") && l.size.includes("More ways"));
+    expect(found, `${name} has one More ways trigger`).toHaveLength(1);
+    const index = found[0]!.index;
+    await page.evaluate(describe, { selector: LOOK_SELECTOR, only: index });
+    const trigger = page.locator(`[data-sweep-look="${index}"]`);
+    await expect(trigger).toHaveText("More ways");
+    await trigger.scrollIntoViewIfNeeded();
+    const at = (await trigger.boundingBox())!;
+    await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+    await expect.poll(() => trigger.evaluate((el) => el.matches(":hover"))).toBe(true);
+    const crop = await picture(page, index);
+    expect(crop, `${name} pictured`).not.toBeNull();
+    seen.push({ name, width: crop!.width, height: crop!.height, data: crop!.data });
+  }
+  const first = seen[0]!;
+  for (const other of seen.slice(1)) {
+    expect([other.width, other.height], `${other.name} against ${first.name}`).toEqual([first.width, first.height]);
+    let off = 0;
+    for (let i = 0; i < first.data.length; i += 4) {
+      if (Math.max(...[0, 1, 2].map((c) => Math.abs(first.data[i + c]! - other.data[i + c]!))) > 40) off++;
+    }
+    expect(off / (first.width * first.height), `${other.name} against ${first.name}`).toBeLessThanOrEqual(0.015);
+  }
 });
