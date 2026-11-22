@@ -11,6 +11,7 @@ import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
 import { PhoneStatus, phoneTime } from "./components/phone-status";
+import { collectControls } from "../../test/controls";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { createRoot } from "react-dom/client";
 import { SURPRISES, surpriseNav } from "./components/surprise-me";
@@ -1533,6 +1534,15 @@ describe("install addresses", () => {
   it("finds the install addresses on an item's docs page", async () => {
     await renderPage("/docs/dialog/");
     expect(document.body.innerText.split("ourostack/ouro-ui/").length - 1).toBeGreaterThan(2);
+  });
+
+  it("marks every control on a docs page with its Ouro item, so X-ray names it", async () => {
+    await page.viewport(1100, 900);
+    for (const path of ["/docs/", "/docs/dialog/", "/docs/radio/", "/docs/density/", "/docs/button/"]) {
+      await renderPage(path);
+      const unmarked = collectControls().filter((element) => !element.closest("[data-ouro-control]"));
+      expect(unmarked.map((element) => `${path} ${element.tagName.toLowerCase()} ${element.getAttribute("href") ?? element.textContent?.trim().slice(0, 30)}`)).toEqual([]);
+    }
   });
 });
 
