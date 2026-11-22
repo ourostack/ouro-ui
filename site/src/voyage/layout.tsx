@@ -34,10 +34,10 @@ export function VoyageFooter(): JSX.Element {
             </p>
           </div>
           <nav aria-label="Ouro UI">
-            <ul className="m-0 -ms-2 flex list-none flex-wrap gap-x-1 p-0 lg:-me-2">
+            <ul className="m-0 -ms-2.5 flex list-none flex-wrap gap-x-1 p-0 lg:-me-2.5">
               {links.map((link) => (
                 <li key={link.label}>
-                  <Link href={link.url} tone="secondary" className="inline-flex min-h-11 items-center px-2 sm:min-h-9">
+                  <Link href={link.url} tone="secondary" className="inline-flex min-h-11 items-center px-2.5 sm:min-h-9">
                     {link.label}
                     {link.url.startsWith("http") && (
                       <span aria-hidden="true" className="ms-1">
