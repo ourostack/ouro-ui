@@ -136,7 +136,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
           <a href={href("/docs/installing/")} className="text-primary underline underline-offset-4">Installing</a>):
         </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}`} />
-        <Collapsible title="More ways" className="mt-2" data-site-install-more="">
+        <Collapsible title="More ways" className="mt-2">
           <div className="grid gap-3 pt-2">
             <Text size="sm" tone="muted">
               Or, with the <a href={`${href("/")}#install`} className="text-primary underline underline-offset-4">@ouro namespace</a> set
