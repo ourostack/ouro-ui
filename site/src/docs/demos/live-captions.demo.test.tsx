@@ -9,7 +9,7 @@ import LiveCaptionsDemo from "./live-captions.demo";
 // picture differ (ourostack/ouro-ui#2917). Under navigator.webdriver the demo shows its finished
 // transcript once and never ticks, so nothing on the page changes while a sweep takes its pictures.
 
-let roots: Root[] = [];
+const roots: Root[] = [];
 let mounted: Element[] = [];
 
 function render(): Element {
