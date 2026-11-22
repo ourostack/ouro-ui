@@ -7,7 +7,7 @@ A failure says what happened and precisely why (the system and its answer: "The 
 Vague: "couldn't", "could not", "something went wrong", "unable to", "failed to load", "an error occurred", and a text that is only a bare "Error" or "Upload failed", unless the cause follows the phrase in the same sentence ("Couldn't send: you're offline. Try again when you're back online.", "… because …"; not "Couldn't send: try again"). A negation or an action before the word ("No errors", "Retry failed") passes. The source rules kit (ouro-source-rules) keeps the identical list for an app's UI copy; change both together. A text that is precise and still holds a phrase ("The card service says your card could not be charged. Use another card.") goes on an allow-list, each entry with its reason.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-precise-copy#v1.3.425
+npx shadcn@latest add ourostack/ouro-ui/ax-precise-copy#v1.3.434
 ```
 
 It installs `lib/ouro/ax/precise-copy.ts`. Its tests are `ax-precise-copy-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -89,6 +89,28 @@ Words before "error" or "failed" that make the text other than a failure: a nega
 const NOT_BARE_LEADS: readonly string[]
 ```
 
+### `PRECISE_FAILURE_KEY`
+
+The field on an outcome's `error` or `human`, or a checks row, that says why its short failure text is precise.
+
+```ts
+const PRECISE_FAILURE_KEY: "preciseFailure"
+```
+
+### `preciseFailureProblem`
+
+What is wrong with a record's `preciseFailure`, or null when the field is absent or holds a reason. A blank or non-text value is skipped, so the detectors keep reading the record's text.
+
+```ts
+function preciseFailureProblem(record: Record<string, unknown>): string | null
+```
+
+Example:
+
+```ts
+preciseFailureProblem({ code: "x", preciseFailure: " " }); // "preciseFailure needs a reason in words"
+```
+
 ### `statesCause`
 
 Whether the text after a failure phrase states the cause in the same sentence: after a colon, a dash or "because", a substitution (`${…}`) or at least two words whose first is not in `NOT_A_CAUSE`, that are not a cause naming nothing (`VAGUE_CAUSE`), with no vague phrase in it.
@@ -148,7 +170,7 @@ vagueFailureIn("The photo service says this picture was deleted. Ask its owner t
 
 ### `vagueFailuresIn`
 
-Every vague failure message in a value: a message, a `help --json`, an outcome, a refusal or a checks report. A finding an allow-list entry lets through carries the entry. With `messagesOnly`, only what is under `FAILURE_KEYS`, and an Ouro AX answer's `summary` and `detail`; a `code` is never read.
+Every vague failure message in a value: a message, a `help --json`, an outcome, a refusal or a checks report. A finding an allow-list entry lets through carries the entry. With `messagesOnly`, only what is under `FAILURE_KEYS`, and an Ouro AX answer's `summary` and `detail`; a `code` is never read. A record with a `preciseFailure` reason (an outcome's `error` or `human`, a checks row) lets its own short texts, and a list of them, through, with the reason carried as the allow entry; the X-ray's `copy.precise-failure` reads the same list.
 
 ```ts
 function vagueFailuresIn(value: unknown, options?: VagueFailuresOptions): VagueFailureFinding[]

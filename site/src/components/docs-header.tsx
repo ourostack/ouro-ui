@@ -6,7 +6,7 @@ import { guideLabel, MenuPages, PageLink, SITE_SECTIONS, SiteMenu } from "../voy
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { comparisons, componentGroups, filterHint, guides, rankedComponents, helpers, isAxPart, platforms, startPages, type DocsLink } from "./docs-sections";
-import { setXray, useXray } from "../voyage/xray-store";
+import { setXray, useSpotlight, useXray, useXrayFromAddress } from "../voyage/xray-store";
 import { AskFor } from "./ask-for";
 
 // The docs pages' header: the same one the home page and the Nautilus have. docs-shell.tsx loads
@@ -19,12 +19,14 @@ const docsHref = (item: string) => href(`/docs/${item}/`);
 
 /** X-ray on a docs page: HX Inspector over the page's demos, once someone turns it on. */
 function DocsXray(): JSX.Element | null {
+  useXrayFromAddress();
   const on = useXray();
+  const spotlight = useSpotlight();
   const [wanted, setWanted] = useState(false);
   if (on && !wanted) setWanted(true);
   return wanted ? (
     <Suspense>
-      <Inspector open={on} onOpenChange={setXray} docsHref={docsHref} />
+      <Inspector open={on} onOpenChange={setXray} docsHref={docsHref} spotlight={spotlight} />
     </Suspense>
   ) : null;
 }

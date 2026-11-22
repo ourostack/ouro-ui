@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.425 ourostack/ouro-ui/ouro-source-rules#v1.3.425
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.434 ourostack/ouro-ui/ouro-source-rules#v1.3.434
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -152,7 +152,7 @@ A failure message tells the person, or the agent, what happened and precisely wh
 | `Unable to open file` | `You don't have access to this file. Ask its owner for edit access.` |
 | `Error` | `inbox-agent stopped: the mail service turned down its sign-in (401). Sign in again in Settings.` |
 
-The rule reads strings, template literals and JSX text in your source. It skips what is not copy: import specifiers, types, object keys, tagged templates (`css` and `gql` ones), compared values, `className`, `data-*`, `id`, `key`, `type`, `href`, `src`, `to`, `name`, `role`, `htmlFor` and `as` values, and a string that is one lowercase word (`"error"` as a status). A count such as `{n} failed`, a negation such as "No errors" and an action such as "Retry failed" are not bare failures.[^not-bare] A phrase passes when its cause follows in the same sentence, after a colon, a dash or "because", in at least two words that start with neither a next step nor a vague word, and "Error: …" is held to the same test.[^not-bare] So `Couldn't send: you're offline. Try again when you're back online.` passes, and `Couldn't send: try again.` and `Something went wrong. Error code: E42` do not. JSX text is read with what follows it, so `<p>Couldn't send: {why}</p>` passes like its template literal.[^not-bare] Text you build from pieces or load from a JSON catalog is not read. It also skips the first argument of `includes`, `startsWith`, `endsWith`, `has` and `test` (a string matched against, not shown), a string in a `new Set([...])` that is only used for `.has(…)` membership, and the class name in `error.name || "Error"`.[^vague-skips] A heading or label that only names the topic, such as "Errors" or "Machine errors", is not a bare failure either: a plural with at most two words before it and no action among them.[^vague-skips] When a message names the system and its answer and still holds one of the phrases ("The card service says your card could not be charged. Use another card."), add it to `failureCopyAllow` with its reason.[^vague-failure-copy] A message a protocol mandates, such as JSON-RPC's `"Parse error"`, is not skipped: it goes in `failureCopyAllow` with its reason too.[^vague-skips]
+The rule reads strings, template literals and JSX text in your source. It skips what is not copy: import specifiers, types, object keys, tagged templates (`css` and `gql` ones), compared values, `className`, `data-*`, `id`, `key`, `type`, `href`, `src`, `to`, `name`, `role`, `htmlFor` and `as` values, and a string that is one lowercase word (`"error"` as a status). A count such as `{n} failed`, a negation such as "No errors" and an action such as "Retry failed" are not bare failures.[^not-bare] A phrase passes when its cause follows in the same sentence, after a colon, a dash or "because", in at least two words that start with neither a next step nor a vague word, and "Error: …" is held to the same test.[^not-bare] So `Couldn't send: you're offline. Try again when you're back online.` passes, and `Couldn't send: try again.` and `Something went wrong. Error code: E42` do not. JSX text is read with what follows it, so `<p>Couldn't send: {why}</p>` passes like its template literal.[^not-bare] Text you build from pieces or load from a JSON catalog is not read. It also skips the first argument of `includes`, `startsWith`, `endsWith`, `has` and `test` (a string matched against, not shown), a string in a `new Set([...])` that is only used for `.has(…)` membership, and the class name in `error.name || "Error"`.[^vague-skips] A heading or label that only names the topic, such as "Errors" or "Machine errors", is not a bare failure either: a plural with at most two words before it and no action among them.[^vague-skips] When a message names the system and its answer and still holds one of the phrases ("The card service says your card could not be charged. Use another card."), add it to `failureCopyAllow` with its reason.[^vague-failure-copy] A single text can instead keep its wording with a comment on the line before it or on its own line, `// ouro-allow vague-failure-copy: <reason>` (`{/* … */}` in JSX), counted as `vague-failure-escape`, so a new one rises against `--base` and needs `--allow-regression "<reason>"`, as a new `failureCopyAllow` match does.[^vague-escape] A message a protocol mandates, such as JSON-RPC's `"Parse error"`, is not skipped: it goes in `failureCopyAllow` with its reason too.[^vague-skips]
 
 Prior art:
 
@@ -359,7 +359,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.425
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.434
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -443,7 +443,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.425
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.434
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -453,7 +453,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.425
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.434
         with:
           merge: "true"
 ```
@@ -473,7 +473,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.425
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.434
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -511,7 +511,7 @@ Fix the findings that fail first, so a session is spent on the task and not on a
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.425
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.434
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -771,3 +771,4 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 
 [^check-needs-a-person]: test:scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds)
 [^check-press-all]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > pressAll presses each Ouro button, switch, checkbox, tab and menu item by name, with the page opened again after each, and never a link, a submit, a destructive or an opted-out one)
+[^vague-escape]: test:scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it verify:testExists(scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it)

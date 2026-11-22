@@ -63,17 +63,18 @@ export const testShare = 0.5;
 /**
  * What a shard of files costs, in seconds: each mutant's overhead and its share of its own file's
  * tests, plus the first run over every test file the shard needs, the importers' of a lib/ file
- * included. `files` maps each path to `{ mutants, own, wider }`.
+ * included. `files` maps each path, or a unit's `path:start-end` id, to `{ mutants, own, wider }`,
+ * with the unit's `path` when the key is an id.
  */
 export function shardCost(paths, files, seconds) {
   const time = (file) => seconds[file] ?? unmeasuredSeconds;
   let total = 0;
-  let mutantCount = 0;
+  let hangs = 0;
   const tests = new Set();
   for (const path of paths) {
-    const { mutants, own, wider } = files[path];
+    const { mutants, own, wider, path: source = path } = files[path];
     total += mutants * (mutantOverhead + testShare * own.reduce((sum, file) => sum + time(file), 0));
-    mutantCount += mutants;
+    hangs += mutants * (hangRates[source] ?? timeoutRate);
     for (const file of [...own, ...wider]) tests.add(file);
   }
   let testSeconds = 0;
@@ -81,7 +82,7 @@ export function shardCost(paths, files, seconds) {
   total += testShare * testSeconds;
   // A mutant that hangs its tests waits out Stryker's timeout, which with coverage analysis off is
   // reckoned from the whole first run's time: every test file the shard needs.
-  total += mutantCount * timeoutRate * strykerTimeout(testSeconds);
+  total += hangs * strykerTimeout(testSeconds);
   return total;
 }
 
@@ -90,6 +91,13 @@ export function shardCost(paths, files, seconds) {
  * shards of CI run 41159468260 finished or reached.
  */
 export const timeoutRate = 0.007;
+
+/**
+ * Files whose mutants hang far more often than `timeoutRate`: MessageList's scroll loops and effects
+ * never settle when mutated. Its shard of CI run 44964844098 (job 137031857587) had 4 of 5 finished
+ * mutants time out, so the shard planned to fit the job limit and ran past it.
+ */
+export const hangRates = Object.freeze({ "registry/ouro/components/ouro/message/message-list.tsx": 0.3 });
 
 /** Stryker's timeout for a mutant, in seconds, from the net time of the tests it runs: its default timeoutFactor (1.5) and scripts/mutation.mjs's timeoutMS. */
 export const strykerTimeout = (netSeconds) => 1.5 * netSeconds + 10;

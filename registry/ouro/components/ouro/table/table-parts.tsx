@@ -6,6 +6,8 @@ import {
   useEffect,
   useId,
   useRef,
+  Children,
+  isValidElement,
   type CSSProperties,
   type HTMLAttributes,
   type JSX,
@@ -535,6 +537,12 @@ export interface TableCellProps extends Omit<TdHTMLAttributes<HTMLTableCellEleme
   ref?: Ref<HTMLTableCellElement> | undefined;
 }
 
+function holdsAnchor(node: ReactNode): boolean {
+  return Children.toArray(node).some(
+    (child) => isValidElement<{ children?: ReactNode }>(child) && (child.type === "a" || holdsAnchor(child.props.children)),
+  );
+}
+
 /**
  * Part: a cell (`<td>`), or the row's header with `rowHeader` (`<th scope="row">`).
  *
@@ -552,7 +560,8 @@ export function TableCell(props: TableCellProps): JSX.Element {
   useAlignCheck("TableCell", align);
   // The first row header cell holds the row link; a second one stays plain (TableRow warns).
   if (rowHeader && row.href !== undefined) row.claim.owner ??= id;
-  const holdsLink = rowHeader && row.href !== undefined && row.claim.owner === id;
+  // Stryker disable next-line LogicalOperator,ConditionalExpression: only a row header with a row link claims the row (above), so the owner check already rules out a plain cell and a row without a link
+  const holdsLink = rowHeader && row.href !== undefined && row.claim.owner === id && !holdsAnchor(children);
   const Element = rowHeader ? "th" : "td";
   return (
     <Element

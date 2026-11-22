@@ -1,0 +1,1 @@
+- New: `vague-failure-copy` takes a comment escape, `// ouro-allow vague-failure-copy: <reason>` on the line before a text, which source rules count as `vague-failure-escape` so a new one needs a reason recorded against `--base`.
