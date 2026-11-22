@@ -819,6 +819,25 @@ describe("MessageList windowing", () => {
     expect(scroller.scrollTop).toBe(before);
     expect(content.style.translate).not.toBe("");
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    // A loaded machine sends scrollend between the parts of one wheel scroll: a scroll after it holds the carry for the rest again.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    onTestFinished(() => void vi.useRealTimers());
+    const frameLater = () => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+    scroller.dispatchEvent(new Event("scrollend"));
+    vi.advanceTimersByTime(79);
+    const more = scrolled();
+    scroller.scrollTop -= 5;
+    await more;
+    now += 10_000;
+    for (let elapsed = 0; elapsed < 78; elapsed += 6) {
+      vi.advanceTimersByTime(6);
+      await frameLater();
+      expect(content.style.translate).not.toBe("");
+    }
+    vi.advanceTimersByTime(200);
+    await frameLater();
+    await expect.poll(() => content.style.translate).toBe("");
+    vi.useRealTimers();
     // The browser says the wheel's scroll ended, and once it rests the scroll position takes what was held.
     scroller.dispatchEvent(new Event("scrollend"));
     now += 10_000;
