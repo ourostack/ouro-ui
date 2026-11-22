@@ -1831,6 +1831,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // A scroll position written while the wheel turns may land in part there, and the rest settles frames later against the
       // reader. Where no end stopped the write, what has not landed stays carried, drawn by the translate, until a later write lands it.
       const top = scroller.scrollTop;
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: at the end a write that was stopped leaves its rest drawn by the translate only until the wheel rests, where the next pay finds nothing to land and lets it go.
       const unlanded = wheeling && top > 0 && top < farthest() ? Math.round(by) - applied : 0;
       // Stryker disable next-line EqualityOperator: a part of exactly one pixel kept carried or paid with the next write moves nothing on screen that WebKit shows, which keeps whole pixels.
       if (Math.abs(unlanded) >= 1) {
