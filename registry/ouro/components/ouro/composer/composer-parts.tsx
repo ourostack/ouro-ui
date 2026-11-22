@@ -2,14 +2,16 @@
 
 import { $isCodeNode, CodeNode } from "@lexical/code-core";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
+import { $createLinkNode, $isLinkNode, $toggleLink, LinkNode } from "@lexical/link";
 import { $isListItemNode, ListItemNode, ListNode, registerList } from "@lexical/list";
-import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type Transformer } from "@lexical/markdown";
+import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
-import { $createParagraphNode, $getRoot, $isLineBreakNode, $getSelection, $isRangeSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type LexicalEditor, type TextFormatType } from "lexical";
+import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode } from "lexical";
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
-import type { JSX, KeyboardEvent, Ref } from "react";
+import type { FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
+import { attachRef } from "@/registry/ouro/lib/ouro/refs";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 
 export { RichEditor };
@@ -29,6 +31,8 @@ interface RichEditorHandle {
 
 /** @internal */
 interface RichEditorProps {
+  /** Whether the element answers its value and selection in Markdown offsets, read when asked. */
+  markdownOffsets: boolean;
   label: string;
   value: string;
   onValueChange: (value: string) => void;
@@ -47,11 +51,18 @@ interface RichEditorProps {
   /** The form field name the Markdown submits under. */
   name?: string | undefined;
   handleRef: Ref<RichEditorHandle>;
+  /** Points an app's ref, such as Autocomplete's, at the editor's element, which reads and selects text as a textarea does. */
+  controlRef?: Ref<HTMLDivElement> | undefined;
+  /** The handlers Autocomplete watches; the editor announces an input after a change the person makes. */
+  onInput?: FormEventHandler<HTMLDivElement> | undefined;
+  onSelect?: ((event: SyntheticEvent<HTMLDivElement>) => void) | undefined;
+  onFocus?: FocusEventHandler<HTMLDivElement> | undefined;
+  onBlur?: FocusEventHandler<HTMLDivElement> | undefined;
 }
 
 // Underline has no CommonMark mark; `++` is the one Composer's plain mode writes too.
 const UNDERLINE: TextFormatTransformer = { format: ["underline"], tag: "++", type: "text-format" };
-const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE];
+const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK];
 
 const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
 
@@ -84,6 +95,9 @@ function leaveOrContinueBlock(editor: LexicalEditor): boolean {
   return editor.dispatchCommand(INSERT_PARAGRAPH_COMMAND, undefined);
 }
 
+// A private-use character that stands for a caret while the Markdown is written, so its place in it can be read.
+const CARET = "\uE000";
+
 // Stryker disable next-line StringLiteral: Lexical already writes a blank line where a text line meets a block, so naming a text line "" leaves the output as it was.
 const textKind = "text";
 const lineKind = (line: string) => (/^\s*(?:[-*+]|\d+\.) /.test(line) ? "list" : line.startsWith(">") ? "quote" : textKind);
@@ -93,22 +107,260 @@ function separateBlocks(markdown: string): string {
   const out: string[] = [];
   let fenced = false;
   let before = "";
-  for (const line of markdown.split("\n")) {
+  for (const marked of markdown.split("\n")) {
+    // A caret mark on a line is no text of it, so it takes the place of nothing in what kind the line is.
+    const line = marked.replaceAll(CARET, "");
     const fence = line.startsWith("```");
     // Stryker disable next-line StringLiteral: a fence line is told apart by `fence`, not by its kind, so the kind's name is never compared.
     const kind = fence ? "fence" : lineKind(line);
     // The line that closes a fence is a fence too; one inside it is the code's.
     if (!fenced && line !== "" && before !== "" && (kind !== before || fence)) out.push("");
     if (fence) fenced = !fenced;
-    out.push(line);
+    out.push(marked);
     // Stryker disable next-line StringLiteral: only that it is not empty matters, since a fence line is separated by `fence` whatever it follows.
     before = fenced ? "" : fence ? "fence" : line === "" ? "" : kind;
   }
   return out.join("\n");
 }
 
+// Only these addresses become links: a pasted `javascript:` address never does.
+const safeHref = (text: string): string | undefined => {
+  try {
+    const url = new URL(text);
+    if (["http:", "https:", "mailto:"].includes(url.protocol)) return url.href;
+  } catch {
+    /* not an address */
+  }
+  return undefined;
+};
+
+const htmlFormats: Record<string, TextFormatType> = { B: "bold", STRONG: "bold", I: "italic", EM: "italic", U: "underline", S: "strikethrough", DEL: "strikethrough", STRIKE: "strikethrough", CODE: "code" };
+const htmlBlocks = new Set(["P", "DIV", "LI", "BLOCKQUOTE", "PRE", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "TR"]);
+const htmlSkipped = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "IFRAME", "OBJECT", "NOEMBED", "NOFRAMES", "TITLE", "SVG"]);
+
+// The allowlist for a formatted paste: bold, italic, underline, strikethrough, code, links to http, https and mailto addresses, line breaks and paragraphs. A list item, quote or heading comes in as a line, a list item and a quote with the Markdown that starts them; every other tag, style and attribute is dropped, keeping its text.
+function $nodesFromHtml(html: string): LexicalNode[][] {
+  const lines: LexicalNode[][] = [];
+  let line: LexicalNode[] = [];
+  let pending = "";
+  const endLine = () => {
+    const first = line[0];
+    if ($isTextNode(first)) first.setTextContent(first.getTextContent().trimStart());
+    const last = line.at(-1);
+    if ($isTextNode(last)) last.setTextContent(last.getTextContent().trimEnd());
+    if (line.some((node) => !$isTextNode(node) || node.getTextContent() !== "")) {
+      // Stryker disable next-line ConditionalExpression: an empty text node put in front of a line with no marker is dropped when the editor normalizes.
+      if (pending) line.unshift($createTextNode(pending));
+      pending = "";
+      lines.push(line);
+    }
+    line = [];
+  };
+  const walk = (node: Node, formats: TextFormatType[], inPre: boolean): LexicalNode[] => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = inPre ? node.textContent! : node.textContent!.replace(/\s+/g, " ");
+      return text.split("\n").flatMap((part, index) => {
+        const out = $createTextNode(part);
+        formats.forEach((format) => out.toggleFormat(format));
+        return index === 0 ? [out] : [$createLineBreakNode(), out];
+      });
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return [];
+    const element = node as Element;
+    const tag = element.tagName.toUpperCase();
+    if (htmlSkipped.has(tag)) return [];
+    if (tag === "BR") return [$createLineBreakNode()];
+    const format = htmlFormats[tag];
+    const next = format && !formats.includes(format) ? [...formats, format] : formats;
+    const block = htmlBlocks.has(tag);
+    if (block) endLine();
+    if (tag === "LI") {
+      const parent = element.parentElement;
+      // Stryker disable next-line OptionalChaining: a list item parsed from a body has a parent element, so the access never meets null.
+      pending = parent?.tagName === "OL" ? `${[...parent.children].indexOf(element) + 1}. ` : "- ";
+    }
+    if (tag === "BLOCKQUOTE") pending = "> ";
+    const children = [...element.childNodes].flatMap((child) => {
+      const made = walk(child, next, inPre || tag === "PRE");
+      if (block) line.push(...made);
+      // Stryker disable next-line ArrayDeclaration: a block's children are never read, so what it returns here is unused.
+      return block ? [] : made;
+    });
+    if (block) {
+      endLine();
+      return [];
+    }
+    // Stryker disable next-line StringLiteral: a missing href read as any other text is no address, so safeHref rejects both alike.
+    const href = tag === "A" ? safeHref(element.getAttribute("href") ?? "") : undefined;
+    if (!href) return children;
+    const link = $createLinkNode(href);
+    link.append(...children);
+    return [link];
+  };
+  const body = new DOMParser().parseFromString(html, "text/html").body;
+  // Stryker disable next-line ArrayDeclaration: an unknown format name toggles nothing.
+  body.childNodes.forEach((child) => void line.push(...walk(child, [], false)));
+  endLine();
+  return lines;
+}
+
+// ⌘K: takes a link off a selection that holds one, makes a selected web address a link to itself, and otherwise asks for the address.
+function toggleLinkOfSelection(): void {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || selection.isCollapsed()) return;
+  if (selection.getNodes().some((node) => $isLinkNode(node) || $isLinkNode(node.getParent()))) {
+    $toggleLink(null);
+    return;
+  }
+  // Stryker disable next-line StringLiteral: a cancelled prompt read as any other text is no address, so safeHref rejects both alike; the question itself is checked.
+  const href = safeHref(selection.getTextContent()) ?? safeHref(window.prompt("Link address") ?? "");
+  if (href) $toggleLink(href);
+}
+
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
+const NODES = [ListNode, ListItemNode, QuoteNode, CodeNode, LinkNode];
 const toMarkdown = (editor: LexicalEditor) => separateBlocks(editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", ""));
+
+// The editor's element answers as a textarea does, over the text without its marks, one line to each block, so Autocomplete finds a trigger at the caret and puts a pick in place of it.
+const $isLeaf = (node: ElementNode) => !node.getChildren().some((child) => $isElementNode(child) && !child.isInline());
+function $leaves(node: ElementNode): ElementNode[] {
+  // Stryker disable next-line LogicalOperator,MethodExpression,ConditionalExpression: a block that is not a leaf holds only block children, so the filter keeps every child however it is written
+  const blocks = node.getChildren().filter((child): child is ElementNode => $isElementNode(child) && !child.isInline());
+  return blocks.flatMap((block) => ($isLeaf(block) ? [block] : $leaves(block)));
+}
+const $lengthBefore = (node: LexicalNode) => node.getPreviousSiblings().reduce((sum, sibling) => sum + sibling.getTextContentSize(), 0);
+function $textOffset(node: LexicalNode, offset: number, type: "text" | "element"): number {
+  const leaves = $leaves($getRoot());
+  // Stryker disable next-line all: Lexical hands this shim element points only at offset 0 or at a line break, where both branches give the same sum
+  let at = type === "text" ? offset : 0;
+  // Stryker disable next-line all: an element point's offset is 0 here except beside a line break, which the element reduce and the fallback sum identically
+  if (type === "element" && $isElementNode(node)) at = node.getChildren().slice(0, offset).reduce((sum, child) => sum + child.getTextContentSize(), 0);
+  let cursor: LexicalNode | null = node;
+  while (cursor && !leaves.some((candidate) => candidate.is(cursor))) {
+    /* istanbul ignore else @preserve -- the loop ends at the root, so only the root lacks a parent and it stops the loop first */
+    // Stryker disable next-line all: the root has no siblings, so $lengthBefore adds 0 for it
+    if (cursor.getParent()) at += $lengthBefore(cursor);
+    cursor = cursor.getParent();
+  }
+  const leaf = cursor as ElementNode | null;
+  let start = 0;
+  for (const candidate of leaves) {
+    if (candidate.is(leaf)) return start + at;
+    start += candidate.getTextContentSize() + 1;
+  }
+  /* istanbul ignore next @preserve -- unreachable: the point's leaf is always among the leaves */
+  // Stryker disable next-line all: every point's leaf is in the leaves, so the loop returns before this fallback
+  return start - 1 < 0 ? 0 : start - 1;
+}
+function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "text" | "element"] {
+  let left = offset;
+  const children = element.getChildren();
+  for (const [index, child] of children.entries()) {
+    const size = child.getTextContentSize();
+    // Stryker disable next-line EqualityOperator: at left === size the next child, or the trailing point, gives the same position
+    const fits = left <= size;
+    // Stryker disable next-line all: equivalent: a line break child has size 1 and the text branch would give the same offset
+    if ($isLineBreakNode(child)) {
+      // Stryker disable next-line all: equivalent: past offset 0 the loop continues to the same point
+      if (left === 0) return [element, index, "element"];
+    } else if (fits) {
+      return $isElementNode(child) ? $pointAt(child, left) : [child, left, "text"];
+    }
+    left -= size;
+  }
+  // Stryker disable next-line all: the trailing point is reached only for a block ending in a line break, and its type is read back identically
+  return [element, children.length, "element"];
+}
+// Stryker disable next-line StringLiteral: no test carries a zero-width mark, so the constant only matters to the editor's own caret marks
+const MARK = "\u200b";
+// Stryker disable next-line StringLiteral: no test puts a zero-width mark in the text, so what replaces it is never read
+const withoutMarks = (text: string) => text.replaceAll(MARK, "");
+type Point = readonly [key: string, offset: number, type: "text" | "element"];
+// Where the text, without its marks, has the offset `clean`, as a point in a leaf.
+function $pointOfText(clean: number): [LexicalNode, number, "text" | "element"] {
+  const leaves = $leaves($getRoot());
+  const raw = leaves.map((leaf) => leaf.getTextContent()).join("\n");
+  let index = 0;
+  // Stryker disable next-line all: the offset past the end of the raw text is clamped by the loop bound either way
+  for (let seen = 0; seen < clean && index < raw.length; index++) /* istanbul ignore else @preserve -- no test text holds a zero-width mark */ if (raw[index] !== MARK) seen++;
+  let from = 0;
+  for (const leaf of leaves) {
+    const size = leaf.getTextContentSize();
+    if (index <= from + size) return $pointAt(leaf, index - from);
+    from += size + 1;
+  }
+  /* istanbul ignore next @preserve -- unreachable: every offset lies within some leaf */
+  // Stryker disable next-line all: every offset is within some leaf, so the fallback is unreachable
+  return $pointAt(leaves.at(-1)!, leaves.at(-1)!.getTextContentSize());
+}
+function $selectText(cleanStart: number, cleanEnd: number) {
+  const selection = $createRangeSelection();
+  const [anchorNode, anchorOffset, anchorType] = $pointOfText(cleanStart);
+  const [focusNode, focusOffset, focusType] = $pointOfText(cleanEnd);
+  selection.anchor.set(anchorNode.getKey(), anchorOffset, anchorType);
+  selection.focus.set(focusNode.getKey(), focusOffset, focusType);
+  $setSelection(selection);
+}
+// The selection the person has: the page's when it is inside the editor, else the editor's own.
+function $currentSelection(editor: LexicalEditor) {
+  const dom = window.getSelection();
+  // Stryker disable next-line OptionalChaining: the root element is set for as long as the editor is mounted, so the guard cannot see null
+  return dom && editor.getRootElement()?.contains(dom.anchorNode) ? $createRangeSelectionFromDom(dom, editor) : $getSelection();
+}
+function readControl(editor: LexicalEditor) {
+  return editor.read(() => {
+    const leaves = $leaves($getRoot());
+    const raw = leaves.map((leaf) => leaf.getTextContent()).join("\n");
+    const value = withoutMarks(raw);
+    const selection = $currentSelection(editor);
+    if (!$isRangeSelection(selection)) return { value, start: value.length, end: value.length };
+    const a = withoutMarks(raw.slice(0, $textOffset(selection.anchor.getNode(), selection.anchor.offset, selection.anchor.type))).length;
+    const b = withoutMarks(raw.slice(0, $textOffset(selection.focus.getNode(), selection.focus.offset, selection.focus.type))).length;
+    return { value, start: Math.min(a, b), end: Math.max(a, b) };
+  });
+}
+
+// Where the Markdown has a point of the editor's text: a caret mark is put there in a copy of the editor, and the Markdown is written with it in.
+function markdownIndex(scratch: LexicalEditor, state: EditorState, [key, offset, type]: Point): number {
+  scratch.setEditorState(state);
+  scratch.update(
+    () => {
+      const node = $getNodeByKey(key)!;
+      if (type === "text") (node as TextNode).spliceText(offset, 0, CARET);
+      else (node as ElementNode).splice(offset, 0, [$createTextNode(CARET)]);
+    },
+    { discrete: true },
+  );
+  return toMarkdown(scratch).indexOf(CARET);
+}
+// The last text offset whose point is at or before the Markdown offset `target`: a place among Markdown marks is the point just inside them.
+function textOffsetOf(editor: LexicalEditor, scratch: LexicalEditor, target: number): number {
+  const state = editor.getEditorState();
+  let low = 0;
+  let high = readControl(editor).value.length;
+  while (low < high) {
+    const mid = (low + high + 1) >> 1;
+    const point = editor.read((): Point => {
+      const [node, offset, type] = $pointOfText(mid);
+      return [node.getKey(), offset, type];
+    });
+    if (markdownIndex(scratch, state, point) <= target) low = mid;
+    else high = mid - 1;
+  }
+  return low;
+}
+// The Markdown, with the selection's ends as offsets into it.
+function readMarkdownControl(editor: LexicalEditor, scratch: LexicalEditor) {
+  const value = toMarkdown(editor);
+  const points = editor.read((): Point[] | undefined => {
+    const selection = $currentSelection(editor);
+    return $isRangeSelection(selection) ? [selection.anchor, selection.focus].map((point): Point => [point.key, point.offset, point.type]) : undefined;
+  });
+  if (!points) return { value, start: value.length, end: value.length };
+  const state = editor.getEditorState();
+  const [a, b] = points.map((point) => markdownIndex(scratch, state, point)) as [number, number];
+  return { value, start: Math.min(a, b), end: Math.max(a, b) };
+}
 
 /**
  * The editor Composer swaps in for its textarea with `format="rich"`: a contenteditable that
@@ -116,7 +368,7 @@ const toMarkdown = (editor: LexicalEditor) => separateBlocks(editor.getEditorSta
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -127,6 +379,12 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   });
   // A press places the caret where it lands; any other way in puts it at the end.
   const pressed = useRef(false);
+  const inMarkdown = useRef(markdownOffsets);
+  useEffect(() => {
+    inMarkdown.current = markdownOffsets;
+  });
+  // ⌘⇧V was pressed, so the paste that follows takes the clipboard's text alone.
+  const plainPaste = useRef(false);
   // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: only the first paint reads it; the update listener sets it again from the editor before anyone can see.
   const [empty, setEmpty] = useState(value === "");
 
@@ -134,7 +392,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     const editor = createEditor({
       // Stryker disable next-line StringLiteral: the namespace only labels the editor.
       namespace: "ouro-composer",
-      nodes: [ListNode, ListItemNode, QuoteNode, CodeNode],
+      nodes: NODES,
       // Lexical writes underline and strikethrough as classes only; bold, italic and code are elements.
       theme: { text: { underline: "underline", strikethrough: "line-through", underlineStrikethrough: "underline line-through" } },
       // Stryker disable next-line BlockStatement: Lexical reports an error only for a state it cannot reach from the commands under test.
@@ -142,8 +400,50 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         throw error;
       },
     });
-    editor.setRootElement(rootRef.current);
+    const root = rootRef.current!;
+    editor.setRootElement(root);
     editorRef.current = editor;
+    // A copy of the editor that Markdown offsets are worked out in, made when first asked.
+    let scratch: LexicalEditor | undefined;
+    // Stryker disable next-line ObjectLiteral,StringLiteral,BlockStatement: the copy only receives the editor's own state and writes a mark into it, so its options, namespace and error handler are never read
+    const copy = () => (scratch ??= createEditor({ namespace: "ouro-composer-offsets", nodes: NODES, onError: /* istanbul ignore next @preserve -- the copy only writes text into states that already hold */ (error) => { throw error; } }));
+    const read = () => (inMarkdown.current ? readMarkdownControl(editor, copy()) : readControl(editor));
+    Object.defineProperties(root, {
+      value: { configurable: true, get: () => read().value },
+      selectionStart: { configurable: true, get: () => read().start },
+      selectionEnd: { configurable: true, get: () => read().end },
+    });
+    // The text offset a Markdown offset stands at.
+    const place = (offset: number) => (inMarkdown.current ? textOffsetOf(editor, copy(), offset) : offset);
+    Object.assign(root, {
+      setSelectionRange: (start: number, end: number) => {
+        const [from, to] = [place(start), place(end)];
+        editor.update(() => $selectText(from, to), { discrete: true });
+      },
+      setRangeText: (text: string, start: number, end: number) => {
+        if (inMarkdown.current) {
+          if (root.getAttribute("contenteditable") !== "true") return;
+          const markdown = toMarkdown(editor);
+          const [from, to] = [Math.min(Math.max(Math.min(start, end), 0), markdown.length), Math.min(Math.max(Math.max(start, end), 0), markdown.length)];
+          editor.update(() => $convertFromMarkdownString(markdown.slice(0, from) + text + markdown.slice(to), transformers, undefined, true), { discrete: true });
+          const at = textOffsetOf(editor, copy(), from + text.length);
+          // Stryker disable next-line ObjectLiteral,BooleanLiteral: the caret is placed in the same task either way, so only when it is drawn differs
+          editor.update(() => $selectText(at, at), { discrete: true });
+          return;
+        }
+        editor.update(
+          () => {
+            $selectText(start, end);
+            const selection = $getSelection();
+            /* istanbul ignore else @preserve -- $selectText has just made a range selection */
+            // Stryker disable next-line ConditionalExpression: $selectText has just made a range selection, so the guard only narrows the type
+            if ($isRangeSelection(selection)) selection.insertText(text);
+          },
+          // Stryker disable next-line ObjectLiteral,BooleanLiteral: editor.read, which value and the offsets use, sees a pending update as an applied one
+          { discrete: true },
+        );
+      },
+    });
     const stops = [
       registerRichText(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
@@ -163,16 +463,32 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         },
         COMMAND_PRIORITY_HIGH,
       ),
-      // Only the clipboard's text goes in: the allowlist for formatted paste follows.
+      // A paste goes through the allowlist; ⌘⇧V, and a clipboard with no formatting, paste the text alone. A web address pasted over a selection makes the selection a link.
       editor.registerCommand(
         PASTE_COMMAND,
         (event) => {
           const data = (event as ClipboardEvent).clipboardData;
+          const plain = plainPaste.current;
+          plainPaste.current = false;
           const selection = $getSelection();
           // Stryker disable next-line BooleanLiteral: with no clipboard text or caret, the handlers after this one have nothing to insert either way.
           if (!data || !$isRangeSelection(selection)) return false;
           event.preventDefault();
-          selection.insertRawText(data.getData("text/plain"));
+          const text = data.getData("text/plain");
+          const html = plain ? "" : data.getData("text/html");
+          const href = safeHref(text);
+          if (!selection.isCollapsed() && href && !/\s/.test(text.trim())) {
+            $toggleLink(href);
+            return true;
+          }
+          const lines = html ? $nodesFromHtml(html) : [];
+          if (lines.length === 0) {
+            selection.insertRawText(text);
+            return true;
+          }
+          const [only] = lines;
+          if (lines.length === 1) selection.insertNodes(only!);
+          else selection.insertNodes(lines.map((nodes) => $createParagraphNode().append(...nodes)));
           return true;
         },
         COMMAND_PRIORITY_HIGH,
@@ -183,6 +499,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         if (tags.has(synced) || markdown === held.current) return;
         held.current = markdown;
         report.current(markdown);
+        rootRef.current!.dispatchEvent(new InputEvent("input", { bubbles: true }));
       }),
     ];
     editor.update(
@@ -256,7 +573,14 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     <div data-slot={slot} className={cn("relative", className)}>
       {name !== undefined && <input type="hidden" name={name} value={value} disabled={disabled} />}
       <div
-        ref={rootRef}
+        ref={(element) => {
+          rootRef.current = element;
+          return attachRef(controlRef, element);
+        }}
+        onInput={onInput}
+        onSelect={onSelect}
+        onFocus={onFocus}
+        onBlur={onBlur}
         role="textbox"
         aria-multiline="true"
         aria-label={label}
@@ -282,6 +606,12 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           pressed.current = true;
         }}
         onKeyDownCapture={(event) => {
+          const mod = event.metaKey || event.ctrlKey;
+          if (mod && event.shiftKey && !event.altKey && event.key.toLowerCase() === "v") plainPaste.current = true;
+          if (mod && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "k" && !readOnly) {
+            event.preventDefault();
+            editorRef.current!.update(() => toggleLinkOfSelection());
+          }
           onKeyDown(event);
           if (event.defaultPrevented) event.stopPropagation();
         }}

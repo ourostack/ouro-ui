@@ -37,6 +37,7 @@ function MessageFindLayer({
   slot,
   onFindMatches,
   onMarks,
+  request,
 }: {
   all: ReturnType<typeof Children.toArray>;
   keys: string[];
@@ -47,8 +48,8 @@ function MessageFindLayer({
   slot: string;
   onFindMatches: ((report: MessageListFindReport) => void) | undefined;
   onMarks: (marks: string) => void;
+  request: RefObject<(next: { key: string; id: null; child: boolean; forward: boolean; focus: boolean; block: "center" }) => void>;
 }): null {
-  // Stryker disable next-line ArrayDeclaration: the callback is a state setter, which never changes, so its dependencies make no difference.
   useLayoutEffect(() => onMarks(findMarkClasses), [onMarks]);
   const reduced = useReducedMotion();
   const { query, fold, locale } = find;
@@ -63,6 +64,14 @@ function MessageFindLayer({
   useEffect(() => {
     reportRef.current = onFindMatches;
   });
+  const targetKey = target?.key;
+  const targetOccurrence = target?.occurrence;
+  useLayoutEffect(() => {
+    if (targetKey === undefined) return;
+    const drawnNow = [...content.current!.querySelectorAll(`[${slot}]`)].some((element) => element.getAttribute(slot) === targetKey);
+    if (!drawnNow) request.current({ key: targetKey, id: null, child: true, forward: true, focus: false, block: "center" });
+  // Stryker disable next-line ArrayDeclaration: with no dependencies the effect asks to draw on every render, and each draw renders again, so the test run never ends.
+  }, [content, slot, targetKey, targetOccurrence, query, request]);
   let currentIndex: number | null = null;
   if (target !== null) {
     currentIndex = found.order.slice(0, found.order.findIndex((entry) => entry.key === target.key)).reduce((sum, entry) => sum + entry.count, 0) + target.occurrence;

@@ -283,5 +283,45 @@
     "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > lets the crew speak only when it adds something: five ticks in order give at most three lines, and a tick out of order warns",
     "reason": "A shard measured it at 8 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/conversation-list/conversation-list.touch.test.tsx > opens a row's menu on a long press, where the finger rests, and the press selects nothing; a tap still selects",
+    "reason": "A shard measured it at 7.8 s against a budget of 15 s (#2944). It runs in about 1 s on a clean ouro-touch install with no contention; the breach did not reproduce locally across isolated runs, so it reads as CI-shard load, not an avoidable wait in the test or the long-press timer. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox > shows the highlighted option in the system's highlight colours under forced colours, where its fill is dropped",
+    "reason": "A shard measured it at 7.5 s against a budget of 15 s (#2961). It runs in under 200 ms on a clean ouro-webkit install with no contention; emulateMedia's own poll for the forced-colours match and the transition settle wait are not the cost, since the breach did not reproduce locally across repeated isolated runs. Reads as CI-shard load, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/porthole/porthole.test.tsx > Porthole > opens on a press into the detail lines, closes on a second press, and keeps focus on the spot",
+    "reason": "The original test, combining this check with the Escape case below, was measured at 7.5 s against a budget of 15 s (#2965). It is split in two here, each with half the interactions, and its afterEach no longer pays a media round trip it never needed. It runs in under 400 ms on a clean ouro-webkit install with no contention, so the remaining cost reads as CI-shard load on the real interactions webkit automation dispatches, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/porthole/porthole.test.tsx > Porthole > closes on Escape without losing focus, lets every Escape reach the app, and opens again on Enter",
+    "reason": "The original test, combining this check with the press-to-close case above, was measured at 7.5 s against a budget of 15 s (#2965). It is split in two here, each with half the interactions, and its afterEach no longer pays a media round trip it never needed. It runs in under 1 s on a clean ouro-webkit install with no contention, so the remaining cost reads as CI-shard load on the real interactions webkit automation dispatches, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx > SnapPiP > is a focusable group named by its label, described by its corner and hint, which shows beside it on keyboard focus",
+    "reason": "A shard measured it at 8 s against a budget of 15 s (#2965). Its own afterEach no longer pays a media round trip it never needed, since the test touches no media; it runs in under 400 ms on a clean ouro-webkit install with no contention across repeated isolated runs, both before and after that fix, so the remaining cost reads as CI-shard load on the real click, hover and Tab interactions the test dispatches, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "site site/src/voyage/chapters/chapter-three.test.tsx > Chapter III > keeps Dive and the organ off in the menu and the palette until the squid lets go, and a press on them changes nothing",
+    "reason": "A shard measured it at 7.7 s against a budget of 15 s (#2965), on chromium rather than WebKit, pointing at a cost shared across projects rather than one browser's automation latency. Chapter I, II and III's beforeEach set reduced motion and afterEach put it back on every test, paying a media round trip twice a test for a preference that never changes within the file; it now moves to a file-level beforeAll/afterAll, cutting that cost from twice a test to twice a file. A clean ouro-chromium run of the whole file shows no change (6.4 s and 7 s for 16 tests, both under budget and within the run-to-run spread this session has measured for other media-round-trip fixes), so the remaining cost still reads as CI-shard load, not an avoidable wait this fix left behind. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-touch test/text-size.touch.test.tsx > landscape (844 x 390) > demo/combobox has no text-entry control under 16px, closed or with any overlay open",
+    "reason": "A shard measured it at 7.8 s against a budget of 15 s (#2971). The demo renders four separate Comboboxes (Herb, Herbs, To, Cuisine), so the scan pays four real click round trips plus five subject re-renders (closed, then one per opener); no opener recurses further, since a listbox's options carry no aria-haspopup of their own, so this is not excess recursion. Instrumented locally the whole test (portrait and landscape together) totals under 1 s with each round trip at 82-150 ms, which matches the file's own documented model of up to 1 s per real round trip on a loaded shard rather than an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/toast/toaster.touch.test.tsx > the swipe follows the finger (rule 12) > still follows the finger with reduced motion, then returns or fades with no travel",
+    "reason": "ouro-touch at 8.5s of 15s in #2982 (run 45048634456). Measured clean locally: 1004ms, with its two restFinger() waits (real wall-clock, needed so the spring reads no leftover velocity before it snaps back under reduced motion) accounting for 300ms by design. The rest is nine real touchStep round trips across two drag-and-release cycles, the same shape as the neighboring settles-from-where-it-was-let-go case already exempted here. No avoidable wait found. Reads as CI-shard load on real touch round trips. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
   }
 ]

@@ -523,3 +523,45 @@ describe("the porthole's picture", () => {
   });
 });
 
+describe("the stage's pacing judge, once it is off the real screen", () => {
+  it("reaches no verdict once the stage is truly off screen, even where the intersection callback that would say so never turns up", async () => {
+    // Stands in for a real browser's own observer running far behind the scroll it watches, which never fires in
+    // the window this test waits out: the worst case for how stale offscreenRef (set only from its callback) can
+    // stay past the real geometry change, in any engine.
+    class SilentObserver implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "";
+      readonly scrollMargin = "";
+      readonly thresholds: number[] = [];
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return [];
+      }
+    }
+    const realObserver = window.IntersectionObserver;
+    window.IntersectionObserver = SilentObserver as unknown as typeof IntersectionObserver;
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    try {
+      await renderPage("/");
+      const stage = document.querySelector<HTMLElement>("[data-stage]")!;
+      // The home page's first control below the stage: scrolling to it, as the sweep's own retake does, is what
+      // pushes the stage off screen (ourostack/ouro-ui#2469, ourostack/ouro-ui#2989).
+      // Instant, as the sweep's own retake scrolls a control into view (states-sweep.ts): the site's own
+      // smooth scrolling would still be moving where the sweep takes its first picture otherwise.
+      document.querySelector<HTMLElement>("[data-site-accent]")!.closest("button")!.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+      expect(stage.getBoundingClientRect().bottom).toBeLessThanOrEqual(0);
+      expect(stage.hasAttribute("data-offscreen")).toBe(false);
+      // real clock: the judge's own 500ms beat and the second of real frames its verdict reads; the stand-in
+      // observer above never fires, so only a synchronous geometry check (not its ref) can stop a verdict here.
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      expect(stage.hasAttribute("data-paced")).toBe(false);
+      expect(lastLog()).not.toContain(LOG.stillWater.text);
+    } finally {
+      window.IntersectionObserver = realObserver;
+      window.scrollTo(0, 0);
+    }
+  });
+});
+

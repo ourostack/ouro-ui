@@ -24,7 +24,8 @@ test("a screen too slow to swim the fish gets still water, its speed at Stop, an
 /**
  * Times the page to the stage's beat (its 500 ms wait before it reads the frames). `stall` holds the page that long inside
  * the second the stage reads (after its first frame); `delay` puts the first beat off. With `starve`, the page draws no frame from
- * each beat on (requestAnimationFrame's callbacks wait) until `lift[n]` ms after the nth beat, if that is given; `hideAt`
+ * each beat on (requestAnimationFrame's callbacks wait) until `lift[n]` ms after the nth beat, if that is given, or the
+ * page's own `__feedFrames()` is called; `__heldFrames()` says how many are waiting. `hideAt`
  * hides the page and shows it again that long after the first beat. With `hold`, the first beat waits until the page's
  * `__releaseBeat()` is called, and the stage clearing it (as it does once a press has judged the screen) cancels it.
  */
@@ -76,6 +77,8 @@ const onTheBeat = (
         for (const callback of waiting.values()) frames(callback);
         waiting.clear();
       };
+      (window as unknown as { __heldFrames: () => number }).__heldFrames = () => waiting.size;
+      (window as unknown as { __feedFrames: () => void }).__feedFrames = feed;
       let hidden = false;
       Object.defineProperty(document, "hidden", { configurable: true, get: () => hidden });
       let beats = 0;
@@ -309,4 +312,49 @@ test("the stage judges the screen only once the site menu over it has closed", a
   await expect(scene(page)).toHaveAttribute("data-speed", "stop");
   // The crew says why, through React's scheduler: if that were held up after the menu closes, this line would not come.
   await expect(lastLog(page)).toContainText(LOG.stillWater.text);
+});
+
+// A tick already queued when the stage leaves the screen races the state update that says so: the state is read only
+// once React has committed it, a frame or more later, while the queued tick runs on the real clock regardless. A
+// control below the stage, pictured twice for the sweeps' retake guard, can catch the stage mid-verdict on the first
+// take and past it on the second (ourostack/ouro-ui#2879). A fixed wait guessing when that tick was queued missed on
+// a loaded runner, so the picture-mismatch this regression tests for fired this test's own assertion instead
+// (ourostack/ouro-ui#2986): the beat held and its frames starved put the queued tick exactly where this test controls
+// it, so nothing here depends on how fast a runner draws.
+test("a tick already queued when the stage leaves the screen is dropped, not judged as if still in view", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await onTheBeat(page, { hold: true, starve: true });
+  // A stand-in IntersectionObserver the test fires by hand, so the stage can be put offscreen on demand.
+  await page.addInitScript(() => {
+    let onIntersect: (entries: { isIntersecting: boolean }[]) => void = () => {};
+    class StubObserver {
+      constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
+        onIntersect = callback;
+      }
+      observe() {
+        onIntersect([{ isIntersecting: true }]);
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    window.IntersectionObserver = StubObserver as unknown as typeof IntersectionObserver;
+    (window as unknown as { __goOffscreen: () => void }).__goOffscreen = () => onIntersect([{ isIntersecting: false }]);
+  });
+  await open(page);
+  await bringUp(page);
+  await expect(page.locator("[data-stage]")).not.toHaveAttribute("data-paced", "");
+  await page.evaluate(() => (window as unknown as { __releaseBeat: () => void }).__releaseBeat());
+  // Polled, not a fixed wait: releasing the beat replays its own 500 ms timer before judge() queues the tick this test
+  // waits for, and a loaded runner delays exactly when that fires.
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __heldFrames: () => number }).__heldFrames()), { timeout: 10_000 })
+    .toBeGreaterThan(0);
+  // Both in the same turn: going offscreen updates the ref the queued tick reads synchronously, before React has had
+  // any turn to commit the state update the old code waited on instead.
+  await page.evaluate(() => {
+    (window as unknown as { __goOffscreen: () => void }).__goOffscreen();
+    (window as unknown as { __feedFrames: () => void }).__feedFrames();
+  });
+  await expect(page.locator("[data-stage]")).not.toHaveAttribute("data-paced", "");
+  await expect(lastLog(page)).not.toContainText(LOG.stillWater.text);
 });

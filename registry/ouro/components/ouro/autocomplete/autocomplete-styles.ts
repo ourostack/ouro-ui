@@ -119,7 +119,7 @@ const mirrored = [
 function caretRect(control: HTMLTextAreaElement | HTMLInputElement, index: number): DOMRect {
   const document = control.ownerDocument;
   const style = getComputedStyle(control);
-  const textarea = control.tagName === "TEXTAREA";
+  const textarea = control.tagName !== "INPUT";
   const mirror = document.createElement("div");
   // Out of sight and out of the page's flow; the marker's offsets are from the mirror's box.
   mirror.style.cssText = "position: absolute; top: 0; left: -9999px; visibility: hidden; overflow: hidden";

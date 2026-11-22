@@ -197,6 +197,21 @@ describe("Ouro check", () => {
     assert.deepEqual(of("/page.html"), [["clipped-text", 'p#in "A line cut off inside the sheet"']]);
   });
 
+  test("reads an open tooltip as covering the heading under it, but still catches a plain box drawn the same way", async () => {
+    // A tooltip beside a nav rail, small and opaque like Ouro's own popup, drawn directly over a section heading: this
+    // covers the heading rather than colliding with it. The same box with no data-ouro=tooltip is a real overlap.
+    const covering = (markup: string) => `<section style="position:relative"><h2 style="margin:0">Section heading</h2>${markup}</section>`;
+    const box = 'style="position:absolute;top:0;left:0;width:59px;height:16px;margin:0;background:#111;color:#fff"';
+    const app = site("tooltip", {
+      "tooltip.html": page(covering(`<div data-ouro="tooltip" ${box}>Tip</div>`)),
+      "plain.html": page(covering(`<div ${box}>Tip</div>`)),
+    });
+    const result = await check({ targets: [app], out: dir("tooltip"), sizes: [[390, 844]], themes: ["light"], config: { walk: false }, chromium, log: quiet });
+    const overlaps = (path: string) => result.findings.filter((f) => f.page === path && f.rule === "overlap");
+    assert.deepEqual(overlaps("/tooltip.html"), []);
+    assert.deepEqual(overlaps("/plain.html").map((f) => f.rule), ["overlap"]);
+  });
+
   test("checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing", async () => {
     // A view with no address: the cut-off text is there only once Open is pressed.
     const app = site("states", {

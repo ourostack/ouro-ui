@@ -57,7 +57,9 @@ jobs:
     # (scripts/ci-proof.mjs). Its proof is the merge queue's run on that very commit, or the newest run of
     # the pull request merged as it, when that run passed and its tree-proof job, which reports only after
     # the full suite, names the same tree. Release passes that run to scripts/required-ci.sh beside main's
-    # own. Anything else (main moved after the pull request's run, a reduced plan, a red or unfinished run,
+    # own. A merge queue entry reads the same proof (the pull request's number is in the queue ref): when main has not moved
+    # since the pull request's run, the entry's tree is that run's, and the entry runs nothing more, after its squash message passes
+    # the attribution and internal-name checks here. Anything else (main moved after the pull request's run, a reduced plan, a red or unfinished run,
     # a direct push, GitHub unreadable) runs everything, as before.
     #
     # The install test (install-prep, install-shard, install-upgrade, install-current and their checks) and the heavy tier
@@ -184,13 +186,32 @@ jobs:
       - id: tree
         name: The tree this run tests
         run: echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+      # A merge queue entry skips the suite on a proof too, but the checks of the squash commit it builds (its message is
+      # the pull request's title and body as they are now) stay with it: the attribution job and the ci check skip with
+      # the rest, so this step runs the two of them here, and a failure leaves `tested` unset, so everything runs and fails.
+      - id: squash
+        name: The squash commit's message is clean
+        if: github.event_name == 'merge_group'
+        continue-on-error: true
+        env:
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+          QUEUE_HEAD: ${{ github.event.merge_group.head_sha }}
+        run: |
+          node scripts/attribution.mjs "$QUEUE_BASE" "$QUEUE_HEAD"
+          guard="$RUNNER_TEMP/internal-names"
+          mkdir -p "$guard"
+          for file in check.mjs hashes.txt; do
+            curl -fsSL --retry 3 --retry-all-errors -o "$guard/$file" "https://raw.githubusercontent.com/ourostack/.github/main/tools/internal-names/$file"
+          done
+          node "$guard/check.mjs" "$QUEUE_BASE..$QUEUE_HEAD"
       - id: tested
         name: Has this tree already passed?
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'merge_group' && steps.squash.outcome == 'success') }}
         timeout-minutes: 5
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          QUEUE_REF: ${{ github.event_name == 'merge_group' && github.ref || '' }}
         run: node scripts/ci-proof.mjs "$GITHUB_SHA" --wait 180
       - name: Passed by proof
         if: steps.tested.outputs.tested == 'true'
@@ -235,8 +256,9 @@ jobs:
             echo "Everything runs: $EVENT on $REF${BASE_REF:+ into $BASE_REF}. Only a pull request into main runs what it can affect."
             echo "full=true" >> "$GITHUB_OUTPUT"
           fi
-      # The files a pull request into main changes, which the browser shards pass to the headroom
-      # reporter: on a pull request only tests in these files can fail it, and main judges every test.
+      # The files a pull request into main changes, which the browser and browser-fallback shards pass
+      # to the headroom reporter: on a pull request only tests in these files can fail it, and main
+      # judges every test.
       - id: changed
         name: Which files does the change touch?
         env:
@@ -1129,6 +1151,8 @@ jobs:
     # the files whose measured times make up its share and its slice of the sliced suites
     # (scripts/vitest-shards.mts), and uploads its coverage, which the ci job merges and holds to
     # 100%, and its motion evidence, which motion-coverage reads in place of the browser shards'.
+    # The headroom reporter judges it with the same HEADROOM_CHANGED scope as the browser shards, so
+    # a test over half its timeout in a file the pull request did not touch only reports, never fails.
     # Part of the ci check.
     needs: [plan, coverage]
     if: ${{ !cancelled() && needs.coverage.outputs.fallback == 'true' }}
@@ -1147,6 +1171,7 @@ jobs:
     name: browser fallback (${{ matrix.shard }}/28)
     env:
       SHARD: ${{ matrix.shard }}/28
+      HEADROOM_CHANGED: ${{ needs.plan.outputs.changed }}
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -241,7 +241,10 @@ export interface MessageListOwnProps {
    * drawn counts as well as one that is. Highlights are the CSS Custom Highlight API's, so the text stays as it is and links
    * keep working; where the browser lacks the API matches are counted but not drawn. Their colours follow the theme, in
    * light, dark and forced colours. The current match scrolls into view when it changes, gently unless motion is reduced,
-   * and focus stays where it is, so a find box keeps the keys. Counts come back through `onFindMatches`.
+   * and focus stays where it is, so a find box keeps the keys. Counts come back through `onFindMatches`. A current match in a
+   * message the window has not drawn is drawn and scrolled to, and `onFindMatches` reports `partial` while older history that
+   * has not loaded may hold more matches, so the app can load it.
+   * @claim "is drawn and scrolled to" registry/ouro/components/ouro/message/message-list.find-reveal.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.find-reveal.test.tsx::MessageList find in a windowed list > draws a match that is not drawn, scrolls it into view and highlights it as the current one)
    * @example
    * <MessageList label="Chat" find={{ query, current }} onFindMatches={({ count }) => setCount(count)}>{messages}</MessageList>
    */
@@ -1129,7 +1132,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [mounted, setMounted] = useState(false);
   useEffect(
     () => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMounted(true);
     },
     // Stryker disable next-line ArrayDeclaration: an effect that only sets a flag to true runs the same whatever its list holds.
@@ -2922,7 +2924,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           </button>
         </div>
       )}
-      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} /> : null}
+      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} request={requestRef} /> : null}
     </div>
   );
 }

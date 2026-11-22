@@ -229,19 +229,41 @@ const commandLoadingRowClass =
 type TextRange = readonly [start: number, end: number];
 
 /**
+ * Folds a text character by character, so a character that folds to an empty string (a standalone
+ * accent such as a middle dot) keeps its place instead of dropping out. Returns the folded text
+ * alongside, for a folded index, the original text's matching index.
+ */
+function foldKeepingPlaces(text: string): { folded: string; places: number[] } {
+  let folded = "";
+  const places: number[] = [];
+  let at = 0;
+  for (const char of text) {
+    const piece = fold(char) || char;
+    for (let i = 0; i < piece.length; i++) places.push(at);
+    folded += piece;
+    at += char.length;
+  }
+  return { folded, places };
+}
+
+/**
  * Where the words of a query appear in a text, ignoring case and accents, merged where they touch,
- * in order. Nothing when folding the text changes its length, so a range would land off its letters.
+ * in order. Folds the text character by character and maps folded positions back to the original
+ * text, so a standalone accent that folds to an empty string keeps its place and a range lands on
+ * the text as written.
  *
  * @internal
  * @claim "Where the words of a query" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > marks the words of the search in each command's label and description, and keeps the text as it was)
  */
 function queryRanges(text: string, query: string): TextRange[] {
-  const folded = fold(text);
-  if (folded.length !== text.length) return [];
+  const { folded, places } = foldKeepingPlaces(text);
   const ranges: [number, number][] = [];
   // Stryker disable next-line Regex: an empty word between two spaces is dropped by the filter after it.
   for (const word of fold(query).split(/\s+/).filter(Boolean)) {
-    for (let at = folded.indexOf(word); at !== -1; at = folded.indexOf(word, at + word.length)) ranges.push([at, at + word.length]);
+    for (let at = folded.indexOf(word); at !== -1; at = folded.indexOf(word, at + word.length)) {
+      const end = at + word.length;
+      ranges.push([places[at]!, end < places.length ? places[end]! : text.length]);
+    }
   }
   ranges.sort((a, b) => a[0] - b[0]);
   const merged: [number, number][] = [];

@@ -91,6 +91,52 @@ describe("ThemePicker", () => {
     expect(el.textContent).toContain("Pale aqua");
   });
 
+  it("shows each look's own page colour and primary in its swatch whatever is chosen, light and dark", async () => {
+    // What mendelow.me's check-swatches.mjs checked on the built site, as a component test: each swatch paints from
+    // its own preset's tokens in the page's scheme, never the chosen look's.
+    const looks = document.createElement("style");
+    looks.textContent = [
+      '[data-theme="pearl"] { --background: rgb(255, 255, 255); --primary: rgb(0, 102, 204); }',
+      '[data-theme="abyss"] { --background: rgb(230, 246, 244); --primary: rgb(15, 118, 110); }',
+      '[data-theme="dusk"] { --background: rgb(246, 239, 224); --primary: rgb(138, 83, 28); }',
+      '.dark [data-theme="pearl"], .dark[data-theme="pearl"] { --background: rgb(0, 0, 0); --primary: rgb(41, 151, 255); }',
+      '.dark [data-theme="abyss"], .dark[data-theme="abyss"] { --background: rgb(3, 26, 24); --primary: rgb(45, 212, 191); }',
+      '.dark [data-theme="dusk"], .dark[data-theme="dusk"] { --background: rgb(28, 20, 12); --primary: rgb(224, 164, 88); }',
+    ].join("\n");
+    document.head.append(looks);
+    const three = [...presets, { name: "dusk", label: "Dusk" }];
+    try {
+      const el = await render(<ThemePicker presets={three} />);
+      const tokens = (element: Element) => {
+        const style = getComputedStyle(element);
+        return { background: style.getPropertyValue("--background").trim(), primary: style.getPropertyValue("--primary").trim() };
+      };
+      for (const dark of [false, true]) {
+        html.classList.toggle("dark", dark);
+        const expected = Object.fromEntries(
+          three.map((look) => {
+            const probe = document.createElement("div");
+            probe.setAttribute("data-theme", look.name);
+            document.body.append(probe);
+            const read = tokens(probe);
+            probe.remove();
+            return [look.name, read];
+          }),
+        );
+        expect(new Set(Object.values(expected).map((look) => look.background)).size).toBe(three.length);
+        for (const chosen of three) {
+          await act(async () => el.querySelector<HTMLButtonElement>(`[aria-label="${chosen.label}"]`)!.click());
+          expect(tokens(html), `${dark ? "dark" : "light"}: choosing ${chosen.name} paints the page with it`).toEqual(expected[chosen.name]);
+          const shown = Object.fromEntries([...el.querySelectorAll("span[data-theme]")].map((swatch) => [swatch.getAttribute("data-theme"), tokens(swatch)]));
+          expect(shown, `${dark ? "dark" : "light"}, ${chosen.name} chosen`).toEqual(expected);
+        }
+      }
+    } finally {
+      looks.remove();
+      html.classList.remove("dark");
+    }
+  });
+
   it("names its group, and hides the description when asked", async () => {
     const el = await render(<ThemePicker presets={presets} label="Look" describe={false} />);
     expect(el.querySelector('[role="group"]')!.getAttribute("aria-label")).toBe("Look");
