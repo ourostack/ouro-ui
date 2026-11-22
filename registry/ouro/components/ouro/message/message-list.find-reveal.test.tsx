@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList, type MessageListFindReport } from "@/registry/ouro/components/ouro/message/message-list";
+import { MessageFindLayer } from "@/registry/ouro/components/ouro/message/message-list-parts";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -176,5 +177,21 @@ describe("MessageList find in a windowed list", () => {
     await frame();
     await frame();
     expect(scroller.scrollTop).toBe(top);
+  });
+
+  it("asks for no message to be drawn when nothing matches", async () => {
+    const host = document.body.appendChild(document.createElement("div"));
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const request = { current: vi.fn() };
+    const content = { current: host };
+    await act(async () =>
+      root.render(
+        <MessageFindLayer all={[]} keys={[]} find={{ query: "needle" }} hasOlder={false} scroller={{ current: host }} content={content} slot="data-slot-key" onFindMatches={undefined} onMarks={() => {}} request={request} />,
+      ),
+    );
+    await frame();
+    expect(request.current).not.toHaveBeenCalled();
   });
 });
