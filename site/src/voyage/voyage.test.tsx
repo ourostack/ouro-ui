@@ -9,6 +9,7 @@ import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { applyStoredTheme, PRESET_NAMES, prepaintScript, THEME_KEY } from "../themes/prepaint";
 import { presetList } from "./presets";
+import { clearLive } from "../themes/live";
 import { NAUTILUS_PAGE } from "./copy";
 import { spotlightFrom } from "./xray-store";
 import { finishReveal } from "./theme-store";
@@ -38,6 +39,10 @@ beforeEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
   localStorage.removeItem(THEME_KEY);
   root.removeAttribute("data-theme");
+  // A look the pointer rested on as a test ended is still previewed, and a test that chose Sky leaves Live's sky
+  // painted: both would read as the next test's choice.
+  root.removeAttribute("data-preview-from");
+  clearLive(document);
   setScheme("light");
 });
 afterEach(async () => {
@@ -47,6 +52,10 @@ afterEach(async () => {
   await cleanupPage();
   localStorage.removeItem(THEME_KEY);
   root.removeAttribute("data-theme");
+  // A look the pointer rested on as a test ended is still previewed, and a test that chose Sky leaves Live's sky
+  // painted: both would read as the next test's choice.
+  root.removeAttribute("data-preview-from");
+  clearLive(document);
   setScheme("light");
 });
 

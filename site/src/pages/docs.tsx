@@ -1,7 +1,7 @@
 // The presets the shared header's theme picker switches between, as on the voyage pages.
 import "../themes/presets.generated.css";
 import "../themes/by-preset.css";
-import type { JSX, ReactNode } from "react";
+import { lazy, Suspense, type JSX, type ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
@@ -27,7 +27,9 @@ import spoonjoy from "../docs/spoonjoy.json";
 import shipComponents from "../docs/ship-components.json";
 import { SHIP_PAGES } from "../docs/ships";
 import itemSources from "../docs/sources.json";
-import { ThemeDots } from "../voyage/theme-dots";
+
+// Only the theming guide shows the looks, so the other pages' first JavaScript leaves them out.
+const ThemeDots = lazy(() => import("../voyage/theme-dots").then((module) => ({ default: module.ThemeDots })));
 
 // The prerender links each page's Tailwind sheet in its head, the shared shell or the whole build (site/scripts/prerender.mts).
 // The dev server has no prerender, so it loads the whole build here.
@@ -300,7 +302,9 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
       {/* The theming guide lets a reader try the site's looks in place: the row fits the column, so nothing opens. */}
       {page.name === "theming" && (
         <div className="mb-10">
-          <ThemeDots label="Try a look" />
+          <Suspense fallback={null}>
+            <ThemeDots label="Try a look" />
+          </Suspense>
         </div>
       )}
       <Markdown blocks={body} link={link} />

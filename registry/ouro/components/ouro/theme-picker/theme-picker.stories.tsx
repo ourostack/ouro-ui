@@ -3,17 +3,18 @@ import { useState } from "react";
 import { ThemePicker, type ThemePreset } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 
-// Four small looks, defined here so each wordmark shows its own paper, ink, primary and heading face. An app ships
+// Four small looks, defined here so each wordmark shows its own paper, ink, primary and heading face, with a muted ink
+// that reads on its paper for the description. An app ships
 // its own preset CSS; these use the system's faces (sans, serif, mono, rounded), so the stories load no font.
 const LOOKS = `
-[data-theme="paper"] { --background: #ffffff; --foreground: #1d1d1f; --primary: #0066cc; --font-heading: ui-sans-serif, system-ui, sans-serif; }
-[data-theme="ledger"] { --background: #f6efe0; --foreground: #2a1f14; --primary: #8a531c; --font-heading: ui-serif, Georgia, "Times New Roman", serif; }
-[data-theme="chart"] { --background: #eef2f7; --foreground: #13233a; --primary: #c2410c; --font-heading: ui-monospace, "SF Mono", Menlo, monospace; }
-[data-theme="tide"] { --background: #e6f6f4; --foreground: #06302c; --primary: #0f766e; --font-heading: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; }
-.dark [data-theme="paper"], .dark[data-theme="paper"] { --background: #000000; --foreground: #f5f5f7; --primary: #2997ff; }
-.dark [data-theme="ledger"], .dark[data-theme="ledger"] { --background: #1c140c; --foreground: #f3e7d3; --primary: #e0a458; }
-.dark [data-theme="chart"], .dark[data-theme="chart"] { --background: #0d1626; --foreground: #e6edf7; --primary: #fb923c; }
-.dark [data-theme="tide"], .dark[data-theme="tide"] { --background: #031a18; --foreground: #d5f5f0; --primary: #2dd4bf; }
+[data-theme="paper"] { --background: #ffffff; --foreground: #1d1d1f; --muted-foreground: #5f5f64; --primary: #0066cc; --font-heading: ui-sans-serif, system-ui, sans-serif; }
+[data-theme="ledger"] { --background: #f6efe0; --foreground: #2a1f14; --muted-foreground: #5e4a33; --primary: #8a531c; --font-heading: ui-serif, Georgia, "Times New Roman", serif; }
+[data-theme="chart"] { --background: #eef2f7; --foreground: #13233a; --muted-foreground: #46566b; --primary: #c2410c; --font-heading: ui-monospace, "SF Mono", Menlo, monospace; }
+[data-theme="tide"] { --background: #e6f6f4; --foreground: #06302c; --muted-foreground: #2f5a55; --primary: #0f766e; --font-heading: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; }
+.dark [data-theme="paper"], .dark[data-theme="paper"] { --background: #000000; --foreground: #f5f5f7; --muted-foreground: #a1a1a6; --primary: #2997ff; }
+.dark [data-theme="ledger"], .dark[data-theme="ledger"] { --background: #1c140c; --foreground: #f3e7d3; --muted-foreground: #c2ad8e; --primary: #e0a458; }
+.dark [data-theme="chart"], .dark[data-theme="chart"] { --background: #0d1626; --foreground: #e6edf7; --muted-foreground: #9fb0c6; --primary: #fb923c; }
+.dark [data-theme="tide"], .dark[data-theme="tide"] { --background: #031a18; --foreground: #d5f5f0; --muted-foreground: #8cc7bf; --primary: #2dd4bf; }
 `;
 
 const presets: ThemePreset[] = [
