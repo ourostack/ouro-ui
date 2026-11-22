@@ -104,7 +104,7 @@ async function wheel(scroller: HTMLElement, deltaY: number) {
   await settle(scroller);
 }
 
-/** Waits until the scroll position reads the same across two frames, and no message springs. */
+/** Waits until the scroll position reads the same across two frames, no message springs, and no wheel carry is held in a translate. */
 async function settle(scroller: HTMLElement) {
   let last = -1;
   await expect
@@ -117,6 +117,9 @@ async function settle(scroller: HTMLElement) {
     .toBe(true);
   // And the messages have come to rest from the springs, so where each is drawn is where it is laid out.
   await expect.poll(() => scroller.querySelector("[data-ouro-settling]")).toBeNull();
+  // And the wheel has rested past a turn it may still be carrying, so the scroll position holds the pixel it will keep, not one still
+  // held back in a translate pending the pay a later wheel rest would otherwise write on its own.
+  await expect.poll(() => scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")?.style.translate ?? "").toBe("");
 }
 
 beforeEach(() => {
