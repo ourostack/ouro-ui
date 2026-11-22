@@ -1,0 +1,1 @@
+{ "product": "desk", "walkers": { "skills": { "module": "fixtures/walker-wrong-kind.mts", "kinds": ["skill"] } }, "sources": [{ "walker": "skills", "module": "", "source": "skills" }], "groups": [] }
