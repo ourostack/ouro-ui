@@ -792,6 +792,20 @@ describe("Table sorting", () => {
 });
 
 describe("Table parts", () => {
+  it("keeps the row link on the row header when a plain cell comes before it", async () => {
+    await render(
+      <Table caption="Pantry">
+        <TableBody>
+          <TableRow href="#flour">
+            <TableCell>2 kg</TableCell>
+            <TableCell rowHeader>Flour</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    await expect.element(page.getByRole("link", { name: "Flour" })).toHaveAttribute("href", "#flour");
+  });
+
   it("builds the same table from parts, with a linked row and a footer", async () => {
     const { table } = await render(
       <Table caption="Pantry" striped>
