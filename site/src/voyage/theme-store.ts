@@ -173,10 +173,18 @@ export function originOf(event: { currentTarget: EventTarget | null }): Origin |
   return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
 }
 
-/** While Live is on, moves its sky on with the clock: checked each minute and whenever the page comes back into view. */
+/**
+ * While Live is on, moves its sky on with the clock: checked each minute and whenever the page comes back into
+ * view. An automated browser (Playwright, WebDriver, an agent's headless page) sets navigator.webdriver; nobody
+ * is there to watch the sky move, and Live is the home page's default theme, so the sweep that screenshots the
+ * page twice in a row (states-sweep.ts) ran long enough for this minute tick to land between a retake's two
+ * takes and find an unrelated control's picture differ (ourostack/ouro-ui#2966, the same pattern as #2917). Skip
+ * the tick there: Live keeps the sky the head script painted for the whole run. See
+ * registry/ouro/lib/ouro/feedback.ts for the same check.
+ */
 export function useLiveClock(live: boolean): void {
   useEffect(() => {
-    if (!live) return;
+    if (!live || (typeof navigator !== "undefined" && navigator.webdriver)) return;
     const tick = () => paintLive();
     const timer = window.setInterval(tick, 60_000);
     document.addEventListener("visibilitychange", tick);

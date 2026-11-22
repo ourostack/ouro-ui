@@ -283,5 +283,15 @@
     "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > lets the crew speak only when it adds something: five ticks in order give at most three lines, and a tick out of order warns",
     "reason": "A shard measured it at 8 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/conversation-list/conversation-list.touch.test.tsx > opens a row's menu on a long press, where the finger rests, and the press selects nothing; a tap still selects",
+    "reason": "A shard measured it at 7.8 s against a budget of 15 s (#2944). It runs in about 1 s on a clean ouro-touch install with no contention; the breach did not reproduce locally across isolated runs, so it reads as CI-shard load, not an avoidable wait in the test or the long-press timer. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox > shows the highlighted option in the system's highlight colours under forced colours, where its fill is dropped",
+    "reason": "A shard measured it at 7.5 s against a budget of 15 s (#2961). It runs in under 200 ms on a clean ouro-webkit install with no contention; emulateMedia's own poll for the forced-colours match and the transition settle wait are not the cost, since the breach did not reproduce locally across repeated isolated runs. Reads as CI-shard load, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
   }
 ]
