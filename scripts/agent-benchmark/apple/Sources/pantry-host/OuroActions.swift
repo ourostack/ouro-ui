@@ -1,0 +1,1 @@
+../../../fixture/generated/OuroActions.swift

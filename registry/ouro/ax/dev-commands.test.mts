@@ -45,6 +45,14 @@ test("finds developer commands and repository paths in a command and in prose", 
   assert.deepEqual(devCommandsIn("scripts/a.mjs runs `node scripts/a.mjs --all`").map((f) => f.match), ["node scripts/a.mjs --all"]);
 });
 
+test("reads a word after the CLI's own name, and a help command's name, as the CLI's own subcommand, not git", () => {
+  assert.equal(devCommandIn("ouro git status takes no other words.", false, "ouro"), null);
+  assert.equal(devCommandIn('Unknown flag --x for "ouro git status".', false, "ouro"), null);
+  assert.equal(devCommandIn("Run git status.", false, "ouro")?.match, "git status");
+  assert.deepEqual(devCommandsIn({ commands: [{ name: "git status", usage: "git status" }] }), []);
+  assert.equal(devCommandsIn({ commands: [{ summary: "Run git status." }] }).length, 1);
+});
+
 test("leaves alone what an installed tool runs, prose, global installs and web addresses", () => {
   for (const text of ["notes sync", "notes doctor --json", "", "/usr/local/bin/notes sync", "~/bin/notes", "npm install -g @scope/notes", "pnpm add --global notes", "npm view notes", "pnpm dlx notes init", "npx @scope/notes init", "pnpm --version", "node --version", "deno", "go version", "make sure the file exists", "notes sync;", "npm --silent", "pnpm -C", "npm install --location=global notes", "npx @scope/notes import ./today.md", "npx notes init my-notes/", "pnpm dlx create-notes@latest notes/app", "deno run -A jsr:@scope/notes", "$HOME/.local/bin/notes sync", "python3 -m notes ./today.md"]) {
     assert.equal(command(text), null, text);

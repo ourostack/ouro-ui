@@ -2,7 +2,7 @@
 
 # TextField
 
-A labeled one-line text input on the Field contract: pass `label`, and `error` from your server action or client check. The `type` sets the phone keyboard and autofill, `password` gets a show/hide button that keeps focus in the input, `clearable` adds a clear button, and `startAdornment`/`endAdornment` put text or icons inside the box.
+A labeled one-line text input on the Field contract: pass `label`, and `error` from your server action or client check. The `type` sets the phone keyboard and autofill, `password` gets a show/hide button that keeps focus in the input, `clearable` adds a clear button, and `startAdornment`/`endAdornment` put text or icons inside the box. Escape empties a filled `type="search"` field, as Chromium's own search field does.
 
 ```tsx
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";

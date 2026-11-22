@@ -1,0 +1,1 @@
+- Fixed: Ouro check's cramped-heading no longer counts what a closed details hides as a box above a heading.

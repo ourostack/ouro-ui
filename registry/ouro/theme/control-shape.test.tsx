@@ -116,12 +116,33 @@ describe("control shape tokens", () => {
   it("make every control a capsule when a theme sets them to 9999px and round", async () => {
     const host = await mount(controls(), capsule);
     for (const [name, frame] of Object.entries(frames(host))) {
-      expect(radiusOf(frame), name).toBeGreaterThanOrEqual(9999 * 0.7 - 1);
+      expect(radiusOf(frame), name).toBeCloseTo(frame.getBoundingClientRect().height / 2, 0);
       expect(varOf(frame, "--corner-shape"), name).toBe("round");
     }
     const thumb = host.querySelector<HTMLElement>("[data-ouro-segment-thumb]")!;
-    expect(radiusOf(thumb)).toBeGreaterThanOrEqual(9999 * 0.7 - 1);
+    expect(radiusOf(thumb)).toBeGreaterThanOrEqual(thumb.getBoundingClientRect().height / 2 - 0.5);
     expect(varOf(thumb, "--corner-shape")).toBe("round");
+  });
+
+  it("make every control a squircle capsule at 9999px in the theme's squircle, its radius half its height", async () => {
+    const host = await mount(controls(), { "--ouro-control-radius": "9999px" });
+    for (const [name, frame] of Object.entries(frames(host))) {
+      expect(radiusOf(frame), name).toBeCloseTo(frame.getBoundingClientRect().height / 2, 0);
+      expect(varOf(frame, "--corner-shape"), name).toBe(varOf(document.documentElement, "--ouro-corner-shape"));
+    }
+  });
+
+  it("keep a squircle capsule's own corner at 0.7 of half its height where the engine has no corner-shape, never a half circle", async () => {
+    applyFallback();
+    const host = await mount(controls(), { "--ouro-control-radius": "9999px" });
+    for (const [name, frame] of Object.entries(frames(host))) {
+      const half = frame.getBoundingClientRect().height / 2;
+      expect(radiusOf(frame), name).toBeCloseTo(half * 0.7, 0);
+    }
+    // The stepper inside the number field rounds concentric with the field, inside its frame.
+    const field = frames(host).numberField;
+    const stepper = host.querySelector<HTMLElement>('[data-ouro="number-field"] button')!;
+    expect(radiusOf(stepper)).toBeCloseTo(radiusOf(field) - 1, 0);
   });
 
   it("leave cards and the checkbox's box on the theme's corners when only the control tokens are set", async () => {
@@ -150,7 +171,8 @@ describe("control shape tokens", () => {
     const surface = pill.querySelector<HTMLElement>("[data-ouro-surface]")!;
     expect(getComputedStyle(surface).display).toBe("block");
     expect(getComputedStyle(surface).clipPath).toMatch(/^inset\(/);
-    expect(Number.parseFloat(getComputedStyle(surface, "::after").borderTopLeftRadius)).toBeGreaterThan(1000);
+    // The ring's corner is the capsule's: half the button's height.
+    expect(Number.parseFloat(getComputedStyle(surface, "::after").borderTopLeftRadius)).toBeCloseTo(pill.querySelector("button")!.getBoundingClientRect().height / 2, 0);
     const plain = await mount(<Button variant="outline">Save</Button>);
     expect(getComputedStyle(plain.querySelector<HTMLElement>("[data-ouro-surface]")!).clipPath).toMatch(/^(shape|polygon)\(/);
   });

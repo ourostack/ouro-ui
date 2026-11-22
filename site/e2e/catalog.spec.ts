@@ -103,8 +103,11 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  *
  * The docs' set again 2026-11-21 at 193,168 bytes, what CI measured on main at 22c2e5038 (run 44951374420), after
  * PreviewBar joined the catalog (#2803): its demo and page code load with the docs' first script (#2814).
+ *
+ * The home page's set again 2026-11-21 at 289,844 bytes, what CI measured on main at 8ec35db91 (run 44962422523), after the
+ * header's Search button took its name and a longer hidden label (#2839): about 540 bytes more of the first script (#2845).
  */
-const MEASURED = { voyage: 289_304, docs: 193_168 } as const;
+const MEASURED = { voyage: 289_844, docs: 193_168 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
@@ -164,7 +167,10 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // bytes as `css-size <page> <bytes> of <ceiling>`, and a raise records its measurement there with its reason. Measured on
 // the split at 29751c13: the index 50,374 bytes with the theme presets, the shell alone 24,407, the badge page 29,424 and
 // the heaviest component page (composed-surface) 34,346.
-const CSS_CEILINGS = { voyage: 47 * 1024, docs: 50 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+// Raised a KiB each (voyage 48,143 and docs 51,207 bytes measured in CI, 15 and 7 over the old ceilings) for the look
+// swatches' focus ring: the picker is on every page, so the rule that gives a chosen swatch its own focus ring is
+// paid by every page that shows it (#2836, per #2728).
+const CSS_CEILINGS = { voyage: 48 * 1024, docs: 51 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the

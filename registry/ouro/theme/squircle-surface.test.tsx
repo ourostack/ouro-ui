@@ -69,6 +69,28 @@ describe("squircle surface where the engine has no corner-shape", () => {
     expect(getComputedStyle(button, "::before").display).toBe("none");
   });
 
+  it.each([
+    ["a capsule (9999px), its corner size half the button's height", "9999px", "half"],
+    ["Pearl's lg step (unset), its own corner size", undefined, "own"],
+  ] as const)("draws a Button's squircle for %s, never a square box", async (_name, radius, expected) => {
+    applyFallback();
+    const host = document.createElement("div");
+    if (radius) host.style.setProperty("--ouro-control-radius", radius);
+    document.body.append(host);
+    const root = createRoot(host);
+    roots.push({ root, host });
+    await act(() => root.render(<Button variant="outline">Save</Button>));
+    const button = host.querySelector("button")!;
+    const surface = button.querySelector<HTMLElement>("[data-ouro-surface]")!;
+    const half = button.getBoundingClientRect().height / 2;
+    expect(half).toBeGreaterThan(10);
+    const own = Number.parseFloat(getComputedStyle(button).borderTopLeftRadius) / 0.7;
+    if (expected === "own") expect(own).toBeLessThan(half);
+    const start = getComputedStyle(surface).clipPath.match(/^shape\(from 0px ([\d.]+)px/);
+    expect(start).not.toBeNull();
+    expect(Number(start![1])).toBeCloseTo(expected === "half" ? half : own, 0);
+  });
+
   it("lets an app's own fill and border classes on a Button win, with and without corner-shape", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const own = await mount(<Button className="bg-red-500 border-blue-500">Save</Button>);

@@ -767,6 +767,15 @@ test("a CLI whose failures say something went wrong fails copy.precise-failure o
   assert.equal(parseArgs(["--cli", "x", "--failure-copy-allow", "a.json"]).failureCopyAllow, "a.json");
 });
 
+test("copy.precise-failure passes a help record that gives its preciseFailure reason, with the reason as the note", async () => {
+  const cli = join(scratch, "precise-cli.mjs");
+  const help = { commands: [{ name: "rooms", effect: "private", usage: ["rooms"], errors: ["Could not reach the room service."], preciseFailure: "names the room service" }] };
+  writeFileSync(cli, `#!/usr/bin/env node\nconst a = process.argv.slice(2);\nif (a[0] === "help" && a.includes("--json")) process.stdout.write(${JSON.stringify(JSON.stringify(help))} + "\\n");\n`, { mode: 0o755 });
+  const report = await xray(base({ cli, name: "precise" }));
+  const found = report.results.filter((r) => r.claim === "copy.precise-failure").map((r) => [r.verdict, r.surface, r.note]);
+  assert.deepEqual(found, [["pass", "Could not reach the room service.", "allowed: names the room service"]]);
+});
+
 test("a protocol command may print its JSON reply on stdout, but an undeclared command may not, and a protocol command still gets one stderr line", async () => {
   const report = await xray(base({ cli: fixture("protocol-cli.mjs"), name: "proto" }));
   const verdicts = (cmd: string) => report.results.filter((r) => r.claim === "cli.one-line-error" && r.surface.startsWith(`${cmd} (`)).map((r) => r.verdict);

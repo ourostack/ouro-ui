@@ -183,6 +183,9 @@
   --shadow-lg: var(--sj-shadow-soft);
   --shadow-xl: var(--sj-shadow);
   --ouro-action: var(--sj-action);
+  /* Spoonjoy's controls are capsules: a full radius, which each control caps at half its height, in the theme's
+     squircle. No corner-shape token, so the capsule's ends are squircles, never half circles. */
+  --ouro-control-radius: 9999px;
   --ouro-cover-from: var(--sj-vellum);
   --ouro-cover-to: color-mix(in srgb, var(--sj-brass) 32%, transparent);
   --ouro-action-foreground: var(--sj-on-action);

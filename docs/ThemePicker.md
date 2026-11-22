@@ -2,7 +2,7 @@
 
 # ThemePicker
 
-The look chooser: a row of dots, one per preset, painted with the preset's page and primary colour, with the chosen look's name and mood under them. A press switches the whole app at once, as `data-theme` on `<html>`, and keeps the choice in `localStorage`; `themePresetScript()` inline in `<head>` applies it before first paint. A preset is CSS that keys on `[data-theme="<name>"]`.
+The look chooser: a row of dots, one per preset, painted with the preset's page and primary colour, with the chosen look's name and mood under them. The row is one Tab stop, on the chosen dot: the arrow keys, Home and End move focus along it, and a press chooses. A press switches the whole app at once, as `data-theme` on `<html>`, and keeps the choice in `localStorage`; `themePresetScript()` inline in `<head>` applies it before first paint. A preset is CSS that keys on `[data-theme="<name>"]`.
 
 ```tsx
 import { ThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";

@@ -1,0 +1,1 @@
+- Fixed: Escape empties a filled `type="search"` TextField in WebKit and Firefox too, as it already did in Chromium.

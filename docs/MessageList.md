@@ -66,6 +66,7 @@ Type: `MessageListProps`.
 | `className` | `string` |  | Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that height, so give it one. Appearance classes warn in development. |
 | `conversation` | `Key` |  | Which conversation the messages are, such as its id. Change it with the other conversation's messages, or before they come (as an app that keeps the last messages while it fetches does): the list opens that conversation at its newest message as they come, whatever keys they have, and moves nothing while the last one's still show. While it stays the same, nothing the messages do counts as a switch: keys swapped for the server's, the newest ones regenerated or removed. The first one named for messages the list already holds names them, and moves nothing. Messages that come before their conversation is named are taken for the last one's, and the name that follows them is taken for theirs, opening nothing; and a conversation whose messages carry exactly the last one's keys (keyed by place, as many of them) can't be told from it until they change, so key messages by their own ids. Without it, the list takes messages that share no `key` with the ones it held for another conversation, so it misses a switch between conversations whose messages share keys, and takes a conversation whose every message gets a new key at once for another one, at any length. An app can give `conversation` instead of keying the list by it: a switch opens the other conversation at its `initialAnchor` if it holds that message, else at its newest, and reads the other conversation's `heightCache`. |
 | `estimatedItemHeight` | `number` |  | The height, in CSS pixels with its margins, the list takes for a row it has not measured yet, from its first commit: the usual height of your rows. Give it when they are much shorter or taller than 96, the list's own first guess, so the first commit draws as many rows as fill the view, and no more, and the space kept for the rows not drawn is about as tall as they are. Left out, the list starts at 96, or at what a `heightCache` kept from the list before it, and then takes the average of the first rows it measures. |
+| `find` | `MessageListFind` |  | Finds `find.query` in the messages and marks the matches in the text drawn, the current one in a stronger colour. It reads the text the children hold (strings, through elements, and a post's `subject`), so a message the window has not drawn counts as well as one that is. Highlights are the CSS Custom Highlight API's, so the text stays as it is and links keep working; where the browser lacks the API matches are counted but not drawn. Their colours follow the theme, in light, dark and forced colours. The current match scrolls into view when it changes, gently unless motion is reduced, and focus stays where it is, so a find box keeps the keys. Counts come back through `onFindMatches`. |
 | `hasOlder` | `boolean` | `false` | Whether older messages may still load above, until the reader reaches the start of the conversation. While it is true the list keeps room above the first message, where "Loading older messages" shows, so at the top it covers no message or focus ring, and nothing moves as loading starts. Set it to `false` once there is nothing older: the room stays until it has left the view, or the list is at its end, and then goes without moving a message, not even for the one frame the browser draws as it goes. |
 | `heightCache` | `Map<string, number>` |  | A map the list writes the heights of its children into, under a child's key and the list's width in CSS pixels, rounded to a multiple of `BUCKET`, and reads before it measures. Keep one in your app, by conversation, and hand it to each list that shows the conversation: a list that mounts again with it is as tall, from its first commit, as the list before it was, so it opens with no row moving. It keeps the height the list took for a row not measured yet too, which the next list opens with, unless it is given `estimatedItemHeight`. Leave it out and the list keeps its own for as long as it lives. A switch to another `conversation` that comes with its own map reads that map from its first commit, as a list that mounts with it does, so it opens as tall as that conversation's list was, and writes what it measures into that map, not the one before. |
 | `initialAnchor` | `string` |  | The `id` of the message to open at, such as one found by search or a link to it, or the `key` of the child that holds it (the message's own id, where a row component of yours takes no `id`). The list opens with that message in the middle of its view, before it first draws, so the newest is never shown first, and it follows new messages only once the reader reaches the end. The list reads it when it first has messages, so it can come with them, and again at each switch to another `conversation`, which opens that conversation at it the same way. A message it does not hold, or the newest, opens at the end, and while the conversation stays the same a later change moves nothing. |
@@ -75,6 +76,7 @@ Type: `MessageListProps`.
 | `loadingOlderLabel` | `string` | `"Loading older messages"` | What shows while older messages load, for other languages. |
 | `maxWidth` | `number` |  | The widest the conversation gets, in CSS pixels, centred in a wider list (`960` is 60rem at the default font size), so in a wide window the user's own messages stay near the others' and the eye never crosses an empty field between them. The list itself still fills its place, so it scrolls from anywhere across it. Leave it out for messages as wide as the list. |
 | `newMessageLabel` | `((author: string, text: string) => string)` | `` (author, text) => `${author}: ${text}` `` | What screen readers hear when a new message arrives, for other languages. It gets the author's name and the message's text. The user's own messages are not read back. |
+| `onFindMatches` | `((report: MessageListFindReport) => void)` |  | Called with how many matches there are and which is current, whenever either changes, or `partial` does. See `MessageListFindReport`. |
 | `onMessageKeyDown` | `((message: HTMLElement, event: KeyboardEvent<HTMLElement>) => void)` |  | A key pressed while a message itself has focus, not a control inside it, before the list's own keys: shortcuts on the focused message, such as 1 to 6 for quick reactions. `message` is the message's element (its `id` or `data-*` attributes say which one it is). Call `event.preventDefault()` to keep the list from acting on the key as well. |
 | `pageKeys` | `boolean` | `true` | Whether Page Up and Page Down on a focused message move a page through the messages, as ⌥↑ and ⌥↓ do on a Mac. With `false` the list leaves those keys alone: it neither acts on them nor calls `preventDefault()`, so an app's own shortcut on them, such as ⌥↓ for the next conversation, gets them as pressed, and the browser scrolls the list. The other keys still move between messages. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
@@ -125,6 +127,38 @@ interface MessageListActions {
    * Goes to the newest message and follows new messages again, as "Jump to latest" does, leaving focus where it is.
    */
   jumpToNewest(): void;
+}
+```
+
+### `MessageListFind`
+
+What a MessageList finds, and which match is the current one.
+
+```ts
+interface MessageListFind {
+  /** The text to look for. Nothing is found while it is empty. */
+  query: string;
+  /** What the match ignores: `"none"`, `"case"`, `"accents"` or `"all"`. @default "all" */
+  fold?: FindFold | undefined;
+  /** A language tag for case, such as `"tr"`, where `I` and `i` are different letters from the dotted İ and dotless ı. */
+  locale?: string | undefined;
+  /** Which match is the current one, counted through the whole list, oldest first, from the first. It wraps round past either end. @default 0 */
+  current?: number | undefined;
+}
+```
+
+### `MessageListFindReport`
+
+What a MessageList says about its find: how many matches there are, which is current, and whether more may lie in history not loaded yet.
+
+```ts
+interface MessageListFindReport {
+  /** How many matches the messages in the list hold. */
+  count: number;
+  /** The index of the current match, or null when there is nothing to point at. */
+  current: number | null;
+  /** True while older messages may still load (`hasOlder`), so a match may lie above the ones counted. */
+  partial: boolean;
 }
 ```
 

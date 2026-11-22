@@ -1,0 +1,92 @@
+name: Agent benchmark (Apple)
+# Runs the App Intents arm of the agent interface benchmark (scripts/agent-benchmark/METHODOLOGY.md) on a hosted macOS
+# runner: it builds the Swift host in scripts/agent-benchmark/apple, runs the scripted agent through the arm, then the
+# chosen models (COPILOT_GITHUB_TOKEN as in agent-benchmark.yml). The results and transcripts are uploaded as the
+# agent-benchmark-apple artifact, in the folder layout run.mjs and page.mjs merge. It never runs on pull requests or pushes.
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: "Models, comma-separated (scripts/agent-benchmark/run.mjs BENCH_MODELS), or none for the scripted agent only"
+        required: false
+        default: "gpt-6-luna"
+      tasks:
+        description: "Pantry tasks, comma-separated: the arm serves Pantry only"
+        required: false
+        default: "add-item,recipe-to-list,check-off,place-order"
+      trials:
+        description: "Trials per model, arm and task"
+        required: false
+        default: "3"
+      label:
+        description: "A label recorded in results.json"
+        required: false
+        default: "ci"
+permissions:
+  contents: read
+concurrency:
+  group: agent-benchmark-apple
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: macos-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - name: Build the App Intents host
+        run: swift build -c release --package-path scripts/agent-benchmark/apple
+      - name: The scripted agent, through every arm and task
+        env:
+          TASKS: ${{ inputs.tasks }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--oracle --arms apple-app-intents --output-dir "$RUNNER_TEMP/agent-benchmark/oracle")
+          args+=(--tasks "${TASKS:-add-item,recipe-to-list,check-off,place-order}")
+          node scripts/agent-benchmark/run.mjs "${args[@]}"
+      - name: The models
+        if: inputs.models != 'none' && inputs.models != ''
+        env:
+          MODELS: ${{ inputs.models }}
+          TASKS: ${{ inputs.tasks }}
+          TRIALS: ${{ inputs.trials }}
+          LABEL: ${{ inputs.label }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$COPILOT_GITHUB_TOKEN" ]; then
+            echo "::error title=Missing secret::The repository has no COPILOT_GITHUB_TOKEN secret, so no model can run. Add a fine-grained personal access token with the Copilot Requests permission as that secret (Settings > Secrets and variables > Actions), or run with models set to none for the scripted agent only."
+            exit 1
+          fi
+          npm i --prefix "$RUNNER_TEMP/copilot-sdk" --no-save --no-audit --no-fund @github/copilot-sdk@1.0.13
+          export OURO_MODEL_REVIEWS_SDK="$RUNNER_TEMP/copilot-sdk"
+          args=(--models "$MODELS" --arms apple-app-intents --trials "$TRIALS" --concurrency 2 --label "$LABEL" --output-dir "$RUNNER_TEMP/agent-benchmark/$(date -u +%Y-%m-%d)-$LABEL")
+          args+=(--tasks "${TASKS:-add-item,recipe-to-list,check-off,place-order}")
+          node scripts/agent-benchmark/run.mjs "${args[@]}"
+      - name: The page these runs render
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ls "$RUNNER_TEMP"/agent-benchmark/*-*/results.json >/dev/null 2>&1; then
+            node scripts/agent-benchmark/page.mjs "$RUNNER_TEMP/agent-benchmark/page.md" "$RUNNER_TEMP/agent-benchmark"
+            cat "$RUNNER_TEMP/agent-benchmark/page.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            node --input-type=module -e 'import fs from "node:fs"; const r = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); const lines = ["| Arm | Task | Done | Steps |", "| --- | --- | --- | --- |", ...r.trials.map((t) => `| ${t.arm} | ${t.task} | ${t.success ? "yes" : "no"} | ${t.steps} |`)]; console.log(`## The scripted agent\n\n${lines.join("\n")}`);' "$RUNNER_TEMP/agent-benchmark/oracle/results.json" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: agent-benchmark-apple
+          path: ${{ runner.temp }}/agent-benchmark/
+          if-no-files-found: ignore

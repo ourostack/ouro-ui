@@ -256,3 +256,9 @@ test("a tool's exit table without a findings code is refused, naming the code th
   assert.throws(declare(defineExitCodes()), { message: 'defineChecks: chat doctor\'s exit table has no "findings" code for a check that finds a problem. Fix: add { ...FINDINGS_EXIT_CODE, code: 3 } to the table.' });
 });
 
+
+test("a row keeps its preciseFailure reason, and a blank one fails the run", async () => {
+  const row = (preciseFailure: string) => run([{ id: "mail", label: "Mail", run: () => ({ state: "failed", detail: "Could not sign in", fix: { byHand: "Sign in again." }, preciseFailure }) }]);
+  assert.equal((await row(" names the mail service ")).rows[0]!.preciseFailure, "names the mail service");
+  await assert.rejects(row(" "), /mail's preciseFailure needs a reason in words/);
+});

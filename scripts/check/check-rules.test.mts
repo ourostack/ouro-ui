@@ -175,6 +175,15 @@ describe("Ouro check's design rules", () => {
     assert.deepEqual(quietly.findings.filter((f) => f.rule === "jank"), []);
   });
 
+  test("cramped-heading: a closed details' hidden children count as no box above a heading", async () => {
+    const block = `<code style="display:block;height:48px;background:#ddd">verify:testExists(a)</code>`;
+    const folder = site("closed-details", {
+      "closed.html": page(`<ul style="margin:0;padding:0"><li><details><summary>Checks</summary>${block}</details></li></ul><h2 style="margin:60px 0 0;font-size:25px">Pin a version</h2>`, ""),
+    });
+    const result = await check({ targets: [folder], out: dir("closed-details"), sizes: [[1440, 900]], themes: ["light"], chromium, log: quiet });
+    assert.deepEqual(result.findings.filter((f) => f.rule === "cramped-heading"), []);
+  });
+
   test("giant-text: mendelow.me's root type, grown with the screen to 24px, fails on a 4K display and not on a laptop, and ouro-base's 125% step passes", async () => {
     const words = "<p>Selected work, from the timeline to the tea. Each piece sits under a rule and reads top to bottom.</p><p>The words are the page's running text, drawn at the body size the root sets.</p>";
     const style = (root: string) => `<style>main{max-width:36rem;margin:0 auto}body{font-size:1.125rem}h1{font-size:4rem;line-height:1}${root}</style>`;

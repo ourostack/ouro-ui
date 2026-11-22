@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import fc from "fast-check";
 import { unmarkedCounts, updateBaseline } from "../../registry/ouro/census/census.mjs";
-import { BASELINE_PATH, compareWithBaseline, countFingerprints, findRegressions, isScannedFile, main, narrowedSettings } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, compareWithBaseline, countFingerprints, findOffendersInSource, findRegressions, isScannedFile, main, narrowedSettings } from "../../registry/ouro/source-rules/source-rules.mjs";
 
 // Property tests of the two ratchets (docs/guides/conformance.md): whatever edits a pull request
 // makes to the code, the settings or the baselines, neither kit lets the counted offenders rise,
@@ -167,6 +167,24 @@ describe("ouro-source-rules: narrowedSettings", () => {
         assert.deepEqual(narrowedSettings(base, wider), []);
         const changes = narrowedSettings(wider, base);
         assert.equal(new Set(changes.map((change) => change.fingerprint)).size, changes.length);
+      }),
+      runs,
+    );
+  });
+});
+
+describe("ouro-source-rules: the failure copy comment escape", () => {
+  const reason = fc.stringMatching(/^[a-z][a-z ]{3,20}$/);
+  const phrase = fc.constantFrom("Could not parse", "Something went wrong", "Unable to save");
+
+  it("counts a copy kept by a comment with a reason, so it rises against a base that lacked it", () => {
+    fc.assert(
+      fc.property(reason, phrase, (why, text) => {
+        const source = `export function A() {\n  // ouro-allow vague-failure-copy: ${why}\n  return <p>${text}</p>;\n}`;
+        const found = findOffendersInSource("app/routes/a.tsx", source);
+        assert.deepEqual(found.map((offender) => offender.category), ["vague-failure-escape"]);
+        assert.equal(findRegressions(found, {}).regressions.length, 1);
+        assert.equal(findRegressions(found, countFingerprints(found)).regressions.length, 0);
       }),
       runs,
     );
