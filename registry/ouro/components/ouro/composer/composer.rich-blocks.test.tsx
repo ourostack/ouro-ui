@@ -77,7 +77,7 @@ describe("Composer rich blocks", () => {
     const seen: string[] = [];
     const editor = await render(rich({ defaultValue: "- one", onValueChange: (value) => void seen.push(value) }));
     editor.focus();
-    await userEvent.keyboard("{Home}{Backspace}");
+    await userEvent.keyboard(`${"{ArrowLeft}".repeat(10)}{Backspace}`);
     await expect.poll(() => seen.at(-1)).toBe("one");
     expect(editor.querySelector("ul")).toBeNull();
   });
@@ -86,7 +86,7 @@ describe("Composer rich blocks", () => {
     const seen: string[] = [];
     const editor = await render(rich({ defaultValue: "> quoted", onValueChange: (value) => void seen.push(value) }));
     editor.focus();
-    await userEvent.keyboard("{Home}{Backspace}");
+    await userEvent.keyboard(`${"{ArrowLeft}".repeat(10)}{Backspace}`);
     await expect.poll(() => seen.at(-1)).toBe("quoted");
     expect(editor.querySelector("blockquote")).toBeNull();
   });
