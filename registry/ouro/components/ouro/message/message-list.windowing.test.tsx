@@ -928,6 +928,40 @@ describe("MessageList windowing", () => {
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
   });
 
+  it("keeps what a write mid-wheel did not land drawn by the translate, until a later write lands it", async () => {
+    let from = 100;
+    const chat = () => <Chat items={conversation(300 - from, from)} windowing={false} />;
+    const { scroller, rerender } = await render(chat());
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    let now = 1_000_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    await scrollTo(scroller, 300);
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    from -= 20;
+    await rerender(chat());
+    const held = content.style.translate;
+    expect(held).not.toBe("");
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    let lands = 0.5;
+    Object.defineProperty(scroller, "scrollTop", {
+      configurable: true,
+      get: () => own.get!.call(scroller),
+      set: (value: number) => {
+        const at = own.get!.call(scroller);
+        own.set!.call(scroller, at + (value - at) * (value === 40 ? 1 : lands));
+      },
+    });
+    onTestFinished(() => void delete (scroller as { scrollTop?: number }).scrollTop);
+    // The reader nears the top while the wheel turns: the carry is paid, and the write lands in part.
+    await act(async () => void (scroller.scrollTop = 40));
+    await expect.poll(() => content.style.translate).not.toBe(held);
+    expect(content.style.translate).not.toBe("");
+    // A later write lands in full, and the translate goes.
+    lands = 1;
+    now += 10_000;
+    await expect.poll(() => content.style.translate).toBe("");
+  });
+
   it("keeps the wheel turning through the frame it turned in, however long that frame takes", async () => {
     const { scroller, root } = await render(<Chat items={conversation(500)} />);
     await scrollTo(scroller, 3000);
