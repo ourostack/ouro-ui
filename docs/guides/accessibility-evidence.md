@@ -132,7 +132,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [time-grid](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/time-grid) | 10 | 0 | none yet |
 | [timer](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/timer) | 10 | 0 | [timer.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/timer.sr.spec.ts): 1 test on `feedback-timer--short` |
 | [toast](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/toast) | 6 | 2 | [toast.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/toast.sr.spec.ts): 1 test on `feedback-toast--playground` |
-| [toggle](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/toggle) | 7 | 0 | none yet |
+| [toggle](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/toggle) | 8 | 0 | none yet |
 | [toolbar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/toolbar) | 7 | 0 | none yet |
 | [tooltip](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/tooltip) | 2 | 0 | none yet |
 | [typing-indicator](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/typing-indicator) | 1 | 0 | none yet |
