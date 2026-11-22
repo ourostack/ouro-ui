@@ -178,7 +178,9 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // Raised a KiB each (voyage 48,143 and docs 51,207 bytes measured in CI, 15 and 7 over the old ceilings) for the look
 // swatches' focus ring: the picker is on every page, so the rule that gives a chosen swatch its own focus ring is
 // paid by every page that shows it (#2836, per #2728).
-const CSS_CEILINGS = { voyage: 48 * 1024, docs: 51 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+// Raised a KiB each again (voyage 49,364 and docs 52,327 bytes measured in CI run 45052165035, 212 and 103 over) for the
+// wordmark ThemePicker (#2987): its tiles, page-token ring and squircle square, and the phone menu's and the theming guide's rows.
+const CSS_CEILINGS = { voyage: 49 * 1024, docs: 52 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the
