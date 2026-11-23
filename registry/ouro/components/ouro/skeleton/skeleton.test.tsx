@@ -260,7 +260,8 @@ describe("Skeleton", () => {
     expect(frames.at(0)!["opacity"]).toBe(frames.at(-1)!["opacity"]);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(skeleton).animationName).toBe("none");
-    expect(skeleton.getAnimations({ subtree: true })).toEqual([]);
+    // A host where the animation's cancellation lags the computed-style recompute by a frame needs a poll, not a bare read.
+    await expect.poll(() => skeleton.getAnimations({ subtree: true }).length).toBe(0);
   });
 
   it("joins one shared phase: a placeholder mounted mid-breath, or remounted, is where the others are, and reduced motion draws none", async () => {
@@ -278,7 +279,7 @@ describe("Skeleton", () => {
     expect(phaseGap(phase(again), phase(late))).toBeLessThan(phaseGapMs);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(late).animationName).toBe("none");
-    expect(late.getAnimations()).toEqual([]);
+    await expect.poll(() => late.getAnimations().length).toBe(0);
   });
 
   it("joins the shared phase past a host held right after it mounts, before its first frame can peg its own clock", async () => {
