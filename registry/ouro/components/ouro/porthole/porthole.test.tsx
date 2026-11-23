@@ -438,7 +438,7 @@ describe("Porthole", () => {
     const content = pill.firstElementChild as HTMLElement;
     // Once the width has eased to fit, the style holds what the content and the pill's edges need.
     await expect.poll(() => pill.style.width === `${Math.ceil(content.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
-    expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color");
+    expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color, box-shadow");
     await view.rerender(base(fixed([item("sync", "working", { label: "Catching up on a great many messages" })])));
     // Once the width has eased to fit, the style holds what the content and the pill's edges need.
     await expect.poll(() => pill.style.width === `${Math.ceil(content.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
@@ -474,7 +474,7 @@ describe("Porthole", () => {
     expect(pill.style.width).not.toBe(shown);
     expect(getComputedStyle(pill).width).toBe(pill.style.width);
     expect(pill.getAnimations().length).toBe(0);
-    expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color");
+    expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color, box-shadow");
     // Once drawn, a new line eases again.
     await s.send(snapshot());
     expect(pill.getAnimations().length).toBeGreaterThan(0);
