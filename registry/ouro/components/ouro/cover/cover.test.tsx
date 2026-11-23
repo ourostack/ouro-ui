@@ -70,7 +70,7 @@ describe("Cover", () => {
     expect(letter.getAttribute("aria-hidden")).toBe("true");
     expect(getComputedStyle(letter).fontFamily).toBe(themed("fontFamily", "var(--font-heading)"));
     expect(getComputedStyle(letter).color).toBe(themed("color", "color-mix(in oklab, var(--primary) 60%, var(--foreground))"));
-    expect(getComputedStyle(cover).backgroundImage).toMatch(/^linear-gradient\(135deg/);
+    expect(getComputedStyle(cover).backgroundImage).toBe("none");
     // The letter is 42% of the tile's height.
     expect(Number.parseFloat(getComputedStyle(letter).fontSize)).toBeCloseTo(56 * 0.42, 0);
   });
