@@ -18,9 +18,11 @@ function shownCount(count: number): string {
  * @claim "The column: 68px with" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail > is 68px wide with labels and 56px with hideLabels, with items at least 44px tall)
  * @claim "It fills its container's" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail > fills its container's height and draws no surface of its own)
  */
+// Forced colours box the rail itself, not one item: an item at rest draws no border, matching
+// how a system list box leaves its own rows plain.
 const railClass = {
-  labels: "box-border flex h-full w-ouro-17 shrink-0 flex-col py-2",
-  icons: "box-border flex h-full w-ouro-14 shrink-0 flex-col py-2",
+  labels: "box-border flex h-full w-ouro-17 shrink-0 flex-col py-2 forced-colors:border forced-colors:border-solid",
+  icons: "box-border flex h-full w-ouro-14 shrink-0 flex-col py-2 forced-colors:border forced-colors:border-solid",
 } as const;
 
 const headerClass = "flex shrink-0 items-center justify-center px-1 pb-2";
@@ -47,13 +49,13 @@ const itemClass = {
     "font-[inherit] no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
     // Stryker disable next-line StringLiteral: a class string in a class position; test/state-hovers.test.tsx reads its tokens, outside this file's tests
     "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] pointer-fine:hover:bg-[var(--ouro-rail-hover,var(--ouro-row-hover,var(--accent)))] pointer-fine:hover:text-[var(--ouro-rail-hover-foreground,var(--foreground))] data-selected:text-foreground " +
-    "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:border forced-colors:border-solid",
+    "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
   icons:
     "press group/navigation-rail relative m-0 box-border flex min-h-ouro-11 w-full cursor-pointer flex-col items-center justify-center rounded-ouro-md border-0 bg-transparent p-0 " +
     "font-[inherit] no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
     // Stryker disable next-line StringLiteral: a class string in a class position; test/state-hovers.test.tsx reads its tokens, outside this file's tests
     "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] pointer-fine:hover:bg-[var(--ouro-rail-hover,var(--ouro-row-hover,var(--accent)))] pointer-fine:hover:text-[var(--ouro-rail-hover-foreground,var(--foreground))] data-selected:text-foreground " +
-    "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:border forced-colors:border-solid",
+    "motion-safe:active:scale-(--ouro-press-scale) outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
 } as const;
 
 /**
