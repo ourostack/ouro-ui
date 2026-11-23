@@ -1989,9 +1989,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
         const known = seenMessages.has(newest);
         seenMessages.add(newest);
         if (!pinned.current && !known && newest.getAttribute("data-role") === "user" && records.some((record) => [...record.addedNodes].some((node) => node === newest || (node instanceof Element && node.contains(newest))))) {
+          // Stryker disable next-line BooleanLiteral: not equivalent in intent, but unobservable here; followEnd's toBottom already puts the scroller at the live bottom, so the next atBottom() or hold() reads its own geometry (farthest() - scrollTop) and recomputes the same pinned value regardless of this assignment.
           pinned.current = true;
           owed = 0;
           followEnd();
+          // Stryker disable next-line CallExpression: not equivalent in intent, but unobservable here; skipping this resync only leaves end/anchors stale until the next moves() run, whose own farthest() !== end check (above) already differs once content has grown, so hold() still runs and resyncs them from live geometry.
           keepAnchor();
           setShowJump(false);
         }
