@@ -10,6 +10,15 @@ test("the voyage's CSS sources are current: run node site/scripts/page-css.mts w
   assert.equal(read("site/src/voyage/voyage-sources.generated.css"), generate());
 });
 
+test("the site's stylesheet scans no file a page never renders: tests, type tests, the test kit or data", () => {
+  // Tailwind emits CSS for every class-like word in what it scans, so a test's fixture class or a JSON file's
+  // prose (themes.json's copyable CSS names every --color-* token) would ship in every page's stylesheet.
+  const css = read("site/src/styles.css");
+  for (const left of ["../../registry/**/*.test-d.ts", "../../registry/ouro/lib/ouro/testing", "./**/*.test.ts", "./**/*.test.tsx", "./**/*.json"]) {
+    assert.ok(css.includes(`@source not "${left}";`), left);
+  }
+});
+
 test("the docs' shell sources are current: run node site/scripts/page-css.mts when this fails", () => {
   assert.equal(read("site/src/docs/shell-sources.generated.css"), generateDocsShell());
 });
