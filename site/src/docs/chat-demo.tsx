@@ -61,7 +61,6 @@ const seed = (): Chat[] => [
     members: [people.mara, people.theo, { name: ME }],
     preview: "Theo: I have one. I will bring it.",
     time: "9:43",
-    unread: true,
     messages: [
       { id: "l1", who: "Mara Quill", time: "9:41", text: <>Morning! The venue confirmed the long table for Friday.</> },
       {
@@ -103,7 +102,7 @@ const seed = (): Chat[] => [
   { id: "grace", title: "Grace Hopper", members: [people.grace], preview: "Found the bug: a moth in the relay.", time: "Mon", unread: true, messages: [{ id: "h1", who: "Grace Hopper", time: "Mon", text: <>Found the bug: a moth in the relay.</> }], replies: [] },
 ];
 
-const REPLY_DELAY = { typing: 700, answer: 1800 } as const;
+const REPLY_DELAY = { sent: 400, typing: 700, answer: 1800 } as const;
 
 const mentionable = [{ value: "mara", label: "Mara Quill" }, { value: "theo", label: "Theo Brandt" }, { value: "ana", label: "Ana Lind" }];
 const triggers = [{ char: "@", label: "People", items: (query: string) => mentionable.filter((person) => person.label.toLowerCase().includes(query.toLowerCase())) }];
@@ -114,9 +113,10 @@ type Stage = "ready" | "loading" | "empty";
 export default function ChatDemo(): JSX.Element {
   const [stage, setStage] = useState<Stage>("ready");
   const [chats, setChats] = useState<Chat[]>(seed);
-  const [openId, setOpenId] = useState<string | null>("launch");
+  const [openId, setOpenId] = useState<string | null>(null);
   const [threadOpen, setThreadOpen] = useState(false);
   const [typing, setTyping] = useState<string | null>(null);
+  const [pendingLine, setPendingLine] = useState<string | null>(null);
   const [seen, setSeen] = useState<{ chat: string; line: string } | null>(null);
   const timers = useRef<number[]>([]);
   const paneRef = useRef<HTMLDivElement | null>(null);
@@ -130,6 +130,10 @@ export default function ChatDemo(): JSX.Element {
     timers.current = [];
   };
   useEffect(() => stopReplies, []);
+  // A laptop opens on a conversation and a phone on the list; the width is read after hydration.
+  useEffect(() => {
+    if (window.matchMedia("(min-width: 768px)").matches) setOpenId("launch");
+  }, []);
 
   // A phone shows one pane at a time, so hand focus to the pane that appears.
   useEffect(() => {
@@ -142,11 +146,17 @@ export default function ChatDemo(): JSX.Element {
 
   const send = (chatId: string, text: string, thread: boolean) => {
     const line: Line = { id: `m${Date.now()}`, who: ME, own: true, time: "now", text: withMentions(text.replace(/ {2,}/g, " ").trim()) };
-    setChats((all) => all.map((chat) => (chat.id !== chatId ? chat : thread ? { ...chat, replies: [...chat.replies, line] } : { ...chat, messages: [...chat.messages, line], preview: text, time: "now", unread: false })));
+    setChats((all) => {
+      const next = all.map((chat) => (chat.id !== chatId ? chat : thread ? { ...chat, replies: [...chat.replies, line] } : { ...chat, messages: [...chat.messages, line], preview: text, time: "now", unread: false }));
+      const moved = next.find((chat) => chat.id === chatId);
+      return thread || !moved ? next : [moved, ...next.filter((chat) => chat !== moved)];
+    });
     if (thread) return;
     stopReplies();
     setSeen(null);
+    setPendingLine(line.id);
     timers.current.push(
+      window.setTimeout(() => setPendingLine(null), REPLY_DELAY.sent),
       window.setTimeout(() => setTyping(chatId), REPLY_DELAY.typing),
       window.setTimeout(() => {
         setTyping(null);
@@ -164,6 +174,7 @@ export default function ChatDemo(): JSX.Element {
       onSelect={(id) => {
         if (id !== openId) {
           stopReplies();
+          setPendingLine(null);
           setTyping(null);
           setSeen(null);
         }
@@ -195,7 +206,8 @@ export default function ChatDemo(): JSX.Element {
               time={line.time}
               continued={open.messages[index - 1]?.who === line.who}
               attachments={line.attachments?.map((file) => <Attachment key={file.name} name={file.name} size={file.size} href="#" />)}
-              footer={line.own && seen?.chat === open.id && seen.line === line.id ? <ReadReceipt readers={open.members.filter((member) => member.name !== ME)} /> : undefined}
+              pending={pendingLine === line.id}
+              footer={line.own && index === open.messages.length - 1 ? <ReadReceipt readers={seen?.chat === open.id && seen.line === line.id ? open.members.filter((member) => member.name !== ME) : []} /> : undefined}
               thread={
                 open.replies.length > 0 && index === 2 ? (
                   <ThreadSummary
@@ -220,7 +232,7 @@ export default function ChatDemo(): JSX.Element {
       </div>
       <div className="border-t border-border p-2">
         <Autocomplete triggers={triggers}>
-          <Composer key={open.id} label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onSend={(text) => send(open.id, text, false)} />
+          <Composer conversation={open.id} label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onSend={(text) => send(open.id, text, false)} />
         </Autocomplete>
       </div>
     </div>
