@@ -261,6 +261,51 @@ export async function quiet(page: Page): Promise<void> {
 // One route gets a minute. A browser call that never returns (WebKit's mouse.up, a screenshot of a page that
 // navigated) would otherwise hold the whole shard to its 15-minute limit; the route is logged as skipped,
 // its page is closed so the hung call ends, and the sweep goes on with a fresh page.
+// Advances a frame and reports whether a transition or a finite (non-looping) animation was running on the page, in
+// which case it is waited out: `document.getAnimations()` covers CSS transitions, CSS keyframe animations and
+// element.animate(), so a mover that is none of these (a spinner's own looping animation stays; it never finishes)
+// still settles before a picture is taken (states-sweep.ts, both a state's first take and a retake's second).
+export async function motionTick(page: Page): Promise<boolean> {
+  return page.evaluate(async () => {
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const running = document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity);
+    if (running.length === 0) return false;
+    await Promise.race([Promise.all(running.map((a) => a.finished.catch(() => null))), new Promise((done) => setTimeout(done, 500))]);
+    return true;
+  });
+}
+
+// The home page's stage is below the fold at load and judges the screen only once scrolled into view, a beat and
+// then up to a couple of seconds of real frames later, committing its verdict (the fish swimming or still) with a
+// plain state update: no CSS Animation or Transition marks that commit, so motionTick and document.getAnimations()
+// never see it coming. A control scrolled near the stage (its own speed, depth, tanks, dive, lights, log or bell
+// control) brings it onscreen and can leave its judge mid-flight; left unwaited, the verdict can then land while a
+// later control is mid-retake, so that control's two takes differ even though it never changed
+// (ourostack/ouro-ui#2989). Call this after every control's own scroll, not once before the sweep's loop: the stage
+// only ever starts judging once it is actually onscreen, which a one-time call before any scroll cannot observe.
+// A page with no stage, a stage still offscreen, or one that has already judged, returns at once.
+export async function stagePaced(page: Page): Promise<void> {
+  const stage = page.locator("[data-stage]");
+  if ((await stage.count()) === 0) return;
+  const onscreen = await stage.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    const viewHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewWidth = window.innerWidth || document.documentElement.clientWidth;
+    return rect.bottom > 0 && rect.top < viewHeight && rect.right > 0 && rect.left < viewWidth;
+  });
+  if (!onscreen) return;
+  await expect
+    .poll(async () => (await stage.getAttribute("data-paced")) !== null, { timeout: SETTLE_MS })
+    .toBe(true)
+    .catch(() => {
+      // Reduced motion, or a judge that never got three real frames inside its deadline, never sets data-paced:
+      // nothing more to wait for.
+    });
+}
+
+// One route gets a minute. A browser call that never returns (WebKit's mouse.up, a screenshot of a page that
+// navigated) would otherwise hold the whole shard to its 15-minute limit; the route is logged as skipped,
+// its page is closed so the hung call ends, and the sweep goes on with a fresh page.
 export function routeGuard(context: BrowserContext, first: Page, ms = 60_000) {
   let current = first;
   const skipped: string[] = [];
