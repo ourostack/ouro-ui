@@ -605,10 +605,7 @@ async function settle(page: Page): Promise<void> {
 }
 
 // An app's WKWebView has no corner-shape, which Playwright's WebKit has: it answers as the app's engine does.
-function hideCornerShape() {
-  const supports = CSS.supports.bind(CSS);
-  CSS.supports = ((...query: string[]) => !/corner-shape/.test(query.join(" ")) && supports(...(query as [string, string]))) as typeof CSS.supports;
-}
+const HIDE_CORNER_SHAPE = `const supports = CSS.supports.bind(CSS); CSS.supports = (...query) => !/corner-shape/.test(query.join(" ")) && supports(...query);`;
 
 async function check(options: CheckOptions): Promise<CheckResult> {
   const { out, chromium, engine = "chromium", executablePath, install, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log, fetch: ask = fetch } = options;
@@ -666,7 +663,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   const contextFor = async (width: number, height: number, theme: string, motion: "reduce" | "no-preference" = "reduce") => {
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dprAt(width), colorScheme: theme as "light" | "dark", reducedMotion: motion });
     await context.addInitScript(listenForReady, ["ouro:ready", ...readyEvents]);
-    if (engine === "wkwebview") await context.addInitScript(hideCornerShape);
+    if (engine === "wkwebview") await context.addInitScript(HIDE_CORNER_SHAPE);
     if (measured) {
       await context.addInitScript(listenForMeasures);
       await context.addInitScript(listenForMotion);
