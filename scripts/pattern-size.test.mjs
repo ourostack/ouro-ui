@@ -91,6 +91,7 @@ test("every page pattern adds no more JavaScript and CSS than its ceiling, gzip 
   writeReport("patterns", sizes);
   const gate = judgeSizes(sizes, { mode: gateMode(), base: readBase("patterns") });
   for (const line of gate.lines) console.log(`pattern-size-gate ${line}`);
+  for (const tip of gate.tips) console.log(`::warning title=Pull request tips a size ceiling::${tip}`);
   const failed = new Set(gate.failures.map((failure) => failure.split(" ")[0]));
   const why = verdicts.filter((verdict) => failed.has(verdict.name)).map((verdict) => verdict.message);
   assert.deepEqual([...gate.failures, ...why], []);
