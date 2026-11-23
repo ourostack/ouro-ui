@@ -251,7 +251,7 @@ function CallDemo(): JSX.Element {
             { label: "React", icon: SmileIcon, hideLabel: true, onClick: () => setReactionsOpen(true) },
           ] satisfies ToolbarEntry[])),
     ],
-    [muted, cameraOff, sharing, captionsOn, handUp, stage, toggleMute, go],
+    [muted, cameraOff, sharing, captionsOn, handUp, stage, toggleMute],
   );
 
   const selfPicture = cameraOff ? (
@@ -407,7 +407,7 @@ export default function CallDemoPage(): JSX.Element {
   return (
     <DocsShell current="/docs/call-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A call window" }}>
       <Text size="lg" tone="muted" className="mb-10 max-w-[40rem] text-pretty" data-ouro-measure="">
-        The call components together, with made-up people and no real video: a tile grid that grows from one person to six, speaking, muted and camera-off
+        The call components together, with made-up people and placeholder pictures: a tile grid that grows as people join, speaking, muted and camera-off
         tiles, captions, the control bar, your own picture in a corner, a timer, and the lobby, joining and waiting states. Try the keyboard, a narrow
         window and dark mode.
       </Text>
