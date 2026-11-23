@@ -1,0 +1,1 @@
+- Fix: MessageList follows to the end when the reader's own message arrives while scrolled up, instead of leaving it below the fold

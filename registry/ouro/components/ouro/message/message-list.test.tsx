@@ -1133,6 +1133,18 @@ describe("MessageList", () => {
     await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
   });
 
+  it("follows to the end when the reader's own message arrives, even scrolled up", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await settle(scroller);
+    await act(async () => void (scroller.scrollTop -= 200));
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeGreaterThan(1);
+    await rerender(<Chat items={[...items, { id: 30, role: "user", text: "On my way." }]} />);
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
   it("keeps following the end when the newest message goes, as the list's end comes up to meet it", async () => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} />);

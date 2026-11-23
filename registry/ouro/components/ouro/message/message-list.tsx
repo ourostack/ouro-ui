@@ -1692,6 +1692,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // Whether the list has opened: at its first messages, at `initialAnchor` if it holds that message, else at the newest.
     let opened = false;
+    // Every message node drawn so far, so a message moved to the end (a reply bumping a post) is told from one that is
+    // new there (the reader's own, just sent): only a node never drawn before counts as new.
+    const seenMessages = new WeakSet<Element>();
     // The message `initialAnchor` names, if the list draws it: by id, else the first message of the child with that key.
     const anchored = (): HTMLElement | undefined => {
       const id = anchorFor.current;
@@ -1712,6 +1715,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const open = () => {
       if (content.querySelector(items) === null) return;
       opened = true;
+      // Every message already drawn as the list opens counts as known, so one later moved to the end (not just sent)
+      // is told apart from a genuinely new one.
+      for (const node of content.querySelectorAll<HTMLElement>(items)) seenMessages.add(node);
       const target = anchored();
       // None: the list stays at the end, as it opened, and follows the messages there: it goes there now, with messages that came
       // after it mounted empty, before the browser draws them, unless code already scrolled it to one of them.
@@ -1970,11 +1976,26 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (records.length === 0) return;
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
+      const newest = [...content.querySelectorAll<HTMLElement>(items)].at(-1);
       // The mark holds the scroll height, so a committed change of the content's own height is looked for too.
       // Stryker disable next-line ConditionalExpression,ArrowFunction: not equivalent; "drops the room at once when hasOlder ends" (message-list.test.tsx) fails on both mutants, but per-test coverage attributes this observer callback to another test, so the shard never runs it.
       const floorMoved = () => floor !== 0 && content.offsetHeight !== floor;
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
       if (!pinned.current || farthest() !== end || floorMoved()) hold();
+      // The reader's own message follows to the end even scrolled up: its sender already knows what it says, so it never
+      // waits behind an older place held while reading. Only a node never drawn before counts: one moved to the end (a
+      // reply bumping a post there) leaves the place held, as any other message would.
+      if (newest !== undefined) {
+        const known = seenMessages.has(newest);
+        seenMessages.add(newest);
+        if (!pinned.current && !known && newest.getAttribute("data-role") === "user" && records.some((record) => [...record.addedNodes].some((node) => node === newest || (node instanceof Element && node.contains(newest))))) {
+          pinned.current = true;
+          owed = 0;
+          followEnd();
+          keepAnchor();
+          setShowJump(false);
+        }
+      }
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {
