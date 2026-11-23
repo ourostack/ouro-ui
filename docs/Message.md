@@ -62,6 +62,7 @@ The props the modes share. Type: `MessageProps`.
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `retryLabel` | `string` | `"Retry"` | The name of a `failed` message's retry button, for other languages. |
 | `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ana joined"), centered and quiet. |
+| `sentLabel` | `string` | `"Sent"` | What screen readers hear once a `pending` message is confirmed, for other languages. The sender hears Sent when the send is confirmed, or the failed label when it fails, and these words are not the message's own. |
 | `streaming` | `boolean` |  | The reply is still being written. The message is `aria-busy`, an empty one shows a typing indicator, and `MessageList` announces it once, when streaming ends. |
 | `streamingLabel` | `string` | `"Writing"` | What screen readers hear for the typing indicator, for other languages. |
 | `subject` | `ReactNode` |  | A post's subject, in semibold above its text. `post` only. |
@@ -512,6 +513,12 @@ interface MessageOwnProps {
   pendingLabel?: string | undefined;
   /** What the marker under a `failed` message says, for other languages. @default "Not sent" */
   failedLabel?: string | undefined;
+  /**
+   * What screen readers hear once a `pending` message is confirmed, for other languages. The sender hears Sent
+   * when the send is confirmed, or the failed label when it fails, and these words are not the message's own.
+   * @default "Sent"
+   */
+  sentLabel?: string | undefined;
   /** The name of a `failed` message's retry button, for other languages. @default "Retry" */
   retryLabel?: string | undefined;
   /** The name of a `failed` message's delete button, for other languages. @default "Delete" */
