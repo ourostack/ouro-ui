@@ -140,7 +140,7 @@ export function AgentHandoff(props: AgentHandoffProps): JSX.Element {
       {/* No overflow clip on this rounded row: clipping to Ouro's squircle corner repaints everything in it on each change. */}
       <div
         data-slot="line"
-        className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 rounded-ouro-xl border border-solid border-border/85 bg-card py-1.5 ps-4 pe-1.5 text-card-foreground shadow-(--shadow-xs) @max-md:grid-cols-[minmax(0,1fr)] @max-md:pb-3"
+        className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 rounded-ouro-xl border border-solid border-border/85 bg-card [--ouro-scroller-surface:var(--card)] py-1.5 ps-4 pe-1.5 text-card-foreground shadow-(--shadow-xs) @max-md:grid-cols-[minmax(0,1fr)] @max-md:pb-3"
       >
         <p data-slot="prompt" className="col-start-1 row-start-1 m-0 min-w-0 py-2 leading-normal text-foreground wrap-break-word">
           {promptParts(prompt).map((part, index) => (

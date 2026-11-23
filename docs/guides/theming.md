@@ -87,3 +87,17 @@ The site's Live theme is Pearl under your own sky. It reads only your device's c
 [^tighter]: registry/ouro/components/ouro/text/heading.test.tsx verify:testExists(registry/ouro/components/ouro/text/heading.test.tsx::Heading tracking > tightens as the text grows: none at body size, more at each larger size)
 
 [^variant]: registry/ouro/components/ouro/hero/hero.tsx verify:fileLine(registry/ouro/components/ouro/hero/hero.tsx, /dark: "hidden dark:block"/)
+
+## Scrollers paint the surface behind them
+
+`ScrollArea` and `MessageList` paint their scrolling element with `--ouro-scroller-surface`, which is `--background` unless a surface says otherwise. Card, Popover, Menu, Select, Combobox, Navigation menu, Dialog and Sheet set it to their own fill, so a scroller inside them looks the same as before. Chromium on Windows keeps a see-through scroller off the compositor where LCD text is on (ourostack/ouro-ui#2891), so an opaque scroller is what lets the list scroll without repainting.
+
+When a scroller sits on a fill of your own, set the token on that surface:
+
+```css
+.panel {
+  --ouro-scroller-surface: var(--muted);
+}
+```
+
+On glass (a blurred or see-through fill), set it to `transparent`, so the glass shows through the scroller.

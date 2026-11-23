@@ -19,6 +19,10 @@ import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-a
 </ScrollArea>
 ```
 
+## Usage
+
+The viewport paints `--ouro-scroller-surface`, the fill of the surface behind it (the page's `--background` by default; Card, Popover, Menu, Select, Combobox, Dialog and Sheet set their own), because Chromium on Windows keeps a see-through scroller off the compositor where LCD text is on, and repaints it on every scroll frame (ourostack/ouro-ui#2891). Where the scroller sits on any other fill, set the token on it (`[--ouro-scroller-surface:var(--muted)]`); on glass, set it to `transparent`.
+
 ## Use instead when
 
 - Use plain page scrolling instead for a page's main content, and `Dialog` or `Sheet`, which scroll their own bodies, for long content in an overlay.

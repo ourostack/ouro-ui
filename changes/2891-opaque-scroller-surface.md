@@ -1,0 +1,1 @@
+- Changed: ScrollArea's viewport and MessageList's scroller now paint `--ouro-scroller-surface` (the page's `--background`, or the fill of the Card, Popover, Menu, Select, Combobox, Navigation menu, Dialog or Sheet around them), so Chromium on Windows can composite them; a scroller on another fill sets the token, and on glass sets it to `transparent`.

@@ -80,7 +80,7 @@ const skipClass =
 // where the reader asks for less transparency or more contrast. Static needs no class.
 const stickyClass = "sticky top-0 z-10";
 const autoHideClass =
-  "sticky top-0 z-10 bg-background/80 backdrop-blur-md [&>[data-ouro=navbar]]:bg-transparent " +
+  "sticky top-0 z-10 bg-background/80 backdrop-blur-md [--ouro-scroller-surface:transparent] [&>[data-ouro=navbar]]:bg-transparent " +
   "transition-[translate] duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-closed:-translate-y-full motion-reduce:transition-none " +
   "[@media(prefers-reduced-transparency:reduce)]:bg-background [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
   "contrast-more:bg-background contrast-more:backdrop-blur-none";

@@ -217,7 +217,7 @@ export function PreviewBar(props: PreviewBarProps): JSX.Element {
       data-ouro="preview-bar"
       data-slot="preview-bar"
       data-ouro-comparing={comparing ? "" : undefined}
-      className={cn("box-border flex flex-wrap items-center gap-x-3 gap-y-2 rounded-ouro-xl border border-border bg-card px-3 py-2 text-card-foreground", className)}
+      className={cn("box-border flex flex-wrap items-center gap-x-3 gap-y-2 rounded-ouro-xl border border-border bg-card [--ouro-scroller-surface:var(--card)] px-3 py-2 text-card-foreground", className)}
       onKeyDown={(event) => {
         if (event.key === "Escape" && !event.defaultPrevented) onDiscard();
       }}
