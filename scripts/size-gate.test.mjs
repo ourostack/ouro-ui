@@ -16,6 +16,20 @@ test("a pull request is judged by its own growth over its base, so one a little 
   assert.equal(verdict.ok, true);
   assert.deepEqual(verdict.failures, []);
   assert.match(verdict.lines.join("\n"), /docs initial JavaScript: 192051 bytes, 162 more than its base's 191889, within the 512 a pull request may add/);
+  assert.match(verdict.lines.join("\n"), /past its ceiling of 192003 for the first time: this pull request tips it over/);
+});
+
+test("a pull request that is the first to carry a size past its ceiling is flagged as a tip, report-only", () => {
+  const verdict = judgeSizes(docs(192_051), { mode: "pull", base: docs(191_889) });
+  assert.equal(verdict.ok, true, "report-only: a tip never fails the run");
+  assert.deepEqual(verdict.failures, []);
+  assert.deepEqual(verdict.tips, ["docs initial JavaScript: 192051 bytes, 162 more than its base's 191889, within the 512 a pull request may add, but past its ceiling of 192003 for the first time: this pull request tips it over. Raise the ceiling with the new measurement and why, or make it smaller"]);
+});
+
+test("a pull request whose base was already over its ceiling is not flagged as a tip: that stays main's report, as before", () => {
+  const verdict = judgeSizes(docs(192_060), { mode: "pull", base: docs(192_051) });
+  assert.equal(verdict.ok, true);
+  assert.deepEqual(verdict.tips, []);
   assert.match(verdict.lines.join("\n"), /over its ceiling of 192003 \(main's own size check reports a ceiling main is over\)/);
 });
 

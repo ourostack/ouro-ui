@@ -360,7 +360,8 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
 
   return (
     <div data-ouro="toggle-group" className={cn("box-border grid min-w-0 content-start justify-items-start gap-2", className)}>
-      <span id={labelId} className={cn("m-0 text-sm leading-5 font-medium text-foreground select-none", hideLabel && "sr-only")}>
+      {/* aria-hidden drops hideLabel's sr-only text from reading order; aria-labelledby still reads a hidden element, so the group keeps its name. */}
+      <span id={labelId} aria-hidden={hideLabel || undefined} className={cn("m-0 text-sm leading-5 font-medium text-foreground select-none", hideLabel && "sr-only")}>
         {label}
       </span>
       <div

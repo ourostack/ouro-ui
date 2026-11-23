@@ -107,10 +107,10 @@ describe("Composer rich mode", () => {
       ["E", "`"],
     ] as const) {
       const shift = key === key.toUpperCase();
-      await userEvent.keyboard(`{Control>}${shift ? "{Shift>}" : ""}${key.toLowerCase()}${shift ? "{/Shift}" : ""}{/Control}`);
-      await userEvent.keyboard("x");
-      await userEvent.keyboard(`{Control>}${shift ? "{Shift>}" : ""}${key.toLowerCase()}${shift ? "{/Shift}" : ""}{/Control}`);
-      await userEvent.keyboard(" ");
+      const toggle = `{Control>}${shift ? "{Shift>}" : ""}${key.toLowerCase()}${shift ? "{/Shift}" : ""}{/Control}`;
+      // One call drives both toggles and the typed text, so a loaded shard pays one round trip
+      // for the whole key sequence instead of four.
+      await userEvent.keyboard(`${toggle}x${toggle} `);
       await expect.poll(() => seen.at(-1)).toContain(`${wrap}x${wrap}`);
     }
   });

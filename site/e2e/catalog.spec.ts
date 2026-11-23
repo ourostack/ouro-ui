@@ -124,8 +124,15 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * (#2883), after the chat-demo guide's route and nav door (#2978) reached the docs' first script. Its own demo was
  * already behind a lazy chunk, but its shell call and lead text were not; #2883's fix moved the whole page behind that
  * chunk, leaving only the route entry and nav door in the shared script, which a guide page cannot avoid.
+ *
+ * The voyage's set again 2026-11-23 at 293,347 bytes, what CI measured on main at 6493dd483 (run 45163983690, e2e job
+ * 137656510233), 302 bytes over its base at fa35d1602, after Skeleton's phase join moved onto a fresh
+ * `requestAnimationFrame` read of the animation's own `startTime` instead of the layout effect's `performance.now()`
+ * guess, and extended that join to `row`/`card` shapes' later items too (#3138, fixing #3137's main-thread-hold
+ * desync): Skeleton is in the voyage's own first script already, as Avatar's loading fallback, and the voyage's
+ * stage (site/src/voyage/stage/stage.tsx) renders Avatar.
  */
-const MEASURED = { voyage: 292_756, docs: 196_004 } as const;
+const MEASURED = { voyage: 293_347, docs: 196_004 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
@@ -410,6 +417,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   writeReport("closure", sizes);
   const verdict = judgeSizes(sizes, { mode: gateMode(), base: readBase("closure") });
   for (const line of verdict.lines) console.log(`script-size-gate ${line}`);
+  for (const tip of verdict.tips) console.log(`::warning title=Pull request tips a size ceiling::${tip}`);
   expect(verdict.failures, "each page's initial JavaScript, gzip bytes").toEqual([]);
   // The voyage has a Tailwind build of its own (site/src/voyage/voyage-tailwind.css), without the
   // registry components and site files it never renders: it loads none of the docs' stylesheets but

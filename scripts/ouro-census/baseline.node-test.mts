@@ -106,14 +106,29 @@ test("a tool source's passthrough and approvals are part of what can't be remove
   ]);
 });
 
-test("a source's re-encodings and cards are part of its key, and it may drop a handlers file but not add one", () => {
+test("a source's re-encodings are part of its key", () => {
   const tools = { walker: "tool-schemas", module: "dist", source: "src", handlers: ["src/d.ts"], reshape: ["src/s.ts#flat"] };
   deepEqual(checkSources([{ ...tools, reshape: [...tools.reshape, "src/r.ts#more"] }], [tools]).length, 1);
-  deepEqual(checkSources([{ ...tools, cards: "src/cards.ts" }], [tools]).length, 1);
+});
+
+test("a source with no cards on the base matches a branch source that gained cards, a handlers file or both", () => {
+  const tools = { walker: "tool-schemas", module: "dist", source: "src", handlers: ["src/d.ts"], reshape: ["src/s.ts#flat"] };
+  deepEqual(checkSources([{ ...tools, cards: "src/cards.ts" }], [tools]), []);
+  deepEqual(checkSources([{ ...tools, cards: "src/cards.ts", handlers: [...tools.handlers, "src/all-codes.ts"] }], [tools]), []);
+  deepEqual(checkSources([{ ...tools, handlers: ["src/d.ts", "src/all-codes.ts"] }], [tools]), []);
   deepEqual(checkSources([{ ...tools, handlers: [] }], [tools]), []);
+  // A kind narrowed alongside the new cards still hides doors, so the match still fails.
+  deepEqual(checkSources([{ ...tools, cards: "src/cards.ts", kinds: "src/t.ts#narrow" }], [tools]).length, 1);
+});
+
+test("a source with cards on the base keeps its cards, and may drop a handlers file but not add one", () => {
+  const carded = { walker: "tool-schemas", module: "dist", source: "src", cards: "src/cards.ts", handlers: ["src/d.ts"] };
+  deepEqual(checkSources([carded], [carded]), []);
+  deepEqual(checkSources([{ ...carded, cards: "src/other-cards.ts" }], [carded]).length, 1);
+  deepEqual(checkSources([{ ...carded, handlers: [] }], [carded]), []);
   // A handlers file full of codes would make every card's errors count as raised.
-  deepEqual(checkSources([{ ...tools, handlers: ["src/d.ts", "src/all-codes.ts"] }], [tools]), [
-    "tool-schemas dist src reshape src/s.ts#flat: handlers src/all-codes.ts is new here. Fix: raise each code where the door handles it; a new handlers file can make any card's codes count as raised.",
+  deepEqual(checkSources([{ ...carded, handlers: ["src/d.ts", "src/all-codes.ts"] }], [carded]), [
+    "tool-schemas dist src cards src/cards.ts: handlers src/all-codes.ts is new here. Fix: raise each code where the door handles it; a new handlers file can make any card's codes count as raised.",
   ]);
 });
 

@@ -1,0 +1,1 @@
+- Fixed: an external Link's icon stays glued to the text right before it at a narrow width, whatever that text is (a plain string or rich content such as bold text), instead of only when the text was a bare string.

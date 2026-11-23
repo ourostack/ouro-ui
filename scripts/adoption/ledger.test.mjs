@@ -245,6 +245,77 @@ test("code search waits as long as GitHub says on an HTTP 429, within a cap", ()
   assert.deepEqual(waits.filter((ms) => ms !== 6500).slice(-3), [15980, 90000, 1588]);
 });
 
+test("with no cache passed in, code search never asks for the repository's current commit", () => {
+  const calls = [];
+  const context = createContext({
+    gh: (args) => {
+      calls.push(args.join(" "));
+      return JSON.stringify({ total_count: 1, items: [{ path: "a" }] });
+    },
+    now: () => NOW,
+    sleep: () => {},
+    searchGapMs: 0,
+  });
+  assert.equal(context.search("q", "o/r").total, 1);
+  assert.ok(calls.every((call) => !call.includes("commits/HEAD")), `asked for the commit: ${calls}`);
+});
+
+test("a cached search is reused while the repository's commit is unchanged and the result is a day old or less", () => {
+  const context = createContext({
+    gh: (args) => {
+      if (args.join(" ").includes("commits/HEAD")) return JSON.stringify({ sha: "abc123" });
+      throw new Error("a fresh cache hit should not search live");
+    },
+    now: () => NOW,
+    sleep: () => {},
+    searchGapMs: 0,
+    searchCache: { "o/r": { q: { commit: "abc123", at: new Date(NOW.getTime() - 23 * 60 * 60 * 1000).toISOString(), total: 3, paths: ["x"] } } },
+  });
+  assert.deepEqual(context.search("q", "o/r"), { total: 3, paths: ["x"] });
+  assert.deepEqual(context.searchCache["o/r"].q.paths, ["x"]);
+});
+
+test("a cached search is redone once the repository's commit has moved", () => {
+  const context = createContext({
+    gh: (args) => {
+      if (args.join(" ").includes("commits/HEAD")) return JSON.stringify({ sha: "new-commit" });
+      return JSON.stringify({ total_count: 5, items: [{ path: "y" }] });
+    },
+    now: () => NOW,
+    sleep: () => {},
+    searchGapMs: 0,
+    searchCache: { "o/r": { q: { commit: "stale-commit", at: NOW.toISOString(), total: 3, paths: ["x"] } } },
+  });
+  assert.equal(context.search("q", "o/r").total, 5);
+  assert.equal(context.searchCache["o/r"].q.commit, "new-commit");
+});
+
+test("a cached search over a day old is redone even though the repository's commit has not moved", () => {
+  const context = createContext({
+    gh: (args) => {
+      if (args.join(" ").includes("commits/HEAD")) return JSON.stringify({ sha: "abc123" });
+      return JSON.stringify({ total_count: 5, items: [{ path: "y" }] });
+    },
+    now: () => NOW,
+    sleep: () => {},
+    searchGapMs: 0,
+    searchCache: { "o/r": { q: { commit: "abc123", at: new Date(NOW.getTime() - 25 * 60 * 60 * 1000).toISOString(), total: 3, paths: ["x"] } } },
+  });
+  assert.equal(context.search("q", "o/r").total, 5);
+});
+
+test("a live search is kept with the repository's current commit, so the next run can reuse it", () => {
+  const context = createContext({
+    gh: (args) => (args.join(" ").includes("commits/HEAD") ? JSON.stringify({ sha: "abc123" }) : JSON.stringify({ total_count: 1, items: [{ path: "a" }] })),
+    now: () => NOW,
+    sleep: () => {},
+    searchGapMs: 0,
+    searchCache: {},
+  });
+  context.search("q", "o/r");
+  assert.deepEqual(context.searchCache["o/r"].q, { commit: "abc123", at: NOW.toISOString(), total: 1, paths: ["a"] });
+});
+
 test("Gatefold's pin is read from the ouro-ui-apple package in its XcodeGen project.yml", () => {
   const real = JSON.parse(readFileSync(configPath, "utf8"));
   const gatefold = real.surfaces.find((surface) => surface.id === "gatefold");
@@ -429,6 +500,24 @@ test("an app's X-ray and its action claims report add up, the newest report of e
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("checks that come as an object, since ax-xray 1.7.0, are counted rather than concatenated", () => {
+  const dir = scratchDir("ledger-checks-object-");
+  execFileSync("mkdir", ["-p", join(dir, "xray")]);
+  const report = { tool: "ax-xray", at: "2026-11-16T08:13:55Z", checker: { version: "1" }, claimSet: { version: "0.1.0" }, target: { commit: "abc" }, summary: { claims: 30, holding: 11, must: 12, mustHolding: 7, checks: { pass: 89, fail: 0, skip: 24 } } };
+  writeFileSync(join(dir, "xray", "report.json"), JSON.stringify(report));
+  execFileSync("zip", ["-q", "-r", "a.zip", "xray"], { cwd: dir });
+  const bytes = readFileSync(join(dir, "a.zip"));
+  const gh = (args, { binary } = {}) => {
+    const line = args.join(" ");
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 7, event: "push", head_branch: "main", head_repository: { full_name: "org/cli" }, html_url: "https://example.test/run/7" }] });
+    if (/runs\/7\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 9, name: "xray", expired: false }] });
+    if (/artifacts\/9\/zip/.test(line) && binary) return bytes;
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+  const xray = measureXray(createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 }), { repo: "org/cli", xray: [{ repo: "org/cli", workflow: "ax-xray.yml", branch: "main" }] });
+  assert.equal(xray.value.checks, 113, "pass, fail and skip add up, instead of the object concatenating onto a number");
 });
 
 test("a report in a folder of its artifact is read, so an X-ray uploaded with other files still counts", () => {

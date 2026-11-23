@@ -1754,8 +1754,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // by drawing the content that far up or down instead, a `translate` the wheel's own scroll never meets, and the scroll
     // position takes it in one move once the wheel rests, or as the reader nears an end, so what went in above is always in reach.
     let wheelAt = Number.NEGATIVE_INFINITY;
-    // The gap before the wheel's last event, when it was short (under WHEEL_GAP). A page drawing slowly hands the wheel's events over a
-    // frame or more apart, so the wheel counts as still turning for twice that gap, not only the rest.
+    // The gap before the wheel's last event, capped at WHEEL_GAP once a burst of short gaps has begun. A page drawing slowly hands
+    // the wheel's events over a frame or more apart, so the wheel counts as still turning for twice that gap, not only the rest.
     let wheelGap = 0;
     // The frame the wheel last turned in. Where a frame takes longer than the rest (a slow machine drawing much), the wheel's next
     // events wait behind it, so the wheel turns until the time has passed and a later frame has begun.
@@ -1875,7 +1875,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       heading = Math.sign(event.deltaY) || heading;
       const now = performance.now();
       const gap = now - wheelAt;
-      wheelGap = gap < WHEEL_GAP ? gap : 0;
+      // A gap at the bound or past it either starts a new turn (nothing short came before it, so there is no burst to extend) or is
+      // itself the frame a loaded page drew slowly in an already-turning burst: capped at the bound, not dropped to 0, so the wheel
+      // still counts as turning long enough for its next event, which a slow frame delays rather than stops, to arrive.
+      wheelGap = gap < WHEEL_GAP ? gap : wheelGap > 0 ? WHEEL_GAP : 0;
       wheelAt = now;
       wheelFrame = document.timeline.currentTime;
       wheelStarts = true;

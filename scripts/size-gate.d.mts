@@ -6,5 +6,5 @@ export function gateMode(env?: Record<string, string | undefined>): "pull" | "ma
 export function readBase(check: string, dir?: string): Sizes | null;
 export function writeReport(check: string, sizes: Sizes, dir?: string): void;
 export function mainBreaches(sizes: Sizes): string[];
-export function judgeSizes(sizes: Sizes, options: { mode: "pull" | "main" | "local"; base: Sizes | null }): { ok: boolean; failures: string[]; lines: string[] };
+export function judgeSizes(sizes: Sizes, options: { mode: "pull" | "main" | "local"; base: Sizes | null }): { ok: boolean; failures: string[]; lines: string[]; tips: string[] };
 export function readZipEntry(zip: Buffer): string;

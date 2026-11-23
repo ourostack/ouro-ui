@@ -115,14 +115,19 @@ export const Links: Story = {
   parameters: { mode: "link" },
 };
 
+// A subset of the week's events: an all-day one for the all-day label, an overlapping pair for the
+// tones, and a couple more spread across the days for the hour formatting. Three calendars of the
+// full week would scan the same locale formatting three times over, at three times the DOM.
+const localeSample: TimeGridEvent[] = week.filter((event) => ["offsite", "plan", "design", "pairing", "demo"].includes(event.id));
+
 /** The locale sets the day names, the hours and the first day of the week; a right-to-left page mirrors the grid. */
 export const Locales: Story = {
   render: (args) => (
     <div style={{ display: "grid", gap: 24 }}>
-      <TimeGrid {...args} label="Teamkalender" locale="de-DE" allDayLabel="Ganztägig" className="h-[20rem]" />
-      <TimeGrid {...args} label="チームの予定" locale="ja-JP" view="work-week" allDayLabel="終日" className="h-[20rem]" />
+      <TimeGrid {...args} label="Teamkalender" locale="de-DE" allDayLabel="Ganztägig" events={localeSample} className="h-[20rem]" />
+      <TimeGrid {...args} label="チームの予定" locale="ja-JP" view="work-week" allDayLabel="終日" events={localeSample} className="h-[20rem]" />
       <div dir="rtl">
-        <TimeGrid {...args} label="تقويم الفريق" locale="ar-EG" view="work-week" allDayLabel="طوال اليوم" className="h-[20rem]" />
+        <TimeGrid {...args} label="تقويم الفريق" locale="ar-EG" view="work-week" allDayLabel="طوال اليوم" events={localeSample} className="h-[20rem]" />
       </div>
     </div>
   ),

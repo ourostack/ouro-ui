@@ -381,6 +381,14 @@ type RowProps = {
 // A row renders again only when its own conversation, place or state changes, so opening another conversation renders
 // the row that closes and the row that opens, not the list.
 const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLabel, membersText, selected, tabStop, windowed, top, slotClass, position, count, register, onPick, onKey, onActive, moreLabel, onMore }: RowProps): JSX.Element {
+  // An avatar the app passes in (an object, not Avatar's own initials) can carry its own accessible name
+  // (a presence dot's words); aria-labelledby reads the title and the rest of the row first, the avatar last,
+  // whatever order the DOM draws them in for the visual layout.
+  const contentId = useId();
+  const avatarId = useId();
+  // `avatar`'s type (string | ReactElement | false | undefined) means an object is always a ReactElement: `false`
+  // is never typeof "object", so checking it separately here would be redundant.
+  const avatarIsElement = typeof item.avatar === "object";
   const drafted = shown(item.draft);
   const withPreview = density === "comfortable" && (drafted || shown(item.preview));
   // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
@@ -416,15 +424,16 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
         onFocus={() => onActive(key)}
         // A row with a menu opens it on a long press, in place of the phone's own callout.
         className={cn(controlClass, rowClass, selected && currentClass, density === "compact" ? "py-1.5" : "py-2", hasMenu(item) && "[-webkit-touch-callout:none]")}
+        aria-labelledby={avatarIsElement ? `${contentId} ${avatarId}` : undefined}
       >
         {item.avatar === false ? null : typeof item.avatar === "object" ? (
-          <span data-ouro-conversation-avatar="" className="flex shrink-0">
+          <span id={avatarId} data-ouro-conversation-avatar="" className="flex shrink-0">
             {item.avatar}
           </span>
         ) : (
           <Avatar name={item.name ?? (item.title as string)} src={item.avatar} members={item.members} alt="" size={density === "compact" ? "xs" : "sm"} />
         )}
-        <span className="flex min-w-0 flex-1 flex-col">
+        <span id={contentId} className="flex min-w-0 flex-1 flex-col">
           <span className="flex min-w-0 items-center gap-2">
             <span className="flex min-w-0 flex-1 items-center gap-1.5">
               {shown(item.icon) && (

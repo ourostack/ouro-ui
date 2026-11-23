@@ -29,8 +29,8 @@ const catalogueCrew = (page: Page) => catalogue(page).locator("[data-chapter-cre
 const total = (page: Page) => room(page).locator(".site-leagues");
 const dayField = (page: Page) => page.getByRole("textbox", { name: CHART_ROOM.departure });
 const classify = (page: Page) => page.getByRole("combobox", { name: CATALOGUE.classify });
-/** The catalogue's rows as the table shows them, top to bottom: each row's first cell, without its link's "opens in a new tab". */
-const names = async (page: Page) => (await catalogue(page).locator("tbody tr th").allInnerTexts()).map((name) => name.replace(/\s*\(opens in a new tab\)$/, "").trim());
+/** The catalogue's rows as the table shows them, top to bottom: each row's first cell, without its link's "opens in a new tab" and the word joiner that glues its icon on. */
+const names = async (page: Page) => (await catalogue(page).locator("tbody tr th").allInnerTexts()).map((name) => name.replace(/\u2060?\s*\(opens in a new tab\)$/, "").trim());
 
 /** Moves a port to the bottom of the plan from its handle's menu. */
 async function toBottom(page: Page, name: string): Promise<void> {

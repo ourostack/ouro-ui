@@ -31,7 +31,11 @@ jobs:
       - name: Measure
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/adoption/ledger.mjs --out "$RUNNER_TEMP/ledger.json"
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$REPO/contents/search-cache.json?ref=adoption-data" --jq .content 2>/dev/null | base64 -d > "$RUNNER_TEMP/search-cache.json" || echo '{}' > "$RUNNER_TEMP/search-cache.json"
+          node scripts/adoption/ledger.mjs --out "$RUNNER_TEMP/ledger.json" --search-cache-in "$RUNNER_TEMP/search-cache.json" --search-cache-out "$RUNNER_TEMP/search-cache.json"
       - name: Publish to the adoption-data branch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -49,6 +53,19 @@ jobs:
             '{message: $message, branch: "adoption-data", content: $content} + (if $sha == "" then {} else {sha: $sha} end)' > "$RUNNER_TEMP/publish.json"
           gh api -X PUT "repos/$REPO/contents/ledger.json" --input "$RUNNER_TEMP/publish.json" >/dev/null
           echo "Published $(node -e 'const l=require(process.argv[1]);console.log(`${l.summary.confirmed} of ${l.summary.total} confirmed`)' "$RUNNER_TEMP/ledger.json")."
+      - name: Publish the code search cache to the adoption-data branch
+        # The cache keeps each search's result with the searched repository's commit, so a repository that hasn't
+        # moved since the last run is read from here instead of searched again (scripts/adoption/README.md).
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          current=$(gh api "repos/$REPO/contents/search-cache.json?ref=adoption-data" --jq .sha 2>/dev/null || true)
+          base64 -w0 < "$RUNNER_TEMP/search-cache.json" > "$RUNNER_TEMP/search-cache.b64"
+          jq -n --rawfile content "$RUNNER_TEMP/search-cache.b64" --arg message "Code search cache $(date -u +%Y-%m-%dT%H:%MZ)" --arg sha "$current" \
+            '{message: $message, branch: "adoption-data", content: $content} + (if $sha == "" then {} else {sha: $sha} end)' > "$RUNNER_TEMP/publish-search-cache.json"
+          gh api -X PUT "repos/$REPO/contents/search-cache.json" --input "$RUNNER_TEMP/publish-search-cache.json" >/dev/null
       - name: Rebuild the site with this hour's ledger
         # The page is prerendered from the ledger Pages builds in (take-newest.mjs), so until Pages runs again it would
         # open on the previous hour's numbers. Pages deploys only main's tip, so a dispatch on main is always deployed.
