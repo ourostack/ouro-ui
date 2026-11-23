@@ -1988,7 +1988,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (newest !== undefined) {
         const known = seenMessages.has(newest);
         seenMessages.add(newest);
-        if (!pinned.current && !known && newest.getAttribute("data-role") === "user" && records.some((record) => [...record.addedNodes].some((node) => node === newest || (node instanceof Element && node.contains(newest))))) {
+        // `node === newest` would never add a case `node instanceof Element && node.contains(newest)` does not: newest
+        // is always an Element (it answers getAttribute above), and a node contains itself, so an exact match is
+        // already a self-contained one.
+        if (!pinned.current && !known && newest.getAttribute("data-role") === "user" && records.some((record) => [...record.addedNodes].some((node) => node instanceof Element && node.contains(newest)))) {
           // Stryker disable next-line BooleanLiteral: not equivalent in intent, but unobservable here; followEnd's toBottom already puts the scroller at the live bottom, so the next atBottom() or hold() reads its own geometry (farthest() - scrollTop) and recomputes the same pinned value regardless of this assignment.
           pinned.current = true;
           owed = 0;
