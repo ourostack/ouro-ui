@@ -1,0 +1,1 @@
+- Changed: a left or right Sheet, docked to the window's full height, has square corners where it meets the window's top and bottom, instead of rounding its inner two; a bottom or top Sheet keeps its rounded inner corners.
