@@ -261,6 +261,10 @@ export interface ComposerOwnProps {
    * web and mail links, line breaks, and lists and quotes as lines with their Markdown marks; scripts,
    * styles, attributes and other links are dropped and their text kept. ⌘⇧V pastes the text only, a web
    * address pasted over selected text links it, and ⌘K links the selection or takes its link off.
+   * A `value` or `defaultValue` spelling italic with a star (`*italic*`) or bold with underscores
+   * (`__bold__`) reads the same way and writes back out with that same mark, rather than switching
+   * to the keys' own underscore or star; plain text keeps a star, an underscore or a tilde bare
+   * where no pair of marks is near enough to read as formatting.
    * An `Autocomplete` around the composer works as around the plain box, for mentions and emoji
    * shortcodes: `ref` is the editor's element, which answers `value`, `selectionStart` and
    * `selectionEnd` over the text without its marks, and an input method's composition does not pick.

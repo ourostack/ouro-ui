@@ -95,6 +95,20 @@ describe("Composer rich mode", () => {
     await expect.poll(() => seen.at(-1)).toBe("**bold** _it_ ++under++ ~~gone~~ `code`!");
   });
 
+  it.each([
+    ["a link with underscores in its path", "see https://x.com/a_b_c", "see https://x.com/a_b_c!"],
+    ["a star-spelled italic run", "Hi *there*", "Hi *there*!"],
+    ["an underscore-spelled bold run", "__bold__", "__bold__!"],
+    ["a mention with an underscore in its name", "@quiet_fox hi", "@quiet_fox hi!"],
+    ["a lone star with no partner, as in a sum", "2*3=6", "2*3=6!"],
+  ])("round-trips %s unchanged: %s", async (_label, markdown, expected) => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ defaultValue: markdown, onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{End}!");
+    await expect.poll(() => seen.at(-1)).toBe(expected);
+  });
+
   it("formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code", async () => {
     const seen: string[] = [];
     const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
