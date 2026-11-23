@@ -80,12 +80,13 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
 
   const band = bandAt(depth);
   const full = TANKS.filter((tank) => tanks[tank.id]).length;
+  const appendLog = (line: LogLine) => {
+    const id = nextId.current++;
+    setLog((previous) => [...previous, { ...line, id }].slice(-KEEP));
+  };
   // The crew's line follows the control's own change by a frame: it's a transition, so the press
   // paints first.
-  const write = (line: LogLine) => {
-    const id = nextId.current++;
-    startTransition(() => setLog((previous) => [...previous, { ...line, id }].slice(-KEEP)));
-  };
+  const write = (line: LogLine) => startTransition(() => appendLog(line));
   const goTo = (fathoms: number) => {
     setDepth(fathoms);
     depthAtLastLog.current = fathoms;
@@ -135,11 +136,16 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       clearTimeout(deadline);
       // Committed in the frame that decides it, not left to React's scheduler: on CI's WebKit, after the site menu had opened
       // and closed over a slow screen, the verdict was reached and its scheduled commit never came (ourostack/ouro-ui#648).
+      // The captain's line is part of the same commit for the same reason: left as a transition, the switch's measured
+      // frames caught whichever one React's scheduler happened to flush it in, paying the cost of a changed crew line on
+      // CI's WebKit (ourostack/ouro-ui#667) inside the window meant for the switch's own settle (ourostack/ouro-ui#728).
       flushSync(() => {
-        if (slow) setSpeed("stop");
+        if (slow) {
+          setSpeed("stop");
+          appendLog(LOG.stillWater);
+        }
         setPaced(true);
       });
-      if (slow) write(LOG.stillWater);
     };
     const judge = () => {
       const gaps: number[] = [];

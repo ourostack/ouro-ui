@@ -8,7 +8,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer, type ComposerEditor, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
-import { composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
+import { clearComposerDrafts, composerDrafts, composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
@@ -110,6 +110,49 @@ describe("Composer conversation", () => {
 });
 
 describe("Composer drafts", () => {
+  // A composer unmounted by the test's cleanup leaves its draft, so the store is cleared before each test.
+  beforeEach(clearComposerDrafts);
+
+  it("gives a draft back to a composer that mounts again, as a phone does on its way back to a conversation", async () => {
+    const first = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    await userEvent.type(first.textarea, "half a thought");
+    await first.rerender(<div />);
+    const second = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    expect(second.textarea.value).toBe("half a thought");
+    const other = await render(<Composer label="Message" conversation="b" onSend={() => {}} />);
+    expect(other.textarea.value).toBe("");
+  });
+
+  it("stores nothing when a controlled box unmounts, and restores for an uncontrolled one on remount", async () => {
+    const first = await render(<Composer label="Message" conversation="c" onSend={() => {}} />);
+    await userEvent.type(first.textarea, "kept");
+    await first.rerender(<div />);
+    const controlled = await render(<Composer label="Message" conversation="c" defaultValue="kept" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    await controlled.rerender(<div />);
+    const again = await render(<Composer label="Message" conversation="c" defaultValue="other" onSend={() => {}} />);
+    expect(again.textarea.value).toBe("kept");
+  });
+
+  it("forgets a draft the person cleared, and leaves a controlled box and one with no conversation to the app", async () => {
+    const first = await render(<Composer label="Message" conversation="a" defaultValue="hi" onSend={() => {}} />);
+    await userEvent.clear(first.textarea);
+    await first.rerender(<div />);
+    expect((await render(<Composer label="Message" conversation="a" defaultValue="hi" onSend={() => {}} />)).textarea.value).toBe("hi");
+    const controlled = await render(<Composer label="Message" conversation="c" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    await controlled.rerender(<div />);
+    expect((await render(<Composer label="Message" conversation="c" onSend={() => {}} />)).textarea.value).toBe("");
+    const moving = await render(<Composer label="Message" onSend={() => {}} />);
+    await userEvent.type(moving.textarea, "stray");
+    await moving.rerender(<Composer label="Message" conversation="d" onSend={() => {}} />);
+    const other = await render(<Composer label="Message" conversation="e" onSend={() => {}} />);
+    await other.rerender(<Composer label="Message" onSend={() => {}} />);
+    expect(other.textarea.value).toBe("");
+    const bare = await render(<Composer label="Message" onSend={() => {}} />);
+    await userEvent.type(bare.textarea, "x");
+    await bare.rerender(<div />);
+    expect((await render(<Composer label="Message" onSend={() => {}} />)).textarea.value).toBe("");
+  });
+
   it("gives a draft back when the person returns to its conversation", async () => {
     const view = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
     await userEvent.type(view.textarea, "half a thought");
@@ -153,6 +196,43 @@ describe("Composer drafts", () => {
     expect(view.textarea.value).toBe("");
     await go("c0");
     expect(view.textarea.value).toBe("first again");
+  });
+
+  it("keeps fifty drafts left by unmounting boxes, and drops the oldest only when a fifty-first arrives", async () => {
+    const leave = async (id: string, text: string) => {
+      const view = await render(<Composer label="Message" conversation={id} onSend={() => {}} />);
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(view.textarea, text);
+        view.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await view.rerender(<div />);
+    };
+    const read = async (id: string) => (await render(<Composer label="Message" conversation={id} onSend={() => {}} />)).textarea.value;
+    for (let i = 0; i < 50; i++) await leave(`u${i}`, `draft ${i}`);
+    expect(composerDrafts.size).toBe(50);
+    expect(composerDrafts.get("u0")).toBe("draft 0");
+    await leave("u50", "draft 50");
+    expect(composerDrafts.size).toBe(50);
+    expect(composerDrafts.has("u0")).toBe(false);
+    expect(composerDrafts.get("u1")).toBe("draft 1");
+    expect(await read("u50")).toBe("draft 50");
+  });
+
+  it("counts a draft left again as recent, so rewriting the oldest protects it from eviction", async () => {
+    const leave = async (id: string, text: string) => {
+      const view = await render(<Composer label="Message" conversation={id} onSend={() => {}} />);
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(view.textarea, text);
+        view.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await view.rerender(<div />);
+    };
+    for (let i = 0; i < 50; i++) await leave(`r${i}`, `draft ${i}`);
+    await leave("r0", "rewritten");
+    await leave("r50", "newest");
+    expect(composerDrafts.get("r0")).toBe("rewritten");
+    expect(composerDrafts.has("r1")).toBe(false);
+    expect(composerDrafts.size).toBe(50);
   });
 
   it("leaves a controlled value to the app", async () => {

@@ -1588,6 +1588,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // messages drawn a row a frame would add up, and the reader's place would creep.
     let owed = 0;
     const keepAnchor = () => {
+      // Hidden by an app around it (a pane put away behind an open thread), the scroller reads all zeros: reading it now
+      // would make the list think it sits at the top, and a message that arrives meanwhile would be lost once it shows
+      // again. Left alone, what was taken before it was hidden is still good once it is shown and the resize observer runs.
+      if (!laidOut(scroller)) return;
       const view = scroller.getBoundingClientRect();
       // Finds the anchors among the nodes, in the order they come in the page.
       const find = (nodes: readonly Element[]) => {
@@ -1674,6 +1678,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       end += farthest() - range;
     };
     const followEnd = () => {
+      // As in keepAnchor: hidden, the scroller's height and scroll range both read zero, so scrolling it "to the end" now
+      // would scroll it to the top instead, and it would stay there once shown again.
+      if (!laidOut(scroller)) return;
       const height = content.offsetHeight;
       setFloor(height > scroller.clientHeight ? height : 0);
       toBottom();

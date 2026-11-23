@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type JSX, type ReactNode } from "react";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { ChatHeader, type ChatMember } from "@/registry/ouro/components/ouro/chat-header/chat-header";
@@ -10,13 +11,17 @@ import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-su
 import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 import { ReadReceipt } from "@/registry/ouro/components/ouro/read-receipt/read-receipt";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
+import { TrayArt } from "./tray-art";
 import { ThreadLayout } from "@/registry/ouro/components/ouro/thread-layout/thread-layout";
 import { ThreadRail } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
 import { TypingIndicator } from "@/registry/ouro/components/ouro/typing-indicator/typing-indicator";
+import { DocsShell } from "../components/docs-shell";
 
 // A whole chat app from Ouro's chat components with made-up people, as an app would assemble it: the conversation
 // list, the messages with a thread, the typing line and read receipts, and a plain and a rich composer. It ships in no
-// registry item; docs/chat-demo/ shows it.
+// registry item; docs/chat-demo/ shows it. The default export is the whole page (the docs shell and lead included),
+// so site/src/pages/docs.tsx can load it as one lazy chunk and no other docs page's first script carries its weight.
 
 interface Chat {
   id: string;
@@ -110,18 +115,20 @@ const triggers = [{ char: "@", label: "People", items: (query: string) => mentio
 type Stage = "ready" | "loading" | "empty";
 
 /** A chat app in one box: one pane on a phone, the list beside the conversation and its thread from a laptop's width. */
-export default function ChatDemo(): JSX.Element {
+function ChatDemo(): JSX.Element {
   const [stage, setStage] = useState<Stage>("ready");
   const [chats, setChats] = useState<Chat[]>(seed);
   const [openId, setOpenId] = useState<string | null>(null);
   const [threadOpen, setThreadOpen] = useState(false);
   const [typing, setTyping] = useState<string | null>(null);
   const [pendingLine, setPendingLine] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [seen, setSeen] = useState<{ chat: string; line: string } | null>(null);
   const timers = useRef<number[]>([]);
   const paneRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const moved = useRef<"open" | "back" | null>(null);
+  const started = useRef(false);
   const threadButton = useRef<HTMLElement | null>(null);
   const open = chats.find((chat) => chat.id === openId);
 
@@ -142,9 +149,16 @@ export default function ChatDemo(): JSX.Element {
     moved.current = null;
   }, [openId]);
 
-  const items: ConversationListItem[] = chats.map((chat) => ({ id: chat.id, title: chat.title, preview: chat.preview, time: chat.time, unread: chat.unread }));
+  // Starting from the empty stage brings the list back, so focus goes to its first row rather than wherever the removed button was.
+  useEffect(() => {
+    if (stage === "ready" && started.current) listRef.current?.querySelector<HTMLElement>('[data-ouro-part="row"][tabindex="0"]')?.focus();
+    started.current = false;
+  }, [stage]);
+
+  const items: ConversationListItem[] = chats.map((chat) => ({ id: chat.id, title: chat.title, preview: chat.preview, time: chat.time, unread: chat.unread, draft: drafts[chat.id] ? drafts[chat.id] : undefined }));
 
   const send = (chatId: string, text: string, thread: boolean) => {
+    if (!thread) setDrafts((all) => ({ ...all, [chatId]: "" }));
     const line: Line = { id: `m${Date.now()}`, who: ME, own: true, time: "now", text: withMentions(text.replace(/ {2,}/g, " ").trim()) };
     setChats((all) => {
       const next = all.map((chat) => (chat.id !== chatId ? chat : thread ? { ...chat, replies: [...chat.replies, line] } : { ...chat, messages: [...chat.messages, line], preview: text, time: "now", unread: false }));
@@ -170,7 +184,7 @@ export default function ChatDemo(): JSX.Element {
       label="Conversations"
       items={items}
       selectedId={openId}
-      empty="Your conversations show up here once you start one."
+      empty="Start a conversation"
       onSelect={(id) => {
         if (id !== openId) {
           stopReplies();
@@ -232,7 +246,7 @@ export default function ChatDemo(): JSX.Element {
       </div>
       <div className="border-t border-border p-2">
         <Autocomplete triggers={triggers}>
-          <Composer conversation={open.id} label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onSend={(text) => send(open.id, text, false)} />
+          <Composer conversation={open.id} label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onValueChange={(text) => setDrafts((all) => ({ ...all, [open.id]: text.trim() }))} onSend={(text) => send(open.id, text, false)} />
         </Autocomplete>
       </div>
     </div>
@@ -263,13 +277,17 @@ export default function ChatDemo(): JSX.Element {
 
   const body =
     stage === "loading" ? (
-      <Moment kind="loading" title="Loading your conversations" />
+      <div className="grid h-full place-items-center">
+        <Moment kind="loading" title="Loading your conversations" />
+      </div>
     ) : stage === "empty" ? (
       <div className="grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]">
-        <div className="border-e border-border p-2">
-          <ConversationList label="Conversations" items={[]} empty="Your conversations show up here once you start one." onSelect={() => {}} />
+        <div className="border-e border-border p-2 max-md:hidden">
+          <ConversationList className="grid h-full place-items-center" label="Conversations" items={[]} empty="Conversations appear here" onSelect={() => {}} />
         </div>
-        <Moment kind="empty" title="Nothing here yet" description="Messages you send and receive show up here." />
+        <div className="grid place-items-center">
+          <Moment kind="empty" art={<TrayArt />} title="Nothing here yet" description="Messages you send and receive show up here." action={<Button onClick={() => { started.current = true; setStage("ready"); }}>Start a conversation</Button>} />
+        </div>
       </div>
     ) : (
       <div className="group/app grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]" data-pane={open ? "chat" : "list"}>
@@ -294,5 +312,18 @@ export default function ChatDemo(): JSX.Element {
       />
       <div className="h-[34rem] overflow-hidden rounded-lg border border-border bg-background">{body}</div>
     </div>
+  );
+}
+
+/** The docs/chat-demo/ page: the demo behind its own lazy chunk, lead text and shell included. */
+export default function ChatDemoPage(): JSX.Element {
+  return (
+    <DocsShell current="/docs/chat-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A chat app" }}>
+      <Text size="lg" tone="muted" className="mb-10 max-w-[40rem] text-pretty" data-ouro-measure="">
+        The chat components together, with made-up people: a conversation list, messages with a thread, a typing line,
+        read receipts, and a plain and a rich composer. Try the keyboard, a narrow window and dark mode.
+      </Text>
+      <ChatDemo />
+    </DocsShell>
   );
 }

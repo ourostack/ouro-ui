@@ -1,21 +1,11 @@
 [
   {
-    "test": "* registry/ouro/components/ouro/form/form.test.tsx > Form error summary > has no summary and no alert when the only field with an error cannot take focus",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* registry/ouro/components/ouro/message/message-list.actions.test.tsx > MessageList actions > draws one bar for the whole list, on the message the pointer is over, and listens the same for a hundred messages as for two",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
   {
     "test": "* registry/ouro/components/ouro/message/message-list.switching.test.tsx > MessageList switching conversations > keeps a partial re-key's rows at their own heights: sliding the window by one message leaves the list as tall as it was",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/select/select.test.tsx > Select under a parent's spacing > keeps the 16px that space-y-4 puts between the Select and the button below it",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
@@ -31,16 +21,6 @@
   },
   {
     "test": "* registry/ouro/lib/ouro/testing/press.touch.test.ts > leaves no listener or data-press-target behind, even after a failure",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > clears a form-owned field refusal when a calendar pick changes its value",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox > leaves the rest of the page exposed while its list is open, so the gate passes from the page's main landmark",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
@@ -71,21 +51,6 @@
   },
   {
     "test": "* registry/ouro/components/ouro/popover/popover.test.tsx > Popover > keeps its fixed sizes at a compact --spacing: an 18rem panel",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/reorderable/reorderable.test.tsx > Reorderable > disabled > reorders again once it turns off, and marks no handle unavailable",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/reorderable/reorderable.test.tsx > Reorderable > disabled > with disabledReason, turns reordering off by itself, describes every handle by the reason and shows it as a tooltip",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/skeleton/skeleton.test.tsx > Skeleton > places a placeholder in the wave: a new wave after a quiet gap of more than a second, else the running one",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
@@ -127,11 +92,6 @@
   {
     "test": "* registry/ouro/lib/ouro/squircle/parse.test.ts > isTransparentColor > detects transparent colors",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx > EmojiPicker search > matches the start of any word in the name or keywords, ignoring case and accents, and hides the categories",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
   {
@@ -215,11 +175,6 @@
     "owner": "drain-3"
   },
   {
-    "test": "* registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx > EmojiPicker search > splits names and keywords at hyphens, underscores and colons, and treats spaces alone as no search",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* test/controls.touch.test.tsx > no control is left unmarked on a touch phone > *",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
@@ -247,16 +202,6 @@
   {
     "test": "* test/stories.test.tsx > at * px > * > Lightbox/Photos has no axe violations, closed and with each overlay open",
     "reason": "The story renders a grid of photos for the axe scan, and a shard measured it past half its timeout. Scan fewer photos in the story, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > typing > marks what is not an allowed date invalid, with a translatable message, so the form does not submit it",
-    "reason": "A shard measured it at 8.2 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox keys > keeps a read-only field as it is",
-    "reason": "A shard measured it at 7.6 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
     "owner": "drain-3"
   },
   {
@@ -295,11 +240,6 @@
     "owner": "drain-3"
   },
   {
-    "test": "* registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox > shows the highlighted option in the system's highlight colours under forced colours, where its fill is dropped",
-    "reason": "A shard measured it at 7.5 s against a budget of 15 s (#2961). It runs in under 200 ms on a clean ouro-webkit install with no contention; emulateMedia's own poll for the forced-colours match and the transition settle wait are not the cost, since the breach did not reproduce locally across repeated isolated runs. Reads as CI-shard load, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* registry/ouro/components/ouro/porthole/porthole.test.tsx > Porthole > opens on a press into the detail lines, closes on a second press, and keeps focus on the spot",
     "reason": "The original test, combining this check with the Escape case below, was measured at 7.5 s against a budget of 15 s (#2965). It is split in two here, each with half the interactions, and its afterEach no longer pays a media round trip it never needed. It runs in under 400 ms on a clean ouro-webkit install with no contention, so the remaining cost reads as CI-shard load on the real interactions webkit automation dispatches, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
@@ -332,11 +272,6 @@
   {
     "test": "ouro-touch (chromium) registry/ouro/components/ouro/select/select.touch.test.tsx > keeps a select's trigger 44px tall to a finger, even at a compact --spacing",
     "reason": "ouro-touch at 7.6s of 15s in #3000 (run 45060816478). Measured clean locally: the test body itself is 47-49ms; the file's shared afterEach pays four CDP round trips every test regardless (rotate()'s zoom read, viewport set, zoom reset, plus an emulateMedia reset), even though only one of the file's twelve tests rotates and only one changes reduced motion. That reset is the repo-wide touch-test safety convention (rotate.ts: catch any stray zoom, not only an explicit rotate() call) used in 40+ *.touch.test.tsx files; narrowing it to only run when this file's own test mutated state would weaken that catch-any-stray-zoom guarantee just for this file. No avoidable cost found in the test body or a safe per-file narrowing. Reads as CI-shard load on the shared reset's real CDP round trips. Revisit if a shard measures it slow again with headroom to spare.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > typing > never reports a typed date outside min and max, and shows the out-of-range message",
-    "reason": "ouro-webkit at 7.5s of 15s in #3000 (run 45060816478). Measured clean locally with per-step timing: the whole test is ~250ms, spread evenly across four distinct typed 10-character dates (below-min, above-max, a disabled date, a newly-allowed date) and their clears, 7-34ms each, with no single dominant round trip. The file's own beforeEach/afterEach carry no redundant reset (no viewport bounce back and forth). Reducing the typed cases would drop real boundary coverage this test proves. No avoidable wait found. Reads as CI-shard load on real typing round trips. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
   },
   {

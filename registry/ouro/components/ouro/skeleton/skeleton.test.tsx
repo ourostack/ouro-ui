@@ -42,6 +42,12 @@ function animationPhase(el: Element): number {
  */
 const phaseGapMs = 500;
 
+/** How far apart two phases are on the wave's circle: a phase a hair under one whole breath (2400ms) away is close, not far, so this takes the shorter way around. */
+function phaseGap(a: number, b: number): number {
+  const d = Math.abs(a - b) % breathMs;
+  return Math.min(d, breathMs - d);
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -264,11 +270,11 @@ describe("Skeleton", () => {
     const late = await render(<Skeleton />);
     // Both are read in one task, so they share close to a frame's time.
     const [a, b] = [phase(first), phase(late)];
-    expect(Math.abs(a - b)).toBeLessThan(phaseGapMs);
+    expect(phaseGap(a, b)).toBeLessThan(phaseGapMs);
     // A remount (a new key) while the others breathe keeps the phase.
     await act(async () => root.render(<Skeleton key="again" />));
     const again = mounted.at(-2)!.querySelector<HTMLElement>('[data-ouro="skeleton"]')!;
-    expect(Math.abs(phase(again) - phase(late))).toBeLessThan(phaseGapMs);
+    expect(phaseGap(phase(again), phase(late))).toBeLessThan(phaseGapMs);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(late).animationName).toBe("none");
     expect(late.getAnimations()).toEqual([]);
@@ -283,7 +289,7 @@ describe("Skeleton", () => {
     const holdUntil = performance.now() + 200;
     while (performance.now() < holdUntil) { /* holds the main thread, no yield */ }
     const late = await render(<Skeleton />);
-    expect(Math.abs(phase(first) - phase(late))).toBeLessThan(phaseGapMs);
+    expect(phaseGap(phase(first), phase(late))).toBeLessThan(phaseGapMs);
   });
 
   it("places a placeholder in the wave: a new wave after a quiet gap of more than a second, else the running one", () => {
@@ -293,6 +299,14 @@ describe("Skeleton", () => {
     expect(joinWave(5000, 1, 0, 4000).delay).toBe("0ms");
     expect(joinWave(5000, 1, 0, 3999).delay).toBe("-1ms");
     expect(joinWave(9000, 2, 0, 1000).delay).toBe(`${-((8000 - stillMs) % breathMs)}ms`);
+  });
+
+  it("measures a phase gap the short way around the circle, so a near-whole-breath difference reads as close", () => {
+    // 5 and 2395 sit 10ms apart going the other way around a 2400ms breath, not 2390ms apart.
+    expect(phaseGap(5, 2395)).toBe(10);
+    expect(phaseGap(2395, 5)).toBe(10);
+    expect(phaseGap(100, 100)).toBe(0);
+    expect(phaseGap(0, 1200)).toBe(1200);
   });
 
   it("keeps the app's own style beside the wave's phase, on every shape", async () => {
