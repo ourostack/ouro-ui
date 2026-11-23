@@ -117,6 +117,15 @@ describe("collectInPage", () => {
     expect(pick(controls, "Article header")!.testId).toBeNull();
   });
 
+  it("leaves out a control inside an aria-hidden or inert subtree, behind an open dialog", () => {
+    const controls = collect(`
+      <div aria-hidden="true"><button>Behind hidden</button></div>
+      <div inert><button>Behind inert</button></div>
+      <button></button>
+      <dialog open><button>In dialog</button></dialog>`);
+    expect(controls.map((control) => control.name)).toEqual(["", "In dialog"]);
+  });
+
   it("says whether each control is visible", () => {
     const controls = collect(`<main><button>Shown</button><button style="display: none">Gone</button><button style="visibility: hidden">Invisible</button></main>`);
     // axe names only what is rendered, so the hidden ones have no name either.
