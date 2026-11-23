@@ -969,3 +969,52 @@ describe("findDesignIssues: count-badge", () => {
     for (const { detail } of exact) expect(detail).toMatch(/^its numerals sit 0\.\dpx (high|low|to the (left|right))( and 0\.\dpx to the (left|right))? of/);
   });
 });
+
+describe("findDesignIssues: off-centre-text", () => {
+  const way = (what: string, side: string) => new RegExp(`^its ${what} sits [\\d.]+px ${side}, by its cap height: even the padding above and below it, and centre it on its cap height, not its line box$`);
+
+  it("finds one line of words off its control's middle by its cap height: a field's placeholder and value, a writing area, a button, an editor, and a bare text area in its frame", () => {
+    render(`<p><input id="low" placeholder="Search" style="font:16px/24px system-ui, sans-serif;padding:14px 12px 2px;border:1px solid #999"></p>
+<p><input id="high" value="Rye loaf" style="font:16px/24px system-ui, sans-serif;padding:2px 12px 14px;border:1px solid #999"></p>
+<p><textarea id="area" rows="1" placeholder="Write" style="font:16px/24px system-ui, sans-serif;padding:14px 12px 4px;border:1px solid #999;resize:none;height:44px;box-sizing:border-box"></textarea></p>
+<p><button id="btn" style="font:16px/24px system-ui, sans-serif;padding:14px 16px 2px;border:1px solid #999;background:#fff;color:#000">Save</button></p>
+<div id="ed" contenteditable="true" style="font:16px/24px system-ui, sans-serif;padding:14px 12px 2px;border:1px solid #999;width:240px"></div><style>#ed:empty::before{content:"Write a note"}</style>
+<div id="typed" contenteditable="true" style="font:16px/24px system-ui, sans-serif;padding:2px 12px 14px;border:1px solid #999;width:240px">Hello</div>
+<div style="display:flex;align-items:flex-end;gap:8px;border:1px solid #999;border-radius:22px;padding:6px 6px 6px 16px;width:360px;box-sizing:border-box;margin-top:16px"><textarea id="bare" rows="1" placeholder="Write a message" style="flex:1;border:0;outline:0;resize:none;background:transparent;font:16px/24px system-ui, sans-serif;padding:0 0 2px;height:26px;box-sizing:border-box"></textarea><button aria-label="Send" style="width:32px;height:32px;border-radius:16px;border:0;background:#06c"></button></div>`);
+    const issues = of("off-centre-text");
+    expect(issues.map(({ element }) => element)).toEqual(["input#low", "input#high", "textarea#area", 'button#btn "Save"', "div#ed", 'div#typed "Hello"', "textarea#bare"]);
+    const [low, high, area, button, editor, typed, bare] = issues.map(({ detail }) => detail);
+    expect(low).toMatch(way("placeholder", "low"));
+    expect(high).toMatch(way("text", "high"));
+    expect(area).toMatch(way("placeholder", "low"));
+    expect(button).toMatch(way("text", "low"));
+    expect(editor).toMatch(way("placeholder", "low"));
+    expect(typed).toMatch(way("text", "high"));
+    expect(bare).toMatch(way("placeholder", "low"));
+    expect(document.getElementById("bare")!.getAttribute("data-ouro-check-ref")).toBe(issues[6]!.ref);
+  });
+
+  it("passes centred words, a box of two lines or more, words on two lines, hidden or trimmed words, the opted out and a scaled thumbnail", () => {
+    render(`<p><input placeholder="Search" style="font:16px/24px system-ui, sans-serif;padding:8px 12px;border:1px solid #999"></p>
+<p><input value="" style="font:16px/24px system-ui, sans-serif;padding:8px 12px;border:1px solid #999"></p>
+<p><input type="checkbox"></p>
+<p><textarea rows="4" placeholder="A long note" style="font:16px/24px system-ui, sans-serif;padding:8px"></textarea></p>
+<p><button style="font:16px/24px system-ui, sans-serif;padding:8px 16px;border:1px solid #999;background:#fff">Save</button></p>
+<p><button aria-label="Close" style="width:32px;height:32px"><svg width="16" height="16" aria-hidden="true"></svg></button></p>
+<p><button style="font:16px/24px system-ui, sans-serif;padding:8px 16px">Save <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">changes now</span></button></p>
+<p><button style="font:16px/24px system-ui, sans-serif;padding:8px 16px;max-width:90px">Two words wrap</button></p>
+<p><button style="font:16px/24px system-ui, sans-serif;height:120px;padding:4px">Tall</button></p>
+<p><button style="font:16px/24px system-ui, sans-serif;padding:2px 16px 14px;text-box:trim-both cap alphabetic">Trimmed</button></p>
+<p><button style="font:16px/24px system-ui, sans-serif;padding:2px 16px 14px" data-ouro-allow="off-centre-text" data-ouro-allow-why="a deliberate baseline">Opted</button></p>
+<div contenteditable="true" style="font:16px/24px system-ui, sans-serif;padding:8px 12px;border:1px solid #999;width:240px"></div>
+<div style="transform:scale(0.5);transform-origin:0 0"><button style="font:16px/24px system-ui, sans-serif;padding:8px 16px;border:1px solid #999;background:#fff">Small</button></div>
+<div style="display:flex;align-items:center;gap:8px;border:1px solid #999;border-radius:22px;padding:6px 6px 6px 16px;width:360px;box-sizing:border-box"><textarea rows="1" placeholder="Write a message" style="flex:1;border:0;outline:0;resize:none;background:transparent;font:16px/24px system-ui, sans-serif;padding:0;height:24px;box-sizing:border-box"></textarea><button aria-label="Send" style="width:32px;height:32px;border-radius:16px;border:0;background:#06c"></button></div>`);
+    expect(of("off-centre-text")).toEqual([]);
+  });
+
+  it("lets words sit further off when told a wider slack", () => {
+    render(`<p><input placeholder="Search" style="font:16px/24px system-ui, sans-serif;padding:14px 12px 2px;border:1px solid #999"></p>`);
+    expect(of("off-centre-text", { textSlackPx: 8 })).toEqual([]);
+    expect(of("off-centre-text")).toHaveLength(1);
+  });
+});
