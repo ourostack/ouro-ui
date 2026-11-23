@@ -13,6 +13,7 @@ export {
   isIsoDate,
   layoutDay,
   lineCount,
+  markedMutedClass,
   minuteClock,
   minVisibleMinutes,
   plainFillClass,
@@ -357,6 +358,10 @@ const timedClass = "absolute inset-0 z-10 scroll-mt-(--ouro-time-grid-head) @con
  * @claim "one line in the" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /allDayClass = "relative h-5\.5 w-full isolate"/)
  */
 const allDayClass = "relative h-5.5 w-full isolate";
+
+// Muted text on a marked day's tint, mixed a fifth toward the foreground as on any muted surface: shadcn's stock
+// muted foreground is short of 4.5:1 on a tint.
+const markedMutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
 /**
  * Each tone's start bar, and the outline of a free or unanswered event.
