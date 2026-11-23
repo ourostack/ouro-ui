@@ -103,8 +103,11 @@ export interface ComposerOwnProps {
   /** The starting text, for an uncontrolled composer, which clears itself after a send. */
   defaultValue?: string | undefined;
   /**
-   * Which conversation this box writes to, such as its id. An uncontrolled composer starts over from `defaultValue` when it
-   * changes, so a draft stays in its own conversation; a controlled one is the app's to reset.
+   * Which conversation this box writes to, such as its id. An uncontrolled composer keeps the unsent draft of a conversation in
+   * memory, so it is back when the person returns, and shows `defaultValue` for one with no draft; it holds a bounded number of
+   * drafts, and a controlled one is the app's to keep and reset.
+   *
+   * @claim "An uncontrolled composer keeps the unsent draft of a conversation in memory, so it is back when the person returns, and shows `defaultValue` for one with no draft; it holds a bounded number of drafts, and a controlled one is the app's to keep and reset." registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer drafts > gives a draft back when the person returns to its conversation)
    */
   conversation?: string | undefined;
   /** Called with the new text when it changes. */
@@ -189,9 +192,16 @@ export interface ComposerOwnProps {
    * @claim "or pasted goes in as its" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer with a catalogue > puts pasted emoji in as their tokens, including joined and toned ones, and leaves those it does not list)
    */
   catalogue?: EmojiCatalogue | undefined;
-  /** Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. */
+  /**
+   * Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. In `format="rich"` the ranges are indexes into the Markdown `value`, which the box marks over the formatted text.
+   *
+   * @example
+   * ```tsx
+   * <Composer label="Message" format="rich" defaultValue="Meet at noon" highlights={[{ start: 8, end: 12, label: "Suggested time" }]} />
+   * ```
+   */
   highlights?: readonly TextAreaHighlight[] | undefined;
-  /** Called with the highlights moved to fit the text after the person edits it, as TextArea's. */
+  /** Called with the highlights moved to fit the text after the person edits it, as TextArea's; in rich mode the ranges stay Markdown indexes. */
   onHighlightsChange?: ((highlights: TextAreaHighlight[]) => void) | undefined;
   /**
    * The bigger box for a long message, as a chat app's format button opens: taller (`expandedRows`,
@@ -254,8 +264,8 @@ export interface ComposerOwnProps {
    * An `Autocomplete` around the composer works as around the plain box, for mentions and emoji
    * shortcodes: `ref` is the editor's element, which answers `value`, `selectionStart` and
    * `selectionEnd` over the text without its marks, and an input method's composition does not pick.
-   * Attachments show as they do on the plain box. In rich mode `highlights`, `onPaste`
-   * and `pasteText` do not apply (`catalogue` does: see its note), and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
+   * Attachments show as they do on the plain box. In rich mode `onPaste`
+   * does not apply (`catalogue`, `highlights` and `pasteText` do: see their notes), and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
    *
    * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
    * @claim "as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code)
@@ -292,7 +302,11 @@ export interface ComposerOwnProps {
   editorRef?: Ref<ComposerEditor> | undefined;
   /**
    * Turns a paste into the box's text, such as formatted text into Markdown: return the text, or
-   * `undefined` for the browser's own paste.
+   * `undefined` for the browser's own paste. With `format="rich"` the text is Markdown, and it
+   * goes in as formatting before the clipboard's HTML reaches the allowlist.
+   *
+   * @example
+   * <Composer format="rich" pasteText={(data) => data.getData("text/plain").replace(/^/gm, "> ")} />
    */
   pasteText?: ((data: DataTransfer) => string | undefined) | undefined;
 
@@ -316,6 +330,7 @@ export interface ComposerOwnProps {
 export type ComposerProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, keyof ComposerOwnProps | "children"> & ComposerOwnProps;
 
 const sendKeys = ["enter", "mod-enter"] as const;
+const draftLimit = 50;
 
 // One frame for the whole composer, with the field's border and one focus outline while the
 // text has focus; the textarea inside draws neither.
@@ -545,9 +560,14 @@ export function Composer(props: ComposerProps): JSX.Element {
   const modEnter = expanded || sendOnProp === "mod-enter";
   const [own, setOwn] = useState(defaultValue ?? "");
   const [ownConversation, setOwnConversation] = useState(conversation);
+  const [kept] = useState(() => new Map<string | undefined, string>());
   if (conversation !== ownConversation) {
+    // The draft left behind waits for its conversation; the oldest of more than `draftLimit` are dropped.
+    kept.delete(ownConversation);
+    if (own !== "") kept.set(ownConversation, own);
+    if (kept.size > draftLimit) kept.delete(kept.keys().next().value);
     setOwnConversation(conversation);
-    setOwn(defaultValue ?? "");
+    setOwn(kept.get(conversation) ?? defaultValue ?? "");
   }
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -785,6 +805,9 @@ export function Composer(props: ComposerProps): JSX.Element {
             <ActiveEditor
               handleRef={richRef}
               catalogue={catalogue}
+              highlights={highlights}
+              onHighlightsChange={onHighlightsChange}
+              pasteText={pasteText}
               label={label}
               value={text}
               onValueChange={change}

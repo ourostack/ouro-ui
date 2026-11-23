@@ -40,6 +40,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   vi.restoreAllMocks();
+  vi.useRealTimers();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
@@ -171,6 +172,13 @@ describe("Composer rich mode", () => {
   });
 
   it("undoes and redoes typing with mod+Z and mod+Shift+Z", async () => {
+    // Lexical's history plugin merges consecutive character edits into one undo step only when
+    // Date.now() reads them under 300ms apart (registerHistory's delay). A busy runner can take
+    // longer than that to deliver the second keystroke, splitting "b" and "c" into two undo
+    // entries so one mod+Z lands on "ab" instead of "a" (ourostack/ouro-ui#3069). Holding the
+    // clock removes the race between that real elapsed time and the merge window, without
+    // widening the window or waiting on one.
+    vi.useFakeTimers({ toFake: ["Date"] });
     const { editor } = await render(rich({ defaultValue: "a" }));
     editor.focus();
     await userEvent.keyboard("bc");
@@ -179,6 +187,23 @@ describe("Composer rich mode", () => {
     await expect.poll(() => editor.textContent).toBe("a");
     await userEvent.keyboard("{Control>}{Shift>}z{/Shift}{/Control}");
     await expect.poll(() => editor.textContent).toBe("abc");
+  });
+
+  it("keeps one mod+Z merging typed characters however long the runner takes to deliver them (ourostack/ouro-ui#3069)", async () => {
+    // Holds Date so Lexical's history-merge window reads zero elapsed time between the two
+    // keystrokes, while a real wait between them stands in for a busy runner's actual delay.
+    // Without holding the clock, this delay alone reproduces the race: it reads over 300ms
+    // elapsed, splits "b" and "c" into two undo entries, and one mod+Z leaves "ab", not "a".
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const { editor } = await render(rich({ defaultValue: "a" }));
+    editor.focus();
+    await userEvent.keyboard("b");
+    await expect.poll(() => editor.textContent).toBe("ab");
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    await userEvent.keyboard("c");
+    await expect.poll(() => editor.textContent).toBe("abc");
+    await userEvent.keyboard("{Control>}z{/Control}");
+    await expect.poll(() => editor.textContent).toBe("a");
   });
 
   it("pastes the clipboard's formatting through the allowlist, never its scripts", async () => {
@@ -772,5 +797,270 @@ describe("Composer rich mode with a catalogue", () => {
     await act(async () => void editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data })));
     await act(async () => handle.current!.insert(" two"));
     expect(field(editor).value).toBe("one :party: two");
+  });
+  it("marks a run that holds an emoji's picture, over the picture", async () => {
+    const { host, editor } = await render(withCatalogue({ defaultValue: "go :party: now", highlights: [{ start: 3, end: 10, label: "a" }] }));
+    await expect.poll(() => host.querySelectorAll("[data-ouro-highlight]").length).toBe(1);
+    const picture = pictures(editor)[0]!.getBoundingClientRect();
+    const box = host.querySelector("[data-ouro-highlight]")!.getBoundingClientRect();
+    expect(Math.abs(box.left - picture.left)).toBeLessThan(3);
+    expect(Math.abs(box.right - picture.right)).toBeLessThan(3);
+  });
+});
+
+describe("Composer rich mode highlights", () => {
+  const layer = (host: HTMLElement) => host.querySelector("[data-ouro-composer-marks]");
+  const boxes = (host: HTMLElement) => [...(layer(host)?.children ?? [])] as HTMLElement[];
+  const marked = [{ start: 8, end: 12, label: "Suggested" }];
+
+  it("draws a box over the run the Markdown offsets name, on the formatted text and not on its marks", async () => {
+    const { host, editor } = await render(rich({ defaultValue: "Hello **bold** world", highlights: marked }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const bold = editor.querySelector("strong")!.getBoundingClientRect();
+    const box = boxes(host)[0]!.getBoundingClientRect();
+    expect(Math.abs(box.left - bold.left)).toBeLessThan(1.5);
+    expect(Math.abs(box.width - bold.width)).toBeLessThan(1.5);
+    expect(Math.abs(box.top - bold.top)).toBeLessThan(2);
+    expect(layer(host)!.getAttribute("aria-hidden")).toBe("true");
+    expect(getComputedStyle(layer(host)!).pointerEvents).toBe("none");
+  });
+
+  it("describes the marks to a screen reader, with their label and the words, beside the description the app gave", async () => {
+    const { host, editor } = await render(rich({ defaultValue: "Hello **bold** world", highlights: marked, description: "Be kind" }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const ids = editor.getAttribute("aria-describedby")!.split(" ");
+    expect(ids).toHaveLength(2);
+    expect(document.getElementById(ids[1]!)!.textContent).toBe("Suggested: “bold”.");
+    expect(document.getElementById(ids[1]!)!.hidden).toBe(true);
+    expect(document.getElementById(ids[0]!)!.textContent).toBe("Be kind");
+  });
+
+  it("draws a tone's own line, and an unknown tone as primary", async () => {
+    const { host } = await render(rich({ defaultValue: "one two three", highlights: [{ start: 0, end: 3, label: "a", tone: "destructive" }, { start: 4, end: 7, label: "b", tone: "warning" }, { start: 8, end: 13, label: "c", tone: "nope" as "primary" }] }));
+    await expect.poll(() => boxes(host).length).toBe(3);
+    expect(boxes(host).map((box) => box.dataset.ouroHighlight)).toEqual(["destructive", "warning", "primary"]);
+    expect(getComputedStyle(boxes(host)[0]!).borderBottomStyle).toBe("dashed");
+    expect(getComputedStyle(boxes(host)[2]!).borderBottomStyle).toBe("dotted");
+  });
+
+  it("draws nothing, and describes nothing, with no marks or marks that cover nothing", async () => {
+    const { host, editor, rerender } = await render(rich({ defaultValue: "Hello" }));
+    expect(layer(host)).toBeNull();
+    expect(editor.getAttribute("aria-describedby")).toBeNull();
+    await rerender(rich({ defaultValue: "Hello", highlights: [{ start: 3, end: 3, label: "x" }, { start: 40, end: 50, label: "y" }] }));
+    expect(layer(host)).toBeNull();
+    expect(editor.getAttribute("aria-describedby")).toBeNull();
+  });
+
+  it("follows the marks the app gives, and takes them away", async () => {
+    const { host, rerender } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 0, end: 5, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const first = boxes(host)[0]!.getBoundingClientRect().left;
+    await rerender(rich({ defaultValue: "Hello world", highlights: [{ start: 6, end: 11, label: "a" }] }));
+    await expect.poll(() => boxes(host)[0]!.getBoundingClientRect().left).toBeGreaterThan(first + 10);
+    await rerender(rich({ defaultValue: "Hello world", highlights: [] }));
+    await expect.poll(() => layer(host)).toBeNull();
+  });
+
+  it("moves the marks with the text the person types, tells the app, and leaves what is typed unmarked", async () => {
+    const changes = vi.fn();
+    const { host, editor } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 6, end: 11, label: "a" }], onHighlightsChange: changes }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const before = boxes(host)[0]!.getBoundingClientRect().left;
+    editor.focus();
+    await act(async () => (editor as unknown as { setSelectionRange: (a: number, b: number) => void }).setSelectionRange(0, 0));
+    await userEvent.keyboard("ab");
+    await expect.poll(() => editor.textContent).toBe("abHello world");
+    await expect.poll(() => changes.mock.calls.at(-1)?.[0]).toEqual([{ start: 8, end: 13, label: "a" }]);
+    await expect.poll(() => boxes(host)[0]!.getBoundingClientRect().left).toBeGreaterThan(before + 5);
+    expect(boxes(host)).toHaveLength(1);
+    expect(changes).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not tell the app of marks an edit left where they were", async () => {
+    const changes = vi.fn();
+    const { host, editor } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 0, end: 5, label: "a" }], onHighlightsChange: changes }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    editor.focus();
+    await userEvent.keyboard("{Control>}{End}{/Control}!");
+    await expect.poll(() => editor.textContent).toBe("Hello world!");
+    expect(changes).not.toHaveBeenCalled();
+  });
+
+  it("moves the marks when the app changes the value, and drops one whose text is gone", async () => {
+    const changes = vi.fn();
+    const props = { highlights: [{ start: 6, end: 11, label: "a" }], onHighlightsChange: changes };
+    const { rerender, host } = await render(rich({ value: "Hello world", ...props }));
+    await rerender(rich({ value: ">> Hello world", ...props }));
+    await expect.poll(() => changes.mock.calls.at(-1)?.[0]).toEqual([{ start: 9, end: 14, label: "a" }]);
+    await rerender(rich({ value: ">> Hello", ...props }));
+    await expect.poll(() => changes.mock.calls.at(-1)?.[0]).toEqual([]);
+    await expect.poll(() => layer(host)).toBeNull();
+  });
+
+  it("draws the marks again when the box is resized, and as its text scrolls", async () => {
+    const lines = Array.from({ length: 12 }, (_, index) => `line ${index}`).join("\n\n");
+    const { host, editor } = await render(rich({ defaultValue: lines, maxRows: 3, highlights: [{ start: 0, end: 6, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const top = boxes(host)[0]!.getBoundingClientRect().top;
+    editor.scrollTop = 40;
+    await expect.poll(() => boxes(host)[0]!.getBoundingClientRect().top).toBeLessThan(top - 20);
+    const wide = await render(rich({ defaultValue: "aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn oooo pppp qqqq rrrr", highlights: [{ start: 80, end: 84, label: "a" }] }));
+    await expect.poll(() => boxes(wide.host).length).toBe(1);
+    const lower = boxes(wide.host)[0]!.getBoundingClientRect().top;
+    wide.host.style.width = "900px";
+    await expect.poll(() => boxes(wide.host)[0]!.getBoundingClientRect().top).toBeLessThan(lower);
+    expect(host).toBeTruthy();
+  });
+
+  it("stops measuring once the marks are taken away", async () => {
+    const { host, editor, rerender } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 6, end: 11, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    await rerender(rich({ defaultValue: "Hello world", highlights: [] }));
+    await expect.poll(() => layer(host)).toBeNull();
+    const measured = vi.spyOn(Range.prototype, "getClientRects");
+    await act(async () => void editor.dispatchEvent(new Event("scroll")));
+    host.style.width = "300px";
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await act(async () => void editor.focus());
+    await userEvent.keyboard("!");
+    await expect.poll(() => editor.textContent).toBe("Hello world!");
+    expect(measured).not.toHaveBeenCalled();
+  });
+
+  it("draws one box for each different rectangle a run covers, and none for a rectangle seen again or with no width", async () => {
+    const rect = (left: number, top: number, width: number) => new DOMRect(left, top, width, 10);
+    vi.spyOn(Range.prototype, "getClientRects").mockReturnValue([rect(10, 10, 20), rect(10, 10, 20), rect(10, 30, 20), rect(50, 10, 0)] as unknown as DOMRectList);
+    const { host } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 0, end: 5, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(2);
+  });
+
+  it("draws no layer for marks that measure to no rectangle", async () => {
+    vi.spyOn(Range.prototype, "getClientRects").mockReturnValue([] as unknown as DOMRectList);
+    const { host } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 0, end: 5, label: "a" }] }));
+    await act(async () => void (await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))));
+    expect(layer(host)).toBeNull();
+  });
+
+  it("moves the marks and tells the app on every edit, with the callback it gave last, and with none given", async () => {
+    const first = vi.fn();
+    const last = vi.fn();
+    const marks = [{ start: 6, end: 11, label: "a" }];
+    const { editor, rerender } = await render(rich({ defaultValue: "Hello world", highlights: marks, onHighlightsChange: first }));
+    await rerender(rich({ defaultValue: "Hello world", highlights: marks, onHighlightsChange: last }));
+    editor.focus();
+    await act(async () => (editor as unknown as { setSelectionRange: (a: number, b: number) => void }).setSelectionRange(0, 0));
+    await userEvent.keyboard("a");
+    await expect.poll(() => last.mock.calls.at(-1)?.[0]).toEqual([{ start: 7, end: 12, label: "a" }]);
+    await userEvent.keyboard("b");
+    await expect.poll(() => last.mock.calls.at(-1)?.[0]).toEqual([{ start: 8, end: 13, label: "a" }]);
+    expect(first).not.toHaveBeenCalled();
+    await rerender(rich({ defaultValue: "Hello world", highlights: marks }));
+    await userEvent.keyboard("c");
+    await expect.poll(() => editor.textContent).toBe("abcHello world");
+  });
+
+  it("measures the marks again when the box scrolls", async () => {
+    const { host, editor } = await render(rich({ defaultValue: "Hello world", highlights: [{ start: 6, end: 11, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const measured = vi.spyOn(Range.prototype, "getClientRects");
+    await act(async () => void editor.dispatchEvent(new Event("scroll")));
+    expect(measured).toHaveBeenCalled();
+  });
+
+  it("marks over an emoji's picture and a list", async () => {
+    const { host } = await render(rich({ defaultValue: "- one\n- two", highlights: [{ start: 8, end: 11, label: "a" }] }));
+    await expect.poll(() => boxes(host).length).toBe(1);
+    const item = host.querySelectorAll("li")[1]!.getBoundingClientRect();
+    const box = boxes(host)[0]!.getBoundingClientRect();
+    expect(box.top).toBeGreaterThan(item.top - 2);
+    expect(box.bottom).toBeLessThan(item.bottom + 2);
+  });
+});
+
+describe("Composer rich mode Escape", () => {
+  it("keeps focus in the editor when Escape closes nothing", async () => {
+    const { editor } = await render(rich({ defaultValue: "hi" }));
+    await act(async () => editor.focus());
+    expect(document.activeElement).toBe(editor);
+    await userEvent.keyboard("{Escape}");
+    expect(document.activeElement).toBe(editor);
+  });
+});
+
+describe("Composer rich mode pasteText", () => {
+  const paste = (editor: HTMLElement, text: string, html = "") => {
+    const data = new DataTransfer();
+    data.setData("text/plain", text);
+    if (html) data.setData("text/html", html);
+    const event = new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data });
+    return act(async () => void editor.dispatchEvent(event)).then(() => event);
+  };
+
+  it("takes the Markdown the app returns in place of the clipboard's HTML, and puts it in as formatted text", async () => {
+    const seen: string[] = [];
+    const given = vi.fn((data: DataTransfer) => `**${data.getData("text/plain")}**`);
+    const { editor } = await render(rich({ pasteText: given, onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    const event = await paste(editor, "bold", "<i>bold</i><script>x</script>");
+    await expect.poll(() => seen.at(-1)).toBe("**bold**");
+    expect(editor.querySelector("strong")!.textContent).toBe("bold");
+    expect(editor.querySelector("em")).toBeNull();
+    expect(event.defaultPrevented).toBe(true);
+    expect(given).toHaveBeenCalledTimes(1);
+  });
+
+  it("inserts the Markdown at the caret, among the text", async () => {
+    const { editor } = await render(rich({ defaultValue: "ab", pasteText: (data) => data.getData("text/plain") }));
+    editor.focus();
+    await act(async () => (editor as unknown as { setSelectionRange: (a: number, b: number) => void }).setSelectionRange(1, 1));
+    await paste(editor, " **x** ");
+    await expect.poll(() => editor.textContent).toBe("a x b");
+    expect(editor.querySelector("strong")!.textContent).toBe("x");
+  });
+
+  it("replaces the selected text with the Markdown, and leaves the caret after it", async () => {
+    const { editor } = await render(rich({ defaultValue: "one two three", pasteText: () => "**2**" }));
+    editor.focus();
+    const field = editor as unknown as { setSelectionRange: (a: number, b: number) => void; selectionStart: number };
+    await act(async () => field.setSelectionRange(4, 7));
+    await paste(editor, "x");
+    await expect.poll(() => editor.textContent).toBe("one 2 three");
+    expect(field.selectionStart).toBe(5);
+  });
+
+  it("puts Markdown that holds blocks in as those blocks", async () => {
+    const { editor } = await render(rich({ pasteText: (data) => data.getData("text/plain") }));
+    editor.focus();
+    await paste(editor, "- one\n- two");
+    await expect.poll(() => editor.querySelectorAll("li").length).toBe(2);
+  });
+
+  it("leaves a paste to the allowlist when the app returns undefined", async () => {
+    const { editor } = await render(rich({ pasteText: () => undefined }));
+    editor.focus();
+    await paste(editor, "plain", "<b>plain</b><script>x</script>");
+    await expect.poll(() => editor.querySelector("strong")?.textContent).toBe("plain");
+    expect(editor.querySelector("script")).toBeNull();
+  });
+
+  it("still sends a paste through the allowlist with no pasteText, and uses the callback of the last render", async () => {
+    const first = vi.fn(() => "first");
+    const second = vi.fn(() => "second");
+    const { editor, rerender } = await render(rich({ pasteText: first }));
+    await rerender(rich({ pasteText: second }));
+    editor.focus();
+    await paste(editor, "x");
+    await expect.poll(() => editor.textContent).toBe("second");
+    expect(first).not.toHaveBeenCalled();
+  });
+
+  it("draws the catalogue's emoji in the Markdown the app returns", async () => {
+    const party: EmojiItem = { id: "party", name: "Party popper", shortcodes: ["party"], text: "🎉", src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'/%3E" };
+    const catalogue: EmojiCatalogue = { categories: [{ id: "people", label: "People", items: [party] }] };
+    const { editor } = await render(rich({ catalogue, pasteText: () => "hi :party:" }));
+    editor.focus();
+    await paste(editor, "x");
+    await expect.poll(() => editor.querySelectorAll("img:not([alt=''])").length).toBe(1);
   });
 });

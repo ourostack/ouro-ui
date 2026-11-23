@@ -8,11 +8,11 @@
   "sources": {
     "day": {
       "file": "site/public/brand/storybook/scenes/nautilus-3072.webp",
-      "sha256": "50d064dfc4390349b0642fc903d14e2b3aeef27403e9d4034ea5172f178d75bf"
+      "sha256": "ccbe7344ab53d074c70181cfcbbcacd7fe5ef37a9cde9d76bd5f937c1177bf78"
     },
     "night": {
       "file": "site/public/brand/storybook/scenes/nautilus-dark-3072.webp",
-      "sha256": "06be9c2149a0df5769e928f2a8221fe3b7420856ecf48405f76923cb25011a3c"
+      "sha256": "540618b97ff64068523a562d43601f6fcc74d0689aa19e7fca6e6245a337a65f"
     }
   },
   "files": [
@@ -22,7 +22,7 @@
       "width": 720,
       "height": 240,
       "format": "avif",
-      "sha256": "6cd7a75a801b31cd10195aa01e040e188f2c447c2092735b65e2e3af5bb46367"
+      "sha256": "8aaf5b67996d3a24aa923f89d2d5f8e6b12a9271f7fd9f703e25b99503a7a3ea"
     },
     {
       "file": "nautilus-afloat-720.webp",
@@ -30,7 +30,7 @@
       "width": 720,
       "height": 240,
       "format": "webp",
-      "sha256": "533ea6de39560b04c89d88f162c550e7d8adf9b2591c1b849f764faf5a024f4f"
+      "sha256": "d5308eae09fc150d89549bc8ec476447a4fab900d0c8eb53a4576120526c11d5"
     },
     {
       "file": "nautilus-afloat-1440.avif",
@@ -38,7 +38,7 @@
       "width": 1440,
       "height": 480,
       "format": "avif",
-      "sha256": "60f477670ffd915e248fcc34de0060523a7cf44d42714a02f912d019f1600944"
+      "sha256": "01990ecbe483e031f31e7a7323433b8fd25eeb01c60b4dc46684a91446c0c76e"
     },
     {
       "file": "nautilus-afloat-1440.webp",
@@ -46,7 +46,7 @@
       "width": 1440,
       "height": 480,
       "format": "webp",
-      "sha256": "5f26ad81105ce459780889ed82c7ea48ede2d5b3794a866cb53f526da15f89c9"
+      "sha256": "b22357c9b923a7c63a2676b4826f0e6e45b8365a260070ecf617f18797045700"
     },
     {
       "file": "nautilus-afloat-dark-720.avif",
@@ -54,7 +54,7 @@
       "width": 720,
       "height": 240,
       "format": "avif",
-      "sha256": "817e39948dc1428f102d65dd9e6957b99654482728474b8963e06950b0634c2a"
+      "sha256": "26a12151b98c730eacea7f4a9f05fee6d4bc9f7131dd98da4fd5398262c27406"
     },
     {
       "file": "nautilus-afloat-dark-720.webp",
@@ -62,7 +62,7 @@
       "width": 720,
       "height": 240,
       "format": "webp",
-      "sha256": "f005ea13bf44217566a3d840dfdeeaeccb34d9a6b8f6db0a785bf09e096e5a8c"
+      "sha256": "db49f0c32d26ed5883885cfc43713f8bf263248ee31de2538feba24a1a3d66c2"
     },
     {
       "file": "nautilus-afloat-dark-1440.avif",
@@ -70,7 +70,7 @@
       "width": 1440,
       "height": 480,
       "format": "avif",
-      "sha256": "81089294d0f841e73cfcf042bc792ff768aa4886e832fcc7ed0a2944185e2ff0"
+      "sha256": "c63a057d0af171cb58c6f8730e069b12739e0106e0ec081d7caae263aac266e0"
     },
     {
       "file": "nautilus-afloat-dark-1440.webp",
@@ -78,7 +78,7 @@
       "width": 1440,
       "height": 480,
       "format": "webp",
-      "sha256": "19ad9fcbd500fe780409133fc5750c2f05f1138b899d8c0251484e3dc6b840f8"
+      "sha256": "39ad46e874037de34a79006c84c6ee63846b78708fd3512d4ddf14e8461f0af6"
     }
   ]
 }
