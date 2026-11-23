@@ -7,7 +7,7 @@ import { ListItemNode, ListNode, registerList } from "@lexical/list";
 import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type TextMatchTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
-import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
+import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, $getState, $setState, createState, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
 import { useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
@@ -77,6 +77,100 @@ interface RichEditorProps {
 
 // Underline has no CommonMark mark; `++` is the one Composer's plain mode writes too.
 const UNDERLINE: TextFormatTransformer = { format: ["underline"], tag: "++", type: "text-format" };
+
+// Backslash-escapes only a `* _ ~` that bare would read as part of a mark, so writing the value back out never changes a URL's or a handle's underscore or a lone star or tilde that pairs with nothing.
+function escapeMarkText(text: string): string {
+  return text.replaceAll(/[*_~]/g, (char, index: number, whole: string) => {
+    // Stryker disable next-line ConditionalExpression: unescapeSafeMarkText re-derives bare-or-escaped from the exported string's own adjacency and overrides whichever branch runs here whenever this mark has no escaped same-mark neighbor in the output, so routing to the wrong branch below is unobservable; only an actual escape-vs-bare divergence inside each branch shows up.
+    if (char === "_") {
+      // CommonMark never opens or closes emphasis on an underscore flanked by word characters, so one there is always safe bare.
+      const before = whole[index - 1];
+      const after = whole[index + 1];
+      // Stryker disable next-line ConditionalExpression: unescapeSafeMarkText applies this identical word-flank test to the same underscore in the exported string and strips or keeps the backslash itself, so forcing this escape is unobservable whenever the node-local and exported-string neighbors agree, which they do unless this underscore sits at a run boundary unescapeSafeMarkText reads differently.
+      if (before !== undefined && after !== undefined && /\w/.test(before) && /\w/.test(after)) return char;
+      return `\\${char}`;
+    }
+    // A star or tilde next to another of the same mark could open or close one with it, so only a mark with no neighbor of its kind goes out bare.
+    const runStart = whole.slice(0, index).match(new RegExp(`\\${char}+$`))?.[0].length ?? 0;
+    const runAfter = whole.slice(index + 1).match(new RegExp(`^\\${char}+`))?.[0].length ?? 0;
+    // Stryker disable next-line ConditionalExpression: unescapeSafeMarkText strips any escape here back to bare unless an escaped same-mark neighbor sits right beside it in the exported string, so forcing an escape for a mark with no such neighbor leaves the final output unchanged.
+    return runStart === 0 && runAfter === 0 ? char : `\\${char}`;
+  });
+}
+
+// Finds a backslash this library put in front of a `* _ ~` that could not have meant a mark, and takes it back off, so a URL, a handle or a product name comes back the way it was typed.
+function unescapeSafeMarkText(markdown: string): string {
+  return markdown.replaceAll(/\\([*_~])/g, (whole, char: string, index: number) => {
+    if (char === "_") {
+      const before = markdown[index - 1];
+      const after = markdown[index + 2];
+      return before !== undefined && after !== undefined && /\w/.test(before) && /\w/.test(after) ? char : whole;
+    }
+    const escapedBefore = markdown.slice(0, index).endsWith(`\\${char}`);
+    const escapedAfter = markdown.slice(index + 2).startsWith(`\\${char}`);
+    return escapedBefore || escapedAfter ? whole : char;
+  });
+}
+
+// Remembers which literal mark (star or underscore) a run of italic or bold text was typed with, so writing it back out gives the same mark rather than the array's other default.
+const markState = createState("composerMark", { parse: (value: unknown) => (value === "star" || value === "underscore" ? value : null) });
+
+// Private-use markers a text node's content carries, right after import, to say which literal mark it was spelled with. Lexical's own delimiter scan only knows the array's one tag per format (star for bold, underscore for italic), so a star-spelled run of italic or an underscore-spelled run of bold is rewritten to the array's tag with one of these in front before that scan ever runs, and read back off, into state, once it has.
+const STAR_ITALIC_MARKER = "\uE000";
+const UNDERSCORE_BOLD_MARKER = "\uE001";
+
+// Rewrites a lone `*text*` or `__text__` span to the syntax the array's BOLD_STAR/ITALIC_UNDERSCORE already parse, carrying a marker in the content so the mark it was spelled with is not lost. Left alone: a run already inside `**...**` or `_..._`, one next to its own kind (so `**`/`___` keep meaning what they already do), one starting with whitespace, and anything the library would already read as a fence, a link destination or a line of code, none of which this pass ever sees since it runs before those are stripped out: it is a span of a single `*` or a doubled `_` with nothing of its own kind touching either side.
+function markPreservingSyntax(markdown: string): string {
+  return markdown
+    .replaceAll(/(?<!\*)\*(?!\*)([^*\s][^*]*?)\*(?!\*)/g, (_whole, content: string) => `_${STAR_ITALIC_MARKER}${content}_`)
+    .replaceAll(/(?<!_)__(?!_)([^_\s][^_]*?)__(?!_)/g, (_whole, content: string) => `**${UNDERSCORE_BOLD_MARKER}${content}**`);
+}
+
+// Reads the marker `markPreservingSyntax` left at the front of an imported run's content, drops it from the text, and remembers the mark it names, so export spells the run back the way it was typed.
+function $restoreMarkMemory(root: ElementNode) {
+  for (const node of root.getChildren()) {
+    if ($isTextNode(node)) {
+      const text = node.getTextContent();
+      if (text.startsWith(STAR_ITALIC_MARKER)) {
+        node.setTextContent(text.slice(STAR_ITALIC_MARKER.length));
+        $setState(node, markState, "star");
+      } else if (text.startsWith(UNDERSCORE_BOLD_MARKER)) {
+        node.setTextContent(text.slice(UNDERSCORE_BOLD_MARKER.length));
+        $setState(node, markState, "underscore");
+      }
+    } else if ($isElementNode(node)) {
+      $restoreMarkMemory(node);
+    }
+  }
+}
+
+// Reads Markdown into the editor the way every other call site here does, plus the marker pass above and below it, so a star-spelled italic or an underscore-spelled bold survives the round trip.
+function $fromMarkdown(markdown: string, transformersArg: Transformer[], node?: ElementNode, shouldPreserveNewLines?: boolean) {
+  $convertFromMarkdownString(markPreservingSyntax(markdown), transformersArg, node, shouldPreserveNewLines);
+  $restoreMarkMemory(node ?? $getRoot());
+}
+
+// `*text*` reads as italic like `_text_` does, but writes back out with the star it came in with, never the array's underscore default.
+const ITALIC_STAR_MARK: TextMatchTransformer = {
+  dependencies: [],
+  export: (node) => {
+    if (!$isTextNode(node) || $getState(node, markState) !== "star" || !node.hasFormat("italic") || node.hasFormat("bold")) return null;
+    return `*${escapeMarkText(node.getTextContent())}*`;
+  },
+  regExp: /(?!)/,
+  type: "text-match",
+};
+
+// `__text__` reads as bold like `**text**` does, but writes back out with the underscores it came in with, never the array's star default.
+const BOLD_UNDERSCORE_MARK: TextMatchTransformer = {
+  dependencies: [],
+  export: (node) => {
+    if (!$isTextNode(node) || $getState(node, markState) !== "underscore" || !node.hasFormat("bold") || node.hasFormat("italic")) return null;
+    return `__${escapeMarkText(node.getTextContent())}__`;
+  },
+  regExp: /(?!)/,
+  type: "text-match",
+};
 
 type SerializedEmojiNode = Spread<{ token: string; name: string; src: string }, SerializedLexicalNode>;
 
@@ -154,7 +248,7 @@ function $insertWithEmoji(selection: RangeSelection, text: string, catalogue: Em
   }
 }
 
-const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK];
+const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK, ITALIC_STAR_MARK, BOLD_UNDERSCORE_MARK];
 
 const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
 
@@ -310,7 +404,7 @@ function toggleLinkOfSelection(): void {
 
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
 const NODES = [ListNode, ListItemNode, QuoteNode, CodeNode, LinkNode, EmojiNode];
-const toMarkdown = (editor: LexicalEditor) => separateBlocks(editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", ""));
+const toMarkdown = (editor: LexicalEditor) => separateBlocks(unescapeSafeMarkText(editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", "")));
 
 // The editor's element answers as a textarea does, over the text without its marks, one line to each block, so Autocomplete finds a trigger at the caret and puts a pick in place of it.
 const $isLeaf = (node: ElementNode) => !node.getChildren().some((child) => $isElementNode(child) && !child.isInline());
@@ -594,7 +688,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     const putMarkdown = (text: string, start: number, end: number) => {
       const markdown = toMarkdown(editor);
       const [from, to] = [Math.min(Math.max(Math.min(start, end), 0), markdown.length), Math.min(Math.max(Math.max(start, end), 0), markdown.length)];
-      editor.update(() => $convertFromMarkdownString(markdown.slice(0, from) + text + markdown.slice(to), reading, undefined, true), { discrete: true });
+      editor.update(() => $fromMarkdown(markdown.slice(0, from) + text + markdown.slice(to), reading, undefined, true), { discrete: true });
       const at = textOffsetOf(editor, copy(), from + text.length);
       // Stryker disable next-line ObjectLiteral,BooleanLiteral: the caret is placed in the same task either way, so only when it is drawn differs
       editor.update(() => $selectText(at, at), { discrete: true });
@@ -709,7 +803,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     ];
     editor.update(
       () => {
-        $convertFromMarkdownString(held.current, reading, undefined, true);
+        $fromMarkdown(held.current, reading, undefined, true);
       },
       // Stryker disable next-line ObjectLiteral,ArrayDeclaration,StringLiteral,BooleanLiteral: the history keeps nothing for the update that fills an empty editor, so no test can tell its tag, and an update that waits a microtask instead of running at once shows the same content by the time a test or a person looks.
       { tag: [synced, "history-merge"], discrete: true },
@@ -759,7 +853,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     const focused = document.activeElement === rootRef.current;
     editor.update(
       () => {
-        $convertFromMarkdownString(value, readingRef.current, undefined, true);
+        $fromMarkdown(value, readingRef.current, undefined, true);
         // Stryker disable next-line ConditionalExpression: the conversion leaves the caret at the end already.
         if (focused) $getRoot().selectEnd();
       },
