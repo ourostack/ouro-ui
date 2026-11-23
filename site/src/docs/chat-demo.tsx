@@ -132,7 +132,7 @@ export default function ChatDemo(): JSX.Element {
   useEffect(() => stopReplies, []);
   // A laptop opens on a conversation and a phone on the list; the width is read after hydration.
   useEffect(() => {
-    if (window.matchMedia("(min-width: 768px)").matches) setOpenId("launch");
+    if (window.matchMedia("(min-width: 768px)").matches) queueMicrotask(() => setOpenId("launch"));
   }, []);
 
   // A phone shows one pane at a time, so hand focus to the pane that appears.
