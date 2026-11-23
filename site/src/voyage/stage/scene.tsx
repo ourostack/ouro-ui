@@ -26,6 +26,15 @@ export type SceneState = Primitives<{
 /** The small-step marker, once the first press of the depth lever has loaded it (stepping.ts). */
 let markStep: typeof import("./stepping").markStep | undefined;
 
+/**
+ * The state the picture showed before `state`, tracked synchronously on every render whether or not stepping.ts has
+ * loaded yet, so a press that lands while it is still loading is never dropped from the history markStep reads: without
+ * this, a press whose effect ran before the load resolved got no call at all, so stepping.ts's own notion of "before"
+ * could skip straight from undefined to whichever press happened to be the first one after the load, picking a small
+ * step or not depending on host load rather than on the actual state before it.
+ */
+let previousState: SceneState | undefined;
+
 /** A layer of the drawing in the glass's 480 units, over the water: an SVG of its own, so the compositor can move or fade it as a box. */
 function Layer({ className, children }: { className?: string; children: ReactNode }): JSX.Element {
   return (
@@ -117,7 +126,9 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
   const root = useRef<HTMLDivElement>(null);
   // A small step of the depth lever is drawn without fading (stepping.ts, loaded with the lever's first press).
   useLayoutEffect(() => {
-    if (markStep) markStep(root.current, state);
+    const before = previousState;
+    previousState = state;
+    if (markStep) markStep(root.current, before, state);
     else if (state.depth) void import("./stepping").then((module) => (markStep = module.markStep));
   }, [state]);
   // Speed changes the fish's playback rate, so they speed up from where they are instead of jumping.
