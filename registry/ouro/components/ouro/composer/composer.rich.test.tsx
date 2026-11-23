@@ -106,12 +106,70 @@ describe("Composer rich mode", () => {
     ["a space-flanked underscore inside a star-spelled italic run, escaped so it reads bare", "*wow _ cool*", "*wow \\_ cool*!"],
     ["adjacent tildes inside a star-spelled italic run, each escaped since it has a same-mark neighbor", "*note~~x end*", "*note\\~\\~x end*!"],
     ["an underscore-spelled bold run inside a word", "a__b__c", "a__b__c!"],
+    ["an underscore at the very start of a star-spelled italic run, with no character before it to flank, escaped", "*_a*", "*\\_a*!"],
   ])("round-trips %s unchanged: %s", async (_label, markdown, expected) => {
     const seen: string[] = [];
     const { editor } = await render(rich({ defaultValue: markdown, onValueChange: (value) => void seen.push(value) }));
     editor.focus();
     await userEvent.keyboard("{End}!");
     await expect.poll(() => seen.at(-1)).toBe(expected);
+  });
+
+  // Building a run's raw text this way, then round-tripping it out, puts an un-markdown-safe `_`/`~` in a star-spelled italic node without ever handing it back through the real importer or a live keystroke: either path reparses the text as Markdown and can read the character as a second mark's delimiter, which is exactly the ambiguity escapeMarkText's bare/escaped choice exists to settle on export, so the one way to pin the input is to set the node's content and state directly.
+  function starItalicState(text: string) {
+    return {
+      root: {
+        children: [
+          {
+            children: [{ detail: 0, format: 2, mode: "normal", style: "", text, type: "text", version: 1, $: { composerMark: "star" } }],
+            direction: null,
+            format: "",
+            indent: 0,
+            textFormat: 2,
+            textStyle: "",
+            type: "paragraph",
+            version: 1,
+          },
+        ],
+        direction: null,
+        format: "",
+        indent: 0,
+        type: "root",
+        version: 1,
+      },
+    };
+  }
+
+  it("keeps a star-spelled italic run's mark memory for a lone tilde with space on both sides and no same-mark neighbor to pair with", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(starItalicState("wow ~ cool"))));
+    await expect.poll(() => seen.at(-1)).toBe("*wow ~ cool*");
+  });
+
+  it("keeps a star-spelled italic run's mark memory for an underscore with a word character before it but a space after, escaped since only one side is word-flanked", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(starItalicState("a_ b"))));
+    await expect.poll(() => seen.at(-1)).toBe("*a\\_ b*");
+  });
+
+  it("keeps a star-spelled italic run's mark memory for an underscore with a space before it but a word character after, escaped since only one side is word-flanked", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(starItalicState("x _b"))));
+    await expect.poll(() => seen.at(-1)).toBe("*x \\_b*");
+  });
+
+  it("keeps a star-spelled italic run's mark memory for an underscore at the very end of the run, with no character after it to flank, escaped", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(starItalicState("a_"))));
+    await expect.poll(() => seen.at(-1)).toBe("*a\\_*");
   });
 
   it("falls back to the array's default spelling when an underscore-spelled bold run also turns italic", async () => {
