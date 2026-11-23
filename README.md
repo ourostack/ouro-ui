@@ -747,7 +747,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Dialog** — A dialog that presents itself for the screen: a centered dialog on wider screens and a bottom sheet you can drag away on phones (below 640px). [Docs](docs/Dialog.md)
 - **EditSheet** — Edits something in a form inside a dialog: the whole interaction, done right. [Docs](docs/EditSheet.md)
 - **HoverCard** — A preview of where a link goes, shown when a mouse rests on the link or the keyboard focuses it: a cook's profile, a recipe's summary. [Docs](docs/HoverCard.md)
-- **Popover** — A small non-modal panel beside its trigger, for a short form or a few choices: a share link, filters, a quick edit. [Docs](docs/Popover.md)
+- **Popover** — A small panel beside its trigger, for a short form or a few choices: a share link, filters, a quick edit. [Docs](docs/Popover.md)
 - **Sheet** — A panel that slides in from an edge and is dragged back to dismiss: the mobile form of a dialog. [Docs](docs/Sheet.md)
 - **Tooltip** — A short label that appears beside its trigger on hover and keyboard focus, for an icon button's purpose or a control's shortcut. [Docs](docs/Tooltip.md)
 

@@ -2,7 +2,7 @@
 
 # Popover
 
-A small non-modal panel beside its trigger, for a short form or a few choices: a share link, filters, a quick edit. It is named by its title, closes on Escape and outside presses, returns focus to the trigger, and flips to the other side when there is no room. With `presentation="auto"` it is a bottom sheet on phones (below 640px).
+A small panel beside its trigger, for a short form or a few choices: a share link, filters, a quick edit. It is named by its title, closes on Escape and outside presses, returns focus to the trigger, and flips to the other side when there is no room. While it is open it holds the page, as a menu does: a click outside only closes it, and never also presses what is under it (`modal={false}` lets the click through). With `presentation="auto"` it is a bottom sheet on phones (below 640px).
 
 ```tsx
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
@@ -41,6 +41,7 @@ The props the modes share. Type: `PopoverProps`.
 | `closeLabel` | `string` | `"Close"` | The label of the close button, the last control in the popover. It is hidden until it has keyboard focus, so screen-reader users on phones (who have no Escape key) can always close the popover. |
 | `description` | `ReactNode` |  | A short line under the title, read out when the popover opens. |
 | `hideTitle` | `boolean` |  | Hides the title visually. It still names the popover for screen readers. |
+| `modal` | `boolean` | `true` | Whether the open popover holds the page: it locks the page's scroll, and a click outside only closes it, as a right-click there does. `modal={false}` leaves the page scrolling and its controls live, so a click outside closes the popover and reaches what is under it too. The sheet always holds the page. |
 | `presentation` | `"popover" \| "auto" \| "sheet"` | `"popover"` | `popover` stays beside the trigger at every width. `auto` is a popover from the `sm` breakpoint (640px) up and a bottom sheet below it, for a popover with controls that would be fiddly on a phone. `sheet` is always a bottom sheet. The server renders the popover form and corrects it on hydration. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the popover sits on; it flips when there is no room. |
 | `title` (required) | `string` |  | Names the popover for screen readers and shows at its top. Always required; hide it with `hideTitle`. |
@@ -55,7 +56,7 @@ A controlled Popover: you own `open`, update it in `onOpenChange`, and say what 
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `anchor` (required) | `RefObject<HTMLElement \| null>` | The element the popover points at, usually the button that toggles it: `anchor={buttonRef}`. A press on it never counts as an outside press, so its own `onClick` can toggle `open`. |
+| `anchor` (required) | `RefObject<HTMLElement \| null>` | The element the popover points at, usually the button that toggles it: `anchor={buttonRef}`. While the popover holds the page, a press on it only closes the popover, as any press outside does. With `modal={false}` a press on it never counts as an outside press, so its own `onClick` can toggle `open`. |
 | `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user dismisses the popover (Escape, outside press, the close button). |
 | `open` (required) | `boolean` | Whether the popover is open. After a touch or pen tap the popover focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. |
 
