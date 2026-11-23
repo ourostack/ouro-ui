@@ -12,6 +12,12 @@ on:
         description: "How many times each shard repeats the dashboard test"
         required: false
         default: "10"
+  # GitHub only lists a workflow_dispatch workflow once its file lands on the default branch, so this
+  # branch-scoped push trigger is the one way to fire the first run of a probe that stays on its own
+  # branch. It fires for no ref other than this exact probe branch, and comes out before the branch closes.
+  push:
+    branches:
+      - probe/sr-dashboard-cursor
 permissions:
   contents: read
 jobs:
