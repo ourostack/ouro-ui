@@ -767,6 +767,7 @@ export function Message(props: MessageProps): JSX.Element {
   }, [outcome, failedLabel, sentLabel]);
   const showing = isPending && shown;
   const marker = isFailed ? failedId : showing ? pendingId : undefined;
+  // Stryker disable next-line StringLiteral: `named` is read only behind `rest["aria-labelledby"] ??`, so an app's own aria-labelledby wins whatever this key reads.
   const named = rest["aria-labelledby"] === undefined && !rest["aria-label"];
   const labelledBy = rest["aria-labelledby"] ?? (named ? `${nameId} ${timeId}` : undefined);
   // The name span of a bubbled message holds its time already.
