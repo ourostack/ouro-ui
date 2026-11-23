@@ -77,11 +77,11 @@ describe("Porthole floating", () => {
     const size = pill.getBoundingClientRect();
     await commands.emulateMedia({ contrast: "more" });
     try {
-      // The pill transitions its background colour, so wait for the new rule's colour to settle.
+      // The pill transitions its background and border colour, so wait for each new rule's colour to settle.
       await expect.poll(() => getComputedStyle(pill).backgroundColor).toBe(computedBackground("var(--card)"));
+      await expect.poll(() => getComputedStyle(pill).borderTopColor).toBe(computedBackground("var(--border)"));
       const style = getComputedStyle(pill);
       expect(style.backdropFilter).toBe("none");
-      expect(style.borderTopColor).toBe(computedBackground("var(--border)"));
       const now = pill.getBoundingClientRect();
       expect([now.width, now.height]).toEqual([size.width, size.height]);
     } finally {

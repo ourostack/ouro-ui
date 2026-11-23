@@ -9,7 +9,7 @@
     "transition-[height]": "an in-flow growth: the box's height moves the messages above and below it as a long message makes it taller, which a transform would overlap; it is off with reduced motion"
   },
   "registry/ouro/components/ouro/porthole/porthole.tsx": {
-    "transition-[width,background-color,border-color]": "an in-flow pill: its width eases as its words change, moving what sits beside it in a header or toolbar, which a transform would overlap or leave a gap beside; it is off with reduced motion"
+    "transition-[width,background-color,border-color,box-shadow]": "an in-flow pill: its width eases as its words change, moving what sits beside it in a header or toolbar, which a transform would overlap or leave a gap beside; box-shadow eases in with the floating look's soft shadow, paint only, nothing it moves; it is off with reduced motion"
   },
   "registry/ouro/components/ouro/segmented-control/segmented-control-styles.ts": {
     "[transition:inset-inline-start_var(--ouro-duration-base)_var(--ouro-ease-in-out),inset-inline-end_var(--ouro-duration-base)_var(--ouro-ease-in-out),opacity_var(--ouro-duration-fast)_ease]": "the thumb takes the pressed segment's edges by anchor positioning, so it slides by its inset, which a transform cannot follow; it is absolutely placed, so nothing in flow moves, and it is off with reduced motion"
