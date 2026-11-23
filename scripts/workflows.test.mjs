@@ -1569,7 +1569,7 @@ test("a pull request's run reports tree-proof, named for its tree, only when its
   assert.equal(block.match(/^ {4}name: (.+)$/m)?.[1], `${PREFIX}\${{ needs.plan.outputs.tree }}`);
   // It waits on what ci-budget waits on but the jobs that run only off a pull request and fresh-main, which tests a newer main.
   const needsOf = (id) => jobs[id].match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
-  assert.deepEqual(needsOf("tree-proof").sort(), needsOf("ci-budget").filter((id) => !["fresh-main", "install-github", "install-latest"].includes(id)).sort());
+  assert.deepEqual(needsOf("tree-proof").sort(), needsOf("ci-budget").filter((id) => !["fresh-main", "install-github", "install-latest", "rerun-guard"].includes(id)).sort());
   const expression = block.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)[1];
   // Every need is checked by name: a job's if: counts the jobs above its needs in needs.*.result too, so a skipped
   // fallback shard upstream would make !contains(needs.*.result, 'skipped') false on every run.
@@ -2393,7 +2393,7 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   // job too and stops once it has finished (scripts/ci-fail-fast.mjs).
   const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget" && id !== "tree-proof").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
   // tree-proof, the proof a push to main reads, runs beside it on what it waits on.
-  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && id !== "fail-fast" && id !== "tree-proof" && id !== "rerun-guard" && !needed.has(id));
+  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && id !== "fail-fast" && id !== "tree-proof" && !needed.has(id));
   assert.deepEqual([...needs].sort(), [...new Set([...ends, "plan", "ci"])].sort());
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
@@ -2521,7 +2521,7 @@ test("a pull request calls only the read-only lane: ci.yml's job grants contents
   // #2469 when a push's rerun has no cause on record (scripts/rerun-guard.mjs).
   assert.equal(workflow("ci.yml").match(/issues: write/g)?.length, 1);
   assert.match(ci["rerun-guard"], /^ {4}permissions:\n {6}contents: read\n {6}issues: write/m);
-  assert.match(ci["rerun-guard"], /^ {4}if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && github\.run_attempt > 1 \}\}$/m);
+  assert.match(ci["rerun-guard"], /^ {4}if: \$\{\{ !cancelled\(\) && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && github\.run_attempt > 1 \}\}$/m);
 });
 
 test("the screen-reader lane's report upload is tried twice and never decides the lane's verdict (#2254)", () => {

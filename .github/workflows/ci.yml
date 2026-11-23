@@ -376,7 +376,8 @@ jobs:
     # job that reads the tree, which this one never does). It never fails the run (the step continues on error
     # besides, and the script's own exit code is always 0) and joins no required check yet.
     name: Rerun without a recorded cause?
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt > 1 }}
+    needs: [plan]
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt > 1 }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -3926,7 +3927,7 @@ jobs:
     # runs, and the runner time the run took from the shared pool. A required check (ruleset
     # 24881709) that fails only a pull request: on a merge group or a push it only warns, so it
     # never bounces a queue entry.
-    needs: [plan, ci, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-current, install-github]
+    needs: [plan, ci, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-current, install-github, rerun-guard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
