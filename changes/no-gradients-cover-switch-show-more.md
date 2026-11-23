@@ -1,0 +1,1 @@
+- Changed: Cover's fill, Switch's track and ShowMore's fold draw no gradient: Cover is one solid fill from `--ouro-cover-from` (`--ouro-cover-to` is no longer read), Switch's track is one tint, and a folded ShowMore ends on a hard edge instead of fading out.

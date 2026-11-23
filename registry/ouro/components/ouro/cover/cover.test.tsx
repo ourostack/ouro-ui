@@ -87,13 +87,14 @@ describe("Cover", () => {
     expect(blank!.textContent).toBe("");
   });
 
-  it("takes the wash and the letter's color from the theme's cover tokens", async () => {
+  it("takes the fill and the letter's color from the theme's cover tokens", async () => {
     const { cover } = await render(
-      <div style={{ ["--ouro-cover-from" as string]: "rgb(1, 2, 3)", ["--ouro-cover-to" as string]: "rgb(4, 5, 6)", ["--ouro-cover-ink" as string]: "rgb(7, 8, 9)" }}>
+      <div style={{ ["--ouro-cover-from" as string]: "rgb(1, 2, 3)", ["--ouro-cover-ink" as string]: "rgb(7, 8, 9)" }}>
         <Cover title="Rice" />
       </div>,
     );
-    expect(getComputedStyle(cover).backgroundImage).toBe("linear-gradient(135deg, rgb(1, 2, 3), rgb(4, 5, 6))");
+    expect(getComputedStyle(cover).backgroundColor).toBe("rgb(1, 2, 3)");
+    expect(getComputedStyle(cover).backgroundImage).toBe("none");
     expect(getComputedStyle(cover.querySelector("span")!).color).toBe("rgb(7, 8, 9)");
   });
 
