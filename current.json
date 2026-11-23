@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-23T05:56:25.422Z",
+  "generatedAt": "2026-11-23T06:45:01.647Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -100,14 +100,14 @@
     },
     {
       "repo": "ourostack/flow-review",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 0809174",
+          "current": "commit 5e208cf",
           "latest": "v1.3.465",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
@@ -117,10 +117,7 @@
           "behind": false
         }
       ],
-      "pr": {
-        "number": 216,
-        "url": "https://github.com/ourostack/flow-review/pull/216"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/friends",
@@ -292,14 +289,14 @@
     },
     {
       "repo": "ourostack/ouroboros",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.459",
+          "current": "v1.3.465",
           "latest": "v1.3.465",
-          "behind": true
+          "behind": false
         },
         {
           "file": "tools/ouro-actions/dist-manifest.json",
@@ -311,15 +308,12 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 6fd00e5",
+          "current": "commit 5e208cf",
           "latest": "v1.3.465",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1703,
-        "url": "https://github.com/ourostack/ouroboros/pull/1703"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouroboros-website",
