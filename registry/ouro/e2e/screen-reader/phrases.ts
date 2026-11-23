@@ -288,6 +288,18 @@ export function withTimeline(message: string, timeline: string): string {
   return `${message}${TIMELINE_SEPARATOR}${timeline}`;
 }
 
+/**
+ * The message `watchVoiceOver` throws (screen-reader.ts) when `readyForAction` could not get
+ * VoiceOver ready: `why` it gave up and `read` (its last phrase), with the VO cursor each of the
+ * three tries read right before it said MARK and the page's own accessibility tree at the moment it
+ * gave up, so a sighting of ourostack/ouro-ui#3156 carries what it needs without a repeat run.
+ */
+export function describeReadyFailure({ why, read, cursorTries, axTree }: { why: string; read: string; cursorTries: readonly string[]; axTree: string | null }): string {
+  const cursor = cursorTries.length > 0 ? cursorTries.map((item, index) => `try ${index + 1}: "${item}"`).join(" | ") : "not read";
+  const tree = axTree ?? "not captured";
+  return `[sr] infrastructure: VoiceOver's speech could not be read: ${why}; read: ${read}; VO cursor before each try: ${cursor}; accessibility tree: ${tree}`;
+}
+
 /** A focus move the page recorded (screen-reader.ts, `recordFocus`). */
 export interface FocusMove {
   /** `Date.now()` in the page: the same clock as the watcher's stamps, both on this machine. */

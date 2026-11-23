@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, CURRENT_PAGE, firstMatch, HINT_ONLY_PREFIX, hintOnlyMiss, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saidInMiss, saysValue, speechTimeline, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints, withTimeline } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, CURRENT_PAGE, describeReadyFailure, firstMatch, HINT_ONLY_PREFIX, hintOnlyMiss, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saidInMiss, saysValue, speechTimeline, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints, withTimeline } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -259,6 +259,25 @@ test("a watch that cannot get VoiceOver ready says why, and not that it was stop
   assert.equal(await readyForAction(broken.state, broken.say), "osascript ended (exit 1): execution error (-1743)");
   const refused = fakeWatch();
   assert.equal(await readyForAction(refused.state, async () => { throw new Error("Not authorized"); }), `VoiceOver did not say "${MARK}": Not authorized`);
+});
+
+// ourostack/ouro-ui#3156: the dashboard pattern's "Speech check" went unread with only "read: main" in
+// the log, so the next sighting needs the VO cursor each try read and the page's own accessibility
+// tree at the point it gave up, both folded into the one message screen-reader.ts throws.
+test("an infrastructure failure's message carries the VO cursor each try read and the page's accessibility tree", () => {
+  const message = describeReadyFailure({
+    why: `"${MARK}" was never VoiceOver's last phrase in 3 tries`,
+    read: '"main"',
+    cursorTries: ['main, landmark', 'main, landmark', 'main, landmark'],
+    axTree: "- banner\n- main",
+  });
+  assert.match(message, /^\[sr\] infrastructure: VoiceOver's speech could not be read: "Speech check" was never VoiceOver's last phrase in 3 tries; read: "main"/);
+  assert.match(message, /VO cursor before each try: try 1: "main, landmark" \| try 2: "main, landmark" \| try 3: "main, landmark"/);
+  assert.match(message, /accessibility tree: - banner\n- main/);
+  // No tries read (VoiceOver said nothing at all) and no tree (the page fixture never gave one): both say so plainly.
+  const bare = describeReadyFailure({ why: "VoiceOver said nothing within 10 s", read: "nothing", cursorTries: [], axTree: null });
+  assert.match(bare, /VO cursor before each try: not read/);
+  assert.match(bare, /accessibility tree: not captured/);
 });
 
 test("only a phrase that never came lets the Checkbox and Checklist steps ask VoiceOver to describe the focus (#118)", () => {

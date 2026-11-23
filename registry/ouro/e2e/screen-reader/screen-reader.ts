@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import { navigateWithRetry, waitUntil } from "./navigation";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
 import { installVoiceOverStartRetry, voiceOverRunning } from "./start-retry";
-import { firstMatch, type FocusMove, HINT_ONLY_PREFIX, hintOnlyMiss, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechTimeline, speechVerdict, spokenAfter, withTimeline, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
+import { describeReadyFailure, firstMatch, type FocusMove, HINT_ONLY_PREFIX, hintOnlyMiss, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechTimeline, speechVerdict, spokenAfter, withTimeline, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -206,15 +206,44 @@ interface VoiceOverWatch {
 }
 
 /**
+ * VoiceOver's own cursor (where VoiceOver is pointed, which can differ from keyboard focus), read as
+ * `name | role description | value`, each wrapped in its own `try` so one missing property does not
+ * lose the rest (as the watcher's own script reads `last phrase`). Used only once a check has failed
+ * (ourostack/ouro-ui#3156): reading it on every success would add an osascript round trip nothing needs.
+ */
+async function readVOCursor(): Promise<string> {
+  const script = `set cursorName to ""
+set cursorRole to ""
+set cursorValue to ""
+tell application "VoiceOver"
+  try
+    set cursorName to name of (vo cursor)
+  end try
+  try
+    set cursorRole to role description of (vo cursor)
+  end try
+  try
+    set cursorValue to value of (vo cursor)
+  end try
+end tell
+return cursorName & " | " & cursorRole & " | " & cursorValue`;
+  return run("/usr/bin/osascript", ["-e", script]).then(
+    (result) => result.stdout.trim(),
+    (error: unknown) => `<could not read: ${error instanceof Error ? error.message : String(error)}>`,
+  );
+}
+
+/**
  * Watches VoiceOver's last phrase, the only speech it lets AppleScript read, every 20 ms from one
  * osascript process (as Guidepup runs its own), until `stop()` ends it: its own limit,
  * WATCH_LIMIT_SECONDS, is longer than a whole test, so no check outlives it. It resolves once
  * VoiceOver is ready for the action (phrases.ts, `readyForAction`): quiet, then MARK as its last
  * phrase. What VoiceOver says after that is new, even the same words it said before. Guidepup's `capture` reads the last phrase again only after waiting
  * as long as it takes to say, so after a long hint it missed the short phrase that named the
- * focused control and read the next hint instead.
+ * focused control and read the next hint instead. `page`, when given, is read for its accessibility
+ * tree if VoiceOver never gets ready (ourostack/ouro-ui#3156): the diagnostic a failure's message carries.
  */
-async function watchVoiceOver(): Promise<VoiceOverWatch> {
+async function watchVoiceOver(page?: Page): Promise<VoiceOverWatch> {
   const script = `set endAt to (current date) + ${WATCH_LIMIT_SECONDS}
 set previousText to missing value
 repeat while (current date) < endAt
@@ -281,14 +310,19 @@ end repeat`;
       await exited;
     },
   };
+  // VoiceOver's cursor read right before each try says MARK: a failure's message carries all three, so a stale cursor
+  // (on "main", say, the whole three tries) shows up without a repeat run (ourostack/ouro-ui#3156).
+  const cursorTries: string[] = [];
   const why = await readyForAction({ records, stamps, now: Date.now, ended: () => ended, next }, async () => {
+    cursorTries.push(await readVOCursor());
     await run("/usr/bin/osascript", ["-e", `tell application "VoiceOver" to output "${MARK}"`]);
   });
   if (why === null) return watch;
   // Why, before stopping the watcher: stopping it ends osascript, which says nothing about why.
   const read = records.map((record) => `"${record.trim()}"`).join(" | ") || "nothing";
+  const axTree = await (page?.ariaSnapshot({ timeout: 5_000 }).catch((error: unknown) => `<could not capture: ${error instanceof Error ? error.message : String(error)}>`) ?? Promise.resolve(null));
   await watch.stop();
-  throw new Error(`[sr] infrastructure: VoiceOver's speech could not be read: ${why}; read: ${read}`);
+  throw new Error(describeReadyFailure({ why, read, cursorTries, axTree }));
 }
 
 /**
@@ -397,7 +431,7 @@ export async function describesContainer(sr: VoiceOverPlaywright, matches: (phra
 /** `heard`, on VoiceOver: polls nothing itself, but wakes each time the watch reads a new phrase. */
 async function heardFromVoiceOver(sr: VoiceOverPlaywright, action: () => Promise<unknown>, matches: (phrase: string) => boolean, what: string, timeout: number): Promise<string> {
   const began = Date.now();
-  const watch = await watchVoiceOver();
+  const watch = await watchVoiceOver(pages.get(sr));
   try {
     const actionStart = Date.now();
     await action();
