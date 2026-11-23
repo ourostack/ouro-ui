@@ -88,6 +88,10 @@ describe("the chat app page", () => {
       expect(drawn("Conversations appear here")).toBe(false);
       await page.viewport(1280, 800);
       await expect.poll(() => drawn("Conversations appear here")).toBe(true);
+      const line = [...document.querySelectorAll("body *")].findLast((el) => el.textContent === "Conversations appear here" && el.getClientRects().length > 0)!;
+      const column = line.closest("[data-ouro=conversation-list]")!.parentElement!.getBoundingClientRect();
+      const text = line.getBoundingClientRect();
+      expect(Math.abs(text.top - column.top - (column.bottom - text.bottom))).toBeLessThan(4);
       await page.getByRole("button", { name: "Start a conversation" }).click();
       await expect.element(page.getByRole("list", { name: "Conversations" })).toBeVisible();
     } finally {
