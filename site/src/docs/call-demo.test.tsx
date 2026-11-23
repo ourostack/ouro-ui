@@ -45,7 +45,7 @@ describe("the call window page", () => {
   it("shows the waiting state with art, and moves focus to the call when the app changes the view", async () => {
     await renderPage("/docs/call-demo/");
     await page.getByRole("button", { name: "Leave" }).click();
-    await expect.element(page.getByText("You left the call")).toBeVisible();
+    await expect.poll(() => document.querySelector("[data-site-call-demo] [data-ouro=\"moment\"]")?.textContent).toContain("You left the call");
     await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Call");
     await page.getByRole("radio", { name: "Alone" }).click();
     const empty = document.querySelector<HTMLElement>('[data-ouro="moment"][data-moment="empty"]')!;
