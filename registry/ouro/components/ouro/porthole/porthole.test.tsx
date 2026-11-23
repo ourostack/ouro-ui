@@ -155,9 +155,14 @@ describe("Porthole", () => {
       expect(read()).toEqual(expected);
       view.host.style.removeProperty("--spacing");
     };
-    const width = (selector: string) => view.host.querySelector(selector)!.getBoundingClientRect().width;
+    // clientWidth is the layout box (defined on every Element, SVG included), unaffected by the
+    // spinner's CSS rotation transform; getBoundingClientRect().width widens mid-rotation and is
+    // a flake by animation phase.
+    const width = (selector: string) => view.host.querySelector(selector)!.clientWidth;
     both([16], () => [width('[data-porthole-part="progress"]')]);
     await view.rerender(base(fixed([item("sync", "working")])));
+    // The spinner rotates; force it mid-turn so the read stays fixed whatever phase CI catches it at.
+    view.host.querySelector('[data-porthole-part="progress"]')!.getAnimations()[0]!.currentTime = 150;
     both([16], () => [width('[data-porthole-part="progress"]')]);
     await view.rerender(base(fixed([item("current", "rest")])));
     both([8], () => [width('[data-porthole-part="light"]')]);

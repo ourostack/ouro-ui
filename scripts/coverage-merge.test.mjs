@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { mergeCoverage, thresholds } from "./coverage-merge.mjs";
+import { doubledFiles, mergeCoverage, thresholds } from "./coverage-merge.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -46,6 +46,27 @@ test("with labels, a shard whose map lacks a short file is left out of its by-sh
   assert.deepEqual(merged.short, [{ file: "/a.ts", metrics: { lines: 50, statements: 50, branches: 50 }, lines: ["2"], by: [{ shard: "touches-a", metrics: { lines: 50, statements: 50, branches: 50 } }] }]);
 });
 
+/** A file instrumented twice in the same shard run (issue #3082): the second copy's locations don't match the first's, so every map holds the original entries plus a disjoint second set under new keys. */
+const doubled = (file) => ({
+  [file]: {
+    path: file,
+    statementMap: { 0: { start: { line: 1, column: 0 }, end: { line: 1, column: 9 } }, 1: { start: { line: 2, column: 0 }, end: { line: 2, column: 9 } }, 2: { start: { line: 1, column: 0 }, end: { line: 1, column: 9 } }, 3: { start: { line: 2, column: 0 }, end: { line: 2, column: 9 } } },
+    fnMap: { 0: { name: "f", decl: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } }, loc: { start: { line: 1, column: 0 }, end: { line: 2, column: 9 } }, line: 1 }, 1: { name: "f", decl: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } }, loc: { start: { line: 1, column: 0 }, end: { line: 2, column: 9 } }, line: 1 } },
+    branchMap: {},
+    s: { 0: 1, 1: 0, 2: 0, 3: 0 },
+    f: { 0: 1, 1: 0 },
+    b: {},
+  },
+});
+
+test("doubledFiles finds a file whose own map holds a source location under two different keys", () => {
+  assert.deepEqual(doubledFiles(doubled("/a.ts")), [{ file: "/a.ts", duplicates: 3 }]);
+});
+
+test("doubledFiles leaves a file alone when every location is unique", () => {
+  assert.deepEqual(doubledFiles(map("/a.ts")), []);
+});
+
 test("the merge holds the shards to the thresholds vitest.config.ts holds an unsharded run to", async () => {
   const config = (await import("../vitest.config.ts")).default;
   assert.deepEqual(config.test.coverage.thresholds, thresholds);
@@ -71,4 +92,20 @@ test("the command fails when a shard's coverage is missing, and when the merge i
   assert.match(short.stdout, /^\/c\.ts: lines 50%, statements 50%; lines no test reached: 2; by shard: coverage-browser-3 \(lines 50%, statements 50%\)$/m);
   assert.match(short.stdout, /::error::Coverage is short of 100% in 1 file/);
   assert.equal(run().status, 2);
+});
+
+test("the command fails loudly, naming the shard, when a shard's own file was instrumented twice", () => {
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(join(root, ".tmp/coverage-merge-"));
+  const write = (shard, coverage) => {
+    mkdirSync(join(dir, `coverage-browser-${shard}`), { recursive: true });
+    writeFileSync(join(dir, `coverage-browser-${shard}/coverage-final.json`), JSON.stringify(coverage));
+  };
+  write(6, map("/people-cache.ts", { s: [1, 1], f: [1], b: [1, 1] }));
+  write(15, doubled("/people-cache.ts"));
+  const run = (...args) => spawnSync(process.execPath, [join(root, "scripts/coverage-merge.mjs"), dir, ...args], { encoding: "utf8" });
+  const result = run("--shards", "2");
+  assert.equal(result.status, 4);
+  assert.match(result.stderr, /::error::coverage-browser-15's own coverage-final\.json instruments \/people-cache\.ts twice \(3 duplicate locations\): merging it would make a fully covered file look short\. Rerun that shard instead of chasing the file\./);
+  assert.equal(result.stdout, "", "a doubled shard stops before reporting a misleading merged percentage");
 });

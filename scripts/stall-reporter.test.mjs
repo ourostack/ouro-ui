@@ -638,6 +638,20 @@ test("StallReporter reads each page once at warn and once at fail, then exits 1 
   assert.equal(text.split("\n").filter((line) => line === "[ouro-ui] Vitest page ouro-chromium (chromium): fonts loaded, visible, focused, frames arrive, /dialog").length, 2);
 });
 
+test("StallReporter fails at the warn check, not failAfter, once a page's own read confirms it did not answer", async () => {
+  const page = { url: () => "http://localhost:63315/slow", evaluate: () => new Promise(() => {}) };
+  const { text, lookups, exits } = await stallRun({
+    // failAfter never arrives in the test's 5 s budget: a fail here can only come from the warn check's own evidence.
+    failAfter: 1e9,
+    diagnosticMs: 3_000,
+    pages: () => [{ label: "ouro-touch (chromium)", page }],
+  });
+  assert.equal(lookups, 1);
+  assert.deepEqual(exits, [1]);
+  assert.match(text, /\[ouro-ui\] Vitest page ouro-touch \(chromium\): did not answer in 2 s, \/slow/);
+  assert.match(text, /a page did not answer at the warn check, so failing now instead of waiting the rest of/);
+});
+
 test("StallReporter still exits 1 at fail when the page lookup hangs, and says the lookup did not finish", async () => {
   const { text, exits } = await stallRun({ failAfter: 30, diagnosticMs: 20, pages: () => new Promise(() => {}) });
   assert.deepEqual(exits, [1]);

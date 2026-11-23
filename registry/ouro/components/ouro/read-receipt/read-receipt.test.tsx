@@ -19,7 +19,11 @@ async function render(node: ReactNode) {
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(node));
-  return { host, receipt: host.querySelector<HTMLElement>('[data-ouro="read-receipt"]') };
+  return {
+    host,
+    receipt: host.querySelector<HTMLElement>('[data-ouro="read-receipt"]'),
+    rerender: (next: ReactNode) => act(async () => root.render(next)),
+  };
 }
 
 const crew = [{ name: "Captain Nemo" }, { name: "Professor Aronnax" }, { name: "Conseil" }, { name: "ned land" }, { name: "The squid" }];
@@ -99,13 +103,33 @@ describe("ReadReceipt", () => {
     expect(receipt.getBoundingClientRect().right).toBeCloseTo(footer.getBoundingClientRect().right, 0);
   });
 
-  it("renders nothing when nobody has seen it", async () => {
+  it("holds the faces' height with no faces and no words when nobody has seen it", async () => {
     const { host } = await render(
       <Message role="user" name="You" footer={<ReadReceipt readers={[]} />}>
         On my way.
       </Message>,
     );
-    expect(host.querySelector('[data-ouro="read-receipt"]')).toBeNull();
+    const receipt = host.querySelector<HTMLElement>('[data-ouro="read-receipt"]')!;
+    expect(receipt.getBoundingClientRect().height).toBe(16);
+    expect(receipt.getAttribute("aria-hidden")).toBe("true");
+    expect(receipt.textContent).toBe("");
+    expect(receipt.querySelector('[data-ouro="avatar"]')).toBeNull();
+  });
+
+  it("keeps the message list still when a reader arrives", async () => {
+    const { host, rerender } = await render(
+      <Message role="user" name="You" footer={<ReadReceipt readers={[]} />}>
+        On my way.
+      </Message>,
+    );
+    const message = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+    const before = message.getBoundingClientRect().height;
+    await rerender(
+      <Message role="user" name="You" footer={<ReadReceipt readers={crew.slice(0, 1)} />}>
+        On my way.
+      </Message>,
+    );
+    expect(message.getBoundingClientRect().height).toBe(before);
   });
 
   it("renders to a string with its words", () => {

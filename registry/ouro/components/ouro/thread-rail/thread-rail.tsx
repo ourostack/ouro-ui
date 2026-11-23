@@ -102,6 +102,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
   const headingId = useId();
   const railRef = useRef<HTMLElement>(null);
   const opener = useRef<HTMLElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const handoff = useFocusHandoff<HTMLElement>();
   const rail = useMergedRef<HTMLElement>(railRef, handoff);
 
@@ -151,12 +152,22 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
     onClose();
   }
 
+  // The close button's tooltip names Escape as its shortcut, so it must not take the key: closing
+  // here, before the tooltip sees it, makes the first press close the rail.
+  function onKeyDownCapture(event: KeyboardEvent<HTMLElement>) {
+    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented || event.target !== closeRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onClose();
+  }
+
   return (
     <aside
       ref={rail}
       data-ouro="thread-rail"
       aria-labelledby={headingId}
       tabIndex={-1}
+      onKeyDownCapture={onKeyDownCapture}
       onKeyDown={onKeyDown}
       className={cn("flex h-full min-h-0 flex-col border-s border-border bg-background outline-none", className)}
     >
@@ -170,6 +181,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
         </div>
         <Tooltip content={<span className="inline-flex items-center gap-2">{closeLabel}<Kbd keys={["escape"]} /></span>}>
           <Button
+            ref={closeRef}
             data-ouro-control="thread-rail"
             data-ouro-part="close"
             variant="plain"

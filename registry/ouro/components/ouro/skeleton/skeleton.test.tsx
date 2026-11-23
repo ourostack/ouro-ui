@@ -32,6 +32,22 @@ function animationPhase(el: Element): number {
   return Number(effect.getComputedTiming().localTime) - Number(effect.getTiming().delay);
 }
 
+/**
+ * A late placeholder computes its delay from a live clock read in a layout effect, but a
+ * busy host can hold the document's own animation timeline at an older tick until the next
+ * paint, so the two reads land that much apart even though both track the same wave from
+ * then on. A run with the main thread held for 80ms before the second mount read back a gap
+ * of about 80ms; this bound gives a loaded runner room past the single CI miss this guards
+ * (177ms) while staying a small slice of a breath (2400ms), so a real desync still fails it.
+ */
+const phaseGapMs = 500;
+
+/** How far apart two phases are on the wave's circle: a phase a hair under one whole breath (2400ms) away is close, not far, so this takes the shorter way around. */
+function phaseGap(a: number, b: number): number {
+  const d = Math.abs(a - b) % breathMs;
+  return Math.min(d, breathMs - d);
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -252,16 +268,28 @@ describe("Skeleton", () => {
     const root = roots.at(-1)!;
     await expect.poll(() => phase(first)).toBeGreaterThan(1300);
     const late = await render(<Skeleton />);
-    // Both are read in one task, so they share a frame's time.
+    // Both are read in one task, so they share close to a frame's time.
     const [a, b] = [phase(first), phase(late)];
-    expect(Math.abs(a - b)).toBeLessThan(150);
+    expect(phaseGap(a, b)).toBeLessThan(phaseGapMs);
     // A remount (a new key) while the others breathe keeps the phase.
     await act(async () => root.render(<Skeleton key="again" />));
     const again = mounted.at(-2)!.querySelector<HTMLElement>('[data-ouro="skeleton"]')!;
-    expect(Math.abs(phase(again) - phase(late))).toBeLessThan(150);
+    expect(phaseGap(phase(again), phase(late))).toBeLessThan(phaseGapMs);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(late).animationName).toBe("none");
     expect(late.getAnimations()).toEqual([]);
+  });
+
+  it("joins the shared phase past a host that holds the main thread before the mount", async () => {
+    const phase = animationPhase;
+    const first = await render(<Skeleton />);
+    await expect.poll(() => phase(first)).toBeGreaterThan(1300);
+    // A synchronous hold stands in for a loaded host that delays a paint before this mount,
+    // the same gap the bound above is sized for.
+    const holdUntil = performance.now() + 200;
+    while (performance.now() < holdUntil) { /* holds the main thread, no yield */ }
+    const late = await render(<Skeleton />);
+    expect(phaseGap(phase(first), phase(late))).toBeLessThan(phaseGapMs);
   });
 
   it("places a placeholder in the wave: a new wave after a quiet gap of more than a second, else the running one", () => {
@@ -271,6 +299,14 @@ describe("Skeleton", () => {
     expect(joinWave(5000, 1, 0, 4000).delay).toBe("0ms");
     expect(joinWave(5000, 1, 0, 3999).delay).toBe("-1ms");
     expect(joinWave(9000, 2, 0, 1000).delay).toBe(`${-((8000 - stillMs) % breathMs)}ms`);
+  });
+
+  it("measures a phase gap the short way around the circle, so a near-whole-breath difference reads as close", () => {
+    // 5 and 2395 sit 10ms apart going the other way around a 2400ms breath, not 2390ms apart.
+    expect(phaseGap(5, 2395)).toBe(10);
+    expect(phaseGap(2395, 5)).toBe(10);
+    expect(phaseGap(100, 100)).toBe(0);
+    expect(phaseGap(0, 1200)).toBe(1200);
   });
 
   it("keeps the app's own style beside the wave's phase, on every shape", async () => {
