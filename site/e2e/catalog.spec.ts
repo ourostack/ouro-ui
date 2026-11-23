@@ -131,8 +131,15 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * guess, and extended that join to `row`/`card` shapes' later items too (#3138, fixing #3137's main-thread-hold
  * desync): Skeleton is in the voyage's own first script already, as Avatar's loading fallback, and the voyage's
  * stage (site/src/voyage/stage/stage.tsx) renders Avatar.
+ *
+ * The voyage's set again 2026-11-23 at 293,861 bytes, what Size ceilings measured at 5779e6746 (run 45213285378,
+ * issue #3198), 514 bytes over its base at 6493dd483, after MessageList's stray-pixel fix (#3061) and the scrollers'
+ * surface-matching fill (#3184) each added a background class to `message-list.tsx`'s scroller, which the voyage's
+ * stage (site/src/voyage/stage/stage.tsx) imports directly. Item's trailing chevron (#3190), merged in the same
+ * span, does not reach the voyage: Item is used only in the voyage's lazily-loaded chapters and the docs' demos,
+ * never in stage.tsx or home.tsx.
  */
-const MEASURED = { voyage: 293_347, docs: 196_004 } as const;
+const MEASURED = { voyage: 293_861, docs: 196_004 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
