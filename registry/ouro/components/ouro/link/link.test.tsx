@@ -380,7 +380,12 @@ describe("Link", () => {
     const walker = document.createTreeWalker(link, NodeFilter.SHOW_TEXT);
     let lastTextNode: Text | null = null;
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      if (node.textContent?.trim() && !(node.parentElement?.closest(".sr-only"))) lastTextNode = node as Text;
+      if (
+        node.textContent?.trim() &&
+        !node.parentElement?.closest(".sr-only") &&
+        !node.parentElement?.closest('[data-slot="link-icon"]')
+      )
+        lastTextNode = node as Text;
     }
     const lastChar = document.createRange();
     const alone: number[] = [];
