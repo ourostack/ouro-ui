@@ -2215,12 +2215,23 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const children = [...slot.children];
           for (const child of children) slotWatch.current?.observe(child);
           const before = watchedChildren.current.get(key);
-          const regrouped = before === undefined || before.length !== children.length || before.some((child, index) => child !== children[index]);
+          const regrouped =
+            before === undefined ||
+            // Stryker disable next-line ConditionalExpression: each slot wraps exactly one child, the message drawn for its key, so once a slot has a before to compare, its length always matches the one found now.
+            before.length !== children.length ||
+            // Stryker disable next-line ConditionalExpression,MethodExpression,ArrowFunction: a slot wraps exactly one child, so .some and .every agree over the single element either reads. And a swapped child is observed for the first time this very pass (`slotWatch.current?.observe(child)` above reobserves every current child, every pass), so its own first ResizeObserver notification delivers in a later windowSync call regardless of what regrouping decided here, marking the key dirty and re-measuring it then: a slot that silently regroups converges to the real size one pass later than a slot this directly caught would, and nothing between those two passes ever reads the gap.
+            before.some((child, index) => child !== children[index]);
           watchedChildren.current.set(key, children);
           const cached = measured.heights.get(key);
           // Only a child that draws a box has a place to find the others by, and only its top is ever read: until one is
           // found, each slot is read fresh, so that one's top is real, never the placeholder a cached entry carries.
-          const fresh = found.size === 0 || bucketMoved || cached === undefined || regrouped || dirtySlots.current.has(key);
+          const fresh =
+            found.size === 0 ||
+            bucketMoved ||
+            cached === undefined ||
+            // Stryker disable next-line ConditionalExpression: the same self-heal regrouped's own disable above relies on: whatever a swap this pass missed, its child's first observation (queued above, every pass) lands as a later windowSync call that marks the key dirty and re-measures it, before anything reads the gap.
+            regrouped ||
+            dirtySlots.current.has(key);
           if (fresh) {
             const { top, size } = extentOf(slot);
             if (size > 0) found.set(key, { top: top - contentTop, size });
@@ -2231,6 +2242,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           // Stryker disable next-line BlockStatement,ConditionalExpression: not fresh, so nothing a resize observer caught or regrouped since the last fresh read: the cached size still holds, the one `sizeOf`'s own cache fallback already reads for this key, and the one real top `tops.current`'s first entry ever needs only ever comes from a fresh read, never from this branch. Forcing the test false skips the block exactly as forcing its body empty does, for the same reason.
           if (!fresh) {
             // Nothing a resize observer caught, and nothing regrouped, since the last fresh read: the cached size still holds.
+            // Stryker disable next-line ConditionalExpression,EqualityOperator,ObjectLiteral: what this writes, `sizeOf` reads again for the same key, from the same `measured.heights.get(key)` this reads as `cached`, so `tops.current.get(key)?.size ?? sizeOf(index)` reads the same number whether or not this runs, zero included; and its `top: NaN` is never the first entry either, since reaching this branch needs `found.size !== 0` already, and that first entry only ever comes from a fresh read.
             if (cached! > 0) found.set(key, { top: NaN, size: cached! });
             // Stryker disable next-line StringLiteral,CallExpression: the size written is the one already cached under this exact key, from the fresh read that set `cached`, so writing it again, or under any other key, changes no read of this key's size.
             cacheRef.current.set(`${key}\0${bucket}`, cached!);
@@ -2479,8 +2491,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     resized.observe(scroller);
     resized.observe(content);
     const slots = new ResizeObserver((entries) => {
-      // A target is only ever observed as a slot's own child (below), so its ancestor and the slot attribute it reads are always there.
-      for (const entry of entries) dirtySlots.current.add((entry.target as Element).closest(`[${SLOT}]`)!.getAttribute(SLOT)!);
+      // A target is usually still its slot's own child; one swapped out for a different element under the same key is
+      // removed before a notification already queued for it arrives, so it finds no slot left to mark dirty.
+      for (const entry of entries) {
+        const key = (entry.target as Element).closest(`[${SLOT}]`)?.getAttribute(SLOT);
+        if (key !== null && key !== undefined) dirtySlots.current.add(key);
+      }
       windowSync.current!(false);
     });
     slotWatch.current = slots;

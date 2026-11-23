@@ -25,7 +25,24 @@ async function render(node: ReactNode) {
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(node));
-  return { host, scroller: host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")! };
+  return { host, root, scroller: host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")! };
+}
+
+const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+/** Waits until the scroller's position, height and drawn messages read the same across two frames. */
+async function settle(scroller: HTMLElement) {
+  const ids = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((node) => node.id);
+  let last = "";
+  await expect
+    .poll(async () => {
+      await frame();
+      const now = `${scroller.scrollTop}|${scroller.scrollHeight}|${ids().join(",")}`;
+      const same = now === last;
+      last = now;
+      return same;
+    })
+    .toBe(true);
 }
 
 const authors = ["Grace Hopper", "Ana Lind", "Mara Quill"];
@@ -635,5 +652,64 @@ describe("MessageList actions", () => {
     expect(host.parentNode).not.toBeNull();
     await act(async () => roots.pop()!.unmount());
     expect(host.parentNode).toBeNull();
+  });
+
+  it("measures a slot's box on the very first sync of a windowed list, with no before to compare yet", async () => {
+    // Past 20 messages the list windows, so this is the first `windowSync` any of its slots ever see, with none of
+    // them yet in `watchedChildren`; if that first read stumbled on a slot with nothing to compare, nothing would draw.
+    const { scroller } = await render(<Channel count={30} />);
+    await settle(scroller);
+    const drawn = [...scroller.querySelectorAll('[data-ouro="message"]')];
+    expect(drawn.length).toBeGreaterThan(0);
+    const last = drawn.at(-1)!;
+    expect(last.getBoundingClientRect().height).toBeGreaterThan(0);
+    await ready(last.id);
+    expect(barIn(last.id)).not.toBeNull();
+  });
+
+  it("settles on the real height of a slot whose message remounts under the same key, not a stale cache", async () => {
+    // A consumer can remount a different element under the same key (a placeholder becoming the real message). The
+    // old child is swapped out of the DOM without its own resize observation ever being torn down; this once crashed
+    // on a notification for it arriving after it had no slot ancestor left to find. The new child is reobserved for
+    // the first time on the very next windowSync regardless, so its own first notification lands the real size soon
+    // after, with nothing in between ever reading the gap: the end state settles on the real height either way.
+    const COUNT = 80;
+    const SWAPPED = 70;
+    function Swap({ real }: { real: boolean }) {
+      return (
+        <MessageList label="Launch channel" style={{ height: 360 }}>
+          {Array.from({ length: COUNT }, (_, index) => {
+            const id = `m${index}`;
+            if (index === SWAPPED && !real) return <div key={id} id={id} style={{ height: 20 }} />;
+            return (
+              <Message key={id} id={id} variant="chat" role="assistant" name={authors[index % authors.length]!}>
+                {index === SWAPPED ? <div style={{ height: 120 }} /> : `Message ${index}`}
+              </Message>
+            );
+          })}
+        </MessageList>
+      );
+    }
+    const { root, scroller } = await render(<Swap real={false} />);
+    await settle(scroller);
+    // Warms the whole cache first, so the only thing left to (re)measure after the swap is m70 itself: scrolling
+    // away afterward must not also trigger first-ever measurements of other, still-estimated rows.
+    scroller.scrollTop = 0;
+    await settle(scroller);
+    scroller.scrollTop = scroller.scrollHeight;
+    await settle(scroller);
+    expect(document.getElementById("m70")).not.toBeNull();
+    await act(async () => root.render(<Swap real />));
+    await settle(scroller);
+    expect(document.getElementById("m70")!.getBoundingClientRect().height).toBeGreaterThan(100);
+    const beforeHeight = scroller.scrollHeight;
+    scroller.scrollTop = 0;
+    await settle(scroller);
+    expect(document.getElementById("m70")).toBeNull();
+    const afterHeight = scroller.scrollHeight;
+    // Scrolled away, m70 is a spacer sized from its cached height: a stale 20px cache (the placeholder's) would shrink
+    // the total by the ~100px the real message added, instead of the ~0px a fresh re-measure after the swap keeps.
+    // Everything else was warmed above, so this delta is m70's alone.
+    expect(Math.abs(afterHeight - beforeHeight)).toBeLessThan(30);
   });
 });
