@@ -217,7 +217,7 @@ function ChatConversation({ bubble = "filled" }: { bubble?: MessageBubble }) {
           actions={actions}
           menu={menu}
           footer={<span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Edited</span>}
-          statusMark={<span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Seen</span>}
+          statusMark={<span style={{ fontSize: 12, color: "color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground))" }}>Seen</span>}
         >
           I will print the seating plan tonight.
         </Message>

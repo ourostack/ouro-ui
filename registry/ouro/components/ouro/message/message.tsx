@@ -940,7 +940,7 @@ export function Message(props: MessageProps): JSX.Element {
         {quoted}
         {body}
         {marked && (
-          <div data-ouro-message-status-mark="" className="absolute end-1 bottom-1 text-xs leading-none">
+          <div data-slot="message-status-mark" data-ouro-message-status-mark="" className="absolute end-1 bottom-1 text-xs leading-none">
             {statusMark}
           </div>
         )}
@@ -1066,7 +1066,7 @@ export function Message(props: MessageProps): JSX.Element {
       {quoted}
       {body}
       {marked && (
-        <div data-ouro-message-status-mark="" className="absolute end-1 bottom-1 text-xs leading-none">
+        <div data-slot="message-status-mark" data-ouro-message-status-mark="" className="absolute end-1 bottom-1 text-xs leading-none">
           {statusMark}
         </div>
       )}
