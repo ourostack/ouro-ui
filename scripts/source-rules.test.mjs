@@ -9,7 +9,7 @@ import postcss from "postcss";
 import { findOffendersInSource } from "../registry/ouro/source-rules/source-rules.mjs";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, namedRenderFunctions, needsClientDirective, numericSizes, layoutAnimationAllowed, physicalAllowed, physicalUtilities, pollTimeoutFiles, radiusSteps, realClockEscapeKeys, realClockEscapes, realClockProblems, shortPollTimeouts, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, gradientKnown, gradients, hasClientDirective, leadingComment, namedRenderFunctions, needsClientDirective, numericSizes, layoutAnimationAllowed, physicalAllowed, physicalUtilities, pollTimeoutFiles, radiusSteps, realClockEscapeKeys, realClockEscapes, realClockProblems, shortPollTimeouts, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -732,4 +732,33 @@ test("no component, helper or kit file builds an index in render: each is memois
     .map(read)
     .flatMap(({ path, text }) => findOffendersInSource(path, text).filter((offender) => offender.category === "render-index").map((offender) => `${offender.file}:${offender.line}`));
   assert.deepEqual(found, [], "Build the index where its data changes: useMemo on its inputs (useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows])), or a constant at module scope.");
+});
+
+test("gradients finds a gradient or a mask in code, and leaves comments, plain words and lines that say why alone", () => {
+  const source = [
+    '// linear-gradient( in a comment',
+    ' * mask-image in a doc line',
+    'const a = "bg-[linear-gradient(to_right,red,blue)]";',
+    'const b = "data-x:[mask-image:linear-gradient(#000,transparent)] bg-linear-to-r mask-[url(a.svg)]";',
+    'const c = "[background-image:repeating-linear-gradient(red,blue)]"; // gradient-ok: a hard-stop hatch',
+    '// gradient-ok: a bite cut out of a circle',
+    'const d = "[mask-image:radial-gradient(circle,transparent,#000)]";',
+    'const e = "[mask-image:radial-gradient(circle,transparent,#000)]"; // gradient-ok:',
+    'mask-image: var(--ramps);',
+    'const f = { mask: true, masked: "mask-type" };',
+  ].join("\n");
+  assert.deepEqual(gradients(source).map((found) => found.split(":")[0]), ["3", "4", "8", "9"]);
+});
+
+test("no component, lib or theme file draws a gradient or a mask unless gradient-ok says why or gradientKnown lists the file, and every listing is still needed", () => {
+  const shipped = tracked("registry/ouro/components/**/*.ts", "registry/ouro/components/**/*.tsx", "registry/ouro/lib/ouro/**/*.ts", "registry/ouro/lib/ouro/**/*.tsx", "registry/ouro/theme/*.css").filter(
+    (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\//.test(path),
+  );
+  const found = shipped.map(read).map(({ path, text }) => ({ path, lines: gradients(text) })).filter(({ lines }) => lines.length > 0);
+  const offenders = found.filter(({ path }) => !gradientKnown[path]).flatMap(({ path, lines }) => lines.map((line) => `${path}:${line}`));
+  assert.deepEqual(offenders, [], "Ouro HX draws no gradient and fades no edge: use a solid colour, or, for content under chrome, a translucent blurred bar (glass). A genuine cut-out or hard-stop line says why with `gradient-ok: <reason>`.");
+  for (const [path, reason] of Object.entries(gradientKnown)) {
+    assert.ok(reason.length > 0, `${path} needs a reason`);
+    assert.ok(found.some((entry) => entry.path === path), `${path} no longer draws a gradient: remove it from scripts/gradient-known.json`);
+  }
 });
