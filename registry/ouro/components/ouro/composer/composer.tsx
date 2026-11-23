@@ -578,11 +578,14 @@ export function Composer(props: ComposerProps): JSX.Element {
   );
   if (conversation !== ownConversation) {
     // The draft left behind waits for its conversation; the oldest of more than `draftLimit` are dropped.
-    kept.delete(ownConversation);
-    if (own !== "") kept.set(ownConversation, own);
-    if (kept.size > draftLimit) kept.delete(kept.keys().next().value);
+    // A box with no conversation has no draft to keep, and the store is shared with every other box.
+    if (ownConversation !== undefined) {
+      kept.delete(ownConversation);
+      if (own !== "") kept.set(ownConversation, own);
+      if (kept.size > draftLimit) kept.delete(kept.keys().next().value);
+    }
     setOwnConversation(conversation);
-    setOwn(kept.get(conversation) ?? defaultValue ?? "");
+    setOwn((conversation === undefined ? undefined : kept.get(conversation)) ?? defaultValue ?? "");
   }
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);

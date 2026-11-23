@@ -131,6 +131,12 @@ describe("Composer drafts", () => {
     const controlled = await render(<Composer label="Message" conversation="c" value="mine" onValueChange={() => {}} onSend={() => {}} />);
     await controlled.rerender(<div />);
     expect((await render(<Composer label="Message" conversation="c" onSend={() => {}} />)).textarea.value).toBe("");
+    const moving = await render(<Composer label="Message" onSend={() => {}} />);
+    await userEvent.type(moving.textarea, "stray");
+    await moving.rerender(<Composer label="Message" conversation="d" onSend={() => {}} />);
+    const other = await render(<Composer label="Message" conversation="e" onSend={() => {}} />);
+    await other.rerender(<Composer label="Message" onSend={() => {}} />);
+    expect(other.textarea.value).toBe("");
     const bare = await render(<Composer label="Message" onSend={() => {}} />);
     await userEvent.type(bare.textarea, "x");
     await bare.rerender(<div />);
