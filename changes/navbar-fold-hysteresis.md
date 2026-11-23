@@ -1,0 +1,1 @@
+- Fix: Navbar no longer flips between its links and the menu button at widths where they only barely overflow; the measurement that decides whether they fit now accounts for the menu button's own negative margin correctly and keeps a small hysteresis margin before unfolding.

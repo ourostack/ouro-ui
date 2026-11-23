@@ -279,9 +279,18 @@ export function Navbar(props: NavbarProps): JSX.Element {
   // Before paint, so a client mount never shows a row that does not fit.
   useLayoutEffect(() => {
     const measure = () => {
-      // The room the links would have: the slot, and the menu button's place when it shows.
+      // The room the links would have: the slot, and the menu button's place when it shows. Its own negative
+      // margin (-ms-ouro-2) already gives back the one gap its appearing adds to the row, so its offsetWidth
+      // alone is the room the slot loses when it shows, not offsetWidth plus a gap on top of that.
       const button = menuButton.current!.offsetWidth;
-      setOverflow(list.current!.scrollWidth > slot.current!.clientWidth + (button > 0 ? button + 8 : 0));
+      const room = slot.current!.clientWidth + button;
+      const needed = list.current!.scrollWidth;
+      // Hysteresis: once the links have folded, only unfold once the room clears what they need by a margin.
+      // Folding shows the menu button, which narrows the slot by the very room folding found missing, so without
+      // a margin here that narrowing alone can read as "not enough room", and hiding the button again to check
+      // puts the slot right back where the links did not fit either — flipping forever at a width where they are
+      // only barely over (ourostack/ouro-ui#3168).
+      setOverflow((was) => (was ? needed > room - 8 : needed > room));
     };
     measure();
     const observer = new ResizeObserver(measure);

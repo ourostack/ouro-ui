@@ -581,6 +581,42 @@ describe("Navbar at tablet widths and with groups", () => {
     await expect.element(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Kitchen Search" })).toBeVisible();
   });
 
+  it("settles on one form at widths a few px either side of where the links barely overflow, never flipping back and forth (ourostack/ouro-ui#3168)", async () => {
+    const { menuButton } = await render(<Navbar label="Main" items={eight} />);
+    // One frame at a time: a bar that is going to flip toggles every frame (folding shows the menu button, which
+    // narrows the slot and triggers the next measurement; un-collapsing hides it and triggers another), so sampling
+    // any slower would alias onto the same phase every time and never see the other form.
+    const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    const settle = async (frames: number) => {
+      for (let i = 0; i < frames; i++) await frame();
+      return getComputedStyle(menuButton).display;
+    };
+    // Binary search the narrowest width where the links still fit: the natural width this bar folds at.
+    let lo = 700;
+    let hi = 1600;
+    await page.viewport(lo, 800);
+    expect(await settle(4)).not.toBe("none");
+    await page.viewport(hi, 800);
+    expect(await settle(4)).toBe("none");
+    while (hi - lo > 1) {
+      const mid = Math.floor((lo + hi) / 2);
+      await page.viewport(mid, 800);
+      if ((await settle(4)) === "none") hi = mid;
+      else lo = mid;
+    }
+    // At that boundary and a stretch either side of it, the bar settles on one form and stays there across several
+    // single-frame reads: it never flips between the links and the menu button the way it did when folding (which
+    // shows the button, narrowing the slot) and un-collapsing (which hides it again) disagreed about the room that
+    // gives back.
+    for (let width = hi - 10; width <= hi + 2; width++) {
+      await page.viewport(width, 800);
+      await settle(2);
+      const reads = new Set<string>();
+      for (let i = 0; i < 6; i++) reads.add(await settle(1));
+      expect(reads.size, `at ${width}px, saw ${[...reads].join(", ")}`).toBe(1);
+    }
+  });
+
   it("closes the sheet when the links come to fit", async () => {
     await page.viewport(768, 800);
     const { menuButton } = await render(<Navbar label="Main" items={eight} />);
