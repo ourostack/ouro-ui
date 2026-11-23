@@ -1,0 +1,1 @@
+- Changed: `ReadReceipt` with nobody holds the faces' height instead of rendering nothing, so the first reader's arrival does not push the messages above it up the list.

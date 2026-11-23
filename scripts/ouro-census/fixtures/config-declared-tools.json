@@ -1,0 +1,1 @@
+{ "product": "bundle", "sources": [{ "walker": "declared-tools", "module": "walkers/fixtures/declared-tools/server.cjs", "source": "walkers/fixtures/declared-tools/tools.json", "server": "shop" }], "groups": [{ "id": "turn-shopping", "when": "Read and change the person's shopping list." }] }

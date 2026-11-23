@@ -1,9 +1,9 @@
 "use client";
 
-import { $isCodeNode, CodeNode } from "@lexical/code-core";
+import { CodeNode } from "@lexical/code-core";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
 import { $createLinkNode, $isLinkNode, $toggleLink, LinkNode } from "@lexical/link";
-import { $isListItemNode, ListItemNode, ListNode, registerList } from "@lexical/list";
+import { ListItemNode, ListNode, registerList } from "@lexical/list";
 import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type TextMatchTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
@@ -164,7 +164,7 @@ const synced = "composer-sync";
 // Stryker disable next-line ArrayDeclaration: a list with one constant item runs an effect once, as an empty list does.
 const MOUNT_ONLY: never[] = [];
 
-// A quote ends on its empty last line, which the line break there makes; a list and a code block end the way Enter ends them.
+// A quote ends on its empty last line, which the line break there makes; a list, a code block and a plain line each go on the way Enter goes on, which is a new paragraph outside a quote.
 function leaveOrContinueBlock(editor: LexicalEditor): boolean {
   const selection = $getSelection();
   /* istanbul ignore next @preserve -- a line break is only asked for with a caret or a range */
@@ -183,7 +183,6 @@ function leaveOrContinueBlock(editor: LexicalEditor): boolean {
     after.select();
     return true;
   }
-  if (!$findMatchingParent(node, (parent) => $isListItemNode(parent) || $isCodeNode(parent))) return false;
   return editor.dispatchCommand(INSERT_PARAGRAPH_COMMAND, undefined);
 }
 
@@ -644,7 +643,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         },
         COMMAND_PRIORITY_HIGH,
       ),
-      // Enter sends, so Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, and each leaves from an empty one.
+      // Enter sends, so Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, a plain line a new paragraph, and a quote stays on one line until an empty one leaves it.
       editor.registerCommand(INSERT_LINE_BREAK_COMMAND, () => leaveOrContinueBlock(editor), COMMAND_PRIORITY_HIGH),
       // Escape is not a request to leave the box: Lexical would blur it, which drops a keyboard person's place.
       editor.registerCommand(KEY_ESCAPE_COMMAND, () => true, COMMAND_PRIORITY_HIGH),

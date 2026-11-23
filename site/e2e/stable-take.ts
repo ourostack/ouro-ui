@@ -34,6 +34,16 @@ export function wantsRetake(scope: string | undefined, signature: string): boole
   return scope.replace(/^names:/, "").split(",").some((name) => name !== "" && lower.includes(name.toLowerCase()));
 }
 
+/** Waits until nothing is animating for several polls of `tick` in a row, or `budgetMs` passes. A transition or
+ *  animation can start a frame or two after a state begins, or — since a retake's two takes are read back to back
+ *  with nothing between them otherwise — between the two, so this runs before each take, not just the first.
+ *  `tick` advances a frame, reports whether anything was animating, and (if so) waits for it to finish. */
+export async function settleMotion(tick: () => Promise<boolean>, budgetMs = 2_000): Promise<void> {
+  const deadline = Date.now() + budgetMs;
+  let quiet = 0;
+  while (quiet < 6 && Date.now() < deadline) quiet = (await tick()) ? 0 : quiet + 1;
+}
+
 interface Picture {
   data: Uint8Array;
   width: number;

@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
-import { describe, LOOK_SELECTOR, loaded, picture, quiet, settled } from "./looks";
+import { describe, LOOK_SELECTOR, loaded, motionTick, picture, quiet, settled, stagePaced } from "./looks";
+import { instability, settleMotion } from "./stable-take";
+import { slowFrames } from "./stage-helpers";
 
 // A late island mounts ahead of a control between the sweep's inventory pass and its hover pass. The hover pass must still
 // describe, hover and picture the control the inventory named, not whatever now sits at its position in the document.
@@ -104,4 +106,82 @@ test.describe("the More ways trigger hovers to one picture on every docs page", 
       expect(off / (first.width * first.height), `${name} against badge`).toBeLessThanOrEqual(0.015);
     });
   }
+});
+
+// A retake's two takes are read back to back, with nothing between them; a transition or keyframe animation that
+// starts only then (not when the state itself began, so the settle before the first take never saw it) used to
+// leave the second take mid-flight (#2989). settleMotion, run again before the second take, waits it out the same
+// way as before the first. A picture's screenshot runs with animations disabled, which fast-forwards any animation
+// or transition it finds already running to its end value there and then (irreversibly, for the rest of the page's
+// life) rather than holding the frame still; the first take here is read before the mover starts, so it is the
+// take's own screenshot that catches the mover mid-flight and commits it, producing a genuine disagreement with the
+// untouched take before it.
+test("settleMotion waits out a mover that starts between two takes, so both agree once it has run its course (#2989)", async ({ page }) => {
+  await page.goto("./docs/");
+  await page.evaluate(() => {
+    document.body.innerHTML = '<main><button data-ouro="mover" data-ouro-control="mover" data-ouro-part="trigger" style="width:40px;height:40px;background-color:#ff0000;transition:background-color 150ms linear"></button></main>';
+  });
+  await loaded(page);
+  const { looks } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
+  expect(looks).toHaveLength(1);
+  const index = 0;
+  const where = { signature: "mover|trigger", page: "/synthetic/", state: "test" };
+
+  const midA = await picture(page, index);
+  await page.evaluate(() => {
+    document.querySelector("button")!.style.backgroundColor = "#00ff00";
+  });
+  const midB = await picture(page, index);
+  expect(instability(midA, midB, where), "two takes read back to back while a mover runs disagree").not.toBeNull();
+
+  await settleMotion(() => motionTick(page));
+  const afterA = await picture(page, index);
+  const afterB = await picture(page, index);
+  expect(instability(afterA, afterB, where), "once the mover has run its course, two more takes agree").toBeNull();
+});
+
+// The home page's stage judges the screen once on its own clock (a beat and then real frames, not an Animation or
+// Transition settled and motionTick already wait for), and commits with a plain state update: left unwaited, the
+// verdict could land between an unrelated control's two takes (ourostack/ouro-ui#2989). Forcing every frame to hold
+// briefly, as stage-pacing.spec.ts forces a slow screen, makes the judge reach its verdict fast and every run.
+test("stagePaced waits out the home page's stage before a control elsewhere on the page is taken twice (#2989)", async ({ page }) => {
+  await slowFrames(page, 120);
+  await page.goto("./");
+  await settled(page);
+  await quiet(page);
+  await loaded(page);
+  // The stage is below the fold at load: its own judge never starts until a scroll (here standing in for a control
+  // of its own, states-sweep.ts's real trigger) brings it onscreen.
+  await page.locator("[data-stage]").evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }));
+  await stagePaced(page);
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+
+  const swatch = page.getByRole("radiogroup", { name: "Accent" }).getByRole("radio").first();
+  await swatch.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }));
+  const at = (await swatch.boundingBox())!;
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+  await expect.poll(() => swatch.evaluate((el) => el.matches(":hover"))).toBe(true);
+  const { looks } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
+  const found = looks.find((l) => l.key.includes("34x34") && l.key.includes("data-tone=secondary") && l.key.includes("data-variant=plain"));
+  expect(found, "the accent swatch is in the inventory").toBeDefined();
+  const index = found!.index;
+
+  const first = await picture(page, index);
+  await settleMotion(() => motionTick(page));
+  const retake = await picture(page, index);
+  expect(instability(first, retake, { signature: found!.key, page: "/", state: "hover" }), "the swatch's two takes agree once the stage's one verdict is already in").toBeNull();
+});
+
+// The stage's own judge bails out at once while it is offscreen (stage.tsx), so a call made before any control has
+// scrolled it into view has nothing to wait for: it must return fast, not spin for stagePaced's own full timeout
+// every time, which a one-time call before states-sweep.ts's loop once did (ourostack/ouro-ui#2989).
+test("stagePaced returns at once while the stage is still offscreen, with no verdict yet to wait for (#2989)", async ({ page }) => {
+  await page.goto("./");
+  await settled(page);
+  await quiet(page);
+  await loaded(page);
+  await expect(page.locator("[data-stage]")).not.toHaveAttribute("data-paced");
+  const started = Date.now();
+  await stagePaced(page);
+  expect(Date.now() - started, "an offscreen stage has no judge in flight: no need to wait it out").toBeLessThan(5_000);
 });

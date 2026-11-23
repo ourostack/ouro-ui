@@ -177,6 +177,8 @@ describe("ThemePicker", () => {
     await act(async () => root?.unmount());
     root = undefined;
     expect(onPreviewChange.mock.calls.at(-1)).toEqual([null]);
+    // The mouse still rests where dusk was, so the next picker would render under it and preview: it leaves the page first.
+    await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
     const quiet = vi.fn();
     await render(<ThemePicker presets={three} value="pearl" onPreviewChange={quiet} />);
     await act(async () => root?.unmount());

@@ -102,6 +102,7 @@
 @source not "../components/phone-status.tsx";
 @source not "../components/surprise-me.tsx";
 @source not "../docs/agent-prompt.ts";
+@source not "../docs/chat-demo.tsx";
 @source not "../docs/demos";
 @source not "../docs/demos.tsx";
 @source not "../docs/markdown.tsx";
@@ -111,6 +112,7 @@
 @source not "../docs/ships.ts";
 @source not "../docs/sources.json";
 @source not "../docs/spoonjoy.json";
+@source not "../docs/tray-art.tsx";
 @source not "../docs/tries.ts";
 @source not "../entry-server.tsx";
 @source not "../head.ts";
