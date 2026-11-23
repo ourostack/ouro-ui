@@ -63,7 +63,7 @@ The props the modes share. Type: `MessageProps`.
 | `retryLabel` | `string` | `"Retry"` | The name of a `failed` message's retry button, for other languages. |
 | `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ana joined"), centered and quiet. |
 | `sentLabel` | `string` | `"Sent"` | What screen readers hear once a `pending` message is confirmed, for other languages. The sender hears Sent when the send is confirmed, or the failed label when it fails, and these words are not the message's own. |
-| `statusMark` | `ReactNode` |  | A small mark seated against the user's own bubble, at its bottom end corner (the same corner the bubble's own shape points to): for example whether the message was delivered or seen. It sits inside the bubble's own box, in reserved room the bubble makes for it, so it never overlaps the message's own text or spills onto whatever the bubble sits over, and it adds no row of its own alongside `header` or `footer`. For example `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on `role="user"` with a bubble: a `default` message, a `chat` message, or a `reply` given its own `bubble`. On `assistant`, `system`, or a `post` or unbubbled `reply`, which have no bubble corner to seat it against, it is not drawn. |
+| `statusMark` | `ReactNode` |  | A small mark seated against the user's own bubble, at its bottom end corner (the same corner the bubble's own shape points to): for example whether the message was delivered or seen. It sits inside the bubble's own box, in room the bubble reserves for it, rather than overlapping the message's own text or adding a row of its own alongside `header` or `footer`. For example `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on a user's own bubble: a `default` message, a `chat` message, or a `reply` given its own `bubble`. An `assistant` or `system` message, and a `post` or unbubbled `reply`, have no bubble corner to seat it against, so it does not draw there. |
 | `streaming` | `boolean` |  | The reply is still being written. The message is `aria-busy`, an empty one shows a typing indicator, and `MessageList` announces it once, when streaming ends. |
 | `streamingLabel` | `string` | `"Writing"` | What screen readers hear for the typing indicator, for other languages. |
 | `subject` | `ReactNode` |  | A post's subject, in semibold above its text. `post` only. |
@@ -442,13 +442,12 @@ interface MessageOwnProps {
   /**
    * A small mark seated against the user's own bubble, at its bottom end corner (the same corner
    * the bubble's own shape points to): for example whether the message was delivered or seen. It
-   * sits inside the bubble's own box, in reserved room the bubble makes for it, so it never
-   * overlaps the message's own text or spills onto whatever the bubble sits over, and it adds no
-   * row of its own alongside `header` or `footer`. For example
-   * `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on
-   * `role="user"` with a bubble: a `default` message, a `chat` message, or a `reply` given its
-   * own `bubble`. On `assistant`, `system`, or a `post` or unbubbled `reply`, which have no
-   * bubble corner to seat it against, it is not drawn.
+   * sits inside the bubble's own box, in room the bubble reserves for it, rather than overlapping
+   * the message's own text or adding a row of its own alongside `header` or `footer`. For example
+   * `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on a
+   * user's own bubble: a `default` message, a `chat` message, or a `reply` given its own
+   * `bubble`. An `assistant` or `system` message, and a `post` or unbubbled `reply`, have no
+   * bubble corner to seat it against, so it does not draw there.
    */
   statusMark?: ReactNode | undefined;
   /** Under a post, or a message in a channel without threads: its thread, as a `<ThreadSummary>`. */

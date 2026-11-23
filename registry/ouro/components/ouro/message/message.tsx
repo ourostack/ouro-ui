@@ -248,16 +248,16 @@ export interface MessageOwnProps {
   /**
    * A small mark seated against the user's own bubble, at its bottom end corner (the same corner
    * the bubble's own shape points to): for example whether the message was delivered or seen. It
-   * sits inside the bubble's own box, in reserved room the bubble makes for it, so it never
-   * overlaps the message's own text or spills onto whatever the bubble sits over, and it adds no
-   * row of its own alongside `header` or `footer`. For example
-   * `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on
-   * `role="user"` with a bubble: a `default` message, a `chat` message, or a `reply` given its
-   * own `bubble`. On `assistant`, `system`, or a `post` or unbubbled `reply`, which have no
-   * bubble corner to seat it against, it is not drawn.
+   * sits inside the bubble's own box, in room the bubble reserves for it, rather than overlapping
+   * the message's own text or adding a row of its own alongside `header` or `footer`. For example
+   * `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on a
+   * user's own bubble: a `default` message, a `chat` message, or a `reply` given its own
+   * `bubble`. An `assistant` or `system` message, and a `post` or unbubbled `reply`, have no
+   * bubble corner to seat it against, so it does not draw there.
    *
-   * @claim "It draws only on `role=\"user\"` with a bubble" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message statusMark > draws on role="user" only, not on assistant or a bubbleless post)
-   * @claim "sits inside the bubble's own box ... in reserved room the bubble makes for it" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message statusMark > sits inside the bubble's own box, against its bottom end corner, in room the bubble reserves for it)
+   * @claim "sits inside the bubble's own box, in room the bubble reserves for it" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message statusMark > sits inside the bubble's own box, against its bottom end corner, in room the bubble reserves for it)
+   * @claim "It draws only on a user's own bubble" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message statusMark > draws on role="user" only, not on assistant or a bubbleless post)
+   * @claim "have no bubble corner to seat it against, so it does not draw there" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message statusMark > draws on role="user" only, not on assistant or a bubbleless post)
    */
   statusMark?: ReactNode | undefined;
   /** Under a post, or a message in a channel without threads: its thread, as a `<ThreadSummary>`. */
