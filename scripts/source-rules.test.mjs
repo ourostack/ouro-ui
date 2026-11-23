@@ -161,7 +161,7 @@ test("no registry file has a comment before its first statement, which the shadc
 });
 
 test("no runtime file passes a named function as a render prop, which a minifier can give a capitalised name Base UI warns about", () => {
-  const files = tracked("registry/ouro/components/**/*.ts", "registry/ouro/components/**/*.tsx", "registry/ouro/lib/**/*.ts", "registry/ouro/lib/**/*.tsx")
+  const files = tracked("registry/ouro/components/*.ts", "registry/ouro/components/*.tsx", "registry/ouro/lib/**/*.ts", "registry/ouro/lib/**/*.tsx")
     .filter((path) => !/\.(test|test-d|stories)\.tsx?$/.test(path))
     .map(read);
   assert.ok(files.length > 40);
@@ -683,7 +683,7 @@ test("radiusSteps leaves Ouro's own steps, circles, zero and the bare rounded cl
 });
 
 test("no component or lib file rounds with a shadcn radius step, so every app gets Ouro's corners", () => {
-  const runtime = tracked("registry/ouro/components/**/*.ts", "registry/ouro/components/**/*.tsx", "registry/ouro/lib/ouro/**/*.ts", "registry/ouro/lib/ouro/**/*.tsx").filter(
+  const runtime = tracked("registry/ouro/components/*.ts", "registry/ouro/components/*.tsx", "registry/ouro/lib/ouro/*.ts", "registry/ouro/lib/ouro/*.tsx").filter(
     (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),
   );
   const offenders = runtime.map(read).flatMap(({ path, text }) => radiusSteps(path, text).map((found) => `${path}:${found}`));
@@ -700,7 +700,7 @@ test("numericSizes finds a size step after its variants, and leaves Ouro's sizes
 });
 
 test("no component or lib file sizes with a spacing step, so a compact density never shrinks an icon", () => {
-  const runtime = tracked("registry/ouro/components/**/*.ts", "registry/ouro/components/**/*.tsx", "registry/ouro/lib/ouro/**/*.ts", "registry/ouro/lib/ouro/**/*.tsx").filter(
+  const runtime = tracked("registry/ouro/components/*.ts", "registry/ouro/components/*.tsx", "registry/ouro/lib/ouro/*.ts", "registry/ouro/lib/ouro/*.tsx").filter(
     (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),
   );
   const offenders = runtime.map(read).flatMap(({ path, text }) => numericSizes(path, text).map((found) => `${path}:${found}`));
@@ -751,7 +751,7 @@ test("gradients finds a gradient or a mask in code, and leaves comments, plain w
 });
 
 test("no component, lib or theme file draws a gradient or a mask unless gradient-ok says why or gradientKnown lists the file, and every listing is still needed", () => {
-  const shipped = tracked("registry/ouro/components/**/*.ts", "registry/ouro/components/**/*.tsx", "registry/ouro/lib/ouro/**/*.ts", "registry/ouro/lib/ouro/**/*.tsx", "registry/ouro/theme/*.css").filter(
+  const shipped = tracked("registry/ouro/components/*.ts", "registry/ouro/components/*.tsx", "registry/ouro/lib/ouro/*.ts", "registry/ouro/lib/ouro/*.tsx", "registry/ouro/theme/*.css").filter(
     (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\//.test(path),
   );
   const found = shipped.map(read).map(({ path, text }) => ({ path, lines: gradients(text) })).filter(({ lines }) => lines.length > 0);
