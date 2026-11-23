@@ -114,6 +114,21 @@ describe("SettingsPage", () => {
     await expect.element(status()).toHaveTextContent("Settings saved.");
   });
 
+  it("shows Save busy while a save runs, cannot be pressed again meanwhile, and settles when it answers", async () => {
+    let finish = () => {};
+    const onSave = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    await render(<SettingsPage onSave={onSave} initial={{ name: "Ada", email: "ada@example.com", language: "en", notifications: true }} />);
+    const save = page.getByRole("button", { name: "Save" });
+    await expect.element(save).not.toHaveAttribute("aria-busy", "true");
+    await userEvent.click(save);
+    await expect.element(save).toHaveAttribute("aria-busy", "true");
+    await expect.element(save).toBeDisabled();
+    expect(onSave).toHaveBeenCalledTimes(1);
+    finish();
+    await expect.element(status()).toHaveTextContent("Settings saved.");
+    await expect.element(save).not.toHaveAttribute("aria-busy", "true");
+  });
+
   it("empties its status for a frame before a repeat save that resolves at once, so a screen reader hears it again", async () => {
     await render(<SettingsPage initial={{ name: "Ada", email: "ada@example.com", language: "en", notifications: true }} />);
     await userEvent.click(page.getByRole("button", { name: "Save" }));
@@ -141,7 +156,8 @@ describe("SettingsPage", () => {
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     await expect.poll(() => onSave.mock.calls.length).toBe(1);
     await userEvent.fill(field("Display name"), "A");
-    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    // A busy Save blocks Enter too, so a submit that overtakes the running save comes from code.
+    await act(async () => host.querySelector("form")!.requestSubmit());
     await expect.element(field("Display name")).toHaveAttribute("aria-invalid", "true");
     finish();
     await act(async () => {
