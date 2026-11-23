@@ -40,6 +40,7 @@ import {
   isIsoDate,
   layoutDay,
   lineCount,
+  markedMutedClass,
   minuteClock,
   stepTo,
   plainFillClass,
@@ -1009,16 +1010,16 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                   formats.dayNumber.formatToParts(utcDate(day)).find((part) => part.type === "day")!.value
                 }
               </span>
-              <span className="truncate text-xs text-muted-foreground group-data-today/day:font-medium group-data-today/day:text-foreground">{formats.weekdayShort.format(utcDate(day))}</span>
+              <span className={`truncate text-xs ${markOf(day) ? markedMutedClass : "text-muted-foreground"} group-data-today/day:font-medium group-data-today/day:text-foreground`}>{formats.weekdayShort.format(utcDate(day))}</span>
               </span>
-              {markOf(day) ? <span data-ouro-time-grid-mark="" data-slot="time-grid-mark-label" className="block truncate px-2 pb-1 text-xs text-muted-foreground @max-[4.5rem]/day:px-0.5">{markOf(day)!.label}</span> : null}
+              {markOf(day) ? <span data-ouro-time-grid-mark="" data-slot="time-grid-mark-label" className={`block truncate px-2 pb-1 text-xs ${markedMutedClass} @max-[4.5rem]/day:px-0.5`}>{markOf(day)!.label}</span> : null}
             </div>
           ))}
           {renderDaySummary ? (
             <>
               <div aria-hidden="true" />
               {days.map((day) => (
-                <div key={day} role="group" aria-label={[formats.fullDay.format(utcDate(day)), markOf(day)?.label].filter(Boolean).join(", ")} data-ouro-time-grid-summary="" className="min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs text-muted-foreground" style={markOf(day)?.style}>
+                <div key={day} role="group" aria-label={[formats.fullDay.format(utcDate(day)), markOf(day)?.label].filter(Boolean).join(", ")} data-ouro-time-grid-summary="" className={`min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs ${markOf(day) ? markedMutedClass : "text-muted-foreground"}`} style={markOf(day)?.style}>
                   {renderDaySummary(day)}
                 </div>
               ))}
