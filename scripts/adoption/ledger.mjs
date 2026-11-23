@@ -44,7 +44,7 @@ const blob = (repo, path) => `https://github.com/${repo}/blob/HEAD/${path}`;
 /** The repository whose `adoption-data` branch holds the published ledger and its history. */
 const LEDGER_REPO = "ourostack/ouro-ui";
 
-export function createContext({ gh = realGh, now = () => new Date(), sleep = sleepSync, searchGapMs = 6500, searchBudgetMs = 15 * 60_000 } = {}) {
+export function createContext({ gh = realGh, now = () => new Date(), sleep = sleepSync, searchGapMs = 6500, searchBudgetMs = 15 * 60_000, searchCache = null } = {}) {
   const cache = new Map();
   const memo = (key, make) => {
     if (!cache.has(key)) {
@@ -65,9 +65,26 @@ export function createContext({ gh = realGh, now = () => new Date(), sleep = sle
   const outOfTime = () => new Error("code search's time budget ran out (GitHub rate limited it)");
   const api = (path, extra = []) => JSON.parse(gh(["api", path, ...extra]));
   const text = (path) => Buffer.from(JSON.parse(gh(["api", path])).content, "base64").toString("utf8");
+  const nextSearchCache = {};
+  const SEARCH_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  const headCommit = (repo) => memo(`head:${repo}`, () => api(`repos/${repo}/commits/HEAD`).sha);
+  const rememberSearch = (repo, query, entry) => {
+    nextSearchCache[repo] = { ...nextSearchCache[repo], [query]: entry };
+  };
   /** Code search is limited to 10 requests a minute, so each waits its turn and a refusal is retried. */
   const search = (query, repo) =>
     memo(`search:${repo}:${query}`, () => {
+      const cached = searchCache?.[repo]?.[query];
+      if (cached) {
+        try {
+          if (headCommit(repo) === cached.commit && now().getTime() - Date.parse(cached.at) < SEARCH_CACHE_MAX_AGE_MS) {
+            rememberSearch(repo, query, cached);
+            return { total: cached.total, paths: cached.paths };
+          }
+        } catch {
+          // the repository's current commit could not be read; search live instead
+        }
+      }
       for (let attempt = 0; ; attempt += 1) {
         const wait = lastSearch + searchGapMs - now().getTime();
         if (now().getTime() + Math.max(wait, 0) > searchDeadline) throw outOfTime();
@@ -75,7 +92,15 @@ export function createContext({ gh = realGh, now = () => new Date(), sleep = sle
         lastSearch = now().getTime();
         try {
           const data = JSON.parse(gh(["api", "-X", "GET", "search/code", "-f", `q=${query} repo:${repo}`, "-f", "per_page=100"]));
-          return { total: data.total_count, paths: data.items.map((item) => item.path) };
+          const result = { total: data.total_count, paths: data.items.map((item) => item.path) };
+          if (searchCache) {
+            try {
+              rememberSearch(repo, query, { commit: headCommit(repo), at: now().toISOString(), ...result });
+            } catch {
+              // the repository's current commit could not be read; the result still returns, just not cached
+            }
+          }
+          return result;
         } catch (error) {
           if (attempt >= 4 || !/rate limit|403|429|try again in|secondary|abuse/i.test(error.message)) throw error;
           // GitHub says how long to wait ("try again in 14.9s"); a long wait is capped, and the next attempt asks again.
@@ -101,6 +126,7 @@ export function createContext({ gh = realGh, now = () => new Date(), sleep = sle
     api,
     text,
     search: searchAny,
+    searchCache: nextSearchCache,
     stamp: () => now().toISOString(),
     releases: (repo) =>
       memo(`releases:${repo}`, () =>
@@ -899,16 +925,35 @@ export function build(ctx, config, { only = null } = {}) {
 }
 
 export function main(argv = process.argv.slice(2)) {
-  const args = { out: defaultOut, only: null };
+  const args = { out: defaultOut, only: null, searchCacheIn: null, searchCacheOut: null };
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === "--out") args.out = resolve(argv[++index]);
     else if (argv[index] === "--only") args.only = argv[++index].split(",");
+    else if (argv[index] === "--search-cache-in") args.searchCacheIn = resolve(argv[++index]);
+    else if (argv[index] === "--search-cache-out") args.searchCacheOut = resolve(argv[++index]);
     else throw new Error(`unknown argument ${argv[index]}`);
   }
   const config = JSON.parse(readFileSync(configPath, "utf8"));
-  const ledger = build(createContext(), config, { only: args.only });
+  // Caching is opt-in: a plain run with neither flag keeps searching live, as it always has.
+  let searchCache = null;
+  if (args.searchCacheIn || args.searchCacheOut) {
+    searchCache = {};
+    if (args.searchCacheIn) {
+      try {
+        searchCache = JSON.parse(readFileSync(args.searchCacheIn, "utf8"));
+      } catch {
+        // no cache yet, or it is not valid JSON: start from empty and let this run rebuild it
+      }
+    }
+  }
+  const ctx = createContext({ searchCache });
+  const ledger = build(ctx, config, { only: args.only });
   mkdirSync(dirname(args.out), { recursive: true });
   writeFileSync(args.out, `${JSON.stringify(ledger, null, 2)}\n`);
+  if (args.searchCacheOut) {
+    mkdirSync(dirname(args.searchCacheOut), { recursive: true });
+    writeFileSync(args.searchCacheOut, `${JSON.stringify(ctx.searchCache, null, 2)}\n`);
+  }
   console.log(`${ledger.summary.confirmed} of ${ledger.summary.total} confirmed; ${ledger.summary.unmeasuredCells} cells not measured; wrote ${args.out}`);
 }
 
