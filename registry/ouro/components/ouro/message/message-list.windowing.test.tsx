@@ -1414,10 +1414,11 @@ describe("MessageList windowing", () => {
     expect(messages(scroller)).toHaveLength(20);
     let reading = firstVisible(scroller);
     await act(async () => {
-      // Far above what a first draw from the end reaches, and a message arrives before the scroll event.
+      // Far above what a first draw from the end reaches, and another's message arrives before the scroll event: the
+      // reader's own instead follows to the end, which is not this test's race to cover.
       scroller.scrollTop -= 3000;
       reading = firstVisible(scroller);
-      flushSync(() => root.render(<Chat items={[...items, { id: 20, text: "A new reply." }]} />));
+      flushSync(() => root.render(<Chat items={[...items, { id: 21, text: "A new reply." }]} />));
     });
     await settle(scroller);
     expect(reading.message.isConnected).toBe(true);
@@ -2386,9 +2387,10 @@ describe("MessageList windowing", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
     await scrollTo(scroller, 2000);
     await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
-    // Up the conversation, a new message moves nothing.
+    // Up the conversation, another's message moves nothing (the reader's own instead
+    // follows to the end, which is not this test's race to cover).
     const reading = firstVisible(scroller);
-    await rerender(<Chat items={[...items, { id: 306, text: "Message 306" }]} />);
+    await rerender(<Chat items={[...items, { id: 307, text: "Message 307" }]} />);
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
   });
 
