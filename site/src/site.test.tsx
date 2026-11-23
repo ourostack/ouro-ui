@@ -59,14 +59,9 @@ beforeEach(async () => {
   setScheme("light");
 });
 afterEach(async () => {
-  // A look still previewed would be painted back as the picker unmounts, and a look under the mouse would preview as the
-  // next page loads: the preview ends with the test, and the mouse rests in the top corner, where no look renders.
+  // A look still previewed would be painted back as the picker unmounts, onto the next test's page: the preview ends
+  // with the test.
   document.documentElement.removeAttribute("data-preview-from");
-  const away = document.createElement("div");
-  away.style.cssText = "position: fixed; left: 0; top: 0; width: 4px; height: 4px; z-index: 2147483647";
-  document.body.append(away);
-  await userEvent.hover(away);
-  away.remove();
   await cleanupPage();
   setScheme("light");
 });
