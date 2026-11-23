@@ -1409,6 +1409,13 @@ describe("MessageList", () => {
     scroller.dispatchEvent(new Event("scroll"));
     scroller.dispatchEvent(new Event("scrollend"));
     await settle(scroller);
+    // settle() only waits for the scrollTop set directly above to hold still across frames, which it already does
+    // on its own; it does not wait out clearJump's own real timer, set off scrollend. Reading too soon would pass
+    // whether or not a correction was coming, so this reads only once that timer has had the WHEEL_REST delay, and
+    // then some, to run.
+    // real clock: proving clearJump's correction did not fire means outlasting its own real setTimeout, not
+    // merely reading before that timer has had the chance to.
+    await new Promise((resolve) => setTimeout(resolve, 400));
     // Still deeply overlapped: a correction would have pulled it back close to clearing, as the shallower
     // overlap above is pulled back to -1.
     expect(clearOf()).toBeLessThan(-room.offsetHeight);
