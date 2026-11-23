@@ -155,6 +155,8 @@ export interface SnapPiPProps {
 }
 
 const zero = { x: 0, y: 0 };
+// Stryker disable next-line StringLiteral: the icon's stroke styling is drawing only
+const iconDrawing = { viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" } as const;
 const isCorner = (value: unknown): value is SnapPiPCorner => corners.includes(value as SnapPiPCorner);
 const isSize = (value: unknown): value is SnapPiPSize => sizes.includes(value as SnapPiPSize);
 const arrows: readonly string[] = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
@@ -691,8 +693,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
           onDoubleClick={(event) => event.stopPropagation()}
           onClick={() => setCollapsed(!collapsed)}
         >
-          {/* Stryker disable next-line StringLiteral: the icon's stroke styling is drawing only */}
-          <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" {...iconDrawing}>
             {collapsed ? <path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h6A1.5 1.5 0 0 1 11 5.5v5A1.5 1.5 0 0 1 9.5 12h-6A1.5 1.5 0 0 1 2 10.5zM11 7l3-1.5v5L11 9" /> : <path d="M4 4l8 8M12 4l-8 8" />}
           </svg>
         </Button>
