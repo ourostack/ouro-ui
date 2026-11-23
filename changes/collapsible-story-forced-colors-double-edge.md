@@ -1,0 +1,1 @@
+- Fix: Collapsible's bordered-container story drops its own edge under forced colours, so the trigger's edge no longer doubles.
