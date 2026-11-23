@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: the Apple pages and the Platforms pages [name Apple's 1.10.1](site/src/apple/kit.json "verify:equals(site/src/apple/kit.json#release)=1.10.1"), and the parity table lists [each view a Swift file declares](scripts/parity-matrix.test.mjs "verify:fileLine(scripts/parity-matrix.test.mjs, /counts each, and not its support types/)"), so `OuroSkeleton`, `OuroSpinner` and `OuroProgress` all show.
