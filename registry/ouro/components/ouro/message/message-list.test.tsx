@@ -1391,6 +1391,29 @@ describe("MessageList", () => {
     await expect.poll(() => clearOf()).toBeGreaterThanOrEqual(-1);
   });
 
+  it("leaves a deeper overlap than the reserve alone, since it is there for its own reason", async () => {
+    // An overlap past the room's own height did not come from this arrival settling near the pill: a page up or
+    // a jump elsewhere put the reader there on purpose, and correcting it would itself move the place they landed.
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    const room = scroller.querySelector<HTMLElement>("[data-ouro-message-list-jump-room]")!;
+    const last = () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
+    const clearOf = () => (pill.element() as HTMLElement).getBoundingClientRect().top - last().getBoundingClientRect().bottom;
+    // Land an overlap twice the reserve's own height: far past what the reserve alone could have caused.
+    await act(async () => void (scroller.scrollTop += -room.offsetHeight * 2 - clearOf()));
+    scroller.dispatchEvent(new Event("scroll"));
+    scroller.dispatchEvent(new Event("scrollend"));
+    await settle(scroller);
+    // Still deeply overlapped: a correction would have pulled it back close to clearing, as the shallower
+    // overlap above is pulled back to -1.
+    expect(clearOf()).toBeLessThan(-room.offsetHeight);
+  });
+
   it("leaves the jump pill where it already clears the newest message, with nothing to correct", async () => {
     const items = history(19);
     const { scroller, rerender } = await render(<Chat items={items} />);
