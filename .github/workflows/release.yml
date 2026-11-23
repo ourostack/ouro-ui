@@ -432,7 +432,7 @@ jobs:
     if: ${{ needs.release.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
-      actions: write # start Released and Docs pin
+      actions: write # start Released, Docs pin and Ouro Current
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
@@ -446,6 +446,11 @@ jobs:
       - name: Start Docs pin
         run: |
           gh workflow run docs-pin.yml --ref main -f tag="$TAG"
+      # Ouro Current (ouro-current.yml) moves the apps that pin Ouro UI to this release. A release this token publishes
+      # starts no workflow of its own accord, so without this it waited for its next half-hourly run.
+      - name: Start Ouro Current
+        run: |
+          gh workflow run ouro-current.yml --ref main
   attest:
     # Attaches the tag's registry.json to the release and attests it, so the file an install reads has
     # a signed subject that says which workflow and commit built it. A failure here changes no release.

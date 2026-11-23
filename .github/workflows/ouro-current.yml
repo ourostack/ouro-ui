@@ -1,17 +1,14 @@
 name: Ouro Current
-# Our own Dependabot for Ouro UI pins (scripts/current/README.md). On every Ouro UI release, and every half hour for core and
-# Apple releases (a release in another repository cannot start this one), the Ouro Current GitHub App walks each repository
+# Our own Dependabot for Ouro UI pins (scripts/current/README.md). Release (release.yml) starts it once an Ouro UI release is
+# tagged, since a release published with GITHUB_TOKEN starts no workflow itself; it also runs every half hour for core and
+# Apple releases (a release in another repository cannot start this one). The Ouro Current GitHub App walks each repository
 # it is installed on, finds its Ouro UI pin files, and opens or updates one "Update to Ouro UI vX" pull request with
 # auto-merge on. The list of who it keeps current is published as current.json on the `adoption-data` branch, which
 # https://ui.ouroboros.bot/current/ reads. A repository it could not update opens or comments on one issue here.
 on:
-  release:
-    types: [published]
   schedule:
     - cron: "17,47 * * * *"
   workflow_dispatch:
-  repository_dispatch:
-    types: [ouro-ui-release]
 permissions:
   contents: read
 concurrency:

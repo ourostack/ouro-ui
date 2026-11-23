@@ -3601,6 +3601,18 @@ test("Release starts Docs pin once it has tagged, and no job waits for it", () =
   for (const id of ["pages", "publish", "finish", "next"]) assert.doesNotMatch(jobs[id], /docs-pin/, id);
 });
 
+test("Release starts Ouro Current once it has tagged, since a release its own token publishes starts no workflow", () => {
+  // GITHUB_TOKEN's release event starts no other workflow, so ouro-current.yml's own release trigger never fired;
+  // workflow_dispatch is the one event that token may start (https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow).
+  const job = releaseJobs()["docs-pin"];
+  assert.match(job, /gh workflow run ouro-current\.yml --ref main/);
+  const current = workflow("ouro-current.yml");
+  const on = current.split(/^on:\n/m)[1].split(/^\S/m)[0];
+  assert.match(on, /^ {2}workflow_dispatch:$/m, "Release starts it");
+  assert.match(on, /^ {2}schedule:$/m, "core and Apple releases happen elsewhere, so it still runs on a timer");
+  assert.doesNotMatch(on, /^ {2}(release|repository_dispatch):/m, "no trigger that nothing sends");
+});
+
 test("install prep caches a base keyed on the runtime files, then adds the shipped tests over it", () => {
   const ciText = readFileSync(".github/workflows/ci.yml", "utf8");
   const prep = ciText.slice(ciText.indexOf("\n  install-prep:"), ciText.indexOf("\n  install-shard:"));
