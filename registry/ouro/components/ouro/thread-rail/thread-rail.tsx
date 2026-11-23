@@ -156,7 +156,9 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
   // The close button's tooltip names Escape as its shortcut, so it must not take the key: closing
   // here, before the tooltip sees it, makes the first press close the rail.
   function onKeyDownCapture(event: KeyboardEvent<HTMLElement>) {
-    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented || !(event.target as Element).matches(CLOSE_BUTTON)) return;
+    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented) return;
+    const target = event.target as Element;
+    if (!target.matches(CLOSE_BUTTON) || target.parentElement?.closest("[data-ouro]") !== event.currentTarget || inPopup(target, event.currentTarget)) return;
     event.preventDefault();
     event.stopPropagation();
     onClose();

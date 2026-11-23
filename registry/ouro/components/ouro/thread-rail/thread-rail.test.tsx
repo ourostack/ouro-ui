@@ -260,6 +260,24 @@ describe("ThreadRail Escape", () => {
     await userEvent.keyboard("{Escape}");
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it("leaves Escape on another component's close button to that component", async () => {
+    const onClose = vi.fn();
+    const inner = vi.fn();
+    const { rail } = await render(
+      <ThreadRail label="Thread" onClose={onClose}>
+        <div data-ouro="lightbox">
+          <button type="button" data-ouro-part="close" onKeyDown={inner}>
+            Close picture
+          </button>
+        </div>
+      </ThreadRail>,
+    );
+    rail.querySelector<HTMLElement>('[data-ouro="lightbox"] button')!.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(inner).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("ThreadRail focus", () => {
