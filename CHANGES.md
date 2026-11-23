@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: ListDetailPage says "Showing <title>" to a screen reader when a row is chosen beside the list, where focus stays on the row; on a phone focus still moves to the detail heading.
