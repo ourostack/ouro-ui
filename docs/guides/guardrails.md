@@ -494,6 +494,10 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 
 `ouro-images` installs `scripts/ouro/images/images.ts`, outside your TypeScript project, with the [Ouro AX](ax.md) files it runs on in `lib/ouro/ax/`, imported as `#ouro-ax/<file>` (the imports line in [the screen check](#the-screen-check) names that folder), and names `sharp` as a devDependency.
 
+### Cover a state nobody has designed yet
+
+Put `data-ouro-veil` on the element a state isn't designed for (the whole app below its narrowest designed width, a panel whose states are still open), and `ouro-base` covers it with a solid "Not designed yet" layer, dashed and plain, so no one takes it for the design. The value is the reason: `data-ouro-veil="below 600px"` reads "Not designed yet: below 600px". Ouro check leaves every finding inside the veil alone.[^check-veil] The veil is only the cover: the app sets and removes the attribute itself (a media query's class, a flag) and puts `inert` on the veiled content so a keyboard can't reach what is under it.
+
 ### Hand off to a person
 
 Run `ouro check --handoff` and it writes `handoff.md` beside `summary.md`: the floor it proves, what it can't judge (whether someone finishes the task unaided, whether the words mean to them what you meant, whether they trust the screen, whether it works on their own device) and the sessions to run next.[^handoff] Declare the sessions in `ouro-check.json`, one per task, with the question that tells whether the person got there and what to watch for:
@@ -772,3 +776,5 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-needs-a-person]: test:scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds)
 [^check-press-all]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > pressAll presses each Ouro button, switch, checkbox, tab and menu item by name, with the page opened again after each, and never a link, a submit, a destructive or an opted-out one)
 [^vague-escape]: test:scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it verify:testExists(scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it)
+
+[^check-veil]: test:scripts/check/check.test.mts::Ouro check > a finding inside a [data-ouro-veil] layer is skipped, and the same page unveiled still fails verify:testExists(scripts/check/check.test.mts::Ouro check > a finding inside a [data-ouro-veil] layer is skipped, and the same page unveiled still fails)

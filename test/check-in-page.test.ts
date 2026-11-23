@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listPersonSignals, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
+import { ALIASES, behindModal, veiled, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listPersonSignals, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
 import { findImageFades } from "@/registry/ouro/check/fade-check";
 import { findOverlaps } from "@/registry/ouro/check/overlap-check";
 import { findSizeIssues } from "@/registry/ouro/check/size-check";
@@ -50,6 +50,21 @@ async function picture(width: number, height: number): Promise<string> {
 
 const rules = (issues: { rule: string }[]) => issues.map((issue) => issue.rule);
 const LONG = "Prose that runs the whole width of a wide screen is hard to read, because the eye loses its place on the way back to the start of the next line.";
+
+describe("veiled", () => {
+  it("names the refs whose every element sits inside a [data-ouro-veil] layer, and none that mark nothing", () => {
+    render('<p data-ouro-check-ref="1">Page</p><section data-ouro-veil="narrow"><p data-ouro-check-ref="2">Veiled</p><span data-ouro-check-ref="3">Split</span></section><span data-ouro-check-ref="3">Split</span>');
+    expect(veiled(["1", "2", "3", "4"])).toEqual(["2"]);
+  });
+
+  it("draws a solid layer that says so, with the reason when one is given", () => {
+    const page = render('<section data-ouro-veil="" style="height:80px"><p>Hidden</p></section><section data-ouro-veil="below 600px" style="height:80px"></section>');
+    const [plain, reason] = [...page.querySelectorAll("section")].map((el) => getComputedStyle(el, "::after"));
+    expect(plain!.content).toBe('"Not designed yet"');
+    expect(reason!.content).toBe('"Not designed yet: below 600px"');
+    expect(plain!.backgroundImage).toBe("none");
+  });
+});
 
 describe("behindModal", () => {
   it("names no ref while no modal is open, or only a hidden one", () => {
