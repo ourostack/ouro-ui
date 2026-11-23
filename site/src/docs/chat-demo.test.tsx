@@ -57,6 +57,7 @@ describe("the chat app page", () => {
     await expect.element(page.getByLabelText("Replies").first()).toBeInTheDocument();
     const rail = page.getByRole("complementary", { name: "Replies" });
     await expect.element(rail.getByText("Mara Quill").first()).toBeInTheDocument();
+    await expect.element(rail.getByText("Started the thread")).toBeInTheDocument();
     await expect.element(rail.getByPlaceholder("Reply to the thread")).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     await page.getByRole("radio", { name: "Empty" }).click();
@@ -74,7 +75,13 @@ describe("the chat app page", () => {
     const pane = empty.parentElement!.getBoundingClientRect();
     const box = empty.getBoundingClientRect();
     expect(Math.abs(box.top - pane.top - (pane.bottom - box.bottom))).toBeLessThan(2);
-    await page.getByRole("radio", { name: "Loading" }).click();
+    const announced = watchAnnouncements();
+    try {
+      await page.getByRole("radio", { name: "Loading" }).click();
+      await expect.poll(() => announced.count("Loading your conversations")).toBe(1);
+    } finally {
+      announced.stop();
+    }
     const loading = document.querySelector<HTMLElement>('[data-ouro="moment"][data-moment="loading"]')!;
     const frame = loading.parentElement!.getBoundingClientRect();
     const spot = loading.getBoundingClientRect();

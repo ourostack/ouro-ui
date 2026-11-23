@@ -259,7 +259,7 @@ function ChatDemo(): JSX.Element {
       <ThreadRail label="Thread" title="Replies" detail={open.title} meta={`${open.replies.length} replies`} onClose={() => setThreadOpen(false)} returnFocus={threadButton}>
         <MessageList label="Replies" className="min-h-0 flex-1">
           {open.messages[2] ? (
-            <Message id={`${open.messages[2].id}-parent`} variant="reply" role={open.messages[2].own ? "user" : "assistant"} name={open.messages[2].who} time={open.messages[2].time}>
+            <Message id={`${open.messages[2].id}-parent`} variant="reply" context="Started the thread" role={open.messages[2].own ? "user" : "assistant"} name={open.messages[2].who} time={open.messages[2].time}>
               {open.messages[2].text}
             </Message>
           ) : null}
@@ -278,7 +278,7 @@ function ChatDemo(): JSX.Element {
   const body =
     stage === "loading" ? (
       <div className="grid h-full place-items-center">
-        <Moment kind="loading" title="Loading your conversations" />
+        <Moment kind="loading" announce title="Loading your conversations" />
       </div>
     ) : stage === "empty" ? (
       <div className="grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]">
