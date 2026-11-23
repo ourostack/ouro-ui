@@ -462,7 +462,7 @@ const SLOT = "data-ouro-message-list-slot";
  * @claim "draws its hairline by a rule with no sibling combinator" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws the hairline between posts in a list with no :has() or sibling rule over its slots, which WebKit restyles for)
  */
 const POST_AFTER = "data-ouro-message-list-after-post";
-/** Marks a slot whose next slot holds a continued message, so the bubble here joins it with no sibling combinator. */
+/** Marks a slot whose next slot holds a continued message, so the bubble here joins it without a sibling selector. */
 const RUN_NEXT = "data-ouro-message-list-run-next";
 /** Sets a slot's run mark from the slot after it, as it is now. */
 const markRunNext = (slot?: Element | null) => void slot?.toggleAttribute(RUN_NEXT, slot.nextElementSibling?.firstElementChild?.hasAttribute("data-continued") === true);
