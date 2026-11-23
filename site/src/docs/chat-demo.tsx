@@ -10,13 +10,16 @@ import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-su
 import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 import { ReadReceipt } from "@/registry/ouro/components/ouro/read-receipt/read-receipt";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { ThreadLayout } from "@/registry/ouro/components/ouro/thread-layout/thread-layout";
 import { ThreadRail } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
 import { TypingIndicator } from "@/registry/ouro/components/ouro/typing-indicator/typing-indicator";
+import { DocsShell } from "../components/docs-shell";
 
 // A whole chat app from Ouro's chat components with made-up people, as an app would assemble it: the conversation
 // list, the messages with a thread, the typing line and read receipts, and a plain and a rich composer. It ships in no
-// registry item; docs/chat-demo/ shows it.
+// registry item; docs/chat-demo/ shows it. The default export is the whole page (the docs shell and lead included),
+// so site/src/pages/docs.tsx can load it as one lazy chunk and no other docs page's first script carries its weight.
 
 interface Chat {
   id: string;
@@ -110,7 +113,7 @@ const triggers = [{ char: "@", label: "People", items: (query: string) => mentio
 type Stage = "ready" | "loading" | "empty";
 
 /** A chat app in one box: one pane on a phone, the list beside the conversation and its thread from a laptop's width. */
-export default function ChatDemo(): JSX.Element {
+function ChatDemo(): JSX.Element {
   const [stage, setStage] = useState<Stage>("ready");
   const [chats, setChats] = useState<Chat[]>(seed);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -289,5 +292,18 @@ export default function ChatDemo(): JSX.Element {
       />
       <div className="h-[34rem] overflow-hidden rounded-lg border border-border bg-background">{body}</div>
     </div>
+  );
+}
+
+/** The docs/chat-demo/ page: the demo behind its own lazy chunk, lead text and shell included. */
+export default function ChatDemoPage(): JSX.Element {
+  return (
+    <DocsShell current="/docs/chat-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A chat app" }}>
+      <Text size="lg" tone="muted" className="mb-10 max-w-[40rem] text-pretty" data-ouro-measure="">
+        The chat components together, with made-up people: a conversation list, messages with a thread, a typing line,
+        read receipts, and a plain and a rich composer. Try the keyboard, a narrow window and dark mode.
+      </Text>
+      <ChatDemo />
+    </DocsShell>
   );
 }

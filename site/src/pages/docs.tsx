@@ -516,22 +516,11 @@ export function Switching(): JSX.Element {
   );
 }
 
-// A glob, so the docs shell's stylesheet does not scan the chat components; the page links the whole build.
+// A glob, so the docs shell's stylesheet does not scan the chat components; the page links the whole build. The
+// glob resolves the whole page (its shell and lead included), so this page's own weight stays out of every other
+// docs page's first script (site/e2e/catalog.spec.ts, the docs size ceiling).
 const chatDemoModules = import.meta.glob<{ default: () => JSX.Element }>("../docs/chat-demo.tsx");
-const ChatDemo = lazy(Object.values(chatDemoModules)[0]!);
-
-export function ChatDemoPage(): JSX.Element {
-  return (
-    <DocsShell current="/docs/chat-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A chat app" }}>
-      <Lead>
-        The chat components together, with made-up people: a conversation list, messages with a thread, a typing line, read receipts, and a plain and a rich composer. Try the keyboard, a narrow window and dark mode.
-      </Lead>
-      <Suspense fallback={null}>
-        <ChatDemo />
-      </Suspense>
-    </DocsShell>
-  );
-}
+const ChatDemoPage = lazy(Object.values(chatDemoModules)[0]!);
 
 export function Updating(): JSX.Element {
   return (
@@ -649,7 +638,7 @@ export default function DocsRoute({ path }: { path: string }): JSX.Element {
   if (route === "/docs/demo/") return <DemoFrame />;
   if (route === "/docs/switching-from-shadcn/") return <Switching />;
   if (route === "/docs/updating/") return <Updating />;
-  if (route === "/docs/chat-demo/") return <ChatDemoPage />;
+  if (route === "/docs/chat-demo/") return <Suspense fallback={null}><ChatDemoPage /></Suspense>;
   if (lost(path)) return <NotFound />;
   const doc = docFor(path)!;
   return "item" in doc ? <DocsComponent item={doc.item} /> : <DocsPageView page={doc.page} />;
