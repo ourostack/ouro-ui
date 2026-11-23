@@ -464,6 +464,29 @@ describe("findDesignIssues: heading-hierarchy", () => {
   });
 });
 
+describe("findDesignIssues: squircle-missing", () => {
+  it("finds a drawn surface rounded by a plain radius where the engine lacks corner-shape, and nothing where it has it", () => {
+    render(`
+      <div id="card" style="background:#e8eefc;border-radius:16px;width:200px;height:100px">Card</div>
+      <div id="percent" style="background:#e8eefc;border-radius:10%;width:200px;height:100px">Percent</div>
+      <div style="border:1px solid #888;border-radius:12px;width:200px;height:100px">Frame</div>
+      <div style="background:#e8eefc;border-radius:2px;width:200px;height:100px">Tight corner</div>
+      <div style="background:#e8eefc;border-radius:999px;width:200px;height:40px">Capsule</div>
+      <div style="background:#e8eefc;border-radius:50%;width:60px;height:60px">Disc</div>
+      <div style="border-radius:16px;width:200px;height:100px">Unpainted</div>
+      <div style="background:#e8eefc;border-radius:16px;width:200px;height:100px;clip-path:inset(0 round 16px)">Clipped</div>
+      <div data-ouro-squircle style="background:#e8eefc;border-radius:16px;width:200px;height:100px"><span data-ouro-surface style="display:block;background:#e8eefc;border-radius:16px;width:100px;height:50px">Slot</span></div>
+      <div data-hyperellipse-host="layer" style="background:#e8eefc;border-radius:16px;width:200px;height:100px">Polyfilled</div>
+      <div data-ouro-allow="squircle-missing" data-ouro-allow-why="a deliberate circle arc" style="background:#e8eefc;border-radius:16px;width:200px;height:100px">Allowed</div>`);
+    expect(of("squircle-missing", { cornerShape: false }).map(({ element, detail }) => [element, detail])).toEqual([
+      ['div#card "Card"', "16px plain circular radius on a 200x100 surface, in an engine without corner-shape: clip it to a squircle (data-ouro-squircle) or register the polyfill (registerSquirclePolyfill)"],
+      ['div#percent "Percent"', "10px plain circular radius on a 200x100 surface, in an engine without corner-shape: clip it to a squircle (data-ouro-squircle) or register the polyfill (registerSquirclePolyfill)"],
+      ['div "Frame"', "12px plain circular radius on a 200x100 surface, in an engine without corner-shape: clip it to a squircle (data-ouro-squircle) or register the polyfill (registerSquirclePolyfill)"],
+    ]);
+    expect(of("squircle-missing", { cornerShape: true })).toEqual([]);
+  });
+});
+
 describe("findDesignIssues: the whole page", () => {
   it("names nothing on a quiet page, skipping script, style and svg innards, and marks an element once per finding", () => {
     render(`<h1>Quiet</h1><p>Words.</p><svg width="20" height="20"><text y="10">svg text</text></svg><style>.x{}</style><script type="text/x-none">x</script>

@@ -31,6 +31,11 @@ import type { PageIssue } from "./size-check.ts";
 //   heading-hierarchy  a heading drawn larger than the heading it sits under, each at the largest size its text is drawn
 //                      at (a title's span may set it)
 //
+//   squircle-missing  in an engine without corner-shape (WebKit's WKWebView), a drawn surface (a fill, a frame or a
+//                      picture) rounded under half its size by a plain circular radius, neither clipped to a squircle
+//                      (data-ouro-squircle) nor drawn by the polyfill (data-hyperellipse-host). Circles and capsules,
+//                      whose ends are round by design, and corners under `squirclePx` are no finding
+//
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
 // do. `element` names the element the same way at every size; `detail` has this size's numbers.
 
@@ -52,6 +57,10 @@ interface DesignOptions {
   maxShadows?: number;
   /** The cap, in CSS pixels, on the page's reading size: the size that carries its running text. */
   readingPx?: number;
+  /** Whether the engine draws corner-shape; left out, the engine is asked. Only an engine without it is judged for squircle-missing. */
+  cornerShape?: boolean;
+  /** The radius, in CSS pixels, under which a circle's arc and a squircle's look alike. */
+  squirclePx?: number;
 }
 
 interface CornerMedia {
@@ -77,7 +86,7 @@ interface CornerReading {
   corners: string[];
 }
 
-function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24 }: DesignOptions = {}): PageIssue[] {
+function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4 }: DesignOptions = {}): PageIssue[] {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
@@ -442,6 +451,18 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         detail: `${Math.round(mine)}px, larger than the ${describe(above)}${quoted(above)} it sits under at ${Math.round(theirs)}px`,
       });
     }
+  }
+
+  // squircle-missing: only where the engine can't draw corner-shape itself.
+  for (const el of cornerShape ? [] : visible) {
+    const s = getComputedStyle(el);
+    const box = el.getBoundingClientRect();
+    const half = Math.min(box.width, box.height) / 2;
+    const radius = Math.max(...([s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius]).map((value) => {
+      return value.endsWith("%") ? (parseFloat(value) / 100) * 2 * half : px(value);
+    }));
+    if (radius < squirclePx || radius >= half - 0.5 || s.clipPath !== "none" || el.closest("[data-ouro-squircle], [data-hyperellipse-host]") || optedOut(el, "squircle-missing") || !filled(el)) continue;
+    issues.push({ ref: ref(el), rule: "squircle-missing", element: `${describe(el)}${quoted(el)}`, detail: `${Math.round(radius)}px plain circular radius on a ${Math.round(box.width)}x${Math.round(box.height)} surface, in an engine without corner-shape: clip it to a squircle (data-ouro-squircle) or register the polyfill (registerSquirclePolyfill)` });
   }
   return issues;
 }

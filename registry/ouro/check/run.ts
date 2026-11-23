@@ -33,7 +33,7 @@ import { findWrapIssues, readHeroArt, type HeroArt } from "./wrap-check.ts";
 //
 //   node scripts/ouro/check/check.ts <url | built folder>… [--pages <glob>] [--out <folder>] [--sizes WxH,…]
 //        [--themes light,dark] [--before <old report.json>] [--config ouro-check.json] [--no-axe]
-//        [--no-measured] [--ready-event <name>] [--shard k/n] [--images-report <file.json>] [--handoff]
+//        [--no-measured] [--engine chromium|webkit|wkwebview] [--ready-event <name>] [--shard k/n] [--images-report <file.json>] [--handoff]
 //   node scripts/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config ouro-check.json] [--images-report <file.json>] [--handoff]
 //
 // Exits as every Ouro tool does (EXIT): 0 ok, 1 error (the check could not run), 2 usage, 3 findings. Playwright comes
@@ -186,8 +186,10 @@ interface CheckOptions {
   measured?: boolean;
   readyEvents?: string[];
   chromium: BrowserType;
+  /** The engine's name, which the install message and the engine-only rules read; chromium when left out. */
+  engine?: Engine;
   executablePath?: string;
-  /** Downloads Chromium when Playwright lacks it; without it, a missing browser stops the check. */
+  /** Downloads the browser when Playwright lacks it; without it, a missing browser stops the check. */
   install?: () => Promise<void>;
   readyTimeout?: number;
   log?: (line: string) => void;
@@ -247,6 +249,7 @@ const LABELS: Record<string, string> = {
   "shadow-scale": "shadow scale",
   "grey-on-colour": "grey on colour",
   "heading-hierarchy": "heading hierarchy",
+  "squircle-missing": "plain corner where a squircle belongs",
   jank: "jank",
   repaint: "repaints at rest",
   "leaked-value": "leaked value",
@@ -295,6 +298,7 @@ const HINTS: Record<string, string> = {
   "shadow-scale": "pick shadows from a few elevations",
   "grey-on-colour": "use a shade of the background's own hue, or white at reduced opacity",
   "heading-hierarchy": "size headings by rank: a heading under another is smaller",
+  "squircle-missing": "register the polyfill (registerSquirclePolyfill) or clip the surface to a squircle (data-ouro-squircle); run with --engine wkwebview to see it",
   jank: "batch layout reads before writes, animate transform and opacity, and keep hover from moving content",
   repaint: "animate transform or opacity, outside SVG, or let the animation end",
   "leaked-value": "show a person's words for the value, or nothing, never what the program holds for itself",
@@ -600,8 +604,11 @@ async function settle(page: Page): Promise<void> {
   );
 }
 
+// An app's WKWebView has no corner-shape, which Playwright's WebKit has: it answers as the app's engine does.
+const HIDE_CORNER_SHAPE = `const supports = CSS.supports.bind(CSS); CSS.supports = (...query) => !/corner-shape/.test(query.join(" ")) && supports(...query);`;
+
 async function check(options: CheckOptions): Promise<CheckResult> {
-  const { out, chromium, executablePath, install, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log, fetch: ask = fetch } = options;
+  const { out, chromium, engine = "chromium", executablePath, install, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log, fetch: ask = fetch } = options;
   const budgets: Budgets = { ...BUDGETS, ...config.budgets };
   const repeats = config.pressRepeat ?? PRESS_REPEAT;
   const { list: opened, close } = await targetsOf(options.targets, options.pages);
@@ -656,6 +663,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   const contextFor = async (width: number, height: number, theme: string, motion: "reduce" | "no-preference" = "reduce") => {
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dprAt(width), colorScheme: theme as "light" | "dark", reducedMotion: motion });
     await context.addInitScript(listenForReady, ["ouro:ready", ...readyEvents]);
+    if (engine === "wkwebview") await context.addInitScript(HIDE_CORNER_SHAPE);
     if (measured) {
       await context.addInitScript(listenForMeasures);
       await context.addInitScript(listenForMotion);
@@ -1315,6 +1323,7 @@ interface Args {
   sizes: [number, number][];
   themes: string[];
   shard: [number, number];
+  engine: Engine;
   before?: string | undefined;
   config?: string | undefined;
   axe: boolean;
@@ -1347,6 +1356,7 @@ const CHECK_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
   themes: { type: "list", placeholder: "<light,dark>", description: "The colour schemes (default both)." },
   shard: { type: "string", placeholder: "<k/n>", description: "This job's share, the kth of n parallel jobs; merge their out folders after." },
   before: { type: "string", placeholder: "<report.json>", description: "An earlier report, to show a before and after of what was fixed since." },
+  engine: { type: "string", placeholder: "<chromium|webkit|wkwebview>", description: "The browser engine (default chromium). wkwebview is Playwright's WebKit answering that it has no corner-shape, as an app's WKWebView does, so squircle-missing judges there." },
   "no-axe": { type: "boolean", description: "Skip axe-core." },
   "no-measured": { type: "boolean", description: "Skip the measured rules, and press nothing." },
   "ready-event": { type: "string", repeat: true, placeholder: "<name>", description: "An event the page fires once it has drawn, besides ouro:ready." },
@@ -1380,6 +1390,15 @@ function themesOf(cli: Cli, cmd: CommandDef, input: Input): string[] {
   return [...themes];
 }
 
+const ENGINES = { chromium: "Chromium", webkit: "WebKit", wkwebview: "WebKit" } as const;
+type Engine = keyof typeof ENGINES;
+
+function engineOf(cli: Cli, cmd: CommandDef, input: Input): Engine {
+  const text = (input["engine"] as string | undefined) ?? "chromium";
+  if (!Object.hasOwn(ENGINES, text)) throw refusal("bad-value", "check --engine", `is chromium, webkit or wkwebview, not "${text}"`, fixFor(cli, cmd, input, { engine: "webkit" }));
+  return text as Engine;
+}
+
 function shardOf(cli: Cli, cmd: CommandDef, input: Input): [number, number] {
   const text = input["shard"] as string | undefined;
   if (text === undefined) return [1, 1];
@@ -1402,6 +1421,7 @@ function argsOf(cli: Cli, cmd: CommandDef, input: Input): Args {
     sizes: sizesOf(cli, cmd, input),
     themes: themesOf(cli, cmd, input),
     shard: shardOf(cli, cmd, input),
+    engine: engineOf(cli, cmd, input),
     before: text("before"),
     config: text("config"),
     axe: input["no-axe"] !== true,
@@ -1452,13 +1472,14 @@ async function launch(chromium: BrowserType, executablePath: string | undefined,
 
 // Downloads Chromium with the Playwright the check runs on, as `npx playwright install chromium` would, so the browser
 // matches that Playwright's version. Its output stays quiet unless the download fails.
-function installer(module: string, cwd: string, log: (line: string) => void): () => Promise<void> {
+function installer(module: string, cwd: string, log: (line: string) => void, engine: Engine): () => Promise<void> {
+  const [name, label] = [engine === "chromium" ? "chromium" : "webkit", ENGINES[engine]];
   return async () => {
-    log("Chromium isn't downloaded yet: downloading it once (npx playwright install chromium).");
+    log(`${label} isn't downloaded yet: downloading it once (npx playwright install ${name}).`);
     const cli = join(dirname(createRequire(import.meta.url).resolve(module)), "cli.js");
     const output: string[] = [];
     const { code, signal } = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((done) => {
-      const child = spawn(process.execPath, [cli, "install", "chromium"], { cwd, stdio: ["ignore", "pipe", "pipe"] });
+      const child = spawn(process.execPath, [cli, "install", name], { cwd, stdio: ["ignore", "pipe", "pipe"] });
       child.stdout.on("data", (chunk: Buffer) => output.push(String(chunk)));
       child.stderr.on("data", (chunk: Buffer) => output.push(String(chunk)));
       child.on("close", (code, signal) => done({ code, signal }));
@@ -1467,7 +1488,7 @@ function installer(module: string, cwd: string, log: (line: string) => void): ()
       // The first error line says why (Playwright ends with a stack); else the last line it printed; else its exit.
       const lines = output.join("").split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("at "));
       const reason = [...lines.filter((line) => line.startsWith("Error: ")), ...lines.reverse(), signal ? `it was stopped by ${signal}` : `it exited with ${code}`][0];
-      throw refusal("no-browser", "check", `needs Chromium, and downloading it stopped: ${reason}`, "npx playwright install chromium");
+      throw refusal("no-browser", "check", `needs ${label}, and downloading it stopped: ${reason}`, `npx playwright install ${name}`);
     }
   };
 }
@@ -1532,9 +1553,10 @@ async function runCheck(context: Env, cli: Cli, cmd: CommandDef, input: Input, j
   for (const target of args.targets) if (!merging && !URL_TARGET.test(target) && !(await isFolder(resolve(cwd, target)))) throw targetRefusal(cli, target);
   const playwright = env.PLAYWRIGHT_MODULE ?? ["playwright", "playwright-core"].map((name) => load(name, from)).find(Boolean);
   if (!playwright) throw refusal("no-playwright", "check", "needs Playwright", "install playwright (npm i -D playwright), or set PLAYWRIGHT_MODULE to it");
-  const chromium = (createRequire(import.meta.url)(playwright) as { chromium: BrowserType }).chromium;
-  // A browser the app names is used as it is; otherwise a missing Chromium is downloaded on first run.
-  const executable = env.BROWSER_EXECUTABLE ? { executablePath: env.BROWSER_EXECUTABLE } : { install: installer(playwright, cwd, log) };
+  const browsers = createRequire(import.meta.url)(playwright) as { chromium: BrowserType; webkit: BrowserType };
+  const chromium = args.engine === "chromium" ? browsers.chromium : browsers.webkit;
+  // A browser the app names is used as it is; otherwise a missing browser is downloaded on first run.
+  const executable = env.BROWSER_EXECUTABLE ? { executablePath: env.BROWSER_EXECUTABLE } : { install: installer(playwright, cwd, log, args.engine) };
   const configFile = resolve(cwd, args.config ?? "ouro-check.json");
   const hasConfig = args.config !== undefined || (await readFile(configFile).then(() => true, () => false));
   const config: Gate = hasConfig ? await readJson<Gate>(configFile) : {};
@@ -1575,6 +1597,7 @@ async function runCheck(context: Env, cli: Cli, cmd: CommandDef, input: Input, j
         measured: args.measured,
         readyEvents: args.readyEvents,
         chromium,
+        engine: args.engine,
         ...executable,
         log,
       });
