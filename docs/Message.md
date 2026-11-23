@@ -46,7 +46,7 @@ The props the modes share. Type: `MessageProps`.
 | `deleteLabel` | `string` | `"Delete"` | The name of a `failed` message's delete button, for other languages. |
 | `failed` | `MessageFailed \| false` |  | The message did not send, and what the person can do about it: `{ onRetry, onDelete }`. A calm marker under it says "Not sent" beside Retry and Delete buttons, and stays until the app clears `failed`, so a failed send never goes quiet. Screen readers hear the marker as the message's description. It appears at once, with no motion. To put the text back in a `Composer` instead, set the Composer's `value` to it and delete the message. |
 | `failedLabel` | `string` | `"Not sent"` | What the marker under a `failed` message says, for other languages. |
-| `footer` | `ReactNode` |  | Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
+| `footer` | `ReactNode` |  | Under the message: its reactions (`<ReactionBar>`) and "Edited". For whether it was delivered or seen, use `statusMark` instead: a row here reads as a line of its own under every message, rather than a mark that belongs to the bubble. |
 | `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label and its `shortcut` at its end. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads as soon as a bar with a menu is on the page, so the first press opens it without a wait. In a `MessageList`, the list has one menu for all its messages: the bar's menu button, a right-click on the message (except on a field, a link, a picture or selected text, which keep the browser's menu) and Shift+F10 or the context-menu key on it all open it, named by `actionsMenuLabel`, and closing it puts focus back on the message. |
 | `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
 | `name` (required) | `string \| null` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's place on its line, the avatar shimmers in its own shape, and screen readers hear `nameLoadingLabel`. Nothing moves when the name arrives. |
@@ -63,6 +63,7 @@ The props the modes share. Type: `MessageProps`.
 | `retryLabel` | `string` | `"Retry"` | The name of a `failed` message's retry button, for other languages. |
 | `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ana joined"), centered and quiet. |
 | `sentLabel` | `string` | `"Sent"` | What screen readers hear once a `pending` message is confirmed, for other languages. The sender hears Sent when the send is confirmed, or the failed label when it fails, and these words are not the message's own. |
+| `statusMark` | `ReactNode` |  | A small mark seated against the user's own bubble, at its bottom end corner (the same corner the bubble's own shape points to): for example whether the message was delivered or seen. It sits inside the bubble's own box, in reserved room the bubble makes for it, so it never overlaps the message's own text or spills onto whatever the bubble sits over, and it adds no row of its own alongside `header` or `footer`. For example `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on `role="user"` with a bubble: a `default` message, a `chat` message, or a `reply` given its own `bubble`. On `assistant`, `system`, or a `post` or unbubbled `reply`, which have no bubble corner to seat it against, it is not drawn. |
 | `streaming` | `boolean` |  | The reply is still being written. The message is `aria-busy`, an empty one shows a typing indicator, and `MessageList` announces it once, when streaming ends. |
 | `streamingLabel` | `string` | `"Writing"` | What screen readers hear for the typing indicator, for other languages. |
 | `subject` | `ReactNode` |  | A post's subject, in semibold above its text. `post` only. |
@@ -432,8 +433,24 @@ interface MessageOwnProps {
    * full size.
    */
   attachments?: ReactNode;
-  /** Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. */
+  /**
+   * Under the message: its reactions (`<ReactionBar>`) and "Edited". For whether it was
+   * delivered or seen, use `statusMark` instead: a row here reads as a line of its own under
+   * every message, rather than a mark that belongs to the bubble.
+   */
   footer?: ReactNode;
+  /**
+   * A small mark seated against the user's own bubble, at its bottom end corner (the same corner
+   * the bubble's own shape points to): for example whether the message was delivered or seen. It
+   * sits inside the bubble's own box, in reserved room the bubble makes for it, so it never
+   * overlaps the message's own text or spills onto whatever the bubble sits over, and it adds no
+   * row of its own alongside `header` or `footer`. For example
+   * `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on
+   * `role="user"` with a bubble: a `default` message, a `chat` message, or a `reply` given its
+   * own `bubble`. On `assistant`, `system`, or a `post` or unbubbled `reply`, which have no
+   * bubble corner to seat it against, it is not drawn.
+   */
+  statusMark?: ReactNode | undefined;
   /** Under a post, or a message in a channel without threads: its thread, as a `<ThreadSummary>`. */
   thread?: ReactNode;
   /**

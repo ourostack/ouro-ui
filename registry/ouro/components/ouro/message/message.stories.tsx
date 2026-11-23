@@ -216,7 +216,8 @@ function ChatConversation({ bubble = "filled" }: { bubble?: MessageBubble }) {
           continued
           actions={actions}
           menu={menu}
-          footer={<span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Edited · Seen</span>}
+          footer={<span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Edited</span>}
+          statusMark={<span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Seen</span>}
         >
           I will print the seating plan tonight.
         </Message>
