@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [a Skeleton placeholder drawn behind a held main thread joins the shared breathing phase within a few milliseconds, instead of a gap as long as the hold](registry/ouro/components/ouro/skeleton/skeleton.test.tsx "verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > joins the shared phase past a host held for longer than the mount itself takes)"), by correcting its animation's own clock to a fresh read of the join once a frame has pegged it, rather than trusting the clock read its delay came from before that frame landed.
