@@ -174,7 +174,7 @@ function ChatDemo(): JSX.Element {
       label="Conversations"
       items={items}
       selectedId={openId}
-      empty="No conversations"
+      empty="Start a conversation"
       onSelect={(id) => {
         if (id !== openId) {
           stopReplies();
@@ -268,7 +268,7 @@ function ChatDemo(): JSX.Element {
     ) : stage === "empty" ? (
       <div className="grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]">
         <div className="border-e border-border p-2">
-          <ConversationList label="Conversations" items={[]} empty="No conversations" onSelect={() => {}} />
+          <ConversationList label="Conversations" items={[]} empty="Start a conversation" onSelect={() => {}} />
         </div>
         <div className="grid place-items-center">
           <Moment kind="empty" art={<TrayArt />} title="Nothing here yet" description="Messages you send and receive show up here." />
