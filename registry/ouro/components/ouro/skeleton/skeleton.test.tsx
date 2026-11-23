@@ -33,14 +33,15 @@ function animationPhase(el: Element): number {
 }
 
 /**
- * A late placeholder computes its delay from a live clock read in a layout effect, but a
- * busy host can hold the document's own animation timeline at an older tick until the next
- * paint, so the two reads land that much apart even though both track the same wave from
- * then on. A run with the main thread held for 80ms before the second mount read back a gap
- * of about 80ms; this bound gives a loaded runner room past the single CI miss this guards
- * (177ms) while staying a small slice of a breath (2400ms), so a real desync still fails it.
+ * Once its animation's own clock is pegged to a real frame, a placeholder corrects it to the
+ * join a fresh clock read would have given it, so a hold between the layout effect's read and
+ * that frame no longer leaves the two apart by the hold's own length. Held right after mounting
+ * for 300ms or 2000ms, the two later tests below land the join within a few milliseconds, on
+ * Chromium and on WebKit, and fail at this same bound without that correction (a host held
+ * 2000ms then landed 310-400ms apart, run local to this change). This bound keeps headroom past
+ * that measured join while still catching a desync within a slice of a breath (2400ms).
  */
-const phaseGapMs = 500;
+const phaseGapMs = 150;
 
 /** How far apart two phases are on the wave's circle: a phase a hair under one whole breath (2400ms) away is close, not far, so this takes the shorter way around. */
 function phaseGap(a: number, b: number): number {
@@ -280,15 +281,27 @@ describe("Skeleton", () => {
     expect(late.getAnimations()).toEqual([]);
   });
 
-  it("joins the shared phase past a host that holds the main thread before the mount", async () => {
+  it("joins the shared phase past a host held right after it mounts, before its first frame can peg its own clock", async () => {
     const phase = animationPhase;
     const first = await render(<Skeleton />);
-    await expect.poll(() => phase(first)).toBeGreaterThan(1300);
-    // A synchronous hold stands in for a loaded host that delays a paint before this mount,
-    // the same gap the bound above is sized for.
-    const holdUntil = performance.now() + 200;
+    // Holds the main thread right after mounting, while the animation is still pending (its own clock, its
+    // startTime, not yet pegged to a real frame): the moment this placeholder's delay assumed was now.
+    const holdUntil = performance.now() + 300;
     while (performance.now() < holdUntil) { /* holds the main thread, no yield */ }
     const late = await render(<Skeleton />);
+    // One settled frame past the mount, so both animations' own clocks have had their pending startTime pegged.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(phaseGap(phase(first), phase(late))).toBeLessThan(phaseGapMs);
+  });
+
+  it("joins the shared phase past a host held for longer than the mount itself takes", async () => {
+    const phase = animationPhase;
+    const first = await render(<Skeleton />);
+    // A hold well past the bound's comment checks the join still tracks the clock, not the hold.
+    const holdUntil = performance.now() + 2000;
+    while (performance.now() < holdUntil) { /* holds the main thread, no yield */ }
+    const late = await render(<Skeleton />);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     expect(phaseGap(phase(first), phase(late))).toBeLessThan(phaseGapMs);
   });
 
