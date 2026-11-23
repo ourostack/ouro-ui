@@ -1912,6 +1912,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // (scrollTo, scrollBy: a find's smooth scroll to its match, an app's own), which may take frames to get there.
     let inputAt = Number.NEGATIVE_INFINITY;
     const onInput = () => void (inputAt = performance.now());
+    // Stryker disable next-line BooleanLiteral: passive only tells the browser these listeners never cancel the event; onInput never calls preventDefault, so no test can observe it.
     for (const type of ["pointerdown", "keydown", "touchstart"]) scroller.addEventListener(type, onInput, { capture: true, passive: true });
     const asked = (name: "scrollTo" | "scrollBy") => {
       const scroll = Element.prototype[name];
