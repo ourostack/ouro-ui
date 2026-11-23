@@ -595,7 +595,8 @@ describe("Inspector", () => {
       }
     }
     document.documentElement.classList.remove("dark");
-  }, 30_000);
+    // Every line of text measured twice in each scheme: about 16 s in WebKit on CI, so the budget is twice that.
+  }, 60_000);
 
   it("does not outline itself, an overlay's wrappers, a hidden component or a part apart from its component", async () => {
     const { host } = await render(
