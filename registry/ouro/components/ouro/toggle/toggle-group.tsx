@@ -391,10 +391,13 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
       event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : step ? (at + step + buttons.length) % buttons.length : -1;
     if (target === -1) return;
     event.preventDefault();
-    // Stryker disable next-line OptionalChaining: target is always inside buttons
     const next = buttons[target];
+    // Stryker disable next-line OptionalChaining: next is always inside buttons
     next?.focus();
-    if (overflow === "scroll") next?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    if (overflow === "scroll") {
+      // Stryker disable next-line OptionalChaining: next is always inside buttons
+      next?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    }
   };
 
   const groupItems = items.map((item) => (
@@ -459,12 +462,15 @@ function ScrollRow(props: {
   useScrollFade(fadeRef);
   const rowRef = useMergedRef(outerRef, fadeRef);
   useLayoutEffect(() => {
-    fadeRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    // Stryker disable next-line OptionalChaining: the ref is attached by the time this effect runs
+    const pressedButton = fadeRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    pressedButton?.scrollIntoView({ inline: "nearest", block: "nearest" });
     // Stryker disable next-line ArrayDeclaration: the ref is stable; only a value change need run this again
   }, [pressedKey]);
   return (
     <div
       ref={rowRef}
+      data-slot="toggle-group-scroller"
       role="group"
       aria-labelledby={labelId}
       onKeyDown={onKeyDown}

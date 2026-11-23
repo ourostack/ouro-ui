@@ -28,9 +28,8 @@ async function render(node: ReactNode) {
   };
 }
 
-let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(async () => {
-  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  vi.spyOn(console, "warn").mockImplementation(() => {});
   await page.viewport(1024, 768);
 });
 afterEach(async () => {
@@ -104,5 +103,74 @@ describe("ToggleGroup overflow scroll", () => {
     const box = row.getBoundingClientRect();
     const at = toggles.at(-1)!.getBoundingClientRect();
     await expect.poll(() => at.left >= box.left - 1 && at.right <= box.right + 1).toBe(true);
+  });
+
+  it("asks the browser to scroll the pressed toggle fully into view, not just closer", async () => {
+    const spy = vi.fn();
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = spy;
+    try {
+      await page.viewport(320, 400);
+      const { rerender } = await render(
+        <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value="all" onValueChange={() => {}} />,
+      );
+      spy.mockClear();
+      await rerender(
+        <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value="drafts" onValueChange={() => {}} />,
+      );
+      expect(spy).toHaveBeenCalledWith({ inline: "nearest", block: "nearest" });
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
+  });
+
+  it("mounts with nothing pressed without throwing", async () => {
+    await page.viewport(320, 400);
+    const { toggles } = await render(
+      <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value={undefined} onValueChange={() => {}} />,
+    );
+    expect(toggles.length).toBe(filters.length);
+  });
+
+  it("asks the browser to scroll the arrow-focused toggle into view, only when overflow is scroll", async () => {
+    const spy = vi.fn();
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = spy;
+    try {
+      await page.viewport(320, 400);
+      const { toggles } = await render(
+        <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value="all" onValueChange={() => {}} />,
+      );
+      await pressTab();
+      spy.mockClear();
+      await act(async () => {
+        document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      });
+      await expect.poll(() => document.activeElement).toBe(toggles[1]);
+      expect(spy).toHaveBeenCalledWith({ inline: "nearest", block: "nearest" });
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
+  });
+
+  it("does not ask the browser to scroll on arrow navigation when overflow is wrap", async () => {
+    const spy = vi.fn();
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = spy;
+    try {
+      await page.viewport(320, 400);
+      const { toggles } = await render(
+        <ToggleGroup label="Show" hideLabel items={filters} value="all" onValueChange={() => {}} />,
+      );
+      await pressTab();
+      spy.mockClear();
+      await act(async () => {
+        document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      });
+      await expect.poll(() => document.activeElement).toBe(toggles[1]);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
   });
 });

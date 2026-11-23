@@ -385,6 +385,13 @@ describe("ToggleGroup development messages", () => {
     expect(toggles[0]!.getAttribute("data-shape")).toBe("rect");
   });
 
+  it("warns for an unknown overflow and renders wrap", async () => {
+    const props = { label: "Alignment", items: align, overflow: "clip" } as unknown as ToggleGroupProps;
+    const { group } = await render(<ToggleGroup {...props} />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] ToggleGroup: overflow="clip" is not an overflow. Fix: <ToggleGroup overflow="scroll">.');
+    expect(group.className).toContain("flex-wrap");
+  });
+
   it("warns for appearance classes and an empty label", async () => {
     await render(<ToggleGroup label="" items={align} className="rounded-ouro-xl" />);
     expect(warn).toHaveBeenCalledWith(
