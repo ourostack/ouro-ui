@@ -1,0 +1,1 @@
+- Fixed: Avatar tiles are lighter on a dark page, so they stand off the background.
