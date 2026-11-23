@@ -895,6 +895,18 @@ test("an optional word stays bare where another form of the command leaves it ou
   assert.deepEqual(command("note", ["note <meeting> <text> [--file <path>]"], { properties: { meeting: place, text }, required: ["meeting"] }), { words: 2, problems: [] });
 });
 
+test("a `|` choice inside one bracketed group is one optional word, not a required word after the first alternative", () => {
+  const command = (usage: string) => wordProblems({ name: "rehearse", protocol: false, words: ["rehearse"], effect: "private", readOnly: true, usage: [usage], scope: null, inputSchema: undefined });
+  // <dmg or zip> sits in the same [...] group as <version>, reached through a `|` alternative: it is optional too, not a
+  // separate bare word that comes after an optional one.
+  assert.deepEqual(command("rehearse [<version> | latest | <dmg or zip>] [--engine <path>] [--service <dir>] [--unattended]"), { words: 2, problems: [] });
+  // A later, unrelated [--flag <word>] group is unaffected: <minutes> falls after the line's first --flag and is excluded
+  // from the word list entirely, as it already was.
+  assert.deepEqual(command("rehearse [<build>] --unattended --idle <minutes>"), { words: 1, problems: [] });
+  // A `<` with no closing `>` names no word and stops the scan there, same as the regex it replaced silently skipped.
+  assert.deepEqual(command("rehearse <open"), { words: 0, problems: [] });
+});
+
 test("the optional-words check fails a CLI whose help puts an optional word first and types a default wrong, naming the fix", async () => {
   const help = { tool: "bad-words", about: ["bad-words: a tool."], commands: [{ name: "tasks", effect: "private", readOnly: true, usage: ["bad-words tasks [<limit>] <title>"], inputSchema: { type: "object", properties: { limit: { type: "string", default: 20 }, title: { type: "string" } }, required: ["title"] } }] };
   const cli = join(scratch, "bad-words.mjs");
