@@ -1,0 +1,1 @@
+- Changed: MediaTile's Pin toggle is named for the person ("Pin Mara Lind"), and on a touch screen it rests quieter, reaching full strength while focus is in the tile or it is pinned.

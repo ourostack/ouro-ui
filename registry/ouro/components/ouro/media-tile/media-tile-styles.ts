@@ -83,7 +83,7 @@ interface MediaTileLabels {
   presenting: string;
   /** Read while the tile is pinned: "pinned". */
   pinned: string;
-  /** The Pin control's name, which stays the same pinned or not (it is a toggle): "Pin". */
+  /** The word the Pin control's name starts with; the tile adds the person's name ("Pin Mara Lind"), and it stays the same pinned or not (it is a toggle): "Pin". */
   pin: string;
 }
 
@@ -221,7 +221,7 @@ const controlsClass =
   "absolute end-2 top-2 z-20 flex items-center gap-1 rounded-ouro-lg p-0.5 " +
   "opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
   "pointer-fine:group-hover/tile:opacity-100 group-focus-within/tile:opacity-100 group-focus-within/tile:transition-none " +
-  "data-pinned:opacity-100 pointer-coarse:opacity-100";
+  "data-pinned:opacity-100 pointer-coarse:opacity-60 pointer-coarse:group-focus-within/tile:opacity-100 pointer-coarse:data-pinned:opacity-100";
 
 /**
  * MediaTile's agent side, declared with Ouro AX's `defineComponentAx`: it reads who is in the tile and what they are doing,
