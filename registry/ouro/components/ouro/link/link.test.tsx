@@ -366,7 +366,7 @@ describe("Link", () => {
     expect(!!link.querySelector("[data-ouro-external]")).toBe(true);
   });
 
-  it("keeps an external link's icon on its last character's line across a sweep of container widths", async () => {
+  it("keeps an external link's icon on its last word's line across a sweep of container widths", async () => {
     const text = "Every page here is built with Ouro UI, our open library that helps agents make great interfaces";
     const { host, link } = await render(
       <div style={{ width: 150 }}>
@@ -377,26 +377,19 @@ describe("Link", () => {
     );
     const container = host.firstElementChild as HTMLElement;
     const icon = link.querySelector<SVGElement>("[data-ouro-external]")!;
-    const walker = document.createTreeWalker(link, NodeFilter.SHOW_TEXT);
-    let lastTextNode: Text | null = null;
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      if (
-        node.textContent?.trim() &&
-        !node.parentElement?.closest(".sr-only") &&
-        !node.parentElement?.closest('[data-slot="link-icon"]')
-      )
-        lastTextNode = node as Text;
-    }
-    const lastChar = document.createRange();
+    // The last line's own rect, not a single glyph's tight bounding box: a character's box
+    // varies by font and engine (a descender, a dot) and can miss the icon's box by a wide
+    // margin even on the same line, which is what made this flake between font renderers.
+    const words = document.createRange();
+    words.setStart(link, 0);
+    words.setEndBefore(icon);
     const alone: number[] = [];
     for (let width = 150; width <= 420; width += 2) {
       container.style.width = `${width}px`;
-      const trimmed = lastTextNode!.textContent!.trimEnd();
-      lastChar.setStart(lastTextNode!, trimmed.length - 1);
-      lastChar.setEnd(lastTextNode!, trimmed.length);
-      const charRect = lastChar.getBoundingClientRect();
-      const iconRect = icon.getBoundingClientRect();
-      if (Math.abs(iconRect.bottom - charRect.bottom) > 4) alone.push(width);
+      const last = [...words.getClientRects()].at(-1)!;
+      const box = icon.getBoundingClientRect();
+      const middle = (box.top + box.bottom) / 2;
+      if (middle < last.top || middle > last.bottom) alone.push(width);
     }
     expect(alone).toEqual([]);
   });
