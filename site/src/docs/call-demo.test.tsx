@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
@@ -14,6 +14,21 @@ afterEach(async () => {
 });
 
 describe("the call window page", () => {
+  it("holds its made-up speaker and captions still while a pointer is in the window", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      await renderPage("/docs/call-demo/");
+      const region = () => document.querySelector("[data-site-call-demo] [role=group]")?.textContent;
+      await page.getByRole("button", { name: "Leave" }).hover();
+      const before = region();
+      vi.advanceTimersByTime(8000);
+      await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+      expect(region()).toBe(before);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("has a route", () => {
     expect(routes.some((route) => route.path === "/docs/call-demo/")).toBe(true);
   });

@@ -123,13 +123,16 @@ function CallDemo(): JSX.Element {
   const [lines, setLines] = useState<LiveCaptionLine[]>([]);
   const [speaker, setSpeaker] = useState(0);
   const [pinned, setPinned] = useState("");
+  // The made-up speaker, captions and level hold still while a pointer or focus is in the window, so what a person aims at stays put.
+  const [still, setStill] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const moved = useRef(false);
+  const step = useRef(0);
 
   const visible = everyone.slice(0, others);
   const inCall = stage === "call";
-  const level = useFakeLevel(stage === "lobby");
+  const level = useFakeLevel(stage === "lobby" && !still);
 
   const go = useCallback((next: Stage, byApp: boolean) => {
     moved.current = byApp;
@@ -149,28 +152,27 @@ function CallDemo(): JSX.Element {
 
   // The ring follows a made-up speaker detection that moves between the people who are not muted.
   useEffect(() => {
-    if (!inCall) return;
+    if (!inCall || still) return;
     const timer = window.setInterval(() => setSpeaker((now) => now + 1), 2600);
     return () => window.clearInterval(timer);
-  }, [inCall]);
+  }, [inCall, still]);
   const talkers = visible.map((person, index) => (person.muted ? -1 : index)).filter((index) => index >= 0);
   const speaking = talkers.length ? talkers[speaker % talkers.length] : -1;
 
   // Captions come in as an interim line that firms up, then the next speaker.
   useEffect(() => {
-    if (!inCall || !captionsOn) return;
-    let step = 0;
+    if (!inCall || !captionsOn || still) return;
     const timer = window.setInterval(() => {
-      const turn = script[Math.floor(step / 2) % script.length]!;
-      const final = step % 2 === 1;
-      const id = `c${Math.floor(step / 2)}`;
+      const turn = script[Math.floor(step.current / 2) % script.length]!;
+      const final = step.current % 2 === 1;
+      const id = `c${Math.floor(step.current / 2)}`;
       const words = turn.text.split(" ");
       const line: LiveCaptionLine = { id, speaker: turn.speaker, text: final ? turn.text : words.slice(0, Math.ceil(words.length / 2)).join(" "), final };
       setLines((now) => [...now.filter((existing) => existing.id !== id), line].slice(-4));
-      step += 1;
+      step.current += 1;
     }, 1700);
     return () => window.clearInterval(timer);
-  }, [inCall, captionsOn]);
+  }, [inCall, captionsOn, still]);
 
   const toggleMute = useCallback(() => {
     setMuted((now) => {
@@ -340,7 +342,11 @@ function CallDemo(): JSX.Element {
           </div>
         </div>
         <div ref={bottomRef} className="grid gap-2 p-2">
-          {captionsOn ? <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={3} /> : null}
+          {captionsOn ? (
+            <div style={{ height: "7rem" }}>
+              <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={3} />
+            </div>
+          ) : null}
           <div className="flex min-w-0 justify-center">
             {bar}
           </div>
@@ -392,7 +398,13 @@ function CallDemo(): JSX.Element {
         </p>
         <AgentPresence label="Agents listening" agents={agents} onStop={(id) => setAgents((now) => now.filter((agent) => agent.id !== id))} onStopAll={() => setAgents([])} compact />
       </div>
-      <div ref={stageRef} tabIndex={-1} aria-label="Call" role="group" className="h-160 overflow-hidden rounded-lg border border-border outline-none">
+      <div
+        ref={stageRef}
+        tabIndex={-1}
+        onPointerEnter={() => setStill(true)}
+        onPointerLeave={() => setStill(false)}
+        onFocusCapture={() => setStill(true)}
+        onBlurCapture={() => setStill(false)} aria-label="Call" role="group" className="h-160 overflow-hidden rounded-lg border border-border outline-none">
         {body}
       </div>
       <div className="min-w-0 max-w-sm">
