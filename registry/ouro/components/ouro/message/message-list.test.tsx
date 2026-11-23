@@ -3,7 +3,7 @@ import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
@@ -141,6 +141,9 @@ beforeEach(() => {
 });
 afterEach(async () => {
   vi.restoreAllMocks();
+  // armHeld freezes requestAnimationFrame for its own test; real frames are back before anything unmounts, so a cleanup that
+  // schedules one (none does today, but a later change might) still runs on the browser's own frames, not an abandoned fake one.
+  vi.useRealTimers();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
@@ -752,6 +755,120 @@ describe("MessageList", () => {
   };
   /** Where the list is scrolled in the next frame, before the browser draws it. */
   const nextFrame = (scroller: HTMLElement) => new Promise<number>((resolve) => requestAnimationFrame(() => resolve(scroller.scrollTop)));
+
+  // WebKit's mutation observer for a pure reorder (no resize) only delivers its records once the observer tears down at
+  // unmount, long after this test's own assertion runs, so the hold this test checks for never arms in time there.
+  const chromiumOnly = it.skipIf(server.browser !== "chromium");
+
+  /** Arms the held place, as a message above the reader moving to the end does, and reads where it holds once the mutation
+   * observer that applies the hold has run. That observer's own callback is real and load-sensitive, so a real poll (not a fixed
+   * number of frames) waits for it, however long a loaded runner takes to reach it. But hold()'s own two-frame put-back window
+   * (armHeld, message-list.tsx) runs on requestAnimationFrame, and freezing that here, before the write, is what keeps the window
+   * open for as long as the real poll above takes: without it, a loaded runner's own real frames could spend the window before
+   * the poll even notices the write, as they did once in CI (#3204). The caller re-arms real frames once its own assertions
+   * against the still-held place are done. */
+  async function armHeld(scroller: HTMLElement, items: Item[], rerender: (next: ReactNode) => Promise<void>) {
+    const before = scroller.scrollTop;
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame"] });
+    await rerender(<Chat items={[...items.slice(1), items[0]!]} />);
+    await expect.poll(() => scroller.scrollTop !== before).toBe(true);
+    return scroller.scrollTop;
+  }
+
+  chromiumOnly("puts a stray back to the place a message moving to the end held, once, and lets the next stray there be, its hold spent", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const heldAt = await armHeld(scroller, items, rerender);
+    await act(async () => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // The stray within STRAY_PX of the held place, just after the list held it, is none of the reader's: put back.
+    expect(scroller.scrollTop).toBe(heldAt);
+    await act(async () => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Correcting a stray lets the hold go, as any other move does: a second one so close after is the reader's or the browser's,
+    // and stays where it left the list.
+    expect(scroller.scrollTop).toBe(heldAt + 2);
+  });
+
+  it("lets a move far past the held place end the hold too, so a near one right after stays where it left the list", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const heldAt = await armHeld(scroller, items, rerender);
+    await act(async () => {
+      scroller.scrollTop = heldAt + 50;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Far outside STRAY_PX, this is the reader's or the browser's own move, not a stray to put back.
+    expect(scroller.scrollTop).toBe(heldAt + 50);
+    await act(async () => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // That move, as any other does, let the hold go: a near one measured against the place it held before is none of the hold's
+    // business anymore, and stays where it left the list.
+    expect(scroller.scrollTop).toBe(heldAt + 2);
+  });
+
+  it("lets a stray near the place a message moving to the end held be, once Jump to latest has taken the reader past it", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const heldAt = await armHeld(scroller, items, rerender);
+    // A plain click, not userEvent's: no pointerdown reaches the scroller, so no recent input masks whether the jump itself let
+    // the hold go.
+    await act(async () => (page.getByRole("button", { name: "Jump to latest" }).element() as HTMLElement).click());
+    await act(async () => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Jumping to the end let the hold go with it, as any other move does, so the stray near where it held before stays put.
+    expect(scroller.scrollTop).toBe(heldAt + 2);
+  });
+
+  it("lets a stray the list is asked to scroll to near the place a message moving to the end held be", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const heldAt = await armHeld(scroller, items, rerender);
+    await act(async () => {
+      scroller.scrollTo({ top: heldAt + 2, behavior: "instant" });
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Asked for by code (scrollTo), not the reader: it counts as input too, so the stray it lands within is none for the hold to
+    // put back, the same as a key or a pointer would.
+    expect(scroller.scrollTop).toBe(heldAt + 2);
+  });
+
+  it("lets a stray the list is asked to scroll by near the place a message moving to the end held be", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const heldAt = await armHeld(scroller, items, rerender);
+    await act(async () => {
+      scroller.scrollBy({ top: 2, behavior: "instant" });
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Asked for by code (scrollBy), not the reader: it counts as input too, so the stray it lands within is none for the hold to
+    // put back, the same as scrollTo does.
+    expect(scroller.scrollTop).toBe(heldAt + 2);
+  });
+
+  it("scrolls the list when code asks it to, through scrollTo and scrollBy wrapped for that, not left unscrolled", async () => {
+    const { scroller: own } = await render(<Chat items={history(30)} />);
+    await settle(own);
+    const before = own.scrollTop;
+    own.scrollTo({ top: before - 50, behavior: "instant" });
+    expect(own.scrollTop).toBe(before - 50);
+    own.scrollBy({ top: 20, behavior: "instant" });
+    expect(own.scrollTop).toBe(before - 30);
+  });
+
 
   it("opens at the message initialAnchor names, never drawing the newest first, and stops following new messages", async () => {
     const items = history(30);
