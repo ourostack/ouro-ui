@@ -495,7 +495,7 @@ function SuggestionList({ open, emptyLabel, listId, label, query, items, current
           <BasePopover.Positioner anchor={anchor} positionMethod={floatingPositionMethod} side="bottom" align="start" sideOffset={4} collisionPadding={8} data-ouro="autocomplete-positioner">
             <BasePopover.Popup initialFocus={false} finalFocus={false} role="listbox" id={listId} aria-label={label} data-ouro="autocomplete" className={popupClass}>
               {emptyLabel !== undefined && (
-                <div role="option" aria-disabled="true" aria-selected="false" data-ouro-part="empty" className={cn(optionClass, "text-muted-foreground")}>
+                <div role="option" aria-disabled="true" aria-selected="false" data-slot="autocomplete-empty" className={cn(optionClass, "text-muted-foreground")}>
                   {emptyLabel}
                 </div>
               )}

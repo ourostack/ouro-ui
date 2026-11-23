@@ -10,6 +10,7 @@ import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { drawn, expectFirstFramesInPlace, placeFarBelow, recordPopupFrames } from "@/registry/ouro/lib/ouro/testing/popup-frames";
 import { settled as settledBox } from "@/registry/ouro/lib/ouro/testing/settled";
 const roots: Root[] = [];
@@ -426,6 +427,21 @@ describe("Autocomplete", () => {
     await expect.poll(() => options().map((option) => option.textContent)).toEqual(["Nobody called that"]);
     await userEvent.keyboard("{Escape}");
     await expect.poll(listbox).toBeNull();
+  });
+
+  it("shows no empty row and says nothing about one while the query matches", async () => {
+    const watcher = watchAnnouncements();
+    const { control } = await render(
+      <Autocomplete triggers={[peopleTrigger]} emptyLabel="Nobody here">
+        <TextArea label="Message" />
+      </Autocomplete>,
+    );
+    await type(control, "@");
+    await expect.poll(() => options().length).toBeGreaterThan(0);
+    expect(options().map((option) => option.textContent)).not.toContain("Nobody here");
+    expect(document.querySelector('[data-slot="autocomplete-empty"]')).toBeNull();
+    expect(watcher.count("Nobody here")).toBe(0);
+    watcher.stop();
   });
 
   it("says No matches by default", async () => {
