@@ -119,8 +119,8 @@ const UNDERSCORE_BOLD_MARKER = "\uE001";
 // Rewrites a lone `*text*` or `__text__` span to the syntax the array's BOLD_STAR/ITALIC_UNDERSCORE already parse, carrying a marker in the content so the mark it was spelled with is not lost. Left alone: a run already inside `**...**` or `_..._`, one next to its own kind (so `**`/`___` keep meaning what they already do), one starting with whitespace, and anything the library would already read as a fence, a link destination or a line of code, none of which this pass ever sees since it runs before those are stripped out: it is a span of a single `*` or a doubled `_` with nothing of its own kind touching either side.
 function markPreservingSyntax(markdown: string): string {
   return markdown
-    .replaceAll(/(?<!\*)\*(?!\*)([^*\s][^*]*?)\*(?!\*)/g, (whole, content: string) => `_${STAR_ITALIC_MARKER}${content}_`)
-    .replaceAll(/(?<!_)__(?!_)([^_\s][^_]*?)__(?!_)/g, (whole, content: string) => `**${UNDERSCORE_BOLD_MARKER}${content}**`);
+    .replaceAll(/(?<!\*)\*(?!\*)([^*\s][^*]*?)\*(?!\*)/g, (_whole, content: string) => `_${STAR_ITALIC_MARKER}${content}_`)
+    .replaceAll(/(?<!_)__(?!_)([^_\s][^_]*?)__(?!_)/g, (_whole, content: string) => `**${UNDERSCORE_BOLD_MARKER}${content}**`);
 }
 
 // Reads the marker `markPreservingSyntax` left at the front of an imported run's content, drops it from the text, and remembers the mark it names, so export spells the run back the way it was typed.
