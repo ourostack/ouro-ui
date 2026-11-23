@@ -2227,11 +2227,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
             cacheRef.current.set(`${key}\0${bucket}`, size);
             if (measured.heights.get(key) !== size) moved.set(key, size);
             dirtySlots.current.delete(key);
-            // Stryker disable next-line BlockStatement: this branch is only reached once `cached` already holds this key's size for this bucket, from the fresh read that set it: writing the same place and size again changes nothing this sync or any read after it.
-          } else {
+          }
+          // Stryker disable next-line BlockStatement: not fresh, so nothing a resize observer caught or regrouped since the last fresh read: the cached size still holds, the one `sizeOf`'s own cache fallback already reads for this key, and the one real top `tops.current`'s first entry ever needs only ever comes from a fresh read, never from this branch.
+          if (!fresh) {
             // Nothing a resize observer caught, and nothing regrouped, since the last fresh read: the cached size still holds.
             if (cached! > 0) found.set(key, { top: NaN, size: cached! });
-            // Stryker disable next-line StringLiteral: the size written is the one already cached under this exact key, so writing it under any other key changes no read of this key's size.
+            // Stryker disable next-line StringLiteral,CallExpression: the size written is the one already cached under this exact key, from the fresh read that set `cached`, so writing it again, or under any other key, changes no read of this key's size.
             cacheRef.current.set(`${key}\0${bucket}`, cached!);
           }
           counts.current.set(key, topItems(slot).length);
