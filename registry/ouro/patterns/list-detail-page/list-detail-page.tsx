@@ -11,7 +11,7 @@ import { Stack } from "@/registry/ouro/components/ouro/stack/stack";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
-import { AFTER_ACTION_MS } from "@/registry/ouro/lib/ouro/announce";
+import { AFTER_ACTION_MS, announce } from "@/registry/ouro/lib/ouro/announce";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 
@@ -57,8 +57,8 @@ const sampleEntries: Entry[] = [
  * what your app shows.
  *
  * What it already does, which Ouro's own tests cover, so your tests need only cover what
- * you add: pressing a row shows its entry and marks the row shown (on a phone, only while the entry
- * shows in the list's place); the search narrows the
+ * you add: pressing a row shows its entry, marks the row shown (on a phone, only while the entry
+ * shows in the list's place) and, beside the list, says which entry is showing; the search narrows the
  * list and says when nothing matches; on a phone the detail replaces the list, focus moves
  * to its heading, and Back returns to the row.
  *
@@ -77,6 +77,7 @@ const sampleEntries: Entry[] = [
  *
  * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::ListDetailPage > on a phone marks a row shown only while its entry shows in the list's place)
  * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::ListDetailPage > shows the entry a row's press chooses, and marks that row shown)
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::ListDetailPage > says which entry is showing when a row is chosen beside the list, where focus stays in the list, and says nothing on a phone, where focus moves to the heading)
  * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::ListDetailPage > narrows the list as you search, says how many match to a screen reader, and says when nothing matches)
  * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::ListDetailPage > on a phone shows the list first, the detail in its place once chosen with focus on its heading, and Back to the row)
  *
@@ -151,6 +152,9 @@ export function ListDetailPage({
     focusNext.current = "heading";
     setOpenId(id);
     setReading(true);
+    // Beside the list focus stays on the row, so the detail changing would go unsaid; on a phone focus moves to its heading.
+    const chosen = entries.find((entry) => entry.id === id);
+    if (wide && chosen) announce(`Showing ${chosen.title}`, { delayMs: AFTER_ACTION_MS });
   };
   const back = () => {
     setReturning(true);
