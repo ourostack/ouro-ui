@@ -903,12 +903,36 @@ describe("Carousel motion", () => {
       </Carousel>,
     );
     await userEvent.click(screen.button("Next slide"));
-    // A browser (WebKit) can dispatch scrollend for a smooth scroll before it has reached
-    // its target. Firing it here, while the press above is still under way, must not settle
-    // on whatever half-finished position the viewport is passing through.
-    screen.viewport.dispatchEvent(new Event("scrollend"));
+    // A browser (WebKit) can dispatch scrollend for a scroll the press interrupted, at a slide
+    // the press is not heading to. Here that scrollend reports the third slide at the start
+    // edge while the press is still on its way to the second: it must settle on neither.
+    const { viewport, slides } = screen;
+    const rect = viewport.getBoundingClientRect();
+    const shift = slides[2]!.getBoundingClientRect().left - rect.left;
+    const moved = vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ ...rect.toJSON(), x: rect.x + shift }));
+    viewport.dispatchEvent(new Event("scrollend"));
+    moved.mockRestore();
     await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
     expect(onIndexChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("settles at once on a scrollend at the slide a press is heading to, without waiting out a pause", async () => {
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" slideLabel="Prompt {n} of {total}" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    // The pause that stands in for scrollend runs on a timer; with the timers held, only the
+    // scrollend itself can settle the press. Frames still run, so the instant scroll ends.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await userEvent.click(screen.button("Next slide"));
+      for (let frame = 0; frame < 60 && onIndexChange.mock.calls.length === 0; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(onIndexChange.mock.calls).toEqual([[1]]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("stops listening for scrollend once unmounted, so a late event settles nothing", async () => {
