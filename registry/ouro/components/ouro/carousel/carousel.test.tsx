@@ -935,6 +935,25 @@ describe("Carousel motion", () => {
     }
   });
 
+  it("settles at once on a scrollend with no press pending, as after a swipe, without waiting out a pause", async () => {
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" slideLabel="Swiped {n} of {total}" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    const { viewport, slides } = screen;
+    // With the timers held, only the scrollend of this scroll, which no button asked for, can settle it.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      viewport.scrollTo({ left: viewport.scrollLeft + slides[2]!.getBoundingClientRect().left - viewport.getBoundingClientRect().left, behavior: "instant" });
+      for (let frame = 0; frame < 60 && onIndexChange.mock.calls.length === 0; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(onIndexChange.mock.calls).toEqual([[2]]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("stops listening for scrollend once unmounted, so a late event settles nothing", async () => {
     const onIndexChange = vi.fn();
     const screen = await render(
