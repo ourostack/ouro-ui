@@ -12,6 +12,11 @@
 // reported, not failed: it is main's to fix, and size-ceilings.yml, after CI on main, opens or updates the issue "A size is over its ceiling on
 // main". With no base measurement within LOOKBACK commits, the ceiling decides, as it does on a run by hand.
 //
+// A pull request whose base was still under a ceiling, but whose own (budget-sized) growth carries it past that ceiling,
+// is a tip: the pull request named in the `tips` array, which a caller logs as a `::warning::` annotation on the job, so
+// the pull request that first crosses a ceiling is found without failing it. Report-only while this is new; once it has
+// run quiet for a while it is meant to fail the pull request instead, the same way growth over budget already does.
+//
 //   node scripts/size-gate.mjs base <check>   fetch the base commit's report (CI, on a pull request or in the merge queue)
 //   node scripts/size-gate.mjs main <check>…  list the sizes over their ceilings in this commit's tree (CI, on main)
 import { Buffer } from "node:buffer";
@@ -67,11 +72,13 @@ export function mainBreaches(sizes) {
 
 /**
  * Judges a run's sizes. Each size is `{ bytes, ceiling, budget }`; `base` is the base commit's report, or null when
- * there is none. Returns `ok`, the failures, and a line for every size for the job's log.
+ * there is none. Returns `ok`, the failures, a tip for a size whose base was under its ceiling and this change carries
+ * past it (report-only; see the file's header), and a line for every size for the job's log.
  */
 export function judgeSizes(sizes, { mode, base }) {
   const lines = [];
   const failures = [];
+  const tips = [];
   for (const [name, size] of Object.entries(sizes)) {
     const over = size.bytes > size.ceiling;
     const was = mode === "pull" ? base?.[name] : undefined;
@@ -84,6 +91,10 @@ export function judgeSizes(sizes, { mode, base }) {
       if (grew > allowed) {
         failures.push(`${name}: ${size.bytes} bytes, ${growth}, over the ${allowed} a pull request may add. Make it smaller, or raise its ceiling with the new measurement and why`);
         lines.push(failures.at(-1));
+      } else if (over && was.bytes <= was.ceiling) {
+        const tip = `${name}: ${size.bytes} bytes, ${growth}, within the ${allowed} a pull request may add, but past its ceiling of ${size.ceiling} for the first time: this pull request tips it over. Raise the ceiling with the new measurement and why, or make it smaller`;
+        tips.push(tip);
+        lines.push(tip);
       } else {
         lines.push(`${name}: ${size.bytes} bytes, ${growth}, within the ${allowed} a pull request may add${over ? `; over its ceiling of ${size.ceiling} (main's own size check reports a ceiling main is over)` : `, under its ceiling of ${size.ceiling}`}`);
       }
@@ -93,7 +104,7 @@ export function judgeSizes(sizes, { mode, base }) {
     lines.push(line);
     if (over && mode !== "main") failures.push(line);
   }
-  return { ok: failures.length === 0, failures, lines };
+  return { ok: failures.length === 0, failures, lines, tips };
 }
 
 /**
