@@ -2,7 +2,7 @@
 
 # Porthole
 
-The status spot: a small round window with one line about how current the app's data is, which opens into the facts behind it. It shows one item at a time, an action over an error over working over rest; at rest it says "Up to date" only while every area was verified within its `freshWithinMs`, otherwise the real age, and "Status unknown" when an area was never verified or the service's heartbeat stops. It owns its clock: it looks again only at the one moment the view could change (`nextChangeAt`), so a stuck service can never hold "Up to date", a beat never renders it, and it waits while the page is hidden. It opens into the detail lines while a mouse is over it, and a press keeps it open until a second press, Escape or a press anywhere else. It never takes focus on its own, and speaks only when it changes into an action or an error, at most once every ten seconds. Its state is on `data-porthole-state` for a fault-injection check.
+The status spot: a small round window with one line about how current the app's data is, which opens into the facts behind it. It shows one item at a time, an action over an error over working over rest; at rest it says "Up to date" only while every area was verified within its `freshWithinMs`, otherwise the real age, and "Status unknown" when an area was never verified or the service's heartbeat stops. It owns its clock: it looks again only at the one moment the view could change (`nextChangeAt`), so a stuck service can never hold "Up to date", a beat never renders it, and it waits while the page is hidden. A press opens it into the detail lines, and a second press, Escape or a press anywhere else closes them; a mouse resting on it opens nothing. It never takes focus on its own, and speaks only when it changes into an action or an error, at most once every ten seconds. Its state is on `data-porthole-state` for a fault-injection check.
 
 ```tsx
 import { Porthole } from "@/registry/ouro/components/ouro/porthole/porthole";
@@ -26,6 +26,7 @@ Type: `PortholeProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, placement (`ms-auto`). Appearance classes warn in development. |
 | `defaultOpen` | `boolean` | `false` | Starts open, showing the detail lines, as on a page about the app's status. |
+| `floating` | `boolean` |  | Draws the pill as glass that floats over scrolling content, the way a calling app's composer floats over its messages: translucent, blurred and softly shadowed, with the theme's rounded corners, so a row passing under the pill is still visible through it. It turns solid, with a defined edge and no blur, under reduced transparency and under forced colours. |
 | `freshWithinMs` | `number` | `60_000` | How recently, in ms, the areas must have been verified for "Up to date", unless an area sets its own `freshWithinMs`. |
 | `heartbeatTimeoutMs` | `number` | `5_000` | "Status unknown" once the last beat is older than this many ms. |
 | `label` (required) | `string` |  | The status spot's name for screen readers, such as `"Status"`. |
