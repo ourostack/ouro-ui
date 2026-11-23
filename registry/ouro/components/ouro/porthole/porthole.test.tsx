@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { bindAx, expectAxRendered } from "@/registry/ouro/ax/component";
 import { Porthole, type PortholeFixed, type PortholeProps } from "@/registry/ouro/components/ouro/porthole/porthole";
-import { PORTHOLE_ANNOUNCE_GAP_MS, PORTHOLE_HOVER_DELAY_MS, portholeAx } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
+import { PORTHOLE_ANNOUNCE_GAP_MS, portholeAx } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
 import type { PortholeArea, PortholeItem, PortholeSnapshot, PortholeSource } from "@/registry/ouro/lib/ouro/porthole-view";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -110,7 +110,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   vi.useRealTimers();
-  // The mouse leaves where the next test's spot renders, or it would open it.
+  // The mouse leaves where the next test's spot renders, or it would show its quiet words.
   const away = document.createElement("div");
   away.style.cssText = "position: fixed; right: 0; bottom: 0; width: 8px; height: 8px";
   document.body.append(away);
@@ -223,35 +223,33 @@ describe("Porthole", () => {
     expect(view.panel).not.toBeNull();
   });
 
-  it("opens while a mouse is over it and closes as it leaves, and a touch does not open it", async () => {
+  it("opens nothing for a mouse resting on it, and opens and closes on each press after", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const onPointerEnter = vi.fn();
     const onPointerLeave = vi.fn();
-    const view = await render(base(fixed(), { onPointerEnter, onPointerLeave }));
-    await userEvent.hover(view.spot);
-    await expect.poll(() => view.panel).not.toBeNull();
-    expect(document.activeElement).not.toBe(view.spot);
-    await userEvent.unhover(view.spot);
-    await expect.poll(() => view.panel).toBeNull();
-    expect(onPointerEnter).toHaveBeenCalled();
-    expect(onPointerLeave).toHaveBeenCalled();
-    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "touch" })));
-    expect(view.panel).toBeNull();
-    // A mouse is over the spot when it presses, so the press pins it open past the mouse leaving, and a second closes it.
-    await userEvent.hover(view.spot);
-    await expect.poll(() => view.spot.getAttribute("aria-expanded")).toBe("true");
-    expect(view.spot.getAttribute("data-ax-action")).toBe("expand");
-    await userEvent.click(view.spot);
-    expect(view.panel).not.toBeNull();
-    expect(view.spot.getAttribute("data-ax-action")).toBe("collapse");
-    await userEvent.unhover(view.spot);
-    await act(async () => {});
-    expect(view.panel).not.toBeNull();
-    await userEvent.click(view.spot);
+    const view = await render(base(fixed([], { chats: area(Date.now(), null, "Chats") }), { onPointerEnter, onPointerLeave }));
+    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" })));
+    await act(() => vi.advanceTimersByTime(5 * SECOND));
     expect(view.panel).toBeNull();
     expect(view.spot.getAttribute("aria-expanded")).toBe("false");
+    expect(view.spot.getAttribute("data-ax-action")).toBe("expand");
+    await act(() => view.spot.click());
+    expect(view.spot.getAttribute("aria-expanded")).toBe("true");
+    expect(view.spot.getAttribute("data-ax-action")).toBe("collapse");
+    expect([...view.panel!.querySelectorAll("li:not([data-porthole-part])")].map((li) => li.textContent)).toEqual(["Chats: verified just now"]);
+    expect(getComputedStyle(view.panel!).pointerEvents).toBe("auto");
+    // The mouse leaving keeps them open; the next press closes them.
+    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType: "mouse" })));
+    await act(() => vi.advanceTimersByTime(5 * SECOND));
+    expect(view.panel).not.toBeNull();
+    await act(() => view.spot.click());
+    expect(view.panel).toBeNull();
+    expect(view.spot.getAttribute("aria-expanded")).toBe("false");
+    expect(onPointerEnter).toHaveBeenCalledTimes(1);
+    expect(onPointerLeave).toHaveBeenCalledTimes(1);
   });
 
-  it("puts pinned lines away at a press anywhere else, and keeps them at a press inside", async () => {
+  it("puts open lines away at a press anywhere else, and keeps them at a press inside", async () => {
     const outside = document.createElement("button");
     outside.textContent = "Elsewhere";
     document.body.append(outside);
@@ -440,7 +438,7 @@ describe("Porthole", () => {
     const content = pill.firstElementChild as HTMLElement;
     // Once the width has eased to fit, the style holds what the content and the pill's edges need.
     await expect.poll(() => pill.style.width === `${Math.ceil(content.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
-    expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color");
+    expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color, box-shadow");
     await view.rerender(base(fixed([item("sync", "working", { label: "Catching up on a great many messages" })])));
     // Once the width has eased to fit, the style holds what the content and the pill's edges need.
     await expect.poll(() => pill.style.width === `${Math.ceil(content.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
@@ -476,7 +474,7 @@ describe("Porthole", () => {
     expect(pill.style.width).not.toBe(shown);
     expect(getComputedStyle(pill).width).toBe(pill.style.width);
     expect(pill.getAnimations().length).toBe(0);
-    expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color");
+    expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color, box-shadow");
     // Once drawn, a new line eases again.
     await s.send(snapshot());
     expect(pill.getAnimations().length).toBeGreaterThan(0);
@@ -749,38 +747,6 @@ describe("Porthole", () => {
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Porthole: side="left" is not an option; use "top" or "bottom". Fix: <Porthole side="top" />.');
   });
 
-  it("never opens for a touch resting on it, nor after a press that came inside the delay, nor once it has left the page", async () => {
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    const view = await render(base(fixed()));
-    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "touch" })));
-    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
-    expect(view.panel).toBeNull();
-    // A mouse comes to rest, then presses twice before the delay ends: the presses decide, and it stays closed.
-    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" })));
-    await act(() => view.spot.click());
-    await act(() => view.spot.click());
-    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
-    expect(view.panel).toBeNull();
-    // Leaving the page with the delay running clears it.
-    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType: "mouse" })));
-    const idle = vi.getTimerCount();
-    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" })));
-    expect(vi.getTimerCount()).toBe(idle + 1);
-    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
-    expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("calls off a resting mouse's pending open on Escape, and leaves Escape to the page", async () => {
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    const view = await render(base(fixed()));
-    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" })));
-    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
-    await act(() => view.spot.dispatchEvent(escape));
-    expect(escape.defaultPrevented).toBe(false);
-    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
-    expect(view.panel).toBeNull();
-  });
-
   it("stays in sight under forced colours: its light in the system's text colour, unknown an outlined circle, an action outlined in the highlight, and its open lines edged", async () => {
     const probe = document.createElement("span");
     document.body.append(probe);
@@ -886,11 +852,9 @@ describe("Porthole", () => {
       fresh.spot.blur();
       await expect.poll(() => words(fresh).opacity).toBe("0");
       await expect.poll(() => pill(fresh).borderTopColor).toBe(system("Canvas"));
-      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
       await userEvent.hover(fresh.spot);
       await expect.poll(() => words(fresh).opacity).toBe("1");
       await expect.poll(() => pill(fresh).borderTopColor).toBe(system("CanvasText"));
-      vi.useRealTimers();
       const old = Date.now() - 2 * MINUTE;
       for (const source of [fixed([], { chats: area(old) }), fixed([item("offline", "error")])]) {
         const trouble = await render(base(source));
@@ -929,30 +893,6 @@ describe("Porthole", () => {
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
     }
-  });
-
-  it("opens for a mouse only once it rests there, lets presses through lines it opened that way, and closes as the mouse leaves", async () => {
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    const view = await render(base(fixed()));
-    await userEvent.hover(view.spot);
-    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS - 1));
-    expect(view.panel).toBeNull();
-    await act(() => vi.advanceTimersByTime(1));
-    expect(view.panel).not.toBeNull();
-    expect(getComputedStyle(view.panel!).pointerEvents).toBe("none");
-    // Passing over and away before the delay opens nothing.
-    // The leave commits the close in React's next task, not in the event, so wait for it.
-    await userEvent.unhover(view.spot);
-    await expect.poll(() => view.panel).toBeNull();
-    await userEvent.hover(view.spot);
-    await userEvent.unhover(view.spot);
-    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
-    expect(view.panel).toBeNull();
-    // Opened by a press, the lines take presses.
-    await userEvent.click(view.spot);
-    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
-    expect(view.panel).not.toBeNull();
-    expect(getComputedStyle(view.panel!).pointerEvents).toBe("auto");
   });
 
   it("at rest and fresh, shows the light alone and the words on hover or focus, in the same room, and keeps them with quiet={false}", async () => {

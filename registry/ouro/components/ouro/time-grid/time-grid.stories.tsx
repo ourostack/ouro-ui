@@ -174,8 +174,10 @@ function DayLoad({ day, events }: { day: string; events: TimeGridEvent[] }): JSX
 
 /**
  * The design team's shared calendar beside the person's own week: thin bars that name
- * themselves in a tooltip, each opening a popover of the app's own, anchored to the bar. Under
- * each date the app shows how full the day is.
+ * themselves in a tooltip, each opening a popover of the app's own, anchored to the bar. The
+ * popover leaves the week live (`modal={false}`), so a press on another bar opens that one's at
+ * once, and the page skips a layout of the whole grid each time it opens. Under each date the app
+ * shows how full the day is.
  */
 export const BackgroundEvents: Story = {
   render: function Render(args): JSX.Element {
@@ -196,7 +198,7 @@ export const BackgroundEvents: Story = {
           }}
           renderDaySummary={(day) => <DayLoad day={day} events={week} />}
         />
-        <Popover title={open?.title ?? "Event"} open={open !== null} onOpenChange={(next) => !next && setOpen(null)} anchor={anchor} side="right" align="start">
+        <Popover title={open?.title ?? "Event"} open={open !== null} onOpenChange={(next) => !next && setOpen(null)} anchor={anchor} side="right" align="start" modal={false}>
           <p style={{ margin: 0, fontSize: "14px", lineHeight: "20px" }}>{open?.description ?? "On the design team's calendar"}</p>
           <Button size="sm" variant="outline" onClick={() => setOpen(null)}>
             Add to my calendar

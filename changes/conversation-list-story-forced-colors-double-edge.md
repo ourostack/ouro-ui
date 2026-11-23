@@ -1,0 +1,1 @@
+- Fix: ConversationList's bordered-container stories drop their own edge under forced colours, so the list's own frame no longer doubles.

@@ -169,7 +169,8 @@ describe("AgentPresence", () => {
     // Popover's screen-reader close button, named in English by default.
     expect(popup()!.querySelector("[data-ouro-popover-close]")!.textContent).toBe("Close");
     await expect.element(page.getByRole("button", { name: "Stop inbox agent", exact: true })).toBeVisible();
-    await userEvent.click(chip());
+    // Forced: the open popover keeps the pointer from the page, so the press on the chip only closes it.
+    await userEvent.click(chip(), { force: true });
     await expect.poll(() => popup()).toBeNull();
   });
 

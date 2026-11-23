@@ -1552,7 +1552,7 @@ test("a push to main whose tree already passed runs only install-github", () => 
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
   const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, designRuns, laneRuns].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof", "yield"].includes(id)).sort());
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof", "yield", "rerun-guard"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[plan, browser, coverage, browser-fallback\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
@@ -1569,7 +1569,7 @@ test("a pull request's run reports tree-proof, named for its tree, only when its
   assert.equal(block.match(/^ {4}name: (.+)$/m)?.[1], `${PREFIX}\${{ needs.plan.outputs.tree }}`);
   // It waits on what ci-budget waits on but the jobs that run only off a pull request and fresh-main, which tests a newer main.
   const needsOf = (id) => jobs[id].match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
-  assert.deepEqual(needsOf("tree-proof").sort(), needsOf("ci-budget").filter((id) => !["fresh-main", "install-github", "install-latest"].includes(id)).sort());
+  assert.deepEqual(needsOf("tree-proof").sort(), needsOf("ci-budget").filter((id) => !["fresh-main", "install-github", "install-latest", "rerun-guard"].includes(id)).sort());
   const expression = block.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)[1];
   // Every need is checked by name: a job's if: counts the jobs above its needs in needs.*.result too, so a skipped
   // fallback shard upstream would make !contains(needs.*.result, 'skipped') false on every run.
@@ -1674,7 +1674,8 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs beside ci once the coverage job and the shards it reads passed or were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser.result) && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser-fallback.result) }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    // rerun-guard is no required check: it runs only on main's own push, and only on a rerun (scripts/rerun-guard.mjs), report-only (contributing/ci.md).
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof", "rerun-guard"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -2516,7 +2517,11 @@ test("a pull request calls only the read-only lane: ci.yml's job grants contents
   for (const [, called] of workflow("ci.yml").matchAll(/uses: \.\/\.github\/workflows\/([\w.-]+)$/gm)) {
     assert.doesNotMatch(workflow(called), /^\s*[\w-]+: write$/m, `${called} asks for write access`);
   }
-  assert.doesNotMatch(workflow("ci.yml"), /issues: write/);
+  // Only rerun-guard writes issues, and only on main's own push, never on a pull request: it comments on
+  // #2469 when a push's rerun has no cause on record (scripts/rerun-guard.mjs).
+  assert.equal(workflow("ci.yml").match(/issues: write/g)?.length, 1);
+  assert.match(ci["rerun-guard"], /^ {4}permissions:\n {6}contents: read\n {6}issues: write/m);
+  assert.match(ci["rerun-guard"], /^ {4}if: \$\{\{ !cancelled\(\) && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && github\.run_attempt > 1 \}\}$/m);
 });
 
 test("the screen-reader lane's report upload is tried twice and never decides the lane's verdict (#2254)", () => {
@@ -3693,5 +3698,6 @@ test("the browser shards hold each test to half its timeout: vitest.config.ts ad
   assert.match(report, /if: \$\{\{ github\.event\.workflow_run\.event != 'pull_request' \}\}/);
   assert.match(report, /permissions:\n\s+contents: read\n\s+actions: read[^\n]*\n\s+issues: write/);
   assert.match(report, /scripts\/scheduled-failure\.sh "\$RUN" "Headroom breaches on main"/);
-  assert.doesNotMatch(workflow("ci.yml"), /issues: write/);
+  // ci.yml itself writes issues only from rerun-guard (checked on its own, above).
+  assert.equal(workflow("ci.yml").match(/issues: write/g)?.length, 1);
 });

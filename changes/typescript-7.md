@@ -1,0 +1,1 @@
+- Changed: New apps start on [TypeScript 7](test/install-fixture/package.json "verify:fileLine(test/install-fixture/package.json, /typescript.: .~7\.0/)"), and the repository type-checks on it.

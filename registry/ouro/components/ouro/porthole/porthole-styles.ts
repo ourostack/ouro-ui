@@ -61,8 +61,20 @@ export const portholeLightClasses: Readonly<Record<PortholeState, string>> = {
 /** Where the open lines show: under the spot, or over it. */
 export type PortholeSide = "bottom" | "top";
 
-/** How long a mouse rests on the spot before its lines open, in ms, so passing over it opens nothing. */
-export const PORTHOLE_HOVER_DELAY_MS = 300;
+/**
+ * The pill's glass look for `floating`: translucent, blurred and softly shadowed, as a calling app's composer floats
+ * over its messages, so a row passing under the pill is still visible through it. It turns solid, with a defined
+ * edge and no blur, under reduced transparency and under forced colours, and keeps its shape in both.
+ *
+ * @claim "is still visible through it" registry/ouro/components/ouro/porthole/porthole.floating.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.floating.test.tsx::Porthole floating > is translucent glass from the theme, with a blur and a soft shadow, over passing content)
+ * @claim "It turns solid, with a defined edge and no blur, under reduced transparency" registry/ouro/components/ouro/porthole/porthole.floating.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.floating.test.tsx::Porthole floating > turns solid with no blur under reduced transparency)
+ * @claim "and under forced colours" registry/ouro/components/ouro/porthole/porthole.floating.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.floating.test.tsx::Porthole floating > keeps a solid edge under forced colours, at the same size)
+ */
+export const portholeFloatingClass =
+  "border-border/60 bg-card/75 shadow-(--shadow-lg) backdrop-blur-md " +
+  "[@media(prefers-reduced-transparency:reduce)]:bg-card [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
+  "contrast-more:border-border contrast-more:bg-card contrast-more:backdrop-blur-none " +
+  "forced-colors:border forced-colors:border-solid forced-colors:bg-[Canvas] forced-colors:backdrop-blur-none";
 
 /** How long after one spoken change the next may be spoken, in ms. */
 export const PORTHOLE_ANNOUNCE_GAP_MS = 10_000;

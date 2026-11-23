@@ -985,7 +985,12 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       }
       onKeyDown={onKeyDown}
     >
-      <ScrollArea label={label} className="min-h-0 flex-1">
+      {/* The day header sticks to the top of the scroller, so ScrollArea's top fade would fade the header itself, not hours
+          hidden above it: only the bottom fades. */}
+      <ScrollArea
+        label={label}
+        className="min-h-0 flex-1 [&>[data-ouro-part=viewport][data-ouro-scroll-fade-y]]:[mask-image:linear-gradient(to_bottom,#000_calc(100%-min(var(--scroll-area-overflow-y-end),2rem)),transparent)]" // fade-ok: fades the hours below, not a picture
+      >
         <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-border bg-background" style={{ gridTemplateColumns: columns }}>
           <div aria-hidden="true" />
           {days.map((day, index) => (

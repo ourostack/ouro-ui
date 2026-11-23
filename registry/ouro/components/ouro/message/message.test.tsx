@@ -1012,6 +1012,48 @@ describe("Message chat", () => {
     expect(bubble.color).toBe("rgb(255, 240, 240)");
   });
 
+  it("fills others' bubble from --ouro-bubble-other and its text from --ouro-bubble-other-foreground before the muted surface", async () => {
+    const { host } = await render(
+      <div
+        style={{
+          ["--ouro-bubble-other" as string]: "rgb(60, 60, 65)",
+          ["--ouro-bubble-other-foreground" as string]: "rgb(235, 235, 240)",
+        }}
+      >
+        <Message variant="chat" role="assistant" name="Mara Quill">
+          Morning!
+        </Message>
+      </div>,
+    );
+    const bubble = getComputedStyle(bubbleOf(host.querySelector<HTMLElement>('[data-ouro="message"]')!));
+    expect(bubble.backgroundColor).toBe("rgb(60, 60, 65)");
+    expect(bubble.color).toBe("rgb(235, 235, 240)");
+  });
+
+  it("mixes a link, a success mark and muted text toward --ouro-bubble-other-foreground, not the page's own foreground, once it is set", async () => {
+    const pale = await render(
+      <div style={{ ["--ouro-bubble-other" as string]: "rgb(230, 230, 235)", ["--ouro-bubble-other-foreground" as string]: "rgb(20, 20, 25)" }}>
+        <Message variant="chat" role="assistant" name="Mara Quill">
+          <a href="#notes" style={{ color: "var(--primary)" }}>
+            the notes
+          </a>
+        </Message>
+      </div>,
+    );
+    const ink = await render(
+      <div style={{ ["--ouro-bubble-other" as string]: "rgb(230, 230, 235)", ["--ouro-bubble-other-foreground" as string]: "rgb(0, 60, 0)" }}>
+        <Message variant="chat" role="assistant" name="Mara Quill">
+          <a href="#notes" style={{ color: "var(--primary)" }}>
+            the notes
+          </a>
+        </Message>
+      </div>,
+    );
+    // Setting only --ouro-bubble-other-foreground, with the fill unchanged, still moves the link's mix: it tracks
+    // the ink the message resolves (mutedColors → mutedInk), never a fixed page foreground.
+    expect(getComputedStyle(pale.host.querySelector("a")!).color).not.toBe(getComputedStyle(ink.host.querySelector("a")!).color);
+  });
+
   it("keeps a link in the primary color at 4.5:1 or more on others' muted bubble", async () => {
     const { host } = await render(
       <Message variant="chat" role="assistant" name="Mara Quill">
