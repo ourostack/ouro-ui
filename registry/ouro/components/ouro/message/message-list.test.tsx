@@ -1414,8 +1414,9 @@ describe("MessageList", () => {
     // whether or not a correction was coming, so this reads only once that timer has had the WHEEL_REST delay, and
     // then some, to run.
     // real clock: proving clearJump's correction did not fire means outlasting its own real setTimeout, not
-    // merely reading before that timer has had the chance to.
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    // merely reading before that timer has had the chance to; a loaded runner needs more margin above the
+    // 80ms WHEEL_REST delay than a quiet one, so this waits well past it rather than just past it.
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     // Still deeply overlapped: a correction would have pulled it back close to clearing, as the shallower
     // overlap above is pulled back to -1.
     expect(clearOf()).toBeLessThan(-room.offsetHeight);
