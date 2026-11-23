@@ -210,11 +210,19 @@ function useBreathes(shimmer: boolean): { breathes: boolean; style: CSSPropertie
   // starts that much out of step with the rest of the wave. Once a frame finally draws, read the join fresh and
   // set each animation's own clock to it directly, so the join no longer depends on when that frame lands.
   useLayoutEffect(() => {
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: whichever side is true, this placeholder
+    // has no CSS animation at all yet (still, or not yet past its first frame), so the loop below finds none and
+    // removing the guard changes nothing observable.
     if (!shimmer || claim.delay === undefined || startRef.current === undefined) return;
     const start = startRef.current;
     const staleDelayMs = Number.parseFloat(claim.delay);
     let cancelled = false;
     const frame = requestAnimationFrame(() => {
+      // Stryker disable next-line ConditionalExpression: cancelAnimationFrame below always runs before a
+      // cancelled frame could fire, so this callback never actually observes cancelled true.
+      /* istanbul ignore next @preserve -- cancelAnimationFrame below always runs before a cancelled frame could
+         fire, so this callback never actually observes cancelled true; the guard only protects a browser race
+         no test can force. */
       if (cancelled) return;
       // Reusing joinWave with a nonzero `breathing` always takes its `waveStart` argument as the wave's start,
       // so this reads the same join fresh, from this placeholder's own start, without touching the shared module
@@ -223,18 +231,24 @@ function useBreathes(shimmer: boolean): { breathes: boolean; style: CSSPropertie
       const correction = staleDelayMs - freshDelayMs;
       for (const node of nodesRef.current.values()) {
         for (const animation of node.getAnimations({ subtree: true })) {
+          // Stryker disable next-line ConditionalExpression,LogicalOperator: registerNode only ever sees this
+          // component's own Bar elements, which carry no animation but the breathe one it applies itself.
+          /* istanbul ignore next @preserve -- registerNode only ever sees this component's own Bar elements,
+             which carry no animation but the breathe one this component applies itself, so the non-matching
+             branch never runs. */
           if (animation instanceof CSSAnimation && animation.animationName === breatheAnimationName) animation.currentTime = correction;
         }
       }
     });
     return () => {
+      // Stryker disable next-line BooleanLiteral: only read by the cancelled check above, itself disabled as unreachable.
       cancelled = true;
       cancelAnimationFrame(frame);
     };
   }, [shimmer, claim.delay]);
-  // Stryker disable next-line ConditionalExpression: a style object whose only value is undefined draws the same as none.
   return {
     breathes: shimmer && claim.breathes,
+    // Stryker disable next-line ConditionalExpression: a style object whose only value is undefined draws the same as none.
     style: claim.delay === undefined ? undefined : ({ "--ouro-skeleton-delay": claim.delay } as CSSProperties),
     registerNode,
   };

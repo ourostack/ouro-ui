@@ -305,6 +305,64 @@ describe("Skeleton", () => {
     expect(phaseGap(phase(first), phase(late))).toBeLessThan(phaseGapMs);
   });
 
+  it("joins the shared phase on a row's and a card's own Bar, past a host held right after mounting", async () => {
+    // registerNode's node is the outer row/card span, not the Bar the animation plays on: the
+    // correction below must read each registered node's whole subtree to reach it.
+    for (const shape of ["row", "card"] as const) {
+      const host = (await render(<Skeleton shape={shape} />)).parentElement!;
+      const holdUntil = performance.now() + 300;
+      while (performance.now() < holdUntil) { /* holds the main thread, no yield */ }
+      const late = (await render(<Skeleton shape={shape} />)).parentElement!;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const firstAnimation = host.getAnimations({ subtree: true })[0]!;
+      const lateAnimation = late.getAnimations({ subtree: true })[0]!;
+      const localTime = (animation: Animation) => Number(animation.effect!.getComputedTiming().localTime) - Number(animation.effect!.getTiming().delay);
+      expect(phaseGap(localTime(firstAnimation), localTime(lateAnimation)), shape).toBeLessThan(phaseGapMs);
+    }
+  });
+
+  it("drops a row's node from the correction map once it unmounts, so a frame already pending for it does not read a removed node", async () => {
+    await render(<Skeleton shape="row" count={3} />);
+    const root = roots.at(-1)!;
+    const spy = vi.spyOn(Element.prototype, "getAnimations");
+    // Shrinks before the correction's own frame fires: the two dropped rows' nodes must leave the map themselves.
+    await act(async () => root.render(<Skeleton shape="row" count={1} />));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // The map should hold just the surviving row's node: one call, on that node alone.
+    expect(spy.mock.instances).toHaveLength(1);
+  });
+
+  it("keeps each index's ref callback across renders, so a render that only changes a prop does not detach and reattach the node", async () => {
+    let attaches = 0;
+    let detaches = 0;
+    const track = (node: HTMLElement | null) => {
+      if (node) attaches++;
+      else detaches++;
+    };
+    await render(<Skeleton ref={track} />);
+    const root = roots.at(-1)!;
+    await act(async () => root.render(<Skeleton ref={track} className="extra" />));
+    expect(attaches).toBe(1);
+    expect(detaches).toBe(0);
+  });
+
+  it("cancels its pending correction frame on unmount, so an already-stale frame never reads a gone node", async () => {
+    const spy = vi.spyOn(window, "cancelAnimationFrame");
+    await render(<Skeleton />);
+    const root = roots.pop()!;
+    await act(async () => root.unmount());
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it("re-measures its place when shimmer toggles on the same instance, without remounting", async () => {
+    const breathes = (el: Element) => getComputedStyle(el).animationName === "ouro-skeleton-breathe";
+    const el = await render(<Skeleton shimmer={false} />);
+    const root = roots.at(-1)!;
+    expect(breathes(el)).toBe(false);
+    await act(async () => root.render(<Skeleton shimmer />));
+    expect(breathes(el)).toBe(true);
+  });
+
   it("places a placeholder in the wave: a new wave after a quiet gap of more than a second, else the running one", () => {
     expect(joinWave(5000, 0, 3999, 100)).toEqual({ start: 5000, delay: "1000ms" });
     expect(joinWave(5000, 0, 4000, 100)).toEqual({ start: 100, delay: `${-((4900 - stillMs) % breathMs)}ms` });
