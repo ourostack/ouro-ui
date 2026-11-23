@@ -923,6 +923,9 @@ describe("findDesignIssues: doubled-line", () => {
 });
 
 describe("findDesignIssues: count-badge", () => {
+  // A host's fonts place a centred count's numerals a fraction of a pixel apart, so these cases, whose faults are 4px or
+  // more, judge centring at 1.5px.
+  const slack = { badgeSlackPx: 1.5 };
   it("finds a count off its middle, high, low, right or left, a clipped one, and one at another offset from its icon", () => {
     render(`<style>.b{position:relative;display:inline-block;margin:24px}.b svg{display:block}.c{position:absolute;top:-6px;inset-inline-end:-8px;box-sizing:border-box;height:16px;min-width:16px;border-radius:999px;background:#b91c1c;color:#fff;font:600 10px/16px sans-serif;text-align:center}</style>
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span id="high" class="c" style="line-height:6px">3</span></span>
@@ -932,7 +935,7 @@ describe("findDesignIssues: count-badge", () => {
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span id="odd" class="c" style="top:-2px;inset-inline-end:-3px">7</span></span>
 <span class="b" dir="rtl"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c">8</span></span>
 <span class="b" style="padding:0"><span class="c" style="position:absolute">9</span>Inbox</span>`);
-    const issues = of("count-badge");
+    const issues = of("count-badge", slack);
     expect(issues.map(({ element }) => element)).toEqual(['span#high.c "3"', 'span#right.c "4"', 'span#left.c "5"', 'span#cut.c "6"', 'span#odd.c "7"']);
     const [high, right, left, cut, odd] = issues.map(({ detail }) => detail);
     expect(high).toMatch(/^its numerals sit [\d.]+px high of the badge's middle: centre their ink, not their line box$/);
@@ -954,7 +957,7 @@ describe("findDesignIssues: count-badge", () => {
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="height:32px;line-height:6px">6</span></span>
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="background:transparent;color:#111;line-height:6px">7</span></span>
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="display:flex;align-items:center;justify-content:center;text-box:trim-both cap alphabetic">8</span></span>`);
-    expect(of("count-badge")).toEqual([]);
+    expect(of("count-badge", slack)).toEqual([]);
     expect(of("count-badge", { badgeSlackPx: 0 }).length).toBeGreaterThan(0);
   });
 });

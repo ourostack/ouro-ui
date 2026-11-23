@@ -72,6 +72,54 @@ export function knownProblems(entries: readonly KnownFinding[]): string[] {
 
 export const knownFindings: KnownFinding[] = [
   {
+    story: "ThreadLayout/Default",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "The rail's border-s runs against the story frame's own edge, so the line between thread and frame is drawn twice; ThreadRail should drop its border where it meets an edge.",
+  },
+  {
+    story: "ThreadLayout/Narrow",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "The rail's border-s runs against the story frame's own edge, so the line between thread and frame is drawn twice; ThreadRail should drop its border where it meets an edge.",
+  },
+  {
+    story: "ThreadRail/Playground",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "The Composer's frame sits flush against the rail's border-s, so the rail's divider is drawn twice down the composer's side; the composer wants room inside the rail.",
+  },
+  {
+    story: "TimeGrid/BackgroundEvents",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+  },
+  {
+    story: "TimeGrid/BackgroundEventsDay",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+  },
+  {
+    story: "TimeGrid/Playground",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+  },
+  {
+    story: "TimeGrid/Statuses",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "Two events side by side touch, so the line between them is drawn twice; events want a small gap between them, as a calendar's do.",
+  },
+  {
+    story: "TimeGrid/WorkWeek",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+  },
+  {
     story: "Emoji/Placeholder",
     rule: "broken-image",
     issue: 1959,
