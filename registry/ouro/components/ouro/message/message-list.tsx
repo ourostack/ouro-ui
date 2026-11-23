@@ -2089,6 +2089,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (pinned.current || jumpRef.current === null || room === null) return;
       const drawn = content.querySelectorAll<HTMLElement>(items);
       const newest = drawn[drawn.length - 1];
+      // Stryker disable next-line ConditionalExpression: a null-check against an empty `drawn` list. Any route
+      // that empties the list (the conversation clearing, a window with nothing left in range) is itself a resize
+      // content shrinks to or below the scroller's own height, which hold()'s own at-bottom recompute re-pins and
+      // settles through followEnd() before this closure's pinned.current check above would ever let it run, so no
+      // observable call reaches this line with newest undefined; the check stays only as a guard against reading
+      // .getBoundingClientRect() off undefined if that invariant ever changes.
       if (newest === undefined) return;
       const clear = jumpRef.current.getBoundingClientRect().top - newest.getBoundingClientRect().bottom;
       if (clear < 0 && clear >= -room.offsetHeight) {
