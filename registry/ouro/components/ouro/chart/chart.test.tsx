@@ -1049,12 +1049,28 @@ describe("Chart plot", () => {
     try {
       const { chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
       await drawn(chart);
-      const { right } = scale(chart, niceTicks(-5, 30));
+      const { width, right } = scale(chart, niceTicks(-5, 30));
       const yLabels = [...chart.querySelectorAll<SVGTextElement>('[data-ouro-chart-axis="y"] text')];
       // The gutter sits past the plot's right edge, not inside it over the bars.
       for (const label of yLabels) expect(Number(label.getAttribute("x"))).toBeGreaterThanOrEqual(right);
       const widest = Math.max(...yLabels.map((label) => label.getComputedTextLength()));
       for (const bar of bars(chart, "value")) expect(bar.getBoundingClientRect().right).toBeLessThanOrEqual(chart.getBoundingClientRect().right - widest + 1);
+      // The gutter is cut from the right edge by the same width it takes in a left-to-right page, not picked as its smaller remainder.
+      const gutter = Math.ceil(widest) + 14;
+      expect(Math.abs(right - (width - gutter))).toBeLessThanOrEqual(1);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
+  it("keeps the right-to-left plot at least a pixel wide when the chart is too narrow for the full gutter", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      const { chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />, 20);
+      await drawn(chart);
+      const { right } = scale(chart, niceTicks(-5, 30));
+      // Clamped to the plot margin plus a pixel: the larger of the two candidates, never the smaller, and never short by one.
+      expect(right).toBe(9);
     } finally {
       document.documentElement.removeAttribute("dir");
     }
