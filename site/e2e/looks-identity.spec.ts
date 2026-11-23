@@ -111,14 +111,15 @@ test.describe("the More ways trigger hovers to one picture on every docs page", 
 // A retake's two takes are read back to back, with nothing between them; a transition or keyframe animation that
 // starts only then (not when the state itself began, so the settle before the first take never saw it) used to
 // leave the second take mid-flight (#2989). settleMotion, run again before the second take, waits it out the same
-// way as before the first.
+// way as before the first. A picture's screenshot runs with animations disabled, which fast-forwards any animation
+// or transition it finds already running to its end value there and then (irreversibly, for the rest of the page's
+// life) rather than holding the frame still; the first take here is read before the mover starts, so it is the
+// take's own screenshot that catches the mover mid-flight and commits it, producing a genuine disagreement with the
+// untouched take before it.
 test("settleMotion waits out a mover that starts between two takes, so both agree once it has run its course (#2989)", async ({ page }) => {
   await page.goto("./docs/");
   await page.evaluate(() => {
-    document.body.innerHTML = '<main><button data-ouro="mover" data-ouro-control="mover" data-ouro-part="trigger" style="width:40px;height:40px;background-color:#ff0000"></button></main>';
-    const style = document.createElement("style");
-    style.textContent = "@keyframes drain3Mover { to { background-color: #00ff00; } }";
-    document.head.append(style);
+    document.body.innerHTML = '<main><button data-ouro="mover" data-ouro-control="mover" data-ouro-part="trigger" style="width:40px;height:40px;background-color:#ff0000;transition:background-color 150ms linear"></button></main>';
   });
   await loaded(page);
   const { looks } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
@@ -126,10 +127,10 @@ test("settleMotion waits out a mover that starts between two takes, so both agre
   const index = 0;
   const where = { signature: "mover|trigger", page: "/synthetic/", state: "test" };
 
-  await page.evaluate(() => {
-    document.querySelector("button")!.style.animation = "drain3Mover 150ms linear 1";
-  });
   const midA = await picture(page, index);
+  await page.evaluate(() => {
+    document.querySelector("button")!.style.backgroundColor = "#00ff00";
+  });
   const midB = await picture(page, index);
   expect(instability(midA, midB, where), "two takes read back to back while a mover runs disagree").not.toBeNull();
 
