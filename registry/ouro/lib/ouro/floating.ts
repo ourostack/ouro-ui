@@ -139,7 +139,7 @@ const floatingMotionClass =
  * surface keeps an edge of its own whether or not a plain button inside it draws one.
  *
  * @internal
- * @claim "Forced colours draw the ring as a solid border" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover under forced colours > keeps its own edge, whether or not a plain button inside it draws one)
+ * @claim "Forced colours draw the ring as a solid border" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover under forced colours > keeps its own edge, whether or not a plain button inside it draws one (#3103))
  */
 const floatingSurfaceClass =
   "box-border rounded-ouro-lg bg-popover text-popover-foreground outline-none " +
