@@ -205,7 +205,7 @@ describe("Composer rich mode", () => {
       editor as unknown as { __lexicalEditor: { getEditorState(): { toJSON(): unknown }; parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }
     ).__lexicalEditor;
     const state = starItalicState("wow");
-    (state.root.children[0].children[0].$ as { composerMark: string }).composerMark = "slash";
+    (state.root.children[0]!.children[0]!.$ as { composerMark: string }).composerMark = "slash";
     await act(async () => lexical.setEditorState(lexical.parseEditorState(state)));
     expect(JSON.stringify(lexical.getEditorState().toJSON())).not.toContain("slash");
   });
