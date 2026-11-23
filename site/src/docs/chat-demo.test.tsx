@@ -83,10 +83,11 @@ describe("the chat app page", () => {
       await page.viewport(390, 844);
       await renderPage("/docs/chat-demo/");
       await page.getByRole("radio", { name: "Empty" }).click();
-      await expect.element(page.getByText("Conversations appear here")).not.toBeVisible();
-      await expect.element(page.getByText("Nothing here yet")).toBeVisible();
+      const drawn = (text: string) => [...document.querySelectorAll("body *")].some((el) => el.textContent === text && el.getClientRects().length > 0);
+      await expect.poll(() => drawn("Nothing here yet")).toBe(true);
+      expect(drawn("Conversations appear here")).toBe(false);
       await page.viewport(1280, 800);
-      await expect.element(page.getByText("Conversations appear here")).toBeVisible();
+      await expect.poll(() => drawn("Conversations appear here")).toBe(true);
       await page.getByRole("button", { name: "Start a conversation" }).click();
       await expect.element(page.getByRole("list", { name: "Conversations" })).toBeVisible();
     } finally {
