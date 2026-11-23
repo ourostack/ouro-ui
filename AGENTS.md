@@ -2,6 +2,21 @@
 
 Rules for people and coding agents who change this repository. (Consumers read `README.md` and `docs/`, not this file.)
 
+## Names
+
+Use these names, exactly, on every surface: code comments, docs, the site, pull requests and replies.
+
+- **Ouro UI**: the whole kit, and the parts below are its parts. Don't call it "a React component library", and don't let one part stand for it.
+- **Ouro HX** (human experience): components for the screens people use, one kit per platform. Say which: Ouro HX for web (this repository), for Apple, for Windows, for Android. Ouro HX is a part of Ouro UI, not the whole.
+- **Ouro AX** (agent experience): the doors agents use instead of a screen (command lines, APIs, MCP servers, App Intents, AppFunctions, Windows App Actions), a standard of checkable promises for them, and a kit that keeps the promises. Say what a door is where the word first appears on a page.
+- **Actions**: an action declared once becomes the button a person presses and the tool an agent calls. Each is a read, a write, consequential (the person confirms first) or person-only (no agent door offers it).[^a-names-consent]
+- **Composed UI**: an agent sends a card as data; Ouro checks it against the app's list of components and actions, and each kit draws it natively.[^a-names-composed] MCP Apps and A2UI are formats it speaks.
+- **X-ray**: **HX X-ray** outlines and names every component on a screen; **AX X-ray** calls every door the way an agent would and says which promises hold.[^a-names-xray]
+- **Ouro check** opens every page at every screen size, light and dark, and reports what's broken.[^a-names-check] **Ouro Feel** measures how an app feels in use. **Ouro Reins** drives an app's own screens as state and actions, for tests. **Hackamore** ([ourostack/hackamore](https://github.com/ourostack/hackamore)) drives Mac apps for agents, and is part of the Ouro UI family.
+- **Ouro Current**: each Ouro UI release arrives in an app's repository as one pull request.[^a-names-current] **Adoption**: the public board of the products that use Ouro UI.
+
+Page titles follow the names: a component page ends "· Ouro HX for web", and a guide or any other page about the whole kit ends "· Ouro UI".
+
 ## Merging pull requests
 
 Follow ourostack's shared [PR merge rule](https://github.com/ourostack/.github/blob/main/agents/prs-merge-within-30-minutes.md). Finish, review and validate on your branch first, then publish with `gh ouro-pr`, which turns auto-merge on so green means merged. When a PR here shows on the [PR clock](https://github.com/ourostack/.github/issues?q=is%3Aissue+is%3Aopen+label%3Apr-clock), act on it now: merge it if green, fix the cause if red (file an issue before any rerun), rebase it if conflicted, or close it with a reason if it isn't going anywhere.
@@ -309,3 +324,8 @@ Then regenerate, never hand-merge: `pnpm run docs` (`docs/` and `README.md`, whi
 [^a-art-universe]: https://github.com/ourostack/.github/blob/83e6b333c3f397821c83935f7329aedb019844f3/agents/art-one-universe.md; site/src/storybook.ts verify:urlOk(https://github.com/ourostack/.github/blob/83e6b333c3f397821c83935f7329aedb019844f3/agents/art-one-universe.md) verify:fileLine(site/src/storybook.ts, /ourostack\/\.github, brand\//)
 [^a-claim]: https://github.com/ourostack/.github/blob/ca95e84046086c2d1af0d83e24401a109c3a7954/tools/ouro-pr/ouro-pr.sh#L194-L204 verify:urlOk(https://github.com/ourostack/.github/blob/ca95e84046086c2d1af0d83e24401a109c3a7954/tools/ouro-pr/ouro-pr.sh#L194-L204)
 [^a-probe]: https://github.com/ourostack/.github/blob/ca95e84046086c2d1af0d83e24401a109c3a7954/tools/ouro-pr/ouro-pr.sh#L24 verify:urlOk(https://github.com/ourostack/.github/blob/ca95e84046086c2d1af0d83e24401a109c3a7954/tools/ouro-pr/ouro-pr.sh#L24)
+[^a-names-consent]: scripts/ouro-actions/ouro-actions.mts verify:fileLine(scripts/ouro-actions/ouro-actions.mts, /CONSENTS = Object\.freeze\(\["read", "write", "consequential", "person-only"\]/)
+[^a-names-composed]: docs/guides/composed-ui.md verify:fileLine(docs/guides/composed-ui.md, /Every kit draws the tree natively/) verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws a tree built in code, which core's validator accepts, with HX components)
+[^a-names-xray]: test/inspector-names.test.ts; registry/ouro/ax/xray.test.mts verify:testExists(test/inspector-names.test.ts::X-ray's item names > name a registry item for every component root, and skip only an overlay's wrappers) verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
+[^a-names-check]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups)
+[^a-names-current]: site/src/current/current.tsx verify:fileLine(site/src/current/current.tsx, /When Ouro UI, Ouro UI core or Ouro UI for Apple releases, that repository gets one pull request/)
