@@ -1603,6 +1603,25 @@ describe("swiping", () => {
     await gone("Closed");
   });
 
+  it("fades a closed toast where it sat in a fanned-out stack, shrinking a little, not where a folded stack would put it", async () => {
+    await render(<Toaster />);
+    await show("Older", { duration: 0 });
+    await show("Newer", { duration: 0 });
+    await userEvent.hover(toastNamed("Newer")!);
+    await until(() => viewport()!.hasAttribute("data-expanded"), true);
+    const older = toastNamed("Older")!;
+    await until(() => older.getAnimations().length, 0);
+    const sat = new DOMMatrix(getComputedStyle(older).transform).m42;
+    older.style.transitionDuration = "20s";
+    await userEvent.click(older.querySelector<HTMLButtonElement>('[data-ouro-part="close"]')!);
+    await expect.poll(() => older.hasAttribute("data-ending-style")).toBe(true);
+    for (const animation of older.getAnimations()) animation.finish();
+    const end = new DOMMatrix(getComputedStyle(older).transform);
+    expect(end.m42).toBeCloseTo(sat, 0);
+    expect(end.a).toBeCloseTo(0.96, 2);
+    await gone("Older");
+  });
+
   it("throws a swiped toast on under OuroProvider's motion=\"full\", and lets it fade where it is under \"reduced\", whatever the device says", async () => {
     const swipeAway = async (item: HTMLElement) => {
       const send = pointerOn(item);

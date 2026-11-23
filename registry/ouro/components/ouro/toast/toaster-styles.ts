@@ -49,7 +49,9 @@ const viewportClass =
  * moves the toast with `translate`, which adds to this `transform` and is not in the
  * transition, so it follows the finger at once. A swiped toast (`data-ouro-swiped`)
  * fades on the way it was thrown; a toast closed any other way fades where it is, shrinking a
- * little, and the ones behind it glide into its place. With reduced motion nothing slides or
+ * little, and the ones behind it glide into its place. Its leaving transform names no height: Base UI
+ * drops a closing toast's `--toast-height` (and the frontmost height, when it was the front), so a
+ * transform that read `--height` would go invalid and jump to none. With reduced motion nothing slides or
  * springs: toasts fade in and out where they are.
  * A toast swipes away toward its edge (down at the bottom, up at the top) as well as sideways, so
  * it takes every touch gesture (`touch-none`, not `touch-pan-y`): otherwise a swipe on a
@@ -71,16 +73,17 @@ const rootClass =
   "select-none [-webkit-tap-highlight-color:transparent] " +
   "rounded-ouro-lg border border-solid border-border bg-popover [--ouro-scroller-surface:var(--popover)] text-popover-foreground shadow-(--shadow-lg) " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  "[--gap:0.75rem] [--peek:0.75rem] [--leave:1] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))] " +
+  "[--gap:0.75rem] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))] " +
   "[--height:var(--toast-frontmost-height,var(--toast-height))] " +
   "[--offset-y:calc(var(--ouro-toast-dir)*(var(--toast-offset-y)+var(--toast-index)*var(--gap)))] " +
   "z-[calc(1000-var(--toast-index))] h-(--height) data-expanded:h-(--toast-height) " +
-  "[transform:translateY(calc(var(--ouro-toast-dir)*(var(--toast-index)*var(--peek)+var(--shrink)*var(--height))))_scale(calc(var(--scale)*var(--leave)))] " +
-  "data-expanded:[transform:translateY(var(--offset-y))_scale(var(--leave))] " +
+  "[transform:translateY(calc(var(--ouro-toast-dir)*(var(--toast-index)*var(--peek)+var(--shrink)*var(--height))))_scale(var(--scale))] " +
+  "data-expanded:[transform:translateY(var(--offset-y))] " +
 
   "data-starting-style:opacity-0 data-ending-style:opacity-0 data-limited:opacity-0 " +
   "motion-safe:data-starting-style:[transform:translateY(calc(var(--ouro-toast-dir)*-150%))] motion-safe:data-expanded:data-starting-style:[transform:translateY(calc(var(--ouro-toast-dir)*-150%))] " +
-  "motion-safe:[&[data-ending-style]:not([data-limited]):not([data-ouro-swiped])]:[--leave:0.96] " +
+  "motion-safe:[&[data-ending-style]:not([data-limited]):not([data-ouro-swiped])]:[transform:translateY(calc(var(--ouro-toast-dir)*var(--toast-index)*var(--peek)))_scale(calc(var(--scale)*0.96))] " +
+  "motion-safe:data-expanded:[&[data-ending-style]:not([data-limited]):not([data-ouro-swiped])]:[transform:translateY(var(--offset-y))_scale(0.96)] " +
   "motion-safe:[transition:transform_var(--ouro-duration-slow)_var(--ouro-ease-out),opacity_var(--ouro-duration-base)_var(--ouro-ease-out)] " +
   "motion-reduce:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out)]";
 
