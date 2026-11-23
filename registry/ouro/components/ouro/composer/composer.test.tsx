@@ -218,6 +218,23 @@ describe("Composer drafts", () => {
     expect(await read("u50")).toBe("draft 50");
   });
 
+  it("counts a draft left again as recent, so rewriting the oldest protects it from eviction", async () => {
+    const leave = async (id: string, text: string) => {
+      const view = await render(<Composer label="Message" conversation={id} onSend={() => {}} />);
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(view.textarea, text);
+        view.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await view.rerender(<div />);
+    };
+    for (let i = 0; i < 50; i++) await leave(`r${i}`, `draft ${i}`);
+    await leave("r0", "rewritten");
+    await leave("r50", "newest");
+    expect(composerDrafts.get("r0")).toBe("rewritten");
+    expect(composerDrafts.has("r1")).toBe(false);
+    expect(composerDrafts.size).toBe(50);
+  });
+
   it("leaves a controlled value to the app", async () => {
     const view = await render(<Composer label="Message" conversation="a" value="mine" onValueChange={() => {}} onSend={() => {}} />);
     await view.rerender(<Composer label="Message" conversation="b" value="mine" onValueChange={() => {}} onSend={() => {}} />);

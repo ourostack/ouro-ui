@@ -575,6 +575,7 @@ export function Composer(props: ComposerProps): JSX.Element {
       if (draft !== "" && draft !== initial) kept.set(id, draft);
       if (kept.size > draftLimit) kept.delete(kept.keys().next().value);
     },
+    // Stryker disable next-line ArrayDeclaration: `kept` is the module's one store, so the dependency never changes.
     [kept],
   );
   if (conversation !== ownConversation) {
