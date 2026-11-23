@@ -55,6 +55,9 @@ describe("the chat app page", () => {
     await page.getByRole("button", { name: /Launch crew/ }).click();
     await page.getByRole("button", { name: /repl/i }).first().click();
     await expect.element(page.getByLabelText("Replies").first()).toBeInTheDocument();
+    const rail = page.getByRole("complementary", { name: "Replies" });
+    await expect.element(rail.getByText("Mara Quill").first()).toBeInTheDocument();
+    await expect.element(rail.getByPlaceholder("Reply to the thread")).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     await page.getByRole("radio", { name: "Empty" }).click();
     await expect.element(page.getByRole("radio", { name: "Empty" })).toBeChecked();

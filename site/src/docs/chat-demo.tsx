@@ -258,6 +258,11 @@ function ChatDemo(): JSX.Element {
     open && threadOpen ? (
       <ThreadRail label="Thread" title="Replies" detail={open.title} meta={`${open.replies.length} replies`} onClose={() => setThreadOpen(false)} returnFocus={threadButton}>
         <MessageList label="Replies" className="min-h-0 flex-1">
+          {open.messages[2] ? (
+            <Message id={`${open.messages[2].id}-parent`} variant="reply" role={open.messages[2].own ? "user" : "assistant"} name={open.messages[2].who} time={open.messages[2].time}>
+              {open.messages[2].text}
+            </Message>
+          ) : null}
           {open.replies.map((line) => (
             <Message key={line.id} id={line.id} variant="reply" role={line.own ? "user" : "assistant"} name={line.who} time={line.time}>
               {line.text}
@@ -265,7 +270,7 @@ function ChatDemo(): JSX.Element {
           ))}
         </MessageList>
         <div className="border-t border-border p-2">
-          <Composer label="Reply in thread" onSend={(text) => send(open.id, text, true)} />
+          <Composer label="Reply in thread" placeholder="Reply to the thread" onSend={(text) => send(open.id, text, true)} />
         </div>
       </ThreadRail>
     ) : null;
