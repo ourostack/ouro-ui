@@ -1022,6 +1022,8 @@ describe("Chart plot", () => {
     const yLabels = [...chart.querySelectorAll<SVGTextElement>('[data-ouro-chart-axis="y"] text')];
     expect(yLabels.map((label) => label.textContent)).toEqual(ticks.map((tick) => tick.toLocaleString("en-US")));
     expect(Math.abs(left - (Math.max(...yLabels.map((label) => label.getComputedTextLength())) + 14))).toBeLessThanOrEqual(1);
+    // Anchored at its end, so the label grows back toward the axis instead of out over the plot.
+    for (const label of yLabels) expect(label.getAttribute("text-anchor")).toBe("end");
     expect(right).toBe(width - 8);
     expect(grid.map(([x1, x2]) => [x1, x2])).toEqual(ticks.map(() => [left, right]));
     grid.forEach(([, , y1], place) => expect(y1).toBeCloseTo(y(ticks[place]!), 6));
@@ -1053,6 +1055,8 @@ describe("Chart plot", () => {
       const yLabels = [...chart.querySelectorAll<SVGTextElement>('[data-ouro-chart-axis="y"] text')];
       // The gutter sits past the plot's right edge, not inside it over the bars.
       for (const label of yLabels) expect(Number(label.getAttribute("x"))).toBeGreaterThanOrEqual(right);
+      // Anchored at its start, so the label grows away from the plot instead of back over it.
+      for (const label of yLabels) expect(label.getAttribute("text-anchor")).toBe("start");
       const widest = Math.max(...yLabels.map((label) => label.getComputedTextLength()));
       for (const bar of bars(chart, "value")) expect(bar.getBoundingClientRect().right).toBeLessThanOrEqual(chart.getBoundingClientRect().right - widest + 1);
       // The gutter is cut from the right edge by the same width it takes in a left-to-right page, not picked as its smaller remainder.
