@@ -3,7 +3,8 @@
   "components": ["theme-picker"],
   "controls": {
     "theme-picker": [
-      {"part": "preset", "role": "button", "portal": false}
+      {"part": "preset", "role": "button", "portal": false},
+      {"part": "trigger", "role": "button", "portal": false}
     ]
   }
 }

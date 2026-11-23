@@ -119,6 +119,11 @@ export const routes: Route[] = [
     title: "Updating components · Ouro HX",
     description: "Review upstream changes with add --diff, then overwrite and reapply your edits.",
   },
+  {
+    path: "/docs/chat-demo/",
+    title: "A chat app · Ouro HX",
+    description: "A whole chat app from Ouro HX's chat components: conversations, messages, a thread, typing, read receipts and composers.",
+  },
   // One component's live demo alone (components/phone-demo.tsx), which a component page shows in a phone's frame.
   { path: "/docs/demo/", title: "Live demo · Ouro HX", description: "One Ouro HX component's live demo, on its own.", noindex: true },
 ];

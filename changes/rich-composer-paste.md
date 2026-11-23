@@ -1,0 +1,1 @@
+- New: with `format="rich"`, the Markdown `pasteText` returns goes in as formatting, before the clipboard's HTML reaches the allowlist.
