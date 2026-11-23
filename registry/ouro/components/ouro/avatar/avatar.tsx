@@ -287,8 +287,8 @@ const biteSizes = {
 // Below 40px a glyph cannot be read, so the dot is a plain colour; from 40px up it carries its glyph.
 const plainSizes: readonly AvatarSize[] = ["xs", "sm"];
 const biteClass =
-  "[mask-image:radial-gradient(circle_at_calc(100%_-_var(--ouro-bite-c))_calc(100%_-_var(--ouro-bite-c)),transparent_var(--ouro-bite-r),#000_calc(var(--ouro-bite-r)+0.5px))] " + // gradient-ok: a bite cut out of the avatar for its presence dot, not a fade
-  "rtl:[mask-image:radial-gradient(circle_at_var(--ouro-bite-c)_calc(100%_-_var(--ouro-bite-c)),transparent_var(--ouro-bite-r),#000_calc(var(--ouro-bite-r)+0.5px))]"; // gradient-ok: the same bite, mirrored for right to left
+  "[mask-image:radial-gradient(circle_at_calc(100%_-_var(--ouro-bite-c))_calc(100%_-_var(--ouro-bite-c)),transparent_var(--ouro-bite-r),#000_calc(var(--ouro-bite-r)+0.5px))] " + // fade-ok: a bite cut out of the avatar for its presence dot, not a fade; gradient-ok: a cut-out, not a fade
+  "rtl:[mask-image:radial-gradient(circle_at_var(--ouro-bite-c)_calc(100%_-_var(--ouro-bite-c)),transparent_var(--ouro-bite-r),#000_calc(var(--ouro-bite-r)+0.5px))]"; // fade-ok: the same bite, mirrored for right to left; gradient-ok: a cut-out, not a fade
 
 // Each hue tints the surface and colors the initials, mixed toward the theme's background and
 // foreground so the pair keeps at least 4.5:1 in light and dark.
