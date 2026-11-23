@@ -753,6 +753,89 @@ describe("MessageList", () => {
   /** Where the list is scrolled in the next frame, before the browser draws it. */
   const nextFrame = (scroller: HTMLElement) => new Promise<number>((resolve) => requestAnimationFrame(() => resolve(scroller.scrollTop)));
 
+  /** Arms the held place, as a message above the reader moving to the end does, and reads where it holds after the one frame the resize
+   * observer that applies the hold needs: waiting for more would let the two-frame window the list itself puts the hold back in close
+   * before the test's own stray does. */
+  async function armHeld(scroller: HTMLElement, items: Item[], rerender: (next: ReactNode) => Promise<void>) {
+    await rerender(<Chat items={[...items.slice(1), items[0]!]} />);
+    // The resize observer that applies the hold runs after layout, a frame the mutation itself does not wait for:
+    // one frame lets it run, with the list's own two-frame window to put the hold back in still open after it.
+    await nextFrame(scroller);
+    return scroller.scrollTop;
+  }
+
+  it("puts a stray back to the place a message moving to the end held, once, and lets the next stray there be, its hold spent", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const heldAt = await armHeld(scroller, items, rerender);
+    await act(async () => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // The stray within STRAY_PX of the held place, just after the list held it, is none of the reader's: put back.
+    expect(scroller.scrollTop).toBe(heldAt);
+    await act(async () => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Correcting a stray lets the hold go, as any other move does: a second one so close after is the reader's or the browser's,
+    // and stays where it left the list.
+    expect(scroller.scrollTop).toBe(heldAt + 2);
+  });
+
+  it("lets a stray near the place a message moving to the end held be, once Jump to latest has taken the reader past it", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const heldAt = await armHeld(scroller, items, rerender);
+    await act(async () => page.getByRole("button", { name: "Jump to latest" }).element().click());
+    await act(async () => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Jumping to the end let the hold go with it, as any other move does, so the stray near where it held before stays put.
+    expect(scroller.scrollTop).toBe(heldAt + 2);
+  });
+
+  it("lets a stray the list is asked to scroll to near the place a message moving to the end held be", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const heldAt = await armHeld(scroller, items, rerender);
+    await act(async () => {
+      scroller.scrollTo({ top: heldAt + 2, behavior: "instant" });
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Asked for by code (scrollTo), not the reader: it counts as input too, so the stray it lands within is none for the hold to
+    // put back, the same as a key or a pointer would.
+    expect(scroller.scrollTop).toBe(heldAt + 2);
+  });
+
+  it("lets a stray the list is asked to scroll by near the place a message moving to the end held be", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const heldAt = await armHeld(scroller, items, rerender);
+    await act(async () => {
+      scroller.scrollBy({ top: 2, behavior: "instant" });
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Asked for by code (scrollBy), not the reader: it counts as input too, so the stray it lands within is none for the hold to
+    // put back, the same as scrollTo does.
+    expect(scroller.scrollTop).toBe(heldAt + 2);
+  });
+
+  it("scrolls the list when code asks it to, through scrollTo and scrollBy wrapped for that, not left unscrolled", async () => {
+    const { scroller: own } = await render(<Chat items={history(30)} />);
+    await settle(own);
+    const before = own.scrollTop;
+    own.scrollTo({ top: before - 50, behavior: "instant" });
+    expect(own.scrollTop).toBe(before - 50);
+    own.scrollBy({ top: 20, behavior: "instant" });
+    expect(own.scrollTop).toBe(before - 30);
+  });
+
   it("opens at the message initialAnchor names, never drawing the newest first, and stops following new messages", async () => {
     const items = history(30);
     const { scroller, rerender } = await render(<Found items={items} initialAnchor="found-5" />);

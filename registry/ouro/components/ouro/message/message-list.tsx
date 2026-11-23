@@ -1716,6 +1716,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const box = boxOf(target);
       scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
       ownTop.current = scroller.scrollTop;
+      // Stryker disable next-line BooleanLiteral: both callers reach centre with the hold already clear, open()'s initial
+      // ref default and reopen()'s followEnd (toBottom) called just before it, so a test cannot tell this write from none.
       held.current = false;
     };
     const open = () => {
@@ -2148,6 +2150,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Where hold() last put the scroll position to keep the reader's place, and whether a stray scroll just after it is still put back
   // to it (onScroll). Any other write of the list's clears it.
   const heldTop = useRef(0);
+  // Stryker disable next-line BooleanLiteral: followEnd (toBottom) runs first, unconditionally, at the top of the mount effect,
+  // clearing held before anything can read the ref, so true or false here changes nothing a test can see.
   const held = useRef(false);
   // Where each slot drawn sits in the content, and its size, as last measured.
   const tops = useRef(new Map<string, { top: number; size: number }>());
