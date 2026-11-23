@@ -54,7 +54,8 @@ afterEach(async () => {
   const away = document.createElement("div");
   away.style.cssText = "position: fixed; left: 0; top: 0; width: 4px; height: 4px; z-index: 2147483647";
   document.body.append(away);
-  await userEvent.hover(away);
+  // Forced: an overlay a test left open (the command palette) may cover the corner, and the mouse only has to move.
+  await userEvent.hover(away, { force: true });
   away.remove();
   await cleanupPage();
   localStorage.removeItem(THEME_KEY);
