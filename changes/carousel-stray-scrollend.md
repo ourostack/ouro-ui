@@ -1,0 +1,1 @@
+- Fixed: Carousel confirms a stray scrollend fired while idle, after it has already settled, before trusting the position it reports.
