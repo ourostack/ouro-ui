@@ -361,11 +361,11 @@ test("on a phone the menu shows the looks in a row, with no button in the bar, a
   await open(page, "docs/button/");
   await expect(page.locator(".site-theme-picker [data-ouro-part='trigger']")).toBeHidden();
   await openMenu(page);
-  const looks = sheet(page).getByRole("group", { name: "Theme", exact: true });
-  await expect(looks.getByRole("button", { name: "Brass", exact: true })).toBeVisible();
-  await looks.getByRole("button", { name: "Abyss", exact: true }).click();
+  const looks = sheet(page).getByRole("listbox", { name: "Theme", exact: true });
+  await expect(looks.getByRole("option", { name: "Brass", exact: true })).toBeVisible();
+  await looks.getByRole("option", { name: "Abyss", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "abyss");
-  await expect(looks.getByRole("button", { name: "Abyss", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(looks.getByRole("option", { name: "Abyss", exact: true })).toHaveAttribute("aria-selected", "true");
   await sheet(page).getByRole("radio", { name: "Submerged" }).click();
   await expect(page.locator("html")).toHaveClass(/\bdark\b/);
 });

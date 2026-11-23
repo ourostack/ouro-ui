@@ -102,8 +102,8 @@ test("a stored preset paints from the server HTML, before the client entry runs"
   await expect(bare.locator('#themes [data-site-preset="abyss"]')).toHaveCSS("box-shadow", /inset/);
   await expect(bare.locator('#themes [data-site-preset="pearl"]')).not.toHaveCSS("box-shadow", /inset/);
   // The hero's row of theme dots says the same.
-  await expect(bare.locator('[data-site-hero-paint] button[data-preset="abyss"]')).toHaveAttribute("aria-pressed", "true");
-  await expect(bare.locator('[data-site-hero-paint] button[data-preset="live"]')).toHaveAttribute("aria-pressed", "false");
+  await expect(bare.locator('[data-site-hero-paint] [role=option][data-preset="abyss"]')).toHaveAttribute("aria-selected", "true");
+  await expect(bare.locator('[data-site-hero-paint] [role=option][data-preset="live"]')).toHaveAttribute("aria-selected", "false");
   await blocked.close();
 });
 
@@ -319,9 +319,9 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   // real clock: the theme picker's popup stays open until it is closed; no timer ends it.
   await expect(popup).toBeVisible();
   expect(await page.evaluate(() => scrollY)).toBe(0);
-  // The themes are a row of buttons and one Tab stop, the chosen one's: arrows walk them, Enter picks one.
-  const themes = popup.getByRole("group", { name: "Theme" });
-  const theme = (name: string) => themes.getByRole("button", { name, exact: true });
+  // The themes are a row of options and one Tab stop, the chosen one's: arrows walk them, Enter picks one.
+  const themes = popup.getByRole("listbox", { name: "Theme" });
+  const theme = (name: string) => themes.getByRole("option", { name, exact: true });
   await pressTab(page);
   await expect(theme("Pearl")).toBeFocused();
   await page.keyboard.press("ArrowLeft");

@@ -63,7 +63,7 @@ afterEach(async () => {
 });
 
 /** The hero's row of looks; the phone menu holds another, hidden from 640px. */
-const heroLooks = () => page.elementLocator(document.querySelector("[data-site-hero-paint] [role=group][aria-label=Theme]")!);
+const heroLooks = () => page.elementLocator(document.querySelector("[data-site-hero-paint] [role=listbox][aria-label=Theme]")!);
 
 describe("the theme before first paint", () => {
   it("defaults to Live, on Pearl's rules, and follows the OS until the reader picks Surfaced or Submerged", () => {
@@ -173,7 +173,7 @@ describe("the header and the theme section", () => {
     const background = () => getComputedStyle(document.body).backgroundColor;
     const pearl = background();
     await userEvent.click(page.getByRole("button", { name: /Theme: Pearl/ }));
-    await userEvent.click(page.getByRole("dialog", { name: "Theme" }).getByRole("group", { name: "Theme" }).getByRole("button", { name: "Abyss", exact: true }));
+    await userEvent.click(page.getByRole("dialog", { name: "Theme" }).getByRole("listbox", { name: "Theme" }).getByRole("option", { name: "Abyss", exact: true }));
     await expect.poll(() => root.getAttribute("data-theme")).toBe("abyss");
     expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toEqual({ preset: "abyss" });
     expect(background()).not.toBe(pearl);
@@ -212,10 +212,10 @@ describe("the header and the theme section", () => {
     root.setAttribute("data-theme", "pearl");
     await renderPage("/");
     const group = heroLooks();
-    await expect.element(group.getByRole("button", { name: "Sky", exact: true })).toBeVisible();
-    expect(group.getByRole("button", { name: "Live" }).elements()).toHaveLength(0);
-    await userEvent.click(group.getByRole("button", { name: "Sky", exact: true }), { force: true });
-    await expect.poll(() => document.querySelector("[data-site-hero-paint] [role=group][aria-label=Theme]")?.closest("[data-ouro=theme-picker]")?.parentElement?.querySelector("p strong")?.textContent).toBe("Sky");
+    await expect.element(group.getByRole("option", { name: "Sky", exact: true })).toBeVisible();
+    expect(group.getByRole("option", { name: "Live" }).elements()).toHaveLength(0);
+    await userEvent.click(group.getByRole("option", { name: "Sky", exact: true }), { force: true });
+    await expect.poll(() => document.querySelector("[data-site-hero-paint] [role=listbox][aria-label=Theme]")?.closest("[data-ouro=theme-picker]")?.parentElement?.querySelector("p strong")?.textContent).toBe("Sky");
   });
 
   it("repaints the whole page in a look while the pointer rests on it, and puts the choice back as it leaves", async () => {
@@ -223,11 +223,11 @@ describe("the header and the theme section", () => {
     await renderPage("/");
     const background = () => getComputedStyle(document.body).backgroundColor;
     const pearl = background();
-    const brass = heroLooks().getByRole("button", { name: "Brass", exact: true });
+    const brass = heroLooks().getByRole("option", { name: "Brass", exact: true });
     await userEvent.hover(brass);
     await expect.poll(() => root.getAttribute("data-theme")).toBe("brass");
     expect(background()).not.toBe(pearl);
-    await expect.element(heroLooks().getByRole("button", { name: "Pearl", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect.element(heroLooks().getByRole("option", { name: "Pearl", exact: true })).toHaveAttribute("aria-selected", "true");
     await userEvent.unhover(brass);
     await expect.poll(() => root.getAttribute("data-theme")).toBe("pearl");
     expect(localStorage.getItem(THEME_KEY)).toBeNull();
@@ -236,7 +236,7 @@ describe("the header and the theme section", () => {
   it("draws each look as its wordmark in its own face and paper, a squircle, with only the chosen one ringed, Sky at dusk", async () => {
     root.setAttribute("data-theme", "pearl");
     await renderPage("/");
-    const looks = () => [...document.querySelectorAll<HTMLElement>("[data-site-hero-paint] [role=group][aria-label=Theme] button[data-preset]")];
+    const looks = () => [...document.querySelectorAll<HTMLElement>("[data-site-hero-paint] [role=listbox][aria-label=Theme] [role=option][data-preset]")];
     const tile = (look: HTMLElement) => look.querySelector<HTMLElement>("[data-theme]")!;
     expect(looks().map((look) => look.textContent)).toEqual(["Sky", "Pearl", "Abyss", "Brass", "Chart", "Coral", "Cookbook"]);
     for (const look of looks()) {
@@ -247,7 +247,7 @@ describe("the header and the theme section", () => {
     const paper = (name: string) => getComputedStyle(tile(looks().find((look) => look.dataset.preset === name)!)).getPropertyValue("--background").trim();
     expect(paper("live")).not.toBe(paper("pearl"));
     for (const name of ["Sky", "Abyss"]) {
-      await userEvent.click(heroLooks().getByRole("button", { name, exact: true }), { force: true });
+      await userEvent.click(heroLooks().getByRole("option", { name, exact: true }), { force: true });
       await expect.poll(() => looks().filter((look) => getComputedStyle(look).boxShadow !== "none").map((look) => look.textContent)).toEqual([name]);
     }
   });

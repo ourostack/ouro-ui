@@ -5,6 +5,7 @@ import { commands, userEvent } from "vitest/browser";
 import { ThemePicker, type ThemePickerProps } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { honesty } from "@/registry/ouro/lib/ouro/testing/honesty";
 
 // Two looks with their own paper, ink, primary and heading face, light and dark, so each wordmark can be checked
@@ -69,6 +70,40 @@ async function openPopover(el: HTMLElement) {
 }
 
 describe("ThemePicker", () => {
+  it("is a listbox of options, so a screen reader gives each look's name, its place in the list and whether it is selected, and speaks a choice through that state alone", async () => {
+    const el = await render(<ThemePicker presets={three} defaultPreset="abyss" />);
+    const list = el.querySelector('[role="listbox"]')!;
+    expect(list.getAttribute("aria-label")).toBe("Theme");
+    expect(list.getAttribute("aria-orientation")).toBe("horizontal");
+    const options = [...list.children] as HTMLElement[];
+    expect(options.map((look) => [look.getAttribute("role"), look.getAttribute("aria-label"), look.getAttribute("aria-selected")])).toEqual([
+      ["option", "Pearl", "false"],
+      ["option", "Abyss", "true"],
+      ["option", "Dusk", "false"],
+    ]);
+    expect(el.querySelector("[aria-pressed]")).toBeNull();
+    const announcements = watchAnnouncements();
+    try {
+      await act(async () => option(el, "dusk").click());
+      expect(option(el, "dusk").getAttribute("aria-selected")).toBe("true");
+      expect(option(el, "abyss").getAttribute("aria-selected")).toBe("false");
+      expect(announcements.changes).toEqual([]);
+    } finally {
+      announcements.stop();
+    }
+  });
+
+  it("rings keyboard focus beyond the chosen look's ring, so a focused look is never mistaken for the chosen one", async () => {
+    const el = await render(<ThemePicker presets={three} />);
+    await pressTab();
+    await userEvent.keyboard("{ArrowRight}");
+    const focused = getComputedStyle(document.activeElement!);
+    expect(document.activeElement).toBe(option(el, "abyss"));
+    expect(focused.boxShadow).toBe("none");
+    expect(Number.parseFloat(focused.outlineOffset)).toBeGreaterThanOrEqual(6);
+    expect(getComputedStyle(option(el, "pearl")).boxShadow).toMatch(/0px 0px 0px 4px/);
+  });
+
   it("is one Tab stop on the chosen look, moves with the arrow keys, Home and End, and rings keyboard focus outside the choice", async () => {
     const el = await render(<ThemePicker presets={three} defaultPreset="abyss" />);
     const looks = [...el.querySelectorAll<HTMLButtonElement>("button")];
@@ -79,9 +114,9 @@ describe("ThemePicker", () => {
     expect([chosen.outlineStyle, chosen.outlineWidth, chosen.outlineOffset]).toEqual(["solid", "2px", "6px"]);
     await userEvent.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(looks[2]);
-    expect(looks[2]!.getAttribute("aria-pressed")).toBe("false");
+    expect(looks[2]!.getAttribute("aria-selected")).toBe("false");
     const focused = getComputedStyle(looks[2]!);
-    expect([focused.outlineStyle, focused.outlineWidth, focused.outlineOffset]).toEqual(["solid", "2px", "3px"]);
+    expect([focused.outlineStyle, focused.outlineWidth, focused.outlineOffset]).toEqual(["solid", "2px", "6px"]);
     await userEvent.keyboard("{Home}");
     expect(document.activeElement).toBe(looks[0]);
     await userEvent.keyboard("{End}");
@@ -92,7 +127,7 @@ describe("ThemePicker", () => {
 
   it("rings the chosen look in the page's ink with a gap of page paper, flat, and nothing else", async () => {
     const el = await render(<ThemePicker presets={presets} defaultPreset="abyss" />);
-    const ink = getComputedStyle(el.querySelector('[role="group"]')!).getPropertyValue("--ouro-tp-ink").trim();
+    const ink = getComputedStyle(el.querySelector('[role="listbox"]')!).getPropertyValue("--ouro-tp-ink").trim();
     expect(ink).not.toBe("");
     const ring = getComputedStyle(option(el, "abyss")).boxShadow;
     expect(ring).toMatch(/0px 0px 0px 2px/);
@@ -113,10 +148,10 @@ describe("ThemePicker", () => {
 
   it("switches the page, keeps the choice and presses the chosen look", async () => {
     const el = await render(<ThemePicker presets={presets} />);
-    expect(option(el, "pearl").getAttribute("aria-pressed")).toBe("true");
+    expect(option(el, "pearl").getAttribute("aria-selected")).toBe("true");
     await act(async () => option(el, "abyss").click());
-    expect(option(el, "abyss").getAttribute("aria-pressed")).toBe("true");
-    expect(option(el, "pearl").getAttribute("aria-pressed")).toBe("false");
+    expect(option(el, "abyss").getAttribute("aria-selected")).toBe("true");
+    expect(option(el, "pearl").getAttribute("aria-selected")).toBe("false");
     expect(html.getAttribute("data-theme")).toBe("abyss");
     expect(localStorage.getItem("ouro-theme-preset")).toBe("abyss");
   });
@@ -125,7 +160,7 @@ describe("ThemePicker", () => {
     const el = await render(<ThemePicker presets={three} />);
     await userEvent.hover(option(el, "dusk"));
     await expect.poll(() => html.getAttribute("data-theme")).toBe("dusk");
-    expect(option(el, "pearl").getAttribute("aria-pressed")).toBe("true");
+    expect(option(el, "pearl").getAttribute("aria-selected")).toBe("true");
     await userEvent.unhover(option(el, "dusk"));
     await expect.poll(() => html.getAttribute("data-theme")).toBe("pearl");
     expect(localStorage.getItem("ouro-theme-preset")).toBeNull();
@@ -370,7 +405,7 @@ describe("ThemePicker", () => {
 
   it("names its group, and shows the chosen look's mood when asked", async () => {
     const el = await render(<ThemePicker presets={presets} label="Look" describe />);
-    expect(el.querySelector('[role="group"]')!.getAttribute("aria-label")).toBe("Look");
+    expect(el.querySelector('[role="listbox"]')!.getAttribute("aria-label")).toBe("Look");
     expect(el.querySelector("p")!.textContent).toBe("PearlClean white");
     await act(async () => option(el, "abyss").click());
     expect(el.querySelector("p")!.textContent).toBe("AbyssPale aqua");
@@ -378,20 +413,20 @@ describe("ThemePicker", () => {
 
   it("names its group Theme by default and shows no description", async () => {
     const el = await render(<ThemePicker presets={presets} />);
-    expect(el.querySelector('[role="group"]')!.getAttribute("aria-label")).toBe("Theme");
+    expect(el.querySelector('[role="listbox"]')!.getAttribute("aria-label")).toBe("Theme");
     expect(el.querySelector("p")).toBeNull();
   });
 
   it("starts on a kept choice", async () => {
     localStorage.setItem("ouro-theme-preset", "abyss");
     const el = await render(<ThemePicker presets={presets} />);
-    expect(option(el, "abyss").getAttribute("aria-pressed")).toBe("true");
+    expect(option(el, "abyss").getAttribute("aria-selected")).toBe("true");
   });
 
   it("keeps the choice under the key it is given, and starts on the default it is given", async () => {
     const changed = vi.fn();
     const el = await render(<ThemePicker presets={presets} storageKey="app-look" defaultPreset="abyss" onValueChange={changed} />);
-    expect(option(el, "abyss").getAttribute("aria-pressed")).toBe("true");
+    expect(option(el, "abyss").getAttribute("aria-selected")).toBe("true");
     await act(async () => option(el, "pearl").click());
     expect(localStorage.getItem("app-look")).toBe("pearl");
     expect(changed).toHaveBeenCalledWith("pearl", expect.objectContaining({ type: "click" }));
@@ -414,10 +449,10 @@ describe("ThemePicker", () => {
       );
     }
     const el = await render(<Kept />);
-    expect(option(el, "abyss").getAttribute("aria-pressed")).toBe("true");
+    expect(option(el, "abyss").getAttribute("aria-selected")).toBe("true");
     await act(async () => option(el, "pearl").click());
     expect(changed).toHaveBeenCalledWith("pearl", "click");
-    expect(option(el, "pearl").getAttribute("aria-pressed")).toBe("true");
+    expect(option(el, "pearl").getAttribute("aria-selected")).toBe("true");
     expect(html.hasAttribute("data-theme")).toBe(false);
     expect(localStorage.getItem("ouro-theme-preset")).toBeNull();
   });
@@ -425,7 +460,7 @@ describe("ThemePicker", () => {
   it("does nothing on a press with a value and no onValueChange", async () => {
     const el = await render(<ThemePicker presets={presets} value="abyss" />);
     await act(async () => option(el, "pearl").click());
-    expect(option(el, "abyss").getAttribute("aria-pressed")).toBe("true");
+    expect(option(el, "abyss").getAttribute("aria-selected")).toBe("true");
   });
 
   it("says in development when there are no presets, and names the fix for an appearance class", async () => {
@@ -487,7 +522,7 @@ describe("ThemePicker", () => {
     const surfaces = [...option(el, "pearl").querySelectorAll<HTMLElement>("[data-ouro-surface]")];
     expect(surfaces).toHaveLength(2);
     for (const surface of surfaces) expect(getComputedStyle(surface).zIndex).toBe("-1");
-    expect(getComputedStyle(el.querySelector('[role="group"]')!).getPropertyValue("--ouro-tp-sq").trim()).not.toBe("");
+    expect(getComputedStyle(el.querySelector('[role="listbox"]')!).getPropertyValue("--ouro-tp-sq").trim()).not.toBe("");
   });
 });
 
@@ -507,7 +542,7 @@ describe("ThemePicker popover", () => {
     expect(trigger.querySelector("svg[aria-hidden='true']")).not.toBeNull();
     const popup = await openPopover(el);
     expect(popup.textContent).toContain("Light or dark");
-    expect(option(popup, "dusk").getAttribute("aria-pressed")).toBe("true");
+    expect(option(popup, "dusk").getAttribute("aria-selected")).toBe("true");
     expect(getComputedStyle(tile(option(popup, "dusk"))).height).toBe("40px");
     await act(async () => option(popup, "abyss").click());
     expect(html.getAttribute("data-theme")).toBe("abyss");

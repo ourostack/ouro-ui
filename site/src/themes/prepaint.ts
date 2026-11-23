@@ -53,7 +53,7 @@ export function applyStoredTheme(
 }
 
 /**
- * Marks the stored preset's buttons pressed (`[data-site-preset]`, and the ThemePicker's `data-preset` looks, aria-pressed), and shows it
+ * Marks the stored preset's buttons pressed (`[data-site-preset]`, and the ThemePicker's `data-preset` looks, aria-selected), and shows it
  * on the picker's trigger (`data-shows`), once the body is
  * parsed, so a screen reader hears the right one before the page hydrates; CSS keyed on
  * html[data-theme] paints the same choice. Serialized like applyStoredTheme: self-contained.
@@ -67,12 +67,12 @@ export function pressStoredPreset(
     const button = buttons[index]!;
     button.setAttribute("aria-pressed", button.getAttribute("data-site-preset") === preset ? "true" : "false");
   }
-  // Ouro HX's ThemePicker: its looks carry data-preset, and the chosen one is the row's Tab stop.
-  const looks = document.querySelectorAll('[data-ouro="theme-picker"] button[data-preset], [data-ouro="popover"] button[data-preset]');
+  // Ouro HX's ThemePicker: its looks are options carrying data-preset, and the chosen one is the row's Tab stop.
+  const looks = document.querySelectorAll('[data-ouro="theme-picker"] [data-preset][role="option"], [data-ouro="popover"] [data-preset][role="option"]');
   for (let index = 0; index < looks.length; index++) {
     const look = looks[index]!;
     const chosen = look.getAttribute("data-preset") === preset;
-    look.setAttribute("aria-pressed", chosen ? "true" : "false");
+    look.setAttribute("aria-selected", chosen ? "true" : "false");
     look.setAttribute("tabindex", chosen ? "0" : "-1");
   }
   // The picker's trigger holds every look's wordmark and name, the chosen one shown (data-shows): it shows the stored one.
