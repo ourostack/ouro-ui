@@ -183,4 +183,21 @@ describe("ConversationList hover", () => {
       await commands.emulateMedia({ forcedColors: "none" });
     }
   });
+
+  it("boxes the list itself under forced colours, leaving a row at rest with its own edge off, and shows the open row in the highlight colours (#3098)", async () => {
+    const host = await render(list("ana"));
+    const plain = rowOf(host, "Trail crew");
+    const selected = rowOf(host, "Ana Lind");
+    expect(style(plain).borderTopWidth).toBe("0px");
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      await expect.poll(() => parseFloat(style(host.querySelector('[data-ouro="conversation-list"]')!).borderTopWidth)).toBeGreaterThan(0);
+      expect(style(host.querySelector('[data-ouro="conversation-list"]')!).borderTopStyle).toBe("solid");
+      expect(style(plain).borderTopWidth).toBe("0px");
+      expect(style(selected).backgroundColor).toBe(color("Highlight"));
+      expect(style(selected).color).toBe(color("HighlightText"));
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
 });
