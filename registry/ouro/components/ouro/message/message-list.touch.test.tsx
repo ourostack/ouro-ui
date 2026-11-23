@@ -72,7 +72,9 @@ async function swipe(scroller: HTMLElement, dy: number) {
 const jumpButton = () => page.getByRole("button", { name: "Jump to latest" });
 
 it("keeps the reader's place on a phone once they swipe up, and jumps back with a 44px button", async () => {
-  const items = texts(24);
+  // An odd count draws the next message (at an even index) as the other side's, not the reader's own: its own
+  // message following to the end is this file's own test, not this one's, about the held place alone.
+  const items = texts(23);
   const { scroller, rerender } = await render(<Chat items={items} />);
   // Finish this fixture's font reflow before checking that its bottom position stays stable.
   await document.fonts.ready;
