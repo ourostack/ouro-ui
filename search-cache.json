@@ -1,8 +1,8 @@
 {
   "spoonjoy/spoonjoy-v2": {
     "components/ouro/": {
-      "commit": "e4ef794fc173dc26ddfe6e6d9d79686277d009a9",
-      "at": "2026-11-23T20:16:59.851Z",
+      "commit": "b94d8e764d910b53f167ed5a6990d6e519b230e1",
+      "at": "2026-11-23T21:14:13.132Z",
       "total": 668,
       "paths": [
         "app/components/ouro/inspector/inspector.stories.tsx",
