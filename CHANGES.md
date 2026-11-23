@@ -1,0 +1,4 @@
+# Changes in this release
+
+- New: the Ouro AX census's `declared-tools` walker counts an agent bundle's own MCP tools from the `tools.json` ouro-actions-tools writes: [each served tool is `tool:<server>_<name>`, a whole declaration carries its card, a served tool without one counts as undeclared](scripts/ouro-census/walkers/declared-tools.node-test.mts "verify:fileLine(scripts/ouro-census/walkers/declared-tools.node-test.mts, /a tool is the door the agent sees/)"), and [`approvals` names the code whose gate gives a consequential tool its approval](scripts/ouro-census/walkers/declared-tools.node-test.mts "verify:fileLine(scripts/ouro-census/walkers/declared-tools.node-test.mts, /gates consequential declarations/)").
+- Fixed: Escape on `ThreadRail`'s close button closes the rail on the first press, instead of first dismissing the button's tooltip.
