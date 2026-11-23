@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Message tells the sender the outcome by voice, "Sent" once a pending send is confirmed and the failed label when it fails, and ReadReceipt says who has seen it when the first reader arrives, in words other than the message's own.
