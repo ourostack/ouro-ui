@@ -3,6 +3,363 @@
   "sets": [
     {
       "version": "1.8.0",
+      "hash": "0d917b37a68e6488efa516b93a63280d0f3105a5542bc38b6fb50a107fe4787b",
+      "firstRelease": null,
+      "claims": [
+        {
+          "id": "cli.help-parses",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-effects",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.inventory",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.command-help",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.help-width",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.overview-short",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.exit-codes",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.read-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-command",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.unknown-flag",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.flag-suggest",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.missing-arg",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.optional-args",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.one-line-error",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.error-teaches",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-stack-trace",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.plain-pipe",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.check-verdict",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.ambiguous-verbs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-need-why",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wrong-ref-first",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.others-preview",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.outcome",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-as-argument",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-on-refs",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.wait-typed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.reads-stay-reads",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.refusals-change-nothing",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.work-events",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-in-json",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.voice-off-when-piped",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.fact-before-voice",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.audience-named",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.text-refs",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.named-is-listed",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "cli.no-dev-commands",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "copy.precise-failure",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.help-size",
+          "surface": "cli",
+          "tier": "should"
+        },
+        {
+          "id": "tools.listed",
+          "surface": "tools",
+          "tier": "should"
+        },
+        {
+          "id": "tools.effect-declared",
+          "surface": "tools",
+          "tier": "must"
+        },
+        {
+          "id": "tools.when-line",
+          "surface": "tools",
+          "tier": "should"
+        },
+        {
+          "id": "tools.consequential-confirms",
+          "surface": "tools",
+          "tier": "must"
+        },
+        {
+          "id": "tools.bad-call-teaches",
+          "surface": "tools",
+          "tier": "should"
+        },
+        {
+          "id": "tools.typed-outcome",
+          "surface": "tools",
+          "tier": "should"
+        },
+        {
+          "id": "tools.unknown-tool",
+          "surface": "tools",
+          "tier": "should"
+        },
+        {
+          "id": "tools.inventory",
+          "surface": "tools",
+          "tier": "must"
+        },
+        {
+          "id": "http.json",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-shape",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.error-teaches",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.index",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.unknown-route",
+          "surface": "http",
+          "tier": "should"
+        },
+        {
+          "id": "http.inventory",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.wrong-ref-first",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.others-need-why",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.reads-stay-reads",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "http.refusals-change-nothing",
+          "surface": "http",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.tools-list",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.effect-annotated",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "mcp.bad-call-teaches",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.unknown-tool",
+          "surface": "mcp",
+          "tier": "should"
+        },
+        {
+          "id": "mcp.inventory",
+          "surface": "mcp",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-exists",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.twin-effect-matches",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.person-only-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.reserved-person-only",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.self-scope-refuses",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.listening-needs-yes",
+          "surface": "ui",
+          "tier": "must"
+        },
+        {
+          "id": "ui.read-fields",
+          "surface": "ui",
+          "tier": "should"
+        },
+        {
+          "id": "cli.listening-push-filtered",
+          "surface": "cli",
+          "tier": "must"
+        },
+        {
+          "id": "cli.listening-cursor",
+          "surface": "cli",
+          "tier": "should"
+        }
+      ]
+    },
+    {
+      "version": "1.8.0",
       "hash": "66beb968158af7b37b1d6d219cb4d7365ad1fcb551a2752ef298b53bc6ba4fe1",
       "firstRelease": "v1.3.451",
       "claims": [

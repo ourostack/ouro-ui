@@ -880,6 +880,21 @@ test("the optional words come last and are bracketed, and each default is the sc
   assert.deepEqual(refused(["tasks [<status>=open]"], { properties: { status: { type: "string" } } }), ['tasks: the usage line shows a default for <status>, which its schema does not give. Fix: give "status" a "default" in its schema, or leave it out of usage.']);
 });
 
+test("an optional word stays bare where another form of the command leaves it out, and fails where no form does", () => {
+  const command = (name: string, usage: string[], inputSchema: unknown) => wordProblems({ name, protocol: false, words: [name], effect: "private", readOnly: true, usage, scope: null, inputSchema });
+  const place = { type: "string" };
+  const message = { type: "string" };
+  // A `| --flag` alternative in the same usage line: --clear is how quote is given without <message>.
+  assert.deepEqual(command("quote", ["quote <place> <message> | --clear"], { properties: { place, message }, required: ["place"] }), { words: 2, problems: [] });
+  // The same words with no alternative: <message> is still shown bare, so it still needs brackets.
+  assert.deepEqual(command("quote", ["quote <place> <message>"], { properties: { place, message }, required: ["place"] }).problems, ["quote: <message> is optional, but its usage shows it bare. Fix: write [<message>]."]);
+  // A separate usage line for the same command that omits the word: mark-read --all marks every place read, with no <place>.
+  assert.deepEqual(command("mark-read", ["mark-read <place>", "mark-read --all"], { properties: { place }, required: [] }), { words: 1, problems: [] });
+  // A declared replacing flag: --file <path> is given in note's schema as what makes <text> not needed.
+  const text = { type: "string", description: "The note's words. Not needed with file." };
+  assert.deepEqual(command("note", ["note <meeting> <text> [--file <path>]"], { properties: { meeting: place, text }, required: ["meeting"] }), { words: 2, problems: [] });
+});
+
 test("the optional-words check fails a CLI whose help puts an optional word first and types a default wrong, naming the fix", async () => {
   const help = { tool: "bad-words", about: ["bad-words: a tool."], commands: [{ name: "tasks", effect: "private", readOnly: true, usage: ["bad-words tasks [<limit>] <title>"], inputSchema: { type: "object", properties: { limit: { type: "string", default: 20 }, title: { type: "string" } }, required: ["title"] } }] };
   const cli = join(scratch, "bad-words.mjs");
