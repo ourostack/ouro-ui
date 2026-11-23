@@ -258,5 +258,15 @@
     "test": "* test/control-suite.test.tsx > reopener > names the opener it never finds again",
     "reason": "Proves a true negative: the opener it asks for is one reopener's own poll never finds, so the test runs out that poll's full 10 s before it throws. A shard measured it at 10.6 s against a budget of 15 s.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command motion > fades and scales in from 0.96 on the Dialog's slow token, and only fades with reduced motion",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/inspector/inspector.test.tsx > Inspector > leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other",
+    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "drain-3"
   }
 ]
