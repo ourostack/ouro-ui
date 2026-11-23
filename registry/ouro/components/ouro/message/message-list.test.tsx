@@ -753,14 +753,14 @@ describe("MessageList", () => {
   /** Where the list is scrolled in the next frame, before the browser draws it. */
   const nextFrame = (scroller: HTMLElement) => new Promise<number>((resolve) => requestAnimationFrame(() => resolve(scroller.scrollTop)));
 
-  /** Arms the held place, as a message above the reader moving to the end does, and reads where it holds after the one frame the resize
-   * observer that applies the hold needs: waiting for more would let the two-frame window the list itself puts the hold back in close
-   * before the test's own stray does. */
+  /** Arms the held place, as a message above the reader moving to the end does, and reads where it holds once the resize observer
+   * that applies the hold has run: it fires after layout, a frame the mutation itself does not wait for, and a loaded runner can take
+   * more than the usual one frame to reach it. Each frame checked is the one the hold wrote in, if any, so the list's own two-frame
+   * window to put the hold back in is still open right after this returns, however many frames it took. */
   async function armHeld(scroller: HTMLElement, items: Item[], rerender: (next: ReactNode) => Promise<void>) {
+    const before = scroller.scrollTop;
     await rerender(<Chat items={[...items.slice(1), items[0]!]} />);
-    // The resize observer that applies the hold runs after layout, a frame the mutation itself does not wait for:
-    // one frame lets it run, with the list's own two-frame window to put the hold back in still open after it.
-    await nextFrame(scroller);
+    for (let frame = 0; frame < 5 && scroller.scrollTop === before; frame++) await nextFrame(scroller);
     return scroller.scrollTop;
   }
 
