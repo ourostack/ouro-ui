@@ -1138,7 +1138,7 @@ describe("Inspector", () => {
     await page.viewport(1280, 800);
     await render(
       <Page>
-        <Popover title="Filters" trigger={<Button>Filters</Button>}>
+        <Popover title="Filters" modal={false} trigger={<Button>Filters</Button>}>
           <Combobox label="Herb" items={["Basil", "Dill", "Thyme"]} />
         </Popover>
       </Page>,
@@ -1161,7 +1161,7 @@ describe("Inspector", () => {
     await page.viewport(1280, 800);
     await render(
       <Page>
-        <Popover title="Share recipe" trigger={<Button>Share</Button>}>
+        <Popover title="Share recipe" modal={false} trigger={<Button>Share</Button>}>
           <p>Send it to a friend.</p>
         </Popover>
       </Page>,

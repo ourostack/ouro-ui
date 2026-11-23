@@ -59,6 +59,7 @@ A menu the app opens itself, at an element or a point: one menu that many rows s
 | `align` | `"start" \| "center" \| "end"` | `"start"` | How the menu lines up with the trigger along that side. |
 | `anchor` (required) | `MenuAnchor` |  | Where the menu opens: beside an element (`side` and `align` place it), beside a box measured once (`{ getBoundingClientRect: () => box }`, for an element that goes as the menu opens), or at a point in the window, `{ x, y }`, as a right-click's `clientX` and `clientY`. |
 | `aria-label` (required) | `string` |  | What screen readers hear for the menu, in place of a button's name: "Actions for Ana's message". |
+| `modal` | `boolean` | `true` | Whether the open menu holds the page: it locks the page's scroll, and a click outside only closes it. `modal={false}` leaves the page scrolling and its controls live, and spares the browser a layout and repaint of the whole page each time the menu opens and closes: for a small menu that a list repeats on every row. The phone sheet always holds the page. |
 | `returnFocus` | `HTMLElement \| null` |  | Where focus goes when the menu closes (Escape, an item chosen), such as the row it opened for. An item that moved focus itself, as one opening a dialog does, keeps it there. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the menu sits on; it flips when there is no room. |
 
@@ -66,7 +67,6 @@ Not in this mode (a type error):
 
 - `contextTrigger`: Not with `anchor`. Use one way to open a menu.
 - `label`: Not with `anchor`. `label` is for a Menu inside `MenuBar`; name this one with `aria-label`.
-- `modal`: Not with `anchor`: it leaves the page live, so it opens and closes without a layout of the whole page.
 - `trigger`: Not with `anchor`. Use one way to open a menu.
 
 ### Bar menu: `MenuBarMenuProps`
@@ -110,7 +110,7 @@ A dropdown: `trigger` opens it. Below 640px it is a bottom sheet.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `align` | `"start" \| "center" \| "end"` | `"start"` | How the menu lines up with the trigger along that side. |
-| `modal` | `boolean` | `true` | Whether the open dropdown holds the page: it locks the page's scroll, and a click outside only closes it. `modal={false}` leaves the page scrolling and its controls live, and spares the browser a layout and repaint of the whole page each time the menu opens and closes: for a small menu that a list repeats on every row. The phone sheet always holds the page. |
+| `modal` | `boolean` | `true` | Whether the open menu holds the page: it locks the page's scroll, and a click outside only closes it. `modal={false}` leaves the page scrolling and its controls live, and spares the browser a layout and repaint of the whole page each time the menu opens and closes: for a small menu that a list repeats on every row. The phone sheet always holds the page. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the menu sits on; it flips when there is no room. |
 | `trigger` (required) | `ReactElement` |  | The button that opens the menu, usually a Button: `trigger={<Button>Actions</Button>}`. |
 

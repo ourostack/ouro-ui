@@ -454,8 +454,8 @@ describe("Toolbar autoHide", () => {
     await userEvent.click(page.getByRole("button", { name: "Reactions" }));
     await expect.element(page.getByRole("dialog", { name: "Reactions" })).toBeVisible();
     await expect.poll(() => page.getByRole("dialog", { name: "Reactions" }).element().contains(document.activeElement)).toBe(true);
-    // Off the bar, onto the pictures.
-    await userEvent.hover(picture);
+    // Off the bar, onto the pictures. Forced: the open popover keeps the pointer from the page.
+    await userEvent.hover(picture, { force: true });
     await wait(3000);
     expect(isHidden(toolbar)).toBe(false);
     await userEvent.keyboard("{Escape}");
