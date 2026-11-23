@@ -122,6 +122,20 @@ async function settle(scroller: HTMLElement) {
   await expect.poll(() => scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")?.style.translate ?? "").toBe("");
 }
 
+/** A message slot built with raw DOM, not React, so a test can shape exactly what one browser mutation adds: wrapped
+ * in its own slot (as the list's own children are), so the list's other observers read it like a real message. */
+function fakeSlot(key: string, role: string, text: string): HTMLElement {
+  const slot = document.createElement("div");
+  slot.setAttribute("data-ouro-message-list-slot", key);
+  slot.className = "contents";
+  const item = document.createElement("div");
+  item.setAttribute("data-ouro-message-list-item", "");
+  item.setAttribute("data-role", role);
+  item.textContent = text;
+  slot.append(item);
+  return slot;
+}
+
 beforeEach(() => {
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -1146,6 +1160,80 @@ describe("MessageList", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("follows to the end when the reader's own message arrives beside another added node in the same change, since any match counts", async () => {
+    // One browser mutation can add several siblings at once (a batched insert): the reader's own message must still
+    // be found and followed even when it sits beside a node that is not it, so the list reads any match, not every one.
+    const items = history(20, 10);
+    const { host, scroller } = await render(<Chat items={items} />);
+    await settle(scroller);
+    await act(async () => void (scroller.scrollTop -= 200));
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeGreaterThan(1);
+    const content = host.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    // Each fake message is wrapped in its own slot, as the list's own children are (data-ouro-message-list-slot), so
+    // the list's other observers (the Tab marks, the announcer) read it like any real message instead of throwing.
+    const other = fakeSlot("zz-other", "user", "Not the reader's.");
+    const mine = fakeSlot("zz-mine", "user", "On my way.");
+    await act(async () => void content.append(other, mine));
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("follows to the end when the reader's own message is nested inside a newly added node, not added on its own", async () => {
+    // An app may add a wrapper around its own message (a group, a thread) rather than the message node itself: the
+    // list must still find it by what the wrapper contains, not only by the exact node a mutation adds.
+    const items = history(20, 10);
+    const { host, scroller } = await render(<Chat items={items} />);
+    await settle(scroller);
+    await act(async () => void (scroller.scrollTop -= 200));
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeGreaterThan(1);
+    const content = host.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const wrapper = fakeSlot("zz-wrapper", "user", "On my way.");
+    await act(async () => void content.append(wrapper));
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("follows the reader's own message to the end only once, not again were the very same node ever added back", async () => {
+    // A node the list already read as the reader's own arriving must not pin again were a later browser mutation to
+    // add that same node back (a reorder that takes it out and puts it back): once is enough, since its sender
+    // already knows what it says.
+    const items = history(20, 10);
+    const { host, scroller } = await render(<Chat items={items} />);
+    await settle(scroller);
+    const content = host.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const mine = fakeSlot("zz-mine", "user", "On my way.");
+    await act(async () => void content.append(mine));
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    await act(async () => void (scroller.scrollTop -= 200));
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeGreaterThan(1);
+    await act(async () => {
+      mine.remove();
+      content.append(mine);
+    });
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeGreaterThan(1);
+  });
+
+  it("does not follow to the end for the reader's own message only exposed as the newest by another one leaving, beside an unrelated change", async () => {
+    // The reader's own message became the list's last one only because the message after it was removed, not because
+    // it just arrived: an unrelated node added elsewhere in that same change must not be read as though it were this
+    // message arriving.
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await settle(scroller);
+    await rerender(<Chat items={[...items, { id: 30, role: "user", text: "On my way." }, { id: 31, role: "assistant", text: "Got it." }]} />);
+    await settle(scroller);
+    await act(async () => void (scroller.scrollTop -= 200));
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeGreaterThan(1);
+    await rerender(<Chat items={[{ id: 9, role: "assistant", text: "Older." }, ...items, { id: 30, role: "user", text: "On my way." }]} />);
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeGreaterThan(1);
   });
 
   it("keeps following the end when the newest message goes, as the list's end comes up to meet it", async () => {
