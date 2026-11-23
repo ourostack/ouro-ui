@@ -368,6 +368,7 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
     return typeof trigger.items === "function" ? trigger.items(query) : filterItems(trigger.items ?? [], query);
   }, [match, trigger]);
   const finished = picked !== null && match !== null && picked.start === match.start && picked.query === match.query;
+  // Stryker disable next-line ConditionalExpression: `trigger` is undefined when `match` is null, so the next test decides it; the null check only narrows `match` for the compiler.
   const visible = focused && match !== null && trigger !== undefined && dismissed !== match.start && !finished;
   const open = visible && items.length > 0;
   // A query that has run on into several words is a sentence, not a search, so it closes quietly.
