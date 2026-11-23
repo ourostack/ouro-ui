@@ -235,13 +235,13 @@ function defaultProblemOf(command: string, word: string, optional: boolean, prop
   return null;
 }
 
-/** The word names a usage form mentions, bracketed or not, so two forms can be compared for what each omits. */
+/** The word a usage form names, bracketed or not, so a pair of forms can be compared for what one leaves out that the other keeps. */
 function wordsIn(form: string): Set<string> {
   return new Set([...form.matchAll(/<([^<>]+?)>/g)].map((m) => m[1]!.replace(/\.\.\.$/, "")));
 }
 
 /**
- * Every form a command's usage offers: each usage line, split on `|` into its alternatives, such as `--clear` beside
+ * The forms a command's usage offers: its usage lines, split on `|` into their alternatives, such as `--clear` beside
  * `<place> <message>`. A word bare in one form is fine when another form leaves the word out entirely, since that form
  * is how the command is given without it.
  */
@@ -254,7 +254,7 @@ function usageForms(cmd: Pick<CliCommand, "usage">): string[] {
  * line. Words come in the order the command reads them: an optional word, bracketed in usage, comes after the required
  * ones. A schema default is a string of the word's values, not on a required word, and usage shows it as `[<name>=<value>]`.
  * An optional word may stay bare where another usage form, or a `| --flag` alternative in the same line, leaves it out,
- * or its schema declares the flag that replaces it ("Not needed with"); one shown bare in every form still needs brackets.
+ * or its schema declares the flag that replaces it ("Not needed with"); a word lacking an exempting form still needs brackets.
  */
 function wordProblems(cmd: CliCommand): { words: number; problems: string[] } {
   const schema: Record<string, unknown> = isRecord(cmd.inputSchema) ? cmd.inputSchema : {};

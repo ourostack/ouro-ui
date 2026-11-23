@@ -229,7 +229,7 @@ type Verdict = "pass" | "fail" | "skip";
 
 ### `wordProblems`
 
-Returns the problems with a command's words, as lines with their fixes, and the count of words in its busiest usage line. Words come in the order the command reads them: an optional word, bracketed in usage, comes after the required ones. A schema default is a string of the word's values, not on a required word, and usage shows it as `[<name>=<value>]`. An optional word may stay bare where another usage form, or a `| --flag` alternative in the same line, leaves it out, or its schema declares the flag that replaces it ("Not needed with"); one shown bare in every form still needs brackets.
+Returns the problems with a command's words, as lines with their fixes, and the count of words in its busiest usage line. Words come in the order the command reads them: an optional word, bracketed in usage, comes after the required ones. A schema default is a string of the word's values, not on a required word, and usage shows it as `[<name>=<value>]`. An optional word may stay bare where another usage form, or a `| --flag` alternative in the same line, leaves it out, or its schema declares the flag that replaces it ("Not needed with"); a word lacking an exempting form still needs brackets.
 
 ```ts
 function wordProblems(cmd: CliCommand): { words: number; problems: string[]; }
