@@ -14,6 +14,9 @@ import type { PageIssue } from "./size-check.ts";
 // were drawn in one place and it then moved to another, as a popup does when it is measured against the viewport and
 // drawn inside a layer further down the page.
 //
+// A popup inside another popup (a listbox of choices in a popover) rides the outer one's opening motion, which is
+// judged on the outer one, so it is not judged on its own.
+//
 // A page opts a popup out with data-ouro-allow="popup-first-frame" and data-ouro-allow-why="<reason>" on it or a box
 // around it; an allow without a reason does not count.
 
@@ -64,6 +67,7 @@ function watchPopups(): void {
   };
   const sample = () => {
     for (const el of document.querySelectorAll(POPUPS)) {
+      if (el.parentElement?.closest(POPUPS)) continue;
       const seen = layout(el);
       if (!seen) continue;
       const frames = watching.frames.get(el) ?? [];
