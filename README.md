@@ -626,7 +626,6 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-router-link`,
 `lib-roving-row`,
 `lib-row-hover`,
-`lib-scroll-fade`,
 `lib-server-element`,
 `lib-share`,
 `lib-spring`,
