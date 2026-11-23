@@ -1406,17 +1406,18 @@ describe("MessageList", () => {
     const clearOf = () => (pill.element() as HTMLElement).getBoundingClientRect().top - last().getBoundingClientRect().bottom;
     // Land an overlap twice the reserve's own height: far past what the reserve alone could have caused.
     await act(async () => void (scroller.scrollTop += -room.offsetHeight * 2 - clearOf()));
+    // clearJump's own correction runs off a real setTimeout set at scrollend (WHEEL_REST, message-list.tsx).
+    // Waiting out that timer on the real clock once needed 2000ms of margin for a loaded runner to be sure it
+    // had fired if it were going to, and CI's own mutation harness runs this file's tests alongside many others
+    // in parallel, which is loaded enough that even that margin left the correction's absence unproven: proving
+    // it did not fire, rather than merely outlasting a real timer that might run late, means not depending on
+    // the real clock for it at all. Faking just setTimeout/clearTimeout here, after scrollend schedules it,
+    // and advancing straight past WHEEL_REST runs that exact callback deterministically, however loaded the
+    // runner is.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     scroller.dispatchEvent(new Event("scroll"));
     scroller.dispatchEvent(new Event("scrollend"));
-    await settle(scroller);
-    // settle() only waits for the scrollTop set directly above to hold still across frames, which it already does
-    // on its own; it does not wait out clearJump's own real timer, set off scrollend. Reading too soon would pass
-    // whether or not a correction was coming, so this reads only once that timer has had the WHEEL_REST delay, and
-    // then some, to run.
-    // real clock: proving clearJump's correction did not fire means outlasting its own real setTimeout, not
-    // merely reading before that timer has had the chance to; a loaded runner needs more margin above the
-    // 80ms WHEEL_REST delay than a quiet one, so this waits well past it rather than just past it.
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await vi.advanceTimersByTimeAsync(100);
     // Still deeply overlapped: a correction would have pulled it back close to clearing, as the shallower
     // overlap above is pulled back to -1.
     expect(clearOf()).toBeLessThan(-room.offsetHeight);
