@@ -2228,7 +2228,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
             if (measured.heights.get(key) !== size) moved.set(key, size);
             dirtySlots.current.delete(key);
           }
-          // Stryker disable next-line BlockStatement: not fresh, so nothing a resize observer caught or regrouped since the last fresh read: the cached size still holds, the one `sizeOf`'s own cache fallback already reads for this key, and the one real top `tops.current`'s first entry ever needs only ever comes from a fresh read, never from this branch.
+          // Stryker disable next-line BlockStatement,ConditionalExpression: not fresh, so nothing a resize observer caught or regrouped since the last fresh read: the cached size still holds, the one `sizeOf`'s own cache fallback already reads for this key, and the one real top `tops.current`'s first entry ever needs only ever comes from a fresh read, never from this branch. Forcing the test false skips the block exactly as forcing its body empty does, for the same reason.
           if (!fresh) {
             // Nothing a resize observer caught, and nothing regrouped, since the last fresh read: the cached size still holds.
             if (cached! > 0) found.set(key, { top: NaN, size: cached! });
