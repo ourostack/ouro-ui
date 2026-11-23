@@ -340,6 +340,29 @@ describe("Skeleton", () => {
     expect(spy.mock.instances).toHaveLength(1);
   });
 
+  it("runs its correction frame without throwing where the DOM has no getAnimations, as in jsdom", async () => {
+    // jsdom, which apps' own component tests often run in, has no Element.getAnimations: the frame that corrects
+    // the wave's phase must skip the correction there rather than throw from a requestAnimationFrame callback.
+    let pendingFrame: FrameRequestCallback | undefined;
+    const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      pendingFrame = callback;
+      return 0;
+    });
+    await render(<Skeleton shape="row" />);
+    raf.mockRestore();
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "getAnimations")!;
+    // @ts-expect-error -- removed on purpose, to stand for a DOM that never had it.
+    delete Element.prototype.getAnimations;
+    // jsdom has no CSSAnimation either, so the frame must not reach the instanceof check at all.
+    vi.stubGlobal("CSSAnimation", undefined);
+    try {
+      expect(() => pendingFrame!(performance.now())).not.toThrow();
+    } finally {
+      vi.unstubAllGlobals();
+      Object.defineProperty(Element.prototype, "getAnimations", own);
+    }
+  });
+
   it("keeps each index's ref callback across renders, so a render that only changes a prop does not detach and reattach the node", async () => {
     let attaches = 0;
     let detaches = 0;
