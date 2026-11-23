@@ -415,6 +415,26 @@ test("--inventory writes the declared doors only, in the X-ray's inventory shape
   }
 });
 
+const DECLARED_GAPS = ["tool:shop_remove_shopping_list_item", "tool:shop_share_shopping_list", "tool:shop_clear_shopping_list"];
+
+test("a bundle's declared tools are carded, and a tool its server serves uncarded counts as undeclared", async () => {
+  const dir = scratch();
+  try {
+    const { out, err, io } = capture();
+    const report = join(dir, "report.json");
+    const inventory = join(dir, "inventory.json");
+    const code = await run({ argv: args("config-declared-tools.json", baselineFile(dir, DECLARED_GAPS), ["--out", report, "--inventory", inventory]), io, root: here });
+    equal(code, 0, err.join("\n"));
+    // Core's v1.11.0 cards: remove_shopping_list_item declares no errors, and nothing asks the person before
+    // share_shopping_list, a consequential tool, runs: the census reports both as weak, as for any tool card.
+    ok(out.includes("bundle: 5 found, 2 declared, 2 weak, 1 undeclared (tool 5)"), out.join("\n"));
+    deepEqual(JSON.parse(readFileSync(report, "utf8")).products[0].undeclared.map((g: { id: string }) => g.id), ["tool:shop_clear_shopping_list"]);
+    deepEqual(JSON.parse(readFileSync(inventory, "utf8")), { tool: ["shop_get_shopping_list", "shop_add_shopping_list_item"] });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 const CLI_GAPS = [
   "mcp:ask", "mcp:status", "mcp:catchup",
   "cli:connect", "cli:friend", "cli:friend list", "cli:friend show", "cli:lock", "cli:mode", "cli:mode live", "cli:mode shadow",
@@ -540,6 +560,15 @@ test("in-turn tools and their approval prompts: both kinds walked, unwalked and 
       approval: ["restart_box", "restart_box"],
     });
     ok(out[0]!.startsWith("harness: 18 found, 7 declared, 4 weak, 7 undeclared, 9 unwalked (tool 14, approval 4)"), out.join("\n"));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a source's server must be a name", async () => {
+  const dir = scratch();
+  try {
+    await failsWith(args("config-bad-server.json", baselineFile(dir, [])), "a source's server must be the server's name under mcpServers");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
