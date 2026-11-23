@@ -73,7 +73,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [image-field](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/image-field) | 3 | 0 | none yet |
 | [inspector](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/inspector) | 2 | 0 | none yet |
 | [install-prompt](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/install-prompt) | 2 | 0 | none yet |
-| [item](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/item) | 8 | 0 | [item.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/item.sr.spec.ts): 1 test on `lists-item--in-context` |
+| [item](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/item) | 9 | 0 | [item.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/item.sr.spec.ts): 1 test on `lists-item--in-context` |
 | [kbd](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/kbd) | 2 | 0 | none yet |
 | [level-meter](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/level-meter) | 3 | 0 | none yet |
 | [lightbox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/lightbox) | 8 | 1 | none yet |

@@ -146,7 +146,7 @@ describe("Item", () => {
 
   it("reveals its actions with revealActions on hover, on focus anywhere in the row and while a menu of theirs is open, keeping their room", async () => {
     const { item } = await render(
-      <Item href="#soup" title="Lentil soup" description="Forty minutes" actions={<Button variant="plain" size="sm">Edit</Button>} revealActions />,
+      <Item href="#soup" title="Lentil soup" description="Forty minutes" actions={<Button variant="plain" size="sm">Edit</Button>} revealActions chevron />,
     );
     const actions = item.querySelector<HTMLElement>("[data-item-actions]")!;
     const edit = page.getByRole("button", { name: "Edit" });
@@ -551,6 +551,10 @@ describe("Item with href", () => {
   it("draws no chevron by default, and never on a chosen or plain row", async () => {
     const { item: linked } = await render(<Item href="/settings/profile" title="Profile" />);
     expect(linked.querySelector("svg")).toBeNull();
+    // No chevron and no actions: the row takes no trailing grid column, so its one
+    // column is a track Item explicitly sizes, not the browser's unset default.
+    expect(getComputedStyle(linked).gridTemplateColumns.split(" ")).toHaveLength(1);
+    expect(getComputedStyle(linked).gridTemplateColumns).not.toBe("none");
   });
 
   it("draws chevron as decorative, after actions on the trailing edge", async () => {
@@ -588,6 +592,20 @@ describe("Item with href", () => {
     expect(item.querySelector("[data-item-actions]")).toBeNull();
     expect(item.querySelector("svg")).not.toBeNull();
     expect(getComputedStyle(item).gridTemplateColumns.split(" ")).toHaveLength(2);
+  });
+
+  it("drops the actions and the chevron under the text below the breakpoint with stackBelow", async () => {
+    await page.viewport(390, 844);
+    await render(
+      <Item href="/settings/profile" title="Profile" description="Signed in" actions={<Button>Save</Button>} chevron stackBelow="sm" />,
+    );
+    const title = page.getByText("Profile").element().getBoundingClientRect();
+    const description = page.getByText("Signed in").element().getBoundingClientRect();
+    const save = page.getByRole("button", { name: "Save" }).element().getBoundingClientRect();
+    expect(save.top).toBeGreaterThanOrEqual(description.bottom);
+    // Stacked below, the trailing row (chevron's wrapper) lines up with the title, not the
+    // trailing edge it uses above the breakpoint.
+    expect(Math.round(save.left)).toBe(Math.round(title.left));
   });
 });
 

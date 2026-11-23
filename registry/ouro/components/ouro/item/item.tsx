@@ -294,6 +294,7 @@ const above = {
 function Chevron(): JSX.Element {
   return (
     <svg
+      data-slot="item-chevron"
       aria-hidden="true"
       viewBox="0 0 16 16"
       fill="none"
@@ -532,9 +533,9 @@ export function Item(props: ItemProps): JSX.Element {
       )}
     </div>,
     showChevron ? (
-      <div className={cn("flex flex-wrap items-center justify-end gap-2", stackLayouts.map((layout) => layout.actions))}>
+      <div data-slot="item-trailing" className={cn("flex flex-wrap items-center justify-end gap-2", stackLayouts.map((layout) => layout.actions))}>
         {actions && (
-          <div data-item-actions="" className={cn("flex flex-wrap items-center gap-2", reveal && revealActionsClass)}>
+          <div data-item-actions="" data-slot="item-actions" className={cn("flex flex-wrap items-center gap-2", reveal && revealActionsClass)}>
             {actions}
           </div>
         )}
