@@ -184,7 +184,7 @@ function ChatConversation({ bubble = "filled" }: { bubble?: MessageBubble }) {
   const actions = actionsFor(react, () => setReplying("Replying to Mara Quill"));
   return (
     <Surface>
-      <MessageList label="Chat with Mara Quill and Theo Brandt" style={{ height: 460 }}>
+      <MessageList label="Chat with Mara Quill and Theo Brandt" style={{ height: 476 }}>
         <Message variant="chat" bubble={bubble} role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="9:41 AM" dateTime="2026-05-04T09:41" actions={actions} menu={menu}>
           Morning! The venue confirmed the long table for Friday.
         </Message>
