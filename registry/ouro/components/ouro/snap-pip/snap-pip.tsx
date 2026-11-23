@@ -262,7 +262,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const collapsed = collapsedProp === undefined ? ownCollapsed : collapsedProp;
   const setCollapsed = (next: boolean) => {
     setOwnCollapsed(next);
-    onCollapsedChange?.(next);
+    onCollapsedChange!(next);
   };
   // The container's size once measured; until then CSS places it, as on the server.
   const [stage, setStage] = useState<{ width: number; height: number } | undefined>(undefined);
@@ -575,7 +575,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       return dismissHint();
     }
     // Only from the picture or its Hide button: an Escape inside the app's own content is that content's.
-    const own = event.target === event.currentTarget || collapseButton.current?.contains(event.target as Node);
+    const own = event.target === event.currentTarget || collapseButton.current!.contains(event.target as Node);
     if (event.key === "Escape" && onCollapsedChange !== undefined && !collapsed && own && !event.defaultPrevented) {
       event.stopPropagation();
       return setCollapsed(true);
@@ -691,6 +691,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
           onDoubleClick={(event) => event.stopPropagation()}
           onClick={() => setCollapsed(!collapsed)}
         >
+          {/* Stryker disable next-line StringLiteral: the icon's stroke styling is drawing only */}
           <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             {collapsed ? <path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h6A1.5 1.5 0 0 1 11 5.5v5A1.5 1.5 0 0 1 9.5 12h-6A1.5 1.5 0 0 1 2 10.5zM11 7l3-1.5v5L11 9" /> : <path d="M4 4l8 8M12 4l-8 8" />}
           </svg>

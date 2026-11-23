@@ -161,14 +161,14 @@ function middle(element: Element): [number, number] {
 
 let clock = 1000;
 /** Dispatches a pointer event on the picture `ms` after the last one. While the pointer is down its button is held. */
-async function fire(type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel", x: number, y: number, ms = 16) {
+async function fire(type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel", x: number, y: number, ms = 16, target?: Element) {
   clock += ms;
   const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
   // Not the mouse's id (1), so a real pointer event the browser sends mid-test is no part of this gesture.
   const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: x, clientY: y });
   Object.defineProperty(event, "timeStamp", { value: clock });
   await act(async () => {
-    pip().dispatchEvent(event);
+    (target ?? pip()).dispatchEvent(event);
   });
 }
 /** Drags the picture by (dx, dy) in `steps` moves `ms` apart, and lifts the pointer `release` ms after the last. */
@@ -285,6 +285,42 @@ describe("SnapPiP", () => {
     // Without a handler there is no button.
     await render(self());
     expect(stage.querySelector('[data-ouro-part="collapse"]')).toBeNull();
+  });
+
+  it("keeps a press, a double-click and Escape on its Hide button from moving or resizing the picture", async () => {
+    const outside = vi.fn();
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && outside();
+    document.addEventListener("keydown", onKey);
+    try {
+      const element = await render(self({ onCollapsedChange: () => undefined }));
+      const button = page.getByRole("button", { name: "Hide Your camera", exact: true }).element() as HTMLElement;
+      const [x, y] = middle(button);
+      const before = at();
+      const hidePath = button.querySelector("path")!.getAttribute("d");
+      await fire("pointerdown", x, y, 0, button);
+      await fire("pointermove", x - 40, y - 40, 0, button);
+      expect(element.hasAttribute("data-dragging")).toBe(false);
+      expect(at()).toEqual(before);
+      await fire("pointerup", x - 40, y - 40, 150, button);
+      await act(async () => void button.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
+      expect(element.getAttribute("data-size")).toBe("small");
+      button.focus();
+      await userEvent.keyboard("a");
+      expect(element.hasAttribute("data-collapsed")).toBe(false);
+      await userEvent.keyboard("{Escape}");
+      expect(element.hasAttribute("data-collapsed")).toBe(true);
+      expect(outside).not.toHaveBeenCalled();
+      expect(page.getByRole("button", { name: "Show Your camera", exact: true }).element().querySelector("path")!.getAttribute("d")).not.toBe(hidePath);
+    } finally {
+      document.removeEventListener("keydown", onKey);
+    }
+  });
+
+  it("follows a controlled collapsed prop", async () => {
+    const element = await render(self({ collapsed: true, onCollapsedChange: () => undefined }));
+    expect(element.hasAttribute("data-collapsed")).toBe(true);
+    await userEvent.click(page.getByRole("button", { name: "Show Your camera", exact: true }));
+    expect(element.hasAttribute("data-collapsed")).toBe(true);
   });
 
   it("puts the hint away on Escape, a move or a press, until focus and the pointer have left", async () => {
