@@ -282,6 +282,16 @@ end repeat`;
     },
   };
   const why = await readyForAction({ records, stamps, now: Date.now, ended: () => ended, next }, async () => {
+    // SR_PROBE_CURSOR (probe/sr-dashboard-cursor, ourostack/ouro-ui#3156): logs VO's cursor item right before each
+    // "Speech check" is output, so a failing try shows whether the cursor is stale (on "main", say) for all three.
+    if (process.env["SR_PROBE_CURSOR"] === "1") {
+      const cursor = await run("/usr/bin/osascript", ["-e", 'tell application "VoiceOver" to get text of VO cursor']).then(
+        (result) => result.stdout.trim(),
+        (error: unknown) => `<could not read VO cursor: ${error instanceof Error ? error.message : String(error)}>`,
+      );
+      const seen = records.map((record) => `"${record.trim()}"`).join(" | ") || "nothing";
+      console.log(`[sr] probe: VO cursor before "Speech check": "${cursor}"; last phrase recorded so far: ${seen}`);
+    }
     await run("/usr/bin/osascript", ["-e", `tell application "VoiceOver" to output "${MARK}"`]);
   });
   if (why === null) return watch;

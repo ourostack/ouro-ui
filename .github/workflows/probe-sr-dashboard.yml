@@ -1,0 +1,69 @@
+name: Probe SR dashboard flake
+# A throwaway probe for ourostack/ouro-ui#3156 (screen-reader lane infrastructure failure on the dashboard
+# pattern's VoiceOver check): runs the dashboard test repeatedly on macos-26 with SR_PROBE_CURSOR=1, so a
+# failing try logs VoiceOver's cursor item before each "Speech check" (screen-reader.ts, `watchVoiceOver`).
+# Dispatch only; never runs on a push or pull request, and its branch is closed without merging once the
+# probe has what it needs. Two shards, never more at once, since macOS runners are the scarce pool main's
+# own screen-reader gate needs.
+on:
+  workflow_dispatch:
+    inputs:
+      repeat_each:
+        description: "How many times each shard repeats the dashboard test"
+        required: false
+        default: "10"
+permissions:
+  contents: read
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        shard: [1, 2]
+    name: dashboard repro, shard ${{ matrix.shard }}
+    runs-on: macos-26
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    env:
+      SR_PROBE_CURSOR: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps webkit chromium
+      - id: guidepup
+        name: Find Guidepup's setup command
+        run: echo "bin=$(node -p 'Object.keys(JSON.parse(require("fs").readFileSync("node_modules/@guidepup/setup/package.json", "utf8")).bin)[0]')" >> "$GITHUB_OUTPUT"
+      - name: Set up the OS for screen reader automation
+        env:
+          GUIDEPUP: ${{ steps.guidepup.outputs.bin }}
+        run: pnpm exec "$GUIDEPUP" setup --ci
+      - name: Install the screen reader assets
+        env:
+          GUIDEPUP: ${{ steps.guidepup.outputs.bin }}
+        run: pnpm exec "$GUIDEPUP" install
+      - id: sr
+        name: Repeat the dashboard pattern's screen-reader test
+        run: |
+          set +e
+          pnpm test:sr registry/ouro/e2e/screen-reader/patterns.sr.spec.ts --project voiceover --repeat-each "${{ inputs.repeat_each }}" 2>&1 | tee "$RUNNER_TEMP/sr-probe.log"
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sr-probe-shard-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/sr-probe.log
+            playwright-report/screen-reader/
+            test-results/screen-reader/
+          if-no-files-found: ignore
+          retention-days: 14
