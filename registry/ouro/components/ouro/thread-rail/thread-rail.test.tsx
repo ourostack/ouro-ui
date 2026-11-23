@@ -153,13 +153,11 @@ describe("ThreadRail Escape", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("lets the close button's tooltip take the first Escape, then closes on the next", async () => {
+  it("closes on the first Escape from the close button, even with its tooltip showing", async () => {
     const onClose = vi.fn();
     const { close } = await render(<ThreadRail label="Thread" onClose={onClose} />);
     await pressTab();
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')).not.toBeNull();
-    await userEvent.keyboard("{Escape}");
-    expect(onClose).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(close);
     await userEvent.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -192,7 +190,7 @@ describe("ThreadRail Escape", () => {
         </div>
       </ThreadRail>,
     );
-    rail.querySelector<HTMLElement>("button")!.focus();
+    rail.querySelector<HTMLElement>("button:not([data-ouro-part])")!.focus();
     await userEvent.keyboard("{Escape}");
     expect(onClose).not.toHaveBeenCalled();
   });
@@ -258,7 +256,7 @@ describe("ThreadRail Escape", () => {
         </button>
       </ThreadRail>,
     );
-    rail.querySelector<HTMLElement>("button")!.focus();
+    rail.querySelector<HTMLElement>("button:not([data-ouro-part])")!.focus();
     await userEvent.keyboard("{Escape}");
     expect(onClose).not.toHaveBeenCalled();
   });

@@ -45,6 +45,8 @@ export interface ThreadRailProps {
 
 /** Elements that take Escape for themselves when they are open: a menu, a listbox or a dialog. */
 const POPUP = '[role="menu"], [role="listbox"], [role="dialog"]';
+/** The rail's own close button. */
+const CLOSE_BUTTON = '[data-ouro-part="close"]';
 /** Text a person types into: Escape there is not a request to close. */
 const TEXT_ENTRY = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
 // Stryker disable next-line ArrayDeclaration: equivalent; the effect runs once, on mount, with any list that never changes
@@ -151,12 +153,22 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
     onClose();
   }
 
+  // The close button's tooltip names Escape as its shortcut, so it must not take the key: closing
+  // here, before the tooltip sees it, makes the first press close the rail.
+  function onKeyDownCapture(event: KeyboardEvent<HTMLElement>) {
+    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented || !(event.target as Element).matches(CLOSE_BUTTON)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onClose();
+  }
+
   return (
     <aside
       ref={rail}
       data-ouro="thread-rail"
       aria-labelledby={headingId}
       tabIndex={-1}
+      onKeyDownCapture={onKeyDownCapture}
       onKeyDown={onKeyDown}
       className={cn("flex h-full min-h-0 flex-col border-s border-border bg-background outline-none", className)}
     >
