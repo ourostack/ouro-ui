@@ -22,13 +22,25 @@ export default function App() {
 
 A header with the light and dark toggle, a profile form the browser validates, and a danger zone that confirms before it deletes.[^settings] `onSave` gets the settings once the browser's checks and the page's own pass; return field errors, such as `{ email: "That email is in use." }`, to show them on their fields. `onDelete` runs after the person confirms. Change the `Settings` type, the fields and the copy to your app's.
 
+```sh
+npx shadcn@latest add @ouro/settings-page --yes
+```
+
 ## `dashboard-page`
 
 A header with the light and dark toggle, the numbers that matter in cards with how each moved, a chart of the last months and a table of recent activity.[^dashboard] It takes `stats`, `months` and `activity`, and shows made-up data without them, so it renders as installed. Change the cards, the chart's series and the table's columns to what your app tracks.
 
+```sh
+npx shadcn@latest add @ouro/dashboard-page --yes
+```
+
 ## `list-detail-page`
 
 A header with the light and dark toggle, a list you can search, and the detail of the entry chosen beside it; on a phone the list comes first, and choosing an entry shows its detail in its place, with a way back.[^list-detail] It takes `entries` and a `title`, and shows made-up entries without them. Change the `Entry` type and the detail to what your app shows.
+
+```sh
+npx shadcn@latest add @ouro/list-detail-page --yes
+```
 
 ## What to test
 

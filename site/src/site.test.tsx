@@ -141,6 +141,18 @@ describe("home page", () => {
     }
   });
 
+  it("shows each pattern live on the patterns guide, in a titled lazy frame with an Open full size link", async () => {
+    const host = await renderPage("/docs/patterns/");
+    const names = { "settings-page": "settings", "dashboard-page": "dashboard", "list-detail-page": "list-detail" };
+    for (const [name, story] of Object.entries(names)) {
+      const frame = host.querySelector<HTMLIFrameElement>(`iframe[title="${name} pattern, live"]`)!;
+      expect(frame.loading).toBe("lazy");
+      expect(frame.getAttribute("src")).toContain(`/storybook/iframe.html?id=reference-patterns--${story}&viewMode=story`);
+      expect(frame.closest("figure")!.querySelector("a")!.textContent).toContain("Open full size");
+      expect(host.textContent).toContain(`npx shadcn@latest add @ouro/${name} --yes`);
+    }
+  });
+
   it("gives the docs page's install steps no history of v0.8.0 in running text", async () => {
     const host = await renderPage("/docs/dialog/");
     expect(host.textContent).not.toContain("From v0.8.0 it installs only");

@@ -143,6 +143,7 @@ export const pageScanTimeout = 30_000;
  * could not decide fails unless a measurement passes it.
  */
 export async function scan(): Promise<GateFinding[]> {
-  // Base UI's focus guards are excluded for the reason given in test/story-axe.ts.
-  return audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) });
+  // Base UI's focus guards are excluded for the reason given in test/story-axe.ts. A pattern's live preview is a Storybook
+  // frame, which axe cannot enter (frame-tested); the story test scans that page, and the docs test checks the frame's title.
+  return audit({ include: [document.documentElement], exclude: [...axeExclude, "iframe[data-pattern-frame]"].map((selector) => [selector]) });
 }

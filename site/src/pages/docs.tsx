@@ -11,6 +11,7 @@ import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode, InlinePath } from "../components/code";
 import { CatalogPreview } from "../components/catalog-preview";
 import { DocsShell } from "../components/docs-shell";
+import { PatternPreview, patternStories, type PatternName } from "../components/pattern-preview";
 import { SurpriseMe } from "../components/surprise-me";
 import type { SceneName } from "../storybook";
 import { DemoFrame, DemoStage } from "../components/phone-demo";
@@ -278,6 +279,30 @@ export function PlatformTitle({ title }: { title: string }): JSX.Element {
   );
 }
 
+/** The patterns guide, with each pattern's section followed by the pattern itself, live. */
+function PatternSections({ blocks, link }: { blocks: Block[]; link: (target: string) => string }): JSX.Element {
+  const sections: Block[][] = [];
+  for (const block of blocks) {
+    if (block.kind === "heading" && block.level <= 2) sections.push([block]);
+    else if (sections.length === 0) sections.push([block]);
+    else sections.at(-1)!.push(block);
+  }
+  return (
+    <>
+      {sections.map((section, index) => {
+        const head = section[0];
+        const name = head?.kind === "heading" ? head.text.replace(/`/g, "") : "";
+        return (
+          <section key={index}>
+            <Markdown blocks={section} link={link} />
+            {name in patternStories && <PatternPreview name={name as PatternName} />}
+          </section>
+        );
+      })}
+    </>
+  );
+}
+
 /**
  * A page that is not a registry item's: a guide (docs/guides) or a documented export with no
  * item of its own (Radio, OuroProvider). Links between Markdown files go to the site's pages.
@@ -307,7 +332,7 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
           </Suspense>
         </div>
       )}
-      <Markdown blocks={body} link={link} />
+      {page.name === "patterns" ? <PatternSections blocks={body} link={link} /> : <Markdown blocks={body} link={link} />}
       <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
         <Link href={`${GITHUB}/blob/main/${page.file}`} tone="secondary">
           Source on GitHub
