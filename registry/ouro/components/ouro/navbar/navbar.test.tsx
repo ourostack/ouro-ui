@@ -5,6 +5,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Navbar, type NavbarProps } from "@/registry/ouro/components/ouro/navbar/navbar";
+import { willOverflow } from "@/registry/ouro/components/ouro/navbar/navbar-styles";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { isTransparent } from "@/registry/ouro/lib/ouro/testing/color";
@@ -660,5 +661,20 @@ describe("Navbar at tablet widths and with groups", () => {
     const html = renderToString(<Navbar label="Main" items={grouped} currentPath="/cookbooks" />);
     expect(html).toMatch(/<button[^>]*>Recipes/);
     expect(html).toMatch(/aria-current="page"[^>]*>Cookbooks</);
+  });
+});
+
+describe("willOverflow", () => {
+  it("unfolds exactly when room clears what is needed by the margin, not merely matches it (ourostack/ouro-ui#3168)", () => {
+    // Folded, with the room a touch under 8px short of what's needed: still over, so it stays folded.
+    expect(willOverflow(true, 101, 108)).toBe(true);
+    // Folded, with the room exactly 8px short and no more: not over, so it unfolds. A mutant that turns the
+    // underlying `>` into `>=` would keep this folded instead.
+    expect(willOverflow(true, 92, 100)).toBe(false);
+  });
+
+  it("folds as soon as the links need more than the room, unfolded or not", () => {
+    expect(willOverflow(false, 100, 100)).toBe(false);
+    expect(willOverflow(false, 101, 100)).toBe(true);
   });
 });

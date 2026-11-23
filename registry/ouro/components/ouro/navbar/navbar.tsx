@@ -10,6 +10,7 @@ import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { NavigationMenuView } from "@/registry/ouro/components/ouro/navigation-menu/navigation-menu";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { willOverflow } from "./navbar-styles";
 
 /** One link in a Navbar: in the bar, or in a group's panel. */
 export interface NavbarLink {
@@ -285,12 +286,7 @@ export function Navbar(props: NavbarProps): JSX.Element {
       const button = menuButton.current!.offsetWidth;
       const room = slot.current!.clientWidth + button;
       const needed = list.current!.scrollWidth;
-      // Hysteresis: once the links have folded, only unfold once the room clears what they need by a margin.
-      // Folding shows the menu button, which narrows the slot by the very room folding found missing, so without
-      // a margin here that narrowing alone can read as "not enough room", and hiding the button again to check
-      // puts the slot right back where the links did not fit either — flipping forever at a width where they are
-      // only barely over (ourostack/ouro-ui#3168).
-      setOverflow((was) => (was ? needed > room - 8 : needed > room));
+      setOverflow((was) => willOverflow(was, needed, room));
     };
     measure();
     const observer = new ResizeObserver(measure);
