@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type HTMLAttributes, type JSX, type KeyboardEvent, type Ref, type SVGProps } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { resultWords, stepFrom } from "@/registry/ouro/components/ouro/conversation-find/conversation-find-styles";
+import { resultWords, stepFrom, stepTo } from "@/registry/ouro/components/ouro/conversation-find/conversation-find-styles";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -139,9 +139,7 @@ export function ConversationFind({
       if (pendingStep.current === null || count === 0) return;
       const direction = pendingStep.current;
       pendingStep.current = null;
-      const next = stepFrom(current, count, direction);
-      // Stryker disable next-line ConditionalExpression: stepFrom returns null only when count is 0, which the guard above has already ruled out here, so next is never null.
-      if (next !== null) onCurrentChange(next);
+      onCurrentChange(stepTo(current, count, direction));
     },
     // Stryker disable next-line ArrayDeclaration: only count turns a pending step into a resolved one; current and onCurrentChange come from the same render as this count.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs only when count changes; current and onCurrentChange are read as of that same render

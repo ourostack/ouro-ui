@@ -1,7 +1,19 @@
-export { stepFrom, resultWords };
+export { stepFrom, stepTo, resultWords };
 
 // Shared helpers for ConversationFind. They live apart from the component so its file exports only components, which React
 // Fast Refresh needs. The export list comes first because the shadcn CLI drops comments before a file's first statement.
+
+/**
+ * The match a step lands on, for a count already known not to be the zero that leaves nothing to land on: one on from the
+ * current match, or one back, wrapping round past either end. Starting from null it lands on the first match going on and
+ * the last going back.
+ *
+ * @internal
+ */
+function stepTo(current: number | null, count: number, direction: 1 | -1): number {
+  if (current === null) return direction === 1 ? 0 : count - 1;
+  return (current + direction + count) % count;
+}
 
 /**
  * The match a step lands on: one on from the current match, or one back, wrapping round past either end. Starting from null it lands on the first match going on and the last going back; with nothing found it stays on null.
@@ -10,9 +22,7 @@ export { stepFrom, resultWords };
  * @claim "wrapping round past either end" registry/ouro/components/ouro/conversation-find/conversation-find.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-find/conversation-find.test.tsx::ConversationFind > steps with Enter and Shift+Enter in the find box, wrapping round past either end)
  */
 function stepFrom(current: number | null, count: number, direction: 1 | -1): number | null {
-  if (count === 0) return null;
-  if (current === null) return direction === 1 ? 0 : count - 1;
-  return (current + direction + count) % count;
+  return count === 0 ? null : stepTo(current, count, direction);
 }
 
 /**
