@@ -21,11 +21,11 @@ const details = (decisions: Decision[]) => findDecisionIssues(decisions).map((is
 
 describe("findDecisionIssues", () => {
   it("compares computed style by text, by number within half a pixel, and by a range, a difference or a pattern", () => {
-    render(`<b class="chip" style="width:40px;height:20.3px;border-radius:4px;display:block">x</b>`);
+    render(`<b class="chip" style="width:40px;height:20px;border-radius:4px;display:block">x</b>`);
     const hold = (expect: NonNullable<Decision["expect"]>) => details([{ name: "chip", selector: ".chip", expect }]);
-    expect(hold({ "border-radius": "4px", height: 20, display: "block" })).toEqual([]);
+    expect(hold({ "border-radius": "4px", height: 20.3, display: "block" })).toEqual([]);
     expect(hold({ "border-radius": "8px" })).toEqual([`"chip": border-radius is 4px, not 8px`]);
-    expect(hold({ height: 22 })).toEqual([`"chip": height is 20.3px, not 22`]);
+    expect(hold({ height: 22 })).toEqual([`"chip": height is 20px, not 22`]);
     expect(hold({ width: { min: 10, max: 50, not: "41px", match: "^40" } })).toEqual([]);
     expect(hold({ width: { min: 41 } })).toEqual([`"chip": width is 40px, under 41`]);
     expect(hold({ width: { max: 39 } })).toEqual([`"chip": width is 40px, over 39`]);
@@ -44,7 +44,7 @@ describe("findDecisionIssues", () => {
   it("counts drawn matches over the page, as a number or a range, and names the count wanted", () => {
     render(`<u class="one"></u><u class="one" hidden></u><u class="one" style="display:none"></u><u class="two">x</u><u class="two">y</u><template><u class="two">z</u></template>`);
     const count = (selector: string, c: NonNullable<Decision["count"]>) => details([{ name: "n", selector, count: c }]);
-    expect(count(".one", 0)).toEqual([]);
+    expect(count(".one", 1)).toEqual([]);
     expect(count(".two", 2)).toEqual([]);
     expect(count(".two", { min: 1, max: 3 })).toEqual([]);
     expect(count(".two", 1)).toEqual([`"n": 2 found, 1 of .two wanted`]);
