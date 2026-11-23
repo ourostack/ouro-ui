@@ -132,6 +132,91 @@ describe("Message", () => {
     expect(author.compareDocumentPosition(bubbleOf(message)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("names the article by its author and time, unless the app names it", async () => {
+    await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41">
+          Hello
+        </Message>
+        <Message role="assistant" name="Theo" time="9:42" aria-label="Theo says hi">
+          Hi
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43">
+          Hey
+        </Message>
+      </>,
+    );
+    await expect.element(page.getByRole("article", { name: /^Mara\s*,?\s*9:41$/ })).toBeVisible();
+    await expect.element(page.getByRole("article", { name: "Theo says hi" })).toBeVisible();
+    await expect.element(page.getByRole("article", { name: /^Ana\s*,?\s*9:43$/ })).toBeVisible();
+  });
+
+  it("builds the name from the elements' own text, so an id is a real reference in both layouts", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41">
+          Hello
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43">
+          Hey
+        </Message>
+      </>,
+    );
+    const names = [...host.querySelectorAll("article")].map((article) => {
+      const ids = article.getAttribute("aria-labelledby")!.split(" ");
+      expect(ids.every((id) => id !== "" && document.getElementById(id) !== null)).toBe(true);
+      return ids.map((id) => document.getElementById(id)!.textContent!.trim());
+    });
+    expect(names[0]).toHaveLength(1);
+    expect(names[0]![0]).toMatch(/^Mara\s*,?\s*9:41$/);
+    expect(names[1]).toEqual(["Ana", "9:43"]);
+  });
+
+  it("leaves an app's own aria-labelledby as it is, in both layouts", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41" aria-labelledby="custom">
+          Hello
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43" aria-labelledby="custom">
+          Hey
+        </Message>
+      </>,
+    );
+    const articles = [...host.querySelectorAll("article")];
+    expect(articles).toHaveLength(2);
+    for (const article of articles) expect(article.getAttribute("aria-labelledby")).toBe("custom");
+  });
+
+  it("keeps an app's own aria-label and adds no aria-labelledby, in both layouts", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41" aria-label="From Mia">
+          Hello
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43" aria-label="From Mia">
+          Hey
+        </Message>
+      </>,
+    );
+    const articles = [...host.querySelectorAll("article")];
+    expect(articles).toHaveLength(2);
+    for (const article of articles) {
+      expect(article.getAttribute("aria-label")).toBe("From Mia");
+      expect(article.hasAttribute("aria-labelledby")).toBe(false);
+    }
+  });
+
+  it("keeps Sending out of the article's name while it is described as Sending", async () => {
+    const { message } = await render(
+      <Message role="user" variant="reply" name="Ana" time="9:43" pending>
+        Hey
+      </Message>,
+    );
+    await expect.poll(() => message.getAttribute("aria-describedby") && document.getElementById(message.getAttribute("aria-describedby")!)?.textContent).toBeTruthy();
+    await expect.element(page.getByRole("article", { name: /^Ana\s*,?\s*9:43$/ })).toBeVisible();
+  });
+
   it("puts the user's messages at the end in the primary color and others at the start", async () => {
     const { host } = await render(
       <>

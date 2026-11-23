@@ -166,11 +166,17 @@ test("the home headline never leaves a single word alone on a line at 390×844",
 });
 
 /**
- * Parts that draw no boundary of their own under forced colours: none since the conformance matrix
- * (#133) gave segmented-control segments, the collapsible trigger and the reorderable handle one.
- * The test fails once any part loses its boundary.
+ * Parts that draw no boundary of their own under forced colours on a given page, since the
+ * conformance matrix (#133) gave segmented-control segments, the collapsible trigger and the
+ * reorderable handle one, and #3103 made a plain-variant Button stay borderless at rest, its
+ * focus-visible outline still marking it: the toolbar button on both pages, and the chat demo's
+ * own members button, a plain Button too, on nautilus only. The test fails once any other part on
+ * that page loses its boundary.
  */
-const FORCED_COLOURS_GAPS: string[] = [];
+const FORCED_COLOURS_GAPS: Record<(typeof PAGES)[number], string[]> = {
+  "./": ["button/root"],
+  "nautilus/": ["button/root", "chat-header/members"],
+};
 
 for (const path of PAGES) test(`keeps every control's boundary under forced colours${path === "./" ? "" : ` on ${path}`}`, async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
@@ -214,7 +220,7 @@ for (const path of PAGES) test(`keeps every control's boundary under forced colo
       })
       .map((element) => `${element.getAttribute("data-ouro-control")}/${element.getAttribute("data-ouro-part")}`),
   );
-  expect([...new Set(bare)].sort()).toEqual([...FORCED_COLOURS_GAPS].sort());
+  expect([...new Set(bare)].sort()).toEqual([...FORCED_COLOURS_GAPS[path]].sort());
 });
 
 test("moves nothing under reduced motion: repainting, the picker and the dialog only fade and change colour", async ({ page }) => {

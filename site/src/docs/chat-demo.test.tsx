@@ -55,6 +55,9 @@ describe("the chat app page", () => {
     await page.getByRole("button", { name: /Launch crew/ }).click();
     await page.getByRole("button", { name: /repl/i }).first().click();
     await expect.element(page.getByLabelText("Replies").first()).toBeInTheDocument();
+    const rail = page.getByRole("complementary", { name: "Replies" });
+    await expect.element(rail.getByText("Mara Quill").first()).toBeInTheDocument();
+    await expect.element(rail.getByPlaceholder("Reply to the thread")).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     await page.getByRole("radio", { name: "Empty" }).click();
     await expect.element(page.getByRole("radio", { name: "Empty" })).toBeChecked();
@@ -88,11 +91,24 @@ describe("the chat app page", () => {
       expect(drawn("Conversations appear here")).toBe(false);
       await page.viewport(1280, 800);
       await expect.poll(() => drawn("Conversations appear here")).toBe(true);
+      const line = [...document.querySelectorAll("body *")].findLast((el) => el.textContent === "Conversations appear here" && el.getClientRects().length > 0)!;
+      const column = line.closest("[data-ouro=conversation-list]")!.parentElement!.getBoundingClientRect();
+      const text = line.getBoundingClientRect();
+      expect(Math.abs(text.top - column.top - (column.bottom - text.bottom))).toBeLessThan(4);
       await page.getByRole("button", { name: "Start a conversation" }).click();
       await expect.element(page.getByRole("list", { name: "Conversations" })).toBeVisible();
     } finally {
       await page.viewport(390, 844);
     }
+  });
+
+  it("hands focus to the list's tab stop when Start a conversation brings the list back", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/chat-demo/");
+    await page.getByRole("radio", { name: "Empty" }).click();
+    await page.getByRole("button", { name: "Start a conversation" }).click();
+    await expect.poll(() => document.activeElement?.getAttribute("data-ouro-part")).toBe("row");
+    expect(document.activeElement?.textContent).toContain("Launch crew");
   });
 
   it("keeps an unsent draft for each conversation when the person switches", async () => {

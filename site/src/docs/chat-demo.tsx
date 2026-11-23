@@ -128,6 +128,7 @@ function ChatDemo(): JSX.Element {
   const paneRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const moved = useRef<"open" | "back" | null>(null);
+  const started = useRef(false);
   const threadButton = useRef<HTMLElement | null>(null);
   const open = chats.find((chat) => chat.id === openId);
 
@@ -147,6 +148,12 @@ function ChatDemo(): JSX.Element {
     if (moved.current === "back") listRef.current?.querySelector<HTMLElement>('[data-ouro-part="row"][tabindex="0"]')?.focus();
     moved.current = null;
   }, [openId]);
+
+  // Starting from the empty stage brings the list back, so focus goes to its first row rather than wherever the removed button was.
+  useEffect(() => {
+    if (stage === "ready" && started.current) listRef.current?.querySelector<HTMLElement>('[data-ouro-part="row"][tabindex="0"]')?.focus();
+    started.current = false;
+  }, [stage]);
 
   const items: ConversationListItem[] = chats.map((chat) => ({ id: chat.id, title: chat.title, preview: chat.preview, time: chat.time, unread: chat.unread, draft: drafts[chat.id] ? drafts[chat.id] : undefined }));
 
@@ -251,6 +258,11 @@ function ChatDemo(): JSX.Element {
     open && threadOpen ? (
       <ThreadRail label="Thread" title="Replies" detail={open.title} meta={`${open.replies.length} replies`} onClose={() => setThreadOpen(false)} returnFocus={threadButton}>
         <MessageList label="Replies" className="min-h-0 flex-1">
+          {open.messages[2] ? (
+            <Message id={`${open.messages[2].id}-parent`} variant="reply" role={open.messages[2].own ? "user" : "assistant"} name={open.messages[2].who} time={open.messages[2].time}>
+              {open.messages[2].text}
+            </Message>
+          ) : null}
           {open.replies.map((line) => (
             <Message key={line.id} id={line.id} variant="reply" role={line.own ? "user" : "assistant"} name={line.who} time={line.time}>
               {line.text}
@@ -258,7 +270,7 @@ function ChatDemo(): JSX.Element {
           ))}
         </MessageList>
         <div className="border-t border-border p-2">
-          <Composer label="Reply in thread" onSend={(text) => send(open.id, text, true)} />
+          <Composer label="Reply in thread" placeholder="Reply to the thread" onSend={(text) => send(open.id, text, true)} />
         </div>
       </ThreadRail>
     ) : null;
@@ -271,10 +283,10 @@ function ChatDemo(): JSX.Element {
     ) : stage === "empty" ? (
       <div className="grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]">
         <div className="border-e border-border p-2 max-md:hidden">
-          <ConversationList label="Conversations" items={[]} empty={<span className="block py-10 text-center">Conversations appear here</span>} onSelect={() => {}} />
+          <ConversationList className="grid h-full place-items-center" label="Conversations" items={[]} empty="Conversations appear here" onSelect={() => {}} />
         </div>
         <div className="grid place-items-center">
-          <Moment kind="empty" art={<TrayArt />} title="Nothing here yet" description="Messages you send and receive show up here." action={<Button onClick={() => setStage("ready")}>Start a conversation</Button>} />
+          <Moment kind="empty" art={<TrayArt />} title="Nothing here yet" description="Messages you send and receive show up here." action={<Button onClick={() => { started.current = true; setStage("ready"); }}>Start a conversation</Button>} />
         </div>
       </div>
     ) : (
