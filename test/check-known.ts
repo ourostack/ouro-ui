@@ -72,6 +72,68 @@ export function knownProblems(entries: readonly KnownFinding[]): string[] {
 
 export const knownFindings: KnownFinding[] = [
   {
+    story: "FamilyBar/FarAlong",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "The bar's divider runs against the story frame's edge, so the line is drawn twice; the bar should drop its own line where it meets an edge.",
+  },
+  {
+    story: "NavigationRail/IconsOnly",
+    rule: "count-badge",
+    issue: 3257,
+    reason: "Under nova's font the rail's count sits 1px high of its pill's middle, centred on its line box; the count wants centring on its cap height.",
+    theme: "nova",
+  },
+  {
+    story: "NavigationRail/Overflow",
+    rule: "count-badge",
+    issue: 3257,
+    reason: "Under nova's font the rail's count sits 1px high of its pill's middle, centred on its line box; the count wants centring on its cap height.",
+    theme: "nova",
+  },
+  {
+    story: "NavigationRail/Playground",
+    rule: "count-badge",
+    issue: 3257,
+    reason: "Under nova's font the rail's count sits 1px high of its pill's middle, centred on its line box; the count wants centring on its cap height.",
+    theme: "nova",
+  },
+  {
+    story: "NavigationRail/Views",
+    rule: "count-badge",
+    issue: 3257,
+    reason: "Under nova's font the rail's count sits 1px high of its pill's middle, centred on its line box; the count wants centring on its cap height.",
+    theme: "nova",
+  },
+  {
+    story: "TimeGrid/Day",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+    theme: "nova",
+  },
+  {
+    story: "TimeGrid/Links",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+    theme: "nova",
+  },
+  {
+    story: "TimeGrid/Locales",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+    theme: "nova",
+  },
+  {
+    story: "TimeGrid/NowAdornment",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+    theme: "nova",
+  },
+  {
     story: "ThreadLayout/Default",
     rule: "doubled-line",
     issue: 3257,
