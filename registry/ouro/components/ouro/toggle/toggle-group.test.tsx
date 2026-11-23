@@ -67,6 +67,8 @@ describe("ToggleGroup", () => {
     const { root, group, toggles } = await render(<ToggleGroup label="Alignment" items={align} />);
     expect(root.getAttribute("data-ouro")).toBe("toggle-group");
     expect(group.getAttribute("aria-labelledby")).toBe(root.querySelector("span")!.id);
+    // Without hideLabel the span stays in reading order: aria-hidden is absent, not "false".
+    expect(root.querySelector("span")!.hasAttribute("aria-hidden")).toBe(false);
     await expect.element(page.getByRole("group", { name: "Alignment" })).toBeVisible();
     expect(toggles.map((toggle) => toggle.textContent)).toEqual(["Left", "Center", "Right"]);
     expect(pressed(toggles)).toEqual([false, false, false]);
@@ -272,6 +274,14 @@ describe("ToggleGroup", () => {
     const { root } = await render(<ToggleGroup label="Alignment" hideLabel items={align} />);
     expect(root.querySelector("span")!.className).toContain("sr-only");
     await expect.element(page.getByRole("group", { name: "Alignment" })).toBeInTheDocument();
+  });
+
+  it("names the group with hideLabel's own span, but keeps it out of reading order so the name is heard once", async () => {
+    const { root } = await render(<ToggleGroup label="Show" hideLabel items={align} />);
+    const label = root.querySelector("span")!;
+    expect(label.getAttribute("aria-hidden")).toBe("true");
+    // aria-labelledby still reads a hidden element: the group keeps its name although the span is hidden.
+    await expect.element(page.getByRole("group", { name: "Show" })).toBeInTheDocument();
   });
 
   it("disables one item, or the whole group", async () => {
