@@ -68,6 +68,26 @@ import {
 
 export type { TimeGridStatus, TimeGridTone, TimeGridView };
 
+/** Why a day is marked (TimeGrid's `markedDays`): the words, and the tone of its tint. */
+export interface TimeGridMark {
+  /** The words that say why, such as "Out of office". */
+  label: string;
+  /** The tint's tone. @default "primary" */
+  tone?: TimeGridTone | undefined;
+}
+
+/**
+ * A marked day's tint: half an event's (`--ouro-time-grid-tint`), so events on the day still stand out.
+ * @claim "A marked day's tint" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /primary: "bg-\[color-mix\(in_oklab,var\(--primary\)_calc\(var\(--ouro-time-grid-tint\)\/2\),transparent\)\]"/)
+ */
+const markTintClass: Record<TimeGridTone, string> = {
+  primary: "bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)/2),transparent)]",
+  secondary: "bg-[color-mix(in_oklab,var(--muted-foreground)_calc(var(--ouro-time-grid-tint)/2),transparent)]",
+  success: "bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)/2),transparent)]",
+  warning: "bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)/2),transparent)]",
+  destructive: "bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)/2),transparent)]",
+};
+
 /** One event on a {@link TimeGrid}. */
 export interface TimeGridEvent {
   /** Unique among the grid's events. `onEventSelect` gets the event back, and `selectedId` names it. */
@@ -248,6 +268,14 @@ export interface TimeGridOwnProps {
    */
   renderDaySummary?: ((day: string) => ReactNode) | undefined;
   /**
+   * Days to mark, such as the days someone is out of office or a public holiday: each ISO date to
+   * the words that say why, and a tone (primary unless you give one). A marked day's column takes the
+   * tone's tint from its header to its last hour, and shows the words under the weekday; screen
+   * readers hear them with the day.
+   * @claim "A marked day's column takes the tone's tint" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > tints a marked day's column from its header to its last hour, and says why in words)
+   */
+  markedDays?: Readonly<Record<string, TimeGridMark>> | undefined;
+  /**
    * Called when someone presses an empty part of a day, with the slot under the pointer, for a
    * new event there. A mouse shows the slot before the press. Slots answer a pointer only, so
    * give keyboards a New event button of your own as well.
@@ -400,6 +428,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     stackLabel = (count: number) => `${count} events`,
     expandedId,
     renderDaySummary,
+    markedDays,
     onSlotSelect,
     slotMinutes: slotProp = 30,
     allDayLabel = "All day",
@@ -433,6 +462,10 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
 
   const days = useMemo(() => (isIsoDate(date) ? viewDays(date, view, locale) : []), [date, view, locale]);
   const weekend = weekendDays(locale);
+  const markOf = (day: string) => {
+    const mark = markedDays && Object.hasOwn(markedDays, day) ? markedDays[day] : undefined;
+    return mark?.label ? { label: mark.label, tint: markTintClass[oneOf(tones, mark.tone, "primary")] } : null;
+  };
   const formats = useMemo(
     () => ({
       clock: zonedClock(zone),
@@ -964,7 +997,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               key={day}
               aria-hidden="true"
               data-today={index === todayIndex ? "" : undefined}
-              className="group/day @container/day min-w-0 border-0 border-s border-solid border-border"
+              data-ouro-time-grid-marked={markOf(day) ? "" : undefined}
+              className={cn("group/day @container/day min-w-0 border-0 border-s border-solid border-border", markOf(day)?.tint)}
             >
               <span className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2 py-1.5 @max-[4.5rem]/day:flex-col @max-[4.5rem]/day:gap-0.5 @max-[4.5rem]/day:px-0.5">
               <span className="inline-flex size-ouro-7 shrink-0 items-center justify-center rounded-full text-base leading-none font-semibold tabular-nums group-data-today/day:bg-primary group-data-today/day:text-primary-foreground forced-colors:group-data-today/day:border-2 forced-colors:group-data-today/day:border-solid">
@@ -975,13 +1009,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               </span>
               <span className="truncate text-xs text-muted-foreground group-data-today/day:font-medium group-data-today/day:text-foreground">{formats.weekdayShort.format(utcDate(day))}</span>
               </span>
+              {markOf(day) ? <span data-ouro-time-grid-mark="" className="block truncate px-2 pb-1 text-xs text-muted-foreground @max-[4.5rem]/day:px-0.5">{markOf(day)!.label}</span> : null}
             </div>
           ))}
           {renderDaySummary ? (
             <>
               <div aria-hidden="true" />
               {days.map((day) => (
-                <div key={day} role="group" aria-label={formats.fullDay.format(utcDate(day))} data-ouro-time-grid-summary="" className="min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs text-muted-foreground">
+                <div key={day} role="group" aria-label={[formats.fullDay.format(utcDate(day)), markOf(day)?.label].filter(Boolean).join(", ")} data-ouro-time-grid-summary="" className={cn("min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs text-muted-foreground", markOf(day)?.tint)}>
                   {renderDaySummary(day)}
                 </div>
               ))}
@@ -1039,6 +1074,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                     <div aria-hidden="true" data-ouro-time-grid-off="" className="pointer-events-none absolute inset-x-0 bottom-0 bg-[color-mix(in_oklab,var(--foreground)_4%,transparent)]" style={{ top: minutesTall(workingHours.end * 60) }} />
                   </>
                 )}
+                {markOf(day) ? (
+                  <div data-ouro-time-grid-mark="" className={cn("pointer-events-none absolute inset-0", markOf(day)!.tint)}>
+                    <span className="sr-only">{`${formats.fullDay.format(utcDate(day))}, ${markOf(day)!.label}`}</span>
+                  </div>
+                ) : null}
                 {onSlotSelect ? (
                   <div
                     aria-hidden="true"
@@ -1081,7 +1121,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                 {timed[index]!.length > 0 ? (
                   <ul
                     role="list"
-                    aria-label={formats.fullDay.format(utcDate(day))}
+                    aria-label={[formats.fullDay.format(utcDate(day)), markOf(day)?.label].filter(Boolean).join(", ")}
                     aria-current={index === todayIndex ? "date" : undefined}
                     className="pointer-events-none absolute inset-0 m-0 list-none p-0"
                   >

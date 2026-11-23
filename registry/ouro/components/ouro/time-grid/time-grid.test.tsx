@@ -977,6 +977,23 @@ describe("TimeGrid", () => {
     expect(scroller.scrollTop / hour).toBeCloseTo(12, 1);
   });
 
+  it("tints a marked day's column from its header to its last hour, and says why in words", async () => {
+    const { host, grid } = await render({ renderDaySummary: () => "2 events", markedDays: { "2026-03-12": { label: "Out of office" }, "2026-03-13": { label: "Holiday", tone: "success" } } });
+    const heads = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked]")];
+    expect(heads.map((head) => head.textContent)).toEqual(["12ThuOut of office", "13FriHoliday"]);
+    const columns = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")];
+    expect(columns.map((column) => column.textContent)).toEqual(["Thursday, March 12, Out of office", "Friday, March 13, Holiday"]);
+    const summaries = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-summary]")].map((summary) => summary.getAttribute("aria-label"));
+    expect(summaries).toContain("Thursday, March 12, Out of office");
+    const clear = "rgba(0, 0, 0, 0)";
+    for (const tinted of [...heads, ...columns]) expect(getComputedStyle(tinted).backgroundColor).not.toBe(clear);
+    expect(getComputedStyle(heads[0]!).backgroundColor).not.toBe(getComputedStyle(heads[1]!).backgroundColor);
+    // An unmarked day keeps the page's own colour.
+    expect(grid.querySelectorAll("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked]")).toHaveLength(2);
+    expect(describeFindings(await audit({ include: [host] }))).toBe("");
+    expect(warnings()).toEqual([]);
+  });
+
   it("shades the hours outside the working day, and the weekend", async () => {
     const { grid } = await render({ workingHours: { start: 9.5, end: 18 } });
     const columns = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] > div:not([aria-hidden])")];
