@@ -173,7 +173,7 @@ The aim is every state handled and checked.[^check-states-lead] The check is the
 The screen check (`ouro-check`) opens every page of your built app in headless Chromium at every screen size from a 320px phone to a 3840px screen, and four short landscape screens, light and dark, at density 2 up to 3072px wide, the widest real 2x screen, and 1 above it, so a 3840 screen asks for the pictures a 4K monitor shows.[^check-sizes] Each finding records the density it was found at.[^check-sizes] It finds six things, by measurement rather than by looking at pictures:[^check-rules]
 
 
-A clean report is the floor: what measurement can decide about the screen isn't broken. It can't see whether people understand the screen or finish its task, such as whether they know a form saved or what an action will remove. Say a screen passes Ouro check, and before you call it good, watch a few people do its task.[^check-floor]
+A clean report is the floor: what measurement can decide about the screen isn't broken. It can't see whether people understand the screen or finish its task, such as whether they know a form saved or what an action will remove. Say a screen passes Ouro check, and before you call it good, watch a few people do its task.[^check-floor] Before a person sees it at all, pass the beauty gate in [Design craft](design-craft.md#the-beauty-gate).
 
 The report itself ends with a "Needs a person" list: questions only a person can answer, drawn from the components on each page.[^check-needs-a-person]
 

@@ -1,6 +1,6 @@
 ---
 name: ouro-check
-description: Use when you need to know whether a site, a built app or a page in a test looks, reads and moves right (design, layout, pictures, accessibility, jank, HTTPS) at phone, laptop and 4K sizes in light and dark, without looking at screenshots or recordings. Read its JSON findings; open a close-up only for the finding you are fixing.
+description: Use when you need to know whether a site, a built app or a page in a test looks, reads and moves right (design, layout, pictures, accessibility, jank, HTTPS) at phone, laptop and 4K sizes in light and dark, without looking at screenshots or recordings. Read its JSON findings; open a close-up only for the finding you are fixing. Also use it before you show a person a screen, mock or capture: it leads to the beauty gate.
 ---
 
 # Ouro check
@@ -67,6 +67,8 @@ Put the before and after in the pull request as the proof. A finding you keep on
 ## What it can't tell you
 
 A clean report is the floor, not proof that a screen is good: what measurement can decide isn't broken. Whether people understand the screen and finish its task, such as whether they know a form saved or what an action will remove, shows only when you watch them do it, so before you call a screen good, watch a few people do its task.[^floor]
+
+Before a person sees a screen, a mock or a capture of either, pass the beauty gate in [Design craft](https://ui.ouroboros.bot/docs/design-craft/#the-beauty-gate): put the captures beside their references at the same size, look at them yourself, then ask independent critics who didn't make it, and fix until they approve.
 
 It decides what measurement can decide. Whether a picture is the right picture, whether the words are the right words, and whether a flow makes sense still need a person or a judge. Line length is checked only against a measure you declare. Jank is measured in headless Chromium at one size and theme; [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures a component in the engine an app ships in.
 
