@@ -10,6 +10,7 @@ import { finishReveal, previewTheme, storeTheme } from "./voyage/theme-store";
 import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
+import { patternStories } from "./components/pattern-preview";
 import { PhoneStatus, phoneTime } from "./components/phone-status";
 import { collectControls } from "../../test/controls";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -151,6 +152,14 @@ describe("home page", () => {
       expect(frame.closest("figure")!.querySelector("a")!.textContent).toContain("Open full size");
       expect(host.textContent).toContain(`npx shadcn@latest add @ouro/${name} --yes`);
     }
+  });
+
+  it("points each pattern preview at a story that exists, since Ouro check waives the frame's address", async () => {
+    const source = (await import("../../stories/reference/patterns.stories.tsx?raw")).default;
+    const kebab = (word: string) => word.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+    const ids = [...source.matchAll(/export const (\w+): Story/g)].map((match) => `reference-patterns--${kebab(match[1])}`);
+    expect(source).toContain('title: "Reference/Patterns"');
+    for (const story of Object.values(patternStories)) expect(ids).toContain(`reference-patterns--${story}`);
   });
 
   it("gives the docs page's install steps no history of v0.8.0 in running text", async () => {
