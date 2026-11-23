@@ -57,16 +57,18 @@ The props the modes share. Type: `ItemProps`.
 Not in this mode (a type error):
 
 - `buttonRef`: Only with `onSelect`.
+- `chevron`: Only with `href`.
 - `external`: Only with `href`.
 - `href`: Not without `href`. Add `href` to make the whole row a link.
 - `linkRef`: Only with `href`.
 - `onSelect`: A handler, which makes the whole row a button.
 - `selected`: Only with `href` or `onSelect`: a row a person can choose.
 
-### With `href` and `external` and `linkRef` and `selected`
+### With `href` and `external` and `linkRef` and `chevron` and `selected`
 
 | Prop | Type | Description |
 | --- | --- | --- |
+| `chevron` | `boolean` | A trailing chevron, so a navigable row reads as tappable, as a settings list shows before the page it opens. Decorative (`aria-hidden`, never a tab stop); it shares the row's trailing edge with `actions`, after them. |
 | `external` | `boolean` | Opens the link in a new tab, safely, and tells screen readers so. |
 | `href` (required) | `string` | Makes the whole row one link, with one tab stop, named by its title. Internal paths go through `OuroProvider`'s `linkComponent`, as with `Link`. Controls anywhere in the row (a link in the description, a button in the media or the actions) stay their own tab stops and take their own clicks and taps. On a touch screen the row is at least 44px tall. |
 | `linkRef` | `Ref<HTMLAnchorElement>` | A ref to the link's `<a>`, to move focus to it. |
@@ -87,6 +89,7 @@ Not in this mode (a type error):
 
 Not in this mode (a type error):
 
+- `chevron`: Only with `href`.
 - `external`: Only with `href`.
 - `href`: Only with `href`.
 - `linkRef`: Only with `href`.

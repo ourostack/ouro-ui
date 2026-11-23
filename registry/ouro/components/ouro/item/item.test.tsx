@@ -547,6 +547,48 @@ describe("Item with href", () => {
     expect(outside!.getAttribute("rel")).toBe("noopener noreferrer");
     await expect.element(page.getByRole("link", { name: "Ouro (opens in a new tab)" })).toBeVisible();
   });
+
+  it("draws no chevron by default, and never on a chosen or plain row", async () => {
+    const { item: linked } = await render(<Item href="/settings/profile" title="Profile" />);
+    expect(linked.querySelector("svg")).toBeNull();
+  });
+
+  it("draws chevron as decorative, after actions on the trailing edge", async () => {
+    const onSave = vi.fn();
+    const { item } = await render(
+      <Item href="/settings/profile" title="Profile" actions={<Button onClick={onSave}>Save</Button>} chevron />,
+    );
+    const trailing = item.querySelector("[data-item-actions]")!.parentElement!;
+    const chevron = trailing.querySelector("svg")!;
+    expect(chevron.getAttribute("aria-hidden")).toBe("true");
+    expect([...trailing.children].indexOf(chevron)).toBe(trailing.children.length - 1);
+    await page.viewport(1280, 800);
+    // The chevron is never a tab stop: tabbing from the link reaches the action, not the chevron.
+    const before = document.createElement("button");
+    item.parentElement!.prepend(before);
+    before.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(item.querySelector("[data-item-link]"));
+    await pressTab();
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "Save" }).element());
+  });
+
+  it("mirrors the chevron for a right-to-left reader", async () => {
+    const { host } = await render(
+      <div dir="rtl">
+        <Item href="/settings/profile" title="Profile" chevron />
+      </div>,
+    );
+    // Tailwind's -scale-x-100 sets the `scale` property, so a negative first value is mirrored.
+    expect(parseFloat(getComputedStyle(host.querySelector("svg")!).scale)).toBeLessThan(0);
+  });
+
+  it("gives a chevron-only row a trailing grid column, with no actions beside it", async () => {
+    const { item } = await render(<Item href="/settings/profile" title="Profile" chevron />);
+    expect(item.querySelector("[data-item-actions]")).toBeNull();
+    expect(item.querySelector("svg")).not.toBeNull();
+    expect(getComputedStyle(item).gridTemplateColumns.split(" ")).toHaveLength(2);
+  });
 });
 
 describe("Item with onSelect", () => {
