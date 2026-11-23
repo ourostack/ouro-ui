@@ -41,6 +41,18 @@ export interface Font {
   licence: string;
   bytes: number;
   sha256: string;
+  /** A display face's wordmark: the face cut down to the letters of its preset's label, for the theme picker. */
+  wordmark?: Wordmark;
+}
+
+/** A display face holding only `text`'s letters, served as "<family> Wordmark" and set as its preset's --font-wordmark. */
+export interface Wordmark {
+  file: string;
+  /** The preset's label, whose letters it holds. */
+  text: string;
+  modifications: string;
+  bytes: number;
+  sha256: string;
 }
 
 export interface Preset {
@@ -63,7 +75,7 @@ export const presets: readonly Preset[] = [
 ];
 
 /** Budgets from the site design: the preloaded sans and mono together, and each display face. */
-export const FONT_BUDGET = { preloaded: 90 * 1024, face: 40 * 1024 };
+export const FONT_BUDGET = { preloaded: 90 * 1024, face: 40 * 1024, wordmark: 4 * 1024 };
 
 /** Fontsource's Latin unicode-range, which every file here is a subset of. */
 const LATIN =
@@ -93,6 +105,21 @@ export function fontFace(font: Font, base: string): string {
     "}",
   ].join("\n");
 }
+
+/** A display face's wordmark as an @font-face rule, as "<family> Wordmark", holding only its preset's label. */
+export function wordmarkFace(font: Font & { wordmark: Wordmark }, base: string): string {
+  return [
+    "@font-face {",
+    `  font-family: "${font.family} Wordmark";`,
+    "  font-style: normal;",
+    "  font-display: swap;",
+    `  font-weight: ${font.weight};`,
+    `  src: url("${base}/fonts/${font.wordmark.file}") format("woff2");`,
+    "}",
+  ].join("\n");
+}
+
+const hasWordmark = (font: Font): font is Font & { wordmark: Wordmark } => font.wordmark !== undefined;
 
 export interface Block {
   selector: string;
@@ -210,7 +237,15 @@ export function buildPreset(preset: Preset, css: string, fonts: readonly Font[])
   const site = blocks
     .map((block) => {
       const lines = declarations(block.body);
-      const extra = block === root ? [`--font-sans: ${stack(sans)}`, `--font-mono: ${stack(mono)}`] : [];
+      // Every preset sets --font-wordmark, its wordmark face or else its heading's, so a theme picker's name never takes
+      // the page's: a preset's wordmark face holds only its own label's letters. Behind the wordmark come the heading's
+      // system fonts, not its web font: WebKit lays text out in the next family while a face loads, which fetched every
+      // look's whole display face with the page.
+      let headingStack = value("--font-heading")!;
+      for (let alias = /^var\((--[\w-]+)\)$/.exec(headingStack); alias && value(alias[1]!); alias = /^var\((--[\w-]+)\)$/.exec(headingStack)) headingStack = value(alias[1]!)!;
+      const fallback = headingStack.replace(`"${preset.heading}", `, "");
+      const wordmark = used.find((font) => font.role === "display")?.wordmark ? `"${preset.heading} Wordmark", ${fallback}` : "var(--font-heading)";
+      const extra = block === root ? [`--font-sans: ${stack(sans)}`, `--font-mono: ${stack(mono)}`, `--font-wordmark: ${wordmark}`] : [];
       return rule(scopeSelector(block.selector, preset.name), [...lines, ...extra]);
     })
     .join("\n\n");
@@ -265,8 +300,28 @@ export function checkFonts(fonts: readonly Font[], read: (file: string) => Buffe
     if (bytes.byteLength !== font.bytes) problems.push(`${font.file}: ${bytes.byteLength} bytes, fonts.json says ${font.bytes}`);
     if (font.preload) preloaded += bytes.byteLength;
     else if (bytes.byteLength > FONT_BUDGET.face) problems.push(`${font.file}: ${bytes.byteLength} bytes is over the ${FONT_BUDGET.face}-byte face budget`);
+    if (font.wordmark) problems.push(...checkWordmark(font, font.wordmark, read));
   }
   if (preloaded > FONT_BUDGET.preloaded) problems.push(`preloaded fonts: ${preloaded} bytes is over the ${FONT_BUDGET.preloaded}-byte budget`);
+  return problems;
+}
+
+/** A wordmark's checks: named for its face, unchanged, within budget, and holding its preset's label. */
+function checkWordmark(font: Font, wordmark: Wordmark, read: (file: string) => Buffer): string[] {
+  const problems: string[] = [];
+  const named = font.file.replace(/-(\d+\.\d+\.\d+)\.woff2$/, "-wordmark-$1.woff2");
+  if (wordmark.file !== named) problems.push(`${wordmark.file}: name it ${named}`);
+  const preset = presets.find((candidate) => candidate.heading === font.family);
+  if (wordmark.text !== preset?.label) problems.push(`${wordmark.file}: holds "${wordmark.text}", but ${font.family}'s preset is labelled "${preset?.label}"; cut it again`);
+  let bytes: Buffer;
+  try {
+    bytes = read(wordmark.file);
+  } catch {
+    return [...problems, `${wordmark.file}: missing from site/public/fonts`];
+  }
+  if (sha256(bytes) !== wordmark.sha256) problems.push(`${wordmark.file}: checksum differs from fonts.json`);
+  if (bytes.byteLength !== wordmark.bytes) problems.push(`${wordmark.file}: ${bytes.byteLength} bytes, fonts.json says ${wordmark.bytes}`);
+  if (bytes.byteLength > FONT_BUDGET.wordmark) problems.push(`${wordmark.file}: ${bytes.byteLength} bytes is over the ${FONT_BUDGET.wordmark}-byte wordmark budget`);
   return problems;
 }
 
@@ -401,6 +456,7 @@ export function build(read: (file: string) => string = (file) => readFileSync(jo
   const css = [
     "/* Generated by site/scripts/themes.mts from site/src/themes/<preset>.css and fonts.json. Do not edit. */",
     ...fonts.map((font) => fontFace(font, "")),
+    ...fonts.filter(hasWordmark).map((font) => wordmarkFace(font, "")),
     ...built.map((preset) => preset.site),
   ].join("\n\n");
   return {

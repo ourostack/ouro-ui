@@ -698,7 +698,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **copyText** — Puts text on the clipboard: through the Clipboard API, or a text selection where the page may not use it (plain http, an older browser). [Docs](docs/copyText.md)
 - **share** — Shares a link through the system's share sheet, or copies it where there is none, and says which happened. [Docs](docs/share.md)
 - **ShareButton** — A button that shares a link: through the system's share sheet where there is one (phones, Safari), and by copying it where there is not, when it says "Link copied" for two seconds and screen readers hear it once. [Docs](docs/ShareButton.md)
-- **ThemePicker** — The look chooser: a row of dots, one per preset, painted with the preset's page and primary colour, with the chosen look's name and mood under them. [Docs](docs/ThemePicker.md)
+- **ThemePicker** — The look chooser: each look's name in its own heading face and ink, on its own paper, ending in one flat square of its primary, so the name is the specimen. [Docs](docs/ThemePicker.md)
 - **Toggle** — A button that stays pressed until it is pressed again, such as Bold in a text toolbar. [Docs](docs/Toggle.md)
 - **ToggleGroup** — A row of related toggles that share one value, such as text alignment or bold, italic and underline in a toolbar. [Docs](docs/ToggleGroup.md)
 - **Toolbar** — A row of controls for one surface, such as an editor's formatting: Button commands and Toggle states, in groups with separators. [Docs](docs/Toolbar.md)

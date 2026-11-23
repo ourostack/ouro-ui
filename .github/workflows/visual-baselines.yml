@@ -24,7 +24,7 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - uses: ./.github/actions/playwright-browsers
         with:
-          browsers: chromium
+          browsers: chromium webkit
       # Write fresh references, then compare against them in a second run, so a baseline
       # that does not reproduce on the same machine fails here instead of in CI.
       - run: pnpm test:visual --update

@@ -9,6 +9,7 @@ import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { applyStoredTheme, PRESET_NAMES, prepaintScript, THEME_KEY } from "../themes/prepaint";
 import { presetList } from "./presets";
+import { clearLive } from "../themes/live";
 import { NAUTILUS_PAGE } from "./copy";
 import { spotlightFrom } from "./xray-store";
 import { finishReveal } from "./theme-store";
@@ -38,17 +39,35 @@ beforeEach(async () => {
   await commands.emulateMedia({ reducedMotion: "no-preference" });
   localStorage.removeItem(THEME_KEY);
   root.removeAttribute("data-theme");
+  // A look the pointer rested on as a test ended is still previewed, and a test that chose Sky leaves Live's sky
+  // painted: both would read as the next test's choice.
+  root.removeAttribute("data-preview-from");
+  clearLive(document);
   setScheme("light");
 });
 afterEach(async () => {
   toast.dismiss();
   // A theme reveal still running holds the page's pointer events, so the next test's first click would miss.
   await finishReveal();
+  // The mouse leaves where the next test's looks render, or the look under it would preview as that page loads. It rests
+  // in the top corner, on the family bar's paper, where no control opens on a hover.
+  const away = document.createElement("div");
+  away.style.cssText = "position: fixed; left: 0; top: 0; width: 4px; height: 4px; z-index: 2147483647";
+  document.body.append(away);
+  await userEvent.hover(away);
+  away.remove();
   await cleanupPage();
   localStorage.removeItem(THEME_KEY);
   root.removeAttribute("data-theme");
+  // A look the pointer rested on as a test ended is still previewed, and a test that chose Sky leaves Live's sky
+  // painted: both would read as the next test's choice.
+  root.removeAttribute("data-preview-from");
+  clearLive(document);
   setScheme("light");
 });
+
+/** The hero's row of looks; the phone menu holds another, hidden from 640px. */
+const heroLooks = () => page.elementLocator(document.querySelector("[data-site-hero-paint] [role=group][aria-label=Theme]")!);
 
 describe("the theme before first paint", () => {
   it("defaults to Live, on Pearl's rules, and follows the OS until the reader picks Surfaced or Submerged", () => {
@@ -158,7 +177,7 @@ describe("the header and the theme section", () => {
     const background = () => getComputedStyle(document.body).backgroundColor;
     const pearl = background();
     await userEvent.click(page.getByRole("button", { name: /Theme: Pearl/ }));
-    await userEvent.click(page.getByRole("group", { name: "Themes" }).getByRole("button", { name: "Abyss", exact: true }));
+    await userEvent.click(page.getByRole("dialog", { name: "Theme" }).getByRole("group", { name: "Theme" }).getByRole("button", { name: "Abyss", exact: true }));
     await expect.poll(() => root.getAttribute("data-theme")).toBe("abyss");
     expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toEqual({ preset: "abyss" });
     expect(background()).not.toBe(pearl);
@@ -196,45 +215,45 @@ describe("the header and the theme section", () => {
   it("names the sky-following look Sky, a name like its neighbours', not a state", async () => {
     root.setAttribute("data-theme", "pearl");
     await renderPage("/");
-    const group = page.getByRole("group", { name: "Theme", exact: true });
+    const group = heroLooks();
     await expect.element(group.getByRole("button", { name: "Sky", exact: true })).toBeVisible();
     expect(group.getByRole("button", { name: "Live" }).elements()).toHaveLength(0);
     await userEvent.click(group.getByRole("button", { name: "Sky", exact: true }), { force: true });
-    await expect.poll(() => document.querySelector("[data-site-hero-paint] [role=group][aria-label=Theme]")?.parentElement?.querySelector("p strong")?.textContent).toBe("Sky");
+    await expect.poll(() => document.querySelector("[data-site-hero-paint] [role=group][aria-label=Theme]")?.closest("[data-ouro=theme-picker]")?.parentElement?.querySelector("p strong")?.textContent).toBe("Sky");
   });
 
-  it("draws each paint dot as a circle with a round ring when chosen, Live's paint on the same diagonal as the presets'", async () => {
+  it("repaints the whole page in a look while the pointer rests on it, and puts the choice back as it leaves", async () => {
     root.setAttribute("data-theme", "pearl");
     await renderPage("/");
-    const dots = () => [...document.querySelectorAll<HTMLElement>("[data-site-hero-paint] [role=group][aria-label=Theme] .site-dot")];
-    const swatch = (dot: HTMLElement) => getComputedStyle(dot.querySelector("span[data-theme]")!);
-    for (const width of [1280, 390]) {
-      await page.viewport(width, 800);
-      for (const dot of dots()) {
-        const box = dot.getBoundingClientRect();
-        expect(box.width, `${dot.getAttribute("aria-label")} at ${width}px`).toBe(box.height);
-        expect(getComputedStyle(dot).borderRadius).toBe("9999px");
-        // A round corner, which a browser may compute as its superellipse(1).
-        if (CSS.supports("corner-shape", "round")) expect(["round", "superellipse(1)"]).toContain(getComputedStyle(dot).getPropertyValue("corner-shape"));
-        // Every swatch is the same drawing: a page and a paint on the diagonal, with the same hairline.
-        expect(swatch(dot).backgroundImage).toContain("linear-gradient(135deg");
-        // Its hairline is the preset's own foreground, so only its shape is the same.
-        expect(swatch(dot).boxShadow).toMatch(/0px 0px 0px 1px inset$|^inset 0px 0px 0px 1px/);
-      }
+    const background = () => getComputedStyle(document.body).backgroundColor;
+    const pearl = background();
+    const brass = heroLooks().getByRole("button", { name: "Brass", exact: true });
+    await userEvent.hover(brass);
+    await expect.poll(() => root.getAttribute("data-theme")).toBe("brass");
+    expect(background()).not.toBe(pearl);
+    await expect.element(heroLooks().getByRole("button", { name: "Pearl", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.unhover(brass);
+    await expect.poll(() => root.getAttribute("data-theme")).toBe("pearl");
+    expect(localStorage.getItem(THEME_KEY)).toBeNull();
+  });
+
+  it("draws each look as its wordmark in its own face and paper, a squircle, with only the chosen one ringed, Sky at dusk", async () => {
+    root.setAttribute("data-theme", "pearl");
+    await renderPage("/");
+    const looks = () => [...document.querySelectorAll<HTMLElement>("[data-site-hero-paint] [role=group][aria-label=Theme] button[data-preset]")];
+    const tile = (look: HTMLElement) => look.querySelector<HTMLElement>("[data-theme]")!;
+    expect(looks().map((look) => look.textContent)).toEqual(["Sky", "Pearl", "Abyss", "Brass", "Chart", "Coral", "Cookbook"]);
+    for (const look of looks()) {
+      expect(getComputedStyle(tile(look)).backgroundImage, look.textContent!).toBe("none");
+      if (CSS.supports("corner-shape", "squircle")) expect(["squircle", "superellipse(2)"]).toContain(getComputedStyle(tile(look)).getPropertyValue("corner-shape"));
     }
-    // The chosen dot, Live too, wears the ring; the others none.
+    // Sky is Pearl's CSS at dusk, so its paper and primary differ from Pearl's.
+    const paper = (name: string) => getComputedStyle(tile(looks().find((look) => look.dataset.preset === name)!)).getPropertyValue("--background").trim();
+    expect(paper("live")).not.toBe(paper("pearl"));
     for (const name of ["Sky", "Abyss"]) {
-      await userEvent.click(page.getByRole("group", { name: "Theme", exact: true }).getByRole("button", { name, exact: true }), { force: true });
-      // The ring hugs the swatch itself, a hair outside it, not the button's wider hit area.
-      await expect.poll(() => dots().filter((dot) => swatch(dot).outlineStyle === "solid").map((dot) => dot.getAttribute("aria-label"))).toEqual([name]);
-      expect(dots().map((dot) => getComputedStyle(dot).boxShadow)).toEqual(dots().map(() => "none"));
+      await userEvent.click(heroLooks().getByRole("button", { name, exact: true }), { force: true });
+      await expect.poll(() => looks().filter((look) => getComputedStyle(look).boxShadow !== "none").map((look) => look.textContent)).toEqual([name]);
     }
-    // Before hydration the server's HTML marks Pearl pressed whatever the reader stored, so the ring follows the page's own
-    // theme, which the head script sets before paint, never aria-pressed.
-    root.setAttribute("data-theme", "brass");
-    root.removeAttribute("data-live");
-    for (const dot of dots()) dot.setAttribute("aria-pressed", dot.getAttribute("aria-label") === "Pearl" ? "true" : "false");
-    expect(dots().filter((dot) => swatch(dot).outlineStyle === "solid").map((dot) => dot.getAttribute("aria-label"))).toEqual(["Brass"]);
   });
 
   it("names the mixer's paint in the sample window while it is on, and the preset's again after", async () => {

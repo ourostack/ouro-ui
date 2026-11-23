@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import sharp from "sharp";
 import { recordMatched } from "./waivers";
 import { instability, wantsRetake } from "./stable-take";
 import { describe, LOOK_SELECTOR, Looks, loaded, picture, quiet, routeGuard, routes, settled } from "./looks";
@@ -132,8 +133,20 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
             const label = await control.evaluate((el) => (el.getAttribute("aria-label") || el.closest("label, [data-ouro]")?.textContent || "").trim().slice(0, 40));
             const shot = tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null;
             if (shot && wantsRetake(process.env["OURO_SWEEP_RETAKE"], tagged.key)) {
-              const unstable = instability(shot, await picture(page, i), { signature: tagged.key, page: path, state });
-              if (unstable) unsteady.push(unstable);
+              const again = await picture(page, i);
+              const unstable = instability(shot, again, { signature: tagged.key, page: path, state });
+              // A control that left the state between the takes shows another state in the second take, not an unsteady
+              // picture of this one: a Porthole's spot opens 300ms into a hover, and a control the picture scrolls out
+              // from under the mouse loses its hover (#3021).
+              if (unstable && (await marks()) === before && (await control.evaluate((el, p) => el.matches(p), pseudo))) {
+                unsteady.push(unstable);
+                // Both takes go in the report, so a finding shows what moved.
+                for (const [n, take] of [shot, again!].entries())
+                  await test.info().attach(`unsteady ${unsteady.length} take ${n + 1}.png`, {
+                    body: await sharp(take.data, { raw: { width: take.width, height: take.height, channels: 4 } }).png().toBuffer(),
+                    contentType: "image/png",
+                  });
+              }
             }
             looks.add(path, tagged, shot, label);
           };

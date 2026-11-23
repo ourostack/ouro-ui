@@ -1,11 +1,15 @@
+export { honesty };
+
 /**
- * The honesty check from the ThemePicker design rounds (Ari, 2026-11-22: "no gradients, nor anything that doesn't add
- * value"): among `elements`, nothing paints a gradient, every corner with a radius is a squircle (`corner-shape:
+ * The honesty check: among `elements`, nothing paints a gradient, every corner with a radius is a squircle (`corner-shape:
  * squircle`, which Chromium computes as `superellipse(2)`), and no shadow is blurred, since a blur reads as a gradient.
  * A flat ring (a box shadow with no blur) is allowed. Returns how many elements and rounded corners it looked at, and
  * each problem as a line naming the element.
+ * @claim "The honesty check: among" registry/ouro/lib/ouro/testing/honesty.test.tsx verify:fileLine(registry/ouro/lib/ouro/testing/honesty.test.tsx, /finds a gradient, a round corner and a blurred shadow when one is added/)
+ * @claim "A flat ring (a box shadow" registry/ouro/lib/ouro/testing/honesty.test.tsx verify:fileLine(registry/ouro/lib/ouro/testing/honesty.test.tsx, /passes a flat squircle with a flat ring/)
+ * @claim "Returns how many elements and rounded" registry/ouro/lib/ouro/testing/honesty.test.tsx verify:fileLine(registry/ouro/lib/ouro/testing/honesty.test.tsx, /elements: 2, rounded: 8, problems: \[\]/)
  */
-export function honesty(elements: Iterable<Element>): { elements: number; rounded: number; problems: string[] } {
+function honesty(elements: Iterable<Element>): { elements: number; rounded: number; problems: string[] } {
   const problems: string[] = [];
   let count = 0;
   let rounded = 0;
