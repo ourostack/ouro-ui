@@ -163,6 +163,23 @@ describe("home page", () => {
     expect(heights).toEqual(heights.map(() => chip));
   });
 
+  it("keeps the chosen look's wordmark on the header's theme chip while another look is previewed", async () => {
+    await page.viewport(1280, 800);
+    const host = await renderPage("/docs/density/");
+    const trigger = host.querySelector<HTMLElement>(".site-theme-picker [data-ouro-part='trigger']")!;
+    const shown = () =>
+      [...trigger.querySelectorAll<HTMLElement>("[data-shows]")].filter((item) => (item.querySelector("[data-slot='theme-picker-wordmark']")?.getBoundingClientRect().width ?? 0) > 0).map((item) => item.dataset.shows);
+    const chosen = shown();
+    const width = trigger.getBoundingClientRect().width;
+    expect(chosen).toHaveLength(1);
+    const other = choiceList.find((preset) => preset.name !== chosen[0] && preset.name !== "live")!.name;
+    previewTheme(other);
+    await settle();
+    expect(document.documentElement.getAttribute("data-theme")).toBe(other);
+    expect(shown()).toEqual(chosen);
+    expect(trigger.getBoundingClientRect().width).toBe(width);
+  });
+
   it("breaks a source path after its slashes, and inside a name only when the name alone is too wide", async () => {
     const host = await renderPage("/docs/button/");
     const path = host.querySelector("[data-site-path]");
