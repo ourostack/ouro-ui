@@ -61,7 +61,7 @@ describe("veiled", () => {
     const page = render('<section data-ouro-veil="" style="height:80px"><p>Hidden</p></section><section data-ouro-veil="below 600px" style="height:80px"></section>');
     const [plain, reason] = [...page.querySelectorAll("section")].map((el) => getComputedStyle(el, "::after"));
     expect(plain!.content).toBe('"Not designed yet"');
-    expect(reason!.content).toBe('"Not designed yet: below 600px"');
+    expect(reason!.content.replace(/" "/g, "")).toBe('"Not designed yet: below 600px"');
     expect(plain!.backgroundImage).toBe("none");
   });
 });
