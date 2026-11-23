@@ -1,0 +1,1 @@
+- Fixed: Composer's rich mode now reads a star-spelled italic run or an underscore-spelled bold run and writes it back with the same mark, instead of switching it to the other mark or escaping a bare star, underscore or tilde that was not part of a pair.

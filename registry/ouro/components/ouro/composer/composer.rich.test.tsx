@@ -1,4 +1,5 @@
 import { createRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -67,6 +68,37 @@ describe("Composer rich mode", () => {
     expect(host.textContent).toContain("Write a message");
   });
 
+  it("draws the editor directly, with no plain box first, once a page has already loaded its module", async () => {
+    // A render anywhere on the page warms the module cache the layout effect below reads from.
+    await render(rich());
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(() => root.render(rich({ placeholder: "Write a message" })));
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+  });
+
+  it("draws the editor within the same commit as the warm mount, before the usual async load could ever run", async () => {
+    // A render anywhere on the page warms the module cache the layout effect below reads from.
+    await render(rich());
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    // flushSync forces the synchronous layout effect to commit without giving the later, async
+    // effect a chance to resolve first, so this catches a plain-then-swap flash the eventual
+    // state alone cannot: the async effect would draw the same editor a tick later regardless.
+    flushSync(() => root.render(rich({ placeholder: "Write a message" })));
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    // Let the later effect settle before the next test unmounts this root.
+    await act(async () => {});
+  });
+
   it("carries the caret over when the person was already typing in the plain box", async () => {
     const host = document.createElement("div");
     document.body.append(host);
@@ -93,6 +125,164 @@ describe("Composer rich mode", () => {
     editor.focus();
     await userEvent.keyboard("!");
     await expect.poll(() => seen.at(-1)).toBe("**bold** _it_ ++under++ ~~gone~~ `code`!");
+  });
+
+  it.each([
+    ["a link with underscores in its path", "see https://x.com/a_b_c", "see https://x.com/a_b_c!"],
+    ["a star-spelled italic run", "Hi *there*", "Hi *there*!"],
+    ["an underscore-spelled bold run", "__bold__", "__bold__!"],
+    ["a mention with an underscore in its name", "@quiet_fox hi", "@quiet_fox hi!"],
+    ["a lone star with no partner, as in a sum", "2*3=6", "2*3=6!"],
+    ["a star-spelled italic run that is also bold, which writes back out with the default underscore instead", "**say *mixed* thing**", "**say _mixed_ thing**!"],
+    ["a word-flanked underscore inside a star-spelled italic run, which CommonMark never reads as a mark", "*a_b c*", "*a_b c*!"],
+    ["a space-flanked underscore inside a star-spelled italic run, escaped so it reads bare", "*wow _ cool*", "*wow \\_ cool*!"],
+    ["adjacent tildes inside a star-spelled italic run, each escaped since it has a same-mark neighbor", "*note~~x end*", "*note\\~\\~x end*!"],
+    ["an underscore-spelled bold run inside a word", "a__b__c", "a__b__c!"],
+    ["an underscore at the very start of a star-spelled italic run, with no character before it to flank, escaped", "*_a*", "*\\_a*!"],
+    ["a lone star in plain text with a word before it but a space after, which only unescapeSafeMarkText's own star-run-adjacency check reads, not a word-flank test", "a* b", "a* b!"],
+  ])("round-trips %s unchanged: %s", async (_label, markdown, expected) => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ defaultValue: markdown, onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{End}!");
+    await expect.poll(() => seen.at(-1)).toBe(expected);
+  });
+
+  it("keeps a leading underscore in plain text escaped, with nothing before it to flank", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ defaultValue: "_leading word", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{End}!");
+    await expect.poll(() => seen.at(-1)).toBe("\\_leading word!");
+  });
+
+  it("keeps a trailing underscore in plain text escaped, with nothing after it to flank", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ defaultValue: "trailing word_", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{End}!");
+    await expect.poll(() => seen.at(-1)).toBe("trailing word\\_!");
+  });
+
+  // Every other trailing-underscore case here types a character after it (the "!" above), which gives unescapeSafeMarkText's `after` an actual value and leaves `after !== undefined` unable to tell "still escaped" from "a mutant that skips that check": replacing the whole value with one that still ends in the escaped underscore keeps it the exported string's own last character, the one case where `after` is truly undefined and the check's own return value is the only thing keeping the backslash.
+  it("keeps a trailing underscore in plain text escaped, where it is the exported string's own last character", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ defaultValue: "trailing word_", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{Control>}a{/Control}Xtrailing word_");
+    await expect.poll(() => seen.at(-1)).toBe("Xtrailing word\\_");
+  });
+
+  // Building a run's raw text this way, then round-tripping it out, puts an un-markdown-safe `_`/`~` in a star-spelled italic node without ever handing it back through the real importer or a live keystroke: either path reparses the text as Markdown and can read the character as a second mark's delimiter, which is exactly the ambiguity escapeMarkText's bare/escaped choice exists to settle on export, so the one way to pin the input is to set the node's content and state directly.
+  function starItalicState(text: string) {
+    return {
+      root: {
+        children: [
+          {
+            children: [{ detail: 0, format: 2, mode: "normal", style: "", text, type: "text", version: 1, $: { composerMark: "star" } }],
+            direction: null,
+            format: "",
+            indent: 0,
+            textFormat: 2,
+            textStyle: "",
+            type: "paragraph",
+            version: 1,
+          },
+        ],
+        direction: null,
+        format: "",
+        indent: 0,
+        type: "root",
+        version: 1,
+      },
+    };
+  }
+
+  it("keeps a star-spelled italic run's mark memory for a lone tilde with space on both sides and no same-mark neighbor to pair with", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(starItalicState("wow ~ cool"))));
+    await expect.poll(() => seen.at(-1)).toBe("*wow ~ cool*");
+  });
+
+  it("keeps a star-spelled italic run's mark memory for an underscore with a word character before it but a space after, escaped since only one side is word-flanked", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(starItalicState("a_ b"))));
+    await expect.poll(() => seen.at(-1)).toBe("*a\\_ b*");
+  });
+
+  it("keeps a star-spelled italic run's mark memory for an underscore with a space before it but a word character after, escaped since only one side is word-flanked", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(starItalicState("x _b"))));
+    await expect.poll(() => seen.at(-1)).toBe("*x \\_b*");
+  });
+
+  it("keeps a star-spelled italic run's mark memory for an underscore at the very end of the run, with no character after it to flank, escaped", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(starItalicState("a_"))));
+    await expect.poll(() => seen.at(-1)).toBe("*a\\_*");
+  });
+
+  // markState's own parse validates a deserialized `$.composerMark`, since nothing but "star" and "underscore" ever reaches the two places that read it back (both strict `===` checks): both a stale, hand-edited value and the parse's own default of null land the same way there (neither is "star" or "underscore"), so the two mark checks alone cannot tell a parse that normalizes an unknown value from one that passes it through unchanged. Lexical only drops a state from a node's exported JSON when it equals that state's own default (parse(undefined)), so if parse let an invalid value "slash" straight through instead of returning null, the exported state would still carry it after a round trip; parsing it down to null, the same as the array never having seen that run's mark at all, keeps the export clean.
+  it("normalizes an invalid deserialized mark state to null, not passing it through unchanged", async () => {
+    const { editor } = await render(rich());
+    const lexical = (
+      editor as unknown as { __lexicalEditor: { getEditorState(): { toJSON(): unknown }; parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }
+    ).__lexicalEditor;
+    const state = starItalicState("wow");
+    (state.root.children[0]!.children[0]!.$ as { composerMark: string }).composerMark = "slash";
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(state)));
+    expect(JSON.stringify(lexical.getEditorState().toJSON())).not.toContain("slash");
+  });
+
+  // The bold counterpart of starItalicState above, for markState's other value: an underscore-spelled bold run's mark memory round-trips through the same deserialized `$: { composerMark: "underscore" }` the editor state JSON carries, not just through $restoreMarkMemory's own import-time marker scan.
+  function underscoreBoldState(text: string) {
+    return {
+      root: {
+        children: [
+          {
+            children: [{ detail: 0, format: 1, mode: "normal", style: "", text, type: "text", version: 1, $: { composerMark: "underscore" } }],
+            direction: null,
+            format: "",
+            indent: 0,
+            textFormat: 1,
+            textStyle: "",
+            type: "paragraph",
+            version: 1,
+          },
+        ],
+        direction: null,
+        format: "",
+        indent: 0,
+        type: "root",
+        version: 1,
+      },
+    };
+  }
+
+  it("keeps an underscore-spelled bold run's mark memory for a lone tilde with space on both sides and no same-mark neighbor to pair with", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(underscoreBoldState("wow ~ cool"))));
+    await expect.poll(() => seen.at(-1)).toBe("__wow ~ cool__");
+  });
+
+  it("falls back to the array's default spelling when an underscore-spelled bold run also turns italic", async () => {
+    const handle = createRef<ComposerEditor>();
+    const seen: string[] = [];
+    const { editor } = await render(rich({ editorRef: handle, defaultValue: "__bold__", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{Control>}a{/Control}");
+    await act(async () => handle.current!.format("italic"));
+    await expect.poll(() => seen.at(-1)).toBe("**_bold_**");
   });
 
   it("formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code", async () => {
@@ -281,6 +471,16 @@ describe("Composer rich mode", () => {
     const { editor } = await render(rich({ editorRef: handle, defaultValue: "hi" }));
     await act(async () => handle.current!.insert(" there"));
     await expect.poll(() => editor.textContent).toBe("hi there");
+  });
+
+  it("keeps a line break when dictation or an input method delivers a whole line in one insertText event", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "a\nb", bubbles: true, cancelable: true })));
+    await expect.poll(() => seen.at(-1)).toBe("a\nb");
+    expect(editor.querySelectorAll("br")).toHaveLength(1);
+    expect(editor.querySelectorAll("p")).toHaveLength(1);
   });
 
   it("takes no input once it is disabled alone, or read-only alone, and takes it again when neither is set", async () => {
@@ -708,6 +908,28 @@ describe("Composer rich mode with a catalogue", () => {
     expect(field(editor).value).toBe(":nope:");
   });
 
+  it("leaves a non-string composition payload to Lexical's own handling", async () => {
+    const { editor } = await render(withCatalogue());
+    editor.focus();
+    const selection = getSelection()!;
+    const text = editor.querySelector("p")!;
+    selection.collapse(text, 0);
+    // A yanked selection hands the control the native event, not a string: Lexical's own
+    // insertFromYank/insertFromDrop/insertFromComposition/insertReplacementText paths all pass
+    // the raw InputEvent through, under the hood, same as this does.
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertFromYank", data: "ok", bubbles: true, cancelable: true })));
+    await expect.poll(() => field(editor).value).toBe("ok");
+  });
+
+  it("lets Lexical insert plain multi-character text with no emoji under the active format", async () => {
+    const handle = createRef<ComposerEditor>();
+    const { editor } = await render(withCatalogue({ editorRef: handle }));
+    editor.focus();
+    await act(async () => handle.current!.format("bold"));
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "hi", bubbles: true, cancelable: true })));
+    await expect.poll(() => editor.querySelector("strong")?.textContent).toBe("hi");
+  });
+
   it("puts an emoji the system inserts in as its token, drawn as the picture", async () => {
     const seen: string[] = [];
     const { editor } = await render(withCatalogue({ onValueChange: (value) => void seen.push(value) }));
@@ -1085,3 +1307,4 @@ describe("Composer rich mode pasteText", () => {
     await expect.poll(() => editor.querySelectorAll("img:not([alt=''])").length).toBe(1);
   });
 });
+

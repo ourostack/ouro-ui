@@ -2,7 +2,7 @@
   "name": "ouro-ui",
   "private": true,
   "version": "0.0.1",
-  "description": "React components for coding agents, as a shadcn registry. Install: npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.486",
+  "description": "React components for coding agents, as a shadcn registry. Install: npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.494",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -11,7 +11,7 @@
   "homepage": "https://github.com/ourostack/ouro-ui",
   "type": "module",
   "ouro": {
-    "latestRelease": "v1.3.486"
+    "latestRelease": "v1.3.494"
   },
   "packageManager": "pnpm@10.2.0",
   "engines": {
@@ -36,7 +36,7 @@
     "test:themes-contrast": "OURO_THEMES=1 vitest run --project themes-contrast -t \"contrast|[0-9]:1|looks off\"",
     "conformance": "OURO_CONFORMANCE=1 vitest run --project conformance",
     "mutation": "node scripts/mutation.mjs",
-    "typecheck": "node scripts/control-matrix.mts && tsc --noEmit && tsc -p scripts/fixtures/no-node-types",
+    "typecheck": "node scripts/control-matrix.mts && node node_modules/typescript7/bin/tsc --noEmit && node node_modules/typescript7/bin/tsc -p scripts/fixtures/no-node-types",
     "typecheck:oldest": "npx --yes --package=typescript@5.9.3 -- tsc -p tsconfig.registry.json",
     "lint": "eslint .",
     "storybook": "storybook dev -p 6006",
@@ -113,6 +113,7 @@
     "storybook": "10.6.1",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
+    "typescript7": "npm:typescript@7.0.2",
     "typescript-eslint": "8.71.0",
     "vite": "8.3.2",
     "vitest": "5.0.3"

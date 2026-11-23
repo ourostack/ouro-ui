@@ -775,7 +775,8 @@ describe("EmojiPicker skin tones", () => {
     const { host } = await open();
     await userEvent.click(toneButton()!);
     await userEvent.click(toneOptions()[1]!);
-    await userEvent.click(trigger(host));
+    // Forced: the open picker keeps the pointer from the page, so the press on its trigger only closes it.
+    await userEvent.click(trigger(host), { force: true });
     await closed();
     await userEvent.click(trigger(host));
     await settled();
@@ -967,12 +968,12 @@ describe("EmojiPicker opening and closing", () => {
     await userEvent.keyboard("{Escape}");
     expect(changes).toEqual([false, false]);
     await closed();
-    // A press on the anchor is the app's own toggle, not an outside press.
+    // While the picker is open, a press on the anchor only closes it, as a press anywhere outside it does.
     await userEvent.click(host.querySelector("button")!);
     await settled();
-    await userEvent.click(host.querySelector("button")!);
+    await userEvent.click(host.querySelector("button")!, { force: true });
     await closed();
-    expect(changes).toEqual([false, false]);
+    expect(changes).toEqual([false, false, false]);
   });
 
   it("keeps the trigger's own ref and onClick, and stays shut when that onClick prevents the default", async () => {
@@ -1015,7 +1016,8 @@ describe("EmojiPicker opening and closing", () => {
     expect(trigger(host).getAttribute("aria-expanded")).toBe("true");
     expect(page.getByRole("dialog", { name: "Add a reaction" }).element()).toBe(popup());
     expect(popup()!.getAttribute("data-ouro-presentation")).toBe("popover");
-    await userEvent.click(trigger(host));
+    // Forced: the open picker keeps the pointer from the page, so the press on its trigger only closes it.
+    await userEvent.click(trigger(host), { force: true });
     await closed();
     expect(trigger(host).getAttribute("aria-expanded")).toBe("false");
   });

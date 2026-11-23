@@ -19,6 +19,8 @@ expectTypeOf<{
   className: "ms-auto";
   id: "status";
 }>().toExtend<PortholeProps>();
+// floating is a flag.
+expectTypeOf<{ source: PortholeSource; label: "Status"; floating: true }>().toExtend<PortholeProps>();
 expectTypeOf<ComponentProps<typeof Porthole>>().toEqualTypeOf<PortholeProps>();
 
 // source and label are required.

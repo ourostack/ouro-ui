@@ -70,7 +70,7 @@ export const Updated: Story = { render: (args) => <Porthole {...args} source={fi
 export const States: Story = {
   parameters: { screenshot: { name: "porthole-states", forcedColors: true } },
   render: (args) => (
-    // Clear of the page's top corner, where a test's mouse may rest and hover the first spot open.
+    // Clear of the page's top corner, where a test's mouse may rest and show the first spot's words.
     <div style={{ ...column, paddingTop: 48 }}>
       <Porthole {...args} label="Rest, fresh" source={fixed([], fresh)} />
       <Porthole {...args} label="Rest, fresh, with its words" quiet={false} source={fixed([], fresh)} />

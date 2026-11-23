@@ -10,7 +10,8 @@ test("the chip counts the agents, and its popover stops one, then the rest", asy
   await expect(popover).toBeVisible();
   await expect(popover).toContainText("listening for your name, and anything about the empty state");
   await popover.getByRole("button", { name: "Stop inbox agent" }).click();
-  await expect(page.getByRole("button", { name: "research agent listening" })).toBeVisible();
+  // The open popover holds the page, which hides the chip from assistive technology until it closes.
+  await expect(page.getByRole("button", { name: "research agent listening", includeHidden: true })).toBeVisible();
   await expect(popover.getByRole("button", { name: "Stop all" })).toBeHidden();
   await expect(popover.getByRole("button", { name: "Stop research agent" })).toBeFocused();
   await page.keyboard.press("Enter");

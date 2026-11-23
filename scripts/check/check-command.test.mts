@@ -310,6 +310,7 @@ module.exports = { chromium: { launch: async (options) => {
     const base = { targets: [], sizes: [[390, 844]] as [number, number][], themes: ["light"], findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
     const text = summary({ ...base, pages: [{ ...page, asks: ["destructive", "form"] }] });
     assert.match(text, /^This check proves the floor: /m);
+    assert.match(text, /^Before a person sees it, pass the beauty gate: https:\/\/ui\.ouroboros\.bot\/docs\/design-craft\/#the-beauty-gate$/m);
     assert.match(text, /^#### Needs a person$/m);
     assert.match(text, /^- `s \/a\.html`: Do they know what will be lost before they confirm\?$/m);
     assert.match(text, /^- `s \/a\.html`: Do they know it saved\?$/m);

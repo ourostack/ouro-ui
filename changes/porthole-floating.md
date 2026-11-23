@@ -1,0 +1,1 @@
+- New: `Porthole` takes a `floating` prop, giving its pill a translucent glass look that turns solid under reduced transparency, `prefers-contrast: more` and forced colours.
