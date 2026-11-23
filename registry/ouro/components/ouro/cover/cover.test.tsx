@@ -63,7 +63,7 @@ describe("Cover", () => {
     host.style.setProperty("--spacing", "0.2rem");
     expect(widths()).toEqual(["40px", "56px", "96px"]);
   });
-  it("draws the title's first letter in the heading font, in the primary toward the foreground, on a wash from the muted color toward the primary, without a picture", async () => {
+  it("draws the title's first letter in the heading font, in the primary toward the foreground, on a solid tint of the muted color toward the primary, without a picture", async () => {
     const { cover } = await render(<Cover title="  lemon rice" />);
     const letter = cover.querySelector("span")!;
     expect(letter.textContent).toBe("L");

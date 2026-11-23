@@ -83,7 +83,7 @@ const itemClass = "m-0 rounded-ouro-sm p-0 outline-ring outline-offset-2 focus-v
 
 /**
  * Content folded to `--ouro-show-more-height`: once measured as too tall, it is cut at that height
- * on a hard edge, with no fade.
+ * on a hard edge.
  *
  * @internal
  */
