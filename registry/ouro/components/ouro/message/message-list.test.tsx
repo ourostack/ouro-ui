@@ -1399,6 +1399,17 @@ describe("MessageList", () => {
     const pill = page.getByRole("button", { name: "Jump to latest" });
     await expect.element(pill).toBeVisible();
     expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).toBeNull();
+    // The settle that follows, with nothing reserved to clear against, must not read a reserve's height off
+    // nothing: dispatched directly, rather than left to the browser's own timing, so the wait below reliably
+    // spans the rest this settle schedules.
+    const errors: unknown[] = [];
+    const report = (event: ErrorEvent) => errors.push(event.error);
+    window.addEventListener("error", report);
+    scroller.dispatchEvent(new Event("scrollend"));
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    window.removeEventListener("error", report);
+    expect(errors).toEqual([]);
+    await expect.element(pill).toBeVisible();
   });
 
   it("keeps the reserved room while still scrolled away, and drops it once back at the bottom with nothing new since", async () => {

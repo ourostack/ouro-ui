@@ -2086,6 +2086,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // carry and anchor work above, which also move the scroll position as the turn continues.
     const clearJump = () => {
       const room = jumpRoomRef.current;
+      // Stryker disable next-line LogicalOperator: not reachable with only the first clause swapped to `&&`. `pinned.current`
+      // is set in onScroll, the same tick that calls setShowJump/setJumpRoom, so a render that unmounts the button and the
+      // reserve once pinned goes true always lands well inside the WHEEL_REST delay before this runs off a scrollend; no
+      // call here ever sees pinned true alongside a still-attached jumpRef or room from the state before it.
       if (pinned.current || jumpRef.current === null || room === null) return;
       const drawn = content.querySelectorAll<HTMLElement>(items);
       const newest = drawn[drawn.length - 1];
