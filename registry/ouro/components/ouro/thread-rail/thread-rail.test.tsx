@@ -159,8 +159,18 @@ describe("ThreadRail Escape", () => {
     await pressTab();
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')).not.toBeNull();
     expect(document.activeElement).toBe(close);
+    const outer = vi.fn();
+    document.addEventListener("keydown", outer);
+    const prevented = vi.fn();
+    close.addEventListener("keydown", (event) => prevented(event.defaultPrevented));
     await userEvent.keyboard("{Escape}");
+    document.removeEventListener("keydown", outer);
     expect(onClose).toHaveBeenCalledTimes(1);
+    expect(outer).not.toHaveBeenCalled();
+    expect(prevented).not.toHaveBeenCalled();
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    close.dispatchEvent(escape);
+    expect(escape.defaultPrevented).toBe(true);
   });
 
   it("leaves other keys and already-handled Escape on the close button alone", async () => {

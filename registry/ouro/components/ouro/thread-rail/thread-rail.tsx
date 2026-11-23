@@ -45,7 +45,6 @@ export interface ThreadRailProps {
 
 /** Elements that take Escape for themselves when they are open: a menu, a listbox or a dialog. */
 const POPUP = '[role="menu"], [role="listbox"], [role="dialog"]';
-/** The rail's own close button. */
 /** Text a person types into: Escape there is not a request to close. */
 const TEXT_ENTRY = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
 // Stryker disable next-line ArrayDeclaration: equivalent; the effect runs once, on mount, with any list that never changes
