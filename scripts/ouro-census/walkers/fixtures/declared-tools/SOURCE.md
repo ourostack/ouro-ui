@@ -1,0 +1,13 @@
+# Declared tools fixture
+
+`tools.json` is [ourostack/ouro-ui-core's `test/fixtures/actions/generated-tools/tools.json` at tag v1.11.0](scripts/ouro-census/walkers/fixtures/declared-tools/tools.json "verify:fileLine(scripts/ouro-census/walkers/fixtures/declared-tools/tools.json, /ouro-actions-tools 1\.11\.0/)"), copied byte for byte: what the ouro-actions-tools projection writes for core's synthetic shopping action set. ourostack/ouroboros keeps the same file as `src/__tests__/repertoire/fixtures/declared-tools/tools.json`.
+
+The `.cjs` files stand in for the bundle MCP server that serves those tools, and `gate.ts` for the code that offers them:
+
+- [`server.cjs` serves the declared tools and `clear_shopping_list`, which `tools.json` doesn't name](scripts/ouro-census/walkers/declared-tools.node-test.mts "verify:fileLine(scripts/ouro-census/walkers/declared-tools.node-test.mts, /a served tool tools.json doesn't name is a door with no card/)").
+- [`server-short.cjs` leaves out `share_shopping_list`, so it is declared but not served](scripts/ouro-census/walkers/declared-tools.node-test.mts "verify:fileLine(scripts/ouro-census/walkers/declared-tools.node-test.mts, /a declared tool the server doesn't serve is a census error/)").
+- [`server-bad.cjs` serves a tool with no name, and `get_shopping_list` twice](scripts/ouro-census/walkers/declared-tools.node-test.mts "verify:fileLine(scripts/ouro-census/walkers/declared-tools.node-test.mts, /a served tool with no name, or served twice, is a census error/)").
+- [`person-only.json` is `tools.json` with `share_shopping_list` declared `person-only`](scripts/ouro-census/walkers/declared-tools.node-test.mts "verify:fileLine(scripts/ouro-census/walkers/declared-tools.node-test.mts, /a person-only tool is no agent door/)").
+- [`incomplete.json` is `tools.json` with `share_shopping_list` declared `person-only` but with no `when` line, so it isn't a whole declaration](scripts/ouro-census/walkers/declared-tools.node-test.mts "verify:fileLine(scripts/ouro-census/walkers/declared-tools.node-test.mts, /an entry that isn't a whole declaration leaves its tool undeclared/)").
+- [`minified.json` is `tools.json` on one line](scripts/ouro-census/walkers/declared-tools.node-test.mts "verify:fileLine(scripts/ouro-census/walkers/declared-tools.node-test.mts, /however tools.json is spaced/)").
+- [In `gate.ts`, `offer` and `offerByIf` attach an `approvalPolicy` only to a consequential declaration, and the other functions don't](scripts/ouro-census/walkers/declared-tools.node-test.mts "verify:fileLine(scripts/ouro-census/walkers/declared-tools.node-test.mts, /an approvals function that doesn't gate consequential declarations is a census error/)").
