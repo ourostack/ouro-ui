@@ -645,6 +645,13 @@ describe("Avatar colors", () => {
     expect(neutralFill).toBe(token("secondary"));
     expect(neutral!.color).toBe(token("secondary-foreground"));
   });
+
+  it("draws a neutral avatar's initials in the theme's secondary foreground, not the colour it inherits", async () => {
+    const { host } = await render(<Avatar name="Ana Lind" color="neutral" />);
+    host.style.setProperty("--secondary-foreground", "rgb(12, 34, 56)");
+    host.style.color = "rgb(200, 100, 50)";
+    expect(getComputedStyle(host.querySelector<HTMLElement>('[data-ouro="avatar"]')!).color).toBe("rgb(12, 34, 56)");
+  });
 });
 
 describe("Avatar shapes and icons", () => {
