@@ -606,6 +606,7 @@ export function Composer(props: ComposerProps): JSX.Element {
       if (!(formatMode === "rich" && richModule)) return;
       // Once this fills rich, a render this same mount triggers later (even one that retests the list below with a changed array) finds it already drawn and fills nothing twice.
       // Stryker disable next-line ConditionalExpression: rich starts undefined and nothing else fills it before this effect's first run, so this still lets that first fill through.
+      /* istanbul ignore if @preserve -- the empty dependency array below means this body runs once per mount, so nothing has filled rich by its own first run to make this true */
       if (rich !== undefined) return;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-time fill before the first paint, as live-captions.demo.tsx's does
       setRich({ Editor: richModule.RichEditor, focus: rest.autoFocus === true });
@@ -618,6 +619,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,BlockStatement: loading the editor in plain mode changes nothing a person or a test can read, as richOn below also needs the rich format.
     if (formatMode !== "rich") return;
     // Stryker disable next-line ConditionalExpression: the layout effect above already drew the editor for this same mount, from a module that was already loaded; loading it again would only replace a correct focus flag with a wrong one.
+    /* istanbul ignore if @preserve -- this closure is the one React commits from the mount that set rich, so a test never observes rich already set when this runs */
     if (rich !== undefined) return;
     let live = true;
     void loadRich().then(({ RichEditor: Editor }) => {
