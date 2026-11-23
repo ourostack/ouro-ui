@@ -84,6 +84,7 @@ describe("the chat app page", () => {
       await renderPage("/docs/chat-demo/");
       await page.getByLabelText("Message Launch crew").click();
       await userEvent.keyboard("Bring tape");
+      await expect.element(page.getByRole("button", { name: /Launch crew.*Draft: Bring tape/ })).toBeVisible();
       await page.getByRole("button", { name: /Ana Lind/ }).click();
       await expect.element(page.getByLabelText("Message Ana Lind")).toHaveTextContent("");
       await page.getByRole("button", { name: /Launch crew/ }).click();
@@ -91,6 +92,17 @@ describe("the chat app page", () => {
     } finally {
       await page.viewport(390, 844);
     }
+  });
+
+  it("drops the list's Draft line once the message is sent", async () => {
+    await renderPage("/docs/chat-demo/");
+    await page.getByRole("button", { name: /Ana Lind/ }).click();
+    await page.getByLabelText("Message Ana Lind").click();
+    await userEvent.keyboard("On my way");
+    const rows = () => [...document.querySelectorAll('[data-ouro-part="row"]')].map((row) => row.textContent ?? "").join(" | ");
+    await expect.poll(rows).toContain("Draft: On my way");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(rows).not.toContain("Draft:");
   });
 
   it("says Sent and then who has seen a message, once each", async () => {
