@@ -335,13 +335,19 @@ export function Carousel(props: CarouselProps): JSX.Element {
       if (!touching) timer = setTimeout(check, 150);
     };
     // scrollend fires the moment the browser decides a scroll stopped, so it is trusted only
-    // when the position it reports is where the latest press is heading (or no press is
-    // pending): still mid-way there means this scrollend belongs to a scroll it interrupted,
-    // so it is treated as a pause instead, which keeps waiting for the real end.
+    // when the position it reports is where the latest press is heading: still mid-way there
+    // means this scrollend belongs to a scroll it interrupted, so it is treated as a pause
+    // instead, which keeps waiting for the real end. With no press pending, a browser can
+    // still fire a stray scrollend after the carousel has already settled — a late notice for
+    // a position it no longer holds — so that case gets the same two-frame stability check a
+    // pause gets, instead of settling on a single unconfirmed read.
     const onScrollEnd = () => {
       const target = heading.current;
-      if (target !== undefined && Math.min(nearestSlide(viewport), latest.current.lastIndex) !== target) return wait();
-      settle();
+      if (target !== undefined) {
+        if (Math.min(nearestSlide(viewport), latest.current.lastIndex) !== target) return wait();
+        return settle();
+      }
+      check();
     };
     const onTouchStart = () => {
       touching = true;

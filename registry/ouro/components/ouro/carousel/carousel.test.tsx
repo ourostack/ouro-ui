@@ -954,6 +954,29 @@ describe("Carousel motion", () => {
     }
   });
 
+  it("ignores a stray scrollend fired after the carousel has already settled, with no press pending", async () => {
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" slideLabel="Stray {n} of {total}" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    await userEvent.click(screen.button("Next slide"));
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+    // A browser can fire scrollend again after the carousel has already settled: a late
+    // notice for a position it no longer holds. Here it reports the third slide at the start
+    // edge, but that position does not actually hold a frame later, so it must settle on
+    // neither — the position it momentarily reported, nor anywhere else.
+    const { viewport, slides } = screen;
+    const rect = viewport.getBoundingClientRect();
+    const shift = slides[2]!.getBoundingClientRect().left - rect.left;
+    const moved = vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ ...rect.toJSON(), x: rect.x + shift }));
+    requestAnimationFrame(() => moved.mockRestore());
+    viewport.dispatchEvent(new Event("scrollend"));
+    for (let frame = 0; frame < 60; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(onIndexChange.mock.calls).toEqual([[1]]);
+  });
+
   it("stops listening for scrollend once unmounted, so a late event settles nothing", async () => {
     const onIndexChange = vi.fn();
     const screen = await render(
