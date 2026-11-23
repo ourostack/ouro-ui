@@ -1,0 +1,1 @@
+- Ouro check's summary ends its floor line with where to go next: the beauty gate in the new Design craft guide (https://ui.ouroboros.bot/docs/design-craft/), which a screen, mock or capture passes before a person sees it.

@@ -13,8 +13,9 @@ test("a reaction toggles the person's own, and a quick reaction joins the counts
 
 test("Add reaction opens the app's picker, and the chosen reaction joins the counts", async ({ page }) => {
   await openStory(page, "chat-reactionbar--with-picker");
-  const bar = page.getByRole("group", { name: "Reactions" });
-  const more = bar.getByRole("button", { name: "Add reaction" });
+  // Found while hidden too: the open picker hides the page from assistive technology.
+  const bar = page.getByRole("group", { name: "Reactions", includeHidden: true });
+  const more = bar.getByRole("button", { name: "Add reaction", includeHidden: true });
   await more.click();
   await expect(more).toHaveAttribute("aria-expanded", "true");
   await page.getByRole("dialog", { name: "Add a reaction" }).getByRole("button", { name: "Party" }).click();

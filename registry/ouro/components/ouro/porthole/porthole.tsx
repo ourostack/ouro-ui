@@ -18,7 +18,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { portholeView, type PortholeItem, type PortholeLabels, type PortholeSnapshot, type PortholeSource, type PortholeView } from "@/registry/ouro/lib/ouro/porthole-view";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { PORTHOLE_ANNOUNCE_GAP_MS, portholeLightClasses, type PortholeSide } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
+import { PORTHOLE_ANNOUNCE_GAP_MS, portholeFloatingClass, portholeLightClasses, type PortholeSide } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
 
 /**
  * A snapshot that does not change, with the time of its last beat: for a page rendered on the server, a story or a
@@ -63,6 +63,16 @@ export interface PortholeOwnProps {
   quiet?: boolean | undefined;
   /** Where the detail lines open: under the spot, or over it for a spot at the foot of a column. @default "bottom" */
   side?: PortholeSide | (string & { 'Use "top" or "bottom"': never }) | undefined;
+  /**
+   * Draws the pill as glass that floats over scrolling content, the way a calling app's composer floats over its
+   * messages: translucent, blurred and softly shadowed, with the theme's rounded corners, so a row passing under the
+   * pill is still visible through it. It turns solid, with a defined edge and no blur, under reduced transparency
+   * and under forced colours.
+   * @claim "is still visible through it" registry/ouro/components/ouro/porthole/porthole.floating.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.floating.test.tsx::Porthole floating > is translucent glass from the theme, with a blur and a soft shadow, over passing content)
+   * @claim "It turns solid, with a defined edge and no blur, under reduced transparency" registry/ouro/components/ouro/porthole/porthole.floating.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.floating.test.tsx::Porthole floating > turns solid with no blur under reduced transparency)
+   * @claim "and under forced colours" registry/ouro/components/ouro/porthole/porthole.floating.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.floating.test.tsx::Porthole floating > keeps a solid edge under forced colours, at the same size)
+   */
+  floating?: boolean | undefined;
   /** Words for other languages. */
   labels?: PortholeWords | undefined;
   /**
@@ -152,6 +162,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
     defaultOpen,
     side: sideProp,
     quiet,
+    floating,
     onAction,
     onDismiss,
     className,
@@ -386,10 +397,11 @@ export function Porthole(props: PortholeProps): JSX.Element {
         ref={pill}
         data-porthole-part="pill"
         className={cn(
-          "group/pill inline-flex h-ouro-8 max-w-full min-w-0 items-center overflow-hidden rounded-full border border-border bg-card text-sm leading-5 text-card-foreground transition-[width,background-color,border-color] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none pointer-coarse:h-ouro-12",
+          "group/pill inline-flex h-ouro-8 max-w-full min-w-0 items-center overflow-hidden rounded-full border text-sm leading-5 text-card-foreground transition-[width,background-color,border-color,box-shadow] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none pointer-coarse:h-ouro-12",
+          floating ? portholeFloatingClass : "border-border bg-card",
           // Forced colours would paint the transparent edge, so quiet hushes it in Canvas there and draws it as the words show.
           hushed &&
-            "border-transparent bg-transparent focus-within:border-border focus-within:bg-card pointer-fine:hover:border-border pointer-fine:hover:bg-card forced-colors:border-[Canvas] forced-colors:focus-within:border-[CanvasText] forced-colors:pointer-fine:hover:border-[CanvasText]",
+            "border-transparent bg-transparent shadow-none backdrop-blur-none focus-within:border-border focus-within:bg-card pointer-fine:hover:border-border pointer-fine:hover:bg-card forced-colors:border-[Canvas] forced-colors:focus-within:border-[CanvasText] forced-colors:pointer-fine:hover:border-[CanvasText]",
         )}
       >
         <div ref={content} className="inline-flex h-full w-max max-w-full min-w-0 items-center">

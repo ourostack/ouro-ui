@@ -26,6 +26,7 @@ Type: `PortholeProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, placement (`ms-auto`). Appearance classes warn in development. |
 | `defaultOpen` | `boolean` | `false` | Starts open, showing the detail lines, as on a page about the app's status. |
+| `floating` | `boolean` |  | Draws the pill as glass that floats over scrolling content, the way a calling app's composer floats over its messages: translucent, blurred and softly shadowed, with the theme's rounded corners, so a row passing under the pill is still visible through it. It turns solid, with a defined edge and no blur, under reduced transparency and under forced colours. |
 | `freshWithinMs` | `number` | `60_000` | How recently, in ms, the areas must have been verified for "Up to date", unless an area sets its own `freshWithinMs`. |
 | `heartbeatTimeoutMs` | `number` | `5_000` | "Status unknown" once the last beat is older than this many ms. |
 | `label` (required) | `string` |  | The status spot's name for screen readers, such as `"Status"`. |
