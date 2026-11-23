@@ -209,6 +209,31 @@ for (const [name, css] of Object.entries(themes)) {
         expect(ratio(over(getComputedStyle(bubble).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
       });
 
+      it("others' chat bubble keeps its text at 4.5:1 or more on its fill, from --ouro-bubble-other's fallback to --muted", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.background = "var(--background)";
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        await act(async () =>
+          root.render(
+            <Message variant="chat" role="assistant" name="Mara Quill">
+              Hi Priya
+            </Message>,
+          ),
+        );
+        const bubble = host.querySelector<HTMLElement>("[data-ouro-message-content]")!;
+        const behind = backdrop(bubble);
+        expect(ratio(over(getComputedStyle(bubble).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
+      });
+
       it.each(["background", "popover"] as const)("every tone and variant has text at 4.5:1 or more on the %s", async (surface) => {
         document.documentElement.classList.toggle("dark", scheme === "dark");
         const host = await render(css, surface);

@@ -935,6 +935,15 @@ describe("TimeGrid", () => {
     await near(0);
   });
 
+  it("never fades its day header: scrolled down, only the bottom edge fades", async () => {
+    await render();
+    await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(true);
+    const mask = getComputedStyle(viewport()).maskImage;
+    expect(mask).toMatch(/^linear-gradient\(rgb\(0, 0, 0\) /);
+    expect(mask).toMatch(/rgba\(0, 0, 0, 0\)\)$/);
+    expect(warnings()).toEqual([]);
+  });
+
   it("opens at today's first event when now is before it, rather than at empty hours before now", async () => {
     // Where a grid opens, in hours from midnight.
     const opensAt = async (props: Partial<TimeGridProps>) => {

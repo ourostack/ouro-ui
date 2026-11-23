@@ -61,8 +61,5 @@ export const portholeLightClasses: Readonly<Record<PortholeState, string>> = {
 /** Where the open lines show: under the spot, or over it. */
 export type PortholeSide = "bottom" | "top";
 
-/** How long a mouse rests on the spot before its lines open, in ms, so passing over it opens nothing. */
-export const PORTHOLE_HOVER_DELAY_MS = 300;
-
 /** How long after one spoken change the next may be spoken, in ms. */
 export const PORTHOLE_ANNOUNCE_GAP_MS = 10_000;

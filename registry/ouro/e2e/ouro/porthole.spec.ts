@@ -40,7 +40,7 @@ test("porthole stops saying Up to date five seconds into a hung read, and says s
   await expect(spot.getByRole("button", { name: "Updated less than a minute ago" })).toBeVisible();
   await spot.getByRole("button", { name: "Updated less than a minute ago" }).click();
   await expect(spot.getByText(/^Calendar: verified less than a minute ago, in trouble for/)).toBeVisible();
-  // The press pinned the lines open over the page; Escape puts them away.
+  // The press opened the lines over the page; Escape puts them away.
   await page.keyboard.press("Escape");
   await expect(spot.getByText(/^Calendar: verified/)).toBeHidden();
   await page.clock.resume();
