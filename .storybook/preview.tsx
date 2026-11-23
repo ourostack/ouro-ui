@@ -1,6 +1,7 @@
 import type { Preview } from "@storybook/react-vite";
 import { withThemeByClassName } from "@storybook/addon-themes";
 import "../app.css";
+import { withPreviewFrame } from "./preview-frame";
 
 const preview: Preview = {
   parameters: {
@@ -14,6 +15,7 @@ const preview: Preview = {
   },
   // Dark mode is shadcn's `.dark` class on <html>; the toolbar switches it.
   decorators: [
+    withPreviewFrame,
     withThemeByClassName({
       themes: { light: "", dark: "dark" },
       defaultTheme: "light",
