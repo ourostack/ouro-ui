@@ -33,6 +33,19 @@ test("a line no shard reached is named, with the metrics it lowers", async () =>
   assert.equal(merged.totals.statements, 75);
 });
 
+test("with labels, a short file names the labelled shards behind a short share of it", async () => {
+  const merged = await mergeCoverage(
+    [map("/a.ts", { s: [1, 0], f: [1], b: [1, 1] }), map("/a.ts", { s: [1, 0], f: [1], b: [1, 1] }), map("/b.ts", { s: [1, 1], f: [1], b: [1, 1] })],
+    ["browser-6", "browser-21", "browser-9"],
+  );
+  assert.deepEqual(merged.short, [{ file: "/a.ts", metrics: { lines: 50, statements: 50 }, lines: ["2"], by: [{ shard: "browser-6", metrics: { lines: 50, statements: 50 } }, { shard: "browser-21", metrics: { lines: 50, statements: 50 } }] }]);
+});
+
+test("with labels, a shard whose map lacks a short file is left out of its by-shard list", async () => {
+  const merged = await mergeCoverage([map("/a.ts", { s: [1, 0], f: [1], b: [1, 0] }), map("/other.ts", { s: [1, 1], f: [1], b: [1, 1] })], ["touches-a", "untouched"]);
+  assert.deepEqual(merged.short, [{ file: "/a.ts", metrics: { lines: 50, statements: 50, branches: 50 }, lines: ["2"], by: [{ shard: "touches-a", metrics: { lines: 50, statements: 50, branches: 50 } }] }]);
+});
+
 test("the merge holds the shards to the thresholds vitest.config.ts holds an unsharded run to", async () => {
   const config = (await import("../vitest.config.ts")).default;
   assert.deepEqual(config.test.coverage.thresholds, thresholds);
@@ -55,7 +68,7 @@ test("the command fails when a shard's coverage is missing, and when the merge i
   write(3, map("/c.ts", { s: [1, 0], f: [1], b: [1, 1] }));
   const short = run("--shards", "3");
   assert.equal(short.status, 1);
-  assert.match(short.stdout, /^\/c\.ts: lines 50%, statements 50%; lines no test reached: 2$/m);
+  assert.match(short.stdout, /^\/c\.ts: lines 50%, statements 50%; lines no test reached: 2; by shard: coverage-browser-3 \(lines 50%, statements 50%\)$/m);
   assert.match(short.stdout, /::error::Coverage is short of 100% in 1 file/);
   assert.equal(run().status, 2);
 });
