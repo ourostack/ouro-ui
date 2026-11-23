@@ -5,7 +5,7 @@
 Redaction for a diagnostics bundle: what leaves the computer for an agent to read or attach keeps categories, counts, times, versions and the tool's own words, and drops tokens, cookies, ids, email addresses, paths in a person's home and what anyone wrote. `redactText` replaces each shape, and `leaks` checks that none is left, which ax-bundle checks before it writes.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-redact#v1.3.488
+npx shadcn@latest add ourostack/ouro-ui/ax-redact#v1.3.492
 ```
 
 It installs `lib/ouro/ax/redact.ts`. Its tests are `ax-redact-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.

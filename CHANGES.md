@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fixed: Composer's rich mode now reads a star-spelled italic run or an underscore-spelled bold run and writes it back with the same mark, instead of switching it to the other mark or escaping a bare star, underscore or tilde that was not part of a pair.
+- Fixed: [Skeleton's shared-wave correction waits for each Bar's animation to leave `pending` before setting its `currentTime`](registry/ouro/components/ouro/skeleton/skeleton.test.tsx "verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > joins the shared phase on a row's and a card's own Bar, past a host held right after mounting)"), so a browser that still has the animation pending at that frame cannot silently discard the correction once the pending play resolves, which left a placeholder mounted soon after an earlier one out of phase by its own delay.
