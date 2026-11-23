@@ -124,6 +124,48 @@ describe("ToggleGroup overflow scroll", () => {
     }
   });
 
+  it("re-scrolls on a multiple value change that joins to the same string without a separator", async () => {
+    const collisionItems: ToggleGroupItem[] = [
+      { value: "a", label: "A" },
+      { value: "ab", label: "AB" },
+      { value: "bc", label: "BC" },
+      { value: "c", label: "C" },
+    ];
+    const spy = vi.fn();
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = spy;
+    try {
+      await page.viewport(320, 400);
+      const { rerender } = await render(
+        <ToggleGroup
+          label="Show"
+          hideLabel
+          multiple
+          overflow="scroll"
+          items={collisionItems}
+          value={["a", "bc"]}
+          onValueChange={() => {}}
+        />,
+      );
+      spy.mockClear();
+      // "a" + "bc" and "ab" + "c" join to the same "abc" with no separator between values.
+      await rerender(
+        <ToggleGroup
+          label="Show"
+          hideLabel
+          multiple
+          overflow="scroll"
+          items={collisionItems}
+          value={["ab", "c"]}
+          onValueChange={() => {}}
+        />,
+      );
+      expect(spy).toHaveBeenCalledWith({ inline: "nearest", block: "nearest" });
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
+  });
+
   it("mounts with nothing pressed without throwing", async () => {
     await page.viewport(320, 400);
     const { toggles } = await render(
