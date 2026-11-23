@@ -3,8 +3,8 @@ import type { Surface } from "./ledger";
 import { CHECK_KEYS, checksOf, type CheckState } from "./checks";
 
 /*
- * The ring: every counted product is a star on one orbit around Ouro UI. A star has four rays, one per check (up: on
- * current Ouro UI; right: census at zero; down: AX must claims pass; left: has given back): a passing
+ * The ring: every counted product is a star on one orbit around Ouro UI. A star has five rays, one per check, clockwise
+ * from straight up (on current Ouro UI; Ouro HX in full; census at zero; AX must claims pass; has given back): a passing
  * check is a full ray, a missing one a stub, one not measured yet a dotted ray, and one that does not apply no ray. A
  * star lights green only when the ledger confirms the product, and the arc between two lit neighbours lights with them,
  * so the ring closes, the snake meeting its tail, when the last product turns green. It is a picture of the list beside
@@ -15,12 +15,11 @@ const SIZE = 320;
 const CENTER = SIZE / 2;
 const RADIUS = 128;
 const RAY: Record<CheckState, number> = { met: 10, missing: 3.5, unmeasured: 10, na: 0 };
-const DIRECTIONS = [
-  [0, -1],
-  [1, 0],
-  [0, 1],
-  [-1, 0],
-] as const;
+/** One ray per check, clockwise from straight up, evenly spaced. */
+const DIRECTIONS = CHECK_KEYS.map((_, ray) => {
+  const angle = -Math.PI / 2 + (ray / CHECK_KEYS.length) * Math.PI * 2;
+  return [Math.cos(angle), Math.sin(angle)] as const;
+});
 
 const at = (index: number, count: number): [number, number] => {
   const angle = -Math.PI / 2 + (index / count) * Math.PI * 2;

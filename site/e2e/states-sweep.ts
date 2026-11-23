@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { recordMatched } from "./waivers";
-import { instability, wantsRetake } from "./stable-take";
-import { describe, LOOK_SELECTOR, Looks, loaded, picture, quiet, routeGuard, routes, settled } from "./looks";
+import { instability, settleMotion, wantsRetake } from "./stable-take";
+import { describe, LOOK_SELECTOR, Looks, loaded, motionTick, picture, quiet, routeGuard, routes, settled, stagePaced } from "./looks";
 
 // Every control, as each page shows it, is put through hover, keyboard focus and press, in both engines and
 // both themes. Controls are deduped by component, part, variant, size and checked or disabled state, and a
@@ -87,6 +87,11 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
           // The site scrolls smoothly (html's scroll-behavior), so a plain scrollIntoView is still moving when the box is
           // read, and the mouse lands where the control was (#1453): instant, so the hover is on the control.
           await control.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }));
+          // The home page's stage reaches its one verdict on its own clock, not on anything settled or quiet see: a
+          // scroll that brings it onscreen can leave its judge mid-flight, so wait it out before this control's two
+          // takes, each time a scroll might have moved the stage, so its verdict cannot land between them
+          // (ourostack/ouro-ui#2989).
+          await stagePaced(page);
           const box = await control.boundingBox();
           if (!box) continue;
           const marks = () => control.evaluate((el) => el.getAttributeNames().filter((n) => n.startsWith("data-") || n.startsWith("aria-")).map((n) => `${n}=${el.getAttribute(n)}`).sort().join(" "));
@@ -99,21 +104,10 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
             if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await identity()) !== who) return;
             // A press that picks the control (a calendar day) changes what it is, so it no longer has this state's look.
             if ((await marks()) !== before) return;
-            // A transition can start a frame or two after the state does, so wait until none runs for several frames.
-            await page.evaluate(async () => {
-              const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-              const deadline = Date.now() + 2_000;
-              let quiet = 0;
-              while (quiet < 6 && Date.now() < deadline) {
-                await frame();
-                const running = document.getAnimations().filter((a) => a instanceof CSSTransition);
-                if (running.length === 0) quiet++;
-                else {
-                  quiet = 0;
-                  await Promise.race([Promise.all(running.map((a) => a.finished.catch(() => null))), new Promise((done) => setTimeout(done, 500))]);
-                }
-              }
-            });
+            // A transition or a finite (non-looping) animation can start a frame or two after the state does, so
+            // wait until none runs for several frames.
+            const settle = () => settleMotion(() => motionTick(page));
+            await settle();
             if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await marks()) !== before) return;
             found.push(...(await broken(page, i)).map((m) => `${path} ${state}: ${m}`));
             // A state's style can land a frame after the state itself (#1404: a hover read with the resting border while
@@ -133,6 +127,10 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
             const label = await control.evaluate((el) => (el.getAttribute("aria-label") || el.closest("label, [data-ouro]")?.textContent || "").trim().slice(0, 40));
             const shot = tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null;
             if (shot && wantsRetake(process.env["OURO_SWEEP_RETAKE"], tagged.key)) {
+              // The first take is only read once nothing is animating; the second take, read right after, needs the
+              // same guard, or a transition that starts between the two takes reads as the state itself being
+              // unstable (#2989).
+              await settle();
               const again = await picture(page, i);
               const unstable = instability(shot, again, { signature: tagged.key, page: path, state });
               // A control that left the state between the takes shows another state in the second take, not an unsteady

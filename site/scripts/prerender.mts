@@ -111,9 +111,9 @@ function islandAssets(path: string): string[] {
 
 /**
  * The docs pages that show any component, so link the whole Tailwind build: the components index (its previews draw as
- * they near the screen) and the live demo page (its ?name= picks any demo). Every other docs page links the shared shell.
+ * they near the screen) the live demo page (its ?name= picks any demo) and the chat app page (it composes the chat components). Every other docs page links the shared shell.
  */
-const WHOLE_BUILD = new Set(["/docs/", "/docs/demo/"]);
+const WHOLE_BUILD = new Set(["/docs/", "/docs/demo/", "/docs/chat-demo/"]);
 const demoDir = join(repo, "site/src/docs/demos");
 const demoNames = new Set(readdirSync(demoDir).flatMap((file) => (file.endsWith(".demo.tsx") ? [file.slice(0, -".demo.tsx".length)] : [])));
 
