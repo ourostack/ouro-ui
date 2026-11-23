@@ -95,6 +95,15 @@ describe("the chat app page", () => {
     }
   });
 
+  it("hands focus to the list's tab stop when Start a conversation brings the list back", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/chat-demo/");
+    await page.getByRole("radio", { name: "Empty" }).click();
+    await page.getByRole("button", { name: "Start a conversation" }).click();
+    await expect.poll(() => document.activeElement?.getAttribute("data-ouro-part")).toBe("row");
+    expect(document.activeElement?.textContent).toContain("Launch crew");
+  });
+
   it("keeps an unsent draft for each conversation when the person switches", async () => {
     await page.viewport(1280, 800);
     try {
