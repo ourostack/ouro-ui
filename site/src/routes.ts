@@ -124,6 +124,11 @@ export const routes: Route[] = [
     title: "A chat app · Ouro HX",
     description: "A whole chat app from Ouro HX's chat components: conversations, messages, a thread, typing, read receipts and composers.",
   },
+  {
+    path: "/docs/call-demo/",
+    title: "A call window · Ouro HX",
+    description: "A whole call window from Ouro HX's call components: a tile grid, speaking and muted tiles, captions, the control bar and a picture-in-picture.",
+  },
   // One component's live demo alone (components/phone-demo.tsx), which a component page shows in a phone's frame.
   { path: "/docs/demo/", title: "Live demo · Ouro HX", description: "One Ouro HX component's live demo, on its own.", noindex: true },
 ];
