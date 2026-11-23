@@ -193,7 +193,7 @@ const fitClasses = { cover: "*:object-cover", contain: "*:object-contain" } as c
  */
 const plateClass =
   "box-border border border-solid border-transparent text-foreground " +
-  "bg-[color-mix(in_oklab,var(--background)_76%,transparent)] " +
+  "bg-[color-mix(in_oklab,var(--background)_76%,transparent)] [--ouro-scroller-surface:transparent] " +
   "[@media(prefers-reduced-transparency:reduce)]:bg-background contrast-more:bg-background contrast-more:border-foreground " +
   "forced-colors:border-[CanvasText]";
 

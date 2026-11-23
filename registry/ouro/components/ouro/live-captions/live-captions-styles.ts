@@ -83,7 +83,7 @@ function spokenText(lines: readonly SpokenLine[]): string {
  * @claim "Canvas with a CanvasText edge under" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > keeps its words and fill apart under forced colours, with an edge around the band)
  */
 const bandClass =
-  "box-border grid w-full gap-1 rounded-ouro-xl bg-black/80 text-start text-white " +
+  "box-border grid w-full gap-1 rounded-ouro-xl bg-black/80 [--ouro-scroller-surface:transparent] text-start text-white " +
   "[@media(prefers-reduced-transparency:reduce)]:bg-black " +
   "contrast-more:bg-black contrast-more:border contrast-more:border-solid contrast-more:border-white " +
   "forced-colors:border forced-colors:border-solid forced-colors:border-[CanvasText] forced-colors:bg-[Canvas]";

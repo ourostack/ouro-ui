@@ -1,0 +1,21 @@
+# Ouro's scrollers under the compositor's LCD-text path (ourostack/ouro-ui#2891)
+#
+# Source: `node scripts/scroller-probe.mjs layers` and `node scripts/scroller-probe.mjs frames`, run on macOS with
+# Playwright's Chromium, which the script starts with --enable-lcd-text --force-device-scale-factor=1. A see-through
+# run forces the scroller's background to transparent; an opaque run is the component as this change ships it.
+# A late frame is a requestAnimationFrame gap over 24 ms. Paint time is the sum of the trace's Paint events.
+
+layers
+scroll-area see-through: 5 layers, 0 holding the scrolled content (5213px)
+scroll-area opaque: 9 layers, 1 holding the scrolled content (5213px)
+conversation-list see-through: 8 layers, 0 holding the scrolled content (9998px)
+conversation-list opaque: 10 layers, 1 holding the scrolled content (9998px)
+message-list see-through: 6 layers, 0 holding the scrolled content (6297px)
+message-list opaque: 8 layers, 1 holding the scrolled content (6297px)
+
+frames
+see-through: late frames 87, 63, 68 (median 68) of 388, 413, 412; paint ms 603, 581, 575 (median 581); scrolled 99649px at 4x CPU throttle
+opaque: late frames 79, 19, 17 (median 19) of 394, 461, 465; paint ms 580, 530, 534 (median 534); scrolled 99649px at 4x CPU throttle
+
+# The app's own figure, from the issue: on a CI Windows runner, a scroll-through-history case, late frames fell from 339 to 100
+# and paint time from 3.6 s to 0.8 s once its message-list scroller had the opaque background of the surface behind it.

@@ -503,7 +503,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
           id={panelId}
           data-ouro-part="panel"
           className={cn(
-            "absolute start-0 z-10 w-max max-w-[min(24rem,calc(100vw-2rem),var(--ouro-porthole-room,24rem))] min-w-full rounded-ouro-2xl bg-popover p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-[color-mix(in_oklab,var(--foreground)_16%,transparent)] transition-opacity forced-colors:border forced-colors:border-solid duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast)",
+            "absolute start-0 z-10 w-max max-w-[min(24rem,calc(100vw-2rem),var(--ouro-porthole-room,24rem))] min-w-full rounded-ouro-2xl bg-popover [--ouro-scroller-surface:var(--popover)] p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-[color-mix(in_oklab,var(--foreground)_16%,transparent)] transition-opacity forced-colors:border forced-colors:border-solid duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast)",
             !drawnAtMount && "starting:opacity-0",
             top ? "bottom-full mb-1.5" : "top-full mt-1.5",
             // Opened by a resting mouse alone, the lines let presses through to what they cover.

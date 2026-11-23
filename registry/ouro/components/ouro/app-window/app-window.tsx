@@ -118,7 +118,7 @@ export function AppWindow(props: AppWindowProps): JSX.Element {
       // The window doesn't clip what is in it: clipping a whole live demo to a squircle repaints all of it on each press
       // (Event Timing on the Nautilus's Sign went from 56 ms to 80 ms). The bar and the foot round their own outer
       // corners to the window's radius less its border instead, and only an edge-to-edge body that ends the window clips.
-      className={cn("min-w-0 rounded-ouro-xl border border-solid border-border bg-card text-card-foreground shadow-(--shadow-lg)", className)}
+      className={cn("min-w-0 rounded-ouro-xl border border-solid border-border bg-card [--ouro-scroller-surface:var(--card)] text-card-foreground shadow-(--shadow-lg)", className)}
     >
       <div data-slot="bar" className="flex min-h-ouro-11 items-center gap-3 rounded-t-[calc(var(--radius-ouro-xl)-1px)] border-0 border-b border-solid border-border bg-muted ps-4 pe-2">
         <span data-slot="title" className="min-w-0 truncate font-mono text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">

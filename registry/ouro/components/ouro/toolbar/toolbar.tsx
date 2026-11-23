@@ -992,7 +992,7 @@ function moreButton(moreLabel: string, size: ToolbarSize, disabled: boolean | un
 // contrast, a ring so the box keeps its size. It takes presses inside a wrapper that passes them
 // through. Forced colours drop rings, so the bar keeps an edge as a border there.
 const floatingClass =
-  "rounded-ouro-xl bg-card/75 p-1 text-card-foreground shadow-(--shadow-lg) ring-1 ring-border/60 backdrop-blur-xl " +
+  "rounded-ouro-xl bg-card/75 [--ouro-scroller-surface:transparent] p-1 text-card-foreground shadow-(--shadow-lg) ring-1 ring-border/60 backdrop-blur-xl " +
   "[@media(prefers-reduced-transparency:reduce)]:bg-card [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
   "pointer-events-auto contrast-more:bg-card contrast-more:ring-2 contrast-more:ring-current contrast-more:backdrop-blur-none " +
   "forced-colors:border forced-colors:border-solid";
