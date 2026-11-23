@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
+import { clearComposerDrafts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { routes } from "../routes";
 
 afterEach(async () => {
   await cleanupPage();
+  clearComposerDrafts();
   setScheme("light");
 });
 
@@ -14,10 +16,14 @@ describe("the chat app page", () => {
     expect(routes.some((route) => route.path === "/docs/chat-demo/")).toBe(true);
   });
 
-  it("shows the conversations and opens one from the list", async () => {
+  it("shows the conversations", async () => {
     await renderPage("/docs/chat-demo/");
     await expect.element(page.getByRole("heading", { level: 1, name: "A chat app" })).toBeInTheDocument();
     await expect.element(page.getByLabelText("Conversations")).toBeInTheDocument();
+  });
+
+  it("opens a conversation from the list", async () => {
+    await renderPage("/docs/chat-demo/");
     await page.getByRole("button", { name: /Launch crew/ }).click();
     await expect.element(page.getByLabelText("Messages in Launch crew")).toBeInTheDocument();
   });
@@ -27,6 +33,16 @@ describe("the chat app page", () => {
     await page.getByRole("button", { name: /Ana Lind/ }).click();
     await page.getByRole("button", { name: /back/i }).click();
     await expect.element(page.getByLabelText("Conversations")).toBeInTheDocument();
+  });
+
+  it("keeps a draft when a narrow screen goes back to the list and returns", async () => {
+    await renderPage("/docs/chat-demo/");
+    await page.getByRole("button", { name: /Launch crew/ }).click();
+    await page.getByLabelText("Message Launch crew").click();
+    await userEvent.keyboard("Bring tape");
+    await page.getByRole("button", { name: /back/i }).click();
+    await page.getByRole("button", { name: /Launch crew/ }).click();
+    await expect.element(page.getByLabelText("Message Launch crew")).toHaveTextContent("Bring tape");
   });
 
   it("opens a thread from its summary and shows the empty state from the state switch", async () => {
