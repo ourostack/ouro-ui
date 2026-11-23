@@ -9,10 +9,13 @@
 //                                           a file and line short of 100% with the shard folder
 //                                           behind a share of it that is itself short, when the
 //                                           merged coverage is short; 3 when a shard's is missing;
-//                                           4 when a shard's own file was instrumented twice (its
-//                                           statement, function or branch map holds the same
-//                                           source location under two different keys), which
-//                                           inflates that file's denominator and reports a fully
+//                                           4 when a shard's own file was instrumented twice,
+//                                           either with the same source location under two
+//                                           different keys (one shard's own map) or with a
+//                                           different number of statement, function or branch
+//                                           entries than the other shards that measured the same
+//                                           file (across shards): either way the extra entries
+//                                           inflate that file's denominator and report a fully
 //                                           covered file as short (issue #3082)
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -64,6 +67,36 @@ export const doubledFiles = (map) =>
     .map(([file, fc]) => ({ file, duplicates: duplicateLocations(fc.statementMap).size + duplicateLocations(fc.fnMap).size + duplicateLocations(fc.branchMap).size }))
     .filter(({ duplicates }) => duplicates > 0);
 
+/** A file's instrumentation shape: how many statement, function and branch map entries istanbul wrote for it. The same source always instruments to the same shape, whichever shard measured it. */
+const shapeOf = (fc) => `${Object.keys(fc.statementMap ?? {}).length}:${Object.keys(fc.fnMap ?? {}).length}:${Object.keys(fc.branchMap ?? {}).length}`;
+
+/**
+ * Every file whose shape (`shapeOf`) disagrees between two shards that both report it, in `maps`
+ * (one per label in `labels`). The shards agreeing on a shape are the healthy ones; a shard with
+ * any other shape instrumented the file under two module graphs whose extra entries don't repeat
+ * the healthy shards' locations exactly, so `doubledFiles` (an exact location repeated within one
+ * shard's own map) misses it (issue #3082). Needs every shard's map at once, since the fault is
+ * one shard disagreeing with the others, not a fault visible in any single shard's own map.
+ */
+export const mismatchedShapes = (maps, labels) => {
+  const byFile = new Map();
+  maps.forEach((map, index) => {
+    for (const [file, fc] of Object.entries(map)) {
+      if (!byFile.has(file)) byFile.set(file, []);
+      byFile.get(file).push({ shard: labels[index], shape: shapeOf(fc) });
+    }
+  });
+  const problems = [];
+  for (const [file, entries] of byFile) {
+    const shapeCounts = new Map();
+    for (const { shape } of entries) shapeCounts.set(shape, (shapeCounts.get(shape) ?? 0) + 1);
+    if (shapeCounts.size < 2) continue;
+    const majorityShape = [...shapeCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    for (const { shard, shape } of entries) if (shape !== majorityShape) problems.push({ file, shard });
+  }
+  return problems;
+};
+
 /**
  * The merged coverage of `maps` (istanbul coverage-final.json objects): its totals and every file
  * short of a threshold, with the lines no shard reached. With `labels` (one per map, same order),
@@ -73,7 +106,10 @@ export const doubledFiles = (map) =>
 export async function mergeCoverage(maps, labels) {
   const { createCoverageMap } = await istanbul();
   const merged = createCoverageMap({});
-  for (const map of maps) merged.merge(map);
+  // istanbul's merge reuses and mutates a shard's own file coverage object when it is the first
+  // to report a file, so without cloning, reading `maps[index][file]` below for its own share
+  // would read back the merged total instead, misnaming a clean shard as the short one (#3082).
+  for (const map of maps) merged.merge(structuredClone(map));
   const short = [];
   for (const file of merged.files().sort()) {
     const coverage = merged.fileCoverageFor(file);
@@ -111,8 +147,10 @@ async function main([dir, flag, count]) {
   const labels = files.map((file) => basename(dirname(file)));
   const maps = files.map((file) => JSON.parse(readFileSync(file, "utf8")));
   const doubled = maps.flatMap((map, index) => doubledFiles(map).map((one) => ({ ...one, shard: labels[index] })));
-  if (doubled.length > 0) {
+  const mismatched = mismatchedShapes(maps, labels);
+  if (doubled.length > 0 || mismatched.length > 0) {
     for (const { shard, file, duplicates } of doubled) console.error(`::error::${shard}'s own coverage-final.json instruments ${file} twice (${duplicates} duplicate location${duplicates === 1 ? "" : "s"}): merging it would make a fully covered file look short. Rerun that shard instead of chasing the file.`);
+    for (const { shard, file } of mismatched) console.error(`::error::${shard}'s own coverage-final.json instruments ${file} differently from the other shards that measured it (a different number of statement, function or branch map entries): merging it would make a fully covered file look short. Rerun that shard instead of chasing the file.`);
     return 4;
   }
   const result = await mergeCoverage(maps, labels);

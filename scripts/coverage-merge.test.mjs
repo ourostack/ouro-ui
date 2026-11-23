@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { doubledFiles, mergeCoverage, thresholds } from "./coverage-merge.mjs";
+import { doubledFiles, mergeCoverage, mismatchedShapes, thresholds } from "./coverage-merge.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -46,6 +46,17 @@ test("with labels, a shard whose map lacks a short file is left out of its by-sh
   assert.deepEqual(merged.short, [{ file: "/a.ts", metrics: { lines: 50, statements: 50, branches: 50 }, lines: ["2"], by: [{ shard: "touches-a", metrics: { lines: 50, statements: 50, branches: 50 } }] }]);
 });
 
+/** Issue #3082's actual recurrence on main at bc4201c: a shard reporting 0% of its own share of a file was named as 62% short alongside the genuinely doubled shard, because merging had mutated the clean shard's own map in place. */
+test("merging a shard that covers a statement into one that doesn't must not change the other's own share", async () => {
+  const merged = await mergeCoverage([map("/a.ts", { s: [0, 0] }), map("/a.ts", { s: [0, 1] })], ["clean", "covers-one"]);
+  assert.deepEqual(merged.short, [
+    { file: "/a.ts", metrics: { lines: 50, branches: 0, functions: 0, statements: 50 }, lines: ["1"], by: [
+      { shard: "clean", metrics: { lines: 0, branches: 0, functions: 0, statements: 0 } },
+      { shard: "covers-one", metrics: { lines: 50, branches: 0, functions: 0, statements: 50 } },
+    ] },
+  ]);
+});
+
 /** A file instrumented twice in the same shard run (issue #3082): the second copy's locations don't match the first's, so every map holds the original entries plus a disjoint second set under new keys. */
 const doubled = (file) => ({
   [file]: {
@@ -65,6 +76,31 @@ test("doubledFiles finds a file whose own map holds a source location under two 
 
 test("doubledFiles leaves a file alone when every location is unique", () => {
   assert.deepEqual(doubledFiles(map("/a.ts")), []);
+});
+
+/** A file instrumented under two module graphs in the same shard (#3082's actual recurrence): the second copy's statement boundaries land at new, non-exact-duplicate locations, so `doubledFiles`'s exact location match can't see it — only comparing this shard's shape against the other shards measuring the same file can. */
+const reshaped = (file) => ({
+  [file]: {
+    path: file,
+    statementMap: { 0: { start: { line: 1, column: 0 }, end: { line: 1, column: 9 } }, 1: { start: { line: 2, column: 0 }, end: { line: 2, column: 9 } }, 2: { start: { line: 1, column: 0 }, end: { line: 1, column: 8 } } },
+    fnMap: { 0: { name: "f", decl: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } }, loc: { start: { line: 1, column: 0 }, end: { line: 2, column: 9 } }, line: 1 } },
+    branchMap: { 0: { type: "if", line: 2, loc: { start: { line: 2, column: 0 }, end: { line: 2, column: 9 } }, locations: [{ start: { line: 2, column: 0 }, end: { line: 2, column: 4 } }, { start: { line: 2, column: 5 }, end: { line: 2, column: 9 } }] } },
+    s: { 0: 1, 1: 0, 2: 1 },
+    f: { 0: 1 },
+    b: { 0: [1, 0] },
+  },
+});
+
+test("mismatchedShapes finds a shard whose map disagrees in shape with the other shards measuring the same file", () => {
+  assert.deepEqual(mismatchedShapes([map("/a.ts"), reshaped("/a.ts"), map("/a.ts")], ["browser-1", "browser-6", "browser-11"]), [{ file: "/a.ts", shard: "browser-6" }]);
+});
+
+test("mismatchedShapes leaves a file alone when every shard that measured it agrees on its shape", () => {
+  assert.deepEqual(mismatchedShapes([map("/a.ts"), map("/a.ts")], ["browser-1", "browser-6"]), []);
+});
+
+test("mismatchedShapes leaves a file alone when only one shard measured it, with nothing to compare it against", () => {
+  assert.deepEqual(mismatchedShapes([reshaped("/a.ts")], ["browser-6"]), []);
 });
 
 test("the merge holds the shards to the thresholds vitest.config.ts holds an unsharded run to", async () => {
@@ -108,4 +144,25 @@ test("the command fails loudly, naming the shard, when a shard's own file was in
   assert.equal(result.status, 4);
   assert.match(result.stderr, /::error::coverage-browser-15's own coverage-final\.json instruments \/people-cache\.ts twice \(3 duplicate locations\): merging it would make a fully covered file look short\. Rerun that shard instead of chasing the file\./);
   assert.equal(result.stdout, "", "a doubled shard stops before reporting a misleading merged percentage");
+});
+
+/** Issue #3082's actual recurrence: a shard's own map had more statement entries for a file than every other shard measuring it, at locations that didn't exactly repeat the others', so `doubledFiles` found nothing and the merge reported the wrong shard short. */
+test("the command fails loudly, naming the shard, when a shard's own file disagrees in shape with the other shards measuring it", () => {
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(join(root, ".tmp/coverage-merge-"));
+  const write = (shard, coverage) => {
+    mkdirSync(join(dir, `coverage-browser-${shard}`), { recursive: true });
+    writeFileSync(join(dir, `coverage-browser-${shard}/coverage-final.json`), JSON.stringify(coverage));
+  };
+  write(1, map("/people-cache.ts", { s: [1, 1], f: [1], b: [1, 1] }));
+  write(6, reshaped("/people-cache.ts"));
+  write(11, map("/people-cache.ts", { s: [1, 1], f: [1], b: [1, 1] }));
+  const run = (...args) => spawnSync(process.execPath, [join(root, "scripts/coverage-merge.mjs"), dir, ...args], { encoding: "utf8" });
+  const result = run("--shards", "3");
+  assert.equal(result.status, 4);
+  assert.match(
+    result.stderr,
+    /::error::coverage-browser-6's own coverage-final\.json instruments \/people-cache\.ts differently from the other shards that measured it \(a different number of statement, function or branch map entries\): merging it would make a fully covered file look short\. Rerun that shard instead of chasing the file\./,
+  );
+  assert.equal(result.stdout, "", "a mismatched shard stops before reporting a misleading merged percentage");
 });
