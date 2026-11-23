@@ -458,8 +458,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const s = getComputedStyle(el);
     const box = el.getBoundingClientRect();
     const half = Math.min(box.width, box.height) / 2;
-    const radius = Math.max(...["TopLeft", "TopRight", "BottomRight", "BottomLeft"].map((corner) => {
-      const value = s[`border${corner}Radius`];
+    const radius = Math.max(...([s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius]).map((value) => {
       return value.endsWith("%") ? (parseFloat(value) / 100) * 2 * half : px(value);
     }));
     if (radius < squirclePx || radius >= half - 0.5 || s.clipPath !== "none" || el.closest("[data-ouro-squircle], [data-hyperellipse-host]") || optedOut(el, "squircle-missing") || !filled(el)) continue;
