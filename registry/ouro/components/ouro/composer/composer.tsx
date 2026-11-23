@@ -599,18 +599,21 @@ export function Composer(props: ComposerProps): JSX.Element {
   const setRef = useMergedRef(ref, textareaRef);
   const richRef = useRef<RichEditorHandle | null>(null);
   const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
-  useLayoutEffect(() => {
-    // A page that already loaded the editor's module (an earlier Composer, or a swap in this same box) draws it before the paint that follows, so this mount never flashes the plain box: the server always renders plain, and this never runs there, so hydration still matches.
-    // Stryker disable next-line ConditionalExpression,LogicalOperator: a plain mount, or one whose module has not loaded yet, is drawn by the effect below instead, exactly as before.
-    if (!(formatMode === "rich" && richModule)) return;
-    // Once this fills rich, a render this same mount triggers later (even one that retests the list below with a changed array) finds it already drawn and fills nothing twice.
-    // Stryker disable next-line ConditionalExpression: rich starts undefined and nothing else fills it before this effect's first run, so this still lets that first fill through.
-    if (rich !== undefined) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-time fill before the first paint, as live-captions.demo.tsx's does
-    setRich({ Editor: richModule.RichEditor, focus: rest.autoFocus === true });
+  useLayoutEffect(
+    () => {
+      // A page that already loaded the editor's module (an earlier Composer, or a swap in this same box) draws it before the paint that follows, so this mount never flashes the plain box: the server always renders plain, and this never runs there, so hydration still matches.
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: a plain mount, or one whose module has not loaded yet, is drawn by the effect below instead, exactly as before.
+      if (!(formatMode === "rich" && richModule)) return;
+      // Once this fills rich, a render this same mount triggers later (even one that retests the list below with a changed array) finds it already drawn and fills nothing twice.
+      // Stryker disable next-line ConditionalExpression: rich starts undefined and nothing else fills it before this effect's first run, so this still lets that first fill through.
+      if (rich !== undefined) return;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-time fill before the first paint, as live-captions.demo.tsx's does
+      setRich({ Editor: richModule.RichEditor, focus: rest.autoFocus === true });
+    },
     // Only the warm cache at this mount is read here; a later format change or a cold load is the effect below's job. `rich` is read only to skip a repeat of this same fill, never to decide whether to run at all.
     // Stryker disable next-line ArrayDeclaration: a changed dependency array still finds rich already set, from this same fill, and stops at the check above.
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,BlockStatement: loading the editor in plain mode changes nothing a person or a test can read, as richOn below also needs the rich format.
     if (formatMode !== "rich") return;
