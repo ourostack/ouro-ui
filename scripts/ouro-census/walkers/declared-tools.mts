@@ -17,11 +17,15 @@
 // - A tool whose whole declaration says `person-only` is never offered to an agent, so it is no door, served or not.
 //
 // Read-only evidence is the served `readOnlyHint`: from `listTools()` when the module exports it, else on the schema.
-// Neither tools.json nor the server shows that anything asks the person before a consequential tool runs, so the census
-// reports a consequential card here as weak until the walker can find that approval in the code that offers the tool.
+// Approval evidence comes from the code that offers the declared tools to an agent, named in `approvals` as
+// `<file>#<function>` (in ourostack/ouroboros, `src/repertoire/mcp-tools.ts#mcpToolsAsDefinitions`). A consequential
+// door has it when one of those functions attaches an `approvalPolicy` only under an `<x>.effect === "consequential"`
+// check, found in the syntax tree; an approvals function that doesn't is a census error. With no approvals, nothing
+// shows that the person is asked, so the census reports a consequential card as weak.
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, relative, resolve } from "node:path";
+import ts from "typescript";
 import type { Door, DoorCard, WalkerOptions, WalkResult } from "../types.mts";
 
 interface Schema {
@@ -74,6 +78,74 @@ function readDeclaration(file: string, text: string): Map<string, Declared> | st
   return declared;
 }
 
+const isConsequentialCheck = (n: ts.Expression): boolean => {
+  if (ts.isParenthesizedExpression(n)) return isConsequentialCheck(n.expression);
+  if (!ts.isBinaryExpression(n)) return false;
+  if (n.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) return isConsequentialCheck(n.left) || isConsequentialCheck(n.right);
+  if (n.operatorToken.kind !== ts.SyntaxKind.EqualsEqualsEqualsToken) return false;
+  const effect = (e: ts.Expression) => ts.isPropertyAccessExpression(e) && e.name.text === "effect";
+  const consequential = (e: ts.Expression) => ts.isStringLiteral(e) && e.text === "consequential";
+  return (effect(n.left) && consequential(n.right)) || (consequential(n.left) && effect(n.right));
+};
+
+/** Whether the node sets an `approvalPolicy`: a property of that name, or an assignment to one. */
+const setsApproval = (node: ts.Node): boolean => {
+  let found = false;
+  const visit = (n: ts.Node): void => {
+    if (found) return;
+    const named = (name: ts.Node | undefined) => name !== undefined && (ts.isIdentifier(name) || ts.isStringLiteral(name)) && name.text === "approvalPolicy";
+    if ((ts.isPropertyAssignment(n) || ts.isMethodDeclaration(n) || ts.isShorthandPropertyAssignment(n)) && named(n.name)) found = true;
+    else if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(n.left) && named(n.left.name)) found = true;
+    else ts.forEachChild(n, visit);
+  };
+  visit(node);
+  return found;
+};
+
+/** Whether `spec`'s function attaches an approvalPolicy only under a consequential check, or why it can't be read. */
+async function gatesConsequential(root: string, spec: string): Promise<true | string> {
+  const hash = spec.lastIndexOf("#");
+  if (hash <= 0 || hash === spec.length - 1) return `declared-tools: approvals ${spec}: give it as <file>#<function>.`;
+  const path = resolve(root, spec.slice(0, hash));
+  const name = spec.slice(hash + 1);
+  const sf = ts.createSourceFile(path, await readFile(path, "utf8"), ts.ScriptTarget.Latest, true);
+  let fn: ts.FunctionLikeDeclaration | null = null;
+  const find = (n: ts.Node): void => {
+    if (fn) return;
+    if ((ts.isFunctionDeclaration(n) || ts.isMethodDeclaration(n)) && n.name && ts.isIdentifier(n.name) && n.name.text === name && n.body) fn = n;
+    else if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === name && n.initializer && (ts.isArrowFunction(n.initializer) || ts.isFunctionExpression(n.initializer))) fn = n.initializer;
+    else ts.forEachChild(n, find);
+  };
+  find(sf);
+  if (!fn) return `declared-tools: approvals ${spec} names no function. Fix: remove it from the config.`;
+  // Every approvalPolicy in the function sits in the true branch of a consequential check, and there is at least one.
+  let gated = 0;
+  let loose = 0;
+  const visit = (n: ts.Node, underCheck: boolean): void => {
+    if (ts.isConditionalExpression(n) && isConsequentialCheck(n.condition)) {
+      visit(n.condition, underCheck);
+      visit(n.whenTrue, true);
+      visit(n.whenFalse, underCheck);
+      return;
+    }
+    if (ts.isIfStatement(n) && isConsequentialCheck(n.expression)) {
+      visit(n.expression, underCheck);
+      visit(n.thenStatement, true);
+      if (n.elseStatement) visit(n.elseStatement, underCheck);
+      return;
+    }
+    if (setsApproval(n) && !ts.forEachChild(n, (c) => (setsApproval(c) ? true : undefined))) {
+      if (underCheck) gated++;
+      else loose++;
+      return;
+    }
+    ts.forEachChild(n, (c) => visit(c, underCheck));
+  };
+  visit((fn as ts.FunctionLikeDeclaration).body!, false);
+  if (gated === 0 || loose > 0) return `declared-tools: approvals ${spec} attaches no approvalPolicy under an effect === "consequential" check. Fix: name the function that offers the declared tools, or remove it from the config.`;
+  return true;
+}
+
 export async function walkDeclaredTools(opts: WalkerOptions): Promise<WalkResult> {
   const sourcePath = resolve(opts.root, opts.source);
   const file = relative(opts.root, sourcePath);
@@ -90,6 +162,13 @@ export async function walkDeclaredTools(opts: WalkerOptions): Promise<WalkResult
   }
   const declared = readDeclaration(file, await readFile(sourcePath, "utf8"));
   if (typeof declared === "string") return { doors: [], errors: [declared] };
+  const errors: string[] = [];
+  let approved = false;
+  for (const spec of opts.approvals ?? []) {
+    const gate = await gatesConsequential(opts.root, spec);
+    if (gate === true) approved = true;
+    else errors.push(gate);
+  }
   const moduleLines = (await readFile(modulePath, "utf8")).split("\n");
   const servedAt = (name: string): number | null => {
     const at = moduleLines.findIndex((l) => l.includes(JSON.stringify(name)) || l.includes(`'${name}'`));
@@ -99,7 +178,6 @@ export async function walkDeclaredTools(opts: WalkerOptions): Promise<WalkResult
   const schemas = (loaded.getToolSchemas as () => Schema[])();
   const listed = new Map((typeof loaded.listTools === "function" ? (loaded.listTools as () => Schema[])() : []).map((t) => [t.name, t]));
   const doors: Door[] = [];
-  const errors: string[] = [];
   const served = new Set<string>();
   for (const schema of schemas) {
     if (typeof schema.name !== "string" || schema.name.length === 0) {
@@ -124,7 +202,10 @@ export async function walkDeclaredTools(opts: WalkerOptions): Promise<WalkResult
       file: declaration ? file : moduleFile,
       line: declaration ? declaration.line : servedAt(name),
       card: declaration ? { ...declaration.card, id } : null,
-      evidence: (listed.get(name) ?? schema).annotations?.readOnlyHint === true ? { readOnly: true } : {},
+      evidence: {
+        ...((listed.get(name) ?? schema).annotations?.readOnlyHint === true ? { readOnly: true } : {}),
+        ...(approved && declaration?.card.effect === "consequential" ? { approval: true } : {}),
+      },
     });
   }
   for (const [name, declaration] of declared) {

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import { deepEqual, equal } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { walkDeclaredTools } from "./declared-tools.mts";
@@ -108,4 +108,36 @@ test("finds each declared tool's line however tools.json is spaced", async () =>
 
 test("needs the server's name, the one agent.json gives it under mcpServers", async () => {
   deepEqual(await walkDeclaredTools({ product: "bundle", module: "declared-tools/server.cjs", source: "declared-tools/tools.json", root: fixtures }), { doors: [], errors: ["declared-tools/tools.json: the declared-tools source needs server, the name agent.json gives the server under mcpServers"] });
+});
+
+function gated(approvals: string[], module = "server.cjs") {
+  return walkDeclaredTools({ product: "bundle", module: `declared-tools/${module}`, source: "declared-tools/tools.json", root: fixtures, server: "shop", approvals });
+}
+
+test("a consequential door has approval evidence when the code that offers it gates consequential declarations", async () => {
+  for (const spec of ["declared-tools/gate.ts#offer", "declared-tools/gate.ts#offerByIf"]) {
+    const { doors, errors } = await gated([spec]);
+    deepEqual(errors, [], spec);
+    deepEqual(doors.filter((d) => d.evidence.approval).map((d) => d.name), ["shop_share_shopping_list"], spec);
+  }
+  equal((await walk("server.cjs")).doors.some((d) => d.evidence.approval), false, "with no approvals, no door has approval evidence");
+});
+
+test("an approvals function that doesn't gate consequential declarations is a census error", async () => {
+  for (const fn of ["offerWrongEffect", "offerAlways", "offerNothing"]) {
+    const { doors, errors } = await gated([`declared-tools/gate.ts#${fn}`]);
+    deepEqual(errors, [`declared-tools: approvals declared-tools/gate.ts#${fn} attaches no approvalPolicy under an effect === "consequential" check. Fix: name the function that offers the declared tools, or remove it from the config.`], fn);
+    equal(doors.some((d) => d.evidence.approval), false, fn);
+  }
+  deepEqual((await gated(["declared-tools/gate.ts#missing"])).errors, ["declared-tools: approvals declared-tools/gate.ts#missing names no function. Fix: remove it from the config."]);
+  deepEqual((await gated(["declared-tools/gate.ts"])).errors, ["declared-tools: approvals declared-tools/gate.ts: give it as <file>#<function>."]);
+});
+
+// The real-harness check runs against an ourostack/ouroboros checkout named by OURO_CENSUS_HARNESS.
+const harness = process.env.OURO_CENSUS_HARNESS;
+const offers = harness ? join(harness, "src/repertoire/mcp-tools.ts") : "";
+test("the real harness gates every declared consequential tool", { skip: harness && existsSync(offers) ? false : "set OURO_CENSUS_HARNESS to an ouroboros checkout" }, async () => {
+  const { doors, errors } = await walkDeclaredTools({ product: "bundle", module: join(fixtures, "declared-tools/server.cjs"), source: join(fixtures, "declared-tools/tools.json"), root: harness!, server: "shop", approvals: ["src/repertoire/mcp-tools.ts#mcpToolsAsDefinitions"] });
+  deepEqual(errors, []);
+  deepEqual(doors.filter((d) => d.evidence.approval).map((d) => d.name), ["shop_share_shopping_list"]);
 });

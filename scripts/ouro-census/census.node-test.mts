@@ -415,6 +415,18 @@ test("--inventory writes the declared doors only, in the X-ray's inventory shape
   }
 });
 
+test("with the code that gates consequential declarations named, a consequential declared tool counts as declared", async () => {
+  const dir = scratch();
+  try {
+    const { out, err, io } = capture();
+    const code = await run({ argv: args("config-declared-tools-gated.json", baselineFile(dir, ["tool:shop_remove_shopping_list_item", "tool:shop_clear_shopping_list"])), io, root: here });
+    equal(code, 0, err.join("\n"));
+    ok(out.includes("bundle: 5 found, 3 declared, 1 weak, 1 undeclared (tool 5)"), out.join("\n"));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 const DECLARED_GAPS = ["tool:shop_remove_shopping_list_item", "tool:shop_share_shopping_list", "tool:shop_clear_shopping_list"];
 
 test("a bundle's declared tools are carded, and a tool its server serves uncarded counts as undeclared", async () => {
@@ -426,7 +438,8 @@ test("a bundle's declared tools are carded, and a tool its server serves uncarde
     const code = await run({ argv: args("config-declared-tools.json", baselineFile(dir, DECLARED_GAPS), ["--out", report, "--inventory", inventory]), io, root: here });
     equal(code, 0, err.join("\n"));
     // Core's v1.11.0 cards: remove_shopping_list_item declares no errors, and nothing asks the person before
-    // share_shopping_list, a consequential tool, runs: the census reports both as weak, as for any tool card.
+    // share_shopping_list, a consequential tool, runs here, since this config names no approvals: the census reports both
+    // as weak, as for any tool card.
     ok(out.includes("bundle: 5 found, 2 declared, 2 weak, 1 undeclared (tool 5)"), out.join("\n"));
     deepEqual(JSON.parse(readFileSync(report, "utf8")).products[0].undeclared.map((g: { id: string }) => g.id), ["tool:shop_clear_shopping_list"]);
     deepEqual(JSON.parse(readFileSync(inventory, "utf8")), { tool: ["shop_get_shopping_list", "shop_add_shopping_list_item"] });

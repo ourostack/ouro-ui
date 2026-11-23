@@ -10,3 +10,4 @@ The `.cjs` files stand in for the bundle MCP server that serves those tools:
 - `person-only.json` is `tools.json` with `share_shopping_list` declared `person-only`, which the harness never surfaces to an agent.
 - `incomplete.json` is `tools.json` with `share_shopping_list` declared `person-only` but with no `when` line, so it isn't a whole declaration.
 - `minified.json` is `tools.json` on one line.
+- `gate.ts` stands in for the code that offers the declared tools: `offer` and `offerByIf` attach an `approvalPolicy` only to a consequential declaration, and the other functions don't.

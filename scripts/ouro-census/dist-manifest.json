@@ -1,7 +1,7 @@
 {
   "tool": "ouro-census",
   "version": "0.1.0",
-  "checker": "23417b04bd3e705e28ba19fd4e887ebb52ad64471722c1601dd44dfadba8440c",
+  "checker": "0f532f8125277a88d8219a1b1908c3ab682eb0484e6768d0fcfb58dfd3af7898",
   "files": {
     "base.mts": "b5ef17d10c1540c3e7007ad252e7bd23131efadcad9ba3380f6afc683845b0c0",
     "baseline.mts": "7b819e693e789a9263e77de9b0b2886644664aa6b40dd8704d06d2ebdebf13ee",
@@ -14,7 +14,7 @@
     "types.mts": "0e0ab969b4cd5004c31fdf366b95fd5e63cfbabe223d1202c77805b1dc254369",
     "walkers/argv-entries.mts": "d73195babaff3036cc4f5d59b227560f6a92d2f4fd54b772b85a060bb8ebdae6",
     "walkers/cli-cards.mts": "0bc8b21d7da196a09cf302ebeda14f6ef3631b4e7a396e70cf21ac7f61ec533c",
-    "walkers/declared-tools.mts": "837d20c07fadcc23613a808cf790462d63aa97163e6d60cfb4857a67bca221fe",
+    "walkers/declared-tools.mts": "979604f93bf798479de2a1cb808393c4345f392c9608453a034794abaf30b128",
     "walkers/literals.mts": "023ecc7251b016043f6d85948dd363ed7cfb4ab024a3998d24617018870ebd43",
     "walkers/mcp-schemas.mts": "4ea014694750d9c0e80a85bfcdf2442ce5524904cc9874532720793263f4c991",
     "walkers/registry.mts": "4fec511eecec992e8cd37f7c1772d6085f69b36ec547f8aebfd8e6ce44c79d6c",
