@@ -206,7 +206,9 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // wordmark ThemePicker (#2987): its tiles, page-token ring and squircle square, and the phone menu's and the theming guide's rows.
 // Raised docs a KiB (53,258 bytes measured in CI run 45251076301, merged with main at 5b21e7c48, 10 over) for Porthole's
 // floating look (#3236): contrast-more, forced-colors and reduced-transparency fallback classes on its live demo page.
-const CSS_CEILINGS = { voyage: 49 * 1024, docs: 53 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+// Raised voyage a KiB (50,246 bytes measured in CI run 45286452756, 70 over) for the bubble run corners: the joined-corner
+// classes on the chat bubbles the home page's chat shows.
+const CSS_CEILINGS = { voyage: 50 * 1024, docs: 53 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the
