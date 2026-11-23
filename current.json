@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-23T09:36:33.434Z",
+  "generatedAt": "2026-11-23T09:58:30.595Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
-      "tag": "v1.3.469",
-      "url": "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.469"
+      "tag": "v1.3.470",
+      "url": "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.470"
     },
     "core": {
       "name": "Ouro UI core",
@@ -28,14 +28,14 @@
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.468",
-          "latest": "v1.3.469",
+          "current": "v1.3.469",
+          "latest": "v1.3.470",
           "behind": true
         }
       ],
       "pr": {
-        "number": 242,
-        "url": "https://github.com/arimendelow/mendelow.me/pull/242"
+        "number": 243,
+        "url": "https://github.com/arimendelow/mendelow.me/pull/243"
       }
     },
     {
@@ -52,14 +52,14 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 2c650b5",
-          "latest": "v1.3.469",
+          "current": "commit b2a09f9",
+          "latest": "v1.3.470",
           "behind": true
         }
       ],
       "pr": {
-        "number": 213,
-        "url": "https://github.com/ourostack/apple-distribution-kit/pull/213"
+        "number": 214,
+        "url": "https://github.com/ourostack/apple-distribution-kit/pull/214"
       }
     },
     {
@@ -76,21 +76,21 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 2c650b5",
-          "latest": "v1.3.469",
+          "current": "commit b2a09f9",
+          "latest": "v1.3.470",
           "behind": true
         },
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 2c650b5",
-          "latest": "v1.3.469",
+          "current": "commit b2a09f9",
+          "latest": "v1.3.470",
           "behind": true
         }
       ],
       "pr": {
-        "number": 1574,
-        "url": "https://github.com/ourostack/desk/pull/1574"
+        "number": 1575,
+        "url": "https://github.com/ourostack/desk/pull/1575"
       }
     },
     {
@@ -100,14 +100,14 @@
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.468",
-          "latest": "v1.3.469",
+          "current": "v1.3.469",
+          "latest": "v1.3.470",
           "behind": true
         }
       ],
       "pr": {
-        "number": 1178,
-        "url": "https://github.com/ourostack/factory/pull/1178"
+        "number": 1179,
+        "url": "https://github.com/ourostack/factory/pull/1179"
       }
     },
     {
@@ -117,8 +117,8 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 2c650b5",
-          "latest": "v1.3.469",
+          "current": "commit b2a09f9",
+          "latest": "v1.3.470",
           "behind": true
         },
         {
@@ -130,8 +130,8 @@
         }
       ],
       "pr": {
-        "number": 221,
-        "url": "https://github.com/ourostack/flow-review/pull/221"
+        "number": 222,
+        "url": "https://github.com/ourostack/flow-review/pull/222"
       }
     },
     {
@@ -148,14 +148,14 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 2c650b5",
-          "latest": "v1.3.469",
+          "current": "commit b2a09f9",
+          "latest": "v1.3.470",
           "behind": true
         }
       ],
       "pr": {
-        "number": 246,
-        "url": "https://github.com/ourostack/friends/pull/246"
+        "number": 247,
+        "url": "https://github.com/ourostack/friends/pull/247"
       }
     },
     {
@@ -200,14 +200,14 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 2c650b5",
-          "latest": "v1.3.469",
+          "current": "commit b2a09f9",
+          "latest": "v1.3.470",
           "behind": true
         }
       ],
       "pr": {
-        "number": 210,
-        "url": "https://github.com/ourostack/hackamore/pull/210"
+        "number": 211,
+        "url": "https://github.com/ourostack/hackamore/pull/211"
       }
     },
     {
@@ -224,14 +224,14 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 2c650b5",
-          "latest": "v1.3.469",
+          "current": "commit b2a09f9",
+          "latest": "v1.3.470",
           "behind": true
         }
       ],
       "pr": {
-        "number": 401,
-        "url": "https://github.com/ourostack/housesitter/pull/401"
+        "number": 402,
+        "url": "https://github.com/ourostack/housesitter/pull/402"
       }
     },
     {
@@ -241,8 +241,8 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 2c650b5",
-          "latest": "v1.3.469",
+          "current": "commit b2a09f9",
+          "latest": "v1.3.470",
           "behind": true
         },
         {
@@ -254,8 +254,8 @@
         }
       ],
       "pr": {
-        "number": 531,
-        "url": "https://github.com/ourostack/m365crawl/pull/531"
+        "number": 532,
+        "url": "https://github.com/ourostack/m365crawl/pull/532"
       }
     },
     {
@@ -300,8 +300,8 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 2c650b5",
-          "latest": "v1.3.469",
+          "current": "commit b2a09f9",
+          "latest": "v1.3.470",
           "behind": true
         },
         {
@@ -313,8 +313,8 @@
         }
       ],
       "pr": {
-        "number": 255,
-        "url": "https://github.com/ourostack/ouro-work-substrate/pull/255"
+        "number": 256,
+        "url": "https://github.com/ourostack/ouro-work-substrate/pull/256"
       }
     },
     {
@@ -325,7 +325,7 @@
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
           "current": "v1.3.467",
-          "latest": "v1.3.469",
+          "latest": "v1.3.470",
           "behind": true
         },
         {
@@ -339,7 +339,7 @@
           "file": "upstream-sources.lock.json",
           "follows": "web",
           "current": "commit 68ad96d",
-          "latest": "v1.3.469",
+          "latest": "v1.3.470",
           "behind": true
         }
       ],
@@ -355,14 +355,14 @@
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.468",
-          "latest": "v1.3.469",
+          "current": "v1.3.469",
+          "latest": "v1.3.470",
           "behind": true
         }
       ],
       "pr": {
-        "number": 516,
-        "url": "https://github.com/ourostack/ouroboros-website/pull/516"
+        "number": 517,
+        "url": "https://github.com/ourostack/ouroboros-website/pull/517"
       }
     },
     {
@@ -379,14 +379,14 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 2c650b5",
-          "latest": "v1.3.469",
+          "current": "commit b2a09f9",
+          "latest": "v1.3.470",
           "behind": true
         }
       ],
       "pr": {
-        "number": 242,
-        "url": "https://github.com/ourostack/shepherd/pull/242"
+        "number": 243,
+        "url": "https://github.com/ourostack/shepherd/pull/243"
       }
     },
     {
@@ -418,7 +418,7 @@
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
           "current": "v1.3.466",
-          "latest": "v1.3.469",
+          "latest": "v1.3.470",
           "behind": true
         },
         {
