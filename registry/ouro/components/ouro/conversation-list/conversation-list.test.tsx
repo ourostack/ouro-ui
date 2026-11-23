@@ -267,6 +267,26 @@ describe("ConversationList", () => {
     await expect.element(page.getByRole("button", { name: "Alex Example reacted in Launch planning 12:43 PM 2" })).toBeVisible();
   });
 
+  it("keeps an activity row's time visible on hover, since it is not the title row's own last word there", async () => {
+    const { rows } = await render(
+      <ConversationList
+        label="Activity"
+        items={[
+          {
+            id: "react",
+            title: "Alex Example",
+            context: "reacted in Launch planning",
+            time: "12:43 PM",
+            menu: [{ label: "Pin", onClick: () => {} }],
+          },
+        ]}
+        onSelect={() => {}}
+      />,
+    );
+    const time = rows[0]!.querySelector<HTMLElement>("[data-ouro-conversation-time]")!;
+    expect(time.className).not.toMatch(/opacity-0/);
+  });
+
   it("shows a draft in place of the preview, after its label in the destructive tone, and hides it when compact", async () => {
     const drafts: ConversationListItem[] = [
       { id: "launch", title: "Launch planning", preview: "Ship it Friday.", draft: "Can we move the review to", time: "9:41" },
