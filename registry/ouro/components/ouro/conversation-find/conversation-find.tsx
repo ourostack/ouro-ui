@@ -141,7 +141,6 @@ export function ConversationFind({
       pendingStep.current = null;
       onCurrentChange(stepTo(current, count, direction));
     },
-    // Stryker disable next-line ArrayDeclaration: only count turns a pending step into a resolved one; current and onCurrentChange come from the same render as this count.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs only when count changes; current and onCurrentChange are read as of that same render
     [count],
   );
