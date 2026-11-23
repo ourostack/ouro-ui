@@ -396,8 +396,25 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
   const endsTitle = !withPreview && !withContext && !item.subtitle;
   const endsSubtitle = !withPreview && !withContext && !!item.subtitle;
   const hasMark = shown(item.mark);
+  const hasTime = shown(item.time);
+  // An activity row's context line is what happened; the time reads after it, not between the title and it, so
+  // the time moves to the row's last line along with the mark and the unread dot, instead of the title's.
+  const timeOnLastLine = withContext && hasTime;
+  const time = hasTime && (
+    <span
+      data-ouro-conversation-time=""
+      className={cn(
+        "shrink-0 text-xs tabular-nums transition-opacity duration-(--ouro-duration-fast) ease-[ease]",
+        hasMenu(item) && !timeOnLastLine && "pointer-fine:group-hover/row:opacity-0 pointer-fine:group-focus-within/row:opacity-0",
+        quiet,
+      )}
+    >
+      {item.time}
+    </span>
+  );
   const end = (
     <>
+      {timeOnLastLine && time}
       {hasMark && (
         // As tall as the line, so a badge that is a little taller leaves the row the height of the others.
         <span data-ouro-conversation-mark="" className={cn("flex h-ouro-5 shrink-0 items-center text-xs", quiet)}>
@@ -470,7 +487,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
               )}
               {item.badges}
             </span>
-            {(shown(item.time) || (endsTitle && (hasMark || item.unread)) || hasMenu(item)) && (
+            {((hasTime && !timeOnLastLine) || (endsTitle && (hasMark || item.unread)) || hasMenu(item)) && (
               // The time and what ends the title fade as one under the more button, which takes their place on a fine pointer
               // and sits beside them on a coarse one. The slot is reserved either way, so the row never changes size.
               <span
@@ -479,18 +496,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
                   hasMenu(item) && "pointer-fine:min-w-ouro-7 pointer-fine:justify-end pointer-coarse:me-ouro-9 [&>:not([data-ouro-conversation-time])]:order-first",
                 )}
               >
-                {shown(item.time) && (
-                  <span
-                    data-ouro-conversation-time=""
-                    className={cn(
-                      "shrink-0 text-xs tabular-nums transition-opacity duration-(--ouro-duration-fast) ease-[ease]",
-                      hasMenu(item) && "pointer-fine:group-hover/row:opacity-0 pointer-fine:group-focus-within/row:opacity-0",
-                      quiet,
-                    )}
-                  >
-                    {item.time}
-                  </span>
-                )}
+                {!timeOnLastLine && time}
                 {endsTitle && end}
               </span>
             )}
