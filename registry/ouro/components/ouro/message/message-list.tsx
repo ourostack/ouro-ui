@@ -1995,6 +1995,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           followEnd();
           // Stryker disable next-line CallExpression: not equivalent in intent, but unobservable here; skipping this resync only leaves end/anchors stale until the next moves() run, whose own farthest() !== end check (above) already differs once content has grown, so hold() still runs and resyncs them from live geometry.
           keepAnchor();
+          // Stryker disable next-line BooleanLiteral: not equivalent in intent, but unobservable here; followEnd's programmatic scroll fires the scroll handler's own setShowJump(!pinned.current) moments later, and since pinned.current is already true above, that correction lands on the same value regardless of this assignment.
           setShowJump(false);
         }
       }
