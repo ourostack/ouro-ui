@@ -137,6 +137,7 @@ function CallDemo(): JSX.Element {
   const go = useCallback((next: Stage, byApp: boolean) => {
     moved.current = byApp;
     setStage(next);
+    setStatus(next === "left" ? "You left the call" : "");
   }, []);
   useEffect(() => {
     if (stage !== "joining") return;
