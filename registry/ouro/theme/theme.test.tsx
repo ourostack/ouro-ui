@@ -222,11 +222,23 @@ describe("motion tokens", () => {
     expect(tailwind.transitionTimingFunction).toBe("cubic-bezier(0, 0, 0.2, 1)");
   });
 
-  it("defines the durations: press 160ms, fast 150ms, base 200ms, draw 240ms, slow 300ms, sheet 500ms", () => {
+  it("defines the durations: press 160ms, fast 150ms, base 200ms, draw 240ms, slow 300ms, sheet 500ms, bounce 650ms", () => {
     const durations = Object.fromEntries(
-      ["press", "fast", "base", "draw", "slow", "sheet"].map((name) => [name, root().getPropertyValue(`--ouro-duration-${name}`).trim()]),
+      ["press", "fast", "base", "draw", "slow", "sheet", "bounce"].map((name) => [name, root().getPropertyValue(`--ouro-duration-${name}`).trim()]),
     );
-    expect(durations).toEqual({ press: "160ms", fast: "150ms", base: "200ms", draw: "240ms", slow: "300ms", sheet: "500ms" });
+    expect(durations).toEqual({ press: "160ms", fast: "150ms", base: "200ms", draw: "240ms", slow: "300ms", sheet: "500ms", bounce: "650ms" });
+  });
+
+  it("defines --ouro-ease-bounce as a fixed curve, not read from Motion at runtime, bouncier than the retiring --ouro-ease-spring", () => {
+    // A damping 0.6, response 0.35s spring, sampled the same way --ouro-ease-spring was: a fixed
+    // linear() curve under the --ouro- prefix, a new easing rather than a revival of the spring
+    // tokens above it (no component, nor this test, calls the `motion` package for it).
+    const bounce = root().getPropertyValue("--ouro-ease-bounce").trim();
+    expect(bounce).toBe(
+      "linear(0, 0.1221, 0.3776, 0.6454, 0.8608, 1.002, 1.074, 1.0947, 1.0845, 1.0608, 1.0352, 1.0144, 1.0005, 0.9933, 0.991, 0.9919, 0.9941, 0.9965, 0.9985, 0.9999, 1.0006, 1)",
+    );
+    const peakOf = (curve: string) => Math.max(...curve.match(/-?[\d.]+/g)!.map(Number));
+    expect(peakOf(bounce)).toBeGreaterThan(peakOf(root().getPropertyValue("--ouro-ease-spring")));
   });
 });
 

@@ -1,0 +1,1 @@
+- New: [a fixed `--ouro-ease-bounce` easing curve and `--ouro-duration-bounce` (650ms)](registry/ouro/theme/ouro-base.css "verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-duration-bounce: 650ms/)"), for one thing that should feel bouncy, under the `--ouro-` prefix, not a revival of the retiring `--ouro-ease-spring`/`--ouro-spring-duration`.
