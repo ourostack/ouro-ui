@@ -424,7 +424,7 @@ export async function settle(): Promise<void> {
 }
 
 /** How long an overlay may take to open or close on a loaded CI runner. */
-const waitOptions = { timeout: 10_000, interval: 20 };
+export const waitOptions = { timeout: 10_000, interval: 20 };
 
 /** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, a list's popup, or a NavigationMenu panel). */
 export function openPopup(): HTMLElement | null {
