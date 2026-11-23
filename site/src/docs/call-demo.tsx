@@ -137,6 +137,12 @@ function CallDemo(): JSX.Element {
   const go = useCallback((next: Stage, byApp: boolean) => {
     moved.current = byApp;
     setStage(next);
+    setStatus(next === "left" ? "You left the call" : next === "call" && byApp ? "You joined the call" : "");
+    if (next === "left") {
+      setHandUp(false);
+      setPinned("");
+      setSharing(false);
+    }
   }, []);
   useEffect(() => {
     if (stage !== "joining") return;
@@ -369,27 +375,31 @@ function CallDemo(): JSX.Element {
   }
 
   return (
-    <div className="grid w-full gap-3" data-site-call-demo="">
-      <div className="grid gap-3 xl:grid-cols-2">
-        <SegmentedControl
-          label="State"
-          fullWidth
-          value={stage}
-          onValueChange={(value) => go(value as Stage, false)}
-          items={[
-            { value: "lobby", label: "Lobby" },
-            { value: "joining", label: "Join" },
-            { value: "call", label: "Call" },
-            { value: "waiting", label: "Alone" },
-            { value: "left", label: "Left" },
-          ]}
-        />
-        <SegmentedControl
-          label="Others in the call"
-          value={String(others)}
-          onValueChange={changeOthers}
-          items={[1, 2, 3, 4, 5, 6].map((count) => ({ value: String(count), label: String(count) }))}
-        />
+    <div className="grid w-full grid-cols-1 gap-3" data-site-call-demo="">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <div className="min-w-0">
+          <SegmentedControl
+            label="State"
+            fullWidth
+            value={stage}
+            onValueChange={(value) => go(value as Stage, false)}
+            items={[
+              { value: "lobby", label: "Lobby" },
+              { value: "joining", label: "Join" },
+              { value: "call", label: "Call" },
+              { value: "waiting", label: "Alone" },
+              { value: "left", label: "Left" },
+            ]}
+          />
+        </div>
+        <div className="min-w-0 overflow-x-auto">
+          <SegmentedControl
+            label="Others in the call"
+            value={String(others)}
+            onValueChange={changeOthers}
+            items={[1, 2, 3, 4, 5, 6].map((count) => ({ value: String(count), label: String(count) }))}
+          />
+        </div>
       </div>
       <div className="flex min-h-10 flex-wrap items-center gap-3 rounded-lg border border-border px-3 py-1.5">
         <span className="text-sm font-semibold">Design review</span>
