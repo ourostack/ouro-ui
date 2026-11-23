@@ -847,8 +847,8 @@ export function Composer(props: ComposerProps): JSX.Element {
             </div>
           </div>
         )}
-        {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. */}
-        <div ref={rowRef} data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end">
+        {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. At rest the padding makes the text row as tall as the actions' (the send button, lg, and its padding), so one line sits centred beside the icons; the actions stay at the bottom as the text grows. */}
+        <div ref={rowRef} data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end [--ouro-composer-action-h:calc(var(--spacing)*11)] [--ouro-composer-lh:1.5rem] [--ouro-composer-py:calc((var(--ouro-composer-action-h)+var(--spacing)*2-var(--ouro-composer-lh))/2)] [&_:is(textarea,[data-ouro-composer-editor],[data-ouro-composer-placeholder])]:[--ouro-text-area-py:var(--ouro-composer-py)] sm:[--ouro-composer-action-h:calc(var(--spacing)*9)] sm:pointer-fine:[--ouro-composer-lh:1.25rem]">
           {ActiveEditor ? (
             <ActiveEditor
               handleRef={richRef}
@@ -905,7 +905,7 @@ export function Composer(props: ComposerProps): JSX.Element {
             onPaste={paste}
             aria-describedby={describedBy}
             // Expanded, the text takes the whole width, and the buttons go on a row under it.
-            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:[--ouro-text-area-py:calc(var(--spacing)*3)] [&_textarea]:ps-3 [&_textarea]:pe-2", expanded && "w-full flex-auto")}
+            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:ps-3 [&_textarea]:pe-2", expanded && "w-full flex-auto")}
           />
           )}
           <div className="ms-auto flex shrink-0 items-center gap-0.5 p-1">
