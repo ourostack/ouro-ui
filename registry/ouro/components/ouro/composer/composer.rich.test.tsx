@@ -750,6 +750,28 @@ describe("Composer rich mode with a catalogue", () => {
     expect(field(editor).value).toBe(":nope:");
   });
 
+  it("leaves a non-string composition payload to Lexical's own handling", async () => {
+    const { editor } = await render(withCatalogue());
+    editor.focus();
+    const selection = getSelection()!;
+    const text = editor.querySelector("p")!;
+    selection.collapse(text, 0);
+    // A yanked selection hands the control the native event, not a string: Lexical's own
+    // insertFromYank/insertFromDrop/insertFromComposition/insertReplacementText paths all pass
+    // the raw InputEvent through, under the hood, same as this does.
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertFromYank", data: "ok", bubbles: true, cancelable: true })));
+    await expect.poll(() => field(editor).value).toBe("ok");
+  });
+
+  it("lets Lexical insert plain multi-character text with no emoji under the active format", async () => {
+    const handle = createRef<ComposerEditor>();
+    const { editor } = await render(withCatalogue({ editorRef: handle }));
+    editor.focus();
+    await act(async () => handle.current!.format("bold"));
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "hi", bubbles: true, cancelable: true })));
+    await expect.poll(() => editor.querySelector("strong")?.textContent).toBe("hi");
+  });
+
   it("puts an emoji the system inserts in as its token, drawn as the picture", async () => {
     const seen: string[] = [];
     const { editor } = await render(withCatalogue({ onValueChange: (value) => void seen.push(value) }));
