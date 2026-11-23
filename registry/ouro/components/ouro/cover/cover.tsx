@@ -10,7 +10,7 @@ export interface CoverOwnProps {
   /**
    * What the cover belongs to: "Lemon rice". Without a picture, its first letter is the tile's
    * mark. Required, so a tile without a picture still has a letter.
-   * @claim "its first letter is the tile's mark" registry/ouro/components/ouro/cover/cover.test.tsx verify:testExists(registry/ouro/components/ouro/cover/cover.test.tsx::Cover > draws the title's first letter in the heading font, in the primary toward the foreground, on a solid tint of the muted color toward the primary, without a picture)
+   * @claim "its first letter is the tile's mark" registry/ouro/components/ouro/cover/cover.test.tsx verify:testExists(registry/ouro/components/ouro/cover/cover.test.tsx::Cover > draws the title's first letter in the heading font, in the primary toward the foreground, on a wash from the muted color toward the primary, without a picture)
    */
   title: string;
   /**
