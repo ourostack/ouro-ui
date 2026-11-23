@@ -123,6 +123,16 @@ describe("ConversationFind", () => {
     expect(seen.steps).toEqual([0]);
   });
 
+  it("keeps a step pressed while the count is zero pending through another report that is still zero, until a real count lands it", async () => {
+    const { root } = await render(<Bar count={0} start={null} />);
+    await userEvent.keyboard("{Enter}");
+    expect(seen.steps).toEqual([]);
+    await act(async () => root.render(<Bar count={-0} start={null} />));
+    expect(seen.steps).toEqual([]);
+    await act(async () => root.render(<Bar count={4} start={null} />));
+    expect(seen.steps).toEqual([0]);
+  });
+
   it("drops a step pressed before a count arrives when the query changes first, instead of landing it on the new query's matches", async () => {
     const { root } = await render(<Bar count={0} start={null} query="zebra" />);
     await userEvent.keyboard("{Enter}");

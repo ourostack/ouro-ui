@@ -140,6 +140,7 @@ export function ConversationFind({
       const direction = pendingStep.current;
       pendingStep.current = null;
       const next = stepFrom(current, count, direction);
+      // Stryker disable next-line ConditionalExpression: stepFrom returns null only when count is 0, which the guard above has already ruled out here, so next is never null.
       if (next !== null) onCurrentChange(next);
     },
     // Stryker disable next-line ArrayDeclaration: only count turns a pending step into a resolved one; current and onCurrentChange come from the same render as this count.
