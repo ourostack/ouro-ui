@@ -6,7 +6,7 @@ import { latestRelease, upgrading } from "./release";
 import { demos } from "./docs/demos";
 import { followSystemScheme, THEME_KEY } from "./themes/prepaint";
 import { choiceList } from "./voyage/presets";
-import { finishReveal, storeTheme } from "./voyage/theme-store";
+import { finishReveal, previewTheme, storeTheme } from "./voyage/theme-store";
 import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
@@ -59,10 +59,11 @@ beforeEach(async () => {
   setScheme("light");
 });
 afterEach(async () => {
-  // A look still previewed would be painted back as the picker unmounts, onto the next test's page: the preview ends
-  // with the test.
-  document.documentElement.removeAttribute("data-preview-from");
+  // A look the mouse rests on is previewed: the preview ends with the test, putting the chosen look back, and the mouse
+  // leaves the page (as test/story-axe.ts's parkPointer does), so the next test's page does not render a look under it.
+  previewTheme(null);
   await cleanupPage();
+  await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
   setScheme("light");
 });
 
