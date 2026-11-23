@@ -1,0 +1,1 @@
+- Changed: New apps start on TypeScript 7 (the install test's Vite app is on 7.0.2); the code is type-checked on TypeScript 7.0.2, and still compiles on 5.9.3 and newer.
