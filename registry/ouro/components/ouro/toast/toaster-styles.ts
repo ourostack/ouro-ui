@@ -49,16 +49,16 @@ const viewportClass =
  * moves the toast with `translate`, which adds to this `transform` and is not in the
  * transition, so it follows the finger at once. A swiped toast (`data-ouro-swiped`)
  * fades on the way it was thrown; a toast closed any other way fades where it is, shrinking a
- * little, and the ones behind it glide into its place. Base UI drops a closing toast's `--toast-height`,
- * and the frontmost height too when it was the front, so the transform reads `--height` with a 0px
- * fallback: only the front toast loses both, and its share of the height is 0 anyway, where an
- * unset `--height` would make the whole transform invalid and the toast jump. With reduced motion nothing slides or
+ * little, and the ones behind it glide into its place. The transform reads `--height` with a fallback
+ * of no height, because Base UI drops a closing front toast's heights and an unset `--height` would void
+ * the whole transform; the front toast's own share of the stack's height is nothing to begin with. With reduced motion nothing slides or
  * springs: toasts fade in and out where they are.
  * A toast swipes away toward its edge (down at the bottom, up at the top) as well as sideways, so
  * it takes every touch gesture (`touch-none`, not `touch-pan-y`): otherwise a swipe on a
  * scrollable page scrolls the page, and the browser cancels the swipe.
  *
  * @internal
+ * @claim "The transform reads `--height` with a fallback of no height" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::swiping > fades a swiped toast on the way it was thrown, and a closed one where it is, shrinking a little)
  * @claim "a toast closed any other way fades where it is" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::swiping > fades a swiped toast on the way it was thrown, and a closed one where it is, shrinking a little)
  * @claim "A toast swipes away toward its edge" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
  * @claim "A toast swipes away toward its edge" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::the swipe follows the finger (rule 12) > goes back to rest when the browser cancels the touch, however far out it was)
