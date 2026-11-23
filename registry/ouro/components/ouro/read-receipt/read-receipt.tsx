@@ -1,9 +1,10 @@
 "use client";
 
-import type { HTMLAttributes, JSX, Ref } from "react";
+import { useEffect, useRef, type HTMLAttributes, type JSX, type Ref } from "react";
 import { Avatar, type AvatarMember } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { seenBy } from "@/registry/ouro/components/ouro/read-receipt/read-receipt-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -12,9 +13,9 @@ export interface ReadReceiptOwnProps {
   /**
    * Who has seen the message, not counting its writer, in the order they saw it. The first three show as small faces
    * (16px: their picture, or one initial in their own hue), overlapping, and a "+N" after them counts the rest. With
-   * nobody, it renders nothing.
+   * nobody, it shows no faces and holds the faces' height, so a reader's arrival does not move the messages above it.
    * @claim "The first three show as small faces" registry/ouro/components/ouro/read-receipt/read-receipt.test.tsx verify:testExists(registry/ouro/components/ouro/read-receipt/read-receipt.test.tsx::ReadReceipt > shows the first three readers as small faces, and counts the rest)
-   * @claim "With nobody, it renders nothing" registry/ouro/components/ouro/read-receipt/read-receipt.test.tsx verify:testExists(registry/ouro/components/ouro/read-receipt/read-receipt.test.tsx::ReadReceipt > renders nothing when nobody has seen it)
+   * @claim "holds the faces' height, so a reader's arrival does not move the messages above it" registry/ouro/components/ouro/read-receipt/read-receipt.test.tsx verify:testExists(registry/ouro/components/ouro/read-receipt/read-receipt.test.tsx::ReadReceipt > holds the faces' height with no faces and no words when nobody has seen it)
    */
   readers: readonly AvatarMember[];
   /**
@@ -83,7 +84,18 @@ export function ReadReceipt(props: ReadReceiptProps): JSX.Element | null {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  if (readers.length === 0) return null;
+  // Said once, when the first reader arrives while the receipt is mounted; later readers and a receipt that mounts
+  // already seen (a message drawn again) stay quiet.
+  const seen = readers.length > 0;
+  const wasSeen = useRef(seen);
+  // Stryker disable next-line ConditionalExpression,StringLiteral: the words are read only when seen, so the unseen branch is never observed.
+  const words = seen ? label(readers.map((reader) => reader.name)) : "";
+  useEffect(() => {
+    const before = wasSeen.current;
+    wasSeen.current = seen;
+    if (seen && !before) return announce(words);
+  }, [seen, words]);
+  if (readers.length === 0) return <span {...rest} data-ouro="read-receipt" data-slot="read-receipt-hold" aria-hidden="true" className={cn("block h-ouro-4", className)} />;
   const more = readers.length - 3;
   return (
     <span {...rest} data-ouro="read-receipt" className={cn("inline-flex items-center gap-1 text-[0.625rem] leading-none text-muted-foreground", className)}>

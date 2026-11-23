@@ -1,0 +1,1 @@
+- Fixed: the chat demo's thread rail shows the message it replies to, and its reply box has a placeholder.

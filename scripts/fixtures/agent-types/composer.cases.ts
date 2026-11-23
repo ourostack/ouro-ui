@@ -51,7 +51,14 @@ export const agentCases: AgentCase[] = [
     dev: '<Composer format="rich">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "composer08",
+    habit: "bytes or characters for the rich editor's offsets",
+    tsc: [notAssignable('"bytes"', `"text" | (string & { 'Use "text" (the default) or "markdown"': never; }) | "markdown" | undefined`)],
+    dev: '<Composer format="rich" offsets="markdown">',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid composer snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["composerOk01", "composerOk02", "composerOk03", "composerOk04", "composerOk05"];
+export const validSnippets: string[] = ["composerOk01", "composerOk02", "composerOk03", "composerOk04", "composerOk05", "composerOk06"];

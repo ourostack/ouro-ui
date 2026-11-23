@@ -1,11 +1,11 @@
 {
-  "schema": 1,
+  "schema": 3,
   "generatedAt": "2026-11-14T21:11:18.683Z",
   "summary": {
-    "total": 19,
+    "total": 21,
     "confirmed": 0,
-    "listed": 20,
-    "unmeasuredCells": 21,
+    "listed": 22,
+    "unmeasuredCells": 52,
     "releasesBehind": 134,
     "late": [
       {
@@ -20,20 +20,22 @@
       "factory",
       "app-shell",
       "harness",
+      "butler",
       "desk-browser",
       "desk",
       "drift-remote",
+      "shepherd",
       "friends",
       "ouro-work-substrate",
       "spoonjoy-web",
       "ouro-ui",
-      "mendelow-me",
       "ouro-md",
       "spoonjoy-apple",
+      "mendelow-me",
       "gatefold",
+      "housesitter",
       "apple-distribution-kit",
       "flow-review",
-      "housesitter",
       "m365crawl"
     ]
   },
@@ -499,6 +501,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:04:15.225Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/spoonjoy/spoonjoy-v2/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -610,8 +618,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -623,7 +635,7 @@
           "met": true
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -669,6 +681,12 @@
           "note": "The one-action model is not released yet, so no product has actions on it.",
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:05:07.450Z"
+        },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/spoonjoy/spoonjoy-apple/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "xray": {
           "value": {
@@ -742,8 +760,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -801,6 +823,12 @@
           "note": "The one-action model is not released yet, so no product has actions on it.",
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:05:50.348Z"
+        },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/ouro-md/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "xray": {
           "value": {
@@ -944,8 +972,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -992,6 +1024,12 @@
           "note": "The one-action model is not released yet, so no product has actions on it.",
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:06:35.647Z"
+        },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/gatefold/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "xray": {
           "value": {
@@ -1093,8 +1131,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1142,6 +1184,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:07:07.661Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/ouroboros/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -1182,8 +1230,96 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
+          "met": false
+        },
+        "must": {
+          "label": "AX must claims pass in CI",
+          "met": false
+        },
+        "gaveBack": {
+          "label": "Has given back",
+          "met": false
+        }
+      },
+      "met": 0,
+      "confirmed": false
+    },
+    {
+      "id": "shepherd",
+      "name": "Shepherd",
+      "kind": "terminal UI",
+      "repo": "ourostack/ouroboros",
+      "url": "https://github.com/ourostack/ouroboros",
+      "inScope": true,
+      "scopeNote": null,
+      "cells": {
+        "pins": {
+          "value": null,
+          "note": "not measured: Shepherd was added to the ledger after this snapshot",
+          "source": null,
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
+        "hx": {
+          "value": null,
+          "note": "n/a: A terminal UI inside the harness; its Ouro UI pins are the harness's.",
+          "source": "https://github.com/search?q=components%2Fouro%2F%20repo%3Aourostack%2Fouroboros&type=code",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
+        "ax": {
+          "value": "no",
+          "note": "Shepherd's agent doors are counted by the harness census, under its own product.",
+          "source": "https://github.com/ourostack/ouroboros",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
+        "actions": {
+          "value": null,
+          "note": "not measured: Shepherd was added to the ledger after this snapshot",
+          "source": "https://github.com/ourostack/ouro-ui/issues/1011",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/ouroboros/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
+        "xray": {
+          "value": null,
+          "note": "not measured: Shepherd was added to the ledger after this snapshot",
+          "source": "https://github.com/ourostack/ouroboros/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
+        "giveBack": {
+          "value": null,
+          "note": "not measured: Shepherd was added to the ledger after this snapshot",
+          "source": "https://github.com/search?q=ourostack%2Fouroboros%20is%3Apr%20is%3Amerged%20repo%3Aourostack%2Fouro-ui%20repo%3Aourostack%2Fouro-ui-core%20repo%3Aourostack%2Fouro-ui-apple&type=pullrequests",
+          "measuredAt": "2026-11-14T21:11:18.683Z",
+          "prs": []
+        },
+        "tracking": {
+          "value": [],
+          "note": "No tracking issue yet: this product has no card.",
+          "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        }
+      },
+      "conditions": {
+        "current": {
+          "label": "On current Ouro UI",
+          "met": false
+        },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1242,6 +1378,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:07:27.988Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/desk/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -1275,8 +1417,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1288,7 +1434,7 @@
           "met": false
         }
       },
-      "met": 0,
+      "met": 1,
       "confirmed": false
     },
     {
@@ -1324,6 +1470,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:07:28.001Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/desk/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -1349,8 +1501,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1362,7 +1518,7 @@
           "met": false
         }
       },
-      "met": 0,
+      "met": 1,
       "confirmed": false
     },
     {
@@ -1398,6 +1554,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:07:39.455Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/factory/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -1431,8 +1593,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1491,6 +1657,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:07:52.320Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/ouroboros-website/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -1524,8 +1696,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1583,6 +1759,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:08:06.686Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/arimendelow/mendelow.me/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -1630,8 +1812,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1689,6 +1875,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:08:37.542Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/ouro-ui/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -1729,8 +1921,12 @@
           "label": "On current Ouro UI",
           "met": true
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1742,7 +1938,7 @@
           "met": false
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -1777,6 +1973,12 @@
           "note": "The one-action model is not released yet, so no product has actions on it.",
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:08:57.536Z"
+        },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/housesitter/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "xray": {
           "value": null,
@@ -1819,8 +2021,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1832,7 +2038,7 @@
           "met": true
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -1867,6 +2073,12 @@
           "note": "The one-action model is not released yet, so no product has actions on it.",
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:09:16.773Z"
+        },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/m365crawl/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "xray": {
           "value": null,
@@ -1909,8 +2121,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1922,7 +2138,7 @@
           "met": true
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -1958,6 +2174,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:09:41.535Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/friends/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -1983,8 +2205,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -1996,7 +2222,7 @@
           "met": false
         }
       },
-      "met": 0,
+      "met": 1,
       "confirmed": false
     },
     {
@@ -2031,6 +2257,12 @@
           "note": "The one-action model is not released yet, so no product has actions on it.",
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:09:57.561Z"
+        },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/flow-review/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "xray": {
           "value": null,
@@ -2093,8 +2325,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -2106,7 +2342,7 @@
           "met": true
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -2141,6 +2377,12 @@
           "note": "The one-action model is not released yet, so no product has actions on it.",
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:10:16.049Z"
+        },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/apple-distribution-kit/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
         },
         "xray": {
           "value": null,
@@ -2182,8 +2424,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -2195,7 +2441,7 @@
           "met": true
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -2231,6 +2477,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:10:35.670Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/ouro-work-substrate/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -2256,8 +2508,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -2269,7 +2525,7 @@
           "met": false
         }
       },
-      "met": 0,
+      "met": 1,
       "confirmed": false
     },
     {
@@ -2305,6 +2561,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:10:35.688Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: the repository is private, so a public run cannot read it",
+          "source": null,
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: the repository is private, so a public run cannot read it",
@@ -2330,8 +2592,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -2379,6 +2645,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:11:15.715Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/ouro-native-apple-app-shell/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -2404,8 +2676,12 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {
@@ -2453,6 +2729,12 @@
           "source": "https://github.com/ourostack/ouro-ui/issues/1011",
           "measuredAt": "2026-11-14T21:11:15.732Z"
         },
+        "census": {
+          "value": null,
+          "note": "not measured: no Ouro AX census runs in CI for this product yet",
+          "source": "https://github.com/ourostack/hackamore/actions",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
         "xray": {
           "value": null,
           "note": "not measured: no X-ray runs in CI for this product yet",
@@ -2478,8 +2760,96 @@
           "label": "On current Ouro UI",
           "met": false
         },
-        "oneAction": {
-          "label": "Actions on the one-action model",
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
+        "census": {
+          "label": "Census at zero",
+          "met": false
+        },
+        "must": {
+          "label": "AX must claims pass in CI",
+          "met": false
+        },
+        "gaveBack": {
+          "label": "Has given back",
+          "met": false
+        }
+      },
+      "met": 1,
+      "confirmed": false
+    },
+    {
+      "id": "butler",
+      "name": "Butler",
+      "kind": "agent and CLIs",
+      "repo": null,
+      "url": null,
+      "inScope": true,
+      "scopeNote": "A private repository, so the public ledger can't read it yet. It is counted, so Confirmed can't skip it, and stays unmeasured until its CI publishes a census summary the ledger can read.",
+      "cells": {
+        "pins": {
+          "value": null,
+          "note": "not measured: the repository is private, so a public run cannot read it",
+          "source": null,
+          "measuredAt": "2026-11-14T21:10:35.676Z"
+        },
+        "hx": {
+          "value": null,
+          "note": "not measured: the repository is private, so a public run cannot read it",
+          "source": null,
+          "measuredAt": "2026-11-14T21:10:35.676Z"
+        },
+        "ax": {
+          "value": null,
+          "note": "not measured: the repository is private, so a public run cannot read it",
+          "source": null,
+          "measuredAt": "2026-11-14T21:10:35.676Z"
+        },
+        "actions": {
+          "value": null,
+          "note": "not measured: the repository is private, so a public run cannot read it",
+          "source": null,
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
+        "census": {
+          "value": null,
+          "note": "not measured: the repository is private, so a public run cannot read it",
+          "source": null,
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        },
+        "xray": {
+          "value": null,
+          "note": "not measured: the repository is private, so a public run cannot read it",
+          "source": null,
+          "measuredAt": "2026-11-14T21:10:35.676Z"
+        },
+        "giveBack": {
+          "value": null,
+          "note": "not measured: the Butler was added to the ledger after this snapshot",
+          "source": null,
+          "measuredAt": "2026-11-14T21:11:18.683Z",
+          "prs": []
+        },
+        "tracking": {
+          "value": [],
+          "note": "No tracking issue yet: this product has no card.",
+          "source": "https://github.com/ourostack/ouro-ui/issues?q=label%3Aadoption",
+          "measuredAt": "2026-11-14T21:11:18.683Z"
+        }
+      },
+      "conditions": {
+        "current": {
+          "label": "On current Ouro UI",
+          "met": false
+        },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
+        "census": {
+          "label": "Census at zero",
           "met": false
         },
         "must": {

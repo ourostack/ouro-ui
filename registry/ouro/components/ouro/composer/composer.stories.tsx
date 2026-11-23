@@ -504,3 +504,29 @@ export const Rich: Story = {
     while (!canvasElement.querySelector("[data-ouro-composer-editor]")) await new Promise((resolve) => requestAnimationFrame(resolve));
   },
 };
+
+/**
+ * `format="rich"` inside `Autocomplete`: type `@` and a name for a mention, or `:` and two letters
+ * for an emoji. The editor answers as a textarea does, so the same list works as on the plain box.
+ */
+export const RichMentions: Story = {
+  render: () => (
+    <Surface>
+      <Autocomplete
+        triggers={[
+          {
+            char: "@",
+            label: "People",
+            items: (query) => [{ value: "avery", label: "Avery Kim" }, { value: "jordan", label: "Jordan Lee" }].filter((item) => item.label.toLowerCase().includes(query.toLowerCase())),
+          },
+          { char: ":", label: "Emoji", minQueryLength: 2, items: (query) => [{ value: "tada", label: "Party popper", glyph: "🎉", insert: ":tada:" }].filter((item) => item.value.startsWith(query)) },
+        ]}
+      >
+        <Composer label="Message the team" format="rich" placeholder="Type @ for people, : for emoji" onSend={() => {}} />
+      </Autocomplete>
+    </Surface>
+  ),
+  play: async ({ canvasElement }) => {
+    while (!canvasElement.querySelector("[data-ouro-composer-editor]")) await new Promise((resolve) => requestAnimationFrame(resolve));
+  },
+};

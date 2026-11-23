@@ -365,7 +365,7 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
     [["--env", "X"], /--env: takes K=V, not "X"\. Fix: ax-xray --env NAME=value\.\n$/],
     [["--width", "0", "--cli", "x"], /--width: takes a positive number, not "0"/],
     [["--http", "http://x"], /--http: needs --routes/],
-    [[], /check: nothing to check/],
+    [[], /check: nothing to check\. Fix: give --cli, --http, --mcp or --tools/],
     [["--cli", "x", "--conformance"], /--conformance: needs --inventory/],
   ] as [string[], RegExp][]) {
     const d = io();
@@ -403,7 +403,7 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
 test("the kit answers help, an unknown flag is one line with its fix, and repeat flags keep every value", async () => {
   const h = io();
   assert.equal(await main(["help"], h.io), 0);
-  assert.match(h.o.out, /^ax-xray 1\.7\.0: checks an agent-facing interface/);
+  assert.match(h.o.out, new RegExp(`^ax-xray ${XRAY_VERSION.replaceAll(".", "\\.")}: checks an agent-facing interface`));
   assert.match(h.o.out, /--env K=V\.\.\./);
   const u = io();
   assert.equal(await main(["--cli", "x", "--jsn", "--json"], u.io), 2);
@@ -519,6 +519,50 @@ test("MCP servers that refuse to start, list no tools, or have tools without a d
   assert.equal(loose.results.find((r) => r.claim === "mcp.unknown-tool")!.note, "ran: (no text)");
   assert.equal(loose.results.find((r) => r.claim === "mcp.bad-call-teaches")!.note, "ran: (no text)");
   assert.match(renderHtml(loose), /AX X-ray: MCP server/);
+});
+
+test("in-turn tools: function definitions, a declared effect, a when line, a confirm question, bad calls refused with a typed outcome, an unknown tool, the inventory", async () => {
+  const inventory = join(scratch, "tools-inventory.json");
+  writeFileSync(inventory, JSON.stringify({ tools: ["read_note", "send_note", "poke", "gone"] }));
+  const report = await xray(base({ tools: fixture("turn-tools.mjs"), inventory }));
+  const by = (claim: string) => report.results.filter((r) => r.claim === claim).map((r) => [r.surface, r.verdict]);
+  assert.equal(report.target.tools?.tools, 4);
+  assert.deepEqual(by("tools.listed"), [["read_note", "pass"], ["send_note", "pass"], ["poke", "pass"], ["wave", "pass"]]);
+  assert.deepEqual(by("tools.effect-declared"), [["read_note", "pass"], ["send_note", "pass"], ["poke", "fail"], ["wave", "pass"]]);
+  assert.deepEqual(by("tools.when-line"), [["read_note", "pass"], ["send_note", "pass"], ["poke", "pass"], ["wave", "pass"]]);
+  assert.deepEqual(by("tools.consequential-confirms"), [["send_note", "pass"], ["wave", "fail"]]);
+  assert.deepEqual(by("tools.bad-call-teaches"), [["read_note", "pass"], ["send_note", "pass"], ["poke", "fail"], ["wave", "fail"]]);
+  assert.deepEqual(by("tools.typed-outcome"), [["read_note", "pass"], ["send_note", "pass"], ["poke", "pass"], ["wave", "fail"], ["ax_xray_no_such_tool", "pass"]]);
+  assert.deepEqual(by("tools.unknown-tool"), [["ax_xray_no_such_tool", "pass"]]);
+  assert.deepEqual(by("tools.inventory"), [["gone", "fail"], ["wave", "fail"]]);
+  assert.match(report.results.find((r) => r.claim === "tools.effect-declared" && r.surface === "poke")!.note, /no ax\.effect/);
+  assert.match(report.results.find((r) => r.claim === "tools.typed-outcome" && r.surface === "wave")!.note, /not an outcome/);
+  assert.equal(holds(report, "tools.effect-declared"), false);
+  assert.deepEqual(report.inventory.surfaces, ["tools"]);
+  assert.match(renderMarkdown(report), /in-turn tools \(4 tools\)/);
+  assert.match(renderHtml(report), /AX X-ray: in-turn tools/);
+  // Without proof of a mock, only the reads are called with a bad call.
+  const unsafe = await xray(base({ tools: fixture("turn-tools.mjs"), mock: undefined }));
+  assert.deepEqual(unsafe.results.filter((r) => r.claim === "tools.bad-call-teaches").map((r) => r.verdict), ["pass", "skip", "skip", "skip"]);
+  assert.deepEqual(unsafe.results.filter((r) => r.claim === "tools.typed-outcome").map((r) => r.surface), ["read_note", "ax_xray_no_such_tool"]);
+});
+
+test("in-turn tools servers that list no tools, answer an error, or serve loose definitions and codes no card lists", async () => {
+  const notools = await xray(base({ tools: fixture("turn-tools.mjs"), env: { TOOLS_MODE: "notools" } }));
+  assert.deepEqual(notools.results.map((r) => [r.claim, r.verdict, r.note]), [["tools.listed", "fail", "no tools array"]]);
+  assert.equal(notools.target.tools?.tools, 0);
+  const error = await xray(base({ tools: fixture("turn-tools.mjs"), env: { TOOLS_MODE: "error" } }));
+  assert.match(error.results[0]!.note, /the tool registry did not load/);
+  const loose = await xray(base({ tools: fixture("turn-tools.mjs"), env: { TOOLS_MODE: "loose" } }));
+  const notes = (claim: string) => loose.results.filter((r) => r.claim === claim).map((r) => [r.surface, r.note]);
+  assert.deepEqual(notes("tools.listed"), [["bare", "missing description"], ["flat", "not a function definition: { type: \"function\", function: { name, description, parameters } }"], ["nameless", "missing parameters"], ["free", "No arguments."], ["coy", "Refuses saying nothing."], ["boom", "Answers a JSON-RPC error."]]);
+  assert.deepEqual(notes("tools.effect-declared").map(([, n]) => n), ["read", "no ax.effect (read, write, consequential or person-only): \"maybe\"", "no ax.effect (read, write, consequential or person-only)", "no ax.effect (read, write, consequential or person-only)", "read", "read"]);
+  assert.deepEqual(notes("tools.when-line").map(([, n]) => n), ["no ax.when", "Never.", "no ax.when", "no ax.when", "Never.", "Never."]);
+  assert.deepEqual(notes("tools.typed-outcome"), [["bare", "refused with code not_on_the_card, which no error card lists (listed: none)"], ["coy", "refused with no code"], ["boom", 'not an outcome { state, text, code? }: {"code":-32602,"message":"boom needs z"}'], ["ax_xray_no_such_tool", "not an outcome { state, text, code? }: null"]]);
+  assert.deepEqual(notes("tools.bad-call-teaches"), [["bare", "refused: bare needs x"], ["coy", "refused: (no text)"], ["boom", 'refused: {"code":-32602,"message":"boom needs z"}']]);
+  assert.equal(loose.results.find((r) => r.claim === "tools.unknown-tool")!.note, "ran: null");
+  const dead = await xray(base({ tools: "node -e process.exit(0)", timeoutMs: 300 }));
+  assert.match(dead.results[0]!.note, /no answer to tools\/list/);
 });
 
 test("a mock check that answers text, a key path through a value that is not an object, and the command's last flags", async () => {
@@ -834,6 +878,21 @@ test("the optional words come last and are bracketed, and each default is the sc
   assert.deepEqual(refused(["tasks [<status>]"], { properties: { status: { type: "string", enum: ["open", "closed"], default: "open" } } }), ["tasks: the usage line does not show <status>'s default. Fix: write [<status>=open]."]);
   assert.deepEqual(refused(["tasks [<status>=closed]"], { properties: { status: { type: "string", default: "open" } } }), ["tasks: the usage line does not show <status>'s default. Fix: write [<status>=open]."]);
   assert.deepEqual(refused(["tasks [<status>=open]"], { properties: { status: { type: "string" } } }), ['tasks: the usage line shows a default for <status>, which its schema does not give. Fix: give "status" a "default" in its schema, or leave it out of usage.']);
+});
+
+test("an optional word stays bare where another form of the command leaves it out, and fails where no form does", () => {
+  const command = (name: string, usage: string[], inputSchema: unknown) => wordProblems({ name, protocol: false, words: [name], effect: "private", readOnly: true, usage, scope: null, inputSchema });
+  const place = { type: "string" };
+  const message = { type: "string" };
+  // A `| --flag` alternative in the same usage line: --clear is how quote is given without <message>.
+  assert.deepEqual(command("quote", ["quote <place> <message> | --clear"], { properties: { place, message }, required: ["place"] }), { words: 2, problems: [] });
+  // The same words with no alternative: <message> is still shown bare, so it still needs brackets.
+  assert.deepEqual(command("quote", ["quote <place> <message>"], { properties: { place, message }, required: ["place"] }).problems, ["quote: <message> is optional, but its usage shows it bare. Fix: write [<message>]."]);
+  // A separate usage line for the same command that omits the word: mark-read --all marks every place read, with no <place>.
+  assert.deepEqual(command("mark-read", ["mark-read <place>", "mark-read --all"], { properties: { place }, required: [] }), { words: 1, problems: [] });
+  // A declared replacing flag: --file <path> is given in note's schema as what makes <text> not needed.
+  const text = { type: "string", description: "The note's words. Not needed with file." };
+  assert.deepEqual(command("note", ["note <meeting> <text> [--file <path>]"], { properties: { meeting: place, text }, required: ["meeting"] }), { words: 2, problems: [] });
 });
 
 test("the optional-words check fails a CLI whose help puts an optional word first and types a default wrong, naming the fix", async () => {

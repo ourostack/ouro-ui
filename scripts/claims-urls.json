@@ -335,6 +335,10 @@
     "status": 200,
     "checked": "2026-11-19"
   },
+  "https://github.com/ourostack/ouro-ui-apple/blob/047191400b64c4a1149b76787507b7b93db9071e/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
   "https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/PROTOCOL.md": {
     "status": 200,
     "checked": "2026-11-18"
@@ -342,6 +346,10 @@
   "https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/README.md": {
     "status": 200,
     "checked": "2026-11-08"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/29d041d01bbba2088fb8990a42d617bb31745eaa/README.md#whats-in-the-box": {
+    "status": 200,
+    "checked": "2026-11-23"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L11-L13": {
     "status": 200,
@@ -386,10 +394,6 @@
   "https://github.com/ourostack/ouro-ui-apple/blob/8a01ed114ffbd85ff8ae37e8d8c0dc8a717d5e86/core-provenance.json": {
     "status": 200,
     "checked": "2026-11-20"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/947ab16fbffc0ad6f56a3f1d39898b2cbc29b531/core-provenance.json": {
-    "status": 200,
-    "checked": "2026-11-22"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml": {
     "status": 200,
@@ -451,10 +455,6 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/d8d336c19d3bc8216571d3163c596532130cc130/README.md#whats-in-the-box": {
-    "status": 200,
-    "checked": "2026-11-19"
-  },
   "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md": {
     "status": 200,
     "checked": "2026-11-18"
@@ -479,6 +479,10 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.0": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
   "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.2.0": {
     "status": 200,
     "checked": "2026-11-18"
@@ -491,7 +495,11 @@
     "status": 200,
     "checked": "2026-11-21"
   },
-  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.8.0": {
+  "https://github.com/ourostack/ouro-ui-core/blob/16698c8ec52c6c597d21dae566beecfb3dccfb93/parity.json": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/16698c8ec52c6c597d21dae566beecfb3dccfb93/src/chat-approval.mts": {
     "status": 200,
     "checked": "2026-11-22"
   },
@@ -506,10 +514,6 @@
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json": {
     "status": 200,
     "checked": "2026-11-18"
-  },
-  "https://github.com/ourostack/ouro-ui-core/blob/28f403ed02d04af3b2dd05672370765057d5cffb/parity.json": {
-    "status": 200,
-    "checked": "2026-11-22"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/2e8069b82fbcf88ae7fa01f7c409af5c4ae2a5a5/docs/decisions/2026-11-17-composed-fields.md": {
     "status": 200,
@@ -651,9 +655,9 @@
     "status": 200,
     "checked": "2026-11-19"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v1.9.0": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v1.12.0": {
     "status": 200,
-    "checked": "2026-11-22"
+    "checked": "2026-11-23"
   },
   "https://github.com/ourostack/ouro-ui-windows/blob/076c29cb1e582ddb902a08cb832aa5a21c65ee3b/src/Ouro.Actions/MessageBoxConfirm.cs": {
     "status": 200,
@@ -875,7 +879,7 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.434": {
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.444": {
     "status": 200,
     "checked": "2026-11-22"
   },
@@ -898,6 +902,66 @@
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.88": {
     "status": 200,
     "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/heart/approval-store.ts#L36-L68": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/heart/session-events.ts#L151": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/heart/tool-approval.ts#L405-L439": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/heart/tool-approval.ts#L441-L445": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/heart/tool-friction.ts#L36-L55": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/heart/tool-output-budget.ts#L3-L6": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/heart/tool-output-budget.ts#L39": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/repertoire/deferred-tools.ts#L13": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/repertoire/deferred-tools.ts#L20-L27": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/repertoire/deferred-tools.ts#L51-L74": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/repertoire/tool-error-code.ts#L9-L11": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/repertoire/tool-results.ts#L23-L29": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/repertoire/tools-base.ts#L218-L226": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/blob/9969ef6168c6d36eee8473ee91a5dce76e42a568/src/repertoire/tools.ts#L432-L441": {
+    "status": 200,
+    "checked": "2026-11-22"
+  },
+  "https://github.com/ourostack/ouroboros/commit/9969ef6168c6d36eee8473ee91a5dce76e42a568": {
+    "status": 200,
+    "checked": "2026-11-22"
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/apps/v4/registry/bases/base/ui/dialog.tsx#L33-L53": {
     "status": 200,

@@ -34,10 +34,16 @@ const prefix = "ourostack/ouro-ui/";
 // CSS ceilings lowered 2026-11-20 once Card's backdrop styles itself inline (#2643), so an app compiles none of it unless a
 // card has a backdrop: measured with and without the change over the same main, settings-page's CSS fell 158 bytes and
 // dashboard-page's 200.
+// settings-page's JavaScript ceiling raised 2026-11-23 (#3151): many small, already-merged fixes each grew it a little
+// since the 2026-11-20 baseline (Card's backdrop, disabledReason's tooltip, and forced-colours edges for Button, Dialog,
+// Field, Menu, Select, SegmentedControl, Switch, Tooltip and TextField among others), so no one of them alone crossed its
+// own pull request's budget; #3107 (cfc87eaf5), the plain Button and Popover forced-colours fix, was the commit whose
+// small addition tipped the running total over the ceiling. Measured by CI over main at cfc87eaf5 (main's run 45146865070,
+// scripts 2/2): 105,063 bytes of JavaScript, 13,990 of CSS (CSS stays under its own ceiling, so only JavaScript moves).
 export const CEILINGS = {
   "dashboard-page": { js: 85_369 + 1024, css: 10_598 + 512 },
   "list-detail-page": { js: 85_796 + 1024, css: 9_731 + 512 },
-  "settings-page": { js: 104_027 + 1024, css: 13_737 + 512 },
+  "settings-page": { js: 105_063 + 1024, css: 13_737 + 512 },
 };
 
 /**

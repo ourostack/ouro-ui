@@ -916,6 +916,45 @@ describe("MessageList", () => {
     }
   });
 
+  it("keeps a burst of short gaps turning through one gap past the bound, so a page it slowed draws late without paying mid-wheel (ourostack/ouro-ui#2830)", async () => {
+    const items = history(200);
+    const { scroller, rerender } = await render(<Found items={items} windowing={false} />);
+    await settle(scroller);
+    scroller.scrollTop = 3000;
+    await settle(scroller);
+    const top = scroller.scrollTop;
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const clock = vi.spyOn(performance, "now");
+    const turn = (at: number) => {
+      clock.mockReturnValue(at);
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 40, bubbles: true }));
+    };
+    // A later frame, for real, so a check right after does not pass only because it ran in the frame the last wheel event did.
+    const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+    try {
+      // A burst of short gaps, as a fast wheel hands them over, so the bound's extension (twice the gap) is already in place.
+      turn(1000);
+      turn(1020);
+      turn(1040);
+      // One gap past the bound: the page itself drew this event late, slowed as 2830's evidence shows, not a reader who stopped.
+      turn(1400);
+      await frame();
+      // The page draws 100 ms after that event, as slow as the evidence on 2830: within the burst's extended bound, not past the
+      // bare rest, so what the draw moves stays carried, not paid mid-wheel against it.
+      clock.mockReturnValue(1500);
+      await rerender(<Found items={[...history(20, -20), ...items]} windowing={false} />);
+      expect(content.style.translate).not.toBe("");
+      expect(scroller.scrollTop).toBe(top);
+      // The wheel rests, well past even the extended bound: the carried page pays in one move.
+      clock.mockReturnValue(1500 + 1000);
+      await expect.poll(() => content.style.translate).toBe("");
+    } finally {
+      clock.mockRestore();
+    }
+    await settle(scroller);
+    expect(scroller.scrollTop).toBeGreaterThan(top);
+  });
+
   it("puts a few older messages in at once", async () => {
     const items = history(30, 20);
     const { scroller, rerender } = await render(<Found windowing={false} items={items} />);
@@ -934,6 +973,44 @@ describe("MessageList", () => {
     });
     // Not for a frame either: the list is at its end as it is now, though not as it was.
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("keeps the space held above the floor while a hidden pane is shown nothing, until it settles once shown again", async () => {
+    function Wrap({ items, hidden }: { items: Item[]; hidden: boolean }) {
+      return (
+        <div style={{ display: hidden ? "none" : "block" }}>
+          <Chat items={items} />
+        </div>
+      );
+    }
+    const items = history(20, 10);
+    const { host, scroller, rerender } = await render(<Wrap items={items} hidden={false} />);
+    await settle(scroller);
+    const floorMark = host.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;
+    expect(floorMark.style.display).toBe("block");
+    await rerender(<Wrap items={items} hidden={true} />);
+    expect(floorMark.style.display).toBe("block");
+  });
+
+  it("reaches the true end, with no Jump to latest, once an app shows the list again after a message arrived while it was display: none", async () => {
+    // A pane an app puts away behind something else (a thread open over a narrow conversation) hides the list with
+    // display: none, under which the scroller reads all zeros: a message arriving then must not be lost once it shows again.
+    function Wrap({ items, hidden }: { items: Item[]; hidden: boolean }) {
+      return (
+        <div style={{ display: hidden ? "none" : "block" }}>
+          <Chat items={items} />
+        </div>
+      );
+    }
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Wrap items={items} hidden={false} />);
+    await settle(scroller);
+    await rerender(<Wrap items={items} hidden={true} />);
+    await rerender(<Wrap items={[...items, { id: 999, role: "assistant", text: "A mention arrives" }]} hidden={true} />);
+    await rerender(<Wrap items={[...items, { id: 999, role: "assistant", text: "A mention arrives" }]} hidden={false} />);
     await settle(scroller);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();

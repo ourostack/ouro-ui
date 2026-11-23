@@ -241,7 +241,10 @@ export interface MessageListOwnProps {
    * drawn counts as well as one that is. Highlights are the CSS Custom Highlight API's, so the text stays as it is and links
    * keep working; where the browser lacks the API matches are counted but not drawn. Their colours follow the theme, in
    * light, dark and forced colours. The current match scrolls into view when it changes, gently unless motion is reduced,
-   * and focus stays where it is, so a find box keeps the keys. Counts come back through `onFindMatches`.
+   * and focus stays where it is, so a find box keeps the keys. Counts come back through `onFindMatches`. A current match in a
+   * message the window has not drawn is drawn and scrolled to, and `onFindMatches` reports `partial` while older history that
+   * has not loaded may hold more matches, so the app can load it.
+   * @claim "is drawn and scrolled to" registry/ouro/components/ouro/message/message-list.find-reveal.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.find-reveal.test.tsx::MessageList find in a windowed list > draws a match that is not drawn, scrolls it into view and highlights it as the current one)
    * @example
    * <MessageList label="Chat" find={{ query, current }} onFindMatches={({ count }) => setCount(count)}>{messages}</MessageList>
    */
@@ -1585,6 +1588,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // messages drawn a row a frame would add up, and the reader's place would creep.
     let owed = 0;
     const keepAnchor = () => {
+      // Hidden by an app around it (a pane put away behind an open thread), the scroller reads all zeros: reading it now
+      // would make the list think it sits at the top, and a message that arrives meanwhile would be lost once it shows
+      // again. Left alone, what was taken before it was hidden is still good once it is shown and the resize observer runs.
+      if (!laidOut(scroller)) return;
       const view = scroller.getBoundingClientRect();
       // Finds the anchors among the nodes, in the order they come in the page.
       const find = (nodes: readonly Element[]) => {
@@ -1671,6 +1678,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       end += farthest() - range;
     };
     const followEnd = () => {
+      // As in keepAnchor: hidden, the scroller's height and scroll range both read zero, so scrolling it "to the end" now
+      // would scroll it to the top instead, and it would stay there once shown again.
+      if (!laidOut(scroller)) return;
       const height = content.offsetHeight;
       setFloor(height > scroller.clientHeight ? height : 0);
       toBottom();
@@ -1744,8 +1754,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // by drawing the content that far up or down instead, a `translate` the wheel's own scroll never meets, and the scroll
     // position takes it in one move once the wheel rests, or as the reader nears an end, so what went in above is always in reach.
     let wheelAt = Number.NEGATIVE_INFINITY;
-    // The gap before the wheel's last event, when it was short (under WHEEL_GAP). A page drawing slowly hands the wheel's events over a
-    // frame or more apart, so the wheel counts as still turning for twice that gap, not only the rest.
+    // The gap before the wheel's last event, capped at WHEEL_GAP once a burst of short gaps has begun. A page drawing slowly hands
+    // the wheel's events over a frame or more apart, so the wheel counts as still turning for twice that gap, not only the rest.
     let wheelGap = 0;
     // The frame the wheel last turned in. Where a frame takes longer than the rest (a slow machine drawing much), the wheel's next
     // events wait behind it, so the wheel turns until the time has passed and a later frame has begun.
@@ -1865,7 +1875,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       heading = Math.sign(event.deltaY) || heading;
       const now = performance.now();
       const gap = now - wheelAt;
-      wheelGap = gap < WHEEL_GAP ? gap : 0;
+      // A gap at the bound or past it either starts a new turn (nothing short came before it, so there is no burst to extend) or is
+      // itself the frame a loaded page drew slowly in an already-turning burst: capped at the bound, not dropped to 0, so the wheel
+      // still counts as turning long enough for its next event, which a slow frame delays rather than stops, to arrive.
+      wheelGap = gap < WHEEL_GAP ? gap : wheelGap > 0 ? WHEEL_GAP : 0;
       wheelAt = now;
       wheelFrame = document.timeline.currentTime;
       wheelStarts = true;
@@ -2921,7 +2934,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           </button>
         </div>
       )}
-      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} /> : null}
+      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} request={requestRef} /> : null}
     </div>
   );
 }

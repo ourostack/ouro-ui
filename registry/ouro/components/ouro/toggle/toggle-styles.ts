@@ -1,7 +1,22 @@
 import type { ComponentType, SVGProps } from "react";
 import { radiusFor, sizeFor } from "@/registry/ouro/lib/ouro/appearance-hints";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { scrollFadeClass } from "@/registry/ouro/lib/ouro/scroll-fade";
 
-export { iconClass, looks, shapes, sizes, squareClass, toggleBase, toggleHint, toggleShapeWarning, toggleSizeWarning, toggleVariantWarning };
+export {
+  iconClass,
+  looks,
+  overflowScrollerClass,
+  shapes,
+  sizes,
+  squareClass,
+  toggleBase,
+  toggleHint,
+  toggleOverflowWarning,
+  toggleShapeWarning,
+  toggleSizeWarning,
+  toggleVariantWarning,
+};
 export type { ToggleIcon, ToggleShape, ToggleSize, ToggleVariant };
 
 // Class strings, value lists and dev-message helpers shared by Toggle and ToggleGroup, apart
@@ -106,12 +121,15 @@ const squareClass = "aspect-square px-0 pointer-fine:min-w-ouro-6";
 
 /**
  * `plain` has no border until it is pressed; `outline` always has one, in the primary tone while pressed.
+ * Forced colours draw no border on an unpressed plain toggle at rest, since its colour is transparent:
+ * pressed keeps its border, in the Highlight colour from toggleBase above.
  *
  * @internal
  * @claim "`plain` has no border until it" registry/ouro/components/ouro/toggle/toggle.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle.test.tsx::Toggle looks > draws a border with variant outline)
+ * @claim "Forced colours draw no border on an unpressed plain toggle" registry/ouro/components/ouro/toggle/toggle.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle.test.tsx::Toggle under forced colours > draws no border on an unpressed plain toggle at rest, and keeps the Highlight border once pressed (#3098))
  */
 const looks = {
-  plain: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-foreground",
+  plain: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-foreground forced-colors:not-data-pressed:border-0",
   outline: "[--ouro-bd:var(--border)] [--ouro-bg:transparent] text-foreground data-pressed:[--ouro-bd:color-mix(in_oklab,var(--primary)_45%,transparent)]",
 } as const;
 
@@ -128,6 +146,22 @@ type ToggleVariant = keyof typeof looks;
  * @internal
  */
 const iconClass = "size-[1.25em] shrink-0";
+
+/**
+ * {@link ToggleGroupBaseProps.overflow} `"scroll"`: the row keeps to one line and scrolls
+ * sideways, with its scrollbar hidden and the fade {@link scrollFadeClass} draws at a cut edge
+ * (a fine pointer's wheel still scrolls it; `overscroll-x-contain` keeps a swipe at either end
+ * from paging back). Forced colours, which flatten the fade, keep an outline around the row
+ * instead, as a second sign that it scrolls.
+ *
+ * @internal
+ */
+const overflowScrollerClass = cn(
+  "flex-nowrap overflow-x-auto overflow-y-hidden overscroll-x-contain " +
+    "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden " +
+    "forced-colors:rounded-ouro-md forced-colors:outline-1 forced-colors:outline-solid forced-colors:-outline-offset-1",
+  scrollFadeClass,
+);
 
 /**
  * The fix for an appearance class on a toggle. Development only.
@@ -171,4 +205,13 @@ function toggleShapeWarning(component: string, shape: string): readonly [string,
  */
 function toggleSizeWarning(component: string, size: string): readonly [string, string] {
   return [`size="${size}" is not a size`, `<${component} size="md">`];
+}
+
+/**
+ * The dev message for an overflow that is not `"wrap"` or `"scroll"`. Development only.
+ *
+ * @internal
+ */
+function toggleOverflowWarning(overflow: string): readonly [string, string] {
+  return [`overflow="${overflow}" is not an overflow`, '<ToggleGroup overflow="scroll">'];
 }

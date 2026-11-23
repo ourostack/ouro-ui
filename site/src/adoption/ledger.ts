@@ -38,6 +38,12 @@ export interface XrayValue {
   app: string | null;
   reportAt: string;
   run: string;
+  /** The surfaces the reports check (`cli`, `mcp`, `tools`, `app-intents`). Ledgers before 2026-11-22 lack it. */
+  surfaces?: string[];
+  /** The surfaces the config lists for the product that no report checks: the must check fails while any is left. */
+  missingSurfaces?: string[];
+  /** Why the claim set its reports check doesn't count: unreleased, behind a newer one that adds a claim, or unreadable. */
+  claimSetProblems?: string[];
 }
 
 export interface Issue {
@@ -46,6 +52,27 @@ export interface Issue {
   url: string | null;
   state: string;
   updatedAt?: string;
+}
+
+/** A product's Ouro AX census, as scripts/adoption/ledger.mjs (`measureCensus`) reads it from the product's CI. */
+export interface CensusValue {
+  found: number;
+  declared: number;
+  /** Weak, undeclared, unwalked and stale doors, added up: Census at zero needs none. */
+  gaps: number;
+  weak: number;
+  undeclared: number;
+  unwalked: number;
+  stale: number;
+  baseline: number;
+  walked: string[];
+  /** The door kinds the product has that its census doesn't walk yet, or walks only with a walker not reviewed. */
+  missingKinds: string[];
+  productWalkers: string[];
+  checker: string;
+  commit: string;
+  reportAt: string;
+  run: string;
 }
 
 export interface Surface {
@@ -61,11 +88,12 @@ export interface Surface {
     hx: LedgerCell<string>;
     ax: LedgerCell<string>;
     actions: LedgerCell<number>;
+    census: LedgerCell<CensusValue>;
     xray: LedgerCell<XrayValue>;
     giveBack: LedgerCell<number> & { prs: GiveBackPr[] };
     tracking: LedgerCell<Issue[]>;
   };
-  conditions: Record<"current" | "oneAction" | "must" | "gaveBack", { label: string; met: boolean }>;
+  conditions: Record<"current" | "hx" | "census" | "must" | "gaveBack", { label: string; met: boolean }>;
   met: number;
   confirmed: boolean;
 }

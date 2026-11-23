@@ -6,6 +6,7 @@ import { page } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { ReadReceipt } from "@/registry/ouro/components/ouro/read-receipt/read-receipt";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -18,7 +19,11 @@ async function render(node: ReactNode) {
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(node));
-  return { host, receipt: host.querySelector<HTMLElement>('[data-ouro="read-receipt"]') };
+  return {
+    host,
+    receipt: host.querySelector<HTMLElement>('[data-ouro="read-receipt"]'),
+    rerender: (next: ReactNode) => act(async () => root.render(next)),
+  };
 }
 
 const crew = [{ name: "Captain Nemo" }, { name: "Professor Aronnax" }, { name: "Conseil" }, { name: "ned land" }, { name: "The squid" }];
@@ -98,13 +103,33 @@ describe("ReadReceipt", () => {
     expect(receipt.getBoundingClientRect().right).toBeCloseTo(footer.getBoundingClientRect().right, 0);
   });
 
-  it("renders nothing when nobody has seen it", async () => {
+  it("holds the faces' height with no faces and no words when nobody has seen it", async () => {
     const { host } = await render(
       <Message role="user" name="You" footer={<ReadReceipt readers={[]} />}>
         On my way.
       </Message>,
     );
-    expect(host.querySelector('[data-ouro="read-receipt"]')).toBeNull();
+    const receipt = host.querySelector<HTMLElement>('[data-ouro="read-receipt"]')!;
+    expect(receipt.getBoundingClientRect().height).toBe(16);
+    expect(receipt.getAttribute("aria-hidden")).toBe("true");
+    expect(receipt.textContent).toBe("");
+    expect(receipt.querySelector('[data-ouro="avatar"]')).toBeNull();
+  });
+
+  it("keeps the message list still when a reader arrives", async () => {
+    const { host, rerender } = await render(
+      <Message role="user" name="You" footer={<ReadReceipt readers={[]} />}>
+        On my way.
+      </Message>,
+    );
+    const message = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+    const before = message.getBoundingClientRect().height;
+    await rerender(
+      <Message role="user" name="You" footer={<ReadReceipt readers={crew.slice(0, 1)} />}>
+        On my way.
+      </Message>,
+    );
+    expect(message.getBoundingClientRect().height).toBe(before);
   });
 
   it("renders to a string with its words", () => {
@@ -131,5 +156,29 @@ describe("ReadReceipt development messages", () => {
   it("checks the className", async () => {
     await render(<ReadReceipt readers={crew.slice(0, 1)} className="text-red-500" />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] ReadReceipt: "text-red-500" sets appearance, and className is for layout only. Fix: remove "text-red-500"; ReadReceipt takes its colors from the theme.');
+  });
+});
+
+describe("ReadReceipt announcement", () => {
+  it("says who has seen it once, when the first readers arrive, and says nothing as more arrive or when it mounts already seen", async () => {
+    const announced = watchAnnouncements();
+    try {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      const root = createRoot(host);
+      roots.push(root);
+      await act(async () => root.render(<ReadReceipt readers={[crew[0]!]} />));
+      await act(async () => {});
+      expect(announced.count("Seen by Captain Nemo")).toBe(0);
+      await act(async () => root.render(<ReadReceipt readers={[]} />));
+      await act(async () => root.render(<ReadReceipt readers={[crew[1]!]} />));
+      await expect.poll(() => announced.count("Seen by Professor Aronnax")).toBe(1);
+      await act(async () => root.render(<ReadReceipt readers={[crew[1]!, crew[2]!]} />));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect(announced.count("Seen by Professor Aronnax and Conseil")).toBe(0);
+    } finally {
+      announced.stop();
+    }
   });
 });

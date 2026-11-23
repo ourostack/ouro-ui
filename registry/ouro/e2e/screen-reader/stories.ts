@@ -11,6 +11,7 @@ export const storyIds = {
   checkbox: "forms-checkbox--playground",
   celebrate: "feedback-celebrate--in-context",
   checklist: "lists-checklist--in-context",
+  composerBasic: "chat-composer--basic",
   colorSchemeToggle: "actions-colorschemetoggle--segmented",
   command: "menus-command--playground",
   dialog: "overlays-dialog--playground",
@@ -27,6 +28,7 @@ export const storyIds = {
   syncStatus: "feedback-syncstatus--in-context",
   tabsLinks: "navigation-tabs--links",
   textFieldStates: "forms-textfield--states",
+  themePicker: "actions-themepicker--playground",
   timer: "feedback-timer--short",
   toast: "feedback-toast--playground",
 } as const;

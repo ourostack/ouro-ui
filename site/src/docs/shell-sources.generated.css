@@ -91,7 +91,6 @@
 @source not "../../../registry/ouro/components/ouro/tabs";
 @source not "../../../registry/ouro/components/ouro/text-field/text-area-styles.ts";
 @source not "../../../registry/ouro/components/ouro/text-field/text-area.tsx";
-@source not "../../../registry/ouro/components/ouro/theme-picker";
 @source not "../../../registry/ouro/components/ouro/thread-layout";
 @source not "../../../registry/ouro/components/ouro/thread-rail";
 @source not "../../../registry/ouro/components/ouro/time-grid";
@@ -115,7 +114,9 @@
 @source not "../components/icons.tsx";
 @source not "../components/story-world.tsx";
 @source not "../current";
+@source not "chat-demo.tsx";
 @source not "demos";
+@source not "tray-art.tsx";
 @source not "../entry-server.tsx";
 @source not "../generated";
 @source not "../head.ts";

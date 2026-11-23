@@ -245,14 +245,19 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
 
 // A row highlights while pressed instead of scaling, as Item's linked row does, and is a
 // full touch target on a coarse pointer. The focus outline sits inside the row, so a list
-// in a scrolling pane never clips it.
+// in a scrolling pane never clips it. Forced colours box the list itself (controlListClass
+// below), not a row: a row at rest draws no border, matching how a system list box leaves
+// its own rows plain.
 const controlClass =
-  "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 " +
+  "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 bg-transparent px-3 " +
   "text-start text-foreground select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-ouro-11 pointer-fine:group-hover/row:bg-[color:var(--ouro-row-hover,color-mix(in_oklab,var(--muted)_60%,var(--background)))] pointer-fine:group-hover/row:shadow-(--ouro-row-hover-shadow,0_0_0_1px_var(--border)) forced-colors:pointer-fine:group-hover/row:border-[Highlight] active:bg-[color:var(--ouro-row-pressed,var(--muted))] pointer-fine:hover:active:bg-[color:var(--ouro-row-pressed,var(--muted))]";
+  "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-ouro-11 pointer-fine:group-hover/row:bg-[color:var(--ouro-row-hover,color-mix(in_oklab,var(--muted)_60%,var(--background)))] pointer-fine:group-hover/row:shadow-(--ouro-row-hover-shadow,0_0_0_1px_var(--border)) forced-colors:pointer-fine:group-hover/row:border forced-colors:pointer-fine:group-hover/row:border-solid forced-colors:pointer-fine:group-hover/row:border-[Highlight] active:bg-[color:var(--ouro-row-pressed,var(--muted))] pointer-fine:hover:active:bg-[color:var(--ouro-row-pressed,var(--muted))]";
 // A row opens and closes at once (`press` eases no colour): the open row is drawn in its accent on the first frame after
-// it becomes current, and the row that closes drops it on that frame.
-const rowClass = "gap-3 aria-[current=true]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] aria-[current=true]:text-accent-foreground forced-colors:aria-[current=true]:border-2";
+// it becomes current, and the row that closes drops it on that frame. Forced colours show the open row
+// with the system's selected-item look (Highlight, with HighlightText for its text) rather than a plain border.
+const rowClass =
+  "gap-3 aria-[current=true]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] aria-[current=true]:text-accent-foreground " +
+  "forced-colors:aria-[current=true]:forced-color-adjust-none forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText]";
 // The open row keeps its highlight under the pointer and while pressed: the plain rows' muted
 // hover would make it look closed. These replace controlClass's hover and press colours.
 const currentClass = "pointer-fine:group-hover/row:bg-[color:var(--ouro-row-selected-hover,color-mix(in_oklab,var(--accent)_86%,var(--foreground)))] active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))] pointer-fine:hover:active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))]";
@@ -376,6 +381,14 @@ type RowProps = {
 // A row renders again only when its own conversation, place or state changes, so opening another conversation renders
 // the row that closes and the row that opens, not the list.
 const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLabel, membersText, selected, tabStop, windowed, top, slotClass, position, count, register, onPick, onKey, onActive, moreLabel, onMore }: RowProps): JSX.Element {
+  // An avatar the app passes in (an object, not Avatar's own initials) can carry its own accessible name
+  // (a presence dot's words); aria-labelledby reads the title and the rest of the row first, the avatar last,
+  // whatever order the DOM draws them in for the visual layout.
+  const contentId = useId();
+  const avatarId = useId();
+  // `avatar`'s type (string | ReactElement | false | undefined) means an object is always a ReactElement: `false`
+  // is never typeof "object", so checking it separately here would be redundant.
+  const avatarIsElement = typeof item.avatar === "object";
   const drafted = shown(item.draft);
   const withPreview = density === "comfortable" && (drafted || shown(item.preview));
   // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
@@ -411,15 +424,16 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
         onFocus={() => onActive(key)}
         // A row with a menu opens it on a long press, in place of the phone's own callout.
         className={cn(controlClass, rowClass, selected && currentClass, density === "compact" ? "py-1.5" : "py-2", hasMenu(item) && "[-webkit-touch-callout:none]")}
+        aria-labelledby={avatarIsElement ? `${contentId} ${avatarId}` : undefined}
       >
         {item.avatar === false ? null : typeof item.avatar === "object" ? (
-          <span data-ouro-conversation-avatar="" className="flex shrink-0">
+          <span id={avatarId} data-ouro-conversation-avatar="" className="flex shrink-0">
             {item.avatar}
           </span>
         ) : (
           <Avatar name={item.name ?? (item.title as string)} src={item.avatar} members={item.members} alt="" size={density === "compact" ? "xs" : "sm"} />
         )}
-        <span className="flex min-w-0 flex-1 flex-col">
+        <span id={contentId} className="flex min-w-0 flex-1 flex-col">
           <span className="flex min-w-0 items-center gap-2">
             <span className="flex min-w-0 flex-1 items-center gap-1.5">
               {shown(item.icon) && (
@@ -530,9 +544,12 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
             }
           }}
           className={cn(
-            "press absolute end-3 top-2 box-border flex h-ouro-5 w-ouro-7 cursor-pointer items-center justify-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 forced-colors:border forced-colors:border-solid bg-transparent p-0 text-base leading-none text-foreground",
+            "press absolute end-3 top-2 box-border flex h-ouro-5 w-ouro-7 cursor-pointer items-center justify-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 bg-transparent p-0 text-base leading-none text-foreground",
             "touch-manipulation [-webkit-tap-highlight-color:transparent] outline-ring outline-offset-0 focus-visible:outline-2 focus-visible:outline-solid",
-            "transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-focus-within/row:opacity-100",
+            // Shown by the row's hover or focus-within on a fine pointer, where the more button floats
+            // free of the row: forced colours give it its own edge there only (#2489), matching a plain
+            // button's own "borderless until hover or focus" look.
+            "transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-focus-within/row:opacity-100 forced-colors:pointer-fine:group-hover/row:border forced-colors:pointer-fine:group-hover/row:border-solid forced-colors:pointer-fine:group-focus-within/row:border forced-colors:pointer-fine:group-focus-within/row:border-solid",
             "pointer-fine:hover:bg-[color:var(--ouro-row-pressed,var(--muted))] active:bg-[color:var(--ouro-row-pressed,var(--muted))]",
           )}
         >
@@ -1107,7 +1124,14 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
 
   const outer = loose.length + groupsShown.length;
   return (
-    <div {...rest} data-ouro="conversation-list" data-density={density} className={cn("box-border min-w-0", className)}>
+    <div
+      {...rest}
+      data-ouro="conversation-list"
+      data-density={density}
+      // Forced colours give the list itself an edge (as a native list box has), so a row's own border
+      // can stay off at rest: see controlClass above.
+      className={cn("box-border min-w-0 forced-colors:border forced-colors:border-solid", className)}
+    >
       {items.length === 0 ? (
         <p className={cn("m-0 px-3 py-2 text-sm", quiet)}>{empty}</p>
       ) : (

@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import matrix from "./generated/control-matrix.json";
 import { collectControls, controlRole } from "./controls.ts";
-import { cleanupStories, openOverlay, openPopup, overlayOpeners, renderStory, selectedStories, settle, story, storySelected } from "./stories.tsx";
+import { cleanupStories, openOverlay, openPopup, overlayOpeners, renderStory, selectedStories, settle, story, storySelected, waitOptions, type Opener, type OuroStoryParameters } from "./stories.tsx";
 import { sliced } from "./slice.ts";
 import { storyScanTimeout } from "./story-axe.ts";
 
@@ -66,6 +66,26 @@ async function closeAll(): Promise<void> {
 }
 
 /**
+ * The opener named `name`, once a fresh {@link overlayOpeners} query finds it again: a list whose
+ * triggers move with the pointer or focus (a MessageList's one shared action bar, carried to
+ * whichever row is current) can go a moment after `top` was read, before the page has caught up
+ * with the row `visitStates` just left. Throws, naming the opener, if it never comes back.
+ *
+ * `parameters` defaults to the story's own, exactly as a direct {@link overlayOpeners} call would;
+ * pass `{}` to query a host with no registered story, as test/control-suite.test.tsx does.
+ *
+ * @internal exported for test/control-suite.test.tsx only.
+ */
+export async function reopener(id: string, host: HTMLElement, name: string, parameters?: OuroStoryParameters): Promise<Opener> {
+  let found: Opener | undefined;
+  await vi.waitFor(() => {
+    found = overlayOpeners(id, host, parameters).find((candidate) => candidate.name === name);
+    if (!found) throw new Error(`"${name}" is no longer there to open`);
+  }, waitOptions);
+  return found!;
+}
+
+/**
  * Shows the story's states one at a time and calls `visit` in each until it returns true: closed,
  * with each overlay open, and with each overlay that one opens (a submenu, a Select in a Dialog).
  * Returns whether a visit returned true.
@@ -74,12 +94,13 @@ async function visitStates(id: string, host: HTMLElement, visit: (state: string)
   if (visit("closed")) return true;
   const top = overlayOpeners(id, host);
   for (let index = 0; index < top.length; index++) {
-    const opener = overlayOpeners(id, host)[index]!;
+    const name = top[index]!.name;
+    const opener = await reopener(id, host, name);
     const popup = await openOverlay(opener);
     if (visit(`with "${opener.name}" open`)) return closeAll().then(() => true);
     const nested = overlayOpeners(id, [popup], {}, false).length;
     for (let inner = 0; inner < nested; inner++) {
-      if (inner > 0) await openOverlay(overlayOpeners(id, host)[index]!);
+      if (inner > 0) await openOverlay(await reopener(id, host, name));
       const second = overlayOpeners(id, [openPopup()!], {}, false)[inner];
       if (!second) continue;
       await second.open();

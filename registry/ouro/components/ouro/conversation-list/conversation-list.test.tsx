@@ -662,6 +662,28 @@ describe("ConversationList", () => {
     expect(slot.nextElementSibling!.querySelector("[data-ouro-conversation-title]")).not.toBeNull();
     expect(rows[0]!.querySelector('[data-ouro="avatar"]')).toBeNull();
     expect(rows[1]!.querySelector("[data-ouro-conversation-avatar]")).toBeNull();
+    // Only a custom avatar element carries its own words into the row's accessible name; the default Avatar (drawn
+    // here for items[0]) does not, so the row has no aria-labelledby joining it in.
+    expect(rows[1]!.hasAttribute("aria-labelledby")).toBe(false);
+  });
+
+  it("reads the title before a custom avatar's own words (a presence dot), whatever order the DOM draws them in", async () => {
+    await render(
+      <ConversationList
+        label="Conversations"
+        items={[
+          {
+            id: "sal",
+            title: "Sal Example",
+            time: "2:19 AM",
+            preview: "Quick question…",
+            avatar: <Avatar name="Sal Example" alt="" presence="available" presenceLabel="Available" />,
+          },
+        ]}
+        onSelect={() => {}}
+      />,
+    );
+    await expect.element(page.getByRole("button", { name: /^Sal Example 2:19 AM Quick question… Available$/ })).toBeVisible();
   });
 
   it("keeps every row the same shape in a narrow list: the time shows and long text ends in an ellipsis", async () => {

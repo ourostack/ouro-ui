@@ -74,15 +74,19 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const depthAtLastLog = useRef(0);
   const root = useRef<HTMLDivElement>(null);
   const [offscreen, setOffscreen] = useState(false);
+  // Read inside the judge's frames, which a state update reaches only once React has committed
+  // it: a tick already queued when the stage leaves the screen must not wait on that commit.
+  const offscreenRef = useRef(false);
 
   const band = bandAt(depth);
   const full = TANKS.filter((tank) => tanks[tank.id]).length;
+  const appendLog = (line: LogLine) => {
+    const id = nextId.current++;
+    setLog((previous) => [...previous, { ...line, id }].slice(-KEEP));
+  };
   // The crew's line follows the control's own change by a frame: it's a transition, so the press
   // paints first.
-  const write = (line: LogLine) => {
-    const id = nextId.current++;
-    startTransition(() => setLog((previous) => [...previous, { ...line, id }].slice(-KEEP)));
-  };
+  const write = (line: LogLine) => startTransition(() => appendLog(line));
   const goTo = (fathoms: number) => {
     setDepth(fathoms);
     depthAtLastLog.current = fathoms;
@@ -92,10 +96,25 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   useEffect(() => {
     const element = root.current;
     if (!element || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver((entries) => setOffscreen(!entries[entries.length - 1]!.isIntersecting));
+    const observer = new IntersectionObserver((entries) => {
+      const off = !entries[entries.length - 1]!.isIntersecting;
+      offscreenRef.current = off;
+      setOffscreen(off);
+    });
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+
+  // A control scrolled into view below the stage can leave it before the browser's own intersection
+  // callback has had a turn to fire: that callback is never synchronous with the scroll, only queued
+  // after it, so offscreenRef can still read false for a frame or more past the true geometry. Read
+  // the stage's own rectangle instead, which needs no callback to land first.
+  const isOffscreen = (element: HTMLElement): boolean => {
+    const rect = element.getBoundingClientRect();
+    const viewHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewWidth = window.innerWidth || document.documentElement.clientWidth;
+    return rect.bottom <= 0 || rect.top >= viewHeight || rect.right <= 0 || rect.left >= viewWidth;
+  };
 
   // A screen too slow to swim the fish (frames over 100 ms apart, as on a machine drawing without its GPU) gets still water:
   // the speed goes to Stop, which its control shows, and Half or Full sets them swimming again. Moving fish there hold the
@@ -117,18 +136,23 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       clearTimeout(deadline);
       // Committed in the frame that decides it, not left to React's scheduler: on CI's WebKit, after the site menu had opened
       // and closed over a slow screen, the verdict was reached and its scheduled commit never came (ourostack/ouro-ui#648).
+      // The captain's line is part of the same commit for the same reason: left as a transition, the switch's measured
+      // frames caught whichever one React's scheduler happened to flush it in, paying the cost of a changed crew line on
+      // CI's WebKit (ourostack/ouro-ui#667) inside the window meant for the switch's own settle (ourostack/ouro-ui#728).
       flushSync(() => {
-        if (slow) setSpeed("stop");
+        if (slow) {
+          setSpeed("stop");
+          appendLog(LOG.stillWater);
+        }
         setPaced(true);
       });
-      if (slow) write(LOG.stillWater);
     };
     const judge = () => {
       const gaps: number[] = [];
       let start = 0;
       let last = 0;
       const tick = (now: number) => {
-        if (document.hidden || menuOpen()) return;
+        if (document.hidden || menuOpen() || offscreenRef.current || (root.current && isOffscreen(root.current))) return;
         if (last) gaps.push(now - last);
         else start = now;
         last = now;
@@ -139,7 +163,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       // No verdict 2 s after judging starts means the frames never came (under three, or a second's worth, in that
       // time). Twice running, the screen is slow, though it never gets to say so in frames; once could be one long task.
       deadline = window.setTimeout(() => {
-        if (document.hidden || menuOpen()) return;
+        if (document.hidden || menuOpen() || offscreenRef.current || (root.current && isOffscreen(root.current))) return;
         cancelAnimationFrame(frame);
         if (starved) verdict(true);
         else {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { StallReporter, browserPageSources, browserStateText, holdText, pageStateText, readPageStates, readStack, slowTestText, stackText, stallReport } from "./stall-reporter.mts";
+import { StallReporter, browserPageSources, browserStateText, effectiveStallOptions, holdText, pageStateText, readPageStates, readStack, slowTestText, stackText, stallReport } from "./stall-reporter.mts";
 
 const options = { warnAfter: 120_000, failAfter: 300_000 };
 const now = 1_000_000_000;
@@ -88,6 +88,35 @@ test("stallReport names a file with no project without a stray space", () => {
     stallReport(inFlight, now - 125_000, now, options).text,
     "[ouro-ui] Vitest has had no test finish for 2 min. In flight: test/b.test.tsx (loading its module for 2m 10s).",
   );
+});
+
+test("effectiveStallOptions leaves both thresholds alone when the budget is unlimited, as local runs leave it", () => {
+  assert.deepEqual(effectiveStallOptions(options, 10 * 60_000, Infinity, 8_000), options);
+});
+
+test("effectiveStallOptions leaves both thresholds alone while the budget still has more than the configured fail threshold left", () => {
+  // Ten minutes elapsed of a thirty-minute budget: twenty minutes remain, well over the five-minute failAfter.
+  assert.deepEqual(effectiveStallOptions(options, 10 * 60_000, 30 * 60_000, 8_000), options);
+});
+
+test("effectiveStallOptions tightens failAfter so the fail path still finishes before a late stall meets the step's own deadline", () => {
+  // The incident this guards: a fifteen-minute step (run 45029884851's Browser tests), ten minutes seven seconds in
+  // when the stall begins, leaves under five minutes before the step's own hard timeout fires with no test named.
+  const elapsedMs = 10 * 60_000 + 7_000;
+  const budgetMs = 15 * 60_000;
+  const diagnosticMs = 8_000;
+  const { failAfter, warnAfter } = effectiveStallOptions(options, elapsedMs, budgetMs, diagnosticMs);
+  assert.ok(failAfter < options.failAfter, "failAfter should tighten below the configured five minutes");
+  // The remaining budget, minus the diagnostic and the fail exit's own margin, is what failAfter may use.
+  const remaining = budgetMs - elapsedMs;
+  assert.ok(failAfter <= remaining - diagnosticMs, "failAfter must still leave room for the page diagnostic");
+  assert.ok(elapsedMs + failAfter + diagnosticMs < budgetMs, "the fail path should finish before the step's own deadline, with margin to spare");
+  assert.ok(warnAfter < failAfter, "warnAfter should still head failAfter so the warn line appears first");
+});
+
+test("effectiveStallOptions never tightens failAfter to zero or less, even with no budget left", () => {
+  const { failAfter } = effectiveStallOptions(options, 20 * 60_000, 15 * 60_000, 8_000);
+  assert.ok(failAfter > 0, "a stall this late should still get a real, if short, fail threshold");
 });
 
 /** The stall text the reporter writes once a fake run has stalled, from the events `feed` sends it. */
@@ -587,9 +616,9 @@ test("browserPageSources names a project with no browser, no pages or no page op
   assert.deepEqual(browserPageSources(undefined), []);
 });
 
-/** Polls until `condition` holds, failing after five seconds. */
-async function until(condition) {
-  const end = Date.now() + 5_000;
+/** Polls until `condition` holds, failing after `timeoutMs` (five seconds by default). */
+async function until(condition, timeoutMs = 5_000) {
+  const end = Date.now() + timeoutMs;
   while (!condition()) {
     if (Date.now() > end) assert.fail("the reporter did not exit");
     await sleep(5);
@@ -597,7 +626,7 @@ async function until(condition) {
 }
 
 /** Runs a reporter through a stall with injected pages and exit, until it exits; returns what it wrote, its lookups and its exit codes. */
-async function stallRun({ pages, warnAfter = 1, failAfter = 1e9, diagnosticMs = 1_000 }) {
+async function stallRun({ pages, warnAfter = 1, failAfter = 1e9, budgetMs = Infinity, diagnosticMs = 1_000, untilMs = 5_000 }) {
   const writes = [];
   const exits = [];
   let lookups = 0;
@@ -609,6 +638,7 @@ async function stallRun({ pages, warnAfter = 1, failAfter = 1e9, diagnosticMs = 
   const reporter = new StallReporter({
     warnAfter,
     failAfter,
+    budgetMs,
     intervalMs: 5,
     pages: (vitest) => {
       lookups++;
@@ -620,7 +650,7 @@ async function stallRun({ pages, warnAfter = 1, failAfter = 1e9, diagnosticMs = 
   try {
     reporter.onInit({ config: { root: "/repo" } });
     reporter.onTestRunStart([specOf("a.test.tsx")]);
-    await until(() => exits.length > 0);
+    await until(() => exits.length > 0, untilMs);
   } finally {
     reporter.onTestRunEnd();
     process.stderr.write = write;
@@ -638,6 +668,20 @@ test("StallReporter reads each page once at warn and once at fail, then exits 1 
   assert.equal(text.split("\n").filter((line) => line === "[ouro-ui] Vitest page ouro-chromium (chromium): fonts loaded, visible, focused, frames arrive, /dialog").length, 2);
 });
 
+test("StallReporter fails at the warn check, not failAfter, once a page's own read confirms it did not answer", async () => {
+  const page = { url: () => "http://localhost:63315/slow", evaluate: () => new Promise(() => {}) };
+  const { text, lookups, exits } = await stallRun({
+    // failAfter never arrives in the test's 5 s budget: a fail here can only come from the warn check's own evidence.
+    failAfter: 1e9,
+    diagnosticMs: 3_000,
+    pages: () => [{ label: "ouro-touch (chromium)", page }],
+  });
+  assert.equal(lookups, 1);
+  assert.deepEqual(exits, [1]);
+  assert.match(text, /\[ouro-ui\] Vitest page ouro-touch \(chromium\): did not answer in 2 s, \/slow/);
+  assert.match(text, /a page did not answer at the warn check, so failing now instead of waiting the rest of/);
+});
+
 test("StallReporter still exits 1 at fail when the page lookup hangs, and says the lookup did not finish", async () => {
   const { text, exits } = await stallRun({ failAfter: 30, diagnosticMs: 20, pages: () => new Promise(() => {}) });
   assert.deepEqual(exits, [1]);
@@ -653,4 +697,18 @@ test("StallReporter still exits 1 at fail when the page lookup throws, and says 
   });
   assert.deepEqual(exits, [1]);
   assert.match(text, /\[ouro-ui\] Vitest page lookup failed: no vitest\./);
+});
+
+test("StallReporter honours a tight budget over a far larger configured failAfter, naming the floored threshold", async () => {
+  // The bug this guards (run 45029884851): a fixed five-minute failAfter, blind to a fifteen-minute step's own
+  // elapsed time, can lose the race to the step's hard timeout. Here failAfter (1e9 ms) would never fire on its
+  // own; a near-exhausted budgetMs makes the reporter fail at the ten-second floor instead.
+  const { exits } = await stallRun({
+    failAfter: 1e9,
+    budgetMs: 1_000,
+    diagnosticMs: 5,
+    untilMs: 13_000,
+    pages: () => [{ label: "ouro-touch (chromium)", page: fakePage("/demo/switch", healthy) }],
+  });
+  assert.deepEqual(exits, [1]);
 });

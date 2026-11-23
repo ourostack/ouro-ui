@@ -1,6 +1,7 @@
 import { type AgentCase, hint, notAssignable } from "./shared.ts";
 
 const shapes = `"rect" | "pill" | (string & { 'Use "rect" or "pill"; rounded-full is "pill"': never; }) | undefined`;
+const overflows = `"wrap" | "scroll" | (string & { 'Use "wrap" or "scroll"': never; }) | undefined`;
 
 /** The toggle-group snippets in toggle-group.snippets.tsx that make mistakes, in file order. */
 export const agentCases: AgentCase[] = [
@@ -21,7 +22,8 @@ export const agentCases: AgentCase[] = [
     names: ["tsc", "dev"],
   },
   { id: "toggleGroup03", habit: "a rounded shape for filter chips", tsc: [notAssignable('"rounded"', shapes)], dev: '<ToggleGroup shape="pill">', names: ["tsc", "dev"] },
+  { id: "toggleGroupOverflow01", habit: "an auto overflow", tsc: [notAssignable('"auto"', overflows)], dev: '<ToggleGroup overflow="scroll">', names: ["tsc", "dev"] },
 ];
 
 /** Valid toggle-group snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["toggleGroupOk", "toggleGroupPillOk", "toggleGroupReason01"];
+export const validSnippets: string[] = ["toggleGroupOk", "toggleGroupPillOk", "toggleGroupReason01", "toggleGroupScrollOk"];

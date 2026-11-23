@@ -65,7 +65,7 @@ for (const [path, module] of Object.entries(storyModules).sort(([a], [b]) => (pa
 export interface OuroStoryParameters {
   plainOpeners?: string[];
   openShortcut?: string;
-  screenshot?: { name: string; open?: boolean; focus?: boolean; forcedColors?: boolean };
+  screenshot?: { name: string; open?: boolean; focus?: boolean; forcedColors?: boolean; webkit?: boolean };
   mode?: string;
   /** Storybook's layout: the frame Ouro check gives the story (`fullscreen` none, the others 1rem of padding). */
   layout?: string;
@@ -424,7 +424,7 @@ export async function settle(): Promise<void> {
 }
 
 /** How long an overlay may take to open or close on a loaded CI runner. */
-const waitOptions = { timeout: 10_000, interval: 20 };
+export const waitOptions = { timeout: 10_000, interval: 20 };
 
 /** The open overlay's popup (Dialog, ConfirmDialog or Sheet, in either presentation, a list's popup, or a NavigationMenu panel). */
 export function openPopup(): HTMLElement | null {

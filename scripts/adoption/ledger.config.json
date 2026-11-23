@@ -188,6 +188,9 @@
         "spoonjoy/spoonjoy-v2",
         "Spoonjoy web"
       ],
+      "xraySurfaces": [
+        "mcp"
+      ],
       "xray": [
         {
           "repo": "spoonjoy/spoonjoy-v2",
@@ -223,16 +226,14 @@
         "spoonjoy/spoonjoy-apple",
         "Spoonjoy Apple"
       ],
+      "xraySurfaces": [
+        "app-intents"
+      ],
       "xray": [
         {
           "repo": "spoonjoy/spoonjoy-apple",
           "workflow": "app-intents-xray.yml",
           "branch": "main"
-        },
-        {
-          "repo": "ourostack/ouro-ui-apple",
-          "workflow": "xray-apps.yml",
-          "app": "Spoonjoy"
         },
         {
           "repo": "spoonjoy/spoonjoy-apple",
@@ -268,12 +269,10 @@
         "ourostack/ouro-md",
         "Ouro MD"
       ],
+      "xraySurfaces": [
+        "app-intents"
+      ],
       "xray": [
-        {
-          "repo": "ourostack/ouro-ui-apple",
-          "workflow": "xray-apps.yml",
-          "app": "Ouro MD"
-        },
         {
           "repo": "ourostack/ouro-md",
           "workflow": "ci.yml",
@@ -308,12 +307,10 @@
         "ourostack/gatefold",
         "Gatefold"
       ],
+      "xraySurfaces": [
+        "app-intents"
+      ],
       "xray": [
-        {
-          "repo": "ourostack/ouro-ui-apple",
-          "workflow": "xray-apps.yml",
-          "app": "Gatefold"
-        },
         {
           "repo": "ourostack/gatefold",
           "workflow": "actions.yml",
@@ -356,13 +353,73 @@
         "ouroboros-agent-harness",
         "@ouro.bot/cli"
       ],
+      "runsAgents": true,
+      "xraySurfaces": [
+        "cli",
+        "mcp",
+        "tools"
+      ],
       "xray": [
         {
           "repo": "ourostack/ouroboros",
           "workflow": "ax-xray.yml",
           "branch": "main"
         }
-      ]
+      ],
+      "census": {
+        "workflow": "ax-xray.yml",
+        "product": "harness",
+        "kinds": [
+          "mcp",
+          "cli",
+          "tool",
+          "approval"
+        ]
+      }
+    },
+    {
+      "id": "shepherd",
+      "name": "Shepherd",
+      "kind": "terminal UI",
+      "repo": "ourostack/ouroboros",
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        },
+        {
+          "label": "Ouro HX (mailbox UI)",
+          "latest": "web",
+          "from": "json",
+          "file": ".github/ouro-hx-installed.json",
+          "key": "tag"
+        }
+      ],
+      "hx": {
+        "kind": "na",
+        "reason": "A terminal UI inside the harness; its Ouro UI pins are the harness's."
+      },
+      "ax": {
+        "kind": "none",
+        "reason": "Shepherd's agent doors are counted by the harness census, under its own product."
+      },
+      "giveBackTerms": [
+        "shepherd"
+      ],
+      "xray": [],
+      "census": {
+        "workflow": "ax-xray.yml",
+        "product": "shepherd",
+        "kinds": [
+          "mcp",
+          "cli",
+          "tool",
+          "approval"
+        ]
+      }
     },
     {
       "id": "desk",
@@ -392,6 +449,9 @@
         "Desk plugin",
         "Desk MCP"
       ],
+      "xraySurfaces": [
+        "mcp"
+      ],
       "xray": [
         {
           "repo": "ourostack/desk",
@@ -399,7 +459,26 @@
           "branch": "main",
           "app": "Desk MCP"
         }
-      ]
+      ],
+      "census": {
+        "workflow": "ax-xray.yml",
+        "product": "desk",
+        "kinds": [
+          "mcp",
+          "cli",
+          "skill",
+          "agent",
+          "hook",
+          "http"
+        ],
+        "reviewed": {
+          "desk-mcp": "ec9a9b03cf4197b2dcef1949e11d930d42654f83eb5b4d4f87cf7f933f7301b6",
+          "desk-cli": "40dffbe8a71b37886b849c4eceaf69698c8eedeabd8cc58bd52892b30212f0de",
+          "desk-skills": "28c243b3a8d8b09b97c84cf2ebe31124ed9bd8eeffb1912e5811129041fb3f1e",
+          "desk-hooks": "31cffd10019d111309391f888eab03cd30b5bc8924a93b8b03f181ba2af68326",
+          "desk-http": "883339a51dc95e1bade962bf7b274947c6a7ad7c59f00b039ddfaac581e571cd"
+        }
+      }
     },
     {
       "id": "desk-browser",
@@ -426,6 +505,9 @@
       "giveBackTerms": [
         "desk-web",
         "Desk Browser"
+      ],
+      "xraySurfaces": [
+        "mcp"
       ],
       "xray": [
         {
@@ -549,6 +631,9 @@
         "exclude": "(^registry/ouro/ax/|\\.test\\.|fixtures?/|example|^docs/|\\.md$)"
       },
       "giveBackTerms": [],
+      "xraySurfaces": [
+        "mcp"
+      ],
       "xray": [
         {
           "repo": "ourostack/ouro-ui",
@@ -583,13 +668,31 @@
         "housesitter",
         "ourostack/housesitter"
       ],
+      "xraySurfaces": [
+        "cli"
+      ],
       "xray": [
         {
           "repo": "ourostack/housesitter",
           "workflow": "ax.yml",
           "branch": "main"
         }
-      ]
+      ],
+      "census": {
+        "workflow": "ax.yml",
+        "product": "housesitter",
+        "kinds": [
+          "cli",
+          "mcp",
+          "skill",
+          "agent"
+        ],
+        "reviewed": {
+          "housesitter-cli": "a07c2993bf91ee9940bed804cbc736b47e12ff41c4f2aeb5b80058671019928f",
+          "housesitter-mcp": "786eafb413c82b94f3b411538a771198a7170fd68b52c7b1249f4c82b00955fb",
+          "housesitter-skills": "f606fcb9bb83dca8f599ba07cc8a9a72f83c355786cf15877f385712b04eedad"
+        }
+      }
     },
     {
       "id": "m365crawl",
@@ -616,6 +719,9 @@
       "giveBackTerms": [
         "m365crawl",
         "ourostack/m365crawl"
+      ],
+      "xraySurfaces": [
+        "cli"
       ],
       "xray": [
         {
@@ -651,13 +757,27 @@
         "friends-relay",
         "friends-mcp"
       ],
+      "xraySurfaces": [
+        "mcp"
+      ],
       "xray": [
         {
           "repo": "ourostack/friends",
           "workflow": "ax-xray.yml",
           "branch": "main"
         }
-      ]
+      ],
+      "census": {
+        "workflow": "ax-xray.yml",
+        "product": "friends",
+        "kinds": [
+          "mcp",
+          "cli"
+        ],
+        "reviewed": {
+          "friends-mcp": "cbe433c57fd200b0c0623c4f9dc0647a87d2ab22012b02fcbcff2d925a0995fa"
+        }
+      }
     },
     {
       "id": "flow-review",
@@ -683,6 +803,9 @@
       "giveBackTerms": [
         "flow-review",
         "ourostack/flow-review"
+      ],
+      "xraySurfaces": [
+        "cli"
       ],
       "xray": [
         {
@@ -716,6 +839,9 @@
       "giveBackTerms": [
         "apple-distribution-kit"
       ],
+      "xraySurfaces": [
+        "cli"
+      ],
       "xray": [
         {
           "repo": "ourostack/apple-distribution-kit",
@@ -747,6 +873,9 @@
       },
       "giveBackTerms": [
         "ouro-work-substrate"
+      ],
+      "xraySurfaces": [
+        "cli"
       ],
       "xray": [
         {
@@ -833,6 +962,9 @@
         "hackamore",
         "ourostack/hackamore"
       ],
+      "xraySurfaces": [
+        "cli"
+      ],
       "xray": [
         {
           "repo": "ourostack/hackamore",
@@ -840,6 +972,31 @@
           "branch": "main"
         }
       ]
+    },
+    {
+      "id": "butler",
+      "name": "Butler",
+      "kind": "agent and CLIs",
+      "repo": "arimendelow/sanctuary.ouro",
+      "privateRepo": true,
+      "scopeNote": "A private repository, so the public ledger can't read it yet. It is counted, so Confirmed can't skip it, and stays unmeasured until its CI publishes a census summary the ledger can read.",
+      "pins": [],
+      "hx": {
+        "kind": "na",
+        "reason": "No web or app UI of its own."
+      },
+      "ax": {
+        "kind": "none",
+        "reason": "The Butler's agent and CLIs are in a private repository; its census will count them."
+      },
+      "giveBackTerms": [
+        "sanctuary.ouro"
+      ],
+      "runsAgents": true,
+      "xraySurfaces": [
+        "tools"
+      ],
+      "xray": []
     }
   ],
   "program": {

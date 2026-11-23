@@ -344,6 +344,13 @@ export interface MessageOwnProps {
   pendingLabel?: string | undefined;
   /** What the marker under a `failed` message says, for other languages. @default "Not sent" */
   failedLabel?: string | undefined;
+  /**
+   * What screen readers hear once a `pending` message is confirmed, for other languages. The sender hears Sent
+   * when the send is confirmed, or the failed label when it fails, and these words are not the message's own.
+   * @default "Sent"
+   * @claim "The sender hears Sent when the send is confirmed" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message pending > announcements > says Sent once when a pending send is confirmed, quick or slow, and never for a message that was not pending)
+   */
+  sentLabel?: string | undefined;
   /** The name of a `failed` message's retry button, for other languages. @default "Retry" */
   retryLabel?: string | undefined;
   /** The name of a `failed` message's delete button, for other languages. @default "Delete" */
@@ -616,6 +623,7 @@ export function Message(props: MessageProps): JSX.Element {
     pendingLabel = "Sending",
     pendingSince,
     failedLabel = "Not sent",
+    sentLabel = "Sent",
     retryLabel = "Retry",
     deleteLabel = "Delete",
     className,
@@ -722,6 +730,8 @@ export function Message(props: MessageProps): JSX.Element {
   const isFailed = failed !== false;
   // Sending: a marker that shows once the send has taken a while, and the same once for screen readers.
   const pendingId = useId();
+  const nameId = useId();
+  const timeId = useId();
   const isPending = pending && !isFailed && role !== "system";
   // The second is timed here, not by a CSS delay, so an app's own reduced motion (OuroProvider's, which ends every
   // transition at once) never shows a quick send's clock.
@@ -744,8 +754,24 @@ export function Message(props: MessageProps): JSX.Element {
       setShown(false);
     };
   }, [isPending, pendingSince, pendingLabel]);
+  // The sender hears the outcome too, never the message's own words: Sent once a pending send is confirmed, and the
+  // failed label once a send fails.
+  const outcome = isFailed ? "failed" : isPending ? "pending" : "idle";
+  const lastOutcome = useRef(outcome);
+  useEffect(() => {
+    const before = lastOutcome.current;
+    lastOutcome.current = outcome;
+    if (before === outcome || outcome === "pending") return;
+    if (outcome === "idle" && before !== "pending") return;
+    return announce(outcome === "failed" ? failedLabel : sentLabel);
+  }, [outcome, failedLabel, sentLabel]);
   const showing = isPending && shown;
   const marker = isFailed ? failedId : showing ? pendingId : undefined;
+  // Stryker disable next-line StringLiteral,ConditionalExpression: `named` is read only behind `rest["aria-labelledby"] ??`, so an app's own aria-labelledby wins whatever the first test reads.
+  const named = rest["aria-labelledby"] === undefined && !rest["aria-label"];
+  const labelledBy = rest["aria-labelledby"] ?? (named ? `${nameId} ${timeId}` : undefined);
+  // The name span of a bubbled message holds its time already.
+  const labelledByName = rest["aria-labelledby"] ?? (named ? nameId : undefined);
   const describedBy = marker ? [rest["aria-describedby"], marker].filter(Boolean).join(" ") : rest["aria-describedby"];
   // Retry pressed: when the app clears failed, the marker goes with the focused button, so focus
   // goes to the message rather than the page.
@@ -888,7 +914,8 @@ export function Message(props: MessageProps): JSX.Element {
         data-continued={continued ? "" : undefined}
         data-ouro-message-active={active ? "" : undefined}
         aria-busy={streaming || rest["aria-busy"]}
-        aria-describedby={describedBy}
+        aria-labelledby={labelledByName}
+      aria-describedby={describedBy}
         onPointerUp={tap}
         className={cn(
           "group/message box-border flex w-full min-w-0 items-end gap-2 text-base pointer-fine:text-sm",
@@ -905,7 +932,7 @@ export function Message(props: MessageProps): JSX.Element {
             role === "user" ? "items-end" : role === "system" ? "items-center" : "items-start",
           )}
         >
-          <span data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
+          <span id={nameId} data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
             {authorName(name, nameContent, nameLoading ? nameLoadingLabel : undefined)}
             {nameTag && <span className="sr-only">, </span>}
             {nameTag && (
@@ -915,7 +942,7 @@ export function Message(props: MessageProps): JSX.Element {
             )}
             {time !== undefined && <span className="sr-only">, </span>}
             {time !== undefined && (
-              <time dateTime={dateTime} className="ms-1.5 font-normal tabular-nums">
+              <time id={timeId} dateTime={dateTime} className="ms-1.5 font-normal tabular-nums">
                 {time}
               </time>
             )}
@@ -953,7 +980,7 @@ export function Message(props: MessageProps): JSX.Element {
   const nameShown = !continued && !end;
   const header = (
     <span data-ouro-message-header="" className={continued ? "sr-only" : cn("flex max-w-full min-w-0 items-baseline gap-2", people ? "text-sm" : "px-0.5 text-xs", post && "order-1")}>
-      <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
+      <span id={nameId} data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
         {authorName(name, nameContent, nameLoading ? nameLoadingLabel : undefined)}
       </span>
       {nameTag && (
@@ -964,7 +991,7 @@ export function Message(props: MessageProps): JSX.Element {
       )}
       {time !== undefined && <span className="sr-only">, </span>}
       {time !== undefined && (
-        <time dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
+        <time id={timeId} dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
           {time}
         </time>
       )}
@@ -1008,6 +1035,7 @@ export function Message(props: MessageProps): JSX.Element {
       data-continued={continued ? "" : undefined}
       data-ouro-message-active={active ? "" : undefined}
       aria-busy={streaming || rest["aria-busy"]}
+      aria-labelledby={labelledBy}
       aria-describedby={describedBy}
       onPointerUp={tap}
       style={articleStyle}
@@ -1032,7 +1060,8 @@ export function Message(props: MessageProps): JSX.Element {
               <time
                 aria-hidden="true"
                 dateTime={dateTime}
-                className="mt-2.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
+                // Centered wider than the gutter, so its first glyph would otherwise sit under the row's focus ring; ms-1.5 clears it.
+                className="mt-2.5 ms-1.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
               >
                 {time}
               </time>

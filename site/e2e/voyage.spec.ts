@@ -94,16 +94,16 @@ test("a stored preset paints from the server HTML, before the client entry runs"
   await expect(bare.locator("html[data-site-ready]")).toHaveCount(0);
   expect(await colours(bare)).toEqual(expected);
   // The picker's label and the pressed preset are the stored one's too, before any hydration.
-  await expect(bare.locator("[data-site-theme-trigger]")).toHaveAccessibleName(/Abyss/);
-  await expect(bare.locator("[data-site-theme-trigger]")).not.toHaveAccessibleName(/Pearl/);
+  await expect(bare.locator(".site-theme-picker [data-ouro-part='trigger']")).toHaveAccessibleName(/Abyss/);
+  await expect(bare.locator(".site-theme-picker [data-ouro-part='trigger']")).not.toHaveAccessibleName(/Pearl/);
   expect(await bare.locator("[data-site-sample] .site-window-bar").innerText()).toMatch(/^before-we-dive\.tsx\s+Abyss$/);
   await expect(bare.locator('#themes [data-site-preset="abyss"]')).toHaveAttribute("aria-pressed", "true");
   await expect(bare.locator('#themes [data-site-preset="pearl"]')).toHaveAttribute("aria-pressed", "false");
   await expect(bare.locator('#themes [data-site-preset="abyss"]')).toHaveCSS("box-shadow", /inset/);
   await expect(bare.locator('#themes [data-site-preset="pearl"]')).not.toHaveCSS("box-shadow", /inset/);
   // The hero's row of theme dots says the same.
-  await expect(bare.locator('[data-site-hero-paint] [data-site-preset="abyss"]')).toHaveAttribute("aria-pressed", "true");
-  await expect(bare.locator('[data-site-hero-paint] [data-site-preset="live"]')).toHaveAttribute("aria-pressed", "false");
+  await expect(bare.locator('[data-site-hero-paint] [role=option][data-preset="abyss"]')).toHaveAttribute("aria-selected", "true");
+  await expect(bare.locator('[data-site-hero-paint] [role=option][data-preset="live"]')).toHaveAttribute("aria-selected", "false");
   await blocked.close();
 });
 
@@ -166,11 +166,17 @@ test("the home headline never leaves a single word alone on a line at 390×844",
 });
 
 /**
- * Parts that draw no boundary of their own under forced colours: none since the conformance matrix
- * (#133) gave segmented-control segments, the collapsible trigger and the reorderable handle one.
- * The test fails once any part loses its boundary.
+ * Parts that draw no boundary of their own under forced colours on a given page, since the
+ * conformance matrix (#133) gave segmented-control segments, the collapsible trigger and the
+ * reorderable handle one, and #3103 made a plain-variant Button stay borderless at rest, its
+ * focus-visible outline still marking it: the toolbar button on both pages, and the chat demo's
+ * own members button, a plain Button too, on nautilus only. The test fails once any other part on
+ * that page loses its boundary.
  */
-const FORCED_COLOURS_GAPS: string[] = [];
+const FORCED_COLOURS_GAPS: Record<(typeof PAGES)[number], string[]> = {
+  "./": ["button/root"],
+  "nautilus/": ["button/root", "chat-header/members"],
+};
 
 for (const path of PAGES) test(`keeps every control's boundary under forced colours${path === "./" ? "" : ` on ${path}`}`, async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
@@ -214,7 +220,7 @@ for (const path of PAGES) test(`keeps every control's boundary under forced colo
       })
       .map((element) => `${element.getAttribute("data-ouro-control")}/${element.getAttribute("data-ouro-part")}`),
   );
-  expect([...new Set(bare)].sort()).toEqual([...FORCED_COLOURS_GAPS].sort());
+  expect([...new Set(bare)].sort()).toEqual([...FORCED_COLOURS_GAPS[path]].sort());
 });
 
 test("moves nothing under reduced motion: repainting, the picker and the dialog only fade and change colour", async ({ page }) => {
@@ -240,7 +246,7 @@ test("moves nothing under reduced motion: repainting, the picker and the dialog 
   // The themes section is an island that hydrates as it nears the screen, so a press there before it
   // has is made again once it has: the repaint is waited for, so the picker's press comes after it.
   await expect(page.locator("html")).toHaveAttribute("data-theme", "coral");
-  await page.locator("[data-site-theme-trigger]").click();
+  await page.locator(".site-theme-picker [data-ouro-part='trigger']").click();
   await page.getByRole("radio", { name: "Submerged" }).click();
   await page.keyboard.press("Escape");
   await page.locator("[data-site-dive-trigger]").click();
@@ -252,7 +258,7 @@ test("moves nothing under reduced motion: repainting, the picker and the dialog 
   expect(await page.evaluate(() => [...new Set((window as unknown as { __motion: string[] }).__motion)])).toEqual([]);
 });
 
-test("loads Geist and Geist Mono, and a preset's display face only once it is chosen", async ({ page }) => {
+test("loads Geist, Geist Mono and the looks' wordmark subsets, and a preset's display face only once it is chosen", async ({ page }) => {
   const requested: string[] = [];
   page.on("request", (request) => {
     const match = /\/fonts\/([^/]+\.woff2)$/.exec(new URL(request.url()).pathname);
@@ -261,14 +267,17 @@ test("loads Geist and Geist Mono, and a preset's display face only once it is ch
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
   await page.evaluate(() => document.fonts.ready);
+  // The picker names each look in its own face, from a subset holding just that name's letters (themes.mts, wordmark).
+  const wordmarks = ["chart-fell", "cormorant-garamond", "fraunces", "nunito", "space-grotesk"].map((face) => `${face}-wordmark-5.3.0.woff2`);
+  const wordmarkFamilies = ["Chart Fell Wordmark", "Cormorant Garamond Wordmark", "Fraunces Wordmark", "Nunito Wordmark", "Space Grotesk Wordmark"];
   // WebKit fetches a preloaded font a second time (from cache) when the @font-face uses it.
-  expect([...new Set(requested)].sort()).toEqual(["geist-5.3.0.woff2", "geist-mono-5.3.0.woff2"]);
+  expect([...new Set(requested)].sort()).toEqual(["geist-5.3.0.woff2", "geist-mono-5.3.0.woff2", ...wordmarks].sort());
   const loaded = () => page.evaluate(() => [...document.fonts].filter((face) => face.status === "loaded").map((face) => face.family.replaceAll('"', "")).sort());
-  expect(await loaded()).toEqual(["Geist", "Geist Mono"]);
+  expect(await loaded()).toEqual(["Geist", "Geist Mono", ...wordmarkFamilies].sort());
   await page.getByRole("group", { name: "Presets" }).getByRole("button", { name: "Abyss", exact: true }).click();
-  await expect.poll(loaded).toEqual(["Geist", "Geist Mono", "Space Grotesk"]);
+  await expect.poll(loaded).toEqual(["Geist", "Geist Mono", "Space Grotesk", ...wordmarkFamilies].sort());
   expect(requested).toContain("space-grotesk-5.3.0.woff2");
-  expect(requested.filter((file) => !/^(geist|geist-mono|space-grotesk)-/.test(file))).toEqual([]);
+  expect(requested.filter((file) => !/^(geist|geist-mono|space-grotesk)-5\.3\.0\.woff2$/.test(file) && !wordmarks.includes(file))).toEqual([]);
 });
 
 test("the header works from the keyboard: picker, mode, X-ray and the command palette, with focus returned", async ({ page }) => {
@@ -279,7 +288,7 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await page.setViewportSize({ width: 1440, height: 900 });
   await store(page, { preset: "pearl", mode: "light" });
   await open(page);
-  const trigger = page.locator("[data-site-theme-trigger]");
+  const trigger = page.locator(".site-theme-picker [data-ouro-part='trigger']");
   await page.locator("body").focus();
   // First the skip link, then the family bar's sites, in the family's order, then the site's own bar.
   await pressTab(page);
@@ -310,9 +319,9 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   // real clock: the theme picker's popup stays open until it is closed; no timer ends it.
   await expect(popup).toBeVisible();
   expect(await page.evaluate(() => scrollY)).toBe(0);
-  // The themes are a row of buttons and one Tab stop, the chosen one's: arrows walk them, Enter picks one.
-  const themes = popup.getByRole("group", { name: "Themes" });
-  const theme = (name: string) => themes.getByRole("button", { name, exact: true });
+  // The themes are a row of options and one Tab stop, the chosen one's: arrows walk them, Enter picks one.
+  const themes = popup.getByRole("listbox", { name: "Theme" });
+  const theme = (name: string) => themes.getByRole("option", { name, exact: true });
   await pressTab(page);
   await expect(theme("Pearl")).toBeFocused();
   await page.keyboard.press("ArrowLeft");

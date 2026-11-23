@@ -32,7 +32,7 @@ Type: `ReadReceiptProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins (`ms-auto`). Appearance classes warn in development. |
 | `label` | `((names: readonly string[]) => string)` | `"Seen by"` the first two names, then the rest's count ("and 2 others") | What screen readers hear, from the readers' names, for other languages. |
-| `readers` (required) | `readonly AvatarMember[]` |  | Who has seen the message, not counting its writer, in the order they saw it. The first three show as small faces (16px: their picture, or one initial in their own hue), overlapping, and a "+N" after them counts the rest. With nobody, it renders nothing. |
+| `readers` (required) | `readonly AvatarMember[]` |  | Who has seen the message, not counting its writer, in the order they saw it. The first three show as small faces (16px: their picture, or one initial in their own hue), overlapping, and a "+N" after them counts the rest. With nobody, it shows no faces and holds the faces' height, so a reader's arrival does not move the messages above it. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
 
 ## Native attributes

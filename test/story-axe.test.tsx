@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
@@ -58,48 +58,41 @@ it("hovers a tooltip trigger below the fold once, as before #1857, since nothing
 
 it("recovers a trigger that covers itself again while a slow hover waits on it, as Toolbar/AutoHide's did on a loaded runner", async () => {
   await page.viewport(390, 844);
-  // Covers itself a beat after any pointer move away from it, and uncovers for one (nudge or real) until the next
-  // beat passes: a stand-in for a bar whose own idle timer runs out again while a later hover is still in flight.
-  // The beat is long enough to outlast both the round trip to the real browser between the retry's nudge and its
-  // next hover attempt, and the tooltip's own 600 ms open delay once the hover lands, as the real bar's own 3000 ms
-  // grace period is; a shorter one would make the retry's own overhead, or the tooltip's delay, decide this test.
+  // Covers itself the moment the scan's first unforced hover begins, and uncovers on the next pointer move (the
+  // retry's nudge): a stand-in for a bar whose own idle timer runs out again while a later hover is still in
+  // flight. The cover is set with pointerEvents on the trigger itself, as Toolbar's own fade does on its root
+  // (toolbar.tsx's fadeClass), not a covering sibling: a sibling overlay leaves the browser's last-hovered target
+  // stale once it is removed, so the trigger's own pointerenter never fires again and the tooltip never opens no
+  // matter how long a wait allows (job 137188100324, ourostack/ouro-ui#2937) — this component instead lets the
+  // real DOM mutation the fade performs produce a genuine pointerenter, so it stays bounded and does not depend on
+  // a loaded runner. The cover is driven directly by the mock below, not by a timer racing the hover's own round
+  // trip, since a timer tuned to outlast that round trip once raced the tooltip's own open delay too and lost on
+  // one, kept covering the trigger again every beat, long after the hover it was written for had recovered from it.
+  let recover: (() => void) | undefined;
   const Refades = () => {
     const [cover, setCover] = useState(false);
-    const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-    const rearm = () => {
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => setCover(true), 900);
-    };
+    // Setting the outer `recover` during render would reassign a variable declared outside
+    // the component, which react-hooks' purity rule flags; an effect runs after render instead.
     useEffect(() => {
-      rearm();
-      return () => clearTimeout(timer.current);
-    }, []);
+      recover = () => setCover(true);
+    });
     return (
-      <div
-        style={{ position: "relative", height: 60 }}
-        onPointerMove={() => {
-          setCover(false);
-          rearm();
-        }}
-      >
+      <div style={{ position: "relative", height: 60 }} onPointerMove={() => setCover(false)}>
         <Tooltip content="Liked by Ana">
           <button type="button" style={cover ? { pointerEvents: "none" } : undefined}>
             Like, 1
           </button>
         </Tooltip>
-        {cover && <div aria-hidden="true" style={{ position: "absolute", inset: 0 }} />}
       </div>
     );
   };
   const originalHover = userEvent.hover;
-  let delayedOnce = false;
+  let coveredOnce = false;
   const hover = vi.spyOn(userEvent, "hover").mockImplementation(async (...args) => {
-    // Slower than a round trip would otherwise be, once, as a shared event loop can delay the real hover (job
-    // 137149132362, 137140709588, ourostack/ouro-ui#2930): by the time it reaches the trigger, Refades has covered it again.
     const [, options] = args;
-    if (!options?.force && !delayedOnce) {
-      delayedOnce = true;
-      await new Promise((resolve) => setTimeout(resolve, 60));
+    if (!options?.force && !coveredOnce) {
+      coveredOnce = true;
+      recover?.();
     }
     return originalHover.apply(userEvent, args);
   });

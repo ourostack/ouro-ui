@@ -217,7 +217,7 @@ describe("Autocomplete with a catalogue", () => {
     control.focus();
     await userEvent.keyboard("@a");
     await act(async () => {});
-    expect(options()).toEqual([]);
+    expect(options().map((option) => option.textContent)).toEqual(["No matches"]);
     expect(warn.mock.calls.map((call: unknown[]) => String(call[0]))).toEqual([
       '[ouro-ui] Autocomplete: the "@" trigger has neither items nor catalogue, so it suggests nothing. Fix: { char: "@", label: "People", items }.',
     ]);

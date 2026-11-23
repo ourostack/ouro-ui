@@ -114,8 +114,25 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * The docs' set again 2026-11-22 at 195,244 bytes, what CI measured on this pull request's run 44990113977 (e2e job
  * 137109213382), after a component page's install section put its namespace and tests commands under Collapsible's "More
  * ways": Collapsible and its code now load with every docs page's first script.
+ *
+ * The home page's set again 2026-11-22 at 292,756 bytes, what CI measured on #2987's run 45064226062 (e2e job
+ * 137337038721), 2,777 over its base at 434214b: the hero's looks and the header's picker became Ouro HX's ThemePicker
+ * (each look's name in its own face, the whole page previewed while a look is pointed at or focused, arrow keys across
+ * one Tab stop), which replaced the site's own dots, so every app that installs it gets the same picker.
+ *
+ * The docs' set again 2026-11-23 at 196,004 bytes, measured on main at 536bb6d8f by Size ceilings' run 45111456606
+ * (#2883), after the chat-demo guide's route and nav door (#2978) reached the docs' first script. Its own demo was
+ * already behind a lazy chunk, but its shell call and lead text were not; #2883's fix moved the whole page behind that
+ * chunk, leaving only the route entry and nav door in the shared script, which a guide page cannot avoid.
+ *
+ * The voyage's set again 2026-11-23 at 293,347 bytes, what CI measured on main at 6493dd483 (run 45163983690, e2e job
+ * 137656510233), 302 bytes over its base at fa35d1602, after Skeleton's phase join moved onto a fresh
+ * `requestAnimationFrame` read of the animation's own `startTime` instead of the layout effect's `performance.now()`
+ * guess, and extended that join to `row`/`card` shapes' later items too (#3138, fixing #3137's main-thread-hold
+ * desync): Skeleton is in the voyage's own first script already, as Avatar's loading fallback, and the voyage's
+ * stage (site/src/voyage/stage/stage.tsx) renders Avatar.
  */
-const MEASURED = { voyage: 289_844, docs: 195_244 } as const;
+const MEASURED = { voyage: 293_347, docs: 196_004 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
@@ -178,7 +195,9 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // Raised a KiB each (voyage 48,143 and docs 51,207 bytes measured in CI, 15 and 7 over the old ceilings) for the look
 // swatches' focus ring: the picker is on every page, so the rule that gives a chosen swatch its own focus ring is
 // paid by every page that shows it (#2836, per #2728).
-const CSS_CEILINGS = { voyage: 48 * 1024, docs: 51 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+// Raised a KiB each again (voyage 49,364 and docs 52,327 bytes measured in CI run 45052165035, 212 and 103 over) for the
+// wordmark ThemePicker (#2987): its tiles, page-token ring and squircle square, and the phone menu's and the theming guide's rows.
+const CSS_CEILINGS = { voyage: 49 * 1024, docs: 52 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the
@@ -398,6 +417,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   writeReport("closure", sizes);
   const verdict = judgeSizes(sizes, { mode: gateMode(), base: readBase("closure") });
   for (const line of verdict.lines) console.log(`script-size-gate ${line}`);
+  for (const tip of verdict.tips) console.log(`::warning title=Pull request tips a size ceiling::${tip}`);
   expect(verdict.failures, "each page's initial JavaScript, gzip bytes").toEqual([]);
   // The voyage has a Tailwind build of its own (site/src/voyage/voyage-tailwind.css), without the
   // registry components and site files it never renders: it loads none of the docs' stylesheets but

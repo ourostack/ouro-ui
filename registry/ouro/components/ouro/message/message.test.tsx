@@ -132,6 +132,91 @@ describe("Message", () => {
     expect(author.compareDocumentPosition(bubbleOf(message)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("names the article by its author and time, unless the app names it", async () => {
+    await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41">
+          Hello
+        </Message>
+        <Message role="assistant" name="Theo" time="9:42" aria-label="Theo says hi">
+          Hi
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43">
+          Hey
+        </Message>
+      </>,
+    );
+    await expect.element(page.getByRole("article", { name: /^Mara\s*,?\s*9:41$/ })).toBeVisible();
+    await expect.element(page.getByRole("article", { name: "Theo says hi" })).toBeVisible();
+    await expect.element(page.getByRole("article", { name: /^Ana\s*,?\s*9:43$/ })).toBeVisible();
+  });
+
+  it("builds the name from the elements' own text, so an id is a real reference in both layouts", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41">
+          Hello
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43">
+          Hey
+        </Message>
+      </>,
+    );
+    const names = [...host.querySelectorAll("article")].map((article) => {
+      const ids = article.getAttribute("aria-labelledby")!.split(" ");
+      expect(ids.every((id) => id !== "" && document.getElementById(id) !== null)).toBe(true);
+      return ids.map((id) => document.getElementById(id)!.textContent!.trim());
+    });
+    expect(names[0]).toHaveLength(1);
+    expect(names[0]![0]).toMatch(/^Mara\s*,?\s*9:41$/);
+    expect(names[1]).toEqual(["Ana", "9:43"]);
+  });
+
+  it("leaves an app's own aria-labelledby as it is, in both layouts", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41" aria-labelledby="custom">
+          Hello
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43" aria-labelledby="custom">
+          Hey
+        </Message>
+      </>,
+    );
+    const articles = [...host.querySelectorAll("article")];
+    expect(articles).toHaveLength(2);
+    for (const article of articles) expect(article.getAttribute("aria-labelledby")).toBe("custom");
+  });
+
+  it("keeps an app's own aria-label and adds no aria-labelledby, in both layouts", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41" aria-label="From Mia">
+          Hello
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43" aria-label="From Mia">
+          Hey
+        </Message>
+      </>,
+    );
+    const articles = [...host.querySelectorAll("article")];
+    expect(articles).toHaveLength(2);
+    for (const article of articles) {
+      expect(article.getAttribute("aria-label")).toBe("From Mia");
+      expect(article.hasAttribute("aria-labelledby")).toBe(false);
+    }
+  });
+
+  it("keeps Sending out of the article's name while it is described as Sending", async () => {
+    const { message } = await render(
+      <Message role="user" variant="reply" name="Ana" time="9:43" pending>
+        Hey
+      </Message>,
+    );
+    await expect.poll(() => message.getAttribute("aria-describedby") && document.getElementById(message.getAttribute("aria-describedby")!)?.textContent).toBeTruthy();
+    await expect.element(page.getByRole("article", { name: /^Ana\s*,?\s*9:43$/ })).toBeVisible();
+  });
+
   it("puts the user's messages at the end in the primary color and others at the start", async () => {
     const { host } = await render(
       <>
@@ -2406,6 +2491,35 @@ describe("Message actions", () => {
     expect(message.getAttribute("data-ouro-message-active")).toBe("");
   });
 
+  it("keeps the focus ring off a continued message's time in the leading gutter", async () => {
+    const { host } = await render(
+      <>
+        <button type="button">Before</button>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:11 AM" dateTime="2026-05-04T09:11" continued tabIndex={0}>
+          The venue confirmed.
+        </Message>
+      </>,
+    );
+    const message = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+    host.querySelector("button")!.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(message);
+    const style = getComputedStyle(message);
+    expect(style.outlineStyle).toBe("solid");
+    const widthPx = Number.parseFloat(style.outlineWidth);
+    const offsetPx = Number.parseFloat(style.outlineOffset);
+    const box = message.getBoundingClientRect();
+    // The ring's own band, drawn along the article's leading edge, outside the box by its offset.
+    const ringInner = box.left - offsetPx;
+    const time = message.querySelector("time")!;
+    const range = document.createRange();
+    range.selectNodeContents(time);
+    const glyph = range.getClientRects()[0]!;
+    expect(glyph.width).toBeGreaterThan(0);
+    expect(widthPx).toBeGreaterThan(0);
+    expect(glyph.left).toBeGreaterThanOrEqual(ringInner);
+  });
+
   it.each(["default", "chat"] as const)("draws a rounded focus ring on a %s message that takes keyboard focus, as one in a MessageList does", async (variant) => {
     const { host } = await render(
       <>
@@ -2879,6 +2993,70 @@ describe("Message pending", () => {
         await expect.poll(() => announced.count("Sending")).toBe(1);
         await wait(5000);
         expect(announced.count("Sending")).toBe(1);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("says Sent once when a pending send is confirmed, quick or slow, and never for a message that was not pending", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const { rerender } = await mount(sending(true, "Enviando"));
+        await wait(600);
+        await rerender(sending(false, "Enviando"));
+        await expect.poll(() => announced.count("Sent")).toBe(1);
+        await wait(2000);
+        expect(announced.count("Sent")).toBe(1);
+        await rerender(<Message variant="chat" role="user" name="Ana">Hola</Message>);
+        await wait(500);
+        expect(announced.count("Sent")).toBe(1);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("says Not sent once when a pending send fails, and Sent for none of them", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const { rerender } = await mount(<Message variant="chat" role="user" name="Ana" pending>Hola</Message>);
+        await rerender(<Message variant="chat" role="user" name="Ana" failed={{ onRetry: () => {} }}>Hola</Message>);
+        await expect.poll(() => announced.count("Not sent")).toBe(1);
+        await wait(1500);
+        expect(announced.count("Not sent")).toBe(1);
+        expect(announced.count("Sent")).toBe(0);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("says Not sent once for a message that fails without having been pending", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const { rerender } = await mount(<Message variant="chat" role="user" name="Ana">Hola</Message>);
+        await rerender(<Message variant="chat" role="user" name="Ana" failed={{ onRetry: () => {} }}>Hola</Message>);
+        await expect.poll(() => announced.count("Not sent")).toBe(1);
+        expect(announced.count("Sent")).toBe(0);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("stays quiet when a failed message is cleared, when a label changes, and when a send goes pending again", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const failedMessage = (label: string) => (
+          <Message variant="chat" role="user" name="Ana" failed={{ onRetry: () => {} }} failedLabel={label} sentLabel="Enviado">Hola</Message>
+        );
+        const { rerender } = await mount(failedMessage("Fallo"));
+        await rerender(failedMessage("Error"));
+        await wait(600);
+        await rerender(<Message variant="chat" role="user" name="Ana" sentLabel="Enviado">Hola</Message>);
+        await wait(600);
+        await rerender(<Message variant="chat" role="user" name="Ana" pending sentLabel="Enviado">Hola</Message>);
+        await wait(600);
+        expect(announced.count("Fallo")).toBe(0);
+        expect(announced.count("Error")).toBe(0);
+        expect(announced.count("Enviado")).toBe(0);
       } finally {
         announced.stop();
       }

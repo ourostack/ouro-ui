@@ -6,7 +6,7 @@ import { latestRelease, upgrading } from "./release";
 import { demos } from "./docs/demos";
 import { followSystemScheme, THEME_KEY } from "./themes/prepaint";
 import { choiceList } from "./voyage/presets";
-import { finishReveal, storeTheme } from "./voyage/theme-store";
+import { finishReveal, previewTheme, storeTheme } from "./voyage/theme-store";
 import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
@@ -59,7 +59,11 @@ beforeEach(async () => {
   setScheme("light");
 });
 afterEach(async () => {
+  // A look the mouse rests on is previewed: the preview ends with the test, putting the chosen look back, and the mouse
+  // leaves the page (as test/story-axe.ts's parkPointer does), so the next test's page does not render a look under it.
+  previewTheme(null);
   await cleanupPage();
+  await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
   setScheme("light");
 });
 
@@ -78,6 +82,8 @@ describe("home page", () => {
     });
     afterEach(async () => {
       await finishReveal();
+      // The dot pressed keeps its preview while the mouse rests on it; ended here, it cannot paint its look back later.
+      root.removeAttribute("data-preview-from");
       if (was === null) localStorage.removeItem(THEME_KEY);
       else localStorage.setItem(THEME_KEY, was);
       if (theme === null) root.removeAttribute("data-theme");
@@ -108,7 +114,7 @@ describe("home page", () => {
       const heading = document.querySelector<HTMLElement>(".site-voyage-hero h1")!;
       const dot = document.querySelector<HTMLElement>('[data-site-hero-paint] button[aria-label="Chart"]')!;
       await userEvent.click(dot, { force: true });
-      await expect.poll(() => dot.getAttribute("aria-pressed")).toBe("true");
+      await expect.poll(() => dot.getAttribute("aria-selected")).toBe("true");
       await finishReveal();
       await document.fonts.ready;
       await frame();
@@ -151,10 +157,27 @@ describe("home page", () => {
   it("makes the header's theme chip as tall as the header links on a fine pointer", async () => {
     await page.viewport(1280, 800);
     const host = await renderPage("/docs/density/");
-    const chip = host.querySelector("[data-site-theme-trigger]")!.getBoundingClientRect().height;
+    const chip = host.querySelector(".site-theme-picker [data-ouro-part='trigger']")!.getBoundingClientRect().height;
     const heights = [...host.querySelectorAll("[data-ouro='navbar'] li a")].map((a) => a.getBoundingClientRect().height).filter((height) => height > 0);
     expect(heights.length).toBeGreaterThan(0);
     expect(heights).toEqual(heights.map(() => chip));
+  });
+
+  it("keeps the chosen look's wordmark on the header's theme chip while another look is previewed", async () => {
+    await page.viewport(1280, 800);
+    const host = await renderPage("/docs/density/");
+    const trigger = host.querySelector<HTMLElement>(".site-theme-picker [data-ouro-part='trigger']")!;
+    const shown = () =>
+      [...trigger.querySelectorAll<HTMLElement>("[data-shows]")].filter((item) => (item.querySelector("[data-slot='theme-picker-wordmark']")?.getBoundingClientRect().width ?? 0) > 0).map((item) => item.dataset.shows);
+    const chosen = shown();
+    const width = trigger.getBoundingClientRect().width;
+    expect(chosen).toHaveLength(1);
+    const other = choiceList.find((preset) => preset.name !== chosen[0] && preset.name !== "live")!.name;
+    previewTheme(other);
+    await settle();
+    expect(document.documentElement.getAttribute("data-theme")).toBe(other);
+    expect(shown()).toEqual(chosen);
+    expect(trigger.getBoundingClientRect().width).toBe(width);
   });
 
   it("breaks a source path after its slashes, and inside a name only when the name alone is too wide", async () => {
@@ -951,7 +974,7 @@ describe("docs", () => {
     await page.viewport(1280, 900);
     const root = document.documentElement;
     const was = localStorage.getItem(THEME_KEY);
-    const attributes = ["data-theme", "data-live", "data-sky", "data-season", "data-weather"].map((name) => [name, root.getAttribute(name)] as const);
+    const attributes = ["data-theme", "data-preview-from", "data-live", "data-sky", "data-season", "data-weather"].map((name) => [name, root.getAttribute(name)] as const);
     const live = document.getElementById("ouro-live")?.textContent;
     try {
       await renderPage("/docs/button/");

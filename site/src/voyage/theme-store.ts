@@ -32,11 +32,20 @@ function storedScheme(): Mode | "system" {
   }
 }
 
+/** On <html> while a look is previewed (previewTheme): the choice the preview stands in for. */
+const PREVIEW_FROM = "data-preview-from";
+
+function isChoice(name: string | null): name is ThemeChoice {
+  return name === "live" || (PRESET_NAMES as readonly string[]).includes(name ?? "");
+}
+
 function read(): SiteTheme {
   const root = document.documentElement;
   const attribute = root.getAttribute("data-theme");
   const live = root.hasAttribute("data-live");
-  const preset: ThemeChoice = live ? "live" : (PRESET_NAMES as readonly string[]).includes(attribute ?? "") ? (attribute as PresetName) : "pearl";
+  // While a look is previewed the page wears it, but the choice is still the one it stands in for.
+  const from = root.getAttribute(PREVIEW_FROM);
+  const preset: ThemeChoice = isChoice(from) ? from : live ? "live" : (PRESET_NAMES as readonly string[]).includes(attribute ?? "") ? (attribute as PresetName) : "pearl";
   const mode: Mode = root.classList.contains("dark") ? "dark" : "light";
   const scheme = storedScheme();
   const phase = root.getAttribute("data-sky") as Phase | null;
@@ -56,6 +65,30 @@ function subscribe(onChange: () => void): () => void {
     observer.disconnect();
     window.removeEventListener(CHANGED, onChange);
   };
+}
+
+/** Puts a choice's look on the page at once: its CSS, and Live's sky or none. */
+function paint(preset: ThemeChoice): void {
+  document.documentElement.setAttribute("data-theme", preset === "live" ? "pearl" : preset);
+  if (preset === "live") paintLive();
+  else clearLive(document);
+}
+
+/**
+ * Shows a look on the whole page at once, without choosing it, while the pointer or keyboard focus rests on it in a
+ * picker; `null` puts the chosen one back. Nothing is stored, and every picker keeps showing the choice.
+ */
+export function previewTheme(preset: ThemeChoice | null): void {
+  const root = document.documentElement;
+  const from = root.getAttribute(PREVIEW_FROM);
+  if (preset === null) {
+    if (!isChoice(from)) return;
+    root.removeAttribute(PREVIEW_FROM);
+    paint(from);
+    return;
+  }
+  if (!isChoice(from)) root.setAttribute(PREVIEW_FROM, read().preset);
+  paint(preset);
 }
 
 /** Paints Live's sky for now, as the head script does on load. */
@@ -95,7 +128,7 @@ function passClickThrough(event: MouseEvent): void {
   if (!running || event.target !== document.documentElement) return;
   const { clientX: x, clientY: y } = event;
   // The docs demos' looks too (components/demo-looks.tsx), which a reader flicks through one after another.
-  const dot = [...document.querySelectorAll<HTMLElement>("[data-site-preset], .site-dot, [data-site-demo-looks] button")].find((element) => {
+  const dot = [...document.querySelectorAll<HTMLElement>("[data-site-preset], .site-dot, [data-ouro='theme-picker'] button[data-preset], [data-ouro='popover'] button[data-preset], [data-site-demo-looks] button")].find((element) => {
     const box = element.getBoundingClientRect();
     return box.width > 0 && x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
   });
@@ -139,6 +172,9 @@ function transition(change: () => void, origin: Origin | undefined): void {
 
 /** Writes a choice and applies it at once, as the head script would on the next load. */
 export function storeTheme(change: { preset?: ThemeChoice; mode?: Mode | "system"; weather?: Weather }, origin?: Origin): void {
+  // A look chosen while previewed is already on the page, so the preview just ends; any other change starts from the choice.
+  if (change.preset !== undefined) document.documentElement.removeAttribute(PREVIEW_FROM);
+  else previewTheme(null);
   const storage = safeStorage();
   let stored: { preset?: string; mode?: string; weather?: string };
   try {
@@ -173,10 +209,18 @@ export function originOf(event: { currentTarget: EventTarget | null }): Origin |
   return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
 }
 
-/** While Live is on, moves its sky on with the clock: checked each minute and whenever the page comes back into view. */
+/**
+ * While Live is on, moves its sky on with the clock: checked each minute and whenever the page comes back into
+ * view. An automated browser (Playwright, WebDriver, an agent's headless page) sets navigator.webdriver; nobody
+ * is there to watch the sky move, and Live is the home page's default theme, so the sweep that screenshots the
+ * page twice in a row (states-sweep.ts) ran long enough for this minute tick to land between a retake's two
+ * takes and find an unrelated control's picture differ (ourostack/ouro-ui#2966, the same pattern as #2917). Skip
+ * the tick there: Live keeps the sky the head script painted for the whole run. See
+ * registry/ouro/lib/ouro/feedback.ts for the same check.
+ */
 export function useLiveClock(live: boolean): void {
   useEffect(() => {
-    if (!live) return;
+    if (!live || (typeof navigator !== "undefined" && navigator.webdriver)) return;
     const tick = () => paintLive();
     const timer = window.setInterval(tick, 60_000);
     document.addEventListener("visibilitychange", tick);
