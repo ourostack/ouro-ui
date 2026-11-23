@@ -1437,10 +1437,20 @@ describe("MessageList", () => {
     // here overlaps to begin with.
     await act(async () => void (scroller.scrollTop += 50 - clearOf()));
     expect(clearOf()).toBeGreaterThan(0);
-    const before = scroller.scrollTop;
-    scroller.dispatchEvent(new Event("scroll"));
+    const before = clearOf();
+    // clearJump's own guard runs off scrollend alone (onScrollEnd === endSoon, message-list.tsx); dispatching a
+    // "scroll" alongside it as the other tests here do also re-runs onScroll's own carry and anchor bookkeeping
+    // (pay/release/keepAnchor), which can itself move the scroll position for reasons of its own once arrival
+    // settles here, unrelated to clearJump: asserting raw scrollTop then could fail even on correct source, by
+    // conflating that bookkeeping with what this guard alone decides. Dispatching scrollend alone, with no
+    // further "scroll" to re-run that bookkeeping, isolates clearJump: faking just setTimeout/clearTimeout and
+    // advancing straight past WHEEL_REST runs its callback deterministically, and checking the pill's own
+    // computed clearance, not scrollTop, reads what the guard itself decided rather than any scroll position
+    // another mechanism might also have moved.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     scroller.dispatchEvent(new Event("scrollend"));
-    expect(scroller.scrollTop).toBe(before);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(clearOf()).toBeCloseTo(before, 0);
   });
 
   it("reserves no room the first time the reader scrolls away, before any message has arrived", async () => {
