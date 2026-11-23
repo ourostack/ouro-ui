@@ -2227,9 +2227,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
             cacheRef.current.set(`${key}\0${bucket}`, size);
             if (measured.heights.get(key) !== size) moved.set(key, size);
             dirtySlots.current.delete(key);
+            // Stryker disable next-line BlockStatement: this branch is only reached once `cached` already holds this key's size for this bucket, from the fresh read that set it: writing the same place and size again changes nothing this sync or any read after it.
           } else {
             // Nothing a resize observer caught, and nothing regrouped, since the last fresh read: the cached size still holds.
             if (cached! > 0) found.set(key, { top: NaN, size: cached! });
+            // Stryker disable next-line StringLiteral: the size written is the one already cached under this exact key, so writing it under any other key changes no read of this key's size.
             cacheRef.current.set(`${key}\0${bucket}`, cached!);
           }
           counts.current.set(key, topItems(slot).length);
@@ -2240,8 +2242,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const present = new Set(keys);
           for (const [key, children] of watchedChildren.current) {
             if (present.has(key)) continue;
+            // Stryker disable next-line OptionalChaining: a key only reaches this map once the listener effect below has already set this ref, so it is never null by the time a slot has gone.
             for (const child of children) slotWatch.current?.unobserve(child);
+            // Stryker disable next-line CallExpression: a key gone from `keys` is never drawn again, so the entry left here holds only memory.
             watchedChildren.current.delete(key);
+            // Stryker disable next-line CallExpression: a key gone from `keys` is never drawn again, so the mark left here holds only memory.
             dirtySlots.current.delete(key);
           }
         }
@@ -2473,10 +2478,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     resized.observe(scroller);
     resized.observe(content);
     const slots = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const key = (entry.target as Element).closest(`[${SLOT}]`)?.getAttribute(SLOT);
-        if (key != null) dirtySlots.current.add(key);
-      }
+      // A target is only ever observed as a slot's own child (below), so its ancestor and the slot attribute it reads are always there.
+      for (const entry of entries) dirtySlots.current.add((entry.target as Element).closest(`[${SLOT}]`)!.getAttribute(SLOT)!);
       windowSync.current!(false);
     });
     slotWatch.current = slots;

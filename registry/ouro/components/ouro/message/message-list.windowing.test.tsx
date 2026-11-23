@@ -1207,6 +1207,25 @@ describe("MessageList windowing", () => {
     expect(reads).toBe(0);
   });
 
+  it("stops watching a message's children for a resize once it is gone from a windowed conversation, so the observer holds no row it no longer draws (#2863)", async () => {
+    const items = conversation(200);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await scrollTo(scroller, 0);
+    const early = messages(scroller)[0]!;
+    const slot = early.closest(`[data-ouro-message-list-slot]`)!;
+    const children = [...slot.children];
+    const real = ResizeObserver.prototype.unobserve;
+    const unobserved: Element[] = [];
+    const spy = vi.spyOn(ResizeObserver.prototype, "unobserve").mockImplementation(function (this: ResizeObserver, target: Element) {
+      unobserved.push(target);
+      return real.call(this, target);
+    });
+    onTestFinished(() => spy.mockRestore());
+    // The message gone from the conversation (not merely windowed out) leaves the sync that follows nothing to watch it by.
+    await rerender(<Chat items={items.slice(1)} />);
+    expect(children.some((child) => unobserved.includes(child))).toBe(true);
+  });
+
   /** Lets the wheel rest at the top, and waits until the list has taken it: the mark that held the scroll range while it turned goes. */
   async function restWheel(scroller: HTMLElement, clock: { now: number }) {
     const floor = scroller.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;
