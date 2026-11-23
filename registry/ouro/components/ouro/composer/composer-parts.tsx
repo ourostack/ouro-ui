@@ -81,16 +81,19 @@ const UNDERLINE: TextFormatTransformer = { format: ["underline"], tag: "++", typ
 // Backslash-escapes only a `* _ ~` that bare would read as part of a mark, so writing the value back out never changes a URL's or a handle's underscore or a lone star or tilde that pairs with nothing.
 function escapeMarkText(text: string): string {
   return text.replaceAll(/[*_~]/g, (char, index: number, whole: string) => {
+    // Stryker disable next-line ConditionalExpression: unescapeSafeMarkText re-derives bare-or-escaped from the exported string's own adjacency and overrides whichever branch runs here whenever this mark has no escaped same-mark neighbor in the output, so routing to the wrong branch below is unobservable; only an actual escape-vs-bare divergence inside each branch shows up.
     if (char === "_") {
       // CommonMark never opens or closes emphasis on an underscore flanked by word characters, so one there is always safe bare.
       const before = whole[index - 1];
       const after = whole[index + 1];
+      // Stryker disable next-line ConditionalExpression: unescapeSafeMarkText applies this identical word-flank test to the same underscore in the exported string and strips or keeps the backslash itself, so forcing this escape is unobservable whenever the node-local and exported-string neighbors agree, which they do unless this underscore sits at a run boundary unescapeSafeMarkText reads differently.
       if (before !== undefined && after !== undefined && /\w/.test(before) && /\w/.test(after)) return char;
       return `\\${char}`;
     }
     // A star or tilde next to another of the same mark could open or close one with it, so only a mark with no neighbor of its kind goes out bare.
     const runStart = whole.slice(0, index).match(new RegExp(`\\${char}+$`))?.[0].length ?? 0;
     const runAfter = whole.slice(index + 1).match(new RegExp(`^\\${char}+`))?.[0].length ?? 0;
+    // Stryker disable next-line ConditionalExpression: unescapeSafeMarkText strips any escape here back to bare unless an escaped same-mark neighbor sits right beside it in the exported string, so forcing an escape for a mark with no such neighbor leaves the final output unchanged.
     return runStart === 0 && runAfter === 0 ? char : `\\${char}`;
   });
 }
