@@ -1365,6 +1365,16 @@ describe("MessageList", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("keeps the jump pill off the newest message, even scrolled close to the end", async () => {
+    const { scroller } = await render(<Chat items={history(20)} />);
+    await wheel(scroller, -40);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    const pillRect = (pill.element() as HTMLElement).getBoundingClientRect();
+    const last = [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
+    expect(last.getBoundingClientRect().bottom).toBeLessThanOrEqual(pillRect.top);
+  });
+
   it("shows older messages loading over the top of the list, moving no message as it starts or ends", async () => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} />);

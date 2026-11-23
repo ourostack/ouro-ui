@@ -1184,6 +1184,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Whether the view follows new content: whether it was at the bottom before the content changed.
   const pinned = useRef(true);
   const [showJump, setShowJump] = useState(false);
+  const jumpRoomRef = useRef<HTMLDivElement | null>(null);
+  const jumpRef = useRef<HTMLButtonElement | null>(null);
   const [spoken, setSpoken] = useState<Spoken[]>([]);
   const nextId = useRef(0);
   // The newest label function, for the observer set up once below.
@@ -2071,12 +2073,29 @@ export function MessageList(props: MessageListProps): JSX.Element {
       setShowJump(!pinned.current);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
+    // Once the pill's held place settles, the raised pill can land over the newest message. Only an overlap the fixed
+    // reserve below the list can fully absorb is cleared, once scrolling is fully done: a deeper one means the held
+    // place is far from the end for its own reason (a page up, a jump elsewhere), which this leaves alone, since
+    // pushing the view by more than that would itself move the held place; and clearing mid-scroll would fight the
+    // carry and anchor work above, which also move the scroll position as the turn continues.
+    const clearJump = () => {
+      const room = jumpRoomRef.current;
+      if (pinned.current || jumpRef.current === null || room === null) return;
+      const drawn = content.querySelectorAll<HTMLElement>(items);
+      const newest = drawn[drawn.length - 1];
+      if (newest === undefined) return;
+      const clear = jumpRef.current.getBoundingClientRect().top - newest.getBoundingClientRect().bottom;
+      if (clear < 0 && clear >= -room.offsetHeight) {
+        scroller.scrollTop -= clear;
+        ownTop.current = scroller.scrollTop;
+      }
+    };
     // A loaded machine sends `scrollend` between the parts of one long wheel scroll: the wheel stops counting as turning only
     // once no scroll has followed for the rest, so the carry is not paid into a scroll that goes on.
     let ended = 0;
     const endSoon = () => {
       clearTimeout(ended);
-      ended = window.setTimeout(() => ((ended = 0), (wheelScrolling = false)), WHEEL_REST);
+      ended = window.setTimeout(() => ((ended = 0), (wheelScrolling = false), clearJump()), WHEEL_REST);
     };
     const onScrollEnd = endSoon;
     scroller.addEventListener("scrollend", onScrollEnd);
@@ -3040,6 +3059,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
             {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
             {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
             <RowLayerContext.Provider value={layer as RowLayer<unknown>}>{slots}</RowLayerContext.Provider>
+            {/* While "Jump to latest" shows, keeps the newest message clear of its own raised pill at the list's bottom. */}
+            {showJump && <div ref={jumpRoomRef} aria-hidden="true" data-ouro-message-list-jump-room="" className="-mb-4 h-20 shrink-0" />}
           </div>
           <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
@@ -3076,7 +3097,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       </div>
       {showJump && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-          <button type="button" data-ouro-message-list-jump="" data-ouro-control="message-list" data-ouro-part="jump" onClick={jump} className={jumpClass}>
+          <button ref={jumpRef} type="button" data-ouro-message-list-jump="" data-ouro-control="message-list" data-ouro-part="jump" onClick={jump} className={jumpClass}>
             <TouchTarget />
             {jumpLabel}
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-ouro-4">
