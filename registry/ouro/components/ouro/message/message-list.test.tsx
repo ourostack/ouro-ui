@@ -1141,6 +1141,9 @@ describe("MessageList", () => {
     await settle(scroller);
     expect(distanceFromBottom(scroller)).toBeGreaterThan(1);
     await rerender(<Chat items={[...items, { id: 30, role: "user", text: "On my way." }]} />);
+    // The jump pill is hidden with this render, before any scroll event the browser fires for the jump catches up: a
+    // reader never sees even one frame of a bottom-pinned view that still offers a jump to where they already are.
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
