@@ -111,10 +111,4 @@ export const knownFindings: KnownFinding[] = [
     issue: 1955,
     reason: "The label that is longer than two lines is cut with an ellipsis on purpose, so its hidden lines end on a piece of a word; the story shows exactly that.",
   },
-  {
-    story: "TimeGrid/Locales",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "A Japanese time range has no break points, so it sits on its own line at this width; the copy and its locale are the story's.",
-  },
 ];
