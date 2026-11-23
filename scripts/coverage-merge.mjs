@@ -1,3 +1,4 @@
+/* global structuredClone */
 // Merges the coverage CI's browser test shards wrote (each shard's coverage/coverage-final.json,
 // vitest.config.ts) and holds the whole to the repository's thresholds: 100% of lines, branches,
 // functions and statements of every file the runs measured. Vitest checks the thresholds itself on
