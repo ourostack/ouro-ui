@@ -128,6 +128,7 @@ function ChatDemo(): JSX.Element {
   const paneRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const moved = useRef<"open" | "back" | null>(null);
+  const started = useRef(false);
   const threadButton = useRef<HTMLElement | null>(null);
   const open = chats.find((chat) => chat.id === openId);
 
@@ -147,6 +148,12 @@ function ChatDemo(): JSX.Element {
     if (moved.current === "back") listRef.current?.querySelector<HTMLElement>('[data-ouro-part="row"][tabindex="0"]')?.focus();
     moved.current = null;
   }, [openId]);
+
+  // Starting from the empty stage brings the list back, so focus goes to its first row rather than wherever the removed button was.
+  useEffect(() => {
+    if (stage === "ready" && started.current) listRef.current?.querySelector<HTMLElement>('[data-ouro-part="row"][tabindex="0"]')?.focus();
+    started.current = false;
+  }, [stage]);
 
   const items: ConversationListItem[] = chats.map((chat) => ({ id: chat.id, title: chat.title, preview: chat.preview, time: chat.time, unread: chat.unread, draft: drafts[chat.id] ? drafts[chat.id] : undefined }));
 
@@ -274,7 +281,7 @@ function ChatDemo(): JSX.Element {
           <ConversationList label="Conversations" items={[]} empty={<span className="block py-10 text-center">Conversations appear here</span>} onSelect={() => {}} />
         </div>
         <div className="grid place-items-center">
-          <Moment kind="empty" art={<TrayArt />} title="Nothing here yet" description="Messages you send and receive show up here." action={<Button onClick={() => setStage("ready")}>Start a conversation</Button>} />
+          <Moment kind="empty" art={<TrayArt />} title="Nothing here yet" description="Messages you send and receive show up here." action={<Button onClick={() => { started.current = true; setStage("ready"); }}>Start a conversation</Button>} />
         </div>
       </div>
     ) : (
