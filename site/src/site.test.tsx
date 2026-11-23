@@ -149,8 +149,33 @@ describe("home page", () => {
       const frame = host.querySelector<HTMLIFrameElement>(`iframe[title="${name} pattern, live"]`)!;
       expect(frame.loading).toBe("lazy");
       expect(frame.getAttribute("src")).toContain(`/storybook/iframe.html?id=reference-patterns--${story}&viewMode=story`);
-      expect(frame.closest("figure")!.querySelector("a")!.textContent).toContain("Open full size");
+      expect(frame.getAttribute("src")).toContain("&preview=1");
+      const full = frame.closest("figure")!.querySelector("a")!;
+      expect(full.textContent).toContain("Open full size");
+      expect(full.getAttribute("href")).not.toContain("preview=1");
       expect(host.textContent).toContain(`npx shadcn@latest add @ouro/${name} --yes`);
+    }
+  });
+
+  it("keeps a story's own document from scrolling when its address asks for the preview frame, and only then", async () => {
+    const { withPreviewFrame } = await import("../../.storybook/preview-frame");
+    const tall = () => <div style={{ height: 5000 }}>tall</div>;
+    const scrolled = async (search: string) => {
+      window.history.replaceState(null, "", `/${search}`);
+      const mount = document.createElement("div");
+      document.body.append(mount);
+      const root = createRoot(mount);
+      await act(async () => root.render(withPreviewFrame(tall, {} as never)));
+      const overflow = getComputedStyle(document.documentElement).overflow;
+      await act(async () => root.unmount());
+      mount.remove();
+      return overflow;
+    };
+    try {
+      expect(await scrolled("")).not.toBe("hidden");
+      expect(await scrolled("?preview=1")).toBe("hidden");
+    } finally {
+      window.history.replaceState(null, "", "/");
     }
   });
 
