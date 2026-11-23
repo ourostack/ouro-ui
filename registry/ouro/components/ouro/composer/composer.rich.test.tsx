@@ -101,6 +101,7 @@ describe("Composer rich mode", () => {
     ["an underscore-spelled bold run", "__bold__", "__bold__!"],
     ["a mention with an underscore in its name", "@quiet_fox hi", "@quiet_fox hi!"],
     ["a lone star with no partner, as in a sum", "2*3=6", "2*3=6!"],
+    ["a star-spelled italic run that is also bold, which writes back out with the default underscore instead", "**say *mixed* thing**", "**say _mixed_ thing**!"],
   ])("round-trips %s unchanged: %s", async (_label, markdown, expected) => {
     const seen: string[] = [];
     const { editor } = await render(rich({ defaultValue: markdown, onValueChange: (value) => void seen.push(value) }));
