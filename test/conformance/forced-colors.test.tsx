@@ -175,8 +175,10 @@ function hasEdge(control: Element): boolean {
     if (node === root) break;
   }
   // A field with `variant="plain"` sits in a frame the app draws around it (a composer's box, a
-  // search bar's rules), which forced colours keep: the root's parent or grandparent.
+  // search bar's rules), which forced colours keep: the root's parent or grandparent. A plain
+  // button stays edgeless at any state, matching a ghost action elsewhere (#3103).
   if (control.closest('[data-variant="plain"]')) {
+    if (controlRole(control) === "button") return true;
     const parent = root.parentElement;
     return [parent, parent?.parentElement].some((node) => node && shown(node) && edged(node));
   }
