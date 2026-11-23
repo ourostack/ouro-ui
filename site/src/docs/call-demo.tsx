@@ -341,7 +341,7 @@ function CallDemo(): JSX.Element {
         </div>
         <div ref={bottomRef} className="grid gap-2 p-2">
           {captionsOn ? <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={3} /> : null}
-          <div className="flex min-w-0 justify-center [&>*]:max-w-full">
+          <div className="flex min-w-0 justify-center">
             {bar}
           </div>
         </div>
@@ -392,7 +392,7 @@ function CallDemo(): JSX.Element {
         </p>
         <AgentPresence label="Agents listening" agents={agents} onStop={(id) => setAgents((now) => now.filter((agent) => agent.id !== id))} onStopAll={() => setAgents([])} compact />
       </div>
-      <div ref={stageRef} tabIndex={-1} aria-label="Call" role="group" className="h-[40rem] overflow-hidden rounded-lg border border-border bg-muted/40 outline-none">
+      <div ref={stageRef} tabIndex={-1} aria-label="Call" role="group" className="h-160 overflow-hidden rounded-lg border border-border outline-none">
         {body}
       </div>
       <div className="min-w-0 max-w-sm">
@@ -406,7 +406,7 @@ function CallDemo(): JSX.Element {
 export default function CallDemoPage(): JSX.Element {
   return (
     <DocsShell current="/docs/call-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A call window" }}>
-      <Text size="lg" tone="muted" className="mb-10 max-w-[40rem] text-pretty" data-ouro-measure="">
+      <Text size="lg" tone="muted" className="mb-10 max-w-2xl text-pretty" data-ouro-measure="">
         The call components together, with made-up people and placeholder pictures: a tile grid that grows as people join, speaking, muted and camera-off
         tiles, captions, the control bar, your own picture in a corner, a timer, and the lobby, joining and waiting states. Try the keyboard, a narrow
         window and dark mode.
