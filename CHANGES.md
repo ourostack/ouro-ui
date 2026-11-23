@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [ConversationFind lands a step pressed before a MessageList's match count has arrived for the current query, once it does, instead of dropping it](registry/ouro/components/ouro/conversation-find/conversation-find.test.tsx "verify:testExists(registry/ouro/components/ouro/conversation-find/conversation-find.test.tsx::ConversationFind > lands a step pressed while the count for the query has not arrived yet, once it does)").
