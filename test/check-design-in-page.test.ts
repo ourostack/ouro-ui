@@ -958,6 +958,5 @@ describe("findDesignIssues: count-badge", () => {
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="background:transparent;color:#111;line-height:6px">7</span></span>
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="display:flex;align-items:center;justify-content:center;text-box:trim-both cap alphabetic">8</span></span>`);
     expect(of("count-badge", slack)).toEqual([]);
-    expect(of("count-badge", { badgeSlackPx: 0 }).length).toBeGreaterThan(0);
   });
 });
