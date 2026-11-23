@@ -731,6 +731,7 @@ export function Message(props: MessageProps): JSX.Element {
   // Sending: a marker that shows once the send has taken a while, and the same once for screen readers.
   const pendingId = useId();
   const nameId = useId();
+  const timeId = useId();
   const isPending = pending && !isFailed && role !== "system";
   // The second is timed here, not by a CSS delay, so an app's own reduced motion (OuroProvider's, which ends every
   // transition at once) never shows a quick send's clock.
@@ -766,7 +767,10 @@ export function Message(props: MessageProps): JSX.Element {
   }, [outcome, failedLabel, sentLabel]);
   const showing = isPending && shown;
   const marker = isFailed ? failedId : showing ? pendingId : undefined;
-  const labelledBy = rest["aria-labelledby"] ?? (rest["aria-label"] ? undefined : nameId);
+  const named = rest["aria-labelledby"] === undefined && !rest["aria-label"];
+  const labelledBy = rest["aria-labelledby"] ?? (named ? `${nameId} ${timeId}` : undefined);
+  // The name span of a bubbled message holds its time already.
+  const labelledByName = rest["aria-labelledby"] ?? (named ? nameId : undefined);
   const describedBy = marker ? [rest["aria-describedby"], marker].filter(Boolean).join(" ") : rest["aria-describedby"];
   // Retry pressed: when the app clears failed, the marker goes with the focused button, so focus
   // goes to the message rather than the page.
@@ -909,7 +913,7 @@ export function Message(props: MessageProps): JSX.Element {
         data-continued={continued ? "" : undefined}
         data-ouro-message-active={active ? "" : undefined}
         aria-busy={streaming || rest["aria-busy"]}
-        aria-labelledby={labelledBy}
+        aria-labelledby={labelledByName}
       aria-describedby={describedBy}
         onPointerUp={tap}
         className={cn(
@@ -937,7 +941,7 @@ export function Message(props: MessageProps): JSX.Element {
             )}
             {time !== undefined && <span className="sr-only">, </span>}
             {time !== undefined && (
-              <time dateTime={dateTime} className="ms-1.5 font-normal tabular-nums">
+              <time id={timeId} dateTime={dateTime} className="ms-1.5 font-normal tabular-nums">
                 {time}
               </time>
             )}
@@ -975,8 +979,7 @@ export function Message(props: MessageProps): JSX.Element {
   const nameShown = !continued && !end;
   const header = (
     <span data-ouro-message-header="" className={continued ? "sr-only" : cn("flex max-w-full min-w-0 items-baseline gap-2", people ? "text-sm" : "px-0.5 text-xs", post && "order-1")}>
-      <span id={nameId} className="contents">
-      <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
+      <span id={nameId} data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
         {authorName(name, nameContent, nameLoading ? nameLoadingLabel : undefined)}
       </span>
       {nameTag && (
@@ -987,11 +990,10 @@ export function Message(props: MessageProps): JSX.Element {
       )}
       {time !== undefined && <span className="sr-only">, </span>}
       {time !== undefined && (
-        <time dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
+        <time id={timeId} dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
           {time}
         </time>
       )}
-      </span>
       {people && sending("self-center")}
     </span>
   );
