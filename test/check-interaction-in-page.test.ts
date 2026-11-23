@@ -93,3 +93,20 @@ describe("findInteractionIssues: disabled-no-reason", () => {
     }
   });
 });
+
+describe("findInteractionIssues: pointer-not-control", () => {
+  const pointer = "a pointer cursor on something that is no control: make it a Button or a Link, or take the pointer off it";
+
+  it("finds a pointer cursor where it starts, on an element that is no control and holds none", () => {
+    render(`<div id="pane" style="cursor:pointer;padding:16px"><p>Looks pressable <span>and isn't</span></p></div><h2 style="cursor:pointer">Heading</h2>`);
+    expect(issues()).toEqual([
+      ['div#pane "Looks pressable and isn\'t"', pointer],
+      ['h2 "Heading"', pointer],
+    ]);
+  });
+
+  it("passes a pointer on a control, inside one, around one, opted out or not drawn", () => {
+    render(`<button type="button" style="cursor:pointer"><span style="cursor:pointer">Save</span></button><div style="cursor:pointer;padding:16px"><a href="#x">Open</a></div><label style="cursor:pointer"><input type="checkbox"> Keep</label><div role="tab" tabindex="0" style="cursor:pointer">Tab</div><div style="cursor:pointer" data-ouro-allow="pointer-not-control" data-ouro-allow-why="a drop zone a drag fills">Drop here</div><div style="cursor:pointer;display:none">Hidden</div><div style="cursor:pointer" hidden>Hidden too</div>`);
+    expect(issues()).toEqual([]);
+  });
+});
