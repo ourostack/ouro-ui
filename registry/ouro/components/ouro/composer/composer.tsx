@@ -558,7 +558,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   const toolbar = expandable && !expanded ? undefined : toolbarProp;
   // Any other value is enter, as the default; expanded, Enter is a new line.
   const modEnter = expanded || sendOnProp === "mod-enter";
-  const [own, setOwn] = useState(() => (conversation === undefined ? undefined : composerDrafts.get(conversation)) ?? defaultValue ?? "");
+  const [own, setOwn] = useState(() => composerDrafts.get(conversation) ?? defaultValue ?? "");
   const [ownConversation, setOwnConversation] = useState(conversation);
   const kept = composerDrafts;
   const latest = useRef({ conversation, own, defaultValue, controlled: value !== undefined });
@@ -585,7 +585,7 @@ export function Composer(props: ComposerProps): JSX.Element {
       if (kept.size > draftLimit) kept.delete(kept.keys().next().value);
     }
     setOwnConversation(conversation);
-    setOwn((conversation === undefined ? undefined : kept.get(conversation)) ?? defaultValue ?? "");
+    setOwn(kept.get(conversation) ?? defaultValue ?? "");
   }
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);

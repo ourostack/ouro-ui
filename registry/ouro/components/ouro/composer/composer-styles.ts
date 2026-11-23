@@ -10,7 +10,7 @@ export type { ComposerEdit };
 const composerDrafts = new Map<string | undefined, string>();
 
 /**
- * Forgets every unsent draft.
+ * Clears the unsent drafts.
  *
  * @internal
  */
