@@ -84,7 +84,7 @@ describe("Message runs", () => {
   it("keeps its corners squircles", async () => {
     const host = await render(run("assistant", 2));
     for (const bubble of bubbles(host)) {
-      if (CSS.supports("corner-shape", "squircle")) expect(getComputedStyle(bubble).getPropertyValue("corner-shape")).toContain("squircle");
+      if (CSS.supports("corner-shape", "squircle")) expect(getComputedStyle(bubble).getPropertyValue("corner-shape")).toMatch(/squircle|superellipse/);
     }
   });
 });

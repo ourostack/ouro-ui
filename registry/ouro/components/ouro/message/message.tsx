@@ -442,8 +442,8 @@ const variants = ["default", "chat", "post", "reply"] as const;
 const placements = ["corner", "beside"] as const;
 
 const bubbles = {
-  user: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] group-data-continued/message:rounded-se-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [[data-ouro-message-list-run-next]_&]:rounded-ee-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] group-has-[+[data-continued]]/message:rounded-ee-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] bg-primary px-3.5 py-2 text-primary-foreground",
-  assistant: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] group-data-continued/message:rounded-ss-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [[data-ouro-message-list-run-next]_&]:rounded-es-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] group-has-[+[data-continued]]/message:rounded-es-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] bg-muted px-3.5 py-2 text-foreground",
+  user: "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] group-data-continued/message:rounded-se-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-ee-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-ee-(--ouro-jr) bg-primary px-3.5 py-2 text-primary-foreground",
+  assistant: "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] group-data-continued/message:rounded-ss-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-es-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-es-(--ouro-jr) bg-muted px-3.5 py-2 text-foreground",
   system: "bg-transparent text-center text-muted-foreground",
 } as const;
 
@@ -502,9 +502,9 @@ const mutedInk = {
 const layouts = {
   filled: {
     // A transparent border, which forced colours draw, so a bubble that is only a fill keeps its edge there.
-    user: `rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-se-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [[data-ouro-message-list-run-next]_&]:rounded-ee-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] group-has-[+[data-continued]]/message:rounded-ee-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] border border-solid border-transparent px-3 py-2 ${filledInk}`,
+    user: `rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-se-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-ee-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-ee-(--ouro-jr) border border-solid border-transparent px-3 py-2 ${filledInk}`,
     assistant:
-      "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-ss-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [[data-ouro-message-list-run-next]_&]:rounded-es-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] group-has-[+[data-continued]]/message:rounded-es-[var(--ouro-message-joined-radius,var(--radius-ouro-xl))] border border-solid border-transparent bg-(--ouro-bubble-other-fill) px-3 py-2 text-(--ouro-bubble-other-ink)",
+      "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-ss-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-es-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-es-(--ouro-jr) border border-solid border-transparent bg-(--ouro-bubble-other-fill) px-3 py-2 text-(--ouro-bubble-other-ink)",
   },
   raised: {
     user: "rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
