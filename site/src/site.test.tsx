@@ -159,6 +159,8 @@ describe("home page", () => {
     const kebab = (word: string) => word.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
     const ids = [...source.matchAll(/export const (\w+): Story/g)].map((match) => `reference-patterns--${kebab(match[1]!)}`);
     expect(source).toContain('title: "Reference/Patterns"');
+    // The settings preview starts from a made-up account that saves, so a first Save shows its busy and saved states.
+    expect(source).toMatch(/<SettingsPage[^>]*initial=\{\{ name: "[^"]+"[^>]*onSave=/s);
     for (const story of Object.values(patternStories)) expect(ids).toContain(`reference-patterns--${story}`);
   });
 
