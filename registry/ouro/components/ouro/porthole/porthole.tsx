@@ -11,7 +11,6 @@ import {
   type HTMLAttributes,
   type JSX,
   type KeyboardEvent,
-  type PointerEvent,
   type Ref,
 } from "react";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
@@ -19,7 +18,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { portholeView, type PortholeItem, type PortholeLabels, type PortholeSnapshot, type PortholeSource, type PortholeView } from "@/registry/ouro/lib/ouro/porthole-view";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { PORTHOLE_ANNOUNCE_GAP_MS, PORTHOLE_HOVER_DELAY_MS, portholeLightClasses, type PortholeSide } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
+import { PORTHOLE_ANNOUNCE_GAP_MS, portholeLightClasses, type PortholeSide } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
 
 /**
  * A snapshot that does not change, with the time of its last beat: for a page rendered on the server, a story or a
@@ -122,9 +121,9 @@ function Light({ view }: { view: PortholeView }): JSX.Element {
  * says "Up to date" only while every area was verified within its `freshWithinMs`, otherwise the real age, and
  * "Status unknown" when an area was never verified or the service's heartbeat stops. It owns its clock: it looks again
  * only at the one moment the view could change (`nextChangeAt`), so a stuck service can never hold "Up to date", a beat
- * never renders it, and it waits while the page is hidden. It opens into the detail lines while a mouse is over it, and
- * a press keeps it open until a second press, Escape or a press anywhere else. It never takes focus on its own, and
- * speaks only when it changes into an action or an error, at most once every ten seconds.
+ * never renders it, and it waits while the page is hidden. A press opens it into the detail lines, and a second
+ * press, Escape or a press anywhere else closes them; a mouse resting on it opens nothing. It never takes focus on its
+ * own, and speaks only when it changes into an action or an error, at most once every ten seconds.
  * Its state is on `data-porthole-state` for a fault-injection check.
  *
  * Use `SyncStatus` instead for where one document's own changes are, and `toast()` to confirm a single action.
@@ -138,7 +137,7 @@ function Light({ view }: { view: PortholeView }): JSX.Element {
  * @claim "so a stuck service can never" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole timing > says Status unknown once at the heartbeat's timeout when the beats stop, and recovers on the next beat)
  * @claim "a beat never renders it" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole timing > renders nothing for 60 beats over 60 s at rest, then once when fresh runs out)
  * @claim "it waits while the page" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole timing > waits while the page is hidden, and looks again as it shows)
- * @claim "a press keeps it open until" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > opens while a mouse is over it and closes as it leaves, and a touch does not open it) verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > puts pinned lines away at a press anywhere else, and keeps them at a press inside)
+ * @claim "A press opens it into the" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > opens on a press into the detail lines, closes on a second press, and keeps focus on the spot) verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > closes on Escape without losing focus, lets every Escape reach the app, and opens again on Enter) verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > puts open lines away at a press anywhere else, and keeps them at a press inside) verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > opens nothing for a mouse resting on it, and opens and closes on each press after)
  * @claim "never takes focus on its own" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > never takes focus when it changes, and gives it back to the spot when a pressed button leaves)
  * @claim "speaks only when it changes into" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > speaks when it changes into an action or an error, at most once every ten seconds)
  */
@@ -157,8 +156,6 @@ export function Porthole(props: PortholeProps): JSX.Element {
     onDismiss,
     className,
     onKeyDown,
-    onPointerEnter,
-    onPointerLeave,
     // Guard props (hint types), dropped here so they never reach the DOM.
     items,
     status,
@@ -255,11 +252,8 @@ export function Porthole(props: PortholeProps): JSX.Element {
     return () => clearTimeout(timer);
   }, [urgent]);
 
-  // Open while pressed open, or while a mouse is over it. A mouse is always over the spot when it presses, so a press
-  // pins the open spot (it stays open as the mouse leaves) and only a press on a pinned spot closes it.
-  const [pressed, setPressed] = useState(defaultOpen === true);
-  const [hovered, setHovered] = useState(false);
-  const open = pressed || hovered;
+  // Only a press opens it: a pointer cursor promises a press does something, so each press opens or closes the lines.
+  const [open, setOpen] = useState(defaultOpen === true);
   // Lines open at mount are drawn at once; the fade is for lines that open after, so it returns once they close.
   const [drawnAtMount, setDrawnAtMount] = useState(defaultOpen === true);
   useEffect(() => {
@@ -267,40 +261,12 @@ export function Porthole(props: PortholeProps): JSX.Element {
     if (!open && drawnAtMount) setDrawnAtMount(false); // eslint-disable-line react-hooks/set-state-in-effect
   }, [open, drawnAtMount]);
   const panelId = useId();
-  const toggle = () => {
-    clearTimeout(intent.current);
-    setHovered(false);
-    setPressed(!pressed);
-  };
   const close = (event: KeyboardEvent<HTMLDivElement>) => {
     onKeyDown?.(event);
-    if (event.key !== "Escape" || event.defaultPrevented) return;
-    // Escape also calls off a mouse's pending open.
-    clearTimeout(intent.current);
-    if (!open) return;
+    if (event.key !== "Escape" || event.defaultPrevented || !open) return;
     event.preventDefault();
-    setPressed(false);
-    setHovered(false);
+    setOpen(false);
   };
-  // A mouse that rests on the spot opens it; one passing over opens nothing.
-  const intent = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const enter = (event: PointerEvent<HTMLDivElement>) => {
-    onPointerEnter?.(event);
-    if (event.pointerType !== "mouse") return;
-    // Stryker disable next-line BlockStatement,CallExpression: pointerenter does not come again before pointerleave, which clears the timer
-    clearTimeout(intent.current);
-    intent.current = setTimeout(() => setHovered(true), PORTHOLE_HOVER_DELAY_MS);
-  };
-  const leave = (event: PointerEvent<HTMLDivElement>) => {
-    onPointerLeave?.(event);
-    clearTimeout(intent.current);
-    setHovered(false);
-  };
-  useEffect(
-    () => () => clearTimeout(intent.current),
-    // Stryker disable next-line ArrayDeclaration: any list that never changes clears the timer once, on leaving the page
-    [],
-  );
 
   const item = view.item;
   const action = item?.action !== undefined && onAction !== undefined ? item.action : null;
@@ -372,16 +338,16 @@ export function Porthole(props: PortholeProps): JSX.Element {
     // Stryker disable next-line ArrayDeclaration: fit never changes, so any list that never changes observes once
     [fit],
   );
-  // A press anywhere else puts pinned lines away, as a popover's would.
+  // A press anywhere else puts open lines away, as a popover's would.
   useEffect(() => {
-    // Stryker disable next-line ConditionalExpression: without it the listener only sets pressed to the false it is
-    if (!pressed) return;
+    // Stryker disable next-line ConditionalExpression: without it the listener only sets open to the false it is
+    if (!open) return;
     const away = (event: Event) => {
-      if (!pill.current!.parentElement!.contains(event.target as Node)) setPressed(false);
+      if (!pill.current!.parentElement!.contains(event.target as Node)) setOpen(false);
     };
     document.addEventListener("pointerdown", away, true);
     return () => document.removeEventListener("pointerdown", away, true);
-  }, [pressed]);
+  }, [open]);
 
   // A pressed button that leaves with its item (the service acted on it) hands focus back to the spot rather than
   // the page. React detaches the ref before it removes the button, while focus is still on it.
@@ -414,8 +380,6 @@ export function Porthole(props: PortholeProps): JSX.Element {
       role="group"
       aria-label={label}
       onKeyDown={close}
-      onPointerEnter={enter}
-      onPointerLeave={leave}
       className={cn("group/porthole relative inline-flex max-w-full min-w-0 align-middle", className)}
     >
       <div
@@ -434,10 +398,10 @@ export function Porthole(props: PortholeProps): JSX.Element {
             type="button"
             data-ouro-control="porthole"
             data-ouro-part="spot"
-            data-ax-action={pressed ? "collapse" : "expand"}
+            data-ax-action={open ? "collapse" : "expand"}
             aria-expanded={open}
             aria-controls={open ? panelId : undefined}
-            onClick={toggle}
+            onClick={() => setOpen(!open)}
             className={cn(
               "inline-flex h-full min-w-0 cursor-pointer items-center gap-2 rounded-full border-0 bg-transparent ps-3 pe-3 text-start font-[inherit] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
               toneClass,
@@ -506,8 +470,6 @@ export function Porthole(props: PortholeProps): JSX.Element {
             "absolute start-0 z-10 w-max max-w-[min(24rem,calc(100vw-2rem),var(--ouro-porthole-room,24rem))] min-w-full rounded-ouro-2xl bg-popover [--ouro-scroller-surface:var(--popover)] p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-[color-mix(in_oklab,var(--foreground)_16%,transparent)] transition-opacity forced-colors:border forced-colors:border-solid duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast)",
             !drawnAtMount && "starting:opacity-0",
             top ? "bottom-full mb-1.5" : "top-full mt-1.5",
-            // Opened by a resting mouse alone, the lines let presses through to what they cover.
-            !pressed && "pointer-events-none",
           )}
         >
           <ul className="m-0 grid list-none gap-1 p-0">
