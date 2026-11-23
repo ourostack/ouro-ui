@@ -1,0 +1,6 @@
+# Changes in this release
+
+- Fixed: a rich `Composer` whose editor module a page already loaded draws it directly on mount, with no plain box shown first and swapped out ([test](registry/ouro/components/ouro/composer/composer.rich.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > draws the editor directly, with no plain box first, once a page has already loaded its module)")).
+- Fixed: a rich `Composer`'s editor keeps a line break when dictation or an input method delivers a whole line of text in one event, instead of dropping it ([test](registry/ouro/components/ouro/composer/composer.rich.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > keeps a line break when dictation or an input method delivers a whole line in one insertText event)")).
+- New: `Porthole` takes a `floating` prop, giving its pill a translucent glass look that turns solid under reduced transparency, `prefers-contrast: more` and forced colours.
+- Changed: New apps start on [TypeScript 7](test/install-fixture/package.json "verify:fileLine(test/install-fixture/package.json, /typescript.: .~7\.0/)"), and the repository type-checks on it.
