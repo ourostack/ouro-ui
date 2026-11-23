@@ -289,9 +289,10 @@ describe("Skeleton", () => {
     const holdUntil = performance.now() + 300;
     while (performance.now() < holdUntil) { /* holds the main thread, no yield */ }
     const late = await render(<Skeleton />);
-    // One settled frame past the mount, so both animations' own clocks have had their pending startTime pegged.
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    expect(phaseGap(phase(first), phase(late))).toBeLessThan(phaseGapMs);
+    // Each animation's own clock is pegged, and the correction that follows it lands, on its own
+    // promise-and-frame chain (readiness commits on whatever frame a loaded host gets to it): a fixed
+    // frame count races that chain, so this polls the gap itself until it settles or the poll times out.
+    await expect.poll(() => phaseGap(phase(first), phase(late))).toBeLessThan(phaseGapMs);
   });
 
   it("joins the shared phase past a host held for longer than the mount itself takes", async () => {
@@ -301,8 +302,8 @@ describe("Skeleton", () => {
     const holdUntil = performance.now() + 2000;
     while (performance.now() < holdUntil) { /* holds the main thread, no yield */ }
     const late = await render(<Skeleton />);
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    expect(phaseGap(phase(first), phase(late))).toBeLessThan(phaseGapMs);
+    // See above: polls past the correction's own promise-and-frame chain rather than assuming it settles in two frames.
+    await expect.poll(() => phaseGap(phase(first), phase(late))).toBeLessThan(phaseGapMs);
   });
 
   it("joins the shared phase on a row's and a card's own Bar, past a host held right after mounting", async () => {
@@ -313,11 +314,14 @@ describe("Skeleton", () => {
       const holdUntil = performance.now() + 300;
       while (performance.now() < holdUntil) { /* holds the main thread, no yield */ }
       const late = (await render(<Skeleton shape={shape} />)).parentElement!;
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const firstAnimation = host.getAnimations({ subtree: true })[0]!;
       const lateAnimation = late.getAnimations({ subtree: true })[0]!;
       const localTime = (animation: Animation) => Number(animation.effect!.getComputedTiming().localTime) - Number(animation.effect!.getTiming().delay);
-      expect(phaseGap(localTime(firstAnimation), localTime(lateAnimation)), shape).toBeLessThan(phaseGapMs);
+      // See the host-held test above: polls past the correction's own promise-and-frame chain rather than
+      // assuming it settles in two frames.
+      await expect
+        .poll(() => phaseGap(localTime(firstAnimation), localTime(lateAnimation)), { message: shape })
+        .toBeLessThan(phaseGapMs);
     }
   });
 
