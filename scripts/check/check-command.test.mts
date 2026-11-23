@@ -46,10 +46,12 @@ describe("Ouro check's command", () => {
       readyEvents: ["a", "b"],
       imagesReport: undefined,
       handoff: false,
+      engine: "chromium",
     });
     assert.deepEqual(parseArgs(["merge", "a", "b", "--out", "o", "--config", "c.json"]), { ...parseArgs(["a"]), merge: true, targets: ["a", "b"], out: "o", config: "c.json" });
     assert.equal(parseArgs(["a", "--images-report", "images.json"]).imagesReport, "images.json");
     assert.equal(parseArgs(["a", "--handoff"]).handoff, true);
+    assert.equal(parseArgs(["a", "--engine", "wkwebview"]).engine, "wkwebview");
     assert.equal(parseArgs(["merge", "a", "--handoff"]).handoff, true);
     assert.equal(parseArgs(["merge", "a", "--images-report", "images.json"]).imagesReport, "images.json");
     assert.deepEqual(parseArgs(["--help"]).targets, []);
@@ -66,6 +68,7 @@ describe("Ouro check's command", () => {
       [["a", "--sizes", "390x844,wide"], /not "wide"/],
       [["a", "--sizes", ""], /takes WxH pairs/],
       [["a", "--wat"], /there is no --wat/],
+      [["a", "--engine", "gecko"], /is chromium, webkit or wkwebview, not "gecko"/],
       [["merge", "a", "--shard", "1/2"], /there is no --shard/],
       [["a", "--images-report"], /--images-report needs a value/],
       [["a", "--out", "x", "--out", "y"], /--out is given twice/],
@@ -94,6 +97,13 @@ describe("Ouro check's command", () => {
     const mrege = await run(["mrege", ...fast]);
     assert.equal(mrege.code, 2);
     assert.equal(mrege.err, `ouro-check: check: "mrege" is not a folder or an http(s) URL. Fix: ouro-check merge <out folders>.`);
+  });
+
+  test("--engine wkwebview runs the page in WebKit with corner-shape hidden, and fails a plain radius there", async () => {
+    const squircles = site("squircles", { "card.html": readFileSync(join(fixtures, "squircle-missing-fail.html"), "utf8") });
+    const result = await run([squircles, ...fast, "--no-axe", "--engine", "wkwebview", "--out", "wk"]);
+    assert.equal(result.code, 3, result.err);
+    assert.match(result.out, /✗ 390×844 {3}light squircles \/card\.html: \d+/);
   });
 
   test("exits 3 on gated findings, writes the step summary, and exits 0 when the config waives them", async () => {
