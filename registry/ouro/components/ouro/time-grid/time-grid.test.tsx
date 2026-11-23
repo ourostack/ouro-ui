@@ -987,13 +987,16 @@ describe("TimeGrid", () => {
   });
 
   it("tints a marked day's column from its header to its last hour, and says why in words", async () => {
-    const { host, grid } = await render({ renderDaySummary: () => "2 events", markedDays: { "2026-03-12": { label: "Out of office" }, "2026-03-13": { label: "Holiday", tone: "success" } } });
+    const { host, grid } = await render({ events: [{ id: "away", title: "Flight", start: at(12, "10:00"), end: at(12, "11:00") }], renderDaySummary: () => "2 events", markedDays: { "2026-03-12": { label: "Out of office" }, "2026-03-13": { label: "Holiday", tone: "success" } } });
     const heads = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked]")];
     expect(heads.map((head) => head.textContent)).toEqual(["12ThuOut of office", "13FriHoliday"]);
     const columns = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")];
     expect(columns.map((column) => column.textContent)).toEqual(["Thursday, March 12, Out of office", "Friday, March 13, Holiday"]);
     const summaries = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-summary]")].map((summary) => summary.getAttribute("aria-label"));
     expect(summaries).toContain("Thursday, March 12, Out of office");
+    // The day's list of events says it too, and a marked header is marked by the bare attribute.
+    expect([...grid.querySelectorAll<HTMLElement>('[data-ouro-time-grid-body] ul[role="list"]')].map((list) => list.getAttribute("aria-label"))).toContain("Thursday, March 12, Out of office");
+    for (const head of heads) expect(head.getAttribute("data-ouro-time-grid-marked")).toBe("");
     const clear = "rgba(0, 0, 0, 0)";
     for (const tinted of [...heads, ...columns]) expect(getComputedStyle(tinted).backgroundColor).not.toBe(clear);
     expect(getComputedStyle(heads[0]!).backgroundColor).not.toBe(getComputedStyle(heads[1]!).backgroundColor);
