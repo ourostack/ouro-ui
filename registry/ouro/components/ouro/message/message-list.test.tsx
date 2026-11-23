@@ -758,13 +758,15 @@ describe("MessageList", () => {
   const chromiumOnly = it.skipIf(server.browser !== "chromium");
 
   /** Arms the held place, as a message above the reader moving to the end does, and reads where it holds once the resize observer
-   * that applies the hold has run: it fires after layout, a frame the mutation itself does not wait for, and a loaded runner can take
-   * more than the usual one frame to reach it. Each frame checked is the one the hold wrote in, if any, so the list's own two-frame
-   * window to put the hold back in is still open right after this returns, however many frames it took. */
+   * that applies the hold has run. The scroll event of that write comes at once, the same frame: a poll for the position to change
+   * could itself spend the two-frame window the hold stays open for, on a loaded runner, and put the test's own stray scroll after
+   * it had already gone (the same race message-list.prepend.test.tsx's `held()` avoids the same way). */
   async function armHeld(scroller: HTMLElement, items: Item[], rerender: (next: ReactNode) => Promise<void>) {
     const before = scroller.scrollTop;
+    const scrolled = new Promise((resolve) => scroller.addEventListener("scroll", resolve, { once: true }));
     await rerender(<Chat items={[...items.slice(1), items[0]!]} />);
-    for (let frame = 0; frame < 5 && scroller.scrollTop === before; frame++) await nextFrame(scroller);
+    await scrolled;
+    expect(scroller.scrollTop).not.toBe(before);
     return scroller.scrollTop;
   }
 
