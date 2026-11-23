@@ -56,7 +56,7 @@ interface DesignOptions {
   headingRoom?: number;
   /** The gap, in pixels, under which a frame inside a frame reads as a double border. */
   hugPx?: number;
-  /** The gap, in pixels, under which two parallel lines read as one line drawn twice. */
+  /** The gap, in pixels, under which parallel lines read as one line drawn twice. */
   lineGapPx?: number;
   /** How far, in pixels, a count badge's numerals may sit from its middle. */
   badgeSlackPx?: number;
@@ -496,7 +496,10 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const ink = t.top + m.fontBoundingBoxAscent + (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2;
     const dy = ink - (b.top + px(s.borderTopWidth) + badge.clientHeight / 2);
     const dx = t.left + t.width / 2 - (b.left + px(s.borderLeftWidth) + badge.clientWidth / 2);
-    const way = [Math.abs(dy) > badgeSlackPx ? `${Math.abs(dy).toFixed(1)}px ${dy < 0 ? "high" : "low"}` : "", Math.abs(dx) > badgeSlackPx ? `${Math.abs(dx).toFixed(1)}px to the ${dx < 0 ? "left" : "right"}` : ""];
+    // A count already centred on its cap height (text-box-trim) has a trimmed line box this reading can't place, so it
+    // is left to its author.
+    const trimmed = (ts as CSSStyleDeclaration & { textBoxTrim?: string }).textBoxTrim;
+    const way = trimmed && trimmed !== "none" ? [] : [Math.abs(dy) > badgeSlackPx ? `${Math.abs(dy).toFixed(1)}px ${dy < 0 ? "high" : "low"}` : "", Math.abs(dx) > badgeSlackPx ? `${Math.abs(dx).toFixed(1)}px to the ${dx < 0 ? "left" : "right"}` : ""];
     if (way.some(Boolean)) found(`its numerals sit ${way.filter(Boolean).join(" and ")} of the badge's middle: centre their ink, not their line box`);
     // Its icon: a picture beside it in the box it is laid over. A badge is placed by its outer edges, so the offset is
     // from the icon's edge on the badge's side to the badge's edge beyond it, and from top to top: a wider count keeps

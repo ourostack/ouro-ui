@@ -952,7 +952,8 @@ describe("findDesignIssues: count-badge", () => {
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c">New</span></span>
 <span class="c" style="position:static;display:inline-block;line-height:6px">5</span>
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="height:32px;line-height:6px">6</span></span>
-<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="background:transparent;color:#111;line-height:6px">7</span></span>`);
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="background:transparent;color:#111;line-height:6px">7</span></span>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="display:flex;align-items:center;justify-content:center;text-box:trim-both cap alphabetic">8</span></span>`);
     expect(of("count-badge")).toEqual([]);
     expect(of("count-badge", { badgeSlackPx: 0 }).length).toBeGreaterThan(0);
   });
