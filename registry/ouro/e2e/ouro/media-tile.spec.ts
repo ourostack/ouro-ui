@@ -8,7 +8,7 @@ test("each tile in a grid reads as one sentence, and Pin pins it", async ({ page
   await expect(page.getByRole("group", { name: "Priya Raman, camera on, hand raised" })).toBeVisible();
   const theo = page.getByRole("group", { name: "Theo Okafor, muted, camera on, poor connection" });
   await expect(theo).toBeVisible();
-  const pin = theo.getByRole("button", { name: "Pin" });
+  const pin = theo.getByRole("button", { name: "Pin Theo Okafor" });
   await expect(pin).toHaveAttribute("data-ax-action", "pin");
   await pin.click();
   await expect(pin).toHaveAttribute("aria-pressed", "true");

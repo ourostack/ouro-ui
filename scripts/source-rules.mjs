@@ -31,6 +31,10 @@
 // - numericSizes: a fixed size written as a spacing step (`size-4`, `[&_svg]:size-5`, `pointer-fine:size-9`).
 //   Spacing steps follow --spacing, so a compact app would shrink an icon or a thumb; fixed sizes are
 //   `size-ouro-*`, and `h-`/`w-` stay allowed for lengths that follow density (ourostack/ouro-ui#417).
+// - gradients: a gradient or a mask in a component, lib or theme file (`linear-gradient(`, `bg-linear-*`,
+//   `mask-image`, `[mask:…]`). Ouro HX draws no gradient and fades no edge: content under chrome gets glass
+//   (a translucent, blurred bar), never a fade. A line says why a genuine cut-out or a hard-stop line is not one
+//   with `gradient-ok: <reason>`; scripts/gradient-known.json lists the files not yet converted, each with its reason.
 // - layoutAnimationAllowed: the layout-property animations (ouro-source-rules' `layout-animation`)
 //   that Ouro's own components keep, each with its reason; scripts/source-rules.test.mjs fails on
 //   any other, and on an allowance no longer used.
@@ -361,6 +365,28 @@ export function radiusSteps(path, text) {
     ts.forEachChild(node, visit);
   };
   visit(source);
+  return found;
+}
+
+const gradientToken = /gradient\(|(?<![\w-])bg-(?:gradient|linear|radial|conic)-|mask-image|\[-?(?:webkit-)?mask:|(?<![\w-])mask-\[|(?<![\w-])mask-(?:linear|radial|conic)-/;
+
+/** The files that still draw a gradient or a mask, each with its reason: scripts/gradient-known.json. */
+export const gradientKnown = JSON.parse(readFileSync(new URL("./gradient-known.json", import.meta.url), "utf8"));
+
+/**
+ * The lines of a file that draw a gradient or a mask (`linear-gradient(`, `bg-linear-to-r`, `mask-image`, `[mask:…]`,
+ * `mask-[…]`), as "line: text", leaving comment lines alone and any line that says why in `gradient-ok: <reason>`
+ * on itself or on the comment line above it.
+ */
+export function gradients(text) {
+  const lines = text.split("\n");
+  const says = (line) => /gradient-ok:\s*[^\s*/]/.test(line);
+  const found = [];
+  lines.forEach((line, index) => {
+    if (/^\s*(?:\/\/|\*|\/\*)/.test(line) || !gradientToken.test(line)) return;
+    if (says(line) || (index > 0 && /^\s*(?:\/\/|\*|\/\*)/.test(lines[index - 1]) && says(lines[index - 1]))) return;
+    found.push(`${index + 1}: ${line.trim().slice(0, 100)}`);
+  });
   return found;
 }
 

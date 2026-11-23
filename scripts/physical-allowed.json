@@ -18,10 +18,8 @@
     "pl-[max(1rem,env(safe-area-inset-left,0px))]": "keeps the dialog clear of the screen's left-hand cut-out, which is physical"
   },
   "registry/ouro/components/ouro/sheet/sheet-parts.tsx": {
-    "rounded-r-ouro-xl": "a sheet from side=\"left\" rounds the edge that faces the page; the side prop is physical",
     "pl-[env(safe-area-inset-left,0px)]": "a sheet from side=\"left\" stays clear of the screen's left-hand cut-out",
     "after:right-[calc(100%-1px)]": "the overscroll fill behind a sheet from side=\"left\" sits off its left edge",
-    "rounded-l-ouro-xl": "a sheet from side=\"right\" rounds the edge that faces the page; the side prop is physical",
     "pr-[env(safe-area-inset-right,0px)]": "a sheet from side=\"right\" stays clear of the screen's right-hand cut-out",
     "after:left-[calc(100%-1px)]": "the overscroll fill behind a sheet from side=\"right\" sits off its right edge"
   }

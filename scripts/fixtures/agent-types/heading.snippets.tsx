@@ -8,3 +8,4 @@ export const s23 = <Heading level={2} color="red">Recipes</Heading>;
 export const s25 = <Heading level={2} align="left">Recipes</Heading>;
 export const s28 = <Heading level={7} align="center">Recipes</Heading>;
 export const ok05 = <Heading level={1} size="display">Hero</Heading>;
+export const heading01 = <Heading level={3} size="inherit">Link preview</Heading>;

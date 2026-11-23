@@ -138,8 +138,16 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * stage (site/src/voyage/stage/stage.tsx) imports directly. Item's trailing chevron (#3190), merged in the same
  * span, does not reach the voyage: Item is used only in the voyage's lazily-loaded chapters and the docs' demos,
  * never in stage.tsx or home.tsx.
+ *
+ * The docs' set again 2026-11-23 at 196,591 bytes, what CI measured on this pull request's run 45283264564 (e2e job
+ * 138073889422), 193 bytes under its base's 196,784 (#3284, fixing #3268): #3206's `PatternPreview` catalog entry
+ * had added an eager import of `PatternPreview` to docs.tsx, so its `useSyncExternalStore`/`MutationObserver`/`Link`
+ * code reached the docs' first script although its `<iframe>` was `loading="lazy"`; #3284 lazy-loaded the component
+ * itself the same way `ThemeDots` already was. The base had grown past this ceiling by more than #3284 could
+ * recover, from other work landed since the docs' 196,004 baseline above; #3284's own commits found no further
+ * cheap cut.
  */
-const MEASURED = { voyage: 293_861, docs: 196_004 } as const;
+const MEASURED = { voyage: 293_861, docs: 196_591 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached

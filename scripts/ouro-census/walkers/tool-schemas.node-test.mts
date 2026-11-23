@@ -68,11 +68,20 @@ test("a passthrough schema built only from its function's parameters is excluded
 
 test("a stale or malformed passthrough or approvals entry is a census error", async () => {
   const { errors } = await walk({
-    passthrough: ["src/nested/passthrough.ts#gone", "src/missing.ts#serverSchema", "no-hash", "src/nested/passthrough.ts#noSchema"],
+    passthrough: [
+      "src/nested/passthrough.ts#gone",
+      "src/missing.ts#serverSchema",
+      "no-hash",
+      "src/nested/passthrough.ts#noSchema",
+      "src/nested/passthrough.ts#serverSchema#",
+      "src/nested/passthrough.ts##serverTools",
+    ],
     approvals: ["src/approval.ts#gone", "src/approval.ts#decidesNothing", "trailing#"],
   });
   deepEqual(errors, [
     "tool-schemas: passthrough no-hash: give it as <file>#<function>.",
+    "tool-schemas: passthrough src/nested/passthrough.ts#serverSchema#: give it as <file>#<function>, optionally with a declared source as <file>#<function>#<source>.",
+    "tool-schemas: passthrough src/nested/passthrough.ts##serverTools: give it as <file>#<function>, optionally with a declared source as <file>#<function>#<source>.",
     "tool-schemas: approvals trailing#: give it as <file>#<function>.",
     "tool-schemas: passthrough src/nested/passthrough.ts#gone names no function. Fix: remove it from the config.",
     "tool-schemas: passthrough src/missing.ts#serverSchema names no function. Fix: remove it from the config.",
@@ -240,4 +249,74 @@ test("a second round of hiding: an unreadable type, a namespace import, a re-exp
     "tool-schemas: approvals src/a.ts#resolver checks the name against imported, which the census can't read. Fix: check it against a literal list in the same file.",
     "tool-schemas: approvals src/a.ts#resolver looks the name up in GRANTS, which the census can't read. Fix: check it against a literal list in the same file.",
   ]);
+});
+
+const source = join(fixtures, "tools-source");
+const walkSource = () =>
+  walk({
+    handlers: [],
+    passthrough: [
+      "src/a.ts#mcpFromTool#serverTools",
+      "src/a.ts#mcpFromBody#req.body.tools",
+      "src/a.ts#mcpFromServerCall#listTools",
+      "src/a.ts#mcpFromConst#SERVER_TOOLS",
+    ],
+  }, source);
+
+test("a passthrough's declared source: a call, or the list a harness tool call is mapped through, must trace back to it (#3279)", async () => {
+  const { unwalked = [], excluded = [], errors } = await walkSource();
+  deepEqual(errors, []);
+  deepEqual(excluded, [
+    { hit: `src/a.ts:${lineOf("src/a.ts", "forwarded from tool", source)}`, category: "third-party-passthrough" },
+    { hit: `src/a.ts:${lineOf("src/a.ts", "forwarded from body", source)}`, category: "third-party-passthrough" },
+    { hit: `src/a.ts:${lineOf("src/a.ts", "forwarded from server call", source)}`, category: "third-party-passthrough" },
+    { hit: `src/a.ts:${lineOf("src/a.ts", "forwarded from const", source)}`, category: "third-party-passthrough" },
+  ]);
+  deepEqual(unwalked.map((g) => [g.id, g.line, g.reasons]).sort(), [
+    [
+      "tool:src/a.ts#mcpFromTool(hostTool)",
+      lineOf("src/a.ts", "mcpFromTool(hostTool)", source),
+      ["name: passthrough src/a.ts#mcpFromTool#serverTools is called here with what isn't traced to the declared source serverTools, so its name may not come from a connected server"],
+    ],
+    [
+      // The bug reported in #3279: the harness's own tool list, not the declared source, mapped through a passthrough.
+      "tool:src/a.ts#ownTools.map(mcpFromTool)",
+      lineOf("src/a.ts", "ownTools.map(mcpFromTool)", source),
+      ["name: passthrough src/a.ts#mcpFromTool#serverTools is passed to .map here over what isn't traced to the declared source serverTools, so its name may not come from a connected server"],
+    ],
+    [
+      "tool:src/a.ts#[{ name: \"literal_tool\" }].map(mcpFromTool)",
+      lineOf("src/a.ts", "literal_tool", source),
+      ["name: passthrough src/a.ts#mcpFromTool#serverTools is passed to .map here over what isn't traced to the declared source serverTools, so its name may not come from a connected server"],
+    ],
+    [
+      "tool:src/a.ts#req.other.tools.map(mcpFromBody)",
+      lineOf("src/a.ts", "req.other.tools.map(mcpFromBody)", source),
+      ["name: passthrough src/a.ts#mcpFromBody#req.body.tools is passed to .map here over what isn't traced to the declared source req.body.tools, so its name may not come from a connected server"],
+    ],
+    [
+      "tool:src/a.ts#otherTools().map(mcpFromServerCall)",
+      lineOf("src/a.ts", "otherTools().map(mcpFromServerCall)", source),
+      ["name: passthrough src/a.ts#mcpFromServerCall#listTools is passed to .map here over what isn't traced to the declared source listTools, so its name may not come from a connected server"],
+    ],
+    [
+      "tool:src/a.ts#OTHER_TOOLS.map(mcpFromConst)",
+      lineOf("src/a.ts", "OTHER_TOOLS.map(mcpFromConst)", source),
+      ["name: passthrough src/a.ts#mcpFromConst#SERVER_TOOLS is passed to .map here over what isn't traced to the declared source SERVER_TOOLS, so its name may not come from a connected server"],
+    ],
+  ].sort());
+  // Traced calls and value-usages -- a matching parameter, a local alias, a for-of loop, a dotted path, a call, and a
+  // module-scope const -- make no gap at all.
+  const untracedIds = new Set(unwalked.map((g) => g.id));
+  for (const traced of [
+    "mcpFromTool(serverTools)",
+    "serverTools.map(mcpFromTool)",
+    "list.map(mcpFromTool)",
+    "mcpFromTool(tool)",
+    "req.body.tools.map(mcpFromBody)",
+    "listTools().map(mcpFromServerCall)",
+    "SERVER_TOOLS.map(mcpFromConst)",
+  ]) {
+    ok(![...untracedIds].some((id) => id.includes(traced)), traced);
+  }
 });

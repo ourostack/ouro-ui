@@ -32,7 +32,14 @@ export const agentCases: AgentCase[] = [
     dev: '<Card href="/path" title="…" zoomMedia revealDescription>',
     names: ["tsc", "dev"],
   },
+  {
+    id: "card10",
+    habit: "a titleSize that is not inherit",
+    tsc: [notAssignable('"lg"', `"inherit" | (string & { 'Use "inherit", or omit it so Card sizes the title itself': never; }) | undefined`)],
+    dev: '<Card titleSize="inherit">',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid card snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["card07", "card09"];
+export const validSnippets: string[] = ["card07", "card09", "card11"];

@@ -14,7 +14,7 @@ export const agentCases: AgentCase[] = [
   {
     id: "s10",
     habit: "a 3xl Heading",
-    tsc: [notAssignable('"3xl"', `HeadingSize | (string & { 'Use "sm", "md", "lg", "xl", "2xl" or, larger, "display"': never; }) | undefined`)],
+    tsc: [notAssignable('"3xl"', `HeadingSize | (string & { 'Use "sm", "md", "lg", "xl", "2xl", "display" or "inherit" to match the surrounding text': never; }) | undefined`)],
     hover: { prop: "size", doc: "`display` is the hero headline" },
     dev: '<Heading level={1} size="display">',
     names: ["tsc", "hover", "dev"],
@@ -38,4 +38,4 @@ export const agentCases: AgentCase[] = [
 ];
 
 /** Valid heading snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["ok05"];
+export const validSnippets: string[] = ["ok05", "heading01"];
