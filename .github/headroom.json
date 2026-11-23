@@ -65,16 +65,6 @@
     "owner": "drain-3"
   },
   {
-    "test": "* registry/ouro/lib/ouro/squircle/csp.test.ts > under style-src 'self' > bridges native corner-shape with no <style> element and nothing refused",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/lib/ouro/squircle/parse.test.ts > isTransparentColor > detects transparent colors",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* registry/ouro/lib/ouro/testing/commands.test.ts > emulateMedia throws, naming the query, when the frame never matches it",
     "reason": "Waits out a deliberate ten second poll bound, so it takes half its timeout by design.",
     "owner": "drain-3"
@@ -85,27 +75,12 @@
     "owner": "drain-3"
   },
   {
-    "test": "* site/src/voyage/stage/stage.test.tsx > the stage's controls > keeps the newest five lines in the log, the newest also under the porthole",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* registry/ouro/components/ouro/combobox/combobox.touch.test.tsx > Combobox on a phone > clears typed text to an empty string with allowCustomValue",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
   {
     "test": "* registry/ouro/components/ouro/dialog/dialog.touch.test.tsx > initial focus in the centered dialog (landscape phone, * > focuses the popup, not the input, after a tap, so no keyboard pops up",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* site/src/adoption/adoption.test.tsx > the adoption page > has a route and leads with the count of green products out of the total",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* site/src/voyage/voyage.test.tsx > the header and the theme section > turns X-ray on from the header's switch and from See how it's built",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   },
@@ -125,11 +100,6 @@
     "owner": "drain-3"
   },
   {
-    "test": "* site/src/site.test.tsx > docs > opens a docs page on the registry Hero: its scene contained, by day and at night, a band on a component page and the whole scene on a platform page",
-    "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* test/stories.test.tsx > at * px > * > Reorderable/ScrollsInPlace has no axe violations, closed and with each overlay open",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
@@ -137,11 +107,6 @@
   {
     "test": "* test/controls.touch.test.tsx > no control is left unmarked on a touch phone > *",
     "reason": "Ran past half its timeout in a pull request run. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* site/src/current/current.test.tsx > Ouro Current's page > has a route, leads with what it does and has one Install button",
-    "reason": "The first test of the file loads the page's route and renders it cold, and ran past half its timeout in a pull request run. Preload the route in a shared helper, then remove this entry.",
     "owner": "drain-3"
   },
   {
@@ -155,38 +120,8 @@
     "owner": "drain-3"
   },
   {
-    "test": "* site/src/apple/apple.test.tsx > Ouro UI for Apple > renders * with its title, its section menu and a route",
-    "reason": "It renders each Apple page in turn, the first of them cold, and a shard measured one past half its timeout. Preload the route in a shared helper, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* test/stories.test.tsx > at * px > * > Lightbox/Photos has no axe violations, closed and with each overlay open",
     "reason": "The story renders a grid of photos for the axe scan, and a shard measured it past half its timeout. Scan fewer photos in the story, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > signs on Ana, and the crew member who knows the name answers in place of the welcome",
-    "reason": "A shard measured it at 8.7 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > signs on Jules, and the crew member who knows the name answers in place of the welcome",
-    "reason": "A shard measured it at 7.8 s against a budget of 15 s (#3032). It runs in under 1 s on a clean site install with no contention, repeated across isolated runs, so the breach did not reproduce locally; it reads as CI-shard load, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* test/patterns.test.tsx > SettingsPage > deletes the account only once the person confirms, then starts the form over",
-    "reason": "A shard measured it at 8.4 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx > EmojiPicker content > keeps its fixed sizes at a compact --spacing: an emoji's square, a category's box and icon, and a skin tone's ring",
-    "reason": "A shard measured it at 8.3 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > lets the crew speak only when it adds something: five ticks in order give at most three lines, and a tick out of order warns",
-    "reason": "A shard measured it at 8 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
     "owner": "drain-3"
   },
   {
@@ -202,11 +137,6 @@
   {
     "test": "* registry/ouro/components/ouro/porthole/porthole.test.tsx > Porthole > closes on Escape without losing focus, lets every Escape reach the app, and opens again on Enter",
     "reason": "The original test, combining this check with the press-to-close case above, was measured at 7.5 s against a budget of 15 s (#2965). It is split in two here, each with half the interactions, and its afterEach no longer pays a media round trip it never needed. It runs in under 1 s on a clean ouro-webkit install with no contention, so the remaining cost reads as CI-shard load on the real interactions webkit automation dispatches, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx > SnapPiP > is a focusable group named by its label, described by its corner and hint, which shows beside it on keyboard focus",
-    "reason": "A shard measured it at 8 s against a budget of 15 s (#2965). Its own afterEach no longer pays a media round trip it never needed, since the test touches no media; it runs in under 400 ms on a clean ouro-webkit install with no contention across repeated isolated runs, both before and after that fix, so the remaining cost reads as CI-shard load on the real click, hover and Tab interactions the test dispatches, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
   },
   {
@@ -261,11 +191,6 @@
   },
   {
     "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command motion > fades and scales in from 0.96 on the Dialog's slow token, and only fades with reduced motion",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/inspector/inspector.test.tsx > Inspector > leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
   }
