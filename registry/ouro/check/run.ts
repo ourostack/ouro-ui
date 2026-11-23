@@ -1241,7 +1241,7 @@ function summary({ findings, fixed, pages, sizes, themes, shard, allowances }: R
     const count = (rule: string) => mine.filter((r) => r.rule === rule).length || "";
     lines.push(`| ${!mine.length ? "✓" : mine.some((r) => r.gated) ? "✗" : "·"} | \`${pageOf(ref)}\` | ${RULES.map(count).join(" | ")} |`);
   }
-  lines.push("", "This check proves the floor: states, focus, names, contrast, targets and motion work as measured. It can't tell you the screen is good for a person.", "");
+  lines.push("", "This check proves the floor: states, focus, names, contrast, targets and motion work as measured. It can't tell you the screen is good for a person.", "", `Before a person sees it, pass the beauty gate: ${BEAUTY_GATE}`, "");
   lines.push("✗ fails; · is waived, or known, in ouro-check.json. Each finding has a captioned close-up in `findings/`, and each page a contact sheet in `sheets/`.", "");
   if (fixed.length) lines.push(`Fixed since the earlier report: ${fixed.length}, each with a before and after in \`pairs/\`.`, "");
   if (allowances.length) lines.push(`Opted out on purpose: ${allowances.length}, each with its reason in \`report.json\` (\`allowances\`).`, "");
@@ -1259,6 +1259,9 @@ function summary({ findings, fixed, pages, sizes, themes, shard, allowances }: R
   lines.push(...NEEDS_A_PERSON.map((line) => `- ${line}`));
   return `${lines.join("\n")}\n`;
 }
+
+// Where the steps a screen passes before a person sees it live: references side by side, then independent critics.
+const BEAUTY_GATE = "https://ui.ouroboros.bot/docs/design-craft/#the-beauty-gate";
 
 const NEEDS_A_PERSON = [
   "Whether a person finishes the task without help, and how long it takes them.",
