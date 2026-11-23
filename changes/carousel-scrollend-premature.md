@@ -1,0 +1,1 @@
+- Fix: Carousel used to skip its announcement when a `scrollend` fired for a scroll a press interrupted; it settles at once on a matching `scrollend` and otherwise waits for the scroll that is still under way.
