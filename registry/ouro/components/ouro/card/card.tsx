@@ -349,6 +349,7 @@ export function Card(props: CardProps): JSX.Element {
             asProp === "a" ? '<Card href="/path" title="…">' : '<Card as="div">',
           ],
           level !== headingLevel && [`headingLevel must be 2, 3, 4, 5 or 6, got ${String(headingLevel)}`, "<Card headingLevel={2}>"],
+          // Stryker disable next-line ConditionalExpression: forcing this half true changes nothing — titleSize always equals titleSizeProp (both undefined) whenever titleSizeProp is undefined, so the second half is false either way.
           titleSizeProp !== undefined &&
             titleSize !== titleSizeProp && [`titleSize="${String(titleSizeProp)}" is not a size; use "inherit"`, '<Card titleSize="inherit">'],
           subtitle !== undefined && ["subtitle is not a prop", `<Card description="${String(subtitle)}">`],

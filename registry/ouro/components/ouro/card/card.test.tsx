@@ -300,6 +300,9 @@ describe("Card", () => {
     expect(style.backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
     const body = card.querySelector("[data-body]")!;
     expect(body.getBoundingClientRect().left - card.getBoundingClientRect().left).toBe(25);
+    // size="md" (the default) sizes an untouched title at Heading's own "md" step, not "sm" or the inherited body size.
+    const title = card.querySelector('[data-slot="card-title"]')!;
+    expect(getComputedStyle(title).fontSize).toBe("18px");
   });
 
   it("is tighter with size=sm", async () => {
@@ -311,6 +314,9 @@ describe("Card", () => {
     expect(getComputedStyle(card).paddingTop).toBe("16px");
     const body = card.querySelector("[data-body]")!;
     expect(body.getBoundingClientRect().left - card.getBoundingClientRect().left).toBe(17);
+    // size="sm" sizes an untouched title at Heading's "sm" step, smaller than the default "md" title above.
+    const title = card.querySelector('[data-slot="card-title"]')!;
+    expect(getComputedStyle(title).fontSize).toBe("16px");
   });
 
   it('sizes the title from the surrounding text with titleSize="inherit", staying semibold', async () => {
@@ -1055,6 +1061,11 @@ describe("Card development messages", () => {
   it.each([undefined, false, true, "rise"] as const)("says nothing of revealDescription=%s, which is a reveal", async (value) => {
     await render(<Card href="#x" title="x" description="y" media={<div />} revealDescription={value} />);
     expect(warn.mock.calls.filter((call: unknown[]) => String(call[0]).includes("is not a reveal"))).toEqual([]);
+  });
+
+  it.each([undefined, "inherit"] as const)("says nothing of titleSize=%s, which is a size", async (value) => {
+    await render(<Card title="x" titleSize={value} />);
+    expect(warn.mock.calls.filter((call: unknown[]) => String(call[0]).includes("is not a size; use \"inherit\""))).toEqual([]);
   });
 
   it("renders no box for an action it is not given", async () => {
