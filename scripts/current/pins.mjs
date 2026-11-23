@@ -2,14 +2,15 @@
 // A finder reads a file's text and returns the pins in it ({ kind, file, follows, current, ... }); an updater returns
 // the files to write ({ path: text | Buffer | null }, null deleting) and notes for the pull request.
 //
-// follows: "web" (ourostack/ouro-ui), "core" (ourostack/ouro-ui-core) or "apple" (ourostack/ouro-ui-apple).
+// follows: "web" (ourostack/ouro-ui), "core" (ourostack/ouro-ui-core), "apple" (ourostack/ouro-ui-apple), "windows"
+// (ourostack/ouro-ui-windows, NuGet) or "android" (ourostack/ouro-ui-android, Gradle).
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { dirname, posix } from "node:path";
 import { BASE_SOURCE, THEME_ITEMS, applyItem, baseImport, basePath, hasItem, importBase } from "./stylesheet.mjs";
 
-export const REPOS = { web: "ourostack/ouro-ui", core: "ourostack/ouro-ui-core", apple: "ourostack/ouro-ui-apple" };
-export const NAMES = { web: "Ouro UI", core: "Ouro UI core", apple: "Ouro UI for Apple" };
+export const REPOS = { web: "ourostack/ouro-ui", core: "ourostack/ouro-ui-core", apple: "ourostack/ouro-ui-apple", windows: "ourostack/ouro-ui-windows", android: "ourostack/ouro-ui-android" };
+export const NAMES = { web: "Ouro UI", core: "Ouro UI core", apple: "Ouro UI for Apple", windows: "Ouro UI for Windows", android: "Ouro UI for Android" };
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const bare = (version) => String(version ?? "").replace(/^v/, "");
@@ -22,6 +23,88 @@ const SWIFT_RESOLVED = /("identity"\s*:\s*"ouro-ui-apple"[\s\S]*?"state"\s*:\s*\
 const XCODEGEN = new RegExp(String.raw`(url:\s*${APPLE_URL}\s*\n\s*(?:exactVersion|minorVersion|majorVersion|from|version):\s*"?)([0-9][0-9.]*)`, "g");
 const PBXPROJ = new RegExp(String.raw`(repositoryURL = "${APPLE_URL}";\s*requirement = \{[^}]*?(?:minimumVersion|version) = "?)([0-9][0-9.]*)`, "g");
 const WORKFLOW_TAG = /(OURO_UI_TAG:\s*["']?)(v[0-9][0-9.]*)/g;
+
+// NuGet: a PackageReference (or a central PackageVersion) of a package ouro-ui-windows releases, with a plain version
+// in its Version or VersionOverride attribute or a <Version> child. A floating or ranged version is left alone.
+const NUGET_FILE = /\.(?:csproj|fsproj|vbproj|props|targets)$/i;
+const NUGET_ID = /^Ouro\.(?:UI\.Windows(?:\.[A-Za-z0-9_]+)*|Actions)$/i;
+const NUGET_TAG = /<(PackageReference|PackageVersion)\b([^>]*?)(\/?)>/g;
+const PLAIN_VERSION = "[0-9]+(?:\\.[0-9]+)*";
+
+/** Each Ouro package reference in an MSBuild file, its version passed through `move`: the text it makes, and every reference's package and version. */
+function editNuget(text, move) {
+  const found = [];
+  let out = "";
+  let last = 0;
+  for (const match of text.matchAll(NUGET_TAG)) {
+    const [whole, element, attributes, selfClosing] = match;
+    const id = /\b(?:Include|Update)\s*=\s*"([^"]+)"/.exec(attributes)?.[1];
+    if (!id || !NUGET_ID.test(id.trim())) continue;
+    const attribute = new RegExp(String.raw`(\b(?:Version|VersionOverride)\s*=\s*")(${PLAIN_VERSION})(")`).exec(attributes);
+    if (attribute) {
+      found.push({ id: id.trim(), version: attribute[2] });
+      out += text.slice(last, match.index) + whole.replace(attribute[0], `${attribute[1]}${move(attribute[2])}${attribute[3]}`);
+      last = match.index + whole.length;
+      continue;
+    }
+    if (selfClosing) continue;
+    const close = text.indexOf(`</${element}>`, match.index + whole.length);
+    if (close < 0) continue;
+    const inner = text.slice(match.index + whole.length, close);
+    const child = new RegExp(String.raw`(<Version>\s*)(${PLAIN_VERSION})(\s*</Version>)`).exec(inner);
+    if (!child) continue;
+    found.push({ id: id.trim(), version: child[2] });
+    out += text.slice(last, match.index) + whole + inner.replace(child[0], `${child[1]}${move(child[2])}${child[3]}`);
+    last = close;
+  }
+  return { text: out + text.slice(last), found };
+}
+
+// Gradle: a bot.ouro.ui coordinate in a build script or a version catalog, as "group:name:version", as a catalog's
+// module with its version, as group, name and version, or through a catalog's version.ref when only Ouro libraries use it.
+const GRADLE_FILE = /(?:\.gradle(?:\.kts)?|\.versions\.toml)$/;
+const GRADLE_COORDINATE = new RegExp(String.raw`((["'])bot\.ouro\.ui:[A-Za-z0-9_.-]+:)(${PLAIN_VERSION})(\2)`, "g");
+const GRADLE_MODULE = new RegExp(String.raw`(\bmodule\s*=\s*"bot\.ouro\.ui:[A-Za-z0-9_.-]+"\s*,\s*version\s*=\s*")(${PLAIN_VERSION})(")`, "g");
+const GRADLE_PARTS = new RegExp(String.raw`(\bgroup\s*[:=]\s*(["'])bot\.ouro\.ui\2\s*,\s*name\s*[:=]\s*(["'])[A-Za-z0-9_.-]+\3\s*,\s*version\s*[:=]\s*(["']))(${PLAIN_VERSION})(\4)`, "g");
+const CATALOG_REF = /\bversion(?:\.ref\s*=\s*"([^"]+)"|\s*=\s*\{\s*ref\s*=\s*"([^"]+)"\s*\})/;
+
+/** The [versions] entries of a version catalog that only bot.ouro.ui libraries refer to. */
+function ouroCatalogRefs(text) {
+  const ouro = new Set();
+  const other = new Set();
+  for (const line of text.split("\n")) {
+    const ref = CATALOG_REF.exec(line);
+    if (!ref) continue;
+    (/bot\.ouro\.ui[:"]/.test(line) ? ouro : other).add(ref[1] ?? ref[2]);
+  }
+  return [...ouro].filter((name) => !other.has(name));
+}
+
+/** Each bot.ouro.ui version in a Gradle file, passed through `move`: the text it makes and every version it found. */
+function editGradle(path, text, move) {
+  const found = [];
+  const swap = (head, version, tail) => {
+    found.push(version);
+    return `${head}${move(version)}${tail}`;
+  };
+  let out = text
+    .replace(GRADLE_COORDINATE, (all, head, quote, version, tail) => swap(head, version, tail))
+    .replace(GRADLE_MODULE, (all, head, version, tail) => swap(head, version, tail))
+    .replace(GRADLE_PARTS, (all, head, q1, q2, q3, version, tail) => swap(head, version, tail));
+  if (path.endsWith(".versions.toml")) {
+    const section = /^\[versions\][^\S\n]*\n([\s\S]*?)(?=^\[|(?![\s\S]))/m.exec(out);
+    if (section) {
+      let body = section[1];
+      for (const name of ouroCatalogRefs(out)) {
+        const entry = new RegExp(String.raw`^(\s*"?${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"?\s*=\s*")(${PLAIN_VERSION})(")`, "m");
+        body = body.replace(entry, (all, head, version, tail) => swap(head, version, tail));
+      }
+      const start = section.index + section[0].length - section[1].length;
+      out = out.slice(0, start) + body + out.slice(start + section[1].length);
+    }
+  }
+  return { text: out, found };
+}
 
 const APPLE_REQUIREMENT = new RegExp(String.raw`\.package\(\s*url:\s*"${APPLE_URL}"\s*,\s*(exact:|from:|\.exact\(|\.upToNextMinor\(from:|\.upToNextMajor\(from:)\s*"([0-9][0-9.]*)"`);
 const OUROSTACK_PACKAGE = /^https:\/\/github\.com\/(ourostack\/[^/]+?)(?:\.git)?$/;
@@ -83,6 +166,10 @@ export function findPins(path, text) {
     for (const match of text.matchAll(XCODEGEN)) pins.push({ kind: "xcodegen", file: path, follows: "apple", current: match[2] });
   } else if (base === "project.pbxproj") {
     for (const match of text.matchAll(PBXPROJ)) pins.push({ kind: "xcodeproj", file: path, follows: "apple", current: match[2] });
+  } else if (NUGET_FILE.test(base)) {
+    for (const { id, version } of editNuget(text, (version) => version).found) pins.push({ kind: "nuget", file: path, follows: "windows", current: version, package: id });
+  } else if (GRADLE_FILE.test(base)) {
+    for (const version of editGradle(path, text, (version) => version).found) pins.push({ kind: "gradle", file: path, follows: "android", current: version });
   } else if (/^\.github\/workflows\/[^/]+\.ya?ml$/.test(path)) {
     for (const match of text.matchAll(WORKFLOW_TAG)) pins.push({ kind: "workflow-tag", file: path, follows: "web", current: match[2] });
   }
@@ -92,7 +179,10 @@ export function findPins(path, text) {
 /** The file names worth reading, so a repository's whole tree is never downloaded to find its pins. */
 export const isCandidate = (path) =>
   !/(^|\/)(node_modules|\.build|DerivedData|Pods|vendor\/bundle)\//.test(path) &&
+  !/(^|\/)(bin|obj|\.gradle|build)\//.test(path) &&
   (/(^|\/)(ouro-hx-installed\.json|upstream-sources\.lock\.json|dist-manifest\.json|Package\.swift|Package\.resolved|project\.yml|project\.pbxproj)$/.test(path) ||
+    NUGET_FILE.test(path) ||
+    GRADLE_FILE.test(path) ||
     /(^|\/)ouro-ui-core\/pin\.json$/.test(path) ||
     /^\.github\/workflows\/[^/]+\.ya?ml$/.test(path));
 
@@ -111,6 +201,31 @@ function updateResolved(pin, text, release) {
     return `${head}${body}${tail}`;
   });
   return { files: { [pin.file]: next }, notes: [] };
+}
+
+/** A lock file beside a NuGet or Gradle pin that also holds the package: left as it is and named, since it carries hashes of the packages. */
+async function lockNotes(pin, ctx, release) {
+  const paths = ctx.consumerPaths?.() ?? [];
+  const locks =
+    pin.kind === "nuget"
+      ? paths.filter((path) => posix.basename(path) === "packages.lock.json" && posix.dirname(path) === posix.dirname(pin.file))
+      : paths.filter((path) => /(^|\/)(gradle\.lockfile|verification-metadata\.xml)$/.test(path));
+  const notes = [];
+  for (const path of locks) {
+    const bytes = await ctx.consumerFile?.(path);
+    if (!bytes || !(pin.kind === "nuget" ? /"Ouro\.(?:UI\.Windows|Actions)/i : /bot\.ouro\.ui/).test(bytes.toString("utf8"))) continue;
+    const fix = pin.kind === "nuget" ? "`dotnet restore --force-evaluate`" : "`./gradlew dependencies --write-locks` (or `--write-verification-metadata sha256`)";
+    notes.push(`Leaves \`${path}\` as it is: it holds the hashes of the packages at the old version. Run ${fix} on this branch to write it for \`${bare(release.tag)}\`.`);
+  }
+  return notes;
+}
+
+async function updateNuget(pin, text, release, ctx) {
+  return { files: { [pin.file]: editNuget(text, () => bare(release.tag)).text }, notes: await lockNotes(pin, ctx, release) };
+}
+
+async function updateGradle(pin, text, release, ctx) {
+  return { files: { [pin.file]: editGradle(pin.file, text, () => bare(release.tag)).text }, notes: await lockNotes(pin, ctx, release) };
 }
 
 /** The registry's files at a tag, each with the path it installs to (`@components/…`, `@lib/…`, `~/…`). */
@@ -1335,6 +1450,8 @@ export const UPDATERS = {
   xcodegen: replaceVersion(XCODEGEN),
   xcodeproj: replaceVersion(PBXPROJ),
   "workflow-tag": replaceVersion(WORKFLOW_TAG),
+  nuget: updateNuget,
+  gradle: updateGradle,
 };
 
 /** The text of a file to write: a Buffer stays bytes, anything else is text. */
