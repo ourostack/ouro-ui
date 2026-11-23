@@ -1,9 +1,14 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
 import { clearComposerDrafts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { routes } from "../routes";
+
+beforeAll(async () => {
+  // Load the page's modules once here, so the first test's own budget does not carry them.
+  await import("./chat-demo");
+});
 
 afterEach(async () => {
   await cleanupPage();
