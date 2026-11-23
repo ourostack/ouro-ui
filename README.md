@@ -419,6 +419,7 @@ Components:
 `avatar`,
 `badge`,
 `breadcrumb`,
+`build-chip`,
 `button`,
 `button-group`,
 `calendar`,
@@ -767,6 +768,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### Feedback
 
 - **AgentPresence** — The person's always-visible sign of which of their agents are listening to something on their behalf, such as a meeting, with Stop one click away. [Docs](docs/AgentPresence.md)
+- **BuildChip** — A compact, neutral chip for the title bar, like Xcode's scheme and activity area: it names the build the window runs ("Official 1.2.3", or "branch · sha" with "+ edits" for local changes not yet in any build), and opens a picker of the official build plus the builds serving now so a person is always one choice from the official build. [Docs](docs/BuildChip.md)
 - **buzz** — Vibrates the device in a short alert pattern, where it can (most Android phones; not iOS or desktops). [Docs](docs/buzz.md)
 - **Celebrate** — A small moment of celebration for something the person finished: confetti bursts from a badge with the message ("List cleared") and screen readers hear the message once. [Docs](docs/Celebrate.md)
 - **chime** — Plays a short alert, three soft tones, for something that just finished: a timer at zero. [Docs](docs/chime.md)
