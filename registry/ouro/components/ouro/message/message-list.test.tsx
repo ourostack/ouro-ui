@@ -1365,9 +1365,19 @@ describe("MessageList", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
-  it("keeps the jump pill off the newest message, even scrolled close to the end", async () => {
-    const { scroller } = await render(<Chat items={history(20)} />);
-    await wheel(scroller, -40);
+  it("keeps the jump pill off a message that arrives scrolled close to the end", async () => {
+    // Stays under the windowing threshold throughout, so what is measured is the room the arrival
+    // reserves, not a windowing transition's own remounts.
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    // The reader notices the pill and scrolls back down toward the new message. Landing close enough to the
+    // end lets the list's settle-time correction clear the newest message from the pill, the same as it
+    // already does for a message already drawn when the reader stops just short of the bottom.
+    await wheel(scroller, 520);
+    await settle(scroller);
     const pill = page.getByRole("button", { name: "Jump to latest" });
     await expect.element(pill).toBeVisible();
     const pillRect = (pill.element() as HTMLElement).getBoundingClientRect();

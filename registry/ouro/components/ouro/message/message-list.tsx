@@ -1184,6 +1184,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Whether the view follows new content: whether it was at the bottom before the content changed.
   const pinned = useRef(true);
   const [showJump, setShowJump] = useState(false);
+  // Whether a message has arrived while scrolled away from the bottom, so the newest drawn row could reach the pill: the
+  // list keeps no room for it merely from being scrolled away, since most of what is scrolled past (message-list.windowing.test.tsx)
+  // never comes near the pill at all.
+  const [jumpRoom, setJumpRoom] = useState(false);
   const jumpRoomRef = useRef<HTMLDivElement | null>(null);
   const jumpRef = useRef<HTMLButtonElement | null>(null);
   const [spoken, setSpoken] = useState<Spoken[]>([]);
@@ -2071,6 +2075,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
       if (farthest() === end) keepAnchor();
       setShowJump(!pinned.current);
+      // Back at the bottom: no room is owed any more.
+      if (pinned.current) setJumpRoom(false);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
     // Once the pill's held place settles, the raised pill can land over the newest message. Only an overlap the fixed
@@ -2600,7 +2606,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
         now.slice(last + 1).forEach((message, index) => {
           const old = replaced[index];
           if (redrawn(message)) return;
-          if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) waiting.add(message);
+          if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) {
+            waiting.add(message);
+            // A message new to the conversation's end, not merely redrawn by windowing nor a quiet replacement of the one
+            // in its place: the newest drawn row could now reach the pill, so the room it keeps clear of it is owed.
+            if (!pinned.current) setJumpRoom(true);
+          }
         });
       } else if (known.length === 0 && now.length === 1) {
         // One message into an empty list is a first reply or greeting. Several at once are
@@ -3060,7 +3071,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
             {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
             <RowLayerContext.Provider value={layer as RowLayer<unknown>}>{slots}</RowLayerContext.Provider>
             {/* While "Jump to latest" shows, keeps the newest message clear of its own raised pill at the list's bottom. */}
-            {showJump && <div ref={jumpRoomRef} aria-hidden="true" data-ouro-message-list-jump-room="" className="-mb-4 h-20 shrink-0" />}
+            {showJump && jumpRoom && <div ref={jumpRoomRef} aria-hidden="true" data-ouro-message-list-jump-room="" data-slot="message-list-jump-room" className="-mb-4 h-20 shrink-0" />}
           </div>
           <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
