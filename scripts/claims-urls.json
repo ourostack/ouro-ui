@@ -343,6 +343,10 @@
     "status": 200,
     "checked": "2026-11-08"
   },
+  "https://github.com/ourostack/ouro-ui-apple/blob/29d041d01bbba2088fb8990a42d617bb31745eaa/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
   "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L11-L13": {
     "status": 200,
     "checked": "2026-11-06"
@@ -386,10 +390,6 @@
   "https://github.com/ourostack/ouro-ui-apple/blob/8a01ed114ffbd85ff8ae37e8d8c0dc8a717d5e86/core-provenance.json": {
     "status": 200,
     "checked": "2026-11-20"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/947ab16fbffc0ad6f56a3f1d39898b2cbc29b531/core-provenance.json": {
-    "status": 200,
-    "checked": "2026-11-22"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml": {
     "status": 200,
@@ -491,9 +491,9 @@
     "status": 200,
     "checked": "2026-11-21"
   },
-  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.8.0": {
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.9.0": {
     "status": 200,
-    "checked": "2026-11-22"
+    "checked": "2026-11-23"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/16698c8ec52c6c597d21dae566beecfb3dccfb93/src/chat-approval.mts": {
     "status": 200,
