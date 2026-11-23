@@ -16,10 +16,14 @@ describe("the chat app page", () => {
     expect(routes.some((route) => route.path === "/docs/chat-demo/")).toBe(true);
   });
 
-  it("shows the conversations and opens one from the list", async () => {
+  it("shows the conversations", async () => {
     await renderPage("/docs/chat-demo/");
     await expect.element(page.getByRole("heading", { level: 1, name: "A chat app" })).toBeInTheDocument();
     await expect.element(page.getByLabelText("Conversations")).toBeInTheDocument();
+  });
+
+  it("opens a conversation from the list", async () => {
+    await renderPage("/docs/chat-demo/");
     await page.getByRole("button", { name: /Launch crew/ }).click();
     await expect.element(page.getByLabelText("Messages in Launch crew")).toBeInTheDocument();
   });

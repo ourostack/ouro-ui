@@ -8,7 +8,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer, type ComposerEditor, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
-import { clearComposerDrafts, composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
+import { clearComposerDrafts, composerDrafts, composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
@@ -196,6 +196,26 @@ describe("Composer drafts", () => {
     expect(view.textarea.value).toBe("");
     await go("c0");
     expect(view.textarea.value).toBe("first again");
+  });
+
+  it("keeps fifty drafts left by unmounting boxes, and drops the oldest only when a fifty-first arrives", async () => {
+    const leave = async (id: string, text: string) => {
+      const view = await render(<Composer label="Message" conversation={id} onSend={() => {}} />);
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(view.textarea, text);
+        view.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await view.rerender(<div />);
+    };
+    const read = async (id: string) => (await render(<Composer label="Message" conversation={id} onSend={() => {}} />)).textarea.value;
+    for (let i = 0; i < 50; i++) await leave(`u${i}`, `draft ${i}`);
+    expect(composerDrafts.size).toBe(50);
+    expect(composerDrafts.get("u0")).toBe("draft 0");
+    await leave("u50", "draft 50");
+    expect(composerDrafts.size).toBe(50);
+    expect(composerDrafts.has("u0")).toBe(false);
+    expect(composerDrafts.get("u1")).toBe("draft 1");
+    expect(await read("u50")).toBe("draft 50");
   });
 
   it("leaves a controlled value to the app", async () => {
