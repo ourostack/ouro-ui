@@ -139,7 +139,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
             {/* Feel it: a look repaints the whole page, there and then. Live, the default, follows the reader's sky. */}
             <div className="site-hero-paint" data-site-hero-paint="">
               <p className="site-hero-paint-label">Try a look: it changes this page's colours, headline font and corner roundness.</p>
-              <ThemeDots label="Theme" nameClassName="max-sm:hidden" className="site-hero-dots" />
+              <ThemeDots label="Theme" nameClassName="max-sm:hidden" groupClassName="site-hero-dots" />
             </div>
             <HandOff />
           </div>

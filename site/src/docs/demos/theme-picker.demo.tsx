@@ -7,8 +7,8 @@ export default function ThemePickerDemo(): JSX.Element {
   return (
     <ThemePicker
       presets={[
-        { name: "pearl", label: "Pearl" },
-        { name: "abyss", label: "Abyss" },
+        { name: "pearl", label: "Pearl", mood: "Clean white and one clear blue" },
+        { name: "abyss", label: "Abyss", mood: "Pale aqua, then a cyan glow in the dark" },
       ]}
     />
   );

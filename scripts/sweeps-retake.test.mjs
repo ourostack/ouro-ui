@@ -15,16 +15,11 @@ test("a stable capture passes: two equal takes make no finding", () => {
 });
 
 test("two takes that differ fail, naming the control signature, page and state", () => {
-  const message = instability(pic([1, 2]), pic([1, 15]), where);
+  const message = instability(pic([1, 2]), pic([1, 3]), where);
   assert.match(message, /button\|trigger\|hover/);
   assert.match(message, /\/docs\/button\//);
   assert.match(message, /hover/);
   assert.match(instability(pic([1, 2]), pic([1, 2], 1), where), /differ/);
-});
-
-test("an edge that moves a unit or two as it is redrawn is no finding, and three is", () => {
-  assert.equal(instability(pic([40, 42]), pic([41, 40]), where), null);
-  assert.match(instability(pic([40, 42]), pic([43, 42]), where), /differ/);
 });
 
 test("a take that produced no picture is no finding", () => {

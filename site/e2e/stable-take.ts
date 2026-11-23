@@ -40,16 +40,9 @@ interface Picture {
   height: number;
 }
 
-/**
- * How far one channel of a pixel may move between the takes and still count as the same: a control's antialiased edge
- * blends with the page behind it, which can shift a unit as it is redrawn (a reorderable handle's corners on /nautilus/,
- * one unit on 10 pixels, #3021). A state that settles late moves far more (a hover's tint, 13 units on the ring).
- */
-const NOISE = 2;
-
 /** A finding naming the control, page and state when the two takes differ; null when they agree. */
 export function instability(first: Picture | null, second: Picture | null, where: { signature: string; page: string; state: string }): string | null {
   if (!first || !second) return null;
-  const same = first.width === second.width && first.height === second.height && first.data.length === second.data.length && first.data.every((value, i) => Math.abs(value - second.data[i]!) <= NOISE);
+  const same = first.width === second.width && first.height === second.height && Buffer.compare(first.data, second.data) === 0;
   return same ? null : `${where.signature} on ${where.page} in ${where.state}: two takes of its picture differ, so the state is not stable`;
 }

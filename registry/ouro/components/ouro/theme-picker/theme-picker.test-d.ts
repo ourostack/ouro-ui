@@ -10,10 +10,6 @@ expectTypeOf<{ presets: [{ name: "pearl"; label: "Pearl" }]; label: "Look"; desc
 expectTypeOf<Record<never, never>>().not.toExtend<ThemePickerProps>();
 expectTypeOf<ComponentProps<typeof ThemePicker>>().toEqualTypeOf<ThemePickerProps>();
 expectTypeOf<{ presets: [{ name: "pearl" }] }>().not.toExtend<ThemePickerProps>();
-expectTypeOf<{ presets: [{ name: "live"; label: "Sky"; theme: "pearl" }]; presentation: "popover"; size: "md"; value: "live" }>().toExtend<ThemePickerProps>();
-expectTypeOf<{ presets: []; presentation: "menu" }>().not.toExtend<ThemePickerProps>();
-expectTypeOf<{ presets: []; size: "xl" }>().not.toExtend<ThemePickerProps>();
-expectTypeOf<ThemePickerProps["onValueChange"]>().parameter(0).toBeString();
 
 expectTypeOf(useThemePreset).returns.toEqualTypeOf<ThemePresetValue>();
 expectTypeOf<ThemePresetValue["setPreset"]>().parameter(0).toBeString();

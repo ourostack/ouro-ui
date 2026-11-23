@@ -130,10 +130,6 @@
     "text-field": [
       "/nautilus/"
     ],
-    "theme-picker": [
-      "/nautilus/",
-      "/"
-    ],
     "typing-indicator": [
       "/nautilus/"
     ]

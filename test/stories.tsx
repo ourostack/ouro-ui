@@ -65,7 +65,7 @@ for (const [path, module] of Object.entries(storyModules).sort(([a], [b]) => (pa
 export interface OuroStoryParameters {
   plainOpeners?: string[];
   openShortcut?: string;
-  screenshot?: { name: string; open?: boolean; focus?: boolean; forcedColors?: boolean; webkit?: boolean };
+  screenshot?: { name: string; open?: boolean; focus?: boolean; forcedColors?: boolean };
   mode?: string;
   /** Storybook's layout: the frame Ouro check gives the story (`fullscreen` none, the others 1rem of padding). */
   layout?: string;

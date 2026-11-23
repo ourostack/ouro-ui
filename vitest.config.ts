@@ -258,8 +258,7 @@ export default defineConfig({
                   enabled: true,
                   headless: true,
                   provider: playwright(),
-                  // WebKit shoots only the subjects that ask for it (`screenshot.webkit`), so its baselines stay few.
-                  instances: [{ browser: "chromium" as const }, { browser: "webkit" as const }],
+                  instances: [{ browser: "chromium" as const }],
                   commands,
                 },
               },

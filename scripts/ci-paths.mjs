@@ -67,7 +67,7 @@ export const runsAll = {
   ],
   test: [
     "__screenshots__/", "check-known.ts", "check-story.ts", "check-sweep.ts", "conformance/", "control-suite.tsx", "controls.ts", "fixtures/", "form-answer-fixture/",
-    "form-answer.config.ts", "form-answer.probe.tsx", "hide-native-corner-shape.ts", "incumbent-fixture/", "ax-standalone-fixture/", "install-fixture-next/", "install-fixture-tests/",
+    "form-answer.config.ts", "form-answer.probe.tsx", "hide-native-corner-shape.ts", "honesty.ts", "incumbent-fixture/", "ax-standalone-fixture/", "install-fixture-next/", "install-fixture-tests/",
     "install-fixture-themes/", "install-fixture-upgrade/", "install-fixture/", "mcp-app/", "motion.ts", "shadcn-stock.css", "slice-core.ts", "slice.ts", "stories.tsx",
     "story-axe.ts", "story-costs.json", "story-selection.ts", "theme-fixtures.ts", "theme-fixtures/", "themes/", "warm-stories.ts",
   ],

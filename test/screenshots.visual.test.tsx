@@ -1,21 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commands, page, server } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { cleanupStories, openOverlay, overlayOpeners, renderStory, setScheme, settle, stories } from "./stories.tsx";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Screenshot baselines (spec §8): light, dark and reduced motion, at 390px and
 // 1280px. Runs only in the `visual` project (CI_VISUAL=1), in Chromium on
-// Linux, and in WebKit for a subject whose parameters ask (`screenshot.webkit`), the renderers that produced
-// the committed baselines: the
+// Linux, the renderer that produced the committed baselines: the
 // `visual-baselines.yml` workflow regenerates them with `--update`. Dark is
 // shadcn's `.dark` class on <html>. A subject with `forcedColors` adds a forced-colours shot, light, at
 // each width.
 
 // Each subject is a story whose parameters name it (`parameters: { screenshot: { name, open } }`, see
 // test/stories.tsx), so a component adds its screenshots in its own story file.
-const webkit = server.browser === "webkit";
 const subjects = stories.flatMap(({ id, Story, parameters }) =>
-  parameters.screenshot && (!webkit || parameters.screenshot.webkit)
+  parameters.screenshot
     ? [
         {
           name: parameters.screenshot.name,
@@ -29,11 +27,11 @@ const subjects = stories.flatMap(({ id, Story, parameters }) =>
     : [],
 );
 
-/** The committed Linux baselines' subject names, for this browser: `<name>-<mode>-<width>-<browser>-linux.png`. */
+/** The committed Linux baselines' subject names: `<name>-<mode>-<width>-chromium-linux.png`. */
 const baselineNames = new Set(
-  Object.keys(import.meta.glob("./__screenshots__/screenshots.visual.test.tsx/*-linux.png"))
-    .filter((path) => path.endsWith(`-${server.browser}-linux.png`))
-    .map((path) => path.replace(/^.*\/(.+)-(light|dark|reduced-motion|forced-colors)-\d+-(chromium|webkit)-linux\.png$/, "$1")),
+  Object.keys(import.meta.glob("./__screenshots__/screenshots.visual.test.tsx/*-linux.png")).map((path) =>
+    path.replace(/^.*\/(.+)-(light|dark|reduced-motion|forced-colors)-\d+-chromium-linux\.png$/, "$1"),
+  ),
 );
 
 it("names each screenshot subject once, and every committed baseline has a subject", () => {
@@ -98,9 +96,8 @@ describe.each(widths)("at $width px", ({ width, height }) => {
   });
 });
 
-// Forced colours are Chromium's: the choice of system colours is the same in every engine.
 describe.each(widths)("at $width px, under forced colours", ({ width, height }) => {
-  it.each(subjects.filter((subject) => subject.forcedColors && !webkit))("$name", async ({ name, Story }) => {
+  it.each(subjects.filter((subject) => subject.forcedColors))("$name", async ({ name, Story }) => {
     await page.viewport(width, height);
     await commands.emulateMedia({ forcedColors: "active" });
     try {

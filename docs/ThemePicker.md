@@ -2,7 +2,7 @@
 
 # ThemePicker
 
-The look chooser: each look's name in its own heading face and ink, on its own paper, ending in one flat square of its primary, so the name is the specimen. The chosen look has a solid ring in the page's ink. The row is one Tab stop, on the chosen look: the arrow keys, Home and End move focus along it, and a press chooses. With `presentation="popover"` the looks sit behind a button that shows the chosen wordmark; Escape closes it and puts focus back on the button, and on a touch screen a tap outside closes it without pressing what lies under the tap. Resting the pointer or keyboard focus on a look repaints the page in it as a preview; leaving or Escape puts the chosen one back (`onPreviewChange` with `value`). A press switches the whole app at once, as `data-theme` on `<html>`, and keeps the choice in `localStorage`; `themePresetScript()` inline in `<head>` applies it before first paint. Pass `value` and `onValueChange` to keep the choice yourself. A preset is CSS that keys on `[data-theme="<name>"]`, setting at least `--background`, `--foreground`, `--primary` and `--font-heading`.
+The look chooser: a row of dots, one per preset, painted with the preset's page and primary colour, with the chosen look's name and mood under them. The row is one Tab stop, on the chosen dot: the arrow keys, Home and End move focus along it, and a press chooses. A press switches the whole app at once, as `data-theme` on `<html>`, and keeps the choice in `localStorage`; `themePresetScript()` inline in `<head>` applies it before first paint. A preset is CSS that keys on `[data-theme="<name>"]`.
 
 ```tsx
 import { ThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
@@ -11,7 +11,7 @@ import { ThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-
 ## Example
 
 ```tsx
-<ThemePicker presets={[{ name: "pearl", label: "Pearl" }, { name: "abyss", label: "Abyss" }]} presentation="popover" />
+<ThemePicker presets={[{ name: "pearl", label: "Pearl", mood: "Clean white and one clear blue" }, { name: "abyss", label: "Abyss" }]} />
 ```
 
 ## Use instead when
@@ -24,19 +24,13 @@ Type: `ThemePickerProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `children` | `ReactNode` |  | More controls under the looks in the popover, such as a light and dark switch. Only with `presentation="popover"`. |
 | `className` | `string` |  | Layout only: margins, grid placement (`ms-auto`). Appearance classes warn in development. |
 | `defaultPreset` | `string` |  | The look before a person chooses one; the first of `presets` unless set. |
-| `describe` | `boolean` | `false` | Shows the chosen look's name and mood under the wordmarks. |
-| `label` | `string` | `"Theme"` | Names the group for screen readers, and the popover. |
-| `onPreviewChange` | `((name: string \| null) => void)` |  | Called with a look's name while the pointer rests on it or keyboard focus reaches it, and with `null` when it leaves or Escape is pressed, so the app can repaint the page as a preview and put it back. With no `value` the picker previews on `<html>` itself. |
-| `onValueChange` | `((name: string, event: MouseEvent<HTMLButtonElement>) => void)` |  | Called with the look a person chooses, and the press that chose it. |
-| `presentation` | `"popover" \| "inline"` | `"inline"` | `inline` lays the looks out in a row that wraps, for a phone's menu or a settings page; `popover` puts them behind a button that shows the chosen look's wordmark, for a header. |
+| `describe` | `boolean` | `true` | Shows the chosen look's name and mood under the dots. |
+| `label` | `string` | `"Theme"` | Names the group for screen readers. |
 | `presets` (required) | `readonly ThemePreset[]` |  | The looks to choose from, in order; the first is the default unless `defaultPreset` says otherwise. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the root. |
-| `size` | `"md" \| "lg"` | `"md"` in a popover, "lg" inline | How big the wordmarks are. |
 | `storageKey` | `string` | `"ouro-theme-preset"` | The `localStorage` key that keeps the choice. |
-| `value` | `string` |  | The chosen look, when the app keeps it itself; leave it out and the picker keeps it in `localStorage` and sets `data-theme` on `<html>`. |
 
 ## `className` is for layout only
 
@@ -54,13 +48,11 @@ One look an app ships, for `ThemePicker`.
 
 ```ts
 interface ThemePreset {
-  /** The name the picker keeps and reports, and the value of `data-theme` the preset's CSS keys on: `[data-theme="abyss"]`. */
+  /** The value of `data-theme` the preset's CSS keys on: `[data-theme="abyss"]`. */
   name: string;
-  /** What a person reads and a screen reader announces: "Abyss". The picker sets it in the look's own heading face. */
+  /** What a person reads and a screen reader announces: "Abyss". */
   label: string;
-  /** One line on the look, shown under the wordmarks while it is chosen when `describe` is on. */
+  /** One line on the look, shown beside the dots while it is chosen. */
   mood?: string | undefined;
-  /** The `data-theme` to paint the option with, when it differs from `name` (a look built on another's CSS). @default name */
-  theme?: string | undefined;
 }
 ```
