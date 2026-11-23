@@ -77,16 +77,12 @@ export interface TimeGridMark {
 }
 
 /**
- * A marked day's tint: half an event's (`--ouro-time-grid-tint`), so events on the day still stand out.
- * @claim "A marked day's tint" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /primary: "bg-\[color-mix\(in_oklab,var\(--primary\)_calc\(var\(--ouro-time-grid-tint\)\/2\),transparent\)\]"/)
+ * A marked day's tint: its tone at half an event's tint (`--ouro-time-grid-tint`), so events on the day still stand out.
+ * One class; the tone's colour comes in `--ouro-time-grid-mark`.
+ * @claim "A marked day's tint" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /const markTintClass = "bg-\[color-mix\(in_oklab,var\(--ouro-time-grid-mark\)_calc\(var\(--ouro-time-grid-tint\)\/2\),transparent\)\]"/)
  */
-const markTintClass: Record<TimeGridTone, string> = {
-  primary: "bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)/2),transparent)]",
-  secondary: "bg-[color-mix(in_oklab,var(--muted-foreground)_calc(var(--ouro-time-grid-tint)/2),transparent)]",
-  success: "bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)/2),transparent)]",
-  warning: "bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)/2),transparent)]",
-  destructive: "bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)/2),transparent)]",
-};
+const markTintClass = "bg-[color-mix(in_oklab,var(--ouro-time-grid-mark)_calc(var(--ouro-time-grid-tint)/2),transparent)]";
+const markColor: Record<TimeGridTone, string> = { primary: "var(--primary)", secondary: "var(--muted-foreground)", success: "var(--success)", warning: "var(--warning)", destructive: "var(--destructive)" };
 
 /** One event on a {@link TimeGrid}. */
 export interface TimeGridEvent {
@@ -464,7 +460,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const weekend = weekendDays(locale);
   const markOf = (day: string) => {
     const mark = markedDays && Object.hasOwn(markedDays, day) ? markedDays[day] : undefined;
-    return mark?.label ? { label: mark.label, tint: markTintClass[oneOf(tones, mark.tone, "primary")] } : null;
+    return mark?.label ? { label: mark.label, tint: markTintClass, style: { "--ouro-time-grid-mark": markColor[oneOf(tones, mark.tone, "primary")] } as CSSProperties } : null;
   };
   const formats = useMemo(
     () => ({
@@ -999,6 +995,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               data-today={index === todayIndex ? "" : undefined}
               data-ouro-time-grid-marked={markOf(day) ? "" : undefined}
               className={cn("group/day @container/day min-w-0 border-0 border-s border-solid border-border", markOf(day)?.tint)}
+              style={markOf(day)?.style}
             >
               <span className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2 py-1.5 @max-[4.5rem]/day:flex-col @max-[4.5rem]/day:gap-0.5 @max-[4.5rem]/day:px-0.5">
               <span className="inline-flex size-ouro-7 shrink-0 items-center justify-center rounded-full text-base leading-none font-semibold tabular-nums group-data-today/day:bg-primary group-data-today/day:text-primary-foreground forced-colors:group-data-today/day:border-2 forced-colors:group-data-today/day:border-solid">
@@ -1016,7 +1013,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             <>
               <div aria-hidden="true" />
               {days.map((day) => (
-                <div key={day} role="group" aria-label={[formats.fullDay.format(utcDate(day)), markOf(day)?.label].filter(Boolean).join(", ")} data-ouro-time-grid-summary="" className={cn("min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs text-muted-foreground", markOf(day)?.tint)}>
+                <div key={day} role="group" aria-label={[formats.fullDay.format(utcDate(day)), markOf(day)?.label].filter(Boolean).join(", ")} data-ouro-time-grid-summary="" className={cn("min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs text-muted-foreground", markOf(day)?.tint)} style={markOf(day)?.style}>
                   {renderDaySummary(day)}
                 </div>
               ))}
@@ -1075,7 +1072,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                   </>
                 )}
                 {markOf(day) ? (
-                  <div data-ouro-time-grid-mark="" data-slot="time-grid-mark" className={cn("pointer-events-none absolute inset-0", markOf(day)!.tint)}>
+                  <div data-ouro-time-grid-mark="" data-slot="time-grid-mark" className={cn("pointer-events-none absolute inset-0", markOf(day)!.tint)} style={markOf(day)!.style}>
                     <span data-slot="time-grid-mark-name" className="sr-only">{`${formats.fullDay.format(utcDate(day))}, ${markOf(day)!.label}`}</span>
                   </div>
                 ) : null}
