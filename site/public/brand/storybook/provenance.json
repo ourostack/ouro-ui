@@ -1,11 +1,11 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@eb5800432a174bdd74292ea2a621984f7cd75d25:brand/",
+  "origin": "ourostack/.github@886e49b076b6fad1cc8276f469f5cbb3fc4c9852:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
       "file": "headers/nautilus-dark.webp",
-      "sha256": "4010b0c316e61b061f4d74328780fa2d84426979d967875e5534d5e66c44465d"
+      "sha256": "97461eeab7b8b03a66ef769e213d75fccc1e7c341b388bb8be043d7109a304ef"
     },
     {
       "file": "headers/nautilus-library-dark.webp",
@@ -17,23 +17,23 @@
     },
     {
       "file": "headers/nautilus-shipyard-dark.webp",
-      "sha256": "3c77f5fd92ab2f2e1fbd6d0f4c8c44d87798e760cb7abc911efb698b445b6431"
+      "sha256": "ca16741394dbda0e301d4b55171342fcf07856ca69bad1f4580521c78b67d464"
     },
     {
       "file": "headers/nautilus-shipyard.webp",
-      "sha256": "4db9f0dda982cd81a1154cbc9c0c4a2ecbe693d5a267c70c272b7b901b7f4dd6"
+      "sha256": "9ae288df78b58b5100ab8aa4edb0c5939479a5887e969efb75dda6b65acf9669"
     },
     {
       "file": "headers/nautilus-squid-dark.webp",
-      "sha256": "82809fb28ec8882dadc4e412e1ae51b02b45575839cab1b4176a8014d4237a6a"
+      "sha256": "c08cfd1b244eb1f0a07f9b1be5e66dbc7f4809f47faf8eb5809304b96ba7d41a"
     },
     {
       "file": "headers/nautilus-squid.webp",
-      "sha256": "82df309d51fb529c54583e679ce537c076c2e458ccab0c2dbe0eb879a299d342"
+      "sha256": "ae632942110a35432cdf9d6e94a427e122df75f9ba64b93fd9a11eb3248d8449"
     },
     {
       "file": "headers/nautilus.webp",
-      "sha256": "1b4e1f06ad080d9f66be746b50eb6ab54a7423e553dddf06f0daad837b1116ff"
+      "sha256": "360dc3b1a7dbb2ee146e1e9fa0edd97543975cefb9a26fb89677ba41ef50d2a4"
     },
     {
       "file": "headers/ouro-hx-dark.webp",
@@ -69,11 +69,11 @@
     },
     {
       "file": "headers/ourostack-dark.webp",
-      "sha256": "b5eba1c1c3ddc43a3ac4193ed0bf81a4a1ff1cb3df208d0eada2fedfd831f500"
+      "sha256": "e078897f9a64c69e9db98e56e3def0f21110efbc95bc89bf0eaec3ca85f98076"
     },
     {
       "file": "headers/ourostack.webp",
-      "sha256": "6626646c39e71c8752405a40ea963835615ecf741a39ea1c53b50f9694b0a330"
+      "sha256": "95bf279dd58ac8d1c49172c111b43efba03a71a58527a450862c6e95bba98e8f"
     },
     {
       "file": "headers/playwright-focus-proof-dark.webp",
@@ -101,7 +101,7 @@
     },
     {
       "file": "og/nautilus.jpg",
-      "sha256": "f153dfddef326616cfcaa3be3766f961985339f82a62797a9e4382b20c3d8ae9"
+      "sha256": "84b39f1f2aba52d202bb955419291b046690cbe71456ecadabce5a2827f7ba32"
     },
     {
       "file": "og/ouro-hx.jpg",
@@ -125,67 +125,67 @@
     },
     {
       "file": "phone/nautilus-1152.avif",
-      "sha256": "06cca5abdc028dd75f3ace142f920d43cda75c2f4eedb6b91647f53a201d0a3a"
+      "sha256": "ac74b9877a98417109f19082b06bb75e6f0447048b5a51ac4a27c19f29b11862"
     },
     {
       "file": "phone/nautilus-1152.webp",
-      "sha256": "85fb128c8f89db5b8497135e736b7c87d2c36d3de439eaaf90827b7aae749f33"
+      "sha256": "1f028baabd64171b4062d8da9389725f70349a75a5db17e847ce2fd3bfc17972"
     },
     {
       "file": "phone/nautilus-1536.avif",
-      "sha256": "3ec7aed5296eab598b697a0463143acda8750dbf4ce6c8c19629ab7d1a694d08"
+      "sha256": "823ac0ca9f967d0007a6abc2bd4712186923326608c44aa2450e2e8b3c482b57"
     },
     {
       "file": "phone/nautilus-1536.webp",
-      "sha256": "9925df60fd33e776a11ca96f23137de64d3ed12232667a1b55319ef8269d1591"
+      "sha256": "e2663c5db6089caad8752adff91c94c053927af372ef5b8144953f4ed602020f"
     },
     {
       "file": "phone/nautilus-384.avif",
-      "sha256": "2bbbdd922d91f0370a1accbd62b8b6e7bdea0201079d08383085d3a8f66233ae"
+      "sha256": "462dc75ec36144a5b7d82506f2e2584f026be8035258cb6eee7ff03b3c0bd4ef"
     },
     {
       "file": "phone/nautilus-384.webp",
-      "sha256": "e2f187b17d6451cb65bbf715dd4648661d4e7beb5ac4ab45b41e0b954b46af55"
+      "sha256": "9534fd7c5b74ad0d05225f14a3474047abcad7c52a2dde71c143fed550ab1d93"
     },
     {
       "file": "phone/nautilus-768.avif",
-      "sha256": "8063ac206fafabe073c7b0379e801eb825245e7474143c5a3081f0271bcfb139"
+      "sha256": "23fa562ed8b8a9691fc57eeb510b78b1e4066c948537ed91804e0e30016b4eb7"
     },
     {
       "file": "phone/nautilus-768.webp",
-      "sha256": "3f4a1eb4d729ca5574f13bf4f7ad49443f5f1c1ff788ee0de1a776b3c971a2c5"
+      "sha256": "cb045322f93293a93a5a3f34ae64d8f1da0836e79cc1db0168a3ab20d9831de7"
     },
     {
       "file": "phone/nautilus-dark-1152.avif",
-      "sha256": "a11b1085d4c5a25e345ebd738414a625a80da8a248f59bddaea16dbf427816ec"
+      "sha256": "b8daad398cfada6a905b7ba608c23d03038beca9efc55a48852eab7fae70b3f8"
     },
     {
       "file": "phone/nautilus-dark-1152.webp",
-      "sha256": "a82637ed88eb1761a42bd25a97e008192513d249edc6f2c55bf3f6bbe89859e4"
+      "sha256": "6d0ca8e5004f390dd2cf765d0b0f0506409eb41ec5629df1eea35039aee35bd2"
     },
     {
       "file": "phone/nautilus-dark-1536.avif",
-      "sha256": "c1fb19627a35a2f4a29b8d48d50bdb1956604b1ade8dbf11dbde6db41a74d88c"
+      "sha256": "7551f1500cb816266d0bf4b6ce2e275df85f4297e5d0256ae406a673a8e631ef"
     },
     {
       "file": "phone/nautilus-dark-1536.webp",
-      "sha256": "0a98cfc1c1db7c03589ecd86c67e69114754c652d767331670afc635f8332169"
+      "sha256": "b064be3a90aec1f831404ae10d2c17d0f1e33ea44b496436a00b105042ca3e3d"
     },
     {
       "file": "phone/nautilus-dark-384.avif",
-      "sha256": "780cf276e03628a363669ffd4bde08cc3e34d235deabbbc92227ac27eaf3fd2a"
+      "sha256": "8319df0747120b593383ae79643a42a9e7cdaf95ebcac15292bc753201e62401"
     },
     {
       "file": "phone/nautilus-dark-384.webp",
-      "sha256": "4177af46da359ad2bfbccdae1ad51f4276be5985fbf65598b79890b7e285a448"
+      "sha256": "62a22430e3be1fab7981af708da677baa7a97ac5b9b286f3b805c406e90c0e5d"
     },
     {
       "file": "phone/nautilus-dark-768.avif",
-      "sha256": "ed89c60d53f9d2b4afb41197a057554cdf7818c0193c79433bf944d6d1b3fdc8"
+      "sha256": "87d991e7e386d8041f3073e7f61841b86e3a59767ed0be5d6f013ce2ac60763f"
     },
     {
       "file": "phone/nautilus-dark-768.webp",
-      "sha256": "e86972d46587fe67c05fde85543b7282ba580ab6b006c5dae80caf6fedf25f48"
+      "sha256": "8321337eb76192f39d3c3a8d4a4a2be01b0770a93129e68053c4c657403cae52"
     },
     {
       "file": "phone/nautilus-library-1152.avif",
@@ -253,131 +253,131 @@
     },
     {
       "file": "phone/nautilus-shipyard-1152.avif",
-      "sha256": "35aca538b499f627ad069efd049d8e7cb59d8a6e02c9b0fa2044c80e7613dcbd"
+      "sha256": "a0f94665913b21d5e707b59248b70c99bb34d2bf0928e00ebb1f63e95674037c"
     },
     {
       "file": "phone/nautilus-shipyard-1152.webp",
-      "sha256": "1b4d3cd84332e09acd925128947c1d5cfcf735ad1a7a74a6d93034b2a3407cfc"
+      "sha256": "bb54dae79874d100bf7610a39bf923df07ed0765393ed325495510eb084248ec"
     },
     {
       "file": "phone/nautilus-shipyard-1536.avif",
-      "sha256": "5dc18e16cf8dfb7c88f85754b5ae57f1b72708298489ea461600131ffaa90e02"
+      "sha256": "e977291b42cd40502336d409bfe53d2fb764f4ca6a5687f4f8698d5ef8d383e9"
     },
     {
       "file": "phone/nautilus-shipyard-1536.webp",
-      "sha256": "6bdf48dbf7d60f3b3e72b1881f30ee70a0b081c5b67019a9f61abf18f351be4e"
+      "sha256": "d08075081fb8da2a3cc153062c04e285b3dd9e014880f163509f6bb161e4dd77"
     },
     {
       "file": "phone/nautilus-shipyard-384.avif",
-      "sha256": "9f3aef9da1b06356e2bcc05d286e37aa97540f5cec54880af054c50681768844"
+      "sha256": "023e4c83b9abd1cfd13f9b9b08cb96e04915e1b6dadb280706dfcfd6c4f7a4be"
     },
     {
       "file": "phone/nautilus-shipyard-384.webp",
-      "sha256": "968e219d13e1393a0471ecd8ace60bfe0f1d12462496bad78033451d982af365"
+      "sha256": "9b0cb605899193c99927ee090b0426d93b74532034f857893a093d679c824e1e"
     },
     {
       "file": "phone/nautilus-shipyard-768.avif",
-      "sha256": "1be289f2995745b17f3dcb64b492af09837f2f429914e6de98fe5846b114cca4"
+      "sha256": "8b476967019734790bc50a2f1b62f3823811ee3835ae06edacdedbe400f64b89"
     },
     {
       "file": "phone/nautilus-shipyard-768.webp",
-      "sha256": "b7b8602bf2b42b630aa91978b980e2d68b7cd7491b46e768e0ef44bdb956998e"
+      "sha256": "5fa1ae3b2c98e306c6b7414f4977a2a98436642537a16fa94cd69168425943fa"
     },
     {
       "file": "phone/nautilus-shipyard-dark-1152.avif",
-      "sha256": "2346a41a5b94bd5e9aad2afe4f0e4865813dc8dab062e6af522cba0269d57e18"
+      "sha256": "737d9c2e9fa088cd22a9c1168ba92871a9028feb81da450905be8e02b1ef98b2"
     },
     {
       "file": "phone/nautilus-shipyard-dark-1152.webp",
-      "sha256": "84b528b026116912dbcb7afa9970e31f4d09231d8770be27c37cb65580e10bcc"
+      "sha256": "80da1ef13478cb818f6d11b7ace556e490fc9b6a01ba2d4565564978ba84a0f6"
     },
     {
       "file": "phone/nautilus-shipyard-dark-1536.avif",
-      "sha256": "7f7642eb1873975ce481eba5127c593cf4ffd040a79147cd7e8168bbc3c7dbc4"
+      "sha256": "36dbf498667e583ee1484065ac5abad1ae79abd760927a62aee2585b1194ad7c"
     },
     {
       "file": "phone/nautilus-shipyard-dark-1536.webp",
-      "sha256": "fcc6f9fcd0f40ba345e0eef7e1e66512dc8ee770e7307fee6822330b0ecfd7c1"
+      "sha256": "c66d626171788ecb75f67e01de85c76ae35f0f1940886c25ca8b0d9b572fb27c"
     },
     {
       "file": "phone/nautilus-shipyard-dark-384.avif",
-      "sha256": "1015e08e22cce192068d7164be26efde8a0014b552bacd75610a50ce846a8993"
+      "sha256": "8e292318f47a432c1b64ab7d5255f58f01be3cf8bc1ebea0b58b4f5d41fc012d"
     },
     {
       "file": "phone/nautilus-shipyard-dark-384.webp",
-      "sha256": "465f28a8b0fe6a0a27eb16fea19067c060b96194ad2518718a6b3e19ed54794c"
+      "sha256": "70df1bb0c026474feb0dc7386fec2f58d44475a17ab73ebe95b8c63fe38ccbf7"
     },
     {
       "file": "phone/nautilus-shipyard-dark-768.avif",
-      "sha256": "37268a073edbece7582e93f50d16f1e77cceb27a9b3b9d59fe51eed3ffa9d6f7"
+      "sha256": "a85f62f5b19e5de16e55f20511dd7dbe70f8dedd0a21aaf789c4e2001d56c59d"
     },
     {
       "file": "phone/nautilus-shipyard-dark-768.webp",
-      "sha256": "41d579a27d25629d2354f2c193917afca0e3a6874def262be9cf3c8362e9fc2e"
+      "sha256": "095709877515da0d78c0345458f6f6a061f77efbcc6216821b120f67028af795"
     },
     {
       "file": "phone/nautilus-squid-1152.avif",
-      "sha256": "40891aa3deb60c59bc9ef20078aa807cf988e889007ef4d934fb4dfdbbae882c"
+      "sha256": "c13474cb805f892471ee496d7485d5d24281b68f77ff86eca6264fb13c276b52"
     },
     {
       "file": "phone/nautilus-squid-1152.webp",
-      "sha256": "971b128ca99d4329c480e2ead651d74a5fe911da9778c89ed6e0507b93709ef3"
+      "sha256": "551f6ae887e0523ccb13cbfff6d8145c436f99386b2a11beba7bd4e8abe7fe5f"
     },
     {
       "file": "phone/nautilus-squid-1536.avif",
-      "sha256": "07187a483c3c17e8c0f24662d6dabcc0f99501230c829becb701876d666ccd24"
+      "sha256": "97ec80b62c5f60032938e72a7694f9feec26dcb291b2ccbd5dfb953c4459a9bd"
     },
     {
       "file": "phone/nautilus-squid-1536.webp",
-      "sha256": "41a8127c7ef319f3fae98192b392dd4cee496c6d29bfe117f9741912bf5f1050"
+      "sha256": "f40ef19cc6bf075245d8c92850dc6f07e053b703df61b82d4ed5c9cb071d4401"
     },
     {
       "file": "phone/nautilus-squid-384.avif",
-      "sha256": "45940a88f125631412d60cf693d9766bb52ee681832ac1dc4f660a824aeb4ed3"
+      "sha256": "5247f9b5de5849c07dd64abb37b3465d7a75f57754495ccd6f7720a6ad17826c"
     },
     {
       "file": "phone/nautilus-squid-384.webp",
-      "sha256": "df6af992f986284f1c37057282c7e1ede5cd4f02080ea0173a2e25eeee68ec1b"
+      "sha256": "5f835bab8c688b8e9c3ffcaea5a3cfd7135441101f3083d19402039936602064"
     },
     {
       "file": "phone/nautilus-squid-768.avif",
-      "sha256": "864c1aa50ff38cdb3ccbf5158951fb05c7e3ecef62c5af1a85af62bc98207568"
+      "sha256": "3e4210f00651090d0e469612467d16b5cad70c2e78567eb8ca8025f0a4d5cdf7"
     },
     {
       "file": "phone/nautilus-squid-768.webp",
-      "sha256": "6ddd1bf1a94c71183b9c80a304fa9544004a05cfa1f338ea3b5b5fef96e5de42"
+      "sha256": "b93b9fb81f119948ccd4558cf4940b6cf78971c6edeb861c8cbb5ae6dd81b68d"
     },
     {
       "file": "phone/nautilus-squid-dark-1152.avif",
-      "sha256": "4533864a34c48a7d7a66da323b3aabc0d7c6341cc8fd44ead20084de084b6f87"
+      "sha256": "65ca2509fad532014ef9efbee3c47c713fadc45ac1c1fa1eaace695d1608167f"
     },
     {
       "file": "phone/nautilus-squid-dark-1152.webp",
-      "sha256": "19b3b2d511b0903089c90f39621ea4cb885a11421fda8a0d8aed3729f752547d"
+      "sha256": "6125855af0bac55f9a086d37e9cbf04cdf5f7c44e7e0c4b78043c5d58e65f1d3"
     },
     {
       "file": "phone/nautilus-squid-dark-1536.avif",
-      "sha256": "9137b169cbe8fb51bf3d7b84ce17d72ee899d82180dafe990894dc7b53547c26"
+      "sha256": "3ca2e3df99555041d72dbd68d05cf6a50974f1f91a95b5efbc0a34dfe02632cf"
     },
     {
       "file": "phone/nautilus-squid-dark-1536.webp",
-      "sha256": "ba8ef27ea5ab1cffccdcf7627c93c445ef03b3665390cdd73d2a4d151345a45d"
+      "sha256": "eb170962139cd5b0eda3fb86aa0ed2e653760af8e8164197efd9c6e3437ad909"
     },
     {
       "file": "phone/nautilus-squid-dark-384.avif",
-      "sha256": "ba162cd7d3437361c06bafab27852a1e167624d5c96eac73ef2bc56f5d9d6308"
+      "sha256": "da744a0d6c322a3e917362566707390291b0ef65e22b076e4cbe8ffb54e90871"
     },
     {
       "file": "phone/nautilus-squid-dark-384.webp",
-      "sha256": "18ec981fdf6dc5d17aaf15eba716a859ecd8da7033c855c149d900a89cca177f"
+      "sha256": "91b801f8e8b1a4682d562b70961d261be5366467a0a56c997a93d8ff0dbf1b38"
     },
     {
       "file": "phone/nautilus-squid-dark-768.avif",
-      "sha256": "54ab06da71f862e72d39eec805ef0b5af5f38f9a0526821c9760f01ce0fb3bb9"
+      "sha256": "03b908337dca16aa2ca5bab31873235fad3096263867d997fa490789126c2569"
     },
     {
       "file": "phone/nautilus-squid-dark-768.webp",
-      "sha256": "28e0ea2a3c3b832d16db7b0b18e3d0a22ee9f81541c252d9de913b861a7c4e8e"
+      "sha256": "9e46479173a396ef383c3731bab2a484bbafb40da74e648690ca822a2adc2c0f"
     },
     {
       "file": "phone/ouro-hx-1152.avif",
@@ -637,67 +637,67 @@
     },
     {
       "file": "phone/ourostack-1152.avif",
-      "sha256": "c1263e65b56b8ea8e8f5c99cc7178afd8f776d9ad255d34ca2f308c60b86bb46"
+      "sha256": "6797d3cd97f1df532d9be509343f9755baa2505e36e966bb60b964b9b0bb64fc"
     },
     {
       "file": "phone/ourostack-1152.webp",
-      "sha256": "784bdde60e982e84d6acd8431a6f2a4860c73235cb223d264a9c4fff1fc70872"
+      "sha256": "5c6676034a2fc99fc3e20cf7325ae464571d2b1a833766d0d727ac499200c532"
     },
     {
       "file": "phone/ourostack-1536.avif",
-      "sha256": "94178ba37b92b5600d54a678ceb06a36c5acd4b185dd97bfc132cd8357ca3578"
+      "sha256": "4854049fe13bdb9d5b42c62a66a506d326246ed45614d0e4f87140d3dd1c23e3"
     },
     {
       "file": "phone/ourostack-1536.webp",
-      "sha256": "34bf019dd68aa6f8bb902dc1a1686d82eb3a81c097a3cedc7faa6b8724ad7cdd"
+      "sha256": "5325b3bee0a07a3cdb5f33b26d21f5507df4cbda0057c0a93c0c801936918bed"
     },
     {
       "file": "phone/ourostack-384.avif",
-      "sha256": "7ae827201298031694ee9d2a0f8d37a30074e66fba4f29cac4f4ec4de4344ab4"
+      "sha256": "c3b574bd740670c993e3b6600f0c98c4c868d1ea49990a3701688f282e8974f7"
     },
     {
       "file": "phone/ourostack-384.webp",
-      "sha256": "0dc1de3a15c611b4b95269ad93b1170459f457f023d6591564ea91757b61db4e"
+      "sha256": "7ed6579e46e39c1809e89d06883cfff655a3df73a3e0c196f947d27dffe60f1c"
     },
     {
       "file": "phone/ourostack-768.avif",
-      "sha256": "dc022867ffd757f3d48ef637708847bf35c1350a84bee1c225b74c825a50081b"
+      "sha256": "41bca129c5680d0191c23bfa74b752b8a33b6b18ae756b09913dd1ad857b9b93"
     },
     {
       "file": "phone/ourostack-768.webp",
-      "sha256": "a58cca724f2510dcc1d946f9401f74cecbb7c2681e3bf95d9ed1c5ec907f5ad7"
+      "sha256": "b6fcfdc8ba1357ff0d9a17965390d54c330056f4ba430d98d0ef75ab3148d202"
     },
     {
       "file": "phone/ourostack-dark-1152.avif",
-      "sha256": "dde4ba3164ab41ef5803a14267a664c32cec31fb650fbe9f11dc0926281107d5"
+      "sha256": "e3088136d7aee7eaeb9d7bcfeef88a7bb6e01e095f09e09135350a3081d46b6d"
     },
     {
       "file": "phone/ourostack-dark-1152.webp",
-      "sha256": "4c3fc5145ca059749e371bc0ae29f5149871e0156480a821d2448ea2b6090c4a"
+      "sha256": "8ca7353df1bdc8d3d1d1be79bff140fe16ecf571338b8e749d48b931dcf20e4c"
     },
     {
       "file": "phone/ourostack-dark-1536.avif",
-      "sha256": "7a584ac600b5595bd95cf9e9198bbf6e396dbcac22360437f2c8a2b1b6134a8c"
+      "sha256": "7d6b8b9fdc89a338da7da07a2f1ae558c6344b45652f502250ccb153d51ad92c"
     },
     {
       "file": "phone/ourostack-dark-1536.webp",
-      "sha256": "c56e769c7d4d8580224d4ac147ed4c47ae05e4f5fdf090ac2690bdee0c007ebf"
+      "sha256": "2cb81aa235a36571450475c3c80617b053fe79ce45d2b8e931b160b84abde483"
     },
     {
       "file": "phone/ourostack-dark-384.avif",
-      "sha256": "0c8b1da06a3f052f098f61de28de7e77027d959326bda9f0faef94daafd8ced4"
+      "sha256": "33bdd3bbb39c35ae7ca35bc5c3c87bf1b3d33c7fd1682368c8708f3e326c92ba"
     },
     {
       "file": "phone/ourostack-dark-384.webp",
-      "sha256": "f31d49566da429275985eb1210b85ed224a856753c23bcc403145322c91510b2"
+      "sha256": "2ffbcac696a8daa9bae1ef7116c040003d5b6ed5356806081cc4d34a52f93c01"
     },
     {
       "file": "phone/ourostack-dark-768.avif",
-      "sha256": "aa2278fde289660195de41e024588f15debc8b0f7c6328836ada0a31e9d4ab7d"
+      "sha256": "f1fe0b65062cb178f8a83a060e62f31c0f1c1d1f666cec248a0ed51f3acb510d"
     },
     {
       "file": "phone/ourostack-dark-768.webp",
-      "sha256": "0bc7ed099f6e2307861c98506ad89003ad281f6dc9c94ec2cc33607d599829f0"
+      "sha256": "9defbfe3149745161574a799baa19f45cd345c265792c8a4caf7e9f7078bdfa0"
     },
     {
       "file": "phone/playwright-focus-proof-1152.avif",
@@ -765,59 +765,59 @@
     },
     {
       "file": "scenes/nautilus-1536.avif",
-      "sha256": "a6ccdf2b4ac6b14d7ee74dac38d378e55558aea3dc886b3806c1bc8bb7665a3b"
+      "sha256": "69b3037fb4186d27786e1ffe26326dbdfca9d6ca2b1688620e9cd2f96df9070e"
     },
     {
       "file": "scenes/nautilus-3072.avif",
-      "sha256": "5b3815b7ea57f9887521eaf5b84e601baad63c2ae69e44fc0c1a3cf39530cd9a"
+      "sha256": "fc894e83aaa3441b6fa57d388cae424a2ef91650dc1ea226b40c8a467caa4068"
     },
     {
       "file": "scenes/nautilus-3072.webp",
-      "sha256": "50d064dfc4390349b0642fc903d14e2b3aeef27403e9d4034ea5172f178d75bf"
+      "sha256": "ccbe7344ab53d074c70181cfcbbcacd7fe5ef37a9cde9d76bd5f937c1177bf78"
     },
     {
       "file": "scenes/nautilus-640.avif",
-      "sha256": "220514204aba87c369ce2d102a405a06f00f85156c9c72bfd4e291f79bcb24bd"
+      "sha256": "840209b08c14dfe840672897fe41c895b06a90c000aeb8a763b269e9ef6ecdd3"
     },
     {
       "file": "scenes/nautilus-640.webp",
-      "sha256": "dbae07e312e289ec9b5e10392c8eb5f4236883eae67ef7e0780b933ad75969b1"
+      "sha256": "0415b5d5f6c35bafdbf00ac83a2885d0492280a5802baeb78bc179da1809e670"
     },
     {
       "file": "scenes/nautilus-960.avif",
-      "sha256": "a8028314b3de76bb1622ed837fccd112bb415fd820c77be5fe46dddb50d6df75"
+      "sha256": "f6c286331dba6d5cfb97480513b3775a660c0efb14369156b9dce1c20ba09c3a"
     },
     {
       "file": "scenes/nautilus-960.webp",
-      "sha256": "a973cf4cb71f13f508cb9d998fa53a8acceadd679e6e33791817eea420d43314"
+      "sha256": "5f2b621d3f3ff43e315a4dc9ec79eb11968aa8079953d54b1e50fd6d45020c1c"
     },
     {
       "file": "scenes/nautilus-dark-1536.avif",
-      "sha256": "fdb7867757c4ac786add2be06efdc83b944e14af20721665722ee749bc52981e"
+      "sha256": "ad2ea2a910f9afed221e2a753a657a7d84234f77166e377cb20df6d7bfd8b1ff"
     },
     {
       "file": "scenes/nautilus-dark-3072.avif",
-      "sha256": "e0d0a92e5d79e6e51ea77473d12fd6e6a77afe1cc227755ea6ba6e7d4f9bb888"
+      "sha256": "fc6948f0daf1d9ee3d2ff6b4898ef91c846cb8e869b362fa06c56644c8c26776"
     },
     {
       "file": "scenes/nautilus-dark-3072.webp",
-      "sha256": "06be9c2149a0df5769e928f2a8221fe3b7420856ecf48405f76923cb25011a3c"
+      "sha256": "540618b97ff64068523a562d43601f6fcc74d0689aa19e7fca6e6245a337a65f"
     },
     {
       "file": "scenes/nautilus-dark-640.avif",
-      "sha256": "48bbcb029130db731d03b00e938afb879c2218babec53bd8d86001cd74b935e3"
+      "sha256": "251162a90f110bfd074f029e055a8f8bfec27faa05b6009ca64114b7c9e1f9c2"
     },
     {
       "file": "scenes/nautilus-dark-640.webp",
-      "sha256": "92ecf518e5495ea2359712046e52ef6909ba39e7108ba7bd1e59744b411aeac8"
+      "sha256": "d8ea2986eacb87ab41535c3d0e8b88e0a3624d15eb28e0564f39722eb093d88c"
     },
     {
       "file": "scenes/nautilus-dark-960.avif",
-      "sha256": "f344c30141a9e61bed6cdff6f31d76e9da6ace39f8ccbbb3566feb443ceafa61"
+      "sha256": "ed902b1cca084381dc29eb4b0ce6c3045f987b657c8a7e35f5418c0857751e18"
     },
     {
       "file": "scenes/nautilus-dark-960.webp",
-      "sha256": "9f313203a9cd39d9474344a8e6915d42d67323f1b88ed17f87cd009a2783e476"
+      "sha256": "920109e0da9cf7420484a20f1c835c6f5032e4fd24021f8be285677dd3e75e8d"
     },
     {
       "file": "scenes/nautilus-library-1536.avif",
@@ -877,115 +877,115 @@
     },
     {
       "file": "scenes/nautilus-shipyard-1536.avif",
-      "sha256": "ace56e544704baae26269aac1308f202c8755a9b52b91b77eaa2ac9eed28cf7e"
+      "sha256": "8c8de9d1784c2b9d170a24d3d473d528f3436bb79f352c915db5006bd1bbda47"
     },
     {
       "file": "scenes/nautilus-shipyard-3072.avif",
-      "sha256": "11239e770126cff95fe093321a992ed57f3ddebe9e3357e353cce24361bf1939"
+      "sha256": "6077d900367cf9e3f3002e561b929ca1dedaa47cfdf6c38bc4a382a16b48bcb7"
     },
     {
       "file": "scenes/nautilus-shipyard-3072.webp",
-      "sha256": "a418066f8b19307b4811c1453e35680faf620c46b6d8d5ada7f838c226d5d772"
+      "sha256": "e1e728228ffaf892ca660fde6b963c42c86729135d94d3fc534fa7515ceafcf7"
     },
     {
       "file": "scenes/nautilus-shipyard-640.avif",
-      "sha256": "0dc817da4852296b6a38c77765209147c805ec67b428b992f0e5a2fa6ff9a6a9"
+      "sha256": "45655f887e282ff7de7866ddbf14309908d34249a36b0a4247a2b4d585ff570f"
     },
     {
       "file": "scenes/nautilus-shipyard-640.webp",
-      "sha256": "578f4d6e6b746fad50a9e33a23c3dd4c9d11b2efc5836898276985edf908f418"
+      "sha256": "f11576c1c82308e66a4f5be540780bdbf2f553b95da489b9e67ae12b39779dff"
     },
     {
       "file": "scenes/nautilus-shipyard-960.avif",
-      "sha256": "6af99a3220e12ea9a194a6543288e9884387184b08861fdd6652f063497200c8"
+      "sha256": "cbf05c5c59cd5419861180380e4b8e69d4392c2c8c523b68b8259c6ef1c1e750"
     },
     {
       "file": "scenes/nautilus-shipyard-960.webp",
-      "sha256": "e4d8ba5caf4b579413d8d268b57db19e47c6a69bb9fa37e71732ce7592109ffd"
+      "sha256": "00f52dd7ffc74007dda16487dc8f04e2cfadee11eb2377116967b3f2b4985d04"
     },
     {
       "file": "scenes/nautilus-shipyard-dark-1536.avif",
-      "sha256": "97e3107363c46c4ebd855a8faff9e6a1e1aea40d9cf9463ebfad202b13246567"
+      "sha256": "abb0f3f26fab636271902e08be21b07c8c8b60a9f478faf014ddda4ac91db727"
     },
     {
       "file": "scenes/nautilus-shipyard-dark-3072.avif",
-      "sha256": "a041b4f693cb8e69756b117ee11a29d8d96ce9402bd3aef88170e9f069fd8d5a"
+      "sha256": "922e9a4a5c89415e1d5c797809706e10eef797d7652e32989d22bd06a19fb91d"
     },
     {
       "file": "scenes/nautilus-shipyard-dark-3072.webp",
-      "sha256": "3d82d54c05ce8f92625e6f910e5fc28e0128f55ca38ebaf8378429dd6161abf9"
+      "sha256": "feea1a6ef0e47e61e2ae7dec61b1283a6f8ab19a7bfcd0664545c2d1fb7530e0"
     },
     {
       "file": "scenes/nautilus-shipyard-dark-640.avif",
-      "sha256": "dd37c57d2aa89ce4b08b16364d9bac5a7391c39447b8ec6872f5159caa6b23a4"
+      "sha256": "658c3ed6cae392c0912990d40e9a816fc61d1f5bfd40cd6a45cc9af6e6fba056"
     },
     {
       "file": "scenes/nautilus-shipyard-dark-640.webp",
-      "sha256": "9eb2b97d6e9e5aa5511d69d1547ea7987ba9b732dd664b8c4f18b9eaa2015f52"
+      "sha256": "10f839c3fd2417e1d4b1712d012361518102c4604f53040d1f291172ccc186d5"
     },
     {
       "file": "scenes/nautilus-shipyard-dark-960.avif",
-      "sha256": "5b7b8f6fcd283eb020248b27b79af03586ec0e3f4c781d20e4531ec8d7cd8fa9"
+      "sha256": "846c77a65094021082b481bce58d8111f662590f6a4370866b5ba1a8a6628893"
     },
     {
       "file": "scenes/nautilus-shipyard-dark-960.webp",
-      "sha256": "53d473ba96dcd42851e1c3447b7ad7874c4a0da6df5be5d8350598eddbc83f7e"
+      "sha256": "4447369e994f629560ee81626982dd684f89b18387c19caba87f682c5581c980"
     },
     {
       "file": "scenes/nautilus-squid-1536.avif",
-      "sha256": "9927e37d10bc95e7a194687f69df7beb254ff19f841f600aef3ac60c25900ce9"
+      "sha256": "3e6564bbbff3f89bc5b5761ad998e19bb18e40c7c38e17b470fd5c1665668d6e"
     },
     {
       "file": "scenes/nautilus-squid-3072.avif",
-      "sha256": "a4200b355f6d39996c9e71ef17e4f0165b2e5469138779317bc9d7e77445ead3"
+      "sha256": "9b232df293760fefa48d8230bdcfa37b1df2abdad3a764567e462833b5c81198"
     },
     {
       "file": "scenes/nautilus-squid-3072.webp",
-      "sha256": "264ea5705af94f7c63357f8fb9b7e55bffab25b416ad90961701b996fc409330"
+      "sha256": "2ba2aee944fe728ad25b244989ed8b53f03b0771eb7ea1ba5317468e4b9cc96f"
     },
     {
       "file": "scenes/nautilus-squid-640.avif",
-      "sha256": "c74fc1510c5a31747b820362d4bddb7b7fb99d58f1b2892d080ae95a4828bd1d"
+      "sha256": "2a3c8768f18cc2c025552d2f4055a0ca7d3d227a9fe9d85062fff08f2f74d2a8"
     },
     {
       "file": "scenes/nautilus-squid-640.webp",
-      "sha256": "e6f4c60eb5a8788ecd3a7378a80d0d25de325fb447c4cf3de787a27d7fc35cee"
+      "sha256": "f5294a21a502a8dcd98a8521ced5b3f08d3f3ef98ba134df0f6056645a3e3cca"
     },
     {
       "file": "scenes/nautilus-squid-960.avif",
-      "sha256": "b1f6740f0dce012d3a4f46ad58fe6dfaae233906f12507445e438a6abfbe7ec9"
+      "sha256": "6e0a6b562453aea12b9eeee1ee992c6a521b319caeb1195adf46c69a184d01e7"
     },
     {
       "file": "scenes/nautilus-squid-960.webp",
-      "sha256": "089506d732346794d0aac6623f5fe62762a5c3d56c9d22ad47ea0153b4a17f3a"
+      "sha256": "d54c6d6d96f6df1718ccdd8727a594cf1da46aa2a60b6d06087e16014850bffb"
     },
     {
       "file": "scenes/nautilus-squid-dark-1536.avif",
-      "sha256": "0fa0943722f0ddbbaf6bf49f3cee5aa0a4e4c41f6acbe3b9891b0359dad80d8e"
+      "sha256": "9ca56413ae355eca2203b795fe41bb47e671f1e51b060774d603557e166d9d77"
     },
     {
       "file": "scenes/nautilus-squid-dark-3072.avif",
-      "sha256": "063926326e20906b48c21d912f0f180ee0dc0312a983f2643e0252606d6bcae7"
+      "sha256": "2f32130af420f168308bebdec022506be72cf280de860ab6a5f548ac2a4fc637"
     },
     {
       "file": "scenes/nautilus-squid-dark-3072.webp",
-      "sha256": "a6b512a068ce31aed5cb5efeb719d98e8bb0ce001cf7f4afbe48615a8cdec247"
+      "sha256": "92167f9a61261baf2c6284224cb32c2ebf171c6ba9c30310b5fe8f3b13f8b34a"
     },
     {
       "file": "scenes/nautilus-squid-dark-640.avif",
-      "sha256": "4ec77975826ebd3729eaceb9cf329b80006b7c1b2ffb2264212c922c75fd00ed"
+      "sha256": "77093bd243625b27457097ad9b0488fee8cfadaa123318aa99fb78c38e7f3589"
     },
     {
       "file": "scenes/nautilus-squid-dark-640.webp",
-      "sha256": "05ca4973753949414eb212fec534d07d9fe34621a5de0a8756163b6f457a724e"
+      "sha256": "6ca4c2cc1d1ea56e416bf71726d9134633be71ee5910666a4b6579f59b71b37b"
     },
     {
       "file": "scenes/nautilus-squid-dark-960.avif",
-      "sha256": "c6a2f6f4ea87c40e4d870595269522b885fccf247c3d8c138458151a11edc746"
+      "sha256": "f9f70b09a35daaee8334fae98d35386e86224e1cc92d383292eb17a5c64b27a1"
     },
     {
       "file": "scenes/nautilus-squid-dark-960.webp",
-      "sha256": "48ef45bdd8511eaea4bf71110a0d0c730232ce43dcb5d1482d36f38177232e57"
+      "sha256": "b5640cdcdfc36841092e581d675f09a237a45e4598c72a925307b0e42f78ad08"
     },
     {
       "file": "scenes/ouro-hx-1536.avif",
@@ -1213,59 +1213,59 @@
     },
     {
       "file": "scenes/ourostack-1536.avif",
-      "sha256": "692b01d7d6421c5c3555ba04a247f1a016fddc643095fb0caf9b530555ed668c"
+      "sha256": "5c61d5b7257ef329bf877f68f23d5ad99b541027aad769251f86a60a13f79edb"
     },
     {
       "file": "scenes/ourostack-3072.avif",
-      "sha256": "8db4937fe76a23e90892aef296b3202fc59b7ba5d7d8afbb61399d515eba26eb"
+      "sha256": "7636fe2087277bf1a7c2671c6feccf3e598eaec922979a9549762e32d8724825"
     },
     {
       "file": "scenes/ourostack-3072.webp",
-      "sha256": "66d0201d5a4bd5739cfabc7e592404b494770de31c0145aec5a114c2ee22375d"
+      "sha256": "bc37f90a633467f6c9f7b770c2920999eca766e664feda19cdf9735e05eb3faa"
     },
     {
       "file": "scenes/ourostack-640.avif",
-      "sha256": "accc972658635722268cd8bbed5852966da22b389bc30cf2e026486d7ea612d7"
+      "sha256": "5ef9bd4e527deebecb40893e5da7863feb33e3fea164a97abf48a014205dace3"
     },
     {
       "file": "scenes/ourostack-640.webp",
-      "sha256": "dffa3bafebf9c42755cbe83e70d80ec2ca1ce28bd7ab47cfc2f2cda3e95c8e73"
+      "sha256": "1e7e76e06ecd7460d656ff73108e4eafbb24827cbda88a1132e1879ca1206a24"
     },
     {
       "file": "scenes/ourostack-960.avif",
-      "sha256": "07a4312dd2ae1ae061790041c1e021f2ac153ae12618a09cf4793967e62dbc6e"
+      "sha256": "f3fe696c9611ae1ad93c2da51d7ce6741984ae18524dd8f0530bd5152e0beef4"
     },
     {
       "file": "scenes/ourostack-960.webp",
-      "sha256": "47a139fe0bc78a2f4d3a0de24511ae9702197ac5c80b72de60fe3d20b0018930"
+      "sha256": "0ead40df27c1c8192fd77832d18bf810f32019535c8a778cff8d1c137e0e997b"
     },
     {
       "file": "scenes/ourostack-dark-1536.avif",
-      "sha256": "b681ed5a9cf524c8ae41f8f084eeeeaad05bdf2fe7acf69d244a3bc080fa4b9e"
+      "sha256": "0d58f9f43134cdb1bf445ad8ad71197e8384090a38a321adb69536864e777501"
     },
     {
       "file": "scenes/ourostack-dark-3072.avif",
-      "sha256": "64c4e58758772e8e0a1aecc2635ae10ba5776c302ed7ee1ac45e46411f0b1459"
+      "sha256": "43d5fa0a7ec4dd7de7953c154662e94abdc646618bf3762b4facb4bbf9434ba0"
     },
     {
       "file": "scenes/ourostack-dark-3072.webp",
-      "sha256": "e51bdf535bbfedb07cb646f0635a4a40abbb6c698fdc12e6dd06c62e9eca3f26"
+      "sha256": "5db44e801d42ed43b100acd946d4084ee0dbb5b380a603d0d2cfc3be0621398d"
     },
     {
       "file": "scenes/ourostack-dark-640.avif",
-      "sha256": "b64efddc6907f4042f482db158bad1f032430d5e94491401a0c2aea85360d902"
+      "sha256": "a2bb2faf538c15d1a82a39b59a3b4ad1c1ab4e9fbe4f87472c9edc1741fa0883"
     },
     {
       "file": "scenes/ourostack-dark-640.webp",
-      "sha256": "c44561809dc819536dbb2d8aef8b107599b3b01d2010eda5f50700a8ca143879"
+      "sha256": "a368d41106a7cf0b333dd70e7b02a8d301a47d3ad71108f20ec48cc47396b504"
     },
     {
       "file": "scenes/ourostack-dark-960.avif",
-      "sha256": "223ad68513ff374ba1e4b1642ea37dadb702217b9b1a7f04c344c0951215c04f"
+      "sha256": "ad416ea98a62f05951b5084e3c385a1e25b0bea7ac35b1e9fb60899d153b9c09"
     },
     {
       "file": "scenes/ourostack-dark-960.webp",
-      "sha256": "c5ee819b05bdc10a6a293fa826a08dc1b8a443723ec278a0678de2a5c34a1677"
+      "sha256": "119078c74c4d5184ec3528e0b484e0f44bac4e66ceac392e6748d413f9672ec3"
     },
     {
       "file": "scenes/playwright-focus-proof-1536.avif",
@@ -1325,131 +1325,131 @@
     },
     {
       "file": "headers/nautilus-shipyard-afloat-dark.webp",
-      "sha256": "7c99089d25849a30168b036e0fb8db2e48b6bc7f0a186d0675ee1618991838b9"
+      "sha256": "a9520bdb6c602b49ab7354ba4df3905d05c6139630fa0881fecd2e562e4c57f4"
     },
     {
       "file": "headers/nautilus-shipyard-afloat.webp",
-      "sha256": "c1c7e311ac5437fa160e654aab482cdc7e75d026ff198d30a94230c71317f785"
+      "sha256": "297ae6eae745d2821d1c35cf8180c2c6c677d12ae9f5b9617d25fc4edf0c95fa"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-1152.avif",
-      "sha256": "f9295fee2c0c0377c1ca9d86686bf9f7079b4c6c42c0e9032ccf7975203050b9"
+      "sha256": "5bbab603fcaffc53938ed94011766f8f7db698f81db2a6b0b723c3a61cedf9a2"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-1152.webp",
-      "sha256": "ae561dcb4914ac47d7ed071bee89f867277e23206650c5fcef30ae0ad586a817"
+      "sha256": "3b93fdafc60679e84f99612f922033c7e43dd66b7aa4859e48826d29b90e1e64"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-1536.avif",
-      "sha256": "aee0dd1c1007df73d410bdfbd6b66c970055a5b4c2d645d1394afa364978e17e"
+      "sha256": "9834feb5ea36f84b011da390fd0256a038077380483fe09116e0cf168dca134b"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-1536.webp",
-      "sha256": "ea8c0af04b2a67209253c8772890f9157c0ac57e893835b4f9748eb0176cb989"
+      "sha256": "fcef3d424f0ab8a5271afc7ccd0dca1d3d7fc3431672bd15feeeab5bbddc9e65"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-384.avif",
-      "sha256": "d2b874d473ffd2109c6e1334073b86e3f06a9733826b4889b79409429433854b"
+      "sha256": "15dfb774f4f6feeb3b7de67a15bc27fb303342d4536972fbec556b3dbc5102ed"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-384.webp",
-      "sha256": "9de294de0044b7a20e2351debc4e93b9ef253c143732be8768b488a606b43915"
+      "sha256": "9e561e96b42607e721dd218c6db21708ce43994a046f814bcc9967475627a3bd"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-768.avif",
-      "sha256": "275d54d2bb058786aefc7a68a89ad1fe41f25dbcd813001f037bf9ec6e972376"
+      "sha256": "6fb22fb429ca895ef8cd092ef9b4b0f19d022816097d2053e9a3edf10978a08e"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-768.webp",
-      "sha256": "fce723ec51a577774a8c1f1ea248c4a703a82d644f180500dc49059127f60a7b"
+      "sha256": "45b4393ac8c50f2f23216edf425755fe0e1ca16b7b72c4f0f02fb64f7a79cd64"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-dark-1152.avif",
-      "sha256": "d16bc9b476faa11731cdbff2f85c2ce8a778b4326992a95db5f2b96415e26115"
+      "sha256": "3756a4dc853925c7b1706ae77781ff4d6069b9eff47d829e49b6edd30ee39953"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-dark-1152.webp",
-      "sha256": "b663880e3224a076c196d17671afdc42a8eed025001a51bf372adf2aa575fb19"
+      "sha256": "d0e00523951d5ab4812c2c69b06ab127e701d6abdfda45735a15c3eada4d24e9"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-dark-1536.avif",
-      "sha256": "ad1190cbd1277936266ce84fc1882311185870d9240a97ec7a385e7c5f4796b1"
+      "sha256": "47ff7a2282b452a0b62cafbd7ac7ecebea4c741d7877f2acc3659cb0ec581f3c"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-dark-1536.webp",
-      "sha256": "31beac89fcc3dae072adb28964a911ee3285d4b9f65c89f88a2c323dd82a8984"
+      "sha256": "763e12beee5c24aa2a51abce18f8553481c5fdda88fc8875ad20b4d9669f1abf"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-dark-384.avif",
-      "sha256": "78aa96e792efb013a54107fd594ee2f3c7e0552155a8e892b34205f92eb4bf3e"
+      "sha256": "c4011169759c497e072b5767e0b3a16f9a2e6d43129718a5ba24757b09ee957e"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-dark-384.webp",
-      "sha256": "9c9b1f3a6e0d9bbb5824e89644bfb4c4b3044c46f2340ca5e2481e521ae79ecb"
+      "sha256": "8eccdee7f89f7b62c1e25fdefeae780040356b7deaf789a62ace9bd320dd97a7"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-dark-768.avif",
-      "sha256": "89df7136828b419a8631fff9391d5c02870489fee7f3d80c9acaeb126dcde59a"
+      "sha256": "c2425f077f599878830df15d23233146e0ae4a4136a90c65129a8b413b378279"
     },
     {
       "file": "phone/nautilus-shipyard-afloat-dark-768.webp",
-      "sha256": "6af9729255099e9ac54483d7e23df9cd4f8c55634e6e59ebd826bb0d56251b9d"
+      "sha256": "312b31589069efa1d74daa54d85f843ab6e68d240bb9f2e9cfa165e821d041fb"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-1536.avif",
-      "sha256": "3b3b2355a3d40681f99cb25f7de70f525129da5327540a0f038d6e9a506af0e7"
+      "sha256": "23719c8afed1a7a48b8ec91d50b5365f54679d0ab328df6ab694d5de80a45261"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-3072.avif",
-      "sha256": "b05342c1153fd7f9b0b5478bf39dbe0f2aa5245b5a958f6b0523027599bc6a7e"
+      "sha256": "c2447f5f7bb2402452d365b0b692135c09c5900e17786cc08e58d9ade6cf58f2"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-3072.webp",
-      "sha256": "75aae2f37aacfe99c3d7f88cd7d573444194fe600678f81f72b19211a10cece6"
+      "sha256": "924784d5dc4405cae6a364f127048300f4bfbc28b6a1e9e2abd62aae73ac8e4b"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-640.avif",
-      "sha256": "504cf46a54d0d266f3b7d6f41126a2f33f078b0dfe4a2ec70c072bacc703bd69"
+      "sha256": "668644b1a56b0e03127783cb625b9698a2ae4cd6667f0f59e96cd38afd9b0f38"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-640.webp",
-      "sha256": "cab3bdb4b8d500fc88ce63c910142f97170e23464e3463e23c5cfa0ca130054a"
+      "sha256": "a56e2332e7613ad8b287e7f2ac89301c800fe6755277213793029bfda46c524c"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-960.avif",
-      "sha256": "86fb9a2b1b66a68a52cda8cc665682dee29de9460e134ba2676056fcd5d469f1"
+      "sha256": "50a4b158387ce4c550149983e284a93a48f7da33744f8e944e5bc2b5b335dfe4"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-960.webp",
-      "sha256": "6def3f8ade3886958a170d6180908c32b4d19a61726b25700626488cd5215415"
+      "sha256": "be3e7f1c59a0724215545e841bca3dfe954ceb4598360f42df681206ea009dcc"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-dark-1536.avif",
-      "sha256": "5f81d24765d7eb7f03feceb98a0ccc167484bb075773a4a1b434c636a3012b9d"
+      "sha256": "a930d675841bbfe7c1236db18cb6e4bc53a8582673e4edfb6e0fd944fcc1f8d6"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-dark-3072.avif",
-      "sha256": "0733e79f3a7519a112f085e084c5b2c3a912fb2bd448e017f383872b8d22dba5"
+      "sha256": "43ee791b3fb7573e578f33185ee370b5f38bf336f6e340d1ebec7d9975e96edf"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-dark-3072.webp",
-      "sha256": "ac6aaa8de8d7c381098e1869e62fe844c0a68e5324d44c3c14de6c6b2c65d8b4"
+      "sha256": "e8e54087d295caf92b158f56fe745dbf366929770678d13ca52e159dde610d63"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-dark-640.avif",
-      "sha256": "ebc5e784b929e681459ab9b87ea55662edf4d6763327f954f329bef71b9633c6"
+      "sha256": "7af9c2b412418d3e0b7a5d481d5bb78ee6796817f492e88db647ee72db7a2a81"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-dark-640.webp",
-      "sha256": "f19b1c1bb714ae5dc3f2f4a04355b9784318b10bd7f57c5c0938bc99199198bf"
+      "sha256": "4652deb708b04de202de61d84b2f530db8cda6cd4938ee7b0654946e09cf64a8"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-dark-960.avif",
-      "sha256": "3005427206f98f8205f3ae5472dc3c9382f0efab1861c98c2fec876d7c7b5df0"
+      "sha256": "0807ec08bf3f5c9278f047a264df23e762a10ba0d114cfc0e39e3d42cde57905"
     },
     {
       "file": "scenes/nautilus-shipyard-afloat-dark-960.webp",
-      "sha256": "c73ddfde58cf073edb9b0befd5ac45e6a2ed1f733e5b40c50796dcca5048943d"
+      "sha256": "80ab062b0574660701ec42a518f92eef4969bf09194ed8a1f497571ef1a9b48b"
     },
     {
       "file": "headers/nautilus-library-planned-dark.webp",
@@ -1581,131 +1581,131 @@
     },
     {
       "file": "headers/nautilus-squid-free-dark.webp",
-      "sha256": "c60b3b010968b228a433504d0618260f39657e1b0dc5e55006fb7079875b6a06"
+      "sha256": "451517879cf247dc4080099b2200396a58cacf9d3f3fac04fbe614e7041790d6"
     },
     {
       "file": "headers/nautilus-squid-free.webp",
-      "sha256": "b4a27696cece1b6e4c9167c7028a6106fba45f87efe94b9df2f80d6cde67c330"
+      "sha256": "69fd3c593ca7f62cc03471dbea505e83c0d7727eb32a7d2cb23c3c2d5594b1ca"
     },
     {
       "file": "phone/nautilus-squid-free-1152.avif",
-      "sha256": "16da763ca8e2317206593a181584ba7e03903e2942a424db5cc0fa83d9d5fff6"
+      "sha256": "d1bf0af4faf7b64aee2df501ed96ce0801c23898937db53bed7b21fe57534847"
     },
     {
       "file": "phone/nautilus-squid-free-1152.webp",
-      "sha256": "03b5f4a4bc6d9c4a7d788019a7aeb69a5b76c3f986d2cd7b9af9900faf986a43"
+      "sha256": "a1109e69b5177cb582033e8c57a5acd602c19e35526a05b40e9ae4e437c642df"
     },
     {
       "file": "phone/nautilus-squid-free-1536.avif",
-      "sha256": "24499d0eca56b25af8493092770f8da5e3f4862dd1a3bdf84cba16bde57c4cc7"
+      "sha256": "4cc4f44ccd6e7cd5fba4c80b8656fa0d01b7e57c21f94c4bccd3e424476efd0d"
     },
     {
       "file": "phone/nautilus-squid-free-1536.webp",
-      "sha256": "b1ef1bc2a2603ccfe9d581d13951d3c5a16b29093639ba376bfd9fee72f0295e"
+      "sha256": "e6864e3ed85cab174e933c0c7c7e76b803e7b5a107600f63a92c1eb2af224d95"
     },
     {
       "file": "phone/nautilus-squid-free-384.avif",
-      "sha256": "fa602d5144e254ec639037d0026d4e8ed759f1d112f09beaf40647879543b144"
+      "sha256": "6d7d831a99e9db50d40f54cdca2ba97b3dcea400e259aef3b6e24920657933dd"
     },
     {
       "file": "phone/nautilus-squid-free-384.webp",
-      "sha256": "deab1872fa5aff02406c68ae12fd5267706c3cecd0b6c82f02ce4d76b320c840"
+      "sha256": "4c4a6f89daad5ae89f7849b04e3c33892bf2430126091d1ef74d1a6791127bfe"
     },
     {
       "file": "phone/nautilus-squid-free-768.avif",
-      "sha256": "07d8b1b28eafbfb5b7352320e323b4db3116d5c2216b28395467bebc4fa0720a"
+      "sha256": "e4e6ff27f3ae3fe5f03aba49d10d1df2598cb7bed8f1c2117016abddbc257a24"
     },
     {
       "file": "phone/nautilus-squid-free-768.webp",
-      "sha256": "e3aa985e2833eee3ff1286d9a4bdde80edb2b7b2f251a813937524d8abd7cfbb"
+      "sha256": "cb6ffd5ff11ab37aa56d27e4a5330ee6a0e7c6ee693f5aa8319e532d698040e7"
     },
     {
       "file": "phone/nautilus-squid-free-dark-1152.avif",
-      "sha256": "01b8c44d8e308c62ae82c891147e4cd2b80c4ee9e25e7e6e432f971badcc2255"
+      "sha256": "0d99bd350e5132437b9b2428ca885d2b8e3020832e6a211034ae8a903bd15c4e"
     },
     {
       "file": "phone/nautilus-squid-free-dark-1152.webp",
-      "sha256": "d2c740a55db697bd3bad170e88931f7ea0430285d0fa46b477bcb72fe9b70450"
+      "sha256": "081a0d4ec325bd5ea600d1c4e308811354fc6aa31fd729d432a0cf538999a9a3"
     },
     {
       "file": "phone/nautilus-squid-free-dark-1536.avif",
-      "sha256": "443a6f81b9e8e5510c950ff60b1a033a92a6d50b51a379fc33876f8bb9b63aaf"
+      "sha256": "78fcfa37eb349aff2e86102b2f7d7dee0e09d8e139d25b81b436bdf21efcd3cf"
     },
     {
       "file": "phone/nautilus-squid-free-dark-1536.webp",
-      "sha256": "b2e805a43bd40f91fdfd137a65054cddc1f2914adcaf0a63af6cb258e033cfc5"
+      "sha256": "027c105fa4fd13102a46cf7a36265de224c645ae7efb40343555390702706e63"
     },
     {
       "file": "phone/nautilus-squid-free-dark-384.avif",
-      "sha256": "d7d3e3917701480178cef8ba674807cbbb670425440800cb2644239b130bcc01"
+      "sha256": "687b03567b577f8ee5720fce1322f0fffa7772e0a4b3d9fa2b0e4166175ff6c0"
     },
     {
       "file": "phone/nautilus-squid-free-dark-384.webp",
-      "sha256": "3fd566395ceede1ae22b193cd3836c214c2f2aeeee0b9c36aca317fb5faf63a6"
+      "sha256": "036b21af8975375c939c237d6279981b41a4dadf239d01d74029208938d3578a"
     },
     {
       "file": "phone/nautilus-squid-free-dark-768.avif",
-      "sha256": "909b6d024cbb3ce43af81e6bf655cf7874e6c9c65889e917081a7dd396af3591"
+      "sha256": "70717188e23de6fb4d209147edff54d146a4eb0e7e9fb4fb213496d5ee6ccdfb"
     },
     {
       "file": "phone/nautilus-squid-free-dark-768.webp",
-      "sha256": "14b961144d638104791daa52305429c9e8f772c3d830a52906d6e83743a0c0b1"
+      "sha256": "14ecd389fb78be6687cc8a3ed835d4aa505e8edd21cb6f3f1de62672fddccc12"
     },
     {
       "file": "scenes/nautilus-squid-free-1536.avif",
-      "sha256": "311120afb3305740359550dd90457c90dc330e38ef5cde8a3ea87c8d2b1f39b9"
+      "sha256": "fdbc38e3491a5e93e4961e9adbd571f769ecb7ad64f0eae92e652f49aab268fa"
     },
     {
       "file": "scenes/nautilus-squid-free-3072.avif",
-      "sha256": "2247aa2de86dcf9a3c21eb28032910cf0fe57bfbf3ab36344b32fcd7d8af6511"
+      "sha256": "923da7057c09a91e67fa17f8ac17630daabce9475600c2cd76cda67d6c246141"
     },
     {
       "file": "scenes/nautilus-squid-free-3072.webp",
-      "sha256": "586f5671552b6cc4d74369e86c02da95027204e04d878beabf33557cb3fc6521"
+      "sha256": "919c00a72c55517f8c9245a54b5b7da08ca936716d986d8eed603f79f90818c5"
     },
     {
       "file": "scenes/nautilus-squid-free-640.avif",
-      "sha256": "be9e428f5444ed8432da60e93a260a531f15e8d145cf3c07b828c9a6bdcb27c1"
+      "sha256": "888fb212b2890110c8eb4ed1d0db78cf8a16d3206aa1012a4c54124f94c23d3e"
     },
     {
       "file": "scenes/nautilus-squid-free-640.webp",
-      "sha256": "22b421ff7963d7e9987f700e4cca1277c38e1c54db6b7bd02532ba3332499501"
+      "sha256": "14fce5debfe325344784cccfaf431c26f0b13ddd962d7ec1932c6e464fbe5c73"
     },
     {
       "file": "scenes/nautilus-squid-free-960.avif",
-      "sha256": "ffd37d3a7012a10ac0e0abd01c330e1f9d73afd36410db1194e21f1828c03758"
+      "sha256": "eed72c5134bf18c85295ba6c47277ac31fd3b18008ba5297e2a1c05bb6296c0b"
     },
     {
       "file": "scenes/nautilus-squid-free-960.webp",
-      "sha256": "b874402747752fd0a3766b5725f7deea64c0445a644c5b4a2e1b77e56aa0a42c"
+      "sha256": "5e8ebb572d2e66027fa872ef542d324a8cea3ef831d59422c48894bffec13f0e"
     },
     {
       "file": "scenes/nautilus-squid-free-dark-1536.avif",
-      "sha256": "c3de5a05385d3d141b8c76c49e8922276dc07d9fbeaff002cfbd9fe167c8aee2"
+      "sha256": "d2cb678451e809bde01c2ed34b81e767fb1c4d8108b865c3f0e81ea73a46b025"
     },
     {
       "file": "scenes/nautilus-squid-free-dark-3072.avif",
-      "sha256": "8d0563b6c769b1aa7910638cc6fd5674f11ad5911612d23de8952e930d59a581"
+      "sha256": "d0253a7ad25a7bb46e57e56c55fd398288dcb9ff59916a0b25e6b0358cd65639"
     },
     {
       "file": "scenes/nautilus-squid-free-dark-3072.webp",
-      "sha256": "20d7aa6a577983394994a57bd9e6f0250ab4d5b03dc22a5087e9ce87fd24a5eb"
+      "sha256": "569f07a07f2d00b3bafd2426ad8b49f45bd54f49e7c358101c91b89f0086537f"
     },
     {
       "file": "scenes/nautilus-squid-free-dark-640.avif",
-      "sha256": "cea33542d28b32a6d96272714b6731b56b819fde1de3e2af8db7117b0d68db10"
+      "sha256": "efdbc7003ef5b43590fc2515c6a25536fccb43de6f41e559ccecce5f0c2c1299"
     },
     {
       "file": "scenes/nautilus-squid-free-dark-640.webp",
-      "sha256": "cfc42f1658433e8e6bf9e498cb1bd33452d0e65289994cdf0649b8663891ba00"
+      "sha256": "b52e13eb31a82cb9334980797746813116df6e2be432b868c8a80a988cda5d68"
     },
     {
       "file": "scenes/nautilus-squid-free-dark-960.avif",
-      "sha256": "0c54bec2c59f078c58456c92317c12fca8ca2928eb7ba6c9cd4b205b8737cd2b"
+      "sha256": "5afb0b66df2dfafc751acf078c6584e0747f400395777023029269f8fa286849"
     },
     {
       "file": "scenes/nautilus-squid-free-dark-960.webp",
-      "sha256": "e0faf93fcb9483864f239d6e831a672a65c4a3b38d34cda5c5eef0d3867acf85"
+      "sha256": "738be5417c73ca8583ddc9e3e5cebe6333414dfe06ce596b782e5aecf0eb7a79"
     },
     {
       "file": "headers/nautilus-porthole-dark.webp",

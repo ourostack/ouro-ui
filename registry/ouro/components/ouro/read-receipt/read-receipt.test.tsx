@@ -6,6 +6,7 @@ import { page } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { ReadReceipt } from "@/registry/ouro/components/ouro/read-receipt/read-receipt";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -131,5 +132,29 @@ describe("ReadReceipt development messages", () => {
   it("checks the className", async () => {
     await render(<ReadReceipt readers={crew.slice(0, 1)} className="text-red-500" />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] ReadReceipt: "text-red-500" sets appearance, and className is for layout only. Fix: remove "text-red-500"; ReadReceipt takes its colors from the theme.');
+  });
+});
+
+describe("ReadReceipt announcement", () => {
+  it("says who has seen it once, when the first readers arrive, and says nothing as more arrive or when it mounts already seen", async () => {
+    const announced = watchAnnouncements();
+    try {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      const root = createRoot(host);
+      roots.push(root);
+      await act(async () => root.render(<ReadReceipt readers={[crew[0]!]} />));
+      await act(async () => {});
+      expect(announced.count("Seen by Captain Nemo")).toBe(0);
+      await act(async () => root.render(<ReadReceipt readers={[]} />));
+      await act(async () => root.render(<ReadReceipt readers={[crew[1]!]} />));
+      await expect.poll(() => announced.count("Seen by Professor Aronnax")).toBe(1);
+      await act(async () => root.render(<ReadReceipt readers={[crew[1]!, crew[2]!]} />));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect(announced.count("Seen by Professor Aronnax and Conseil")).toBe(0);
+    } finally {
+      announced.stop();
+    }
   });
 });

@@ -161,6 +161,35 @@ describe("ThreadLayout", () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  it("gives focus back to the conversation's control that opened the thread without scrolling the page to it", async () => {
+    // The opener sits far down a tall conversation (an earlier message's "N replies" button), so the browser's own
+    // scroll-into-view on focus would move the page away from the newest message, were it not held back.
+    function Opened({ open }: { open: boolean }) {
+      return (
+        <ThreadLayout
+          conversation={
+            <div style={{ height: 2000 }}>
+              <button type="button">Show thread</button>
+            </div>
+          }
+          thread={open ? <ThreadRail label="Thread" title="Replies" onClose={() => {}}><p>Meet at eight.</p></ThreadRail> : null}
+          className="h-[2000px]"
+        />
+      );
+    }
+    const { host, rerender } = await render(<Opened open={false} />, 360);
+    host.style.height = "200px";
+    host.style.overflow = "auto";
+    const opener = host.querySelector("button")!;
+    opener.focus();
+    await rerender(<Opened open />);
+    // The reader scrolled the page to the newest message while the thread covered the conversation.
+    host.scrollTop = 1000;
+    await rerender(<Opened open={false} />);
+    expect(document.activeElement).toBe(opener);
+    expect(host.scrollTop).toBe(1000);
+  });
+
   it.each([360, 640])("moves focus to the conversation's heading when a thread closes that nothing in the conversation opened (%dpx)", async (width) => {
     const rail = (open: boolean) => (open ? <ThreadRail label="Thread" title="Replies" onClose={() => {}}><p>Meet at eight.</p></ThreadRail> : null);
     const conversation = (

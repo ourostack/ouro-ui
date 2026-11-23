@@ -34,15 +34,32 @@ export function wantsRetake(scope: string | undefined, signature: string): boole
   return scope.replace(/^names:/, "").split(",").some((name) => name !== "" && lower.includes(name.toLowerCase()));
 }
 
+/** Waits until nothing is animating for several polls of `tick` in a row, or `budgetMs` passes. A transition or
+ *  animation can start a frame or two after a state begins, or — since a retake's two takes are read back to back
+ *  with nothing between them otherwise — between the two, so this runs before each take, not just the first.
+ *  `tick` advances a frame, reports whether anything was animating, and (if so) waits for it to finish. */
+export async function settleMotion(tick: () => Promise<boolean>, budgetMs = 2_000): Promise<void> {
+  const deadline = Date.now() + budgetMs;
+  let quiet = 0;
+  while (quiet < 6 && Date.now() < deadline) quiet = (await tick()) ? 0 : quiet + 1;
+}
+
 interface Picture {
   data: Uint8Array;
   width: number;
   height: number;
 }
 
+/**
+ * How far one channel of a pixel may move between the takes and still count as the same: a control's antialiased edge
+ * blends with the page behind it, which can shift a unit as it is redrawn (a reorderable handle's corners on /nautilus/,
+ * one unit on 10 pixels, #3021). A state that settles late moves far more (a hover's tint, 13 units on the ring).
+ */
+const NOISE = 2;
+
 /** A finding naming the control, page and state when the two takes differ; null when they agree. */
 export function instability(first: Picture | null, second: Picture | null, where: { signature: string; page: string; state: string }): string | null {
   if (!first || !second) return null;
-  const same = first.width === second.width && first.height === second.height && Buffer.compare(first.data, second.data) === 0;
+  const same = first.width === second.width && first.height === second.height && first.data.length === second.data.length && first.data.every((value, i) => Math.abs(value - second.data[i]!) <= NOISE);
   return same ? null : `${where.signature} on ${where.page} in ${where.state}: two takes of its picture differ, so the state is not stable`;
 }

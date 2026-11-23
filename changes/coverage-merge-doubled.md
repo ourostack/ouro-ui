@@ -1,0 +1,1 @@
+- Fixed: the coverage merge now fails loudly, naming the shard and file, when a shard's own coverage-final.json instruments a file more than once (the same source location under different keys), instead of silently merging it into a misleading short percentage.

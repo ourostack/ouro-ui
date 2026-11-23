@@ -5,7 +5,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { scratchDir } from "./scratch.mjs";
-import { instability, retakeScope, wantsRetake } from "../site/e2e/stable-take.ts";
+import { instability, retakeScope, settleMotion, wantsRetake } from "../site/e2e/stable-take.ts";
 
 const pic = (bytes, width = 2) => ({ data: Buffer.from(bytes), width, height: 1 });
 const where = { signature: "button|trigger|hover", page: "/docs/button/", state: "hover" };
@@ -15,11 +15,16 @@ test("a stable capture passes: two equal takes make no finding", () => {
 });
 
 test("two takes that differ fail, naming the control signature, page and state", () => {
-  const message = instability(pic([1, 2]), pic([1, 3]), where);
+  const message = instability(pic([1, 2]), pic([1, 15]), where);
   assert.match(message, /button\|trigger\|hover/);
   assert.match(message, /\/docs\/button\//);
   assert.match(message, /hover/);
   assert.match(instability(pic([1, 2]), pic([1, 2], 1), where), /differ/);
+});
+
+test("an edge that moves a unit or two as it is redrawn is no finding, and three is", () => {
+  assert.equal(instability(pic([40, 42]), pic([41, 40]), where), null);
+  assert.match(instability(pic([40, 42]), pic([43, 42]), where), /differ/);
 });
 
 test("a take that produced no picture is no finding", () => {
@@ -55,4 +60,32 @@ test("the command prints the scope from a list of changed paths, and all when th
   assert.equal(run("pull_request", list), "names:switch");
   assert.equal(run("pull_request", join(dir, "missing.txt")), "all");
   assert.equal(run("push", list), "");
+});
+
+test("settleMotion stops once a tick reports nothing running six times in a row", async () => {
+  let calls = 0;
+  await settleMotion(() => {
+    calls++;
+    return Promise.resolve(false);
+  });
+  assert.equal(calls, 6);
+});
+
+test("settleMotion resets its quiet count when a tick reports motion again, so a late mover is still waited out", async () => {
+  const script = [false, false, false, false, false, true, false, false, false, false, false, false];
+  let calls = 0;
+  await settleMotion(() => Promise.resolve(script[calls++]));
+  assert.equal(calls, script.length);
+});
+
+test("settleMotion gives up at its budget rather than waiting forever for a tick that never settles", async () => {
+  const start = Date.now();
+  let calls = 0;
+  await settleMotion(() => {
+    calls++;
+    return Promise.resolve(true);
+  }, 20);
+  assert.ok(Date.now() - start >= 20, "ran for at least the budget");
+  assert.ok(Date.now() - start < 1_000, "did not run far past the budget");
+  assert.ok(calls > 1, "polled more than once while waiting");
 });

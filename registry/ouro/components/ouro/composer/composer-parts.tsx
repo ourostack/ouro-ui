@@ -1,19 +1,21 @@
 "use client";
 
-import { $isCodeNode, CodeNode } from "@lexical/code-core";
+import { CodeNode } from "@lexical/code-core";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
 import { $createLinkNode, $isLinkNode, $toggleLink, LinkNode } from "@lexical/link";
-import { $isListItemNode, ListItemNode, ListNode, registerList } from "@lexical/list";
+import { ListItemNode, ListNode, registerList } from "@lexical/list";
 import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type TextMatchTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
-import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
-import { useEffect, useImperativeHandle, useRef, useState } from "react";
+import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
+import { useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiToken, splitEmojiText, toneOf } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import type { EmojiTextPart } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
+import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
+import { describeHighlights, highlightTone, highlightsKey, moveHighlights, normalizeHighlights } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
 import { attachRef } from "@/registry/ouro/lib/ouro/refs";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 
@@ -38,6 +40,12 @@ interface RichEditorProps {
   markdownOffsets: boolean;
   /** The emoji whose `:shortcode:` tokens the editor draws as pictures. */
   catalogue?: EmojiCatalogue | undefined;
+  /** The runs of the Markdown to mark, as Markdown offsets, which move with the text. */
+  highlights?: readonly TextAreaHighlight[] | undefined;
+  /** Turns a paste into Markdown before the allowlist reads the clipboard; `undefined` leaves the paste to the allowlist. */
+  pasteText?: ((data: DataTransfer) => string | undefined) | undefined;
+  /** Told the marks that came of an edit. */
+  onHighlightsChange?: ((highlights: TextAreaHighlight[]) => void) | undefined;
   label: string;
   value: string;
   onValueChange: (value: string) => void;
@@ -156,7 +164,7 @@ const synced = "composer-sync";
 // Stryker disable next-line ArrayDeclaration: a list with one constant item runs an effect once, as an empty list does.
 const MOUNT_ONLY: never[] = [];
 
-// A quote ends on its empty last line, which the line break there makes; a list and a code block end the way Enter ends them.
+// A quote ends on its empty last line, which the line break there makes; a list, a code block and a plain line each go on the way Enter goes on, which is a new paragraph outside a quote.
 function leaveOrContinueBlock(editor: LexicalEditor): boolean {
   const selection = $getSelection();
   /* istanbul ignore next @preserve -- a line break is only asked for with a caret or a range */
@@ -175,7 +183,6 @@ function leaveOrContinueBlock(editor: LexicalEditor): boolean {
     after.select();
     return true;
   }
-  if (!$findMatchingParent(node, (parent) => $isListItemNode(parent) || $isCodeNode(parent))) return false;
   return editor.dispatchCommand(INSERT_PARAGRAPH_COMMAND, undefined);
 }
 
@@ -450,6 +457,47 @@ function readMarkdownControl(editor: LexicalEditor, scratch: LexicalEditor) {
   return { value, start: Math.min(a, b), end: Math.max(a, b) };
 }
 
+// The marks' looks, by tone: a tint and a line under the run, dotted for most and dashed for the two that warn, so colour is not the only sign of a mark.
+const markTones = {
+  primary: "bg-primary/10 border-primary border-dotted",
+  secondary: "bg-muted border-muted-foreground border-dotted",
+  success: "bg-success/10 border-success border-dotted",
+  destructive: "border-destructive border-dashed",
+  warning: "border-warning border-dashed",
+} as const;
+interface MarkBox {
+  tone: keyof typeof markTones;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+// Where the DOM has the text offset `clean`.
+function domPoint(editor: LexicalEditor, clean: number): [Node, number] {
+  return editor.read(() => {
+    const [node, offset, type] = $pointOfText(clean);
+    const dom = editor.getElementByKey(node.getKey())!;
+    return type === "text" ? [dom.firstChild!, offset] : [dom, offset];
+  });
+}
+// The boxes that cover the marked runs, placed from the top left of `frame`.
+function measureMarks(editor: LexicalEditor, scratch: LexicalEditor, frame: HTMLElement, marks: readonly TextAreaHighlight[]): MarkBox[] {
+  const origin = frame.getBoundingClientRect();
+  const boxes: MarkBox[] = [];
+  for (const mark of marks) {
+    const range = document.createRange();
+    range.setStart(...domPoint(editor, textOffsetOf(editor, scratch, mark.start)));
+    range.setEnd(...domPoint(editor, textOffsetOf(editor, scratch, mark.end)));
+    const seen = new Set<string>();
+    for (const rect of range.getClientRects()) {
+      const at = `${rect.left},${rect.top},${rect.width},${rect.height}`;
+      if (rect.width === 0 || seen.has(at)) continue;
+      seen.add(at);
+      boxes.push({ tone: highlightTone(mark) as keyof typeof markTones, left: rect.left - origin.left, top: rect.top - origin.top, width: rect.width, height: rect.height });
+    }
+  }
+  return boxes;
+}
 /** The props that are set, so an unset one leaves the editor's own in place. */
 function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
   return Object.fromEntries(Object.entries(props).filter(([, value]) => value !== undefined));
@@ -461,7 +509,7 @@ function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, comboboxProps, catalogue }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -470,6 +518,30 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   useEffect(() => {
     report.current = onValueChange;
   });
+  // The marks that fit the text now: new `highlights` are taken as given, and when the text changes they move with it.
+  const marksKey = highlightsKey(highlights);
+  // Stryker disable next-line ObjectLiteral: a start with no key matches nothing, so the first render fills it in the same way before anything is drawn.
+  const [track, setTrack] = useState(() => ({ key: marksKey, text: value, ranges: normalizeHighlights(highlights, value.length), moved: false }));
+  let ranges = track.ranges;
+  if (track.key !== marksKey || track.text !== value) {
+    const same = track.key === marksKey;
+    ranges = same ? moveHighlights(track.ranges, track.text, value, null) : normalizeHighlights(highlights, value.length);
+    setTrack({ key: marksKey, text: value, ranges, moved: same && highlightsKey(ranges) !== highlightsKey(track.ranges) });
+  }
+  const marksChange = useRef(onHighlightsChange);
+  useEffect(() => {
+    marksChange.current = onHighlightsChange;
+  });
+  useEffect(() => {
+    if (track.moved) marksChange.current?.(track.ranges);
+  }, [track]);
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  // Stryker disable next-line ArrayDeclaration: the first measure replaces whatever the boxes start as, before a test or a person reads the layer (the effect that measures runs as the box mounts).
+  const [boxes, setBoxes] = useState<MarkBox[]>([]);
+  const rangesKey = highlightsKey(ranges);
+  const marksDescription = describeHighlights(value, ranges);
+  const marksId = useId();
+  const describing = [describedBy, marksDescription ? marksId : undefined].filter(Boolean).join(" ") || undefined;
   // A press places the caret where it lands; any other way in puts it at the end.
   const pressed = useRef(false);
   const inMarkdown = useRef(markdownOffsets);
@@ -478,8 +550,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   });
   const emoji = useRef(catalogue);
   const readingRef = useRef<Transformer[]>(transformers);
+  const pasting = useRef(pasteText);
   useEffect(() => {
     emoji.current = catalogue;
+    pasting.current = pasteText;
   });
   // ⌘⇧V was pressed, so the paste that follows takes the clipboard's text alone.
   const plainPaste = useRef(false);
@@ -516,6 +590,15 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     });
     // The text offset a Markdown offset stands at.
     const place = (offset: number) => (inMarkdown.current ? textOffsetOf(editor, copy(), offset) : offset);
+    // Puts Markdown in place of the Markdown between two offsets, and the caret after it.
+    const putMarkdown = (text: string, start: number, end: number) => {
+      const markdown = toMarkdown(editor);
+      const [from, to] = [Math.min(Math.max(Math.min(start, end), 0), markdown.length), Math.min(Math.max(Math.max(start, end), 0), markdown.length)];
+      editor.update(() => $convertFromMarkdownString(markdown.slice(0, from) + text + markdown.slice(to), reading, undefined, true), { discrete: true });
+      const at = textOffsetOf(editor, copy(), from + text.length);
+      // Stryker disable next-line ObjectLiteral,BooleanLiteral: the caret is placed in the same task either way, so only when it is drawn differs
+      editor.update(() => $selectText(at, at), { discrete: true });
+    };
     Object.assign(root, {
       setSelectionRange: (start: number, end: number) => {
         const [from, to] = [place(start), place(end)];
@@ -524,12 +607,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       setRangeText: (text: string, start: number, end: number) => {
         if (inMarkdown.current) {
           if (root.getAttribute("contenteditable") !== "true") return;
-          const markdown = toMarkdown(editor);
-          const [from, to] = [Math.min(Math.max(Math.min(start, end), 0), markdown.length), Math.min(Math.max(Math.max(start, end), 0), markdown.length)];
-          editor.update(() => $convertFromMarkdownString(markdown.slice(0, from) + text + markdown.slice(to), reading, undefined, true), { discrete: true });
-          const at = textOffsetOf(editor, copy(), from + text.length);
-          // Stryker disable next-line ObjectLiteral,BooleanLiteral: the caret is placed in the same task either way, so only when it is drawn differs
-          editor.update(() => $selectText(at, at), { discrete: true });
+          putMarkdown(text, start, end);
           return;
         }
         editor.update(
@@ -565,8 +643,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         },
         COMMAND_PRIORITY_HIGH,
       ),
-      // Enter sends, so Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, and each leaves from an empty one.
+      // Enter sends, so Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, a plain line a new paragraph, and a quote stays on one line until an empty one leaves it.
       editor.registerCommand(INSERT_LINE_BREAK_COMMAND, () => leaveOrContinueBlock(editor), COMMAND_PRIORITY_HIGH),
+      // Escape is not a request to leave the box: Lexical would blur it, which drops a keyboard person's place.
+      editor.registerCommand(KEY_ESCAPE_COMMAND, () => true, COMMAND_PRIORITY_HIGH),
       // A caret is placed only when the box takes focus, so that loading it never moves focus.
       editor.registerCommand(
         FOCUS_COMMAND,
@@ -590,6 +670,15 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           // Stryker disable next-line BooleanLiteral: with no clipboard text or caret, the handlers after this one have nothing to insert either way.
           if (!data || !$isRangeSelection(selection)) return false;
           event.preventDefault();
+          const given = pasting.current?.(data);
+          if (given !== undefined) {
+            // The Markdown goes in once this update has ended, as the editorRef's setRangeText puts it in.
+            queueMicrotask(() => {
+              const { start, end } = readMarkdownControl(editor, copy());
+              putMarkdown(given, start, end);
+            });
+            return true;
+          }
           const text = data.getData("text/plain");
           const html = plain ? "" : data.getData("text/html");
           const href = safeHref(text);
@@ -634,6 +723,32 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       editorRef.current = null;
     };
   }, MOUNT_ONLY); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The boxes over the marked runs, measured from the editor once it exists and again as its text, size or scroll change.
+  useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: with no ranges the measure yields no boxes, and the layer is not drawn for none either way.
+    if (ranges.length === 0) return;
+    const editor = editorRef.current!;
+    const root = rootRef.current!;
+    // Stryker disable next-line StringLiteral,BlockStatement: the copy's namespace is never read, and its onError only receives the editor's own states.
+    const scratch = createEditor({ namespace: "ouro-composer-marks", nodes: NODES, onError: /* istanbul ignore next @preserve -- the copy only receives the editor's own states */ (error) => { throw error; } });
+    const measure = () => {
+      const frame = frameRef.current;
+      // Stryker disable next-line ConditionalExpression,BlockStatement: the box's own cleanup clears its root, and that update arrives after the frame is gone.
+      if (frame) setBoxes(measureMarks(editor, scratch, frame, ranges));
+    };
+    // Stryker disable next-line CallExpression: the observer reports the box's size as soon as it observes it, which measures once more.
+    measure();
+    const stop = editor.registerUpdateListener(measure);
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    root.addEventListener("scroll", measure);
+    return () => {
+      stop();
+      observer.disconnect();
+      root.removeEventListener("scroll", measure);
+    };
+  }, [rangesKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A value the app sets, such as the empty one after a send, replaces what the editor holds.
   useEffect(() => {
@@ -686,7 +801,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   }));
 
   return (
-    <div data-slot={slot} className={cn("relative grid", className)}>
+    <div ref={frameRef} data-slot={slot} className={cn("relative grid", className)}>
       {name !== undefined && <input type="hidden" name={name} value={value} disabled={disabled} />}
       <div
         ref={(element) => {
@@ -701,7 +816,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         aria-multiline={comboboxProps.role === "combobox" ? undefined : "true"}
         aria-label={label}
         aria-placeholder={comboboxProps.role === "combobox" ? undefined : placeholder}
-        aria-describedby={describedBy}
+        aria-describedby={describing}
         aria-disabled={disabled || undefined}
         aria-readonly={readOnly || undefined}
         {...definedOnly(comboboxProps)}
@@ -734,6 +849,18 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         }}
         className="col-start-1 row-start-1 m-0 box-content block min-w-0 overflow-y-auto border-0 bg-transparent px-0 py-(--ouro-text-area-py) text-base leading-6 text-inherit outline-0 [--ouro-text-area-py:calc(var(--spacing)*3)] [overflow-wrap:anywhere] whitespace-pre-wrap sm:pointer-fine:text-sm sm:pointer-fine:leading-5 [&_p]:m-0 [&_strong]:font-semibold [&_code]:rounded-ouro-sm [&_code]:bg-muted [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.9em]"
       />
+      {ranges.length > 0 && boxes.length > 0 && (
+        <div aria-hidden="true" data-slot="composer-marks" data-ouro-composer-marks="" className="pointer-events-none absolute inset-0 overflow-hidden">
+          {boxes.map((box, index) => (
+            <span key={index} data-slot="composer-mark" data-ouro-highlight={box.tone} style={{ left: box.left, top: box.top, width: box.width, height: box.height }} className={cn("absolute rounded-xs border-b-2 forced-colors:border-[CanvasText]", markTones[box.tone])} />
+          ))}
+        </div>
+      )}
+      {marksDescription && (
+        <span id={marksId} hidden>
+          {marksDescription}
+        </span>
+      )}
       {empty && placeholder && (
         <span aria-hidden="true" data-slot="composer-rich-placeholder" data-ouro-composer-placeholder="" className="pointer-events-none col-start-1 row-start-1 min-w-0 py-(--ouro-text-area-py) text-base leading-6 text-muted-foreground [--ouro-text-area-py:calc(var(--spacing)*3)] sm:pointer-fine:text-sm sm:pointer-fine:leading-5">
           {placeholder}

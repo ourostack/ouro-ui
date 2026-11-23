@@ -94,7 +94,7 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
   // Stryker disable next-line ArrayDeclaration: the callback reads nothing from render, so any dependency list keeps it.
   const threadBox = useCallback((box: HTMLDivElement) => () => void (threadHeldFocus.current = box.contains(document.activeElement)), []);
   useLayoutEffect(() => {
-    if (!open && document.activeElement === document.body) lastFocused.current?.focus();
+    if (!open && document.activeElement === document.body) lastFocused.current?.focus({ preventScroll: true });
     // The thread box's cleanup sets threadHeldFocus as each thread closes, so it is current whenever a close is handled here.
     if (open || !threadHeldFocus.current || document.activeElement !== document.body) return;
     // The conversation's own heading: not one inside a message, which would scroll the list away from the newest.

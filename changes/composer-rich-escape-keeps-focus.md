@@ -1,0 +1,1 @@
+- Fixed: the rich Composer keeps focus when Escape is pressed and nothing is open, where Lexical used to blur the box and drop a keyboard person's place.

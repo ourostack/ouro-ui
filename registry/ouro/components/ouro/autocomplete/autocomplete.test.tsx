@@ -10,6 +10,7 @@ import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { drawn, expectFirstFramesInPlace, placeFarBelow, recordPopupFrames } from "@/registry/ouro/lib/ouro/testing/popup-frames";
 import { settled as settledBox } from "@/registry/ouro/lib/ouro/testing/settled";
 const roots: Root[] = [];
@@ -170,7 +171,7 @@ describe("Autocomplete", () => {
     expect(glyph.textContent).toBe("🎉");
   });
 
-  it("filters by what follows the trigger, and closes when nothing matches", async () => {
+  it("filters by what follows the trigger, and shows No matches when nothing does", async () => {
     const { control } = await render(
       <Autocomplete triggers={[peopleTrigger]}>
         <TextArea label="Message" />
@@ -181,7 +182,7 @@ describe("Autocomplete", () => {
     // The typed part of the name is bold.
     expect(options()[0]!.querySelector('[data-ouro-autocomplete-match]')!.textContent).toBe("Jo");
     await userEvent.keyboard("x");
-    await expect.poll(listbox).toBeNull();
+    await expect.poll(() => options().map((option) => option.textContent)).toEqual(["No matches"]);
     expect(control.hasAttribute("aria-activedescendant")).toBe(false);
     await userEvent.keyboard("{Backspace}");
     await expect.poll(labels).toEqual(["Jordan Lee"]);
@@ -406,6 +407,53 @@ describe("Autocomplete", () => {
     await expect.poll(labels).toEqual(["Jordan Lee", "Priya Natarajan"]);
   });
 
+  it("says so when a query matches nothing: an empty row, spoken once, that Enter and Escape treat as no list", async () => {
+    const onKeyDown = vi.fn();
+    const { control } = await render(
+      <Autocomplete triggers={[peopleTrigger]} emptyLabel="Nobody called that">
+        <TextArea label="Message" onKeyDown={onKeyDown} />
+      </Autocomplete>,
+    );
+    await type(control, "@qq");
+    await expect.poll(() => options().map((option) => option.textContent)).toEqual(["Nobody called that"]);
+    expect(options()[0]!.getAttribute("aria-disabled")).toBe("true");
+    await expect.poll(announcer).toBe("Nobody called that");
+    expect(control.hasAttribute("aria-activedescendant")).toBe(false);
+    onKeyDown.mockClear();
+    await userEvent.keyboard("{Enter}");
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
+    expect(control.value).toBe("@qq\n");
+    await userEvent.keyboard("{Backspace}{Backspace}");
+    await expect.poll(() => options().map((option) => option.textContent)).toEqual(["Nobody called that"]);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(listbox).toBeNull();
+  });
+
+  it("shows no empty row and says nothing about one while the query matches", async () => {
+    const watcher = watchAnnouncements();
+    const { control } = await render(
+      <Autocomplete triggers={[peopleTrigger]} emptyLabel="Nobody here">
+        <TextArea label="Message" />
+      </Autocomplete>,
+    );
+    await type(control, "@");
+    await expect.poll(() => options().length).toBeGreaterThan(0);
+    expect(options().map((option) => option.textContent)).not.toContain("Nobody here");
+    expect(document.querySelector('[data-slot="autocomplete-empty"]')).toBeNull();
+    expect(watcher.count("Nobody here")).toBe(0);
+    watcher.stop();
+  });
+
+  it("says No matches by default", async () => {
+    const { control } = await render(
+      <Autocomplete triggers={[peopleTrigger]}>
+        <TextArea label="Message" />
+      </Autocomplete>,
+    );
+    await type(control, "@qq");
+    await expect.poll(() => options().map((option) => option.textContent)).toEqual(["No matches"]);
+  });
+
   it("follows the pointer and picks on click, keeping focus in the text", async () => {
     const { control } = await render(
       <Autocomplete triggers={[peopleTrigger]}>
@@ -611,7 +659,8 @@ describe("Autocomplete", () => {
       control.setRangeText(":", 17, 18, "preserve");
       control.dispatchEvent(new Event("input", { bubbles: true }));
     });
-    await expect.poll(listbox).toBeNull();
+    // ":jo" is a trigger of its own that suggests nothing.
+    await expect.poll(() => options().map((option) => option.textContent)).toEqual(["No matches"]);
     expect(control.hasAttribute("aria-controls")).toBe(false);
   });
 

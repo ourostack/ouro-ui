@@ -265,6 +265,11 @@
     "owner": "drain-3"
   },
   {
+    "test": "* site/src/voyage/chapters/chapter-one.test.tsx > Chapter I > signs on Jules, and the crew member who knows the name answers in place of the welcome",
+    "reason": "A shard measured it at 7.8 s against a budget of 15 s (#3032). It runs in under 1 s on a clean site install with no contention, repeated across isolated runs, so the breach did not reproduce locally; it reads as CI-shard load, not an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
     "test": "* registry/ouro/components/ouro/dialog/dialog.test.tsx > automatic presentation > renders a centered dialog at *px",
     "reason": "A shard measured it at 7.6 s against a budget of 15 s. Find what makes it slow and fix that, then remove this entry.",
     "owner": "drain-3"
@@ -310,12 +315,12 @@
     "owner": "drain-3"
   },
   {
-    "test": "site site/src/voyage/chapters/chapter-three.test.tsx > Chapter III > keeps Dive and the organ off in the menu and the palette until the squid lets go, and a press on them changes nothing",
-    "reason": "A shard measured it at 7.7 s against a budget of 15 s (#2965), on chromium rather than WebKit, pointing at a cost shared across projects rather than one browser's automation latency. Chapter I, II and III's beforeEach set reduced motion and afterEach put it back on every test, paying a media round trip twice a test for a preference that never changes within the file; it now moves to a file-level beforeAll/afterAll, cutting that cost from twice a test to twice a file. A clean ouro-chromium run of the whole file shows no change (6.4 s and 7 s for 16 tests, both under budget and within the run-to-run spread this session has measured for other media-round-trip fixes), so the remaining cost still reads as CI-shard load, not an avoidable wait this fix left behind. Revisit if a shard measures it slow again with headroom to spare.",
+    "test": "site (chromium) site/src/voyage/chapters/chapter-three.test.tsx > Chapter III > keeps Dive and the organ off in the menu and the palette until the squid lets go, and a press on them changes nothing",
+    "reason": "A shard measured it at 7.7 s against a budget of 15 s (#2965), on chromium rather than WebKit, pointing at a cost shared across projects rather than one browser's automation latency. Chapter I, II and III's beforeEach set reduced motion and afterEach put it back on every test, paying a media round trip twice a test for a preference that never changes within the file; it now moves to a file-level beforeAll/afterAll, cutting that cost from twice a test to twice a file. A clean ouro-chromium run of the whole file shows no change (6.4 s and 7 s for 16 tests, both under budget and within the run-to-run spread this session has measured for other media-round-trip fixes), so the remaining cost still reads as CI-shard load, not an avoidable wait this fix left behind. This entry's own project name was missing Vitest's own suffix (the project is named \"site\", and Vitest names a browser project's tests \"site (chromium)\"), so the exemption never matched and the test kept reporting as a fresh breach on #3032's main runs (45075449817, 8.3 s) despite this reasoning already standing; the fix here is the matching key, not a new cost. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
   },
   {
-    "test": "ouro-touch test/text-size.touch.test.tsx > landscape (844 x 390) > demo/combobox has no text-entry control under 16px, closed or with any overlay open",
+    "test": "ouro-touch (chromium) test/text-size.touch.test.tsx > landscape (844 x 390) > demo/combobox has no text-entry control under 16px, closed or with any overlay open",
     "reason": "A shard measured it at 7.8 s against a budget of 15 s (#2971). The demo renders four separate Comboboxes (Herb, Herbs, To, Cuisine), so the scan pays four real click round trips plus five subject re-renders (closed, then one per opener); no opener recurses further, since a listbox's options carry no aria-haspopup of their own, so this is not excess recursion. Instrumented locally the whole test (portrait and landscape together) totals under 1 s with each round trip at 82-150 ms, which matches the file's own documented model of up to 1 s per real round trip on a loaded shard rather than an avoidable wait in the test. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
   },
@@ -325,18 +330,33 @@
     "owner": "drain-3"
   },
   {
-    "test": "ouro-touch registry/ouro/components/ouro/select/select.touch.test.tsx > keeps a select's trigger 44px tall to a finger, even at a compact --spacing",
+    "test": "ouro-touch (chromium) registry/ouro/components/ouro/select/select.touch.test.tsx > keeps a select's trigger 44px tall to a finger, even at a compact --spacing",
     "reason": "ouro-touch at 7.6s of 15s in #3000 (run 45060816478). Measured clean locally: the test body itself is 47-49ms; the file's shared afterEach pays four CDP round trips every test regardless (rotate()'s zoom read, viewport set, zoom reset, plus an emulateMedia reset), even though only one of the file's twelve tests rotates and only one changes reduced motion. That reset is the repo-wide touch-test safety convention (rotate.ts: catch any stray zoom, not only an explicit rotate() call) used in 40+ *.touch.test.tsx files; narrowing it to only run when this file's own test mutated state would weaken that catch-any-stray-zoom guarantee just for this file. No avoidable cost found in the test body or a safe per-file narrowing. Reads as CI-shard load on the shared reset's real CDP round trips. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
   },
   {
-    "test": "ouro-webkit registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > typing > never reports a typed date outside min and max, and shows the out-of-range message",
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/calendar/date-picker.test.tsx > DatePicker > typing > never reports a typed date outside min and max, and shows the out-of-range message",
     "reason": "ouro-webkit at 7.5s of 15s in #3000 (run 45060816478). Measured clean locally with per-step timing: the whole test is ~250ms, spread evenly across four distinct typed 10-character dates (below-min, above-max, a disabled date, a newly-allowed date) and their clears, 7-34ms each, with no single dominant round trip. The file's own beforeEach/afterEach carry no redundant reset (no viewport bounce back and forth). Reducing the typed cases would drop real boundary coverage this test proves. No avoidable wait found. Reads as CI-shard load on real typing round trips. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
   },
   {
     "test": "* test/stories.test.tsx > at * px > * > MessageList/Switching has no axe violations, closed and with each overlay open",
     "reason": "Ran past half its timeout in a pull request run, again after #2994 already cut its one identifiable repeat scan (two reactions to one). Timed locally alone: passes near instantly, but under concurrent load it varies widely, once timing out waiting for a hover its own retry loop drives, because the scan opens every tooltip on the story in turn and each open is a real hover. The remaining cost is the axe scan itself over a message list wide enough to need the scroll it demonstrates, not a mechanical repeat left to cut.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-touch (chromium) registry/ouro/components/ouro/command/command.touch.test.tsx > Command on a phone > keeps the commands and the loading rows 44px to a finger at a compact --spacing",
+    "reason": "ouro-touch at 7.8s of 15s on #3032 (run 45072536276). Measured clean locally: the test body itself finishes quickly; the file's shared afterEach pays rotate()'s CDP round trips every test regardless, even though this test never rotates the viewport itself. That is the same repo-wide touch-test safety convention already exempted for select.touch.test.tsx above (rotate.ts: catch any stray zoom, not only an explicit rotate() call), used across 40+ *.touch.test.tsx files; narrowing it to only run when a test mutated state would weaken that guarantee just for this file. No avoidable cost found in the test body or a safe per-file narrowing. Reads as CI-shard load on the shared reset's real CDP round trips. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/lib/ouro/testing/axe.test.ts > audit > measures a long list's rows from pictures of the box that scrolls them, not one picture per row",
+    "reason": "ouro-webkit at 8.0s of 15s on #3032 (run 45075449817). Measured clean locally: the test, including its row scan and the real screenshot calls the audit counts, finishes in well under a second. The afterEach it shares with the rest of the file only clears document.body; no media round trip, no rotate(). No avoidable cost found in the test body. Reads as CI-shard load on the scan's real screenshot round trips. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-3"
+  },
+  {
+    "test": "ouro-touch (chromium) registry/ouro/components/ouro/message/message-list.touch.test.tsx > keeps the reader's place on a phone once they swipe up, and jumps back with a 44px button",
+    "reason": "ouro-touch at 8.7s of 15s on #3032 (run 45075449817). Measured clean locally: the test body itself finishes in about 1.1s; the file's shared afterEach pays rotate()'s CDP round trips every test regardless, the same repo-wide touch-test safety convention already exempted for select.touch.test.tsx and command.touch.test.tsx above (rotate.ts: catch any stray zoom, not only an explicit rotate() call), used across 40+ *.touch.test.tsx files. No avoidable cost found in the test body or a safe per-file narrowing. Reads as CI-shard load on the shared reset's real CDP round trips. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-3"
   }
 ]
