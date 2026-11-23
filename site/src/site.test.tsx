@@ -157,7 +157,7 @@ describe("home page", () => {
   it("points each pattern preview at a story that exists, since Ouro check waives the frame's address", async () => {
     const source = (await import("../../stories/reference/patterns.stories.tsx?raw")).default;
     const kebab = (word: string) => word.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
-    const ids = [...source.matchAll(/export const (\w+): Story/g)].map((match) => `reference-patterns--${kebab(match[1])}`);
+    const ids = [...source.matchAll(/export const (\w+): Story/g)].map((match) => `reference-patterns--${kebab(match[1]!)}`);
     expect(source).toContain('title: "Reference/Patterns"');
     for (const story of Object.values(patternStories)) expect(ids).toContain(`reference-patterns--${story}`);
   });
