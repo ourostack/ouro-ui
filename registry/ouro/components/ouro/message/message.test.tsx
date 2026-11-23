@@ -172,6 +172,22 @@ describe("Message", () => {
     expect(names[1]).toEqual(["Ana", "9:43"]);
   });
 
+  it("leaves an app's own aria-labelledby as it is, in both layouts", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41" aria-labelledby="custom">
+          Hello
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43" aria-labelledby="custom">
+          Hey
+        </Message>
+      </>,
+    );
+    const articles = [...host.querySelectorAll("article")];
+    expect(articles).toHaveLength(2);
+    for (const article of articles) expect(article.getAttribute("aria-labelledby")).toBe("custom");
+  });
+
   it("keeps Sending out of the article's name while it is described as Sending", async () => {
     const { message } = await render(
       <Message role="user" variant="reply" name="Ana" time="9:43" pending>
