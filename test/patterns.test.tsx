@@ -282,6 +282,29 @@ describe("ListDetailPage", () => {
     expect(section().getAttribute("aria-label")).toBe("Lentil soup");
   });
 
+  it("says which entry is showing when a row is chosen beside the list, where focus stays in the list, and says nothing on a phone, where focus moves to the heading", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const announced = watchAnnouncements();
+    try {
+      await page.viewport(1280, 800);
+      await render(<ListDetailPage />);
+      await userEvent.click(row("Lentil soup"));
+      await act(() => vi.advanceTimersByTimeAsync(1500));
+      expect(announced.count("Showing Lentil soup")).toBe(1);
+      expect(document.activeElement).not.toBe(host.querySelector("h2"));
+      await page.viewport(390, 844);
+      await userEvent.click(backButton());
+      await frame();
+      await userEvent.click(row("Lemon olive oil cake"));
+      await act(() => vi.advanceTimersByTimeAsync(1500));
+      expect(announced.count("Showing Lemon olive oil cake")).toBe(0);
+      expect(document.activeElement).toBe(host.querySelector("h2"));
+    } finally {
+      announced.stop();
+      vi.useRealTimers();
+    }
+  });
+
   it("narrows the list as you search, says how many match to a screen reader, and says when nothing matches", async () => {
     await render(<ListDetailPage />);
     const search = page.getByRole("searchbox", { name: "Search recipes" });
