@@ -261,7 +261,7 @@ describe("SnapPiP", () => {
     await userEvent.click(page.getByRole("button", { name: "Hide Your camera", exact: true }));
     const show = page.getByRole("button", { name: "Show Your camera", exact: true });
     expect(changes).toEqual([true]);
-    expect(pip().hasAttribute("data-collapsed")).toBe(true);
+    expect(pip().getAttribute("data-collapsed")).toBe("");
     expect(stage.querySelector('[data-testid="video"]')).not.toBeNull();
     expect(pip().getBoundingClientRect().width).toBeGreaterThanOrEqual(44);
     expect(pip().getBoundingClientRect().width).toBeLessThan(60);

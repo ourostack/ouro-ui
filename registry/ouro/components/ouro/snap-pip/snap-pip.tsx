@@ -309,6 +309,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   );
 
   const element = useRef<HTMLDivElement | null>(null);
+  const collapseButton = useRef<HTMLButtonElement>(null);
   // Where it is, in px from the container's top-left corner, and the springs carrying it.
   const at = useRef(zero);
   const springs = useRef<{ x: SpringHandle; y: SpringHandle; to: { x: number; y: number } } | undefined>(undefined);
@@ -574,7 +575,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       return dismissHint();
     }
     // Only from the picture or its Hide button: an Escape inside the app's own content is that content's.
-    const own = event.target === event.currentTarget || (event.target as Element).closest?.('[data-ouro-part="collapse"]');
+    const own = event.target === event.currentTarget || collapseButton.current?.contains(event.target as Node);
     if (event.key === "Escape" && onCollapsedChange !== undefined && !collapsed && own && !event.defaultPrevented) {
       event.stopPropagation();
       return setCollapsed(true);
@@ -679,6 +680,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       </div>
       {onCollapsedChange !== undefined && (
         <Button
+          ref={collapseButton}
           data-ouro-control="snap-pip"
           data-ouro-part="collapse"
           variant={collapsed ? "soft" : "plain"}
