@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fixed: the coverage merge no longer mutates a shard's own coverage-final.json in place while merging, which had misnamed a clean shard as the short one whenever another shard covered the same statements first (#3082).
+- Fixed: the coverage merge also fails loudly, naming the shard and file, when a shard's own coverage-final.json instruments a file with a different number of statement, function or branch map entries than the other shards that measured it, catching a doubling that lands at new locations instead of exact duplicates (#3082).
