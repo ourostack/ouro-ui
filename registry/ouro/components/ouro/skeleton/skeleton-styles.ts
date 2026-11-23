@@ -11,3 +11,17 @@ export function joinWave(now: number, breathing: number, emptiedAt: number, wave
   const elapsed = now - start;
   return { start, delay: `${-((elapsed - stillMs) % breathMs)}ms` };
 }
+
+/**
+ * Pegs one placeholder's animation clock to a fresh join, once that animation's own clock has settled on a
+ * real frame (its `ready` resolving). Something else can cancel the same animation between `ready` settling
+ * and this call running (reduced motion taking over, a node shrinking out of the wave): writing `currentTime`
+ * on an animation already idle from that revives it, per the Web Animations spec, undoing the cancel. This
+ * takes `playState` and `currentTime` as a narrow shape so a test can drive the race with a plain object,
+ * with no real animation or frame needed.
+ */
+export function correctAnimationClock(animation: { playState: string; currentTime: CSSNumberish | null }, now: number, start: number, staleDelayMs: number): void {
+  if (animation.playState === "idle") return;
+  const freshDelayMs = Number.parseFloat(joinWave(now, 1, 0, start).delay);
+  animation.currentTime = staleDelayMs - freshDelayMs;
+}

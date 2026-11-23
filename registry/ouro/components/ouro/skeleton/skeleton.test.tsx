@@ -6,7 +6,7 @@ import { commands } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
-import { breathMs, joinWave, stillMs } from "@/registry/ouro/components/ouro/skeleton/skeleton-styles";
+import { breathMs, correctAnimationClock, joinWave, stillMs } from "@/registry/ouro/components/ouro/skeleton/skeleton-styles";
 import { Skeleton, type SkeletonProps } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -408,6 +408,22 @@ describe("Skeleton", () => {
     expect(joinWave(5000, 1, 0, 4000).delay).toBe("0ms");
     expect(joinWave(5000, 1, 0, 3999).delay).toBe("-1ms");
     expect(joinWave(9000, 2, 0, 1000).delay).toBe(`${-((8000 - stillMs) % breathMs)}ms`);
+  });
+
+  it("does not revive an animation that went idle between its ready settling and the clock correction's write", () => {
+    // A real race here depends on frame timing this suite cannot hold still (reduced motion cancelling the
+    // animation in the gap between its ready resolving and this write running), so this drives the exact
+    // ordering directly with a plain object standing in for the animation: playState already idle, as a
+    // cancel would leave it, by the time the write would run.
+    const animation = { playState: "idle", currentTime: null as number | null };
+    correctAnimationClock(animation, 5000, 4000, 1000);
+    expect(animation.currentTime).toBeNull();
+  });
+
+  it("writes the fresh clock when the animation is still running", () => {
+    const animation = { playState: "running", currentTime: null as number | null };
+    correctAnimationClock(animation, 5000, 4000, 1000);
+    expect(animation.currentTime).toBe(1000 - Number.parseFloat(joinWave(5000, 1, 0, 4000).delay));
   });
 
   it("measures a phase gap the short way around the circle, so a near-whole-breath difference reads as close", () => {
