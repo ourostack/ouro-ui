@@ -1194,6 +1194,12 @@ test("Release deploys Pages itself and fails when the published llms.txt or READ
   assert.ok(check > deploy);
 });
 
+test("the publish job caches no pnpm store: it runs no install, so a cache-save hiccup there cannot red a release", () => {
+  const release = workflow("release.yml");
+  const publish = release.split(/^ {2}publish:\n/m)[1].split(/^ {2}finish:\n/m)[0];
+  assert.doesNotMatch(publish, /cache: pnpm/, "the publish job's check reads only node built-ins and never runs pnpm install, so there is nothing for a pnpm cache to save");
+});
+
 /** The rehearsal "Check the version, the tag and main's CI" records for the notes (scripts/rehearsal-evidence.mjs). */
 const rehearsalNote = "Rehearsed: [the rehearsal of v9.9.9](https://github.com/ourostack/ouro-ui/actions/runs/7) passed on main's commit `" + "a".repeat(40) + "`, which this release is cut from.\n";
 

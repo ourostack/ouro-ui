@@ -377,7 +377,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          # No pnpm install runs in this job (the check below reads only node built-ins), so there is
+          # nothing to cache: a cache-save hiccup here must not red a release that already published.
       - name: Check what is published
         run: |
           # What people and agents read, the site's llms.txt: fail when an install command
