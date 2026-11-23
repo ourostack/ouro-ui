@@ -138,14 +138,14 @@ export function SettingsPage({
               <TextField label="Email" name="email" type="email" defaultValue={start.email} required autoComplete="email" />
               <Select label="Language" name="language" defaultValue={start.language} options={languages} />
               <Switch label="Email notifications" name="notifications" defaultChecked={start.notifications} />
-              <div>
+              <div className="flex flex-wrap items-center gap-3">
                 <Button type="submit" loading={saving} loadingLabel="Saving settings">
                   Save
                 </Button>
+                <Text role="status" size="sm" tone="muted">
+                  {saved ? "Settings saved." : gone ? "Account deleted." : ""}
+                </Text>
               </div>
-              <Text role="status" size="sm" tone="muted">
-                {saved ? "Settings saved." : gone ? "Account deleted." : ""}
-              </Text>
             </Stack>
           </Form>
         </Card>
