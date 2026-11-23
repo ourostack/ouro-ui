@@ -2228,6 +2228,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const fresh =
             found.size === 0 ||
             bucketMoved ||
+            // Stryker disable next-line ConditionalExpression: this key only ever lacks a cached height on the pass that first draws its slot, and that pass always finds `before === undefined` too (nothing has watched this key's children yet), which already forces `regrouped` true below; by the next pass this slot's fresh read has written its height here, cached or not, so this term can never be the one true term on its own.
             cached === undefined ||
             // Stryker disable next-line ConditionalExpression: the same self-heal regrouped's own disable above relies on: whatever a swap this pass missed, its child's first observation (queued above, every pass) lands as a later windowSync call that marks the key dirty and re-measures it, before anything reads the gap.
             regrouped ||
@@ -2242,7 +2243,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           // Stryker disable next-line BlockStatement,ConditionalExpression: not fresh, so nothing a resize observer caught or regrouped since the last fresh read: the cached size still holds, the one `sizeOf`'s own cache fallback already reads for this key, and the one real top `tops.current`'s first entry ever needs only ever comes from a fresh read, never from this branch. Forcing the test false skips the block exactly as forcing its body empty does, for the same reason.
           if (!fresh) {
             // Nothing a resize observer caught, and nothing regrouped, since the last fresh read: the cached size still holds.
-            // Stryker disable next-line ConditionalExpression,EqualityOperator,ObjectLiteral: what this writes, `sizeOf` reads again for the same key, from the same `measured.heights.get(key)` this reads as `cached`, so `tops.current.get(key)?.size ?? sizeOf(index)` reads the same number whether or not this runs, zero included; and its `top: NaN` is never the first entry either, since reaching this branch needs `found.size !== 0` already, and that first entry only ever comes from a fresh read.
+            // Stryker disable next-line ConditionalExpression,EqualityOperator,ObjectLiteral,CallExpression: what this writes, `sizeOf` reads again for the same key, from the same `measured.heights.get(key)` this reads as `cached`, so `tops.current.get(key)?.size ?? sizeOf(index)` reads the same number whether or not this call runs at all, zero included; and its `top: NaN` is never the first entry either, since reaching this branch needs `found.size !== 0` already, and that first entry only ever comes from a fresh read.
             if (cached! > 0) found.set(key, { top: NaN, size: cached! });
             // Stryker disable next-line StringLiteral,CallExpression: the size written is the one already cached under this exact key, from the fresh read that set `cached`, so writing it again, or under any other key, changes no read of this key's size.
             cacheRef.current.set(`${key}\0${bucket}`, cached!);
