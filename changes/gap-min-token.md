@@ -1,0 +1,1 @@
+- New: `--ouro-gap-min` in `ouro-base` sets the gap to keep between separate surfaces that do not touch; set it in your own `:root` rule after the Ouro tokens to change it.

@@ -98,6 +98,7 @@
 @source not "../components/layout.tsx";
 @source not "../components/live-demo.tsx";
 @source not "../components/lost-at-sea.tsx";
+@source not "../components/pattern-names.ts";
 @source not "../components/pattern-preview.tsx";
 @source not "../components/phone-demo.tsx";
 @source not "../components/phone-status.tsx";

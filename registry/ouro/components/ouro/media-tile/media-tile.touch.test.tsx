@@ -29,7 +29,8 @@ describe("MediaTile on a touch screen", () => {
     expect(matchMedia("(pointer: coarse)").matches).toBe(true);
     const host = await render(<MediaTile name="Mara Lind" onPinnedChange={() => {}} />);
     const controls = host.querySelector<HTMLElement>("[data-ouro-media-tile-controls]")!;
-    expect(getComputedStyle(controls).opacity).toBe("1");
+    // Reachable without hover, but quiet until focus is inside or the tile is pinned.
+    expect(getComputedStyle(controls).opacity).toBe("0.6");
     const pin = host.querySelector<HTMLElement>('[data-ax-action="pin"]')!;
     expect(pin.getBoundingClientRect().height).toBeLessThan(44);
     const target = pin.querySelector<HTMLElement>("[data-ouro-touch-target]")!.getBoundingClientRect();

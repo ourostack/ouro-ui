@@ -10,7 +10,7 @@ import { finishReveal, previewTheme, storeTheme } from "./voyage/theme-store";
 import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
-import { patternStories } from "./components/pattern-preview";
+import { patternStories } from "./components/pattern-names";
 import { PhoneStatus, phoneTime } from "./components/phone-status";
 import { collectControls } from "../../test/controls";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -146,6 +146,8 @@ describe("home page", () => {
     const host = await renderPage("/docs/patterns/");
     const names = { "settings-page": "settings", "dashboard-page": "dashboard", "list-detail-page": "list-detail" };
     for (const [name, story] of Object.entries(names)) {
+      // PatternPreview is lazy-loaded (docs.tsx), so its iframe arrives after a chunk fetch, not on first render.
+      await expect.poll(() => host.querySelector<HTMLIFrameElement>(`iframe[title="${name} pattern, live"]`)).not.toBeNull();
       const frame = host.querySelector<HTMLIFrameElement>(`iframe[title="${name} pattern, live"]`)!;
       expect(frame.loading).toBe("lazy");
       expect(frame.getAttribute("src")).toContain(`/storybook/iframe.html?id=reference-patterns--${story}&viewMode=story`);

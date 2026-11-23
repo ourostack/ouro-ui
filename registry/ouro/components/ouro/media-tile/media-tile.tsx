@@ -554,8 +554,8 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
               data-ouro-control="media-tile"
               data-ouro-part="pin"
               data-ax-action="pin"
-              title={labels.pin}
-              label={labels.pin}
+              title={`${labels.pin} ${name}`}
+              label={`${labels.pin} ${name}`}
               icon={PinGlyph}
               hideLabel
               size="sm"

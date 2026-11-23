@@ -614,13 +614,13 @@ describe("MediaTile controls", () => {
   it("shows a Pin toggle that carries the pin action, pressed while pinned", async () => {
     const onPinnedChange = vi.fn();
     const { tile, controls, rerender } = await render(<MediaTile name="Mara Lind" onPinnedChange={onPinnedChange} />);
-    const pin = page.getByRole("button", { name: "Pin" });
+    const pin = page.getByRole("button", { name: "Pin Mara Lind", exact: true });
     await expect.element(pin).toHaveAttribute("aria-pressed", "false");
     const button = pin.element() as HTMLElement;
     expect(button.getAttribute("data-ax-action")).toBe("pin");
     expect(button.getAttribute("data-ouro-control")).toBe("media-tile");
     expect(button.getAttribute("data-ouro-part")).toBe("pin");
-    expect(button.getAttribute("title")).toBe("Pin");
+    expect(button.getAttribute("title")).toBe("Pin Mara Lind");
     expect(button.querySelector("svg")).not.toBeNull();
     expect(controls!.contains(button)).toBe(true);
     await act(() => button.click());
@@ -666,7 +666,7 @@ describe("MediaTile controls", () => {
     expect(controls!.getAttribute("data-pinned")).toBe("");
     // Actions alone make the corner too; with neither there is none.
     await rerender(<MediaTile name="Mara Lind" actions={<button type="button">More</button>} />);
-    expect(page.getByRole("button", { name: "Pin" }).query()).toBeNull();
+    expect(page.getByRole("button", { name: "Pin Mara Lind", exact: true }).query()).toBeNull();
     expect(page.getByRole("button", { name: "More" }).query()).not.toBeNull();
     await rerender(<MediaTile name="Mara Lind" actions={null} />);
     expect(page.getByRole("button", { name: "More" }).query()).toBeNull();
