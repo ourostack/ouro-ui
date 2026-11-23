@@ -107,12 +107,29 @@ describe("Composer rich mode", () => {
     ["adjacent tildes inside a star-spelled italic run, each escaped since it has a same-mark neighbor", "*note~~x end*", "*note\\~\\~x end*!"],
     ["an underscore-spelled bold run inside a word", "a__b__c", "a__b__c!"],
     ["an underscore at the very start of a star-spelled italic run, with no character before it to flank, escaped", "*_a*", "*\\_a*!"],
+    ["a lone star in plain text with a word before it but a space after, which only unescapeSafeMarkText's own star-run-adjacency check reads, not a word-flank test", "a* b", "a* b!"],
   ])("round-trips %s unchanged: %s", async (_label, markdown, expected) => {
     const seen: string[] = [];
     const { editor } = await render(rich({ defaultValue: markdown, onValueChange: (value) => void seen.push(value) }));
     editor.focus();
     await userEvent.keyboard("{End}!");
     await expect.poll(() => seen.at(-1)).toBe(expected);
+  });
+
+  it("keeps a leading underscore in plain text escaped, with nothing before it to flank", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ defaultValue: "_leading word", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{End}!");
+    await expect.poll(() => seen.at(-1)).toBe("\\_leading word!");
+  });
+
+  it("keeps a trailing underscore in plain text escaped, with nothing after it to flank", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ defaultValue: "trailing word_", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{End}!");
+    await expect.poll(() => seen.at(-1)).toBe("trailing word\\_!");
   });
 
   // Building a run's raw text this way, then round-tripping it out, puts an un-markdown-safe `_`/`~` in a star-spelled italic node without ever handing it back through the real importer or a live keystroke: either path reparses the text as Markdown and can read the character as a second mark's delimiter, which is exactly the ambiguity escapeMarkText's bare/escaped choice exists to settle on export, so the one way to pin the input is to set the node's content and state directly.
@@ -170,6 +187,39 @@ describe("Composer rich mode", () => {
     const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
     await act(async () => lexical.setEditorState(lexical.parseEditorState(starItalicState("a_"))));
     await expect.poll(() => seen.at(-1)).toBe("*a\\_*");
+  });
+
+  // The bold counterpart of starItalicState above, for markState's other value: an underscore-spelled bold run's mark memory round-trips through the same deserialized `$: { composerMark: "underscore" }` the editor state JSON carries, not just through $restoreMarkMemory's own import-time marker scan.
+  function underscoreBoldState(text: string) {
+    return {
+      root: {
+        children: [
+          {
+            children: [{ detail: 0, format: 1, mode: "normal", style: "", text, type: "text", version: 1, $: { composerMark: "underscore" } }],
+            direction: null,
+            format: "",
+            indent: 0,
+            textFormat: 1,
+            textStyle: "",
+            type: "paragraph",
+            version: 1,
+          },
+        ],
+        direction: null,
+        format: "",
+        indent: 0,
+        type: "root",
+        version: 1,
+      },
+    };
+  }
+
+  it("keeps an underscore-spelled bold run's mark memory for a lone tilde with space on both sides and no same-mark neighbor to pair with", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(underscoreBoldState("wow ~ cool"))));
+    await expect.poll(() => seen.at(-1)).toBe("__wow ~ cool__");
   });
 
   it("falls back to the array's default spelling when an underscore-spelled bold run also turns italic", async () => {
