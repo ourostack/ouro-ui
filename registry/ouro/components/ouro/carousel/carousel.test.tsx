@@ -893,6 +893,83 @@ describe("Carousel motion", () => {
     expect(record.texts).toEqual(["Smooth 3 of 5", "Smooth 5 of 5"]);
     record.stop();
   });
+
+  it("ignores a scrollend the browser fires early, while the press it belongs to is still moving", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" slideLabel="Early {n} of {total}" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    await userEvent.click(screen.button("Next slide"));
+    // A browser (WebKit) can dispatch scrollend for a scroll the press interrupted, at a slide
+    // the press is not heading to. Here that scrollend reports the third slide at the start
+    // edge while the press is still on its way to the second: it must settle on neither.
+    const { viewport, slides } = screen;
+    const rect = viewport.getBoundingClientRect();
+    const shift = slides[2]!.getBoundingClientRect().left - rect.left;
+    const moved = vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ ...rect.toJSON(), x: rect.x + shift }));
+    viewport.dispatchEvent(new Event("scrollend"));
+    moved.mockRestore();
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+    expect(onIndexChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("settles at once on a scrollend at the slide a press is heading to, without waiting out a pause", async () => {
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" slideLabel="Prompt {n} of {total}" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    // The pause that stands in for scrollend runs on a timer; with the timers held, only the
+    // scrollend itself can settle the press. Frames still run, so the instant scroll ends.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await userEvent.click(screen.button("Next slide"));
+      for (let frame = 0; frame < 60 && onIndexChange.mock.calls.length === 0; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(onIndexChange.mock.calls).toEqual([[1]]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("settles at once on a scrollend with no press pending, as after a swipe, without waiting out a pause", async () => {
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" slideLabel="Swiped {n} of {total}" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    const { viewport, slides } = screen;
+    // With the timers held, only the scrollend of this scroll, which no button asked for, can settle it.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      viewport.scrollTo({ left: viewport.scrollLeft + slides[2]!.getBoundingClientRect().left - viewport.getBoundingClientRect().left, behavior: "instant" });
+      for (let frame = 0; frame < 60 && onIndexChange.mock.calls.length === 0; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(onIndexChange.mock.calls).toEqual([[2]]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stops listening for scrollend once unmounted, so a late event settles nothing", async () => {
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    const { viewport } = screen;
+    await userEvent.click(screen.button("Next slide"));
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+    await act(async () => roots.pop()!.unmount());
+    // A scrollend reaching the viewport after unmount must find no listener left behind.
+    viewport.dispatchEvent(new Event("scrollend"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onIndexChange).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("Carousel development messages", () => {
