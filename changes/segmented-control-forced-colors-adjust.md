@@ -1,0 +1,1 @@
+- Fix: SegmentedControl's pressed segment opts out of forced-colours adjustment, so its label draws in HighlightText instead of the same colour as the thumb behind it.
