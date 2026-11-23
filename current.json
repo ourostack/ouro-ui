@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-23T12:34:51.138Z",
+  "generatedAt": "2026-11-23T12:57:06.632Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -355,27 +355,24 @@
     },
     {
       "repo": "spoonjoy/spoonjoy-apple",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "Package.swift",
           "follows": "apple",
-          "current": "1.9.0",
+          "current": "1.10.0",
           "latest": "v1.10.0",
-          "behind": true
+          "behind": false
         },
         {
           "file": "Spoonjoy.xcodeproj/project.pbxproj",
           "follows": "apple",
-          "current": "1.9.0",
+          "current": "1.10.0",
           "latest": "v1.10.0",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 445,
-        "url": "https://github.com/spoonjoy/spoonjoy-apple/pull/445"
-      }
+      "pr": null
     },
     {
       "repo": "spoonjoy/spoonjoy-v2",
