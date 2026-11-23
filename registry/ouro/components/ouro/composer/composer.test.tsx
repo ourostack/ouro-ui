@@ -123,6 +123,16 @@ describe("Composer drafts", () => {
     expect(other.textarea.value).toBe("");
   });
 
+  it("stores nothing when a controlled box unmounts, and restores for an uncontrolled one on remount", async () => {
+    const first = await render(<Composer label="Message" conversation="c" onSend={() => {}} />);
+    await userEvent.type(first.textarea, "kept");
+    await first.rerender(<div />);
+    const controlled = await render(<Composer label="Message" conversation="c" defaultValue="kept" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    await controlled.rerender(<div />);
+    const again = await render(<Composer label="Message" conversation="c" defaultValue="other" onSend={() => {}} />);
+    expect(again.textarea.value).toBe("kept");
+  });
+
   it("forgets a draft the person cleared, and leaves a controlled box and one with no conversation to the app", async () => {
     const first = await render(<Composer label="Message" conversation="a" defaultValue="hi" onSend={() => {}} />);
     await userEvent.clear(first.textarea);

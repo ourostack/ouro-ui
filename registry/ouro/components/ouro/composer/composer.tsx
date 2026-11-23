@@ -561,7 +561,8 @@ export function Composer(props: ComposerProps): JSX.Element {
   const [own, setOwn] = useState(() => composerDrafts.get(conversation) ?? defaultValue ?? "");
   const [ownConversation, setOwnConversation] = useState(conversation);
   const kept = composerDrafts;
-  const latest = useRef({ conversation, own, defaultValue, controlled: value !== undefined });
+  // The effect below fills it after every render, before any cleanup reads it.
+  const latest = useRef<{ conversation: string | undefined; own: string; defaultValue: string | undefined; controlled: boolean }>(undefined as never);
   useEffect(() => {
     latest.current = { conversation, own, defaultValue, controlled: value !== undefined };
   });
