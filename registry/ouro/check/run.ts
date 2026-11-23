@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import type { Browser, BrowserType, Page, Request } from "playwright";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
-import { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
+import { ALIASES, behindModal, boxOf, veiled, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { AUTO_PRESS, findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
 import { findPopupJumps, watchPopups } from "./popup-check.ts";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, type MotionReading } from "./motion-check.ts";
@@ -968,7 +968,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       shown.push(...(await page.evaluate(findFirstRunIssues, config.firstRun ?? {})));
       // Last, as it scrolls the window to each linked card to hit-test it, and puts the scroll back.
       shown.push(...(await page.evaluate(findDeadZones)));
-      const behind = new Set(await page.evaluate(behindModal, [...new Set(shown.map((issue) => issue.ref))]));
+      const shownRefs = [...new Set(shown.map((issue) => issue.ref))];
+      const behind = new Set([...(await page.evaluate(behindModal, shownRefs)), ...(await page.evaluate(veiled, shownRefs))]);
       issues.push(...shown.filter((issue) => !behind.has(issue.ref)));
       // dark-art: light runs before dark at each size, so the dark run compares with the light run's hero art.
       const art = await page.evaluate(readHeroArt, {});
@@ -977,7 +978,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       else if (theme === "dark" && art?.darkPage && lightArt.get(artKey)?.src === art.src)
         issues.push({ ref: art.ref, rule: "dark-art", element: art.element, detail: `the dark theme shows the light theme's picture, ${art.src.split("/").pop()}` });
       const corners = await page.evaluate(readCorners, await cornerShots(page, height));
-      const cornersBehind = new Set(await page.evaluate(behindModal, [...new Set(corners.map((issue) => issue.ref))]));
+      const cornerRefs = [...new Set(corners.map((issue) => issue.ref))];
+      const cornersBehind = new Set([...(await page.evaluate(behindModal, cornerRefs)), ...(await page.evaluate(veiled, cornerRefs))]);
       issues.push(...corners.filter((issue) => !cornersBehind.has(issue.ref)));
       issues.push(...runtime());
       if (inpAt === `${width}x${height} ${theme}`) {

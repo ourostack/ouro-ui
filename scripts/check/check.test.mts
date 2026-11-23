@@ -96,6 +96,14 @@ describe("Ouro check", () => {
     assert.deepEqual(native.findings.filter((f) => f.rule === "squircle-missing"), []);
   });
 
+  test("a finding inside a [data-ouro-veil] layer is skipped, and the same page unveiled still fails", async () => {
+    const fail = readFileSync(join(fixtures, "overlap-fail.html"), "utf8");
+    const folder = site("veil", { "open.html": fail, "veiled.html": fail.replace("<section>", '<section data-ouro-veil="not designed">') });
+    const result = await check({ targets: [folder], out: dir("veil"), sizes: [[1440, 900]], themes: ["light"], measured: false, chromium, log: quiet });
+    assert.ok(result.findings.some((f) => f.page === "/open.html" && f.rule === "overlap"));
+    assert.deepEqual(result.findings.filter((f) => f.page === "/veiled.html" && f.rule === "overlap"), []);
+  });
+
   test("a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again", async () => {
     const sizes: [number, number][] = [[320, 640], [390, 844], [1440, 900]];
     const options = { targets: [fixtures], pages: "*-fail.html", sizes, themes: ["light", "dark"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet };
