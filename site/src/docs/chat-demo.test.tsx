@@ -83,10 +83,12 @@ describe("the chat app page", () => {
       await page.viewport(390, 844);
       await renderPage("/docs/chat-demo/");
       await page.getByRole("radio", { name: "Empty" }).click();
-      await expect.element(page.getByText("Start a conversation")).not.toBeVisible();
+      await expect.element(page.getByText("Conversations appear here")).not.toBeVisible();
       await expect.element(page.getByText("Nothing here yet")).toBeVisible();
       await page.viewport(1280, 800);
-      await expect.element(page.getByText("Start a conversation")).toBeVisible();
+      await expect.element(page.getByText("Conversations appear here")).toBeVisible();
+      await page.getByRole("button", { name: "Start a conversation" }).click();
+      await expect.element(page.getByRole("list", { name: "Conversations" })).toBeVisible();
     } finally {
       await page.viewport(390, 844);
     }
