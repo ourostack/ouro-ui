@@ -2104,6 +2104,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // .getBoundingClientRect() off undefined if that invariant ever changes.
       if (newest === undefined) return;
       const clear = jumpRef.current.getBoundingClientRect().top - newest.getBoundingClientRect().bottom;
+      // Stryker disable next-line EqualityOperator: not equivalent in intent, but unobservable here; both equalities'
+      // own boundaries (clear exactly 0, clear exactly -room.offsetHeight) are where each would differ, and a real
+      // browser's scrollTop and getBoundingClientRect() report subpixel values no assignment can reliably land on
+      // either exactly. At clear === 0 scrollTop -= clear is a no-op regardless of the branch taken, so the only
+      // mutant-only effect, ownTop.current taking the value it already holds, changes what the next real scroll
+      // (onScroll, above) is judged against only if that scroll happens to land on this same exact pixel too.
       if (clear < 0 && clear >= -room.offsetHeight) {
         scroller.scrollTop -= clear;
         ownTop.current = scroller.scrollTop;

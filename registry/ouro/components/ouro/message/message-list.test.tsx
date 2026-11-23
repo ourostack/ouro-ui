@@ -1391,6 +1391,26 @@ describe("MessageList", () => {
     await expect.poll(() => clearOf()).toBeGreaterThanOrEqual(-1);
   });
 
+  it("leaves the jump pill where it already clears the newest message, with nothing to correct", async () => {
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    const last = () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
+    const clearOf = () => (pill.element() as HTMLElement).getBoundingClientRect().top - last().getBoundingClientRect().bottom;
+    // Land clear of the newest message by a healthy margin, the same way the overlap above is landed, so nothing
+    // here overlaps to begin with.
+    await act(async () => void (scroller.scrollTop += 50 - clearOf()));
+    expect(clearOf()).toBeGreaterThan(0);
+    const before = scroller.scrollTop;
+    scroller.dispatchEvent(new Event("scroll"));
+    scroller.dispatchEvent(new Event("scrollend"));
+    expect(scroller.scrollTop).toBe(before);
+  });
+
   it("reserves no room the first time the reader scrolls away, before any message has arrived", async () => {
     // A mount that starts with room already reserved would show it the moment the reader first
     // leaves the bottom, with nothing yet waiting to overlap the pill.
