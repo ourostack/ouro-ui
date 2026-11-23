@@ -839,7 +839,7 @@ describe("Message chat", () => {
     expect(message.getBoundingClientRect().width).toBeLessThanOrEqual(600);
   });
 
-  it("fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with a smaller corner toward its sender", async () => {
+  it("fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with equal corners", async () => {
     const { host } = await render(
       <>
         <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM">
@@ -861,11 +861,12 @@ describe("Message chat", () => {
     expect(own.backgroundColor).toBe(probeColor(host, "var(--primary)"));
     expect(own.color).toBe(probeColor(host, "var(--primary-foreground)"));
     expect(bubbleOf(mine!).getBoundingClientRect().right).toBeGreaterThan(hostBox.right - 2);
-    // Round, with the corner at the bottom toward the sender smaller: the end for the user's own, the start for others'.
+    // A lone bubble has four equal corners, with no sharper tail.
     const radius = (style: CSSStyleDeclaration, corner: string) => Number.parseFloat(style.getPropertyValue(`border-${corner}-radius`));
     expect(radius(own, "top-left")).toBeGreaterThanOrEqual(16);
-    expect(radius(own, "bottom-right")).toBeLessThan(radius(own, "bottom-left"));
-    expect(radius(theirs, "bottom-left")).toBeLessThan(radius(theirs, "bottom-right"));
+    for (const style of [own, theirs]) {
+      for (const corner of ["top-right", "bottom-right", "bottom-left"]) expect(radius(style, corner)).toBe(radius(style, "top-left"));
+    }
   });
 
   it("keeps the primary color readable inside the user's filled bubble: a link or mention in it takes the bubble's text color", async () => {
