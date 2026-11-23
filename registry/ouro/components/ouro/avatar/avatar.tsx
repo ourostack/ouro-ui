@@ -295,16 +295,16 @@ const biteClass =
 // A tint is its surface classes (with the dark scheme's own step) and its ink.
 type Tint = readonly [fill: string, ink: string];
 const hues: readonly Tint[] = [
-  ["bg-[color-mix(in_oklab,var(--avatar-1)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-1)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-1)_70%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-2)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-2)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-2)_70%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-3)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-3)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-3)_70%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-4)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-4)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-4)_70%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-5)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-5)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-5)_70%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-6)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-6)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-6)_70%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-7)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-7)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-7)_70%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-8)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-8)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-8)_70%,var(--foreground))]"],
+  ["bg-[color-mix(in_oklab,var(--avatar-1)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-1)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-1)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-1)_18%,var(--foreground))]"],
+  ["bg-[color-mix(in_oklab,var(--avatar-2)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-2)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-2)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-2)_18%,var(--foreground))]"],
+  ["bg-[color-mix(in_oklab,var(--avatar-3)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-3)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-3)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-3)_18%,var(--foreground))]"],
+  ["bg-[color-mix(in_oklab,var(--avatar-4)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-4)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-4)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-4)_18%,var(--foreground))]"],
+  ["bg-[color-mix(in_oklab,var(--avatar-5)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-5)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-5)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-5)_18%,var(--foreground))]"],
+  ["bg-[color-mix(in_oklab,var(--avatar-6)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-6)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-6)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-6)_18%,var(--foreground))]"],
+  ["bg-[color-mix(in_oklab,var(--avatar-7)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-7)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-7)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-7)_18%,var(--foreground))]"],
+  ["bg-[color-mix(in_oklab,var(--avatar-8)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-8)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-8)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-8)_18%,var(--foreground))]"],
 ] as const;
-const brand: Tint = ["bg-[color-mix(in_oklab,var(--primary)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--primary)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--primary)_70%,var(--foreground))]"];
+const brand: Tint = ["bg-[color-mix(in_oklab,var(--primary)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--primary)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--primary)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--primary)_18%,var(--foreground))]"];
 const neutral: Tint = ["bg-secondary", "text-secondary-foreground"];
 
 const shapes = ["circle", "square", "agent"] as const;
