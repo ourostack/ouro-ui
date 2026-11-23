@@ -271,7 +271,7 @@ function ChatDemo(): JSX.Element {
     ) : stage === "empty" ? (
       <div className="grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]">
         <div className="border-e border-border p-2 max-md:hidden">
-          <ConversationList label="Conversations" items={[]} empty={<span className="block py-10 text-center">Conversations appear here</span>} onSelect={() => {}} />
+          <ConversationList className="grid h-full place-items-center" label="Conversations" items={[]} empty="Conversations appear here" onSelect={() => {}} />
         </div>
         <div className="grid place-items-center">
           <Moment kind="empty" art={<TrayArt />} title="Nothing here yet" description="Messages you send and receive show up here." action={<Button onClick={() => setStage("ready")}>Start a conversation</Button>} />
