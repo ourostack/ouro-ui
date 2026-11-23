@@ -115,6 +115,8 @@ export const knownFindings: KnownFinding[] = [
     story: "TimeGrid/Locales",
     rule: "lone-word",
     issue: 1955,
-    reason: "A Japanese time range has no break points, so it sits on its own line at this width; the copy and its locale are the story's.",
+    theme: "nova",
+    reason:
+      "At 2560px, past the root type step, an event's Japanese time range (11時00分～12時00分) has no break point, so it sits on its own line below the event's title; the copy and its locale are the story's.",
   },
 ];
