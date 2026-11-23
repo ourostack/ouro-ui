@@ -1915,6 +1915,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     for (const type of ["pointerdown", "keydown", "touchstart"]) scroller.addEventListener(type, onInput, { capture: true, passive: true });
     const asked = (name: "scrollTo" | "scrollBy") => {
       const scroll = Element.prototype[name];
+      // Stryker disable next-line ObjectLiteral,BooleanLiteral: a non-configurable, writable property still lets defineProperty redefine its value (only configurable:true→false and a plain `scroller.scrollTo = …` assignment would differ), and nothing here ever does either; the cleanup below's delete is the only reader of configurable, and it runs once, at unmount, on a node about to be discarded either way.
       Object.defineProperty(scroller, name, { configurable: true, writable: true, value: (...args: Parameters<typeof scroll>) => (onInput(), scroll.apply(scroller, args)) });
     };
     asked("scrollTo");

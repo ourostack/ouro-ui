@@ -784,12 +784,34 @@ describe("MessageList", () => {
     expect(scroller.scrollTop).toBe(heldAt + 2);
   });
 
+  it("lets a move far past the held place end the hold too, so a near one right after stays where it left the list", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    const heldAt = await armHeld(scroller, items, rerender);
+    await act(async () => {
+      scroller.scrollTop = heldAt + 50;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // Far outside STRAY_PX, this is the reader's or the browser's own move, not a stray to put back.
+    expect(scroller.scrollTop).toBe(heldAt + 50);
+    await act(async () => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    // That move, as any other does, let the hold go: a near one measured against the place it held before is none of the hold's
+    // business anymore, and stays where it left the list.
+    expect(scroller.scrollTop).toBe(heldAt + 2);
+  });
+
   it("lets a stray near the place a message moving to the end held be, once Jump to latest has taken the reader past it", async () => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} />);
     await wheel(scroller, -400);
     const heldAt = await armHeld(scroller, items, rerender);
-    await act(async () => userEvent.click(page.getByRole("button", { name: "Jump to latest" })));
+    // A plain click, not userEvent's: no pointerdown reaches the scroller, so no recent input masks whether the jump itself let
+    // the hold go.
+    await act(async () => (page.getByRole("button", { name: "Jump to latest" }).element() as HTMLElement).click());
     await act(async () => {
       scroller.scrollTop = heldAt + 2;
       scroller.dispatchEvent(new Event("scroll"));
@@ -835,6 +857,7 @@ describe("MessageList", () => {
     own.scrollBy({ top: 20, behavior: "instant" });
     expect(own.scrollTop).toBe(before - 30);
   });
+
 
   it("opens at the message initialAnchor names, never drawing the newest first, and stops following new messages", async () => {
     const items = history(30);
