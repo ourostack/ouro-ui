@@ -789,7 +789,7 @@ describe("MessageList", () => {
     const { scroller, rerender } = await render(<Chat items={items} />);
     await wheel(scroller, -400);
     const heldAt = await armHeld(scroller, items, rerender);
-    await act(async () => page.getByRole("button", { name: "Jump to latest" }).element().click());
+    await act(async () => userEvent.click(page.getByRole("button", { name: "Jump to latest" })));
     await act(async () => {
       scroller.scrollTop = heldAt + 2;
       scroller.dispatchEvent(new Event("scroll"));
