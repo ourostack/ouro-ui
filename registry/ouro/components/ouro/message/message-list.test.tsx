@@ -883,6 +883,8 @@ describe("MessageList", () => {
     expect(inView(scroller, "found-29")).toBe(false);
     expect([...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].every((message) => message.style.transform === "")).toBe(true);
     await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+    // Opening away from the end is not an arrival: it reserves no room for the pill to clear.
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).toBeNull();
     // A new message leaves the reader where they are, and does not take them back to the message they opened at.
     await wheel(scroller, 200);
     const top = scroller.scrollTop;
@@ -1417,6 +1419,37 @@ describe("MessageList", () => {
     // Scrolling away again, with nothing new since, reserves no room: the earlier arrival is settled.
     await wheel(scroller, -400);
     expect(room()).toBeNull();
+  });
+
+  it("reserves no room for a message that arrives while still pinned to the end, seen there in real time", async () => {
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await settle(scroller);
+    // Still pinned to the bottom: the arrival is read as it happens, nothing to clear later.
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    // Scrolling away now, with no further arrival since, must not find room reserved for the one already seen.
+    await wheel(scroller, -400);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).toBeNull();
+  });
+
+  it("settles at the end without a newest message drawn to clear, when every message is gone", async () => {
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).not.toBeNull();
+    // The conversation empties out while the pill and its reserve are still up and the reader has not
+    // scrolled since: nothing is drawn to measure a clearance against, which the settle-time correction
+    // must notice and leave alone, rather than reach into what is no longer there.
+    await rerender(<Chat items={[]} />);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    scroller.dispatchEvent(new Event("scroll"));
+    scroller.dispatchEvent(new Event("scrollend"));
+    await expect.element(pill).toBeVisible();
   });
 
   it("shows older messages loading over the top of the list, moving no message as it starts or ends", async () => {

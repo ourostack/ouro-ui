@@ -2610,6 +2610,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
             waiting.add(message);
             // A message new to the conversation's end, not merely redrawn by windowing nor a quiet replacement of the one
             // in its place: the newest drawn row could now reach the pill, so the room it keeps clear of it is owed.
+            // Stryker disable next-line ConditionalExpression: while pinned, this same arrival also keeps the view following
+            // the end, which writes the scroll position and so fires the browser's own scroll event before any render is seen;
+            // that event's pinned.current check (below) finds the view still at the end and resets this to false in the same
+            // batch, so setting it unconditionally here is never observable.
             if (!pinned.current) setJumpRoom(true);
           }
         });
