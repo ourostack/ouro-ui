@@ -54,7 +54,7 @@ describe("popup-first-frame", () => {
     expect(await open("position:absolute;opacity:0", "position:fixed;opacity:1")).toEqual([]);
   });
 
-  it("judges the popup that opens, not a listbox inside it that rides its opening motion", async () => {
+  it("judges the popover that opens, not an inline listbox inside it that rides its opening motion", async () => {
     host = document.createElement("div");
     host.innerHTML = `<div role="dialog" style="position:fixed;top:100px;left:40px;width:200px;height:80px;transform:translateY(9px)"><div role="listbox" style="width:100px;height:30px">Looks</div></div>`;
     const dialog = host.querySelector<HTMLElement>("[role=dialog]")!;
@@ -64,6 +64,18 @@ describe("popup-first-frame", () => {
     dialog.style.transform = "none";
     await frame();
     expect(findPopupJumps()).toEqual([]);
+  });
+
+  it("still finds a listbox that has its own trigger and is drawn 9px from where it settles", async () => {
+    host = document.createElement("div");
+    host.innerHTML = `<button aria-controls="lb" aria-expanded="true">Pick</button><div role="listbox" id="lb" style="position:fixed;top:100px;left:40px;width:100px;height:30px;margin-top:9px">Looks</div>`;
+    const list = host.querySelector<HTMLElement>("#lb")!;
+    document.body.append(host);
+    watchPopups();
+    await frame();
+    list.style.marginTop = "0";
+    await frame();
+    expect(findPopupJumps()).toHaveLength(1);
   });
 
   it("is left alone where a page allows it with a reason", async () => {
