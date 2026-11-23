@@ -115,17 +115,38 @@ describe("Composer rich mode", () => {
     }
   });
 
-  it("sends the Markdown on Enter, starts a line on Shift+Enter, and clears after a send", async () => {
+  it("sends the Markdown on Enter, starts a paragraph on Shift+Enter, and clears after a send", async () => {
     const onSend = vi.fn();
     const { editor } = await render(rich({ defaultValue: "**hi**", onSend }));
     editor.focus();
     await userEvent.keyboard("{Shift>}{Enter}{/Shift}there");
-    await expect.poll(() => editor.querySelectorAll("br").length).toBe(1);
+    await expect.poll(() => editor.querySelectorAll("p").length).toBe(2);
+    expect(editor.querySelectorAll("br")).toHaveLength(0);
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => onSend.mock.calls.length).toBe(1);
     expect(onSend.mock.calls[0]![0]).toBe("**hi**\nthere");
     await expect.poll(() => editor.textContent).toBe("");
     expect(document.activeElement).toBe(editor);
+  });
+
+  it("starts a list item with a dash after Shift+Enter, the way a fresh line does", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ defaultValue: "hi", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{Shift>}{Enter}{/Shift}- one");
+    await expect.poll(() => editor.querySelectorAll("ul > li")).toHaveLength(1);
+    expect(editor.querySelector("li")?.textContent).toBe("one");
+    await expect.poll(() => seen.at(-1)).toBe("hi\n\n- one");
+  });
+
+  it("keeps a line break's paragraphs through a value, editor and value round trip", async () => {
+    const seen: string[] = [];
+    const markdown = "one\ntwo";
+    const { editor } = await render(rich({ defaultValue: markdown, onValueChange: (value) => void seen.push(value) }));
+    expect(editor.querySelectorAll("p")).toHaveLength(2);
+    editor.focus();
+    await userEvent.keyboard("!");
+    await expect.poll(() => seen.at(-1)).toBe("one\ntwo!");
   });
 
   it("does not send on the Enter that ends an input method's word", async () => {

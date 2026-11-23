@@ -9,7 +9,7 @@ import "./adoption.css";
 
 /*
  * /adoption/: is every product on Ouro UI, and if not, which and why? The count of green products leads, the ring
- * pictures it, and the list beside it gives each product its four checks and one short line per gap, linked to where
+ * pictures it, and the list beside it gives each product its five checks and one short line per gap, linked to where
  * the fact came from. The data is ledger.json, written by scripts/adoption/ledger.mjs and refreshed hourly
  * (.github/workflows/adoption-ledger.yml); how it is measured is in scripts/adoption/README.md.
  */
@@ -59,7 +59,7 @@ function notesOf(checks: Check[]): Check[][] {
   return [...byWhy.values()];
 }
 
-/** A row's four marks, each with its words for a screen reader. */
+/** A row's five marks, each with its words for a screen reader. */
 function Marks({ checks, label }: { checks: Check[]; label: string }): JSX.Element {
   return (
     <ul className="adoption-marks" aria-label={label}>
@@ -139,9 +139,9 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true, earlier = null }
           <p className="adoption-lede">
             {closed
               ? "The ring is closed."
-              : claim("A product turns green when it passes all four checks, and each passing check lights a ray of its star.", {
-                  source: { test: "site/src/adoption/adoption.test.tsx::the adoption page > gives every counted product its four checks as the ledger says them, closest to green first" },
-                  verify: { testExists: "site/src/adoption/adoption.test.tsx::the adoption page > gives every counted product its four checks as the ledger says them, closest to green first" },
+              : claim("A product turns green when it passes all five checks, and each passing check lights a ray of its star.", {
+                  source: { test: "site/src/adoption/adoption.test.tsx::the adoption page > gives every counted product its five checks as the ledger says them, closest to green first" },
+                  verify: { testExists: "site/src/adoption/adoption.test.tsx::the adoption page > gives every counted product its five checks as the ledger says them, closest to green first" },
                 })}
           </p>
           <p className="adoption-fresh">

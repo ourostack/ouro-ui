@@ -1,0 +1,1 @@
+- Fixed: Composer's rich mode starts a new paragraph on Shift+Enter in plain text, matching chat-app convention, so a Markdown shortcut such as a dash for a list fires on the fresh line and the exported value round trips through the editor unchanged.

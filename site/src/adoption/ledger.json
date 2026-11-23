@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 3,
   "generatedAt": "2026-11-14T21:11:18.683Z",
   "summary": {
     "total": 21,
@@ -618,6 +618,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -631,7 +635,7 @@
           "met": true
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -754,6 +758,10 @@
       "conditions": {
         "current": {
           "label": "On current Ouro UI",
+          "met": false
+        },
+        "hx": {
+          "label": "Ouro HX in full",
           "met": false
         },
         "census": {
@@ -964,6 +972,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -1119,6 +1131,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -1214,6 +1230,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -1292,6 +1312,10 @@
       "conditions": {
         "current": {
           "label": "On current Ouro UI",
+          "met": false
+        },
+        "hx": {
+          "label": "Ouro HX in full",
           "met": false
         },
         "census": {
@@ -1393,6 +1417,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -1406,7 +1434,7 @@
           "met": false
         }
       },
-      "met": 0,
+      "met": 1,
       "confirmed": false
     },
     {
@@ -1473,6 +1501,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -1486,7 +1518,7 @@
           "met": false
         }
       },
-      "met": 0,
+      "met": 1,
       "confirmed": false
     },
     {
@@ -1559,6 +1591,10 @@
       "conditions": {
         "current": {
           "label": "On current Ouro UI",
+          "met": false
+        },
+        "hx": {
+          "label": "Ouro HX in full",
           "met": false
         },
         "census": {
@@ -1658,6 +1694,10 @@
       "conditions": {
         "current": {
           "label": "On current Ouro UI",
+          "met": false
+        },
+        "hx": {
+          "label": "Ouro HX in full",
           "met": false
         },
         "census": {
@@ -1772,6 +1812,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -1877,6 +1921,10 @@
           "label": "On current Ouro UI",
           "met": true
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -1890,7 +1938,7 @@
           "met": false
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -1973,6 +2021,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -1986,7 +2038,7 @@
           "met": true
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -2069,6 +2121,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -2082,7 +2138,7 @@
           "met": true
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -2149,6 +2205,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -2162,7 +2222,7 @@
           "met": false
         }
       },
-      "met": 0,
+      "met": 1,
       "confirmed": false
     },
     {
@@ -2265,6 +2325,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -2278,7 +2342,7 @@
           "met": true
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -2360,6 +2424,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -2373,7 +2441,7 @@
           "met": true
         }
       },
-      "met": 1,
+      "met": 2,
       "confirmed": false
     },
     {
@@ -2440,6 +2508,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -2453,7 +2525,7 @@
           "met": false
         }
       },
-      "met": 0,
+      "met": 1,
       "confirmed": false
     },
     {
@@ -2518,6 +2590,10 @@
       "conditions": {
         "current": {
           "label": "On current Ouro UI",
+          "met": false
+        },
+        "hx": {
+          "label": "Ouro HX in full",
           "met": false
         },
         "census": {
@@ -2600,6 +2676,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": false
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -2680,6 +2760,10 @@
           "label": "On current Ouro UI",
           "met": false
         },
+        "hx": {
+          "label": "Ouro HX in full",
+          "met": true
+        },
         "census": {
           "label": "Census at zero",
           "met": false
@@ -2693,7 +2777,7 @@
           "met": false
         }
       },
-      "met": 0,
+      "met": 1,
       "confirmed": false
     },
     {
@@ -2758,6 +2842,10 @@
       "conditions": {
         "current": {
           "label": "On current Ouro UI",
+          "met": false
+        },
+        "hx": {
+          "label": "Ouro HX in full",
           "met": false
         },
         "census": {
