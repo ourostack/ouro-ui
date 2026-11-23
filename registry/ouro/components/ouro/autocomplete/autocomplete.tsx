@@ -88,8 +88,8 @@ export interface AutocompleteTrigger {
   /**
    * The suggestions: a list, which shows the items whose label, a word of it, or whose value
    * starts with what follows the character, or a function of that text (`query`, "" just
-   * after the character) that filters and caps them itself. The list closes when none match.
-   * @claim "The list closes when none match" registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx::Autocomplete > filters by what follows the trigger, and closes when nothing matches)
+   * after the character) that filters and caps them itself. The list shows `emptyLabel` when none match.
+   * @claim "The list shows `emptyLabel` when none match" registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx::Autocomplete > filters by what follows the trigger, and shows No matches when nothing does)
    */
   items?: readonly AutocompleteItem[] | ((query: string) => readonly AutocompleteItem[]) | undefined;
   /** Called after a suggestion is inserted, with the suggestion and the query it replaced. */
@@ -114,6 +114,11 @@ export interface AutocompleteProps {
    * @default (count) => "1 suggestion" or "{count} suggestions"
    */
   resultsLabel?: ((count: number, trigger: AutocompleteTrigger) => string) | undefined;
+  /**
+   * The row the list shows, and what screen readers hear, when a trigger's query matches nothing.
+   * @default "No matches"
+   */
+  emptyLabel?: string | undefined;
 
   /** Not a prop. Ouro UI takes a list: `<Autocomplete triggers={[{ char: "@", label: "People", items }]}>`. */
   trigger?: { 'Use triggers={[{ char: "@", label: "People", items }]}': never };
@@ -190,7 +195,7 @@ const optionClass =
  * </Autocomplete>
  */
 export function Autocomplete(props: AutocompleteProps): JSX.Element {
-  const { triggers, children, resultsLabel = defaultResultsLabel } = props;
+  const { triggers, children, resultsLabel = defaultResultsLabel, emptyLabel = "No matches" } = props;
   // A Server Component's field can arrive as a lazy wrapper; resolve it before cloning.
   const child = serverElement(children);
   useAutocompleteChecks(props, child);
@@ -200,17 +205,17 @@ export function Autocomplete(props: AutocompleteProps): JSX.Element {
   const setRef = useMergedRef(control.props.ref, controlRef);
   const listId = useId();
   const state = useSuggestions(triggers);
-  const { match, trigger, items, open, current } = state;
+  const { match, trigger, items, open, empty, current } = state;
 
   const pick = (item: AutocompleteItem, element: HTMLTextAreaElement | HTMLInputElement) => {
     state.setPicked({ start: match!.start, query: insertPick(element, match!, trigger!, item) });
   };
 
-  useAnnouncedCount(open ? resultsLabel(items.length, trigger!) : null);
+  useAnnouncedCount(open ? resultsLabel(items.length, trigger!) : empty ? emptyLabel : null);
   useActiveInView(open ? `${listId}-${current}` : undefined);
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
-    const action = open ? keyAction(event, current, items.length) : null;
+    const action = open ? keyAction(event, current, items.length) : empty && event.key === "Escape" ? keyAction(event, 0, 1) : null;
     if (action === null) {
       control.props.onKeyDown?.(event);
       return;
@@ -260,7 +265,8 @@ export function Autocomplete(props: AutocompleteProps): JSX.Element {
         ...watchedHandlers(control.props, state),
       } as ControlProps & Record<string, unknown>)}
       <SuggestionList
-        open={open}
+        open={open || empty}
+        emptyLabel={empty ? emptyLabel : undefined}
         listId={listId}
         label={trigger?.label}
         query={match?.query}
@@ -332,6 +338,7 @@ interface SuggestionState {
   trigger: AutocompleteTrigger | undefined;
   items: readonly AutocompleteItem[];
   open: boolean;
+  empty: boolean;
   current: number;
   anchorAt: number;
   setActive: (index: number) => void;
@@ -361,7 +368,10 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
     return typeof trigger.items === "function" ? trigger.items(query) : filterItems(trigger.items ?? [], query);
   }, [match, trigger]);
   const finished = picked !== null && match !== null && picked.start === match.start && picked.query === match.query;
-  const open = focused && match !== null && dismissed !== match.start && !finished && items.length > 0;
+  const visible = focused && match !== null && trigger !== undefined && dismissed !== match.start && !finished;
+  const open = visible && items.length > 0;
+  // A query that has run on into several words is a sentence, not a search, so it closes quietly.
+  const empty = visible && items.length === 0 && !/\s/.test(match.query);
   const current = Math.min(active, items.length - 1);
 
   const evaluate = (element: HTMLTextAreaElement | HTMLInputElement) => {
@@ -374,7 +384,7 @@ function useSuggestions(triggers: readonly AutocompleteTrigger[]): SuggestionSta
     if (next?.start !== dismissed) setDismissed(null);
   };
 
-  return { match, trigger, items, open, current, anchorAt, setActive, setFocused, setDismissed, setPicked, evaluate };
+  return { match, trigger, items, open, empty, current, anchorAt, setActive, setFocused, setDismissed, setPicked, evaluate };
 }
 
 /** A catalogue's emoji as a suggestion in a skin tone: its name, its token as the description and what it inserts, and its image. */
@@ -464,6 +474,7 @@ function watchedHandlers(own: ControlProps, state: SuggestionState): ControlProp
 
 interface SuggestionListProps {
   open: boolean;
+  emptyLabel: string | undefined;
   listId: string;
   label: string | undefined;
   query: string | undefined;
@@ -475,7 +486,7 @@ interface SuggestionListProps {
 }
 
 // The listbox beside the caret. Focus stays in the text, so its blur closes the list on a press elsewhere.
-function SuggestionList({ open, listId, label, query, items, current, anchor, onHover, onPick }: SuggestionListProps): JSX.Element {
+function SuggestionList({ open, emptyLabel, listId, label, query, items, current, anchor, onHover, onPick }: SuggestionListProps): JSX.Element {
   const portal = usePortalContainer("Autocomplete");
   return (
     <BasePopover.Root open={open}>
@@ -483,6 +494,11 @@ function SuggestionList({ open, listId, label, query, items, current, anchor, on
         <PortalScope>
           <BasePopover.Positioner anchor={anchor} positionMethod={floatingPositionMethod} side="bottom" align="start" sideOffset={4} collisionPadding={8} data-ouro="autocomplete-positioner">
             <BasePopover.Popup initialFocus={false} finalFocus={false} role="listbox" id={listId} aria-label={label} data-ouro="autocomplete" className={popupClass}>
+              {emptyLabel !== undefined && (
+                <div role="option" aria-disabled="true" aria-selected="false" data-ouro-part="empty" className={cn(optionClass, "text-muted-foreground")}>
+                  {emptyLabel}
+                </div>
+              )}
               {items.map((item, index) => (
                 <div
                   key={item.value}
