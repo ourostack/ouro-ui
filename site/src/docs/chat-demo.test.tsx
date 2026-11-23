@@ -78,6 +78,23 @@ describe("the chat app page", () => {
     expect(Math.abs(spot.top - frame.top - (frame.bottom - spot.bottom))).toBeLessThan(2);
   });
 
+  it("shows one empty state on a phone, the pane's, and the list's empty line beside it on a laptop", async () => {
+    try {
+      await page.viewport(390, 844);
+      await renderPage("/docs/chat-demo/");
+      await page.getByRole("radio", { name: "Empty" }).click();
+      const drawn = (text: string) => [...document.querySelectorAll("body *")].some((el) => el.textContent === text && el.getClientRects().length > 0);
+      await expect.poll(() => drawn("Nothing here yet")).toBe(true);
+      expect(drawn("Conversations appear here")).toBe(false);
+      await page.viewport(1280, 800);
+      await expect.poll(() => drawn("Conversations appear here")).toBe(true);
+      await page.getByRole("button", { name: "Start a conversation" }).click();
+      await expect.element(page.getByRole("list", { name: "Conversations" })).toBeVisible();
+    } finally {
+      await page.viewport(390, 844);
+    }
+  });
+
   it("keeps an unsent draft for each conversation when the person switches", async () => {
     await page.viewport(1280, 800);
     try {
