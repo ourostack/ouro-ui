@@ -3,6 +3,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
+import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
@@ -80,6 +82,16 @@ describe("ScrollArea surface", () => {
       </Popover>,
       style,
     );
+    await userEvent.click(host.querySelector("button")!);
+    await expect.poll(() => document.querySelector('[role="dialog"] [data-scroll-viewport]')).not.toBeNull();
+    expect(background(document.querySelector('[role="dialog"] [data-scroll-viewport]')!)).toBe(fill("--popover"));
+  });
+
+  it.each([
+    ["Dialog", (children: ReactNode) => <Dialog title="Share" trigger={<Button>Share</Button>}>{children}</Dialog>],
+    ["Sheet", (children: ReactNode) => <Sheet title="Share" trigger={<Button>Share</Button>}>{children}</Sheet>],
+  ])("paints its viewport with the popover fill inside a %s", async (_name, surface) => {
+    const host = await render(surface(<ScrollArea label="Steps">x</ScrollArea>), distinct);
     await userEvent.click(host.querySelector("button")!);
     await expect.poll(() => document.querySelector('[role="dialog"] [data-scroll-viewport]')).not.toBeNull();
     expect(background(document.querySelector('[role="dialog"] [data-scroll-viewport]')!)).toBe(fill("--popover"));
