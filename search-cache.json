@@ -1,22 +1,8 @@
 {
-  "spoonjoy/spoonjoy-v2": {
-    "defineCommand": {
-      "commit": "fc65b90f3919961bdf7842499772cbc4ce34b4cd",
-      "at": "2026-11-23T14:20:02.259Z",
-      "total": 5,
-      "paths": [
-        "app/lib/ouro/ax/ax-command.ts",
-        "scripts/ouro/ax/xray.kit.mts",
-        "scripts/ouro/ax/xray.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "app/lib/ouro/ax/ax-moved.d.ts"
-      ]
-    }
-  },
   "spoonjoy/spoonjoy-apple": {
     "\"import OuroAX\"": {
-      "commit": "2b16611a150e888175b404356a61a07439d55458",
-      "at": "2026-11-23T14:29:20.869Z",
+      "commit": "a69db70827e067a8ef00f7696e6e6cbb752b9a38",
+      "at": "2026-11-23T16:29:16.583Z",
       "total": 1,
       "paths": [
         "Tests/SpoonjoyCoreTests/XrayExpectationTests.swift"
