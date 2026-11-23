@@ -58,6 +58,13 @@ describe("SettingsPage", () => {
     await passesAxe();
   });
 
+  it("keeps the save status in the row with Save, so the card has no empty band under the button", async () => {
+    await render(<SettingsPage />);
+    const save = host.querySelector('button[type="submit"]')!.getBoundingClientRect();
+    const line = host.querySelector('p[role="status"]')!.getBoundingClientRect();
+    expect(line.top).toBeLessThan(save.bottom);
+  });
+
   it("saves only once the browser's checks and its own pass, shows a returned error on its field, and says when it saved", async () => {
     const onSave = vi.fn((settings: { email: string }) => (settings.email === "taken@example.com" ? { email: "That email is in use." } : undefined));
     await render(<SettingsPage onSave={onSave} initial={{ name: "", email: "", language: "fr", notifications: false }} />);

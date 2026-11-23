@@ -1,0 +1,1 @@
+- SettingsPage: the status line moves into the row beside Save.
