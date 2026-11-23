@@ -988,6 +988,11 @@ describe("TimeGrid", () => {
     const clear = "rgba(0, 0, 0, 0)";
     for (const tinted of [...heads, ...columns]) expect(getComputedStyle(tinted).backgroundColor).not.toBe(clear);
     expect(getComputedStyle(heads[0]!).backgroundColor).not.toBe(getComputedStyle(heads[1]!).backgroundColor);
+    // Each tone tints in its own colour.
+    const all = await render({ view: "week", markedDays: { "2026-03-09": { label: "a" }, "2026-03-10": { label: "b", tone: "secondary" }, "2026-03-11": { label: "c", tone: "success" }, "2026-03-12": { label: "d", tone: "warning" }, "2026-03-13": { label: "e", tone: "destructive" } } });
+    const tints = [...all.grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")].map((column) => getComputedStyle(column).backgroundColor);
+    expect(new Set(tints).size).toBe(5);
+    expect(tints).not.toContain(clear);
     // An unmarked day keeps the page's own colour.
     expect(grid.querySelectorAll("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked]")).toHaveLength(2);
     expect(warnings()).toEqual([]);
