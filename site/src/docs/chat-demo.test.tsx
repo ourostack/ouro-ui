@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
 import { clearComposerDrafts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
@@ -166,4 +166,19 @@ describe("the chat app page", () => {
     const violations = await scan();
     expect(violations, describeViolations(violations)).toEqual([]);
   }, pageScanTimeout);
+
+  it("drops the list pane's own divider under forced colours, so it does not double ConversationList's frame edge", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      await page.viewport(1280, 800);
+      await renderPage("/docs/chat-demo/");
+      const list = document.querySelector<HTMLElement>('[data-ouro="conversation-list"]')!;
+      expect(parseFloat(getComputedStyle(list).borderInlineEndWidth)).toBeGreaterThan(0);
+      const pane = list.parentElement!;
+      expect(parseFloat(getComputedStyle(pane).borderInlineEndWidth)).toBe(0);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+      await page.viewport(390, 844);
+    }
+  });
 });

@@ -282,7 +282,9 @@ function ChatDemo(): JSX.Element {
       </div>
     ) : stage === "empty" ? (
       <div className="grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]">
-        <div className="border-e border-border p-2 max-md:hidden">
+        {/* ConversationList gives itself an edge under forced colours (its own frame), so this pane's
+            divider drops its own there, or the two would draw as a doubled line. */}
+        <div className="border-e border-border forced-colors:border-e-0 p-2 max-md:hidden">
           <ConversationList className="grid h-full place-items-center" label="Conversations" items={[]} empty="Conversations appear here" onSelect={() => {}} />
         </div>
         <div className="grid place-items-center">
@@ -291,7 +293,9 @@ function ChatDemo(): JSX.Element {
       </div>
     ) : (
       <div className="group/app grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]" data-pane={open ? "chat" : "list"}>
-        <div ref={listRef} className="min-h-0 overflow-auto border-e border-border p-2 max-md:group-data-[pane=chat]/app:hidden">{list}</div>
+        {/* ConversationList gives itself an edge under forced colours (its own frame), so this pane's
+            divider drops its own there, or the two would draw as a doubled line. */}
+        <div ref={listRef} className="min-h-0 overflow-auto border-e border-border forced-colors:border-e-0 p-2 max-md:group-data-[pane=chat]/app:hidden">{list}</div>
         <div className="min-h-0 min-w-0 max-md:group-data-[pane=list]/app:hidden">
           <ThreadLayout conversation={conversation} thread={thread} conversationLabel="Conversation" />
         </div>

@@ -1,0 +1,1 @@
+- Fix: the chat demo's list pane no longer draws its own divider under forced colours, so it does not double ConversationList's own frame edge.
