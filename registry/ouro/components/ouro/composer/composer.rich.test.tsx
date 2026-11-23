@@ -1,4 +1,5 @@
 import { createRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -65,6 +66,37 @@ describe("Composer rich mode", () => {
     expect(editor.getAttribute("aria-label")).toBe("Message Mia");
     expect(editor.isContentEditable).toBe(true);
     expect(host.textContent).toContain("Write a message");
+  });
+
+  it("draws the editor directly, with no plain box first, once a page has already loaded its module", async () => {
+    // A render anywhere on the page warms the module cache the layout effect below reads from.
+    await render(rich());
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(() => root.render(rich({ placeholder: "Write a message" })));
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+  });
+
+  it("draws the editor within the same commit as the warm mount, before the usual async load could ever run", async () => {
+    // A render anywhere on the page warms the module cache the layout effect below reads from.
+    await render(rich());
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    // flushSync forces the synchronous layout effect to commit without giving the later, async
+    // effect a chance to resolve first, so this catches a plain-then-swap flash the eventual
+    // state alone cannot: the async effect would draw the same editor a tick later regardless.
+    flushSync(() => root.render(rich({ placeholder: "Write a message" })));
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    // Let the later effect settle before the next test unmounts this root.
+    await act(async () => {});
   });
 
   it("carries the caret over when the person was already typing in the plain box", async () => {
@@ -439,6 +471,16 @@ describe("Composer rich mode", () => {
     const { editor } = await render(rich({ editorRef: handle, defaultValue: "hi" }));
     await act(async () => handle.current!.insert(" there"));
     await expect.poll(() => editor.textContent).toBe("hi there");
+  });
+
+  it("keeps a line break when dictation or an input method delivers a whole line in one insertText event", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "a\nb", bubbles: true, cancelable: true })));
+    await expect.poll(() => seen.at(-1)).toBe("a\nb");
+    expect(editor.querySelectorAll("br")).toHaveLength(1);
+    expect(editor.querySelectorAll("p")).toHaveLength(1);
   });
 
   it("takes no input once it is disabled alone, or read-only alone, and takes it again when neither is set", async () => {
@@ -864,6 +906,28 @@ describe("Composer rich mode with a catalogue", () => {
     await userEvent.keyboard(":nope:");
     expect(pictures(editor)).toEqual([]);
     expect(field(editor).value).toBe(":nope:");
+  });
+
+  it("leaves a non-string composition payload to Lexical's own handling", async () => {
+    const { editor } = await render(withCatalogue());
+    editor.focus();
+    const selection = getSelection()!;
+    const text = editor.querySelector("p")!;
+    selection.collapse(text, 0);
+    // A yanked selection hands the control the native event, not a string: Lexical's own
+    // insertFromYank/insertFromDrop/insertFromComposition/insertReplacementText paths all pass
+    // the raw InputEvent through, under the hood, same as this does.
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertFromYank", data: "ok", bubbles: true, cancelable: true })));
+    await expect.poll(() => field(editor).value).toBe("ok");
+  });
+
+  it("lets Lexical insert plain multi-character text with no emoji under the active format", async () => {
+    const handle = createRef<ComposerEditor>();
+    const { editor } = await render(withCatalogue({ editorRef: handle }));
+    editor.focus();
+    await act(async () => handle.current!.format("bold"));
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "hi", bubbles: true, cancelable: true })));
+    await expect.poll(() => editor.querySelector("strong")?.textContent).toBe("hi");
   });
 
   it("puts an emoji the system inserts in as its token, drawn as the picture", async () => {

@@ -26,10 +26,12 @@ export type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement | HTMLDivEleme
 type RichModule = typeof import("@/registry/ouro/components/ouro/composer/composer-parts");
 
 let richLoading: Promise<RichModule> | undefined;
+// The module itself, once the import above has settled, so a later mount in the same page draws it straight away instead of a plain box that swaps a tick later.
+let richModule: RichModule | undefined;
 
 // Loads the rich editor once, by a dynamic import, so Lexical stays out of a plain page's build.
 function loadRich(): Promise<RichModule> {
-  return (richLoading ??= import("@/registry/ouro/components/ouro/composer/composer-parts"));
+  return (richLoading ??= import("@/registry/ouro/components/ouro/composer/composer-parts").then((loaded) => (richModule = loaded)));
 }
 
 /** The message a reply quotes, for Composer's `quote`: who wrote it and a line of what they wrote. */
@@ -603,9 +605,28 @@ export function Composer(props: ComposerProps): JSX.Element {
   const setRef = useMergedRef(ref, textareaRef);
   const richRef = useRef<RichEditorHandle | null>(null);
   const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
+  useLayoutEffect(
+    () => {
+      // A page that already loaded the editor's module (an earlier Composer, or a swap in this same box) draws it before the paint that follows, so this mount never flashes the plain box: the server always renders plain, and this never runs there, so hydration still matches.
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: a plain mount, or one whose module has not loaded yet, is drawn by the effect below instead, exactly as before.
+      if (!(formatMode === "rich" && richModule)) return;
+      // Once this fills rich, a render this same mount triggers later (even one that retests the list below with a changed array) finds it already drawn and fills nothing twice.
+      // Stryker disable next-line ConditionalExpression: rich starts undefined and nothing else fills it before this effect's first run, so this still lets that first fill through.
+      /* istanbul ignore if @preserve -- the empty dependency array below means this body runs once per mount, so nothing has filled rich by its own first run to make this true */
+      if (rich !== undefined) return;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-time fill before the first paint, as live-captions.demo.tsx's does
+      setRich({ Editor: richModule.RichEditor, focus: rest.autoFocus === true });
+    },
+    // Only the warm cache at this mount is read here; a later format change or a cold load is the effect below's job. `rich` is read only to skip a repeat of this same fill, never to decide whether to run at all.
+    // Stryker disable next-line ArrayDeclaration: a changed dependency array still finds rich already set, from this same fill, and stops at the check above.
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,BlockStatement: loading the editor in plain mode changes nothing a person or a test can read, as richOn below also needs the rich format.
     if (formatMode !== "rich") return;
+    // Stryker disable next-line ConditionalExpression: the layout effect above already drew the editor for this same mount, from a module that was already loaded; loading it again would only replace a correct focus flag with a wrong one.
+    /* istanbul ignore if @preserve -- this closure is the one React commits from the mount that set rich, so a test never observes rich already set when this runs */
+    if (rich !== undefined) return;
     let live = true;
     void loadRich().then(({ RichEditor: Editor }) => {
       // The person typing in the plain box carries on in the editor that replaces it.
@@ -618,7 +639,8 @@ export function Composer(props: ComposerProps): JSX.Element {
       live = false;
       setRich(undefined);
     };
-  }, [formatMode]);
+    // `rich` is read only to skip a redundant load the layout effect above already did for this same mount, never to decide whether to re-run.
+  }, [formatMode]); // eslint-disable-line react-hooks/exhaustive-deps
   // Stryker disable next-line LogicalOperator,ConditionalExpression: the effect clears the loaded editor when the format changes, so only one render between them could tell.
   const richOn = formatMode === "rich" && rich !== undefined;
   // Stryker disable next-line LogicalOperator: richOn is true only when rich is loaded, so either side alone reads the same.
