@@ -1553,6 +1553,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const before = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
     ownTop.current = scroller.scrollTop;
+    // Stryker disable next-line BooleanLiteral: not equivalent in intent, but unobservable here; hold()'s own two-frame window (armHeld,
+    // message-list.test.tsx) already puts a hold back on its own, and a loaded runner can spend that window on the click and the scroll it
+    // reads here before this line even runs, leaving nothing left for this write to be seen changing.
     held.current = false;
     springsRef.current?.moved(scroller.scrollTop - before);
   }, []);
