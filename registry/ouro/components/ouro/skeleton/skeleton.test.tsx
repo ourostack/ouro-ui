@@ -322,12 +322,20 @@ describe("Skeleton", () => {
   });
 
   it("drops a row's node from the correction map once it unmounts, so a frame already pending for it does not read a removed node", async () => {
+    // Holds the mount's own correction frame instead of letting it run: by the time a real one would
+    // fire, this test harness has already settled the render below it, which would otherwise race it.
+    let pendingFrame: FrameRequestCallback | undefined;
+    const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      pendingFrame = callback;
+      return 0;
+    });
     await render(<Skeleton shape="row" count={3} />);
     const root = roots.at(-1)!;
+    raf.mockRestore();
     const spy = vi.spyOn(Element.prototype, "getAnimations");
-    // Shrinks before the correction's own frame fires: the two dropped rows' nodes must leave the map themselves.
+    // Shrinks while the mount's correction frame is still held: the two dropped rows' nodes must leave the map themselves.
     await act(async () => root.render(<Skeleton shape="row" count={1} />));
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    pendingFrame!(performance.now());
     // The map should hold just the surviving row's node: one call, on that node alone.
     expect(spy.mock.instances).toHaveLength(1);
   });
