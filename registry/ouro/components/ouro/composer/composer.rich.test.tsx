@@ -102,12 +102,26 @@ describe("Composer rich mode", () => {
     ["a mention with an underscore in its name", "@quiet_fox hi", "@quiet_fox hi!"],
     ["a lone star with no partner, as in a sum", "2*3=6", "2*3=6!"],
     ["a star-spelled italic run that is also bold, which writes back out with the default underscore instead", "**say *mixed* thing**", "**say _mixed_ thing**!"],
+    ["a word-flanked underscore inside a star-spelled italic run, which CommonMark never reads as a mark", "*a_b c*", "*a_b c*!"],
+    ["a space-flanked underscore inside a star-spelled italic run, escaped so it reads bare", "*wow _ cool*", "*wow \\_ cool*!"],
+    ["adjacent tildes inside a star-spelled italic run, each escaped since it has a same-mark neighbor", "*note~~x end*", "*note\\~\\~x end*!"],
+    ["an underscore-spelled bold run inside a word", "a__b__c", "a__b__c!"],
   ])("round-trips %s unchanged: %s", async (_label, markdown, expected) => {
     const seen: string[] = [];
     const { editor } = await render(rich({ defaultValue: markdown, onValueChange: (value) => void seen.push(value) }));
     editor.focus();
     await userEvent.keyboard("{End}!");
     await expect.poll(() => seen.at(-1)).toBe(expected);
+  });
+
+  it("falls back to the array's default spelling when an underscore-spelled bold run also turns italic", async () => {
+    const handle = createRef<ComposerEditor>();
+    const seen: string[] = [];
+    const { editor } = await render(rich({ editorRef: handle, defaultValue: "__bold__", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{Control>}a{/Control}");
+    await act(async () => handle.current!.format("italic"));
+    await expect.poll(() => seen.at(-1)).toBe("**_bold_**");
   });
 
   it("formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code", async () => {
@@ -1100,3 +1114,4 @@ describe("Composer rich mode pasteText", () => {
     await expect.poll(() => editor.querySelectorAll("img:not([alt=''])").length).toBe(1);
   });
 });
+
