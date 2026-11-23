@@ -635,10 +635,12 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           // Lexical hands over typed text as a string; anything else is left to it.
           const selection = $getSelection();
           // Stryker disable next-line ConditionalExpression: a typed key always meets a range selection here; the check narrows the type
-          if (typeof payload !== "string" || !emoji.current || !$isRangeSelection(selection)) return false;
+          if (typeof payload !== "string" || !$isRangeSelection(selection)) return false;
+          const hasEmoji = emoji.current ? splitEmojiText(payload, emoji.current).some((part) => typeof part !== "string") : false;
           // Stryker disable next-line ConditionalExpression,StringLiteral: the check only hands plain typing back to Lexical, whose insertion of the same text is the same
-          if (!splitEmojiText(payload, emoji.current).some((part) => typeof part !== "string")) return false;
-          $insertWithEmoji(selection, payload, emoji.current);
+          if (!hasEmoji && !payload.includes("\n")) return false;
+          // A line dictation or an input method delivers whole, unlike a key at a time, keeps its line break the way a plain-text paste does: as raw text, not spliced into a text node where it would be lost to whitespace collapsing.
+          $insertWithEmoji(selection, payload, emoji.current, (run) => selection.insertRawText(run));
           return true;
         },
         COMMAND_PRIORITY_HIGH,

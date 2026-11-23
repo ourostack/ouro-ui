@@ -67,6 +67,19 @@ describe("Composer rich mode", () => {
     expect(host.textContent).toContain("Write a message");
   });
 
+  it("draws the editor directly, with no plain box first, once a page has already loaded its module", async () => {
+    // A render anywhere on the page warms the module cache the layout effect below reads from.
+    await render(rich());
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(() => root.render(rich({ placeholder: "Write a message" })));
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+  });
+
   it("carries the caret over when the person was already typing in the plain box", async () => {
     const host = document.createElement("div");
     document.body.append(host);
@@ -281,6 +294,16 @@ describe("Composer rich mode", () => {
     const { editor } = await render(rich({ editorRef: handle, defaultValue: "hi" }));
     await act(async () => handle.current!.insert(" there"));
     await expect.poll(() => editor.textContent).toBe("hi there");
+  });
+
+  it("keeps a line break when dictation or an input method delivers a whole line in one insertText event", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "a\nb", bubbles: true, cancelable: true })));
+    await expect.poll(() => seen.at(-1)).toBe("a\nb");
+    expect(editor.querySelectorAll("br")).toHaveLength(1);
+    expect(editor.querySelectorAll("p")).toHaveLength(1);
   });
 
   it("takes no input once it is disabled alone, or read-only alone, and takes it again when neither is set", async () => {
