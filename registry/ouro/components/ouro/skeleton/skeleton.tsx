@@ -4,7 +4,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, HTMLAttributes, JSX, Ref, RefCallback } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { joinWave } from "@/registry/ouro/components/ouro/skeleton/skeleton-styles";
+import { correctAnimationClock, joinWave } from "@/registry/ouro/components/ouro/skeleton/skeleton-styles";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -250,8 +250,7 @@ function useBreathes(shimmer: boolean): { breathes: boolean; style: CSSPropertie
                  deterministically land between this and the real ready event only a browser fires; the
                  guard only protects that race, same as the frame's own cancelled check above. */
               if (cancelled) return;
-              const freshDelayMs = Number.parseFloat(joinWave(performance.now(), 1, 0, start).delay);
-              animation.currentTime = staleDelayMs - freshDelayMs;
+              correctAnimationClock(animation, performance.now(), start, staleDelayMs);
             })
             // A node unmounting or shrinking out from under this animation before ready settles cancels
             // it, which rejects ready with an AbortError: nothing is left here to correct, so this just
