@@ -27,6 +27,10 @@
  * - --ouro-bubble-user and --ouro-bubble-user-foreground: the fill and text of the user's own chat
  *   bubble (Message), which read them before --ouro-action and the primary color. Unset by default,
  *   so the bubble follows the action color; set both as a pair that passes 4.5:1.
+ * - --ouro-bubble-other and --ouro-bubble-other-foreground: the fill and text of others' chat bubble
+ *   (Message), which read them before --muted and --foreground; a link, a mention, a success mark and
+ *   muted text inside it mix toward the resolved text color too. Unset by default, so the bubble
+ *   follows the muted surface; set both as a pair that passes 4.5:1.
  * - --ouro-layer: the z-index of sheet and dialog portals.
  * - --ouro-scroller-surface: the opaque fill of the surface a scroller sits on, the page's background
  *   by default. ScrollArea and MessageList paint their scroll viewport with it, so Chromium on Windows

@@ -124,11 +124,12 @@ export interface MessageOwnProps {
   /**
    * How a `chat` message's bubble looks. `filled`, the default, is a messaging app's: the user's
    * own message filled with `--ouro-bubble-user` and text in `--ouro-bubble-user-foreground`
-   * when the theme sets them, else as a primary button is (`--ouro-action`, else the primary color), others'
-   * on the muted surface, each round with a smaller corner toward its sender, with an edge that
+   * when the theme sets them, else as a primary button is (`--ouro-action`, else the primary color); others'
+   * filled with `--ouro-bubble-other` and text in `--ouro-bubble-other-foreground` when the theme sets them, else
+   * the muted surface, each round with a smaller corner toward its sender, with an edge that
    * forced colors draw. Inside the user's own bubble, the theme's colors follow the fill, so a
-   * link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link or mention in the primary color is
-   * a shade nearer the text color, so it keeps 4.5:1 on the muted surface. `raised` is a workplace chat's: others' messages on a raised card with
+   * link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link, a mention or muted text
+   * follows the bubble's own text color instead of the page's, so it keeps 4.5:1 there too. `raised` is a workplace chat's: others' messages on a raised card with
    * a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a
    * `bubble` is laid out as a chat's message, for a thread that reads as a chat: the user's own at
    * the end, others' at the start under their name, each in a bubble of that look. A `reply`
@@ -136,7 +137,9 @@ export interface MessageOwnProps {
    * @default "filled" on a `chat` message; unboxed on a `reply`
    *
    * @claim "`filled`, the default, is a messaging" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with a smaller corner toward its sender)
-   * @claim "on others', a link or mention" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > keeps a link in the primary color at 4.5:1 or more on others' muted bubble)
+   * @claim "others' filled with --ouro-bubble-other" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills others' bubble from --ouro-bubble-other and its text from --ouro-bubble-other-foreground before the muted surface)
+   * @claim "on others', a link, a mention or muted text" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > keeps a link in the primary color at 4.5:1 or more on others' muted bubble)
+   * @claim "follows the bubble's own text color" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > mixes a link, a success mark and muted text toward --ouro-bubble-other-foreground, not the page's own foreground, once it is set)
    * @claim "else as a primary button" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble as a primary button is, from --ouro-action when the theme sets it)
    * @claim "with an edge that" registry/ouro/components/ouro/message/message.test.tsx verify:fileLine(registry/ouro/components/ouro/message/message.test.tsx, /chromiumOnly\("keeps both filled bubbles' edges under forced colors"/)
    * @claim "link (underlined), a mention" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > underlines a link in the user's own filled bubble, and gives both filled bubbles a clear edge)
@@ -472,15 +475,22 @@ const filledColors = {
 } as CSSProperties;
 // Selected text inverts, so it shows on the fill; a link, in the text's own color there, is underlined.
 const filledInk = "bg-(--ouro-bubble) text-(--ouro-bubble-ink) selection:bg-(--ouro-bubble-ink) selection:text-(--ouro-bubble) [&_a]:underline";
-// On others' bubble, the muted surface: the primary, success and muted text colors take a little of the foreground, so
-// a link, a mention, a success mark or a table's header keeps 4.5:1 on it, as it has on the page. The message mixes
-// them (mutedColors) and the bubble reads them (mutedInk): a variable can't be mixed from itself.
+// Others' bubble reads `--ouro-bubble-other` and `--ouro-bubble-other-foreground` before the muted surface, the
+// same shape as the user's own (bubbleColors above): the message resolves the fill and its ink, the bubble is
+// filled and colored from them directly, and the primary, success and muted text colors take a little of the
+// resolved ink, so a link, a mention, a success mark or a table's header keeps 4.5:1 on whatever fill the theme
+// sets, flat, with no shadow, like the user's own. The message mixes them (mutedColors) and the bubble reads
+// them (mutedInk): a variable can't be mixed from itself.
 const mutedColors = {
-  "--ouro-bubble-link": "color-mix(in oklab,var(--primary) 85%,var(--foreground))",
-  "--ouro-bubble-success": "color-mix(in oklab,var(--success) 85%,var(--foreground))",
-  "--ouro-bubble-quiet": "color-mix(in oklab,var(--muted-foreground) 85%,var(--foreground))",
+  "--ouro-bubble-other-fill": "var(--ouro-bubble-other,var(--muted))",
+  "--ouro-bubble-other-ink": "var(--ouro-bubble-other-foreground,var(--foreground))",
+  "--ouro-bubble-link": "color-mix(in oklab,var(--primary) 85%,var(--ouro-bubble-other-ink))",
+  "--ouro-bubble-success": "color-mix(in oklab,var(--success) 85%,var(--ouro-bubble-other-ink))",
+  "--ouro-bubble-quiet": "color-mix(in oklab,var(--muted-foreground) 85%,var(--ouro-bubble-other-ink))",
 } as CSSProperties;
 const mutedInk = {
+  "--muted": "var(--ouro-bubble-other-fill)",
+  "--foreground": "var(--ouro-bubble-other-ink)",
   "--primary": "var(--ouro-bubble-link)",
   "--success": "var(--ouro-bubble-success)",
   "--muted-foreground": "var(--ouro-bubble-quiet)",
@@ -490,7 +500,8 @@ const layouts = {
   filled: {
     // A transparent border, which forced colours draw, so a bubble that is only a fill keeps its edge there.
     user: `rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] rounded-ee-ouro-md border border-solid border-transparent px-3 py-2 ${filledInk}`,
-    assistant: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] rounded-es-ouro-md border border-solid border-transparent bg-muted px-3 py-2 text-foreground",
+    assistant:
+      "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] rounded-es-ouro-md border border-solid border-transparent bg-(--ouro-bubble-other-fill) px-3 py-2 text-(--ouro-bubble-other-ink)",
   },
   raised: {
     user: "rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
