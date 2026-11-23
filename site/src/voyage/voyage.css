@@ -170,15 +170,12 @@
     font-size: 0.875rem;
     color: var(--muted-foreground);
   }
-  .site-hero-dots {
+  .site-hero-dots [role="group"] {
     justify-content: center;
   }
   @media (max-width: 40rem) {
     .site-hero-side {
       gap: 1.5rem;
-    }
-    .site-hero-dots {
-      justify-content: space-between;
     }
   }
   /* The eyebrow is a pill saying what Ouro UI is for. */
@@ -799,7 +796,7 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
     align-self: center;
   }
   .site-hero-links,
-  .site-hero-dots {
+  .site-hero-dots [role="group"] {
     justify-content: flex-start;
   }
   .site-hero-paint {

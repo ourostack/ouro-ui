@@ -2,7 +2,7 @@ import { test } from "node:test";
 import { deepEqual, equal, ok } from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +18,11 @@ test("the committed manifest pins every vendored file by hash and names the chec
   equal(committed.checker, await checkerHash(here));
   for (const file of VENDORED_FILES) equal(committed.files[file], sha256(join(here, file)), file);
   for (const file of CHECKER_FILES) ok(VENDORED_FILES.includes(file), `${file} is part of the checker, so it is vendored`);
+});
+
+test("every built-in walker's file is part of the checker, so its hash vouches for each one", () => {
+  const walkers = readdirSync(join(here, "walkers")).filter((f) => f.endsWith(".mts") && !f.endsWith(".node-test.mts")).map((f) => `walkers/${f}`);
+  for (const file of walkers) ok(CHECKER_FILES.includes(file), `${file} is a built-in walker's code, so it is in CHECKER_FILES`);
 });
 
 test("--check fails when a vendored file changed, and --write brings the manifest back", async () => {

@@ -36,6 +36,7 @@ Type: `AutocompleteProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `children` (required) | `ReactElement` |  | The text control: one `TextArea`, `TextField`, `Composer`, `<textarea>` or `<input>`. Autocomplete gives it the list's ARIA, its keys while the list is open, and its ref. |
+| `emptyLabel` | `string` | `"No matches"` | The row the list shows, and what screen readers hear, when a trigger's query matches nothing. |
 | `resultsLabel` | `((count: number, trigger: AutocompleteTrigger) => string)` | (count) => "1 suggestion" or "{count} suggestions" | What screen readers hear when the list opens or its length changes. |
 | `triggers` (required) | `readonly AutocompleteTrigger[]` |  | The characters that open suggestions, such as `@` for people and `:` for emoji, with their lists. |
 
@@ -109,7 +110,7 @@ interface AutocompleteTrigger {
   /**
    * The suggestions: a list, which shows the items whose label, a word of it, or whose value
    * starts with what follows the character, or a function of that text (`query`, "" just
-   * after the character) that filters and caps them itself. The list closes when none match.
+   * after the character) that filters and caps them itself. The list shows `emptyLabel` when none match.
    */
   items?: readonly AutocompleteItem[] | ((query: string) => readonly AutocompleteItem[]) | undefined;
   /** Called after a suggestion is inserted, with the suggestion and the query it replaced. */

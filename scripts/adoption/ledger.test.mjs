@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { build, censusAtZero, configPath, createContext, gaveBack, isCurrent, measureActions, measureCensus, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, censusAtZero, configPath, createContext, gaveBack, hxFull, isCurrent, measureActions, measureCensus, measureBenchmark, measureModelReviews, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
 import { execFileSync } from "node:child_process";
 import { rmSync, writeFileSync } from "node:fs";
 import { scratchDir } from "../scratch.mjs";
@@ -376,6 +376,23 @@ test("the benchmark cell counts the published runs as the benchmark's page does:
   assert.match(failing.note, /^not measured: HTTP 404/);
 });
 
+test("the model-reviews cell reads the newest review's own verdicts, as the page counts them", () => {
+  const context = createContext({ gh: () => { throw new Error("no gh call"); }, now: () => NOW, sleep: () => {} });
+  const review = (provider, verdict) => ({ provider, displayName: provider, verdict });
+  const runs = [
+    { folder: "2026-11-14-rerun--run-1", startedAt: "2026-11-14T01:00:00Z", reviews: [review("a", "A2UI"), review("b", "Ouro UI")], failures: [] },
+    { folder: "2026-11-19-latest--run-1", startedAt: "2026-11-19T02:00:00Z", reviews: [review("a", "Ouro UI"), review("b", "Ouro UI"), review("c", "A2UI")], failures: [{ provider: "d", error: "compacted" }] },
+  ];
+  const cell = measureModelReviews(context, { runs });
+  assert.equal(cell.value, "2 of 3 models chose Ouro UI; 1 chose A2UI.");
+  assert.match(cell.note, /^The 2026-11-19 review: 4 models asked, 3 gave a verdict\. More than half chose Ouro UI, the bar for saying models choose it\.$/);
+  assert.equal(cell.source, "https://ui.ouroboros.bot/docs/model-reviews/");
+  const short = measureModelReviews(context, { runs: [{ ...runs[0] }] });
+  assert.match(short.note, /Not more than half chose Ouro UI/);
+  assert.equal(measureModelReviews(context, { runs: [] }).value, null);
+  assert.match(measureModelReviews(context, { runs: [] }).note, /^not measured: no published review/);
+});
+
 test("an app's X-ray and its action claims report add up, the newest report of each checker counting once", () => {
   const dir = scratchDir("ledger-xray-");
   try {
@@ -394,7 +411,7 @@ test("an app's X-ray and its action claims report add up, the newest report of e
     };
     const gh = (args, { binary } = {}) => {
       const line = args.join(" ");
-      if (/workflows\/ci\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 10, html_url: "https://example.test/run/10" }, { id: 11, html_url: "https://example.test/run/11" }] });
+      if (/workflows\/ci\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 10, event: "push", head_branch: "main", head_repository: { full_name: "org/app" }, html_url: "https://example.test/run/10" }, { id: 11, event: "push", head_branch: "main", head_repository: { full_name: "org/app" }, html_url: "https://example.test/run/11" }] });
       if (/runs\/10\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 1, name: "xray", expired: false }, { id: 2, name: "actions-xray", expired: false }] });
       if (/runs\/11\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 3, name: "actions-xray", expired: false }] });
       const art = /artifacts\/(\d+)\/zip/.exec(line);
@@ -424,7 +441,7 @@ test("a report in a folder of its artifact is read, so an X-ray uploaded with ot
   const bytes = readFileSync(join(dir, "a.zip"));
   const gh = (args, { binary } = {}) => {
     const line = args.join(" ");
-    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 7, html_url: "https://example.test/run/7" }] });
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 7, event: "push", head_branch: "main", head_repository: { full_name: "org/cli" }, html_url: "https://example.test/run/7" }] });
     if (/runs\/7\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 9, name: "xray", expired: false }] });
     if (/artifacts\/9\/zip/.test(line) && binary) return bytes;
     throw new Error(`unexpected gh call: ${line}`);
@@ -564,7 +581,7 @@ test("a product's own walkers are named in the census cell", () => {
 
 test("Census at zero replaces actions on the one-action model as a condition, and an n/a product needs a census that finds no doors", () => {
   const ledger = build(ctx([]), config);
-  assert.equal(ledger.schema, 2, "schema 2 counts the census where schema 1 counted actions, so the site never reads one as the other");
+  assert.ok(ledger.schema >= 2, "schema 2 counts the census where schema 1 counted actions, so the site never reads one as the other");
   const web = ledger.surfaces.find((surface) => surface.id === "web");
   assert.equal(web.conditions.census.label, "Census at zero");
   assert.equal(web.conditions.census.met, false);
@@ -676,6 +693,201 @@ test("the ledger says when it couldn't read Ouro UI's latest release, rather tha
   try {
     const census = measureCensus(createContext({ gh: censusGh(dir, censusReport()), now: () => NOW, sleep: () => {}, searchGapMs: 0 }), censusSurface, { web: { repo: "ourostack/ouro-ui", tag: null, error: "boom" } });
     assert.match(census.note, /^not measured: Ouro UI's latest release couldn't be read \(boom\), so the census's checker can't be checked/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ---- Stricter X-ray: every surface the product lists, from a push to main ---------------------------------
+
+/** A gh that serves the given runs of `ax-xray.yml`, each with its reports as artifacts; `calls` records the lines. */
+function xrayGh(dir, runs, calls = []) {
+  const bytes = new Map();
+  let next = 1;
+  const served = runs.map((run) => ({ ...run, artifacts: run.reports.map((report) => {
+    const id = next++;
+    writeFileSync(join(dir, "report.json"), JSON.stringify(report));
+    execFileSync("zip", ["-q", "-j", join(dir, "a.zip"), join(dir, "report.json")]);
+    bytes.set(String(id), readFileSync(join(dir, "a.zip")));
+    rmSync(join(dir, "a.zip"));
+    return { id, name: report.tool === "ouro-actions" ? "actions-xray" : `xray-${id}`, expired: false };
+  }) }));
+  return (args, { binary } = {}) => {
+    const line = args.join(" ");
+    calls.push(line);
+    if (/workflows\/ax-xray\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: served.map((run) => Object.fromEntries(Object.entries(run).filter(([key]) => key !== "reports" && key !== "artifacts"))) });
+    const runArtifacts = /runs\/(\d+)\/artifacts/.exec(line);
+    if (runArtifacts) return JSON.stringify({ artifacts: served.find((run) => String(run.id) === runArtifacts[1]).artifacts });
+    const art = /artifacts\/(\d+)\/zip/.exec(line);
+    if (art && binary) return bytes.get(art[1]);
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+}
+const pushRun = (id, extra = {}) => ({ id, event: "push", head_branch: "main", head_repository: { full_name: "org/agents" }, html_url: `https://example.test/run/${id}`, ...extra });
+const xrayReport = (surface, at, must, mustHolding = must) => ({ tool: "ax-xray", at, checker: { version: "1.8.0" }, claimSet: { version: "1.9.0", hash: "9".repeat(64) }, target: { commit: "abc", [surface]: {} }, summary: { claims: must + 1, holding: mustHolding + 1, must, mustHolding, checks: must + 1 }, claims: [{ id: `${surface}.a`, surface, tier: "must" }, { id: `${surface}.b`, surface, tier: "should" }] });
+const actionsReport = (at) => ({ tool: "ouro-actions", at, checker: { version: "1.10.0" }, claimSet: { version: "0.1.0" }, target: { app: { name: "Agents" }, commit: "abc" }, summary: { claims: 3, holding: 3, must: 3, mustHolding: 3, checks: 3 } });
+const agents = { repo: "org/agents", xraySurfaces: ["cli", "mcp", "tools"], xray: [{ repo: "org/agents", workflow: "ax-xray.yml", branch: "main" }] };
+const xrayOf = (runs, surface = agents, calls = []) => {
+  const dir = scratchDir("ledger-xray-surfaces-");
+  try {
+    return measureXray(createContext({ gh: claimSetGh(dir, runs, calls), now: () => NOW, sleep: () => {}, searchGapMs: 0 }), surface, uiLatest);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+};
+
+test("a product's X-ray counts the newest report of each surface, and must claims pass only when every surface it lists is checked", () => {
+  const partial = xrayOf([pushRun(10, { reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13), xrayReport("mcp", "2026-11-13T11:59:00Z", 2), actionsReport("2026-11-13T11:58:00Z")] })]);
+  assert.deepEqual(partial.value.surfaces, ["cli", "mcp"], "the CLI and MCP reports are both ax-xray, and both count");
+  assert.equal(partial.value.must, 18);
+  assert.equal(partial.value.mustHolding, 18);
+  assert.deepEqual(partial.value.missingSurfaces, ["tools"]);
+  assert.equal(mustPasses(partial), false, "every must claim holds, but the in-turn tools are not checked");
+  assert.match(partial.note, /^No X-ray report checks its tools doors yet, so its must claims can.t pass\. Adds up the newest report of each checker and surface: ax-xray cli, ax-xray mcp, ouro-actions\.$/);
+  const whole = xrayOf([pushRun(10, { reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13), xrayReport("mcp", "2026-11-13T11:59:00Z", 2), xrayReport("tools", "2026-11-13T11:57:00Z", 2), actionsReport("2026-11-13T11:58:00Z")] })]);
+  assert.deepEqual(whole.value.missingSurfaces, []);
+  assert.equal(mustPasses(whole), true);
+  const older = xrayOf([pushRun(10, { reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13, 12)] }), pushRun(11, { reports: [xrayReport("cli", "2026-11-12T12:00:00Z", 13), xrayReport("mcp", "2026-11-12T11:00:00Z", 2), xrayReport("tools", "2026-11-12T10:00:00Z", 2)] })]);
+  assert.equal(older.value.mustHolding, 16, "the newest CLI report, which fails one, counts over the older one; each surface's newest is kept");
+  assert.equal(mustPasses(older), false);
+});
+
+test("an X-ray report counts only from a successful push to main in the product's own repository", () => {
+  const calls = [];
+  const runs = [
+    pushRun(10, { event: "pull_request", reports: [xrayReport("tools", "2026-11-13T12:00:00Z", 2)] }),
+    pushRun(11, { head_repository: { full_name: "fork/agents" }, reports: [xrayReport("tools", "2026-11-13T11:00:00Z", 2)] }),
+    pushRun(12, { head_branch: "feature", reports: [xrayReport("tools", "2026-11-13T10:00:00Z", 2)] }),
+    pushRun(13, { reports: [xrayReport("cli", "2026-11-13T09:00:00Z", 13), xrayReport("mcp", "2026-11-13T09:00:00Z", 2)] }),
+  ];
+  const xray = xrayOf(runs, agents, calls);
+  assert.match(calls.find((line) => /workflows\/ax-xray\.yml\/runs/.test(line)), /branch=main&event=push/);
+  assert.deepEqual(xray.value.surfaces, ["cli", "mcp"], "the tools reports from a pull request, a fork and another branch don't count");
+  assert.equal(xray.value.run, "https://example.test/run/13");
+  const none = xrayOf([pushRun(10, { event: "pull_request", reports: [xrayReport("cli", "2026-11-13T12:00:00Z", 13)] })]);
+  assert.equal(none.value, null);
+  assert.match(none.note, /^not measured: no report from a push to main in org\/agents among the latest successful runs/);
+});
+
+test("every product with X-ray runs lists the surfaces they check, and a product that runs agents lists its in-turn tools", () => {
+  const real = JSON.parse(readFileSync(configPath, "utf8"));
+  for (const surface of real.surfaces) {
+    if (surface.xray.length) assert.ok(Array.isArray(surface.xraySurfaces) && surface.xraySurfaces.length > 0, `${surface.id} has X-ray runs but lists no xraySurfaces`);
+    if (surface.runsAgents) assert.ok(surface.xraySurfaces?.includes("tools"), `${surface.id} runs agents, so its xraySurfaces must include tools`);
+    for (const entry of surface.xray) assert.equal(entry.branch, "main", `${surface.id}'s ${entry.workflow} counts only from a push to main, so it names branch main`);
+  }
+  assert.equal(real.surfaces.find((surface) => surface.id === "harness").runsAgents, true);
+});
+
+// ---- Ouro HX in full -------------------------------------------------------------------------------------------
+
+test("a product with screens is confirmed only on Ouro HX in full, and one with no screen holds the check as n/a", () => {
+  assert.equal(hxFull({ value: "full" }), true);
+  assert.equal(hxFull({ value: "partial" }), false);
+  assert.equal(hxFull({ value: null }), false, "an HX use not measured is not full");
+  const ledger = build(ctx([]), config);
+  const web = ledger.surfaces.find((surface) => surface.id === "web");
+  assert.equal(ledger.schema, 3, "schema 3 adds the HX check, so the page never reads a ledger of four checks as one of five");
+  assert.deepEqual(Object.keys(web.conditions), ["current", "hx", "census", "must", "gaveBack"]);
+  assert.equal(web.conditions.hx.label, "Ouro HX in full");
+  assert.equal(web.cells.hx.value, "partial");
+  assert.equal(web.conditions.hx.met, false, "a web app using some Ouro components has hand-built screens left");
+  const cli = ledger.surfaces.find((surface) => surface.id === "cli");
+  assert.equal(cli.conditions.hx.met, true, "a CLI has no screens to build");
+  const secret = ledger.surfaces.find((surface) => surface.id === "secret");
+  assert.equal(secret.conditions.hx.met, false, "a private product's HX isn't read, so n/a in its config doesn't hold the check");
+  assert.equal(web.confirmed, false);
+});
+
+// ---- A released claim set ------------------------------------------------------------------------------------
+
+const H = (c) => c.repeat(64);
+const claimSet = (version, hash, ids, firstRelease = null) => ({ version, hash, firstRelease, claims: ids.map(([id, surface, tier = "must"]) => ({ id, surface, tier })) });
+const SET_17 = claimSet("1.7.0", H("7"), [["cli.a", "cli"], ["mcp.a", "mcp"]], "v1.3.315");
+const SET_18 = claimSet("1.8.0", H("8"), [["cli.a", "cli"], ["mcp.a", "mcp"], ["tools.listed", "tools", "should"], ["tools.inventory", "tools"]]);
+const SET_19 = claimSet("1.9.0", H("9"), [["cli.a", "cli"], ["cli.b", "cli"], ["mcp.a", "mcp"], ["tools.listed", "tools", "should"], ["tools.inventory", "tools"]], "v1.3.452");
+/** Ouro UI's releases, newest first, and the claim sets each one's manifest lists. */
+const UI_RELEASES = [
+  { tag: "v1.3.452", at: "2026-11-13T20:00:00Z", sets: [SET_19, SET_18, SET_17] },
+  { tag: "v1.3.451", at: "2026-11-13T12:00:00Z", sets: [SET_18, SET_17] },
+  { tag: "v1.3.450", at: "2026-11-13T06:00:00Z", sets: [SET_18, SET_17] },
+  { tag: "v1.3.449", at: "2026-11-13T02:00:00Z", sets: [SET_17] },
+  { tag: "v1.3.315", at: "2026-11-10T02:00:00Z", sets: null },
+];
+const uiLatest = { web: { repo: "ourostack/ouro-ui", tag: "v1.3.452", at: UI_RELEASES[0].at } };
+
+/** xrayGh, with Ouro UI's releases and each release's claim-sets.json. */
+function claimSetGh(dir, runs, calls = []) {
+  const base = xrayGh(dir, runs, calls);
+  return (args, options) => {
+    const line = args.join(" ");
+    if (/repos\/ourostack\/ouro-ui\/releases/.test(line)) {
+      calls.push(line);
+      return UI_RELEASES.map((release) => JSON.stringify({ tag: release.tag, at: release.at, url: `https://example.test/r/${release.tag}` })).join("\n");
+    }
+    const ref = /contents\/scripts\/ax-claim-sets\.json\?ref=(v[\d.]+)/.exec(line);
+    if (ref) {
+      calls.push(line);
+      const release = UI_RELEASES.find((item) => item.tag === ref[1]);
+      if (!release?.sets) throw new Error("gh api: Not Found");
+      return b64({ tool: "ouro-ax-claim-sets", sets: release.sets });
+    }
+    return base(args, options);
+  };
+}
+const withSet = (report, set) => ({ ...report, claimSet: { version: set.version, hash: set.hash } });
+const claimSetXray = (reports, surface = agents, calls = []) => {
+  const dir = scratchDir("ledger-claim-set-");
+  try {
+    return measureXray(createContext({ gh: claimSetGh(dir, [pushRun(10, { reports })], calls), now: () => NOW, sleep: () => {}, searchGapMs: 0 }), surface, uiLatest);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+};
+const cliOnly = { ...agents, xraySurfaces: ["cli"] };
+const mcpOnly = { ...agents, xraySurfaces: ["mcp"] };
+
+test("an X-ray's claim set must be one an Ouro UI release published, and says how many releases behind it is", () => {
+  const current = claimSetXray([withSet(xrayReport("mcp", "2026-11-13T12:00:00Z", 2), SET_19)], mcpOnly);
+  assert.deepEqual(current.value.claimSets, [{ tool: "ax-xray 1.8.0", surfaces: ["mcp"], version: "1.9.0", latest: "1.9.0", setsBehind: 0, releasesBehind: 0, adds: [] }]);
+  assert.deepEqual(current.value.claimSetProblems, []);
+  assert.equal(mustPasses(current), true);
+  const local = claimSetXray([{ ...xrayReport("mcp", "2026-11-13T12:00:00Z", 2), claimSet: { version: "1.9.0", hash: H("b") } }], mcpOnly);
+  assert.equal(mustPasses(local), false, "every must claim holds, but the claim set came from a local or branch build");
+  assert.deepEqual(local.value.claimSetProblems, [`ax-xray mcp's claim set 1.9.0 (bbbbbbbbbbbb) isn't one an Ouro UI release published, so it came from a local or branch build`]);
+  assert.match(local.note, /isn't one an Ouro UI release published/);
+});
+
+test("an older released claim set fails only when a newer one adds a claim for a surface the product lists", () => {
+  const mcp = claimSetXray([withSet(xrayReport("mcp", "2026-11-13T12:00:00Z", 2), SET_17)], mcpOnly);
+  assert.deepEqual(mcp.value.claimSets[0], { tool: "ax-xray 1.8.0", surfaces: ["mcp"], version: "1.7.0", latest: "1.9.0", setsBehind: 2, releasesBehind: 3, adds: [] }, "1.8.0 first shipped in v1.3.450, three releases ago");
+  assert.equal(mustPasses(mcp), true, "neither 1.8.0 nor 1.9.0 adds an MCP claim");
+  assert.match(mcp.note, /ax-xray mcp checks claim set 1\.7\.0, 2 claim sets and 3 Ouro UI releases behind 1\.9\.0/);
+  const cli = claimSetXray([withSet(xrayReport("cli", "2026-11-13T12:00:00Z", 13), SET_18)], cliOnly);
+  assert.deepEqual(cli.value.claimSets[0].adds, ["cli.b"]);
+  assert.equal(cli.value.claimSets[0].releasesBehind, 1, "1.9.0 is in the newest release only");
+  assert.equal(mustPasses(cli), false);
+  assert.deepEqual(cli.value.claimSetProblems, ["Ouro UI's claim set 1.9.0 adds cli.b for its cli doors, which ax-xray cli's 1.8.0 doesn't check"]);
+  const seeded = claimSetXray([withSet(xrayReport("cli", "2026-11-13T12:00:00Z", 13), SET_17)], cliOnly);
+  assert.deepEqual(seeded.value.claimSets[0].adds, ["cli.b"], "1.8.0 adds only tools claims, which a CLI doesn't list; 1.9.0 adds cli.b");
+  const actions = claimSetXray([withSet(xrayReport("mcp", "2026-11-13T12:00:00Z", 2), SET_19), actionsReport("2026-11-13T11:00:00Z")], mcpOnly);
+  assert.equal(actions.value.claimSets.length, 1, "ouro-actions' report has its own claim set, not Ouro AX's");
+  const apple = claimSetXray([{ ...xrayReport("app-intents", "2026-11-13T12:00:00Z", 0), claimSet: { version: "0.1.0", hash: H("a") } }, actionsReport("2026-11-13T11:00:00Z")], { ...agents, xraySurfaces: ["app-intents"] });
+  assert.deepEqual(apple.value.claimSets, [], "the App Intents X-ray's claim set is Ouro UI Apple's");
+  assert.match(apple.note, /The App Intents X-ray's claim set comes from Ouro UI Apple, which publishes no claim-set history yet, so it isn't checked against a release\./);
+});
+
+test("a claim set can't be checked when Ouro UI's latest release can't be read or lists no claim sets", () => {
+  const report = withSet(xrayReport("mcp", "2026-11-13T12:00:00Z", 2), SET_19);
+  const dir = scratchDir("ledger-claim-set-none-");
+  try {
+    const gh = claimSetGh(dir, [pushRun(10, { reports: [report] })]);
+    const context = createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 });
+    const unread = measureXray(context, mcpOnly, { web: { repo: "ourostack/ouro-ui", tag: null, error: "boom" } });
+    assert.equal(mustPasses(unread), false);
+    assert.deepEqual(unread.value.claimSetProblems, ["Ouro UI's latest release couldn't be read (boom), so ax-xray mcp's claim set can't be checked"]);
+    const old = measureXray(context, mcpOnly, { web: { repo: "ourostack/ouro-ui", tag: "v1.3.315" } });
+    assert.deepEqual(old.value.claimSetProblems, ["Ouro UI v1.3.315 publishes no claim sets (scripts/ax-claim-sets.json), so ax-xray mcp's claim set can't be checked"]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

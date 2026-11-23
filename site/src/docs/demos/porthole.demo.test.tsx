@@ -54,4 +54,27 @@ describe("PortholeDemo", () => {
       vi.useRealTimers();
     }
   });
+
+  // An area verified once at mount, and never again, ages past a minute and past the 60s freshWithinMs on any page
+  // left open that long: its line would then read "verified a minute ago" where it once said "just now", exactly
+  // the kind of change a sweep's two takes, or a slow shard's dwell time, could split across (ourostack/ouro-ui#3021).
+  it("stays verified across a gap far past a minute and past freshWithinMs, with no tick in between, so a sweep's two takes agree", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      const host = render();
+      await act(async () => roots[0]!.render(<PortholeDemo />));
+      const spot = host.querySelector('[data-ouro-part="spot"]')!;
+
+      const first = state(host);
+      expect(first).not.toBe("unknown");
+
+      await act(async () => vi.advanceTimersByTime(90_000));
+      await act(async () => spot.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" })));
+      await act(async () => vi.advanceTimersByTime(300));
+
+      expect(state(host)).toBe(first);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

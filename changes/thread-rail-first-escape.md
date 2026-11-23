@@ -1,0 +1,1 @@
+- Fixed: Escape on `ThreadRail`'s close button closes the rail on the first press, instead of first dismissing the button's tooltip.

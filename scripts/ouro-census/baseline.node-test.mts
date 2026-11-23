@@ -74,6 +74,14 @@ test("a CLI source's parser, kinds and claims are part of what can't be removed"
   deepEqual(checkSources([{ ...parser, kinds: "src/t.ts#U" }, entries], [parser, entries]).length, 1);
 });
 
+test("a declared-tools source's server is part of what can't be removed, since it names every door", () => {
+  const declared = { walker: "declared-tools", module: "mcp/shop.cjs", source: "mcp/tools.json", server: "shop" };
+  deepEqual(checkSources([declared], [declared]), []);
+  deepEqual(checkSources([{ ...declared, server: "store" }], [declared]), [
+    "declared-tools mcp/shop.cjs mcp/tools.json server shop: a walker source on the base branch is missing here. Fix: restore it in ax/census.config.json; removing a source makes its doors vanish from the count.",
+  ]);
+});
+
 test("a kind the base branch doesn't walk yet may join the baseline; a kind it walks may not grow", () => {
   const gaps = ["mcp:ask", "cli:up", "cli:down"];
   const base = { baseline: ["mcp:ask"], hasConfig: true, kinds: ["mcp"] };

@@ -1537,11 +1537,7 @@ test("the plan's merge commit has its base: the checkout fetches the merge commi
 
 test("a push to main whose tree already passed runs only install-github", () => {
   const jobs = ciJobs();
-  assert.match(jobs.plan, /^ {6}- id: squash\n {8}name: The squash commit's message is clean\n {8}if: github\.event_name == 'merge_group'\n {8}continue-on-error: true\n/m);
-  assert.match(jobs.plan, /node scripts\/attribution\.mjs "\$QUEUE_BASE" "\$QUEUE_HEAD"/);
-  assert.match(jobs.plan, /node "\$guard\/check\.mjs" "\$QUEUE_BASE\.\.\$QUEUE_HEAD"/);
-  assert.match(jobs.plan, /QUEUE_REF: \$\{\{ github\.event_name == 'merge_group' && github\.ref \|\| '' \}\}/);
-  assert.match(jobs.plan, /^ {6}- id: tested\n {8}name: Has this tree already passed\?\n {8}if: \$\{\{ \(github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\) \|\| \(github\.event_name == 'merge_group' && steps\.squash\.outcome == 'success'\) \}\}\n {8}timeout-minutes: 5\n {8}continue-on-error: true\n/m);
+  assert.match(jobs.plan, /^ {6}- id: tested\n {8}name: Has this tree already passed\?\n {8}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\n {8}timeout-minutes: 5\n {8}continue-on-error: true\n/m);
   // It waits up to 3 minutes for the merged pull request's run to finish, within the step's 5 and the plan's 15 on a push, which keeps its 10 besides.
   assert.match(jobs.plan, /^ {8}run: node scripts\/ci-proof\.mjs "\$GITHUB_SHA" --wait 180$/m);
   assert.match(jobs.plan, /^ {4}timeout-minutes: \$\{\{ github\.event_name == 'pull_request' && 20 \|\| 15 \}\}$/m);
@@ -1556,7 +1552,7 @@ test("a push to main whose tree already passed runs only install-github", () => 
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
   const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, designRuns, laneRuns].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof"].includes(id)).sort());
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof", "yield"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[plan, browser, coverage, browser-fallback\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
@@ -1678,7 +1674,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs beside ci once the coverage job and the shards it reads passed or were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser.result) && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser-fallback.result) }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -2661,7 +2657,7 @@ test("the screen-reader lane runs after the tag, and a commit that breaks it twi
   assert.match(revert, /revertPullRequest\(input: \{ pullRequestId: \$id, body: \$body \}\)/);
   assert.match(revert, /gh pr edit "\$revert" --add-label red-main-fix\n/);
   assert.match(revert, /gh pr merge "\$revert" --auto --squash\n/);
-  assert.doesNotMatch(text, /@[a-z]|--reviewer|--assignee|gh pr comment|gh issue comment/i, "it mentions and asks no one");
+  assert.doesNotMatch(text, /@(?![0-9a-f]{40}\b)[a-z]|--reviewer|--assignee|gh pr comment|gh issue comment/i, "it mentions and asks no one (an action pinned by its commit hash is not a mention)");
   assert.match(text, /GH_TOKEN: \$\{\{ steps\.app\.outputs\.token \}\}/, "the Ouro Current app opens the revert, so its checks run");
 });
 

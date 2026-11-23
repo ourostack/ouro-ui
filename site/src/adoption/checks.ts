@@ -1,19 +1,19 @@
 import type { Ledger, LedgerCell, Previous, Surface } from "./ledger";
 
 /*
- * The page's reading of the ledger: for each product, its four checks and, for each one that is not met, one short line
+ * The page's reading of the ledger: for each product, its five checks and, for each one that is not met, one short line
  * saying what is missing and where that came from. It reads only what the ledger says. A check is "met" only when the
  * ledger's own condition is met, "unmeasured" when the measurement behind it has no value, and "na" when the ledger says
  * the check does not apply; anything else is "missing".
  */
 
-export type CheckKey = "current" | "census" | "must" | "gaveBack";
+export type CheckKey = "current" | "hx" | "census" | "must" | "gaveBack";
 export type CheckState = "met" | "missing" | "unmeasured" | "na";
 
-export const CHECK_KEYS: readonly CheckKey[] = ["current", "census", "must", "gaveBack"];
+export const CHECK_KEYS: readonly CheckKey[] = ["current", "hx", "census", "must", "gaveBack"];
 
 /** The column headings: one or two words each, the ledger's own label being the long form. */
-export const CHECK_SHORT: Record<CheckKey, string> = { current: "Current", census: "Census", must: "AX must", gaveBack: "Gave back" };
+export const CHECK_SHORT: Record<CheckKey, string> = { current: "Current", hx: "HX", census: "Census", must: "AX must", gaveBack: "Gave back" };
 
 export const STATE_WORD: Record<CheckState, string> = { met: "passes", missing: "missing", unmeasured: "not measured yet", na: "does not apply" };
 
@@ -67,6 +67,17 @@ function current(surface: Surface): Omit<Check, "key" | "label"> {
 
 const orList = (items: readonly string[]): string => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items.at(-1)}`);
 
+/** Ouro HX in full: a product with screens builds them from Ouro HX; `partial` or `none` leaves hand-built screens. */
+function hx(surface: Surface): Omit<Check, "key" | "label"> {
+  const cell = surface.cells.hx;
+  if (surface.conditions.hx.met && cell.value !== "n/a") return { state: "met", why: null, source: cell.source };
+  if (cell.value === "n/a") return { state: "na", why: reason(cell, "does not apply"), source: cell.source };
+  if (cell.value === null) return { state: unmeasuredOrNa(cell), why: unmeasured(cell), source: cell.source };
+  // The note says what was counted, such as "12 installed Ouro components; 30 files import them; …": its first part is enough.
+  const counted = (cell.note ?? "").split(";")[0]!.trim();
+  return { state: "missing", why: cell.value === "none" ? "Screens don't use Ouro HX yet" : `HX in part${counted ? `: ${counted.replace(/\.$/, "")}` : ""}`, source: cell.source };
+}
+
 function census(surface: Surface): Omit<Check, "key" | "label"> {
   const cell = surface.cells.census;
   if (surface.conditions.census.met) return { state: "met", why: null, source: cell.value?.run ?? cell.source };
@@ -81,6 +92,14 @@ function census(surface: Surface): Omit<Check, "key" | "label"> {
   return { state: "missing", why: "The census finds nothing to count", source: run };
 }
 
+/** The first claim-set problem the ledger found, said short: an unreleased claim set, a newer one adding claims, or no release to check against. */
+function claimSetWhy(problems: string[]): string {
+  const [first = ""] = problems;
+  if (/local or branch build/.test(first)) return "X-ray's claim set isn't from an Ouro UI release";
+  if (/ adds /.test(first)) return "A newer Ouro UI claim set adds claims its X-ray doesn't check";
+  return "X-ray's claim set can't be checked against a release";
+}
+
 function must(surface: Surface): Omit<Check, "key" | "label"> {
   const cell = surface.cells.xray;
   if (surface.conditions.must.met) return { state: "met", why: null, source: cell.value?.run ?? cell.source };
@@ -88,7 +107,9 @@ function must(surface: Surface): Omit<Check, "key" | "label"> {
     const xrayMissing = !PRIVATE.test(cell.note ?? "") && /x-ray/i.test(cell.note ?? "");
     return { state: unmeasuredOrNa(cell), why: unmeasured(cell, xrayMissing ? "X-ray doesn't run in CI yet" : undefined), source: cell.source, ...(xrayMissing ? { generic: true } : {}) };
   }
-  const { must: total, mustHolding, run } = cell.value;
+  const { must: total, mustHolding, run, missingSurfaces = [], claimSetProblems = [] } = cell.value;
+  if (missingSurfaces.length) return { state: "missing", why: `X-ray doesn't check its ${orList(missingSurfaces)} doors yet`, source: run ?? cell.source };
+  if (claimSetProblems.length) return { state: "missing", why: claimSetWhy(claimSetProblems), source: run ?? cell.source };
   if (total === 0) return { state: "missing", why: "Must claims not written yet", source: run ?? cell.source };
   return { state: "missing", why: `${total - mustHolding} of ${plural(total, "must claim")} fail`, source: run ?? cell.source };
 }
@@ -100,9 +121,9 @@ function gaveBack(surface: Surface): Omit<Check, "key" | "label"> {
   return { state: "missing", why: "Nothing given back yet", source: cell.source, generic: true };
 }
 
-const READERS: Record<CheckKey, (surface: Surface) => Omit<Check, "key" | "label">> = { current, census, must, gaveBack };
+const READERS: Record<CheckKey, (surface: Surface) => Omit<Check, "key" | "label">> = { current, hx, census, must, gaveBack };
 
-const CELL_OF: Record<CheckKey, keyof Surface["cells"]> = { current: "pins", census: "census", must: "xray", gaveBack: "giveBack" };
+const CELL_OF: Record<CheckKey, keyof Surface["cells"]> = { current: "pins", hx: "hx", census: "census", must: "xray", gaveBack: "giveBack" };
 
 /** A check the ledger counts as held because it does not apply (the upstream's give-back, AX on a site with no agent interface). */
 function notApplicable(surface: Surface, key: CheckKey): Omit<Check, "key" | "label"> | null {
@@ -111,7 +132,7 @@ function notApplicable(surface: Surface, key: CheckKey): Omit<Check, "key" | "la
   return { state: "na", why: reason(cell, "does not apply"), source: cell.source };
 }
 
-/** A product's four checks, in the page's column order. */
+/** A product's five checks, in the page's column order. */
 export function checksOf(surface: Surface): Check[] {
   return CHECK_KEYS.map((key) => ({ key, label: surface.conditions[key].label, ...(notApplicable(surface, key) ?? READERS[key](surface)) }));
 }

@@ -5,7 +5,7 @@ import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRe
 import type { ClipboardEvent, FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { RichEditor, RichEditorHandle } from "@/registry/ouro/components/ouro/composer/composer-parts";
-import { composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
+import { composerDrafts, composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiTextToTokens } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
@@ -103,8 +103,11 @@ export interface ComposerOwnProps {
   /** The starting text, for an uncontrolled composer, which clears itself after a send. */
   defaultValue?: string | undefined;
   /**
-   * Which conversation this box writes to, such as its id. An uncontrolled composer starts over from `defaultValue` when it
-   * changes, so a draft stays in its own conversation; a controlled one is the app's to reset.
+   * Which conversation this box writes to, such as its id. An uncontrolled composer keeps the unsent draft of a conversation in
+   * memory, so it is back when the person returns, and shows `defaultValue` for one with no draft; it holds a bounded number of
+   * drafts, and a controlled one is the app's to keep and reset.
+   *
+   * @claim "An uncontrolled composer keeps the unsent draft of a conversation in memory, so it is back when the person returns, and shows `defaultValue` for one with no draft; it holds a bounded number of drafts, and a controlled one is the app's to keep and reset." registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer drafts > gives a draft back when the person returns to its conversation)
    */
   conversation?: string | undefined;
   /** Called with the new text when it changes. */
@@ -183,14 +186,22 @@ export interface ComposerOwnProps {
    * `EmojiText` draws as its images. That includes an emoji joined from others and one with a
    * skin tone, which become the catalogue's emoji or tone for it; an emoji the catalogue does
    * not list stays as it is. The caret lands after what went in, and one undo takes it out.
+   * In `format="rich"` the box draws a token as the emoji's picture and the value stays the token.
    *
    * @claim "goes in as its `:shortcode:` token" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer with a catalogue > puts a typed emoji in as its token, with the caret after it, in one step undo takes out)
    * @claim "or pasted goes in as its" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer with a catalogue > puts pasted emoji in as their tokens, including joined and toned ones, and leaves those it does not list)
    */
   catalogue?: EmojiCatalogue | undefined;
-  /** Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. */
+  /**
+   * Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. In `format="rich"` the ranges are indexes into the Markdown `value`, which the box marks over the formatted text.
+   *
+   * @example
+   * ```tsx
+   * <Composer label="Message" format="rich" defaultValue="Meet at noon" highlights={[{ start: 8, end: 12, label: "Suggested time" }]} />
+   * ```
+   */
   highlights?: readonly TextAreaHighlight[] | undefined;
-  /** Called with the highlights moved to fit the text after the person edits it, as TextArea's. */
+  /** Called with the highlights moved to fit the text after the person edits it, as TextArea's; in rich mode the ranges stay Markdown indexes. */
   onHighlightsChange?: ((highlights: TextAreaHighlight[]) => void) | undefined;
   /**
    * The bigger box for a long message, as a chat app's format button opens: taller (`expandedRows`,
@@ -253,8 +264,8 @@ export interface ComposerOwnProps {
    * An `Autocomplete` around the composer works as around the plain box, for mentions and emoji
    * shortcodes: `ref` is the editor's element, which answers `value`, `selectionStart` and
    * `selectionEnd` over the text without its marks, and an input method's composition does not pick.
-   * Attachments show as they do on the plain box. In rich mode `highlights`, `catalogue`, `onPaste`
-   * and `pasteText` do not apply, and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
+   * Attachments show as they do on the plain box. In rich mode `onPaste`
+   * does not apply (`catalogue`, `highlights` and `pasteText` do: see their notes), and ⌘⇧X is strikethrough rather than expanding the box. Use `"plain"` (the default) for text only.
    *
    * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
    * @claim "as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code)
@@ -291,7 +302,11 @@ export interface ComposerOwnProps {
   editorRef?: Ref<ComposerEditor> | undefined;
   /**
    * Turns a paste into the box's text, such as formatted text into Markdown: return the text, or
-   * `undefined` for the browser's own paste.
+   * `undefined` for the browser's own paste. With `format="rich"` the text is Markdown, and it
+   * goes in as formatting before the clipboard's HTML reaches the allowlist.
+   *
+   * @example
+   * <Composer format="rich" pasteText={(data) => data.getData("text/plain").replace(/^/gm, "> ")} />
    */
   pasteText?: ((data: DataTransfer) => string | undefined) | undefined;
 
@@ -315,6 +330,7 @@ export interface ComposerOwnProps {
 export type ComposerProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, keyof ComposerOwnProps | "children"> & ComposerOwnProps;
 
 const sendKeys = ["enter", "mod-enter"] as const;
+const draftLimit = 50;
 
 // One frame for the whole composer, with the field's border and one focus outline while the
 // text has focus; the textarea inside draws neither.
@@ -542,11 +558,36 @@ export function Composer(props: ComposerProps): JSX.Element {
   const toolbar = expandable && !expanded ? undefined : toolbarProp;
   // Any other value is enter, as the default; expanded, Enter is a new line.
   const modEnter = expanded || sendOnProp === "mod-enter";
-  const [own, setOwn] = useState(defaultValue ?? "");
+  const [own, setOwn] = useState(() => composerDrafts.get(conversation) ?? defaultValue ?? "");
   const [ownConversation, setOwnConversation] = useState(conversation);
+  const kept = composerDrafts;
+  // The effect below fills it after every render, before any cleanup reads it.
+  const latest = useRef<{ conversation: string | undefined; own: string; defaultValue: string | undefined; controlled: boolean }>(undefined as never);
+  useEffect(() => {
+    latest.current = { conversation, own, defaultValue, controlled: value !== undefined };
+  });
+  // A composer that unmounts, such as the box of a conversation a phone leaves for the list, leaves its draft for the next one.
+  useEffect(
+    () => () => {
+      const { conversation: id, own: draft, defaultValue: initial, controlled } = latest.current;
+      if (id === undefined || controlled) return;
+      kept.delete(id);
+      if (draft !== "" && draft !== initial) kept.set(id, draft);
+      if (kept.size > draftLimit) kept.delete(kept.keys().next().value);
+    },
+    // Stryker disable next-line ArrayDeclaration: `kept` is the module's one store, so the dependency never changes.
+    [kept],
+  );
   if (conversation !== ownConversation) {
+    // The draft left behind waits for its conversation; the oldest of more than `draftLimit` are dropped.
+    // A box with no conversation has no draft to keep, and the store is shared with every other box.
+    if (ownConversation !== undefined) {
+      kept.delete(ownConversation);
+      if (own !== "") kept.set(ownConversation, own);
+      if (kept.size > draftLimit) kept.delete(kept.keys().next().value);
+    }
     setOwnConversation(conversation);
-    setOwn(defaultValue ?? "");
+    setOwn(kept.get(conversation) ?? defaultValue ?? "");
   }
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -783,6 +824,10 @@ export function Composer(props: ComposerProps): JSX.Element {
           {ActiveEditor ? (
             <ActiveEditor
               handleRef={richRef}
+              catalogue={catalogue}
+              highlights={highlights}
+              onHighlightsChange={onHighlightsChange}
+              pasteText={pasteText}
               label={label}
               value={text}
               onValueChange={change}
@@ -801,6 +846,13 @@ export function Composer(props: ComposerProps): JSX.Element {
               onSelect={rest.onSelect as FormEventHandler<HTMLDivElement> | undefined}
               onFocus={rest.onFocus as FocusEventHandler<HTMLDivElement> | undefined}
               onBlur={rest.onBlur as FocusEventHandler<HTMLDivElement> | undefined}
+              comboboxProps={{
+                role: rest["aria-autocomplete"] ? "combobox" : rest.role,
+                "aria-expanded": rest["aria-autocomplete"] ? !!rest["aria-controls"] : undefined,
+                "aria-autocomplete": rest["aria-autocomplete"],
+                "aria-controls": rest["aria-controls"],
+                "aria-activedescendant": rest["aria-activedescendant"],
+              }}
               data-slot="composer-rich"
               className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", expanded && "w-full flex-auto")}
             />

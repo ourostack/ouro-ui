@@ -26,7 +26,7 @@ jobs:
     steps:
       - id: app
         name: Sign in as the Ouro Current app
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           app-id: ${{ vars.OURO_CURRENT_APP_ID }}
           private-key: ${{ secrets.OURO_CURRENT_PRIVATE_KEY }}
@@ -43,10 +43,28 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node site/scripts/sync-storybook.mjs main
+      # Three sets of pictures are cut from the synced scenes, each with a test that fails until they are cut again:
+      # plan-ship (site/public/plan-ship/), the nemo egg's ships (site/public/eggs/) and the crew's faces
+      # (site/public/crew/). A sync that changes any scene recuts what went stale here and commits it with the art. It
+      # installs only sharp, at the version package.json pins, which is all these scripts import. The link-preview cards
+      # (og-cards.mts) need the site's Playwright Chromium, so they are not redrawn here.
+      - name: Recut the pictures cut from the scenes, when the scenes changed
+        run: |
+          if [ -n "$(git status --porcelain -- site/public/brand/storybook/scenes)" ]; then
+            version=$(node -p 'const p = require("./package.json"); (p.dependencies || {}).sharp || (p.devDependencies || {}).sharp')
+            npm install --silent --no-save --no-package-lock --prefix "$RUNNER_TEMP/sharp" "sharp@$version"
+            mkdir -p node_modules
+            for d in "$RUNNER_TEMP"/sharp/node_modules/*; do [ -e "node_modules/$(basename "$d")" ] || ln -s "$d" node_modules/; done
+            sources=$(sed -n '/^export const SOURCES = {/,/^}/p' site/scripts/plan-ship.mts | grep -oE '"site/[^"]+"' | tr -d '"')
+            if [ -n "$(git status --porcelain -- $sources)" ]; then node site/scripts/plan-ship.mts; fi
+            for script in nemo-ship crew-portraits; do
+              node "site/scripts/$script.mts" || node "site/scripts/$script.mts" --write
+            done
+          fi
       - id: changes
         name: See whether it changed
         run: |
-          if [ -z "$(git status --porcelain -- site/public/brand/storybook)" ]; then
+          if [ -z "$(git status --porcelain -- site/public/brand/storybook site/public/plan-ship site/public/eggs site/public/crew)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -61,7 +79,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -q -c "$BRANCH"
-          git add site/public/brand/storybook
+          git add site/public/brand/storybook site/public/plan-ship site/public/eggs site/public/crew
           git commit -q -m "$title"
           git push -q --force origin "$BRANCH"
           body="A brand merge changed art this site serves. Sync brand art copied it byte for byte with site/scripts/sync-storybook.mjs; this pull request merges once the required checks pass."

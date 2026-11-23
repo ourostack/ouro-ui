@@ -8,7 +8,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer, type ComposerEditor, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
-import { composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
+import { clearComposerDrafts, composerDrafts, composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
@@ -106,6 +106,139 @@ describe("Composer conversation", () => {
     await userEvent.type(view.textarea, "half a thought");
     await view.rerender(<Composer label="Message" conversation="b" onSend={() => {}} />);
     expect(view.textarea.value).toBe("");
+  });
+});
+
+describe("Composer drafts", () => {
+  // A composer unmounted by the test's cleanup leaves its draft, so the store is cleared before each test.
+  beforeEach(clearComposerDrafts);
+
+  it("gives a draft back to a composer that mounts again, as a phone does on its way back to a conversation", async () => {
+    const first = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    await userEvent.type(first.textarea, "half a thought");
+    await first.rerender(<div />);
+    const second = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    expect(second.textarea.value).toBe("half a thought");
+    const other = await render(<Composer label="Message" conversation="b" onSend={() => {}} />);
+    expect(other.textarea.value).toBe("");
+  });
+
+  it("stores nothing when a controlled box unmounts, and restores for an uncontrolled one on remount", async () => {
+    const first = await render(<Composer label="Message" conversation="c" onSend={() => {}} />);
+    await userEvent.type(first.textarea, "kept");
+    await first.rerender(<div />);
+    const controlled = await render(<Composer label="Message" conversation="c" defaultValue="kept" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    await controlled.rerender(<div />);
+    const again = await render(<Composer label="Message" conversation="c" defaultValue="other" onSend={() => {}} />);
+    expect(again.textarea.value).toBe("kept");
+  });
+
+  it("forgets a draft the person cleared, and leaves a controlled box and one with no conversation to the app", async () => {
+    const first = await render(<Composer label="Message" conversation="a" defaultValue="hi" onSend={() => {}} />);
+    await userEvent.clear(first.textarea);
+    await first.rerender(<div />);
+    expect((await render(<Composer label="Message" conversation="a" defaultValue="hi" onSend={() => {}} />)).textarea.value).toBe("hi");
+    const controlled = await render(<Composer label="Message" conversation="c" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    await controlled.rerender(<div />);
+    expect((await render(<Composer label="Message" conversation="c" onSend={() => {}} />)).textarea.value).toBe("");
+    const moving = await render(<Composer label="Message" onSend={() => {}} />);
+    await userEvent.type(moving.textarea, "stray");
+    await moving.rerender(<Composer label="Message" conversation="d" onSend={() => {}} />);
+    const other = await render(<Composer label="Message" conversation="e" onSend={() => {}} />);
+    await other.rerender(<Composer label="Message" onSend={() => {}} />);
+    expect(other.textarea.value).toBe("");
+    const bare = await render(<Composer label="Message" onSend={() => {}} />);
+    await userEvent.type(bare.textarea, "x");
+    await bare.rerender(<div />);
+    expect((await render(<Composer label="Message" onSend={() => {}} />)).textarea.value).toBe("");
+  });
+
+  it("gives a draft back when the person returns to its conversation", async () => {
+    const view = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    await userEvent.type(view.textarea, "half a thought");
+    await view.rerender(<Composer label="Message" conversation="b" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("");
+    await view.rerender(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    expect(view.textarea.value).toBe("half a thought");
+  });
+
+  it("gives a draft back in the rich editor", async () => {
+    const view = await render(<Composer label="Message" format="rich" conversation="a" onSend={() => {}} />);
+    const editor = () => view.host.querySelector<HTMLElement>('[contenteditable="true"]')!;
+    await expect.poll(editor).not.toBeNull();
+    await userEvent.type(editor(), "half a thought");
+    await view.rerender(<Composer label="Message" format="rich" conversation="b" onSend={() => {}} />);
+    await expect.poll(() => editor().textContent).toBe("");
+    await view.rerender(<Composer label="Message" format="rich" conversation="a" onSend={() => {}} />);
+    await expect.poll(() => editor().textContent).toBe("half a thought");
+  });
+
+  it("keeps only the most recent drafts, and counts a draft written again as recent", async () => {
+    const view = await render(<Composer label="Message" conversation="c0" onSend={() => {}} />);
+    // Set by the native setter, so filling fifty drafts costs no typing.
+    const write = (text: string) =>
+      act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(view.textarea, text);
+        view.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    const go = (id: string) => view.rerender(<Composer label="Message" conversation={id} onSend={() => {}} />);
+    await write("first");
+    await go("c1");
+    await write("second");
+    await go("c0");
+    await write("first again");
+    for (let i = 2; i <= 50; i++) {
+      await go(`c${i}`);
+      await write(`draft ${i}`);
+    }
+    await go("c51");
+    await go("c1");
+    expect(view.textarea.value).toBe("");
+    await go("c0");
+    expect(view.textarea.value).toBe("first again");
+  });
+
+  it("keeps fifty drafts left by unmounting boxes, and drops the oldest only when a fifty-first arrives", async () => {
+    const leave = async (id: string, text: string) => {
+      const view = await render(<Composer label="Message" conversation={id} onSend={() => {}} />);
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(view.textarea, text);
+        view.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await view.rerender(<div />);
+    };
+    const read = async (id: string) => (await render(<Composer label="Message" conversation={id} onSend={() => {}} />)).textarea.value;
+    for (let i = 0; i < 50; i++) await leave(`u${i}`, `draft ${i}`);
+    expect(composerDrafts.size).toBe(50);
+    expect(composerDrafts.get("u0")).toBe("draft 0");
+    await leave("u50", "draft 50");
+    expect(composerDrafts.size).toBe(50);
+    expect(composerDrafts.has("u0")).toBe(false);
+    expect(composerDrafts.get("u1")).toBe("draft 1");
+    expect(await read("u50")).toBe("draft 50");
+  });
+
+  it("counts a draft left again as recent, so rewriting the oldest protects it from eviction", async () => {
+    const leave = async (id: string, text: string) => {
+      const view = await render(<Composer label="Message" conversation={id} onSend={() => {}} />);
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(view.textarea, text);
+        view.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await view.rerender(<div />);
+    };
+    for (let i = 0; i < 50; i++) await leave(`r${i}`, `draft ${i}`);
+    await leave("r0", "rewritten");
+    await leave("r50", "newest");
+    expect(composerDrafts.get("r0")).toBe("rewritten");
+    expect(composerDrafts.has("r1")).toBe(false);
+    expect(composerDrafts.size).toBe(50);
+  });
+
+  it("leaves a controlled value to the app", async () => {
+    const view = await render(<Composer label="Message" conversation="a" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    await view.rerender(<Composer label="Message" conversation="b" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    expect(view.textarea.value).toBe("mine");
   });
 });
 
@@ -995,6 +1128,52 @@ describe("Composer expanded", () => {
     expect(onSend).toHaveBeenCalledWith("Hi @ma", expect.anything());
   });
 
+  it("leaves a rich composer's editor a multiline textbox with its placeholder without an Autocomplete, and a combobox with neither inside one", async () => {
+    const bare = await render(<Composer label="Bare rich" format="rich" placeholder="Say hi" onSend={() => {}} />);
+    await expect.poll(() => bare.host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    const plain = bare.host.querySelector<HTMLElement>("[data-ouro-composer-editor]")!;
+    expect(plain.getAttribute("role")).toBe("textbox");
+    expect(plain.getAttribute("aria-multiline")).toBe("true");
+    expect(plain.getAttribute("aria-placeholder")).toBe("Say hi");
+    expect(plain.hasAttribute("aria-expanded")).toBe(false);
+    expect(plain.hasAttribute("aria-autocomplete")).toBe(false);
+    const wrapped = await render(
+      <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "mara", label: "Mara Quill" }] }]}>
+        <Composer label="Wrapped rich" format="rich" placeholder="Say hi" onSend={() => {}} />
+      </Autocomplete>,
+    );
+    await expect.poll(() => wrapped.host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    const boxed = wrapped.host.querySelector<HTMLElement>("[data-ouro-composer-editor]")!;
+    expect(boxed.getAttribute("role")).toBe("combobox");
+    expect(boxed.hasAttribute("aria-multiline")).toBe(false);
+    expect(boxed.hasAttribute("aria-placeholder")).toBe(false);
+  });
+
+  it("gives a rich composer's editor the combobox attributes of an open and a closed suggestion list", async () => {
+    const { host } = await render(
+      <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "mara", label: "Mara Quill" }] }]}>
+        <Composer label="Reply rich" format="rich" onSend={() => {}} />
+      </Autocomplete>,
+    );
+    const find = () => host.querySelector<HTMLElement>("[data-ouro-composer-editor]");
+    await expect.poll(find).not.toBeNull();
+    const box = find()!;
+    expect(box.getAttribute("role")).toBe("combobox");
+    expect(box.getAttribute("aria-expanded")).toBe("false");
+    expect(box.getAttribute("aria-autocomplete")).toBe("list");
+    expect(box.hasAttribute("aria-controls")).toBe(false);
+    expect(box.hasAttribute("aria-activedescendant")).toBe(false);
+    box.focus();
+    await userEvent.keyboard("Hi @ma");
+    await expect.poll(() => box.getAttribute("aria-expanded")).toBe("true");
+    expect(document.getElementById(box.getAttribute("aria-controls")!)?.getAttribute("role")).toBe("listbox");
+    await expect.poll(() => box.getAttribute("aria-activedescendant")).toMatch(/\S/);
+    expect(document.getElementById(box.getAttribute("aria-activedescendant")!)?.getAttribute("role")).toBe("option");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => box.getAttribute("aria-expanded")).toBe("false");
+    expect(box.hasAttribute("aria-controls")).toBe(false);
+  });
+
   it("keeps the text, focus and the caret when it expands and collapses", async () => {
     const { textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
     textarea.focus();
@@ -1193,10 +1372,14 @@ describe("Composer formatting", () => {
     const onValueChange = vi.fn();
     const { textarea } = await render(<Composer label="Reply" formatting defaultValue="Ship it today" onValueChange={onValueChange} onSend={() => {}} />);
     textarea.focus();
-    // Selects two characters from `at` as a person does, with Shift and the arrow keys.
-    const select = async (at: number) => {
+    // Selects two characters from `at` as a person does, with Shift and the arrow keys, then holds the
+    // shortcut's modifiers, in one call: a round trip to the real browser is the cost worth cutting, not keystrokes.
+    const selectAndPress = async (at: number, keys: readonly string[]) => {
       textarea.setSelectionRange(at, at);
-      await userEvent.keyboard("{Shift>}{ArrowRight}{ArrowRight}{/Shift}");
+      const held = [mod(), ...keys.slice(0, -1).map((key) => ({ shift: "Shift", alt: "Alt" })[key]!)];
+      await userEvent.keyboard(
+        `{Shift>}{ArrowRight}{ArrowRight}{/Shift}${held.map((key) => `{${key}>}`).join("")}${keys.at(-1)}${held.reverse().map((key) => `{/${key}}`).join("")}`,
+      );
     };
     let before = "";
     for (const [keys, mark] of [
@@ -1206,8 +1389,7 @@ describe("Composer formatting", () => {
       [["alt", "x"], "~~"],
       [["shift", "c"], "`"],
     ] as const) {
-      await select(5);
-      await press(...keys);
+      await selectAndPress(5, keys);
       expect(marked(textarea), mark).toBe(`Ship ${mark}[it]${mark} today`);
       expect(onValueChange).toHaveBeenLastCalledWith(`Ship ${mark}it${mark} today`);
       await undo();
@@ -1216,8 +1398,7 @@ describe("Composer formatting", () => {
       await redo();
       expect(textarea.value, mark).toBe(`Ship ${mark}it${mark} today`);
       // The same key again takes the mark away.
-      await select(5 + mark.length);
-      await press(...keys);
+      await selectAndPress(5 + mark.length, keys);
       expect(marked(textarea), mark).toBe("Ship [it] today");
       before = mark;
     }

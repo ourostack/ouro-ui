@@ -17,6 +17,10 @@
 // renderers get a CPU reading over a second, once per browser (#2149): a renderer near 1 s is spinning, one near 0 is
 // hung. The fail exit waits for those lines for at most 8 s, and a page the reporter cannot read says why, so a hang
 // names what it was doing.
+// A page that does not answer at the warn check will not start answering by waiting out the rest of the five
+// minutes: #3064 and the sightings it names (#1316, #2149) each spent that wait on a page already confirmed
+// unresponsive. So once the warn-level read finds one, the reporter fails right there instead of waiting for
+// `failAfter`, cutting a confirmed hang's cost from five minutes idle to the length of the page read alone.
 import { relative, sep } from "node:path";
 import type { Reporter, ReportedHookContext, TestCase, TestModule, TestSpecification, TestSuite, Vitest } from "vitest/node";
 
@@ -747,7 +751,9 @@ export class StallReporter implements Reporter {
       process.stderr.write(`${report.text}\n`);
       if (!this.#pagesWarned) {
         this.#pagesWarned = true;
-        void this.#writePages();
+        void this.#writePages().then((hung) => {
+          if (hung && !this.#failing) this.#failFast();
+        });
       }
     }
     if (report.level === "fail" && !this.#failing) {
@@ -757,27 +763,44 @@ export class StallReporter implements Reporter {
     }
   }
 
+  /** Fails right away on the warn check's own evidence, instead of waiting out the rest of `failAfter`: a page that does not answer in 2 s is not going to start answering by waiting longer. */
+  #failFast(): void {
+    this.#failing = true;
+    process.stderr.write(
+      `[ouro-ui] Vitest: a page did not answer at the warn check, so failing now instead of waiting the rest of ${threshold(this.#options.failAfter)}: a page that does not answer will not answer later either.\n`,
+    );
+    this.#exit(1);
+  }
+
   /**
-   * Writes one line per browser page, read once the lookup has answered. Never throws: a lookup or read that
-   * does not finish within the diagnostic deadline, or fails, says so in a line instead.
+   * Writes one line per browser page, read once the lookup has answered, and reports whether any page did not
+   * answer at all. Never throws: a lookup or read that does not finish within the diagnostic deadline, or fails,
+   * says so in a line instead, and counts as no page confirmed unanswered (the reporter still waits for `failAfter`
+   * on an inconclusive read).
    */
-  async #writePages(): Promise<void> {
+  async #writePages(): Promise<boolean> {
     try {
       const states = await within(this.#readPages(), this.#diagnosticMs);
       if (states === TIMED_OUT) {
         process.stderr.write(`[ouro-ui] Vitest page state: the page lookup or a page read did not finish in ${threshold(this.#diagnosticMs)}.\n`);
-        return;
+        return false;
       }
+      let unanswered = false;
       for (const state of states) {
         if (state.kind === "cpu" || state.kind === "cpuNote") {
           process.stderr.write(`${browserStateText(state)}\n`);
           continue;
         }
         process.stderr.write(`${pageStateText(state)}\n`);
-        if (state.kind === "unanswered") process.stderr.write(`${stackText(state)}\n`);
+        if (state.kind === "unanswered") {
+          unanswered = true;
+          process.stderr.write(`${stackText(state)}\n`);
+        }
       }
+      return unanswered;
     } catch (error) {
       process.stderr.write(`[ouro-ui] Vitest page lookup failed: ${messageOf(error)}.\n`);
+      return false;
     }
   }
 

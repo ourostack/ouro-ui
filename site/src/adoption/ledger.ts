@@ -38,6 +38,12 @@ export interface XrayValue {
   app: string | null;
   reportAt: string;
   run: string;
+  /** The surfaces the reports check (`cli`, `mcp`, `tools`, `app-intents`). Ledgers before 2026-11-22 lack it. */
+  surfaces?: string[];
+  /** The surfaces the config lists for the product that no report checks: the must check fails while any is left. */
+  missingSurfaces?: string[];
+  /** Why the claim set its reports check doesn't count: unreleased, behind a newer one that adds a claim, or unreadable. */
+  claimSetProblems?: string[];
 }
 
 export interface Issue {
@@ -87,7 +93,7 @@ export interface Surface {
     giveBack: LedgerCell<number> & { prs: GiveBackPr[] };
     tracking: LedgerCell<Issue[]>;
   };
-  conditions: Record<"current" | "census" | "must" | "gaveBack", { label: string; met: boolean }>;
+  conditions: Record<"current" | "hx" | "census" | "must" | "gaveBack", { label: string; met: boolean }>;
   met: number;
   confirmed: boolean;
 }
