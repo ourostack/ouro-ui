@@ -199,6 +199,13 @@ describe("Item", () => {
     expect(item.classList.contains("group/item")).toBe(false);
   });
 
+  it("reveals its actions the same way with revealActions and no chevron, the row's non-link actions branch", async () => {
+    const { item } = await render(
+      <Item title="Lentil soup" actions={<Button variant="plain" size="sm">Edit</Button>} revealActions />,
+    );
+    expect(getComputedStyle(item.querySelector("[data-item-actions]")!).opacity).toBe("0");
+  });
+
   it("keeps the actions beside the text on a phone by default", async () => {
     await page.viewport(390, 844);
     const { item } = await render(<Item title="Bearer token" description="Created today" actions={<Button>Revoke</Button>} />);
@@ -272,6 +279,14 @@ describe("Item", () => {
     expect(title.top).toBeGreaterThanOrEqual(media.bottom);
     expect(save.top).toBeGreaterThanOrEqual(media.bottom);
     expect(save.left).toBeGreaterThan(title.right);
+    // With trailing actions the root reserves their column; without any it collapses to the one column.
+    expect(item.classList.contains("grid-cols-[minmax(0,1fr)_auto]")).toBe(true);
+  });
+
+  it("collapses mediaAbove=always to one grid column with no trailing actions or chevron", async () => {
+    const { item } = await render(<Item media={<img src={pixel} alt="" data-photo="" />} mediaAbove="always" title="Ribs" />);
+    expect(item.classList.contains("grid-cols-[minmax(0,1fr)]")).toBe(true);
+    expect(item.classList.contains("grid-cols-[minmax(0,1fr)_auto]")).toBe(false);
   });
 
   it("stacks the media and the actions together with mediaAbove and stackBelow", async () => {
