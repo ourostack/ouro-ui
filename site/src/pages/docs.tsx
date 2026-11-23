@@ -28,6 +28,9 @@ import shipComponents from "../docs/ship-components.json";
 import { SHIP_PAGES } from "../docs/ships";
 import itemSources from "../docs/sources.json";
 
+// Only the theming guide shows the looks, so the other pages' first JavaScript leaves them out.
+const ThemeDots = lazy(() => import("../voyage/theme-dots").then((module) => ({ default: module.ThemeDots })));
+
 // The prerender links each page's Tailwind sheet in its head, the shared shell or the whole build (site/scripts/prerender.mts).
 // The dev server has no prerender, so it loads the whole build here.
 if (import.meta.env.DEV) void import("../styles.css");
@@ -294,6 +297,14 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
       {prompt !== undefined && (
         <div className="mb-10">
           <CodeBlock code={prompt} label="Hand it to your agent" copy wrap />
+        </div>
+      )}
+      {/* The theming guide lets a reader try the site's looks in place: the row fits the column, so nothing opens. */}
+      {page.name === "theming" && (
+        <div className="mb-10">
+          <Suspense fallback={null}>
+            <ThemeDots label="Try a look" />
+          </Suspense>
         </div>
       )}
       <Markdown blocks={body} link={link} />

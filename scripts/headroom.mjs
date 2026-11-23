@@ -29,6 +29,21 @@ export function staleExemptions(exemptions, base = root) {
 
 const seconds = (ms) => `${(ms / 1000).toFixed(1)} s`;
 
+// Vitest names a browser project's tests with the browser in parentheses after the project's own
+// name (a project named "site" reports as "site (chromium)"), so an exemption naming an explicit
+// project has to carry that suffix or it never matches a real test name and silently stops working.
+/** The exemptions whose explicit (non-`*`) project name is missing Vitest's own `(browser)` suffix. */
+export function unsuffixedProjectExemptions(exemptions) {
+  return exemptions.flatMap(({ test }) => {
+    const file = test.match(/(\S+\.test\.(?:tsx?|mjs))/)?.[1];
+    if (!file) return [];
+    const project = test.slice(0, test.indexOf(file)).trim();
+    return project === "*" || /\s\([a-z]+\)$/.test(project)
+      ? []
+      : [`${test} in .github/headroom.json names the project "${project}", which Vitest never reports as is for a browser project. Fix: add the browser Vitest appends, such as "${project} (chromium)".`];
+  });
+}
+
 /** Whether an exemption names its test, a reason and an owner. */
 export const exemptionProblems = (exemptions) =>
   exemptions.flatMap((entry) =>
@@ -79,12 +94,12 @@ export const reportOnly = (event) => event !== undefined && event !== "" && even
 /**
  * Judges one run. `tests` are `{ name, file, durationMs, timeoutMs }`; on a pull request (`changed` set) only tests in
  * its changed files count. `failures` fail the run; on a report-only `event` a breach is a `warnings` annotation
- * (and one `breaches` line) instead, while a malformed or stale exemption fails everywhere.
+ * (and one `breaches` line) instead, while a malformed, stale or unsuffixed exemption fails everywhere.
  */
 export function judge({ tests, exemptions, event, changed }) {
   const judged = changed ? tests.filter(({ file }) => changed.has(file)) : tests;
   const breaches = headroomProblems(judged, exemptions).filter((problem) => !exemptionProblems(exemptions).includes(problem));
-  const failures = [...exemptionProblems(exemptions), ...staleExemptions(exemptions)];
+  const failures = [...exemptionProblems(exemptions), ...staleExemptions(exemptions), ...unsuffixedProjectExemptions(exemptions)];
   if (!reportOnly(event)) return { failures: [...failures, ...breaches], warnings: [], breaches: [] };
   return { failures, warnings: breaches.map((breach) => `::warning title=Headroom::${breach}`), breaches };
 }

@@ -15,3 +15,36 @@ html[data-live] [data-site-when="live"],
 html:not([data-theme]) [data-site-when="pearl"] {
   display: contents;
 }
+
+/*
+ * The header's ThemePicker button holds every choice's wordmark (data-shows); the one html[data-theme] (or
+ * html[data-live]) names shows, before hydration and after, as above.
+ */
+[data-presentation="popover"] [data-ouro-part="trigger"] [data-shows] {
+  display: none;
+}
+html[data-theme="pearl"]:not([data-live]) [data-presentation="popover"] [data-shows="pearl"],
+html[data-theme="abyss"] [data-presentation="popover"] [data-shows="abyss"],
+html[data-theme="brass"] [data-presentation="popover"] [data-shows="brass"],
+html[data-theme="chart"] [data-presentation="popover"] [data-shows="chart"],
+html[data-theme="coral"] [data-presentation="popover"] [data-shows="coral"],
+html[data-theme="cookbook"] [data-presentation="popover"] [data-shows="cookbook"],
+html[data-live] [data-presentation="popover"] [data-shows="live"],
+html:not([data-theme]) [data-presentation="popover"] [data-shows="pearl"] {
+  display: contents;
+}
+/* As tall as the header's links on a fine pointer. */
+@media (min-width: 40rem) {
+  [data-presentation="popover"] [data-ouro-part="trigger"] {
+    height: 2.25rem;
+  }
+}
+/* Sky (Live) is Pearl under the reader's sky: its wordmark (in the header's popover too, which is outside the picker) shows Pearl at dusk, flat, so it differs from Pearl's. */
+[data-preset="live"][data-theme="pearl"] {
+  --background: #fffaf3;
+  --primary: #a8521a;
+}
+.dark [data-preset="live"][data-theme="pearl"] {
+  --background: #0b0805;
+  --primary: #ffad5c;
+}

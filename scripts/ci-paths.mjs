@@ -27,6 +27,7 @@ export const scoped = [
     reason: "Ouro Current, which only the install test's current variant and the Node script tests run (install-check.mjs takes its stylesheet module); no browser shard, design shard or heavy job loads it",
   },
   { pattern: /^scripts\/ouro-census\//, tiers: [], components: false, reason: "the Ouro AX census, which only its Node script test (scripts/ouro-census.test.mjs) runs" },
+  { pattern: /^scripts\/ax-claim-sets\.(json|mjs)$/, tiers: [], components: false, reason: "the Ouro AX claim-set history, which only its Node script test and the adoption ledger read" },
   { pattern: /^scripts\/claims-urls\.json$/, tiers: [], components: false, reason: "the claim URL list, which only the Node script tests read" },
   { pattern: /^scripts\/model-reviews\//, tiers: ["screens"], components: false, reason: "the model reviews and their pages, which the Node script tests read and the site renders at install (#2600)" },
   {
@@ -66,7 +67,7 @@ export const runsAll = {
   ],
   test: [
     "__screenshots__/", "check-known.ts", "check-story.ts", "check-sweep.ts", "conformance/", "control-suite.tsx", "controls.ts", "fixtures/", "form-answer-fixture/",
-    "form-answer.config.ts", "form-answer.probe.tsx", "hide-native-corner-shape.ts", "honesty.ts", "incumbent-fixture/", "ax-standalone-fixture/", "install-fixture-next/", "install-fixture-tests/",
+    "form-answer.config.ts", "form-answer.probe.tsx", "hide-native-corner-shape.ts", "incumbent-fixture/", "ax-standalone-fixture/", "install-fixture-next/", "install-fixture-tests/",
     "install-fixture-themes/", "install-fixture-upgrade/", "install-fixture/", "mcp-app/", "motion.ts", "shadcn-stock.css", "slice-core.ts", "slice.ts", "stories.tsx",
     "story-axe.ts", "story-costs.json", "story-selection.ts", "theme-fixtures.ts", "theme-fixtures/", "themes/", "warm-stories.ts",
   ],
