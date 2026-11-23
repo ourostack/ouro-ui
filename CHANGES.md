@@ -1,0 +1,5 @@
+# Changes in this release
+
+- Fix: MessageList follows to the end when the reader's own message arrives while scrolled up, instead of leaving it below the fold
+- Fixed: Skeleton [no longer throws "node.getAnimations is not a function"](registry/ouro/components/ouro/skeleton/skeleton.test.tsx "verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > runs its correction frame without throwing where the DOM has no getAnimations, as in jsdom)") from a frame callback in jsdom, which has no Web Animations API, so an app's jsdom tests that render a Skeleton pass again.
+- Changed: ThemePicker's looks are the options of a listbox, selected by `aria-selected` where toggle buttons had `aria-pressed`; an app's own test finds a look with `getByRole("option")` ([test](registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx "verify:testExists(registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx::ThemePicker > is a listbox of options, so a screen reader gives each look's name, its place in the list and whether it is selected, and speaks a choice through that state alone)")).
