@@ -122,15 +122,15 @@ function Wordmark({ preset, size }: { preset: ThemePreset; size: keyof typeof ti
 }
 
 // The option is the tile's frame: no paint of its own, the page's ink as a flat ring with a gap of page paper while
-// chosen, and keyboard focus as an outline in the page's ring colour outside that. Forced colours draw the choice as
+// chosen, and keyboard focus as an outline in the page's ring colour 6px out, beyond the chosen ring, so a focused look never reads as the chosen one. Forced colours draw the choice as
 // a Highlight outline, since they drop box shadows.
 const optionClass =
   "press relative m-0 inline-flex shrink-0 cursor-pointer rounded-(--ouro-tp-r) border-0 bg-transparent p-0 text-start select-none " +
   "touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "outline-(--ouro-tp-ring) outline-offset-3 focus-visible:outline-2 focus-visible:outline-solid aria-pressed:outline-offset-6 " +
-  "aria-pressed:shadow-[0_0_0_2px_var(--ouro-tp-paper),0_0_0_4px_var(--ouro-tp-ink)] " +
+  "outline-(--ouro-tp-ring) outline-offset-6 focus-visible:outline-2 focus-visible:outline-solid " +
+  "aria-selected:shadow-[0_0_0_2px_var(--ouro-tp-paper),0_0_0_4px_var(--ouro-tp-ink)] " +
   "pointer-fine:hover:[--ouro-tp-edge:var(--ouro-tp-muted)] motion-safe:active:scale-(--ouro-press-scale) " +
-  "forced-colors:aria-pressed:outline-2 forced-colors:aria-pressed:outline-solid forced-colors:aria-pressed:outline-offset-2 forced-colors:aria-pressed:outline-[Highlight] " +
+  "forced-colors:aria-selected:outline-2 forced-colors:aria-selected:outline-solid forced-colors:aria-selected:outline-offset-2 forced-colors:aria-selected:outline-[Highlight] " +
   "forced-colors:focus-visible:outline-[CanvasText]";
 
 function Looks({
@@ -169,11 +169,12 @@ function Looks({
   };
   return (
     <div data-slot="theme-picker-looks" className={cn("grid gap-2", pageTokens)}>
-      <div data-slot="theme-picker-group" role="group" aria-label={label} onKeyDown={keyDown} className="flex flex-wrap gap-x-2 gap-y-2.5 p-1">
+      <div data-slot="theme-picker-group" role="listbox" aria-orientation="horizontal" aria-label={label} onKeyDown={keyDown} className="flex flex-wrap gap-x-2 gap-y-2.5 p-1">
         {presets.map((item) => (
           <button
             key={item.name}
             type="button"
+            role="option"
             data-slot="theme-picker-option"
             data-ouro-allow="nested-frame"
             data-ouro-allow-why="the chosen look's ring stands off its wordmark by a gap of page paper, marking the choice, not a second border"
@@ -181,7 +182,7 @@ function Looks({
             data-ouro-part="preset"
             data-preset={item.name}
             aria-label={item.label}
-            aria-pressed={item.name === value}
+            aria-selected={item.name === value}
             tabIndex={roving.tabIndex(item.name)}
             onClick={(event) => choose(item.name, event)}
             onPointerEnter={point(item.name)}
@@ -361,7 +362,7 @@ function StoredThemePicker(props: ThemePickerProps): JSX.Element {
 /**
  * The look chooser: each look's name in its own heading face and ink, on its own paper, ending in one flat square of
  * its primary, so the name is the specimen. The chosen look has a solid ring in the page's ink. The row is one Tab
- * stop, on the chosen look: the arrow keys, Home and End move focus along it, and a press chooses. With
+ * stop, on the chosen look: the arrow keys, Home and End move focus along it, and a press, Enter or Space chooses. The looks are the options of a listbox, so a screen reader gives their place in the list. With
  * `presentation="popover"` the looks sit behind a button that shows the chosen wordmark; Escape closes it and puts
  * focus back on the button, and on a touch screen a tap outside closes it without pressing what lies under the tap.
  * Resting the pointer or keyboard focus on a look repaints the page in it as a preview; leaving or Escape puts the
