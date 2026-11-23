@@ -997,6 +997,8 @@ describe("TimeGrid", () => {
     const clear = "rgba(0, 0, 0, 0)";
     for (const tinted of [...heads, ...columns]) expect(getComputedStyle(tinted).backgroundColor).not.toBe(clear);
     expect(getComputedStyle(heads[0]!).backgroundColor).not.toBe(getComputedStyle(heads[1]!).backgroundColor);
+    // Its parts carry their names (docs/guides/part-names.md).
+    for (const part of ["time-grid-mark-label", "time-grid-mark", "time-grid-mark-name"]) expect(grid.querySelectorAll(`[data-slot="${part}"]`)).toHaveLength(2);
     // Each tone tints in its own colour.
     const all = await render({ view: "week", markedDays: { "2026-03-09": { label: "a" }, "2026-03-10": { label: "b", tone: "secondary" }, "2026-03-11": { label: "c", tone: "success" }, "2026-03-12": { label: "d", tone: "warning" }, "2026-03-13": { label: "e", tone: "destructive" } } });
     const tints = [...all.grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")].map((column) => getComputedStyle(column).backgroundColor);
