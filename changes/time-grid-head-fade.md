@@ -1,0 +1,1 @@
+- Fixed: [TimeGrid no longer fades its sticky day header when scrolled; only the bottom edge fades](registry/ouro/components/ouro/time-grid/time-grid.test.tsx "verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > never fades its day header: scrolled down, only the bottom edge fades)").
