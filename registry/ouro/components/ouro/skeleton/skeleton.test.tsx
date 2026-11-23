@@ -353,9 +353,12 @@ describe("Skeleton", () => {
     const own = Object.getOwnPropertyDescriptor(Element.prototype, "getAnimations")!;
     // @ts-expect-error -- removed on purpose, to stand for a DOM that never had it.
     delete Element.prototype.getAnimations;
+    // jsdom has no CSSAnimation either, so the frame must not reach the instanceof check at all.
+    vi.stubGlobal("CSSAnimation", undefined);
     try {
       expect(() => pendingFrame!(performance.now())).not.toThrow();
     } finally {
+      vi.unstubAllGlobals();
       Object.defineProperty(Element.prototype, "getAnimations", own);
     }
   });
