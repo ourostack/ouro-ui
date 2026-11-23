@@ -362,7 +362,7 @@ function StoredThemePicker(props: ThemePickerProps): JSX.Element {
 /**
  * The look chooser: each look's name in its own heading face and ink, on its own paper, ending in one flat square of
  * its primary, so the name is the specimen. The chosen look has a solid ring in the page's ink. The row is one Tab
- * stop, on the chosen look: the arrow keys, Home and End move focus along it, and a press, Enter or Space chooses; a screen reader reads each look as an option of a list, with its place in it and whether it is selected. With
+ * stop, on the chosen look: the arrow keys, Home and End move focus along it, and a press, Enter or Space chooses. The looks are the options of a listbox, so a screen reader gives their place in the list. With
  * `presentation="popover"` the looks sit behind a button that shows the chosen wordmark; Escape closes it and puts
  * focus back on the button, and on a touch screen a tap outside closes it without pressing what lies under the tap.
  * Resting the pointer or keyboard focus on a look repaints the page in it as a preview; leaving or Escape puts the
