@@ -1,6 +1,6 @@
 # Installing
 
-Add `ouro-base` once per app, then add components; no later add changes your stylesheet or your test-tool versions. Every command below uses the newest release tag; the README's quick start has the same steps.[^release-tag] The code compiles with TypeScript 5.9.3 or newer; only `lib-claims` and `ouro-source-rules` need 6.0.3.[^typescript]
+Add `ouro-base` once per app, then add components; no later add changes your stylesheet or your test-tool versions. Every command below uses the newest release tag; the README's quick start has the same steps.[^release-tag] The code compiles with TypeScript 5.9.3 or newer, and new apps use TypeScript 7 (the install test's Vite app is on 7.0.2); only `lib-claims` and `ouro-source-rules` need 6.0.3.[^typescript]
 
 ## Start a new app
 

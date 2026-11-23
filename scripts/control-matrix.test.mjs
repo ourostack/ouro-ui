@@ -48,7 +48,7 @@ test("the matrices are written where they are read, never committed", () => {
   for (const file of files) assert.equal(git("check-ignore", "-q", "--no-index", file).status, 0, `${file} is not in .gitignore`);
   // Every Vitest run writes them before a test file imports them, and so does the type check.
   assert.match(readFileSync(join(root, "vitest.config.ts"), "utf8"), /^writeMatrices\(\);$/m);
-  assert.match(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts.typecheck, /^node scripts\/control-matrix\.mts && tsc /);
+  assert.match(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts.typecheck, /^node scripts\/control-matrix\.mts && node node_modules\/typescript7\/bin\/tsc /);
   const dir = scratch();
   const out = join(dir, "control-matrix.json");
   const motionOut = join(dir, "motion-matrix.json");
