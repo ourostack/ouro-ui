@@ -1,1 +1,1 @@
-- SettingsPage: the status line sits beside Save instead of under it, so the card has no empty band below the button.
+- SettingsPage: the status line moves into the row beside Save.
