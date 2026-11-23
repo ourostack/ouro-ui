@@ -58,5 +58,9 @@
   {
     "rule": "pointer-not-control",
     "summary": "A pointer cursor on an element that is no control and holds none: a person expects a press to do something, and a keyboard can't reach it."
+  },
+  {
+    "rule": "near-miss",
+    "summary": "Two separate surfaces, or a surface and the edge of the one it sits in, that are neither touching nor at least the minimum gap (--ouro-gap-min) apart."
   }
 ]

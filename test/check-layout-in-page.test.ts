@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { findLayoutIssues } from "@/registry/ouro/check/layout-check";
 
-// Ouro check's layout rules, off-screen, duplicate-control and stray-scrollbar, in a real browser: for each a page that
+// Ouro check's layout rules, off-screen, duplicate-control, stray-scrollbar and near-miss, in a real browser: for each a page that
 // fails it and the near misses that pass, and the opt-outs. scripts/check/check.test.mts runs the whole check on their
 // fixture pages.
 
@@ -144,5 +144,98 @@ describe("findLayoutIssues: stray-scrollbar", () => {
       <div style="height:120px;overflow:auto"><div data-ouro="message" style="height:123px">A message</div></div>`);
     expect(of("stray-scrollbar")).toEqual([]);
     expect(of("stray-scrollbar", { maxScroll: 300 }).map((issue) => issue.element).filter((element) => element !== "the page")).toEqual(['div "A real scroll"']);
+  });
+});
+
+describe("findLayoutIssues: near-miss", () => {
+  const box = (id: string, left: number, top: number, width: number, height: number, style = "background:#cde") =>
+    `<div id="${id}" style="position:fixed;left:${left}px;top:${top}px;width:${width}px;height:${height}px;box-sizing:border-box;${style}"></div>`;
+  const found = () => of("near-miss").map(({ element, detail }) => [element, detail.replace(/ apart.*$/, "")]);
+
+  it("finds two surfaces a few pixels apart, across and down, and a surface a few pixels inside the one around it", () => {
+    render(`${box("a", 10, 10, 60, 30)}${box("b", 74, 10, 60, 30)}${box("c", 10, 100, 60, 30)}${box("d", 10, 133, 60, 30)}`);
+    const issues = of("near-miss");
+    expect(issues.map(({ element, detail }) => [element, detail.replace(/ apart.*$/, "")])).toEqual([
+      ["div#a and div#b", "4px"],
+      ["div#c and div#d", "3px"],
+    ]);
+    expect(host.querySelector("#a")!.getAttribute("data-ouro-check-ref")).toBe(issues[0]!.ref);
+    expect(host.querySelector("#b")!.getAttribute("data-ouro-check-ref")).toBe(issues[0]!.ref);
+    expect(issues[0]!.detail).toBe("4px apart: more than 0 and under the 8px minimum gap, so neither touching nor clearly apart");
+    host.innerHTML = `<div id="card" style="position:fixed;left:10px;top:10px;width:200px;height:100px;box-sizing:border-box;border:2px solid #888;padding:3px 40px 40px 40px">${box("in", 0, 0, 60, 30).replace("position:fixed", "position:relative")}</div>`;
+    expect(found()).toEqual([["div#card and div#in", "3px"]]);
+    host.innerHTML = `<div id="card" style="position:fixed;left:10px;top:10px;width:200px;height:100px;box-sizing:border-box;background:#eee;padding:40px 40px 40px 5px"><div id="in" style="width:60px;height:30px;background:#cde"></div></div>`;
+    expect(found()).toEqual([["div#card and div#in", "5px"]]);
+    host.innerHTML = `<div id="card" style="position:fixed;left:10px;top:10px;width:200px;height:100px;box-sizing:border-box;background:#eee;padding:40px 5px 40px 40px"><div id="in" style="width:155px;height:30px;background:#cde"></div></div><div id="card2" style="position:fixed;left:10px;top:200px;width:200px;height:100px;box-sizing:border-box;background:#eee;padding:40px 40px 6px"><div id="in2" style="width:60px;height:54px;background:#cde"></div></div>`;
+    expect(found()).toEqual([
+      ["div#card and div#in", "5px"],
+      ["div#card2 and div#in2", "6px"],
+    ]);
+  });
+
+  it("finds a picture, an outlined box, a ringed one and a framed one as surfaces, and one finding for two cards with parts in them", () => {
+    render(`
+      <img id="p" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" style="position:fixed;left:10px;top:10px;width:60px;height:30px">
+      ${box("o", 74, 10, 60, 30, "outline:2px solid #888")}
+      ${box("r", 138, 10, 60, 30, "box-shadow:0 0 0 2px #888, inset 0 0 0 4px #fff")}
+      ${box("f", 202, 10, 60, 30, "border:1px solid #888")}`);
+    expect(found()).toEqual([
+      ["img#p and div#o", "4px"],
+      ["div#o and div#r", "4px"],
+      ["div#r and div#f", "4px"],
+    ]);
+    host.innerHTML = `
+      <div id="x" style="position:fixed;left:10px;top:10px;width:100px;height:80px;background:#eee"><div style="width:50px;height:30px;background:#cde"></div></div>
+      <div id="y" style="position:fixed;left:114px;top:10px;width:100px;height:80px;background:#eee"><div style="width:50px;height:30px;background:#cde"></div></div>`;
+    expect(found()).toEqual([["div#x and div#y", "4px"]]);
+  });
+
+  it("reads the minimum from the page's --ouro-gap-min, and the option's value where the page has none", () => {
+    render(`${box("a", 10, 10, 60, 30)}${box("b", 80, 10, 60, 30)}`);
+    expect(found()).toEqual([]);
+    expect(of("near-miss", { gapMin: 12 }).map((issue) => issue.detail)).toEqual(["10px apart: more than 0 and under the 12px minimum gap, so neither touching nor clearly apart"]);
+    document.documentElement.style.setProperty("--ouro-gap-min", "0.75rem");
+    try {
+      expect(found()).toEqual([["div#a and div#b", "10px"]]);
+      document.documentElement.style.setProperty("--ouro-gap-min", "4px");
+      expect(found()).toEqual([]);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-gap-min");
+    }
+  });
+
+  it("passes surfaces that touch, are a gap apart, overlap or nest, small and unfilled boxes, and the opted out", () => {
+    render(`
+      ${box("a", 10, 10, 60, 30)}${box("b", 70, 10, 60, 30)}
+      ${box("c", 10, 60, 60, 30)}${box("d", 78, 60, 60, 30)}
+      ${box("e", 10, 110, 60, 30)}${box("f", 40, 120, 60, 30)}
+      ${box("g", 10, 160, 60, 30)}${box("h", 74, 188, 60, 30)}
+      ${box("i", 10, 240, 12, 30)}${box("j", 25, 240, 60, 30)}
+      ${box("k", 10, 290, 60, 30, "background:transparent")}${box("l", 74, 290, 60, 30, "background:transparent")}
+      ${box("m", 10, 340, 60, 30, "border:1px solid transparent")}${box("n", 74, 340, 60, 30, "border:0 solid #888;border-left:1px solid #888")}
+      ${box("o", 10, 390, 60, 30, "outline:0 solid #888")}${box("p", 74, 390, 60, 30, "outline:2px solid transparent")}
+      ${box("q", 10, 440, 60, 30, "box-shadow:inset 0 0 0 2px #888")}${box("r", 74, 440, 60, 30, "box-shadow:0 0 0 0 #888")}
+      <p style="position:fixed;left:10px;top:540px;margin:0;width:200px"><span style="background:#cde;padding:4px 8px">An inline chip</span> <span style="background:#cde;padding:4px 8px">beside it</span></p>
+      <svg style="position:fixed;left:10px;top:590px" width="60" height="30"><rect width="60" height="30" fill="#cde"/></svg><svg style="position:fixed;left:74px;top:590px" width="60" height="30"><rect width="60" height="30" fill="#cde"/></svg>
+      <div hidden style="background:#cde;width:60px;height:30px"></div>
+      <div data-ouro-allow="near-miss" data-ouro-allow-why="a deliberate hairline" style="position:fixed;left:10px;top:640px;width:60px;height:30px;background:#cde"></div>${box("t", 74, 640, 60, 30)}
+      <div id="card" style="position:fixed;left:200px;top:10px;width:200px;height:100px;box-sizing:border-box;background:#eee;padding:0"><div style="width:60px;height:30px;background:#cde"></div><div style="margin:20px 0 0 8px;width:60px;height:30px;background:#cde"></div></div>`);
+    expect(found()).toEqual([]);
+  });
+
+  it("measures a fill against the page behind it, and passes a nested surface with room, for pages with nothing filled", () => {
+    const [root, body] = [document.documentElement, document.body];
+    const saved = [root.style.background, body.style.background];
+    root.style.background = body.style.background = "transparent";
+    try {
+      render(`${box("a", 10, 10, 60, 30)}${box("b", 74, 10, 60, 30)}`);
+      expect(found()).toEqual([["div#a and div#b", "4px"]]);
+    } finally {
+      [root.style.background, body.style.background] = saved;
+    }
+    host.innerHTML = `<div style="position:fixed;left:0;top:0;width:200px;height:100px;background:#eee;padding:10px"><div style="width:60px;height:30px;background:#cde"></div></div>`;
+    expect(found()).toEqual([]);
+    host.innerHTML = `<div style="position:fixed;left:0;top:0;width:200px;height:100px;background:#eee"><div style="width:60px;height:30px;background:#eee"></div></div>`;
+    expect(found()).toEqual([]);
   });
 });

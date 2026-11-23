@@ -53,10 +53,10 @@ describe("Ouro check", () => {
     assert.match(swap.taker.first, /^<(button|a)\b/);
     assert.match(swap.taker.rest, /^<(button|a)\b/);
     assert.ok(swap.gone.rest === null || /^<(button|a)\b/.test(swap.gone.rest));
-    assert.equal(result.shots.length, 108 * 2);
+    assert.equal(result.shots.length, 110 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 108);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 108 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.equal(report.pages.length, 110);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 110 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -110,7 +110,7 @@ describe("Ouro check", () => {
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
     assert.deepEqual(spots(merged.findings), spots(whole.findings));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 54);
+    assert.equal(merged.pages.length, 55);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });
