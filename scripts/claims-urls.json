@@ -343,6 +343,10 @@
     "status": 200,
     "checked": "2026-11-08"
   },
+  "https://github.com/ourostack/ouro-ui-apple/blob/29d041d01bbba2088fb8990a42d617bb31745eaa/README.md#whats-in-the-box": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
   "https://github.com/ourostack/ouro-ui-apple/blob/29d041d01bbba2088fb8990a42d617bb31745eaa/core-provenance.json": {
     "status": 200,
     "checked": "2026-11-23"
@@ -450,10 +454,6 @@
   "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#x-ray-your-apps-app-intents": {
     "status": 200,
     "checked": "2026-11-18"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/d8d336c19d3bc8216571d3163c596532130cc130/README.md#whats-in-the-box": {
-    "status": 200,
-    "checked": "2026-11-19"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md": {
     "status": 200,

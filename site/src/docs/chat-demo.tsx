@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type JSX, type ReactNode } from "react";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { ChatHeader, type ChatMember } from "@/registry/ouro/components/ouro/chat-header/chat-header";
@@ -11,6 +12,7 @@ import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 import { ReadReceipt } from "@/registry/ouro/components/ouro/read-receipt/read-receipt";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
+import { TrayArt } from "./tray-art";
 import { ThreadLayout } from "@/registry/ouro/components/ouro/thread-layout/thread-layout";
 import { ThreadRail } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
 import { TypingIndicator } from "@/registry/ouro/components/ouro/typing-indicator/typing-indicator";
@@ -120,6 +122,7 @@ function ChatDemo(): JSX.Element {
   const [threadOpen, setThreadOpen] = useState(false);
   const [typing, setTyping] = useState<string | null>(null);
   const [pendingLine, setPendingLine] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [seen, setSeen] = useState<{ chat: string; line: string } | null>(null);
   const timers = useRef<number[]>([]);
   const paneRef = useRef<HTMLDivElement | null>(null);
@@ -145,9 +148,10 @@ function ChatDemo(): JSX.Element {
     moved.current = null;
   }, [openId]);
 
-  const items: ConversationListItem[] = chats.map((chat) => ({ id: chat.id, title: chat.title, preview: chat.preview, time: chat.time, unread: chat.unread }));
+  const items: ConversationListItem[] = chats.map((chat) => ({ id: chat.id, title: chat.title, preview: chat.preview, time: chat.time, unread: chat.unread, draft: drafts[chat.id] ? drafts[chat.id] : undefined }));
 
   const send = (chatId: string, text: string, thread: boolean) => {
+    if (!thread) setDrafts((all) => ({ ...all, [chatId]: "" }));
     const line: Line = { id: `m${Date.now()}`, who: ME, own: true, time: "now", text: withMentions(text.replace(/ {2,}/g, " ").trim()) };
     setChats((all) => {
       const next = all.map((chat) => (chat.id !== chatId ? chat : thread ? { ...chat, replies: [...chat.replies, line] } : { ...chat, messages: [...chat.messages, line], preview: text, time: "now", unread: false }));
@@ -173,7 +177,7 @@ function ChatDemo(): JSX.Element {
       label="Conversations"
       items={items}
       selectedId={openId}
-      empty="Your conversations show up here once you start one."
+      empty="Start a conversation"
       onSelect={(id) => {
         if (id !== openId) {
           stopReplies();
@@ -235,7 +239,7 @@ function ChatDemo(): JSX.Element {
       </div>
       <div className="border-t border-border p-2">
         <Autocomplete triggers={triggers}>
-          <Composer conversation={open.id} label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onSend={(text) => send(open.id, text, false)} />
+          <Composer conversation={open.id} label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onValueChange={(text) => setDrafts((all) => ({ ...all, [open.id]: text.trim() }))} onSend={(text) => send(open.id, text, false)} />
         </Autocomplete>
       </div>
     </div>
@@ -261,13 +265,17 @@ function ChatDemo(): JSX.Element {
 
   const body =
     stage === "loading" ? (
-      <Moment kind="loading" title="Loading your conversations" />
+      <div className="grid h-full place-items-center">
+        <Moment kind="loading" title="Loading your conversations" />
+      </div>
     ) : stage === "empty" ? (
       <div className="grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]">
-        <div className="border-e border-border p-2">
-          <ConversationList label="Conversations" items={[]} empty="Your conversations show up here once you start one." onSelect={() => {}} />
+        <div className="border-e border-border p-2 max-md:hidden">
+          <ConversationList label="Conversations" items={[]} empty={<span className="block py-10 text-center">Conversations appear here</span>} onSelect={() => {}} />
         </div>
-        <Moment kind="empty" title="Nothing here yet" description="Messages you send and receive show up here." />
+        <div className="grid place-items-center">
+          <Moment kind="empty" art={<TrayArt />} title="Nothing here yet" description="Messages you send and receive show up here." action={<Button onClick={() => setStage("ready")}>Start a conversation</Button>} />
+        </div>
       </div>
     ) : (
       <div className="group/app grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]" data-pane={open ? "chat" : "list"}>
