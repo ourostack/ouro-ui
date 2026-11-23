@@ -20,5 +20,18 @@ export const ListDetail: Story = { render: () => <ListDetailPage /> };
 /** The numbers that matter in cards, a chart of the last months and a table of recent activity. */
 export const Dashboard: Story = { render: () => <DashboardPage /> };
 
-/** A settings form the browser validates, with a confirmation before the destructive action. */
-export const Settings: Story = { render: () => <SettingsPage /> };
+const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * A settings form the browser validates, with a confirmation before the destructive action. It starts with a made-up
+ * account and takes a moment to save, so the first Save shows the busy and saved states instead of only errors.
+ */
+export const Settings: Story = {
+  render: () => (
+    <SettingsPage
+      initial={{ name: "Ada Lovelace", email: "ada@example.com", language: "en", notifications: true }}
+      onSave={() => pause(800)}
+      onDelete={() => pause(800)}
+    />
+  ),
+};
