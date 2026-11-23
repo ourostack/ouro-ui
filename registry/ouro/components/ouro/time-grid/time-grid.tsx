@@ -268,7 +268,7 @@ export interface TimeGridOwnProps {
    */
   renderDaySummary?: ((day: string) => ReactNode) | undefined;
   /**
-   * Days to mark, such as the days someone is out of office or a public holiday: each ISO date to
+   * Days to mark, such as the days someone is out of office or a public holiday: an ISO date maps to
    * the words that say why, and a tone (primary unless you give one). A marked day's column takes the
    * tone's tint from its header to its last hour, and shows the words under the weekday; screen
    * readers hear them with the day.
@@ -1009,7 +1009,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               </span>
               <span className="truncate text-xs text-muted-foreground group-data-today/day:font-medium group-data-today/day:text-foreground">{formats.weekdayShort.format(utcDate(day))}</span>
               </span>
-              {markOf(day) ? <span data-ouro-time-grid-mark="" className="block truncate px-2 pb-1 text-xs text-muted-foreground @max-[4.5rem]/day:px-0.5">{markOf(day)!.label}</span> : null}
+              {markOf(day) ? <span data-ouro-time-grid-mark="" data-slot="time-grid-mark-label" className="block truncate px-2 pb-1 text-xs text-muted-foreground @max-[4.5rem]/day:px-0.5">{markOf(day)!.label}</span> : null}
             </div>
           ))}
           {renderDaySummary ? (
@@ -1075,8 +1075,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                   </>
                 )}
                 {markOf(day) ? (
-                  <div data-ouro-time-grid-mark="" className={cn("pointer-events-none absolute inset-0", markOf(day)!.tint)}>
-                    <span className="sr-only">{`${formats.fullDay.format(utcDate(day))}, ${markOf(day)!.label}`}</span>
+                  <div data-ouro-time-grid-mark="" data-slot="time-grid-mark" className={cn("pointer-events-none absolute inset-0", markOf(day)!.tint)}>
+                    <span data-slot="time-grid-mark-name" className="sr-only">{`${formats.fullDay.format(utcDate(day))}, ${markOf(day)!.label}`}</span>
                   </div>
                 ) : null}
                 {onSlotSelect ? (
