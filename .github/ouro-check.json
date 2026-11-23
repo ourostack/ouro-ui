@@ -3,6 +3,9 @@
     "**": {
       "off-scale": "A rule new on this site: its hand-tuned rem spacing reports without failing while it moves to Tailwind's spacing steps."
     },
+    "/docs/patterns/": {
+      "failed-request": "The pattern previews are frames of Storybook, which Pages serves at /storybook/ beside the site; the check serves only the site's build, so each frame's address answers 404 here and 200 on the live site. A renamed or removed story is caught by the site test that points each preview at a story that exists (site/src/site.test.tsx)."
+    },
     "/docs/message/": {
       "nested-frame": "The squircle radii are 1.5 times larger, so the message demo's quote block, a small block inside a large bubble, nests at 23px by the rule; its radius stays small and the quote bar is a 4px pill."
     },
