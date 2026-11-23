@@ -49,13 +49,14 @@ const viewportClass =
  * moves the toast with `translate`, which adds to this `transform` and is not in the
  * transition, so it follows the finger at once. A swiped toast (`data-ouro-swiped`)
  * fades on the way it was thrown; a toast closed any other way fades where it is, shrinking a
- * little, and the ones behind it glide into its place: sliding out past its edge, a fanned-out
- * toast crossed every toast in front of it. With reduced motion nothing slides or springs: toasts fade in and out where they are.
+ * little, and the ones behind it glide into its place. With reduced motion nothing slides or
+ * springs: toasts fade in and out where they are.
  * A toast swipes away toward its edge (down at the bottom, up at the top) as well as sideways, so
  * it takes every touch gesture (`touch-none`, not `touch-pan-y`): otherwise a swipe on a
  * scrollable page scrolls the page, and the browser cancels the swipe.
  *
  * @internal
+ * @claim "a toast closed any other way fades where it is" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::swiping > fades a swiped toast on the way it was thrown, and a closed one where it is, shrinking a little)
  * @claim "A toast swipes away toward its edge" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > puts the newest toast first in the page, where F6 then Tab reaches it, then each older one)
  * @claim "A toast swipes away toward its edge" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::the swipe follows the finger (rule 12) > goes back to rest when the browser cancels the touch, however far out it was)
  * @claim "A toast swipes away toward its edge" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::pausing > pauses while the pointer is over the toasts, and resumes after)
