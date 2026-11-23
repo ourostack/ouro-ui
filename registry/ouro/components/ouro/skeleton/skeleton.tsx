@@ -182,6 +182,7 @@ function useBreathes(shimmer: boolean): { breathes: boolean; style: CSSPropertie
       callbacksRef.current.set(index, callback);
     }
     return callback;
+    // Stryker disable next-line ArrayDeclaration: not equivalent in syntax but unobservable here; the literal's content never changes between renders, so React's length-and-shallow-equal dependency check treats a non-empty constant array exactly like an empty one, and registerNode stays memoized forever either way.
   }, []);
   // A layout effect, so a placeholder past the limit is still, and one that breathes is on the wave, on its first frame.
   useLayoutEffect(() => {
