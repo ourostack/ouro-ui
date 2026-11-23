@@ -229,12 +229,14 @@ describe("NavigationRail", () => {
     for (const link of rail.items) expect(link.getBoundingClientRect().height).toBe(44);
   });
 
-  it("keeps each item's edge under forced colours, and the current item's bar in the highlight colour", async () => {
-    const { items: links } = await render(<NavigationRail label="Main" items={items} currentPath="/chat" />);
+  it("keeps the rail's own edge under forced colours, with an item drawing none of its own, and the current item's bar in the highlight colour", async () => {
+    const { nav, items: links } = await render(<NavigationRail label="Main" items={items} currentPath="/chat" />);
+    expect(parseFloat(getComputedStyle(nav).borderTopWidth)).toBe(0);
     expect(parseFloat(getComputedStyle(links[0]!).borderTopWidth)).toBe(0);
     await commands.emulateMedia({ forcedColors: "active" });
-    await expect.poll(() => parseFloat(getComputedStyle(links[0]!).borderTopWidth)).toBeGreaterThan(0);
-    expect(getComputedStyle(links[0]!).borderTopStyle).toBe("solid");
+    await expect.poll(() => parseFloat(getComputedStyle(nav).borderTopWidth)).toBeGreaterThan(0);
+    expect(getComputedStyle(nav).borderTopStyle).toBe("solid");
+    expect(parseFloat(getComputedStyle(links[0]!).borderTopWidth)).toBe(0);
     const bar = links[1]!.querySelector<HTMLElement>('[data-ouro-part="indicator"]')!;
     const highlight = document.createElement("span");
     highlight.style.backgroundColor = "Highlight";

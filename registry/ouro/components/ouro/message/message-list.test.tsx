@@ -939,6 +939,44 @@ describe("MessageList", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("keeps the space held above the floor while a hidden pane is shown nothing, until it settles once shown again", async () => {
+    function Wrap({ items, hidden }: { items: Item[]; hidden: boolean }) {
+      return (
+        <div style={{ display: hidden ? "none" : "block" }}>
+          <Chat items={items} />
+        </div>
+      );
+    }
+    const items = history(20, 10);
+    const { host, scroller, rerender } = await render(<Wrap items={items} hidden={false} />);
+    await settle(scroller);
+    const floorMark = host.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;
+    expect(floorMark.style.display).toBe("block");
+    await rerender(<Wrap items={items} hidden={true} />);
+    expect(floorMark.style.display).toBe("block");
+  });
+
+  it("reaches the true end, with no Jump to latest, once an app shows the list again after a message arrived while it was display: none", async () => {
+    // A pane an app puts away behind something else (a thread open over a narrow conversation) hides the list with
+    // display: none, under which the scroller reads all zeros: a message arriving then must not be lost once it shows again.
+    function Wrap({ items, hidden }: { items: Item[]; hidden: boolean }) {
+      return (
+        <div style={{ display: hidden ? "none" : "block" }}>
+          <Chat items={items} />
+        </div>
+      );
+    }
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Wrap items={items} hidden={false} />);
+    await settle(scroller);
+    await rerender(<Wrap items={items} hidden={true} />);
+    await rerender(<Wrap items={[...items, { id: 999, role: "assistant", text: "A mention arrives" }]} hidden={true} />);
+    await rerender(<Wrap items={[...items, { id: 999, role: "assistant", text: "A mention arrives" }]} hidden={false} />);
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
   it("stays at a message an app scrolls to as the first messages arrive, instead of following to the newest", async () => {
     const items = history(30);
     const { scroller } = await render(<Found windowing={false} items={[]} />);

@@ -174,6 +174,9 @@ function hasEdge(control: Element): boolean {
     if (shown(node) && edged(node)) return true;
     if (node === root) break;
   }
+  // A plain button or toggle (role="button") draws its own edge on hover and focus, as a ghost
+  // action does on every platform: it needs no edge of its own, or an app frame's, at rest.
+  if (controlRole(control) === "button" && control.closest('[data-variant="plain"]')) return true;
   // A field with `variant="plain"` sits in a frame the app draws around it (a composer's box, a
   // search bar's rules), which forced colours keep: the root's parent or grandparent. A plain
   // button stays edgeless at any state, matching a ghost action elsewhere (#3103).
