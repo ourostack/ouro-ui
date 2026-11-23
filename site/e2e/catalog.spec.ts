@@ -410,6 +410,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   writeReport("closure", sizes);
   const verdict = judgeSizes(sizes, { mode: gateMode(), base: readBase("closure") });
   for (const line of verdict.lines) console.log(`script-size-gate ${line}`);
+  for (const tip of verdict.tips) console.log(`::warning title=Pull request tips a size ceiling::${tip}`);
   expect(verdict.failures, "each page's initial JavaScript, gzip bytes").toEqual([]);
   // The voyage has a Tailwind build of its own (site/src/voyage/voyage-tailwind.css), without the
   // registry components and site files it never renders: it loads none of the docs' stylesheets but
