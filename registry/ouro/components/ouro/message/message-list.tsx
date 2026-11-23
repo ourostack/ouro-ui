@@ -2162,6 +2162,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const tops = useRef(new Map<string, { top: number; size: number }>());
   // How many messages each child drawn holds: a child that starts the conversation holds none.
   const counts = useRef(new Map<string, number>());
+  // Slots a resize observer has caught changing box since the list last read them fresh: read again, leaving the rest at
+  // their cached size. Set from the observer's own callback, which also asks for a sync, so a slot's new size is read the
+  // same frame the observer reports it, never a frame late; cleared once a sync reads it fresh.
+  const dirtySlots = useRef(new Set<string>());
+  // The children each slot held when the list last read it fresh, by key: a slot whose children changed (one grouped in,
+  // or gone) is read fresh too, since a child only starts reporting its size to the observer below once observed, and a
+  // brand new child can already carry its settled size by the time this reads it.
+  const watchedChildren = useRef(new Map<string, Element[]>());
+  // What each slot's box is found by: a slot itself draws none of its own (`display: contents`), so this watches its
+  // children, the boxes `extentOf` reads. Created once; the listener effect below disconnects it. Every sync re-observes
+  // the children currently drawn, which is how a brand new one starts being watched; observing one already watched asks
+  // the browser for nothing new.
+  const slotWatch = useRef<ResizeObserver | null>(null);
   // What the window last read, so a render that changed none of it (the app drawing again as someone types) reads no layout.
   const synced = useRef<{ keys: readonly string[]; band: Band | null; measured: Measured; reach: Reach | null; windowed: boolean } | null>(null);
   useLayoutEffect(() => {
@@ -2199,14 +2212,39 @@ export function MessageList(props: MessageListProps): JSX.Element {
         const moved = new Map<string, number>();
         for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) {
           const key = slot.getAttribute(SLOT)!;
-          const { top, size } = extentOf(slot);
-          // Only a child that draws a box has a place to find the others by.
-          if (size > 0) found.set(key, { top: top - contentTop, size });
+          const children = [...slot.children];
+          for (const child of children) slotWatch.current?.observe(child);
+          const before = watchedChildren.current.get(key);
+          const regrouped = before === undefined || before.length !== children.length || before.some((child, index) => child !== children[index]);
+          watchedChildren.current.set(key, children);
+          const cached = measured.heights.get(key);
+          // Only a child that draws a box has a place to find the others by, and only its top is ever read: until one is
+          // found, each slot is read fresh, so that one's top is real, never the placeholder a cached entry carries.
+          const fresh = found.size === 0 || bucketMoved || cached === undefined || regrouped || dirtySlots.current.has(key);
+          if (fresh) {
+            const { top, size } = extentOf(slot);
+            if (size > 0) found.set(key, { top: top - contentTop, size });
+            cacheRef.current.set(`${key}\0${bucket}`, size);
+            if (measured.heights.get(key) !== size) moved.set(key, size);
+            dirtySlots.current.delete(key);
+          } else {
+            // Nothing a resize observer caught, and nothing regrouped, since the last fresh read: the cached size still holds.
+            if (cached! > 0) found.set(key, { top: NaN, size: cached! });
+            cacheRef.current.set(`${key}\0${bucket}`, cached!);
+          }
           counts.current.set(key, topItems(slot).length);
-          cacheRef.current.set(`${key}\0${bucket}`, size);
-          if (measured.heights.get(key) !== size) moved.set(key, size);
         }
         tops.current = found;
+        {
+          // A slot gone draws no box to watch, and holds no place in the sync that follows.
+          const present = new Set(keys);
+          for (const [key, children] of watchedChildren.current) {
+            if (present.has(key)) continue;
+            for (const child of children) slotWatch.current?.unobserve(child);
+            watchedChildren.current.delete(key);
+            dirtySlots.current.delete(key);
+          }
+        }
         if (bucketMoved || moved.size > 0) {
           // The heights of children gone are forgotten.
           const present = new Set(keys);
@@ -2434,8 +2472,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const resized = new ResizeObserver(() => windowSync.current!(false));
     resized.observe(scroller);
     resized.observe(content);
+    const slots = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const key = (entry.target as Element).closest(`[${SLOT}]`)?.getAttribute(SLOT);
+        if (key != null) dirtySlots.current.add(key);
+      }
+      windowSync.current!(false);
+    });
+    slotWatch.current = slots;
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer), cancelAnimationFrame(dripping.current));
+    return () => (resized.disconnect(), slots.disconnect(), slotWatch.current === slots && (slotWatch.current = null), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer), cancelAnimationFrame(dripping.current));
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);

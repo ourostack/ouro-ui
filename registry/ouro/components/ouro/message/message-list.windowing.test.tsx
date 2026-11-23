@@ -1173,6 +1173,40 @@ describe("MessageList windowing", () => {
     expect(await read).toBeLessThanOrEqual(1);
   });
 
+  it("holds the reader's place once a row above the view grows with nothing in the list mutated at all, as a font load finishing would (#2863)", async () => {
+    const items = conversation(60).map((item) => ({ ...item, tall: 100 }));
+    const { scroller } = await render(<Chat items={items} springy={false} style={{ height: 400, width: 360 }} />);
+    await scrollTo(scroller, 3000);
+    const reading = firstVisible(scroller);
+    const aboveId = `m${Number(reading.message.id.slice(1)) - 2}`;
+    // A stylesheet alone grows one row above the view, as a font swap or an image settling its size would: nothing under
+    // content is touched, so none of the list's own mutation observers see anything happen.
+    const style = document.createElement("style");
+    style.textContent = `#${aboveId} { min-height: 240px; }`;
+    document.head.append(style);
+    onTestFinished(() => style.remove());
+    await expect.poll(() => Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("reads a row's box again only once a resize observer reports it changed, leaving one beside it unresized at its cached size, over a scroll that shifts the window (#2863)", async () => {
+    const { scroller } = await render(<Chat items={conversation(200)} />);
+    await scrollTo(scroller, 1200);
+    const untouched = messages(scroller)[Math.floor(messages(scroller).length / 2)]!;
+    const real = Element.prototype.getBoundingClientRect;
+    let reads = 0;
+    const spy = vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      // extentOf is the only call windowSync's row-by-row measurement makes; keepAnchor also reads boxes to find where the
+      // reader is, for a wholly different reason, so only a read from extentOf's own stack counts here.
+      if (this === untouched && new Error().stack?.includes("extentOf")) reads++;
+      return real.call(this);
+    });
+    onTestFinished(() => spy.mockRestore());
+    // A scroll that shifts the drawn window, as a long scroll through short rows does often, with nothing resized.
+    await scrollTo(scroller, scroller.scrollTop + 160);
+    expect(document.contains(untouched)).toBe(true);
+    expect(reads).toBe(0);
+  });
+
   /** Lets the wheel rest at the top, and waits until the list has taken it: the mark that held the scroll range while it turned goes. */
   async function restWheel(scroller: HTMLElement, clock: { now: number }) {
     const floor = scroller.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;
