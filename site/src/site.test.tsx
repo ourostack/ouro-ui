@@ -114,7 +114,7 @@ describe("home page", () => {
       const heading = document.querySelector<HTMLElement>(".site-voyage-hero h1")!;
       const dot = document.querySelector<HTMLElement>('[data-site-hero-paint] button[aria-label="Chart"]')!;
       await userEvent.click(dot, { force: true });
-      await expect.poll(() => dot.getAttribute("aria-pressed")).toBe("true");
+      await expect.poll(() => dot.getAttribute("aria-selected")).toBe("true");
       await finishReveal();
       await document.fonts.ready;
       await frame();
