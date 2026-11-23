@@ -910,6 +910,23 @@ describe("Carousel motion", () => {
     await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
     expect(onIndexChange).toHaveBeenCalledTimes(1);
   });
+
+  it("stops listening for scrollend once unmounted, so a late event settles nothing", async () => {
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    const { viewport } = screen;
+    await userEvent.click(screen.button("Next slide"));
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
+    await act(async () => roots.pop()!.unmount());
+    // A scrollend reaching the viewport after unmount must find no listener left behind.
+    viewport.dispatchEvent(new Event("scrollend"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onIndexChange).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("Carousel development messages", () => {
