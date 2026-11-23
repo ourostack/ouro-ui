@@ -605,6 +605,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-time fill before the first paint, as live-captions.demo.tsx's does
     if (formatMode === "rich" && richModule) setRich({ Editor: richModule.RichEditor, focus: rest.autoFocus === true });
     // Only the warm cache at this mount is read here; a later format change or a cold load is the effect below's job.
+    // Stryker disable next-line ArrayDeclaration: a literal, always-empty dependency array compares equal to itself on every render regardless of its content, so this effect runs once on mount either way.
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,BlockStatement: loading the editor in plain mode changes nothing a person or a test can read, as richOn below also needs the rich format.

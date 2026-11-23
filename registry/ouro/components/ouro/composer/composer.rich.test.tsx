@@ -1,4 +1,5 @@
 import { createRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -78,6 +79,24 @@ describe("Composer rich mode", () => {
     await act(() => root.render(rich({ placeholder: "Write a message" })));
     expect(host.querySelector("textarea")).toBeNull();
     expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+  });
+
+  it("draws the editor within the same commit as the warm mount, before the usual async load could ever run", async () => {
+    // A render anywhere on the page warms the module cache the layout effect below reads from.
+    await render(rich());
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    // flushSync forces the synchronous layout effect to commit without giving the later, async
+    // effect a chance to resolve first, so this catches a plain-then-swap flash the eventual
+    // state alone cannot: the async effect would draw the same editor a tick later regardless.
+    flushSync(() => root.render(rich({ placeholder: "Write a message" })));
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    // Let the later effect settle before the next test unmounts this root.
+    await act(async () => {});
   });
 
   it("carries the caret over when the person was already typing in the plain box", async () => {
