@@ -35,6 +35,7 @@ import { Card } from "@/registry/ouro/components/ouro/card/card";
   description="A dry pan and patience"
   revealDescription="rise"
 />
+<Card href="/recipes/1" title="Weeknight dinners" variant="plain" size="sm" titleSize="inherit" />
 ```
 
 ## Usage
@@ -69,6 +70,7 @@ Type: `CardProps`.
 | `size` | `"sm" \| "md"` | `"md"` | Padding: `md` is 24px, `sm` 16px for dense grids. |
 | `stackBelow` | `"sm" \| "md"` |  | Below this breakpoint the `action` drops under the title and description, as in a settings panel on a phone. Without it the action stays beside the title at every width. |
 | `title` | `ReactNode` |  | The card's title, as a heading. With `href` it is the link's text, so a linked card needs one. |
+| `titleSize` | `"inherit"` | sized from Card's own `size` | `inherit` sizes the title from the surrounding text instead of `size`'s own type-scale step, at semibold: a link preview drawn as a card inside a chat bubble, at the bubble's own text size, reads as heavy as the messages around it otherwise. |
 | `variant` | `"outline" \| "plain"` | `"outline"` | `outline` is a bordered surface in the theme's card colors; `plain` has no frame or padding, for a card's structure inside a surface of your own. |
 | `zoomMedia` | `boolean` |  | With `href` and `media`: the media's pictures (`img` and `video`) grow by 3% while the pointer rests on the card or keyboard focus is in it, over `--ouro-duration-base` on `--ouro-ease-out`, inside the media's frame, so the card's shape and size never change. With reduced motion they hold still. Nothing fades. |
 

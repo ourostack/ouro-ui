@@ -11,7 +11,7 @@ import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode, InlinePath } from "../components/code";
 import { CatalogPreview } from "../components/catalog-preview";
 import { DocsShell } from "../components/docs-shell";
-import { PatternPreview, patternStories, type PatternName } from "../components/pattern-preview";
+import { patternStories, type PatternName } from "../components/pattern-names";
 import { SurpriseMe } from "../components/surprise-me";
 import type { SceneName } from "../storybook";
 import { DemoFrame, DemoStage } from "../components/phone-demo";
@@ -31,6 +31,8 @@ import itemSources from "../docs/sources.json";
 
 // Only the theming guide shows the looks, so the other pages' first JavaScript leaves them out.
 const ThemeDots = lazy(() => import("../voyage/theme-dots").then((module) => ({ default: module.ThemeDots })));
+// Only the patterns guide draws a pattern live, so the other pages' first JavaScript leaves the frame's code out.
+const PatternPreview = lazy(() => import("../components/pattern-preview").then((module) => ({ default: module.PatternPreview })));
 
 // The prerender links each page's Tailwind sheet in its head, the shared shell or the whole build (site/scripts/prerender.mts).
 // The dev server has no prerender, so it loads the whole build here.
@@ -295,7 +297,11 @@ function PatternSections({ blocks, link }: { blocks: Block[]; link: (target: str
         return (
           <section key={index}>
             <Markdown blocks={section} link={link} />
-            {name in patternStories && <PatternPreview name={name as PatternName} />}
+            {name in patternStories && (
+              <Suspense fallback={null}>
+                <PatternPreview name={name as PatternName} />
+              </Suspense>
+            )}
           </section>
         );
       })}
