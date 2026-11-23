@@ -364,7 +364,7 @@ test("a pnpm i that fails is run once more: its warning and its retry are setup 
 
 test("the plan's yield to the merge queue is a wait for runners: the critical path and the work time leave it out, the runner time keeps it", () => {
   const plan = stepped("plan", [["Set up job", 0.5], ["Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", 0.5], ["Yield to the merge queue", 12], ["Run pnpm i --frozen-lockfile", 0.5], ["Plan the tests", 0.5]]);
-  assert.deepEqual(waitSteps.map(String), [String(/^Yield to the merge queue$/), String(/^Yield to main's screen-reader lane$/)]);
+  assert.deepEqual(waitSteps.map(String), [String(/^Yield to the merge queue$/), String(/^Yield to main's screen-reader lane$/), String(/^Yield to the default branch$/)]);
   assert.equal(heldSeconds(plan), 2 * 60);
   assert.equal(workSeconds(plan), 0.5 * 60);
   const graph = jobGraph(workflow);
@@ -374,6 +374,34 @@ test("the plan's yield to the merge queue is a wait for runners: the critical pa
   assert.equal(runnerTime(jobs, graph), (14 + 6 + 1) * 60);
   // ci.yml names the step as waitSteps reads it.
   assert.match(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"), /^ {6}- name: Yield to the merge queue$/m);
+});
+
+test("the yield job's wait for main's CI in the org's busy repositories is a wait for runners too: the critical path and the work time leave it out (#3272)", () => {
+  const graph = jobGraph(`name: CI
+jobs:
+  yield:
+    runs-on: ubuntu-latest
+  plan:
+    runs-on: ubuntu-latest
+  browser:
+    needs: [plan, yield]
+    strategy:
+      matrix:
+        shard: [1, 2]
+    name: browser (\${{ matrix.shard }}/2)
+  ci:
+    needs: [plan, browser]
+`);
+  // job 138063554227 on #3272 ran a single step, "Yield to the default branch", for 16 minutes; everything else was fast.
+  const yieldJob = stepped("yield", [["Set up job", 0], ["Yield to the default branch", 16], ["Complete job", 0]]);
+  assert.equal(heldSeconds(yieldJob), 0);
+  assert.equal(workSeconds(yieldJob), 0);
+  const jobs = [yieldJob, job("plan", 0, 0, 1), job("browser (1/2)", 16, 16, 20), job("browser (2/2)", 16, 16, 19), job("ci", 20, 20, 21)];
+  assert.deepEqual(criticalPath(jobs, graph).jobs.map((entry) => entry.name), ["plan", "browser (1/2)", "ci"]);
+  assert.equal(criticalPath(jobs, graph).seconds, (1 + 4 + 1) * 60);
+  assert.equal(criticalPath(jobs, graph, { work: true }).seconds, (1 + 4 + 1) * 60);
+  // ci.yml names the step as waitSteps reads it.
+  assert.match(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"), /^ {6}- name: Yield to the default branch$/m);
 });
 
 test("main's baseline carries the median work time of the same runs, once all of them recorded one, and the previous full run is the newest full, non-fallback record of the pull request's earlier runs", () => {

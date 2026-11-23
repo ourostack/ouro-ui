@@ -3,8 +3,8 @@
 //
 // - the critical path: the longest chain of jobs that wait on one another, each job counted from its
 //   start to its end (the slowest of a matrix's jobs), so time spent queued for a free runner does
-//   not count, nor the plan's yield to the merge queue (`waitSteps`), and the run's load on the
-//   shared runner pool cannot fail it;
+//   not count, nor the plan's yield to the merge queue or the yield job's wait for main's CI
+//   (`waitSteps`), and the run's load on the shared runner pool cannot fail it;
 // - the screen-reader lane's own critical path (`laneCriticalPath`), on its own summary line, judged
 //   against its own budget (`laneBudgetMinutes`; report-only while it is null), since the lane is
 //   left off the main path (`offPath`): nothing required sits outside every budget;
@@ -52,10 +52,12 @@ export const setupSteps = [/^Set up job$/, /^Run actions\/checkout@/, /^actions\
 
 /**
  * The steps that wait for runners rather than use one for the change: the plan's yield to the
- * merge queue (scripts/ci-yield.mjs). Like a queue for a free runner, their time is left out of the
- * critical path and the work time, and counted in the wall time and the runner time.
+ * merge queue (scripts/ci-yield.mjs) and the yield job's wait for main's CI in the org's busy
+ * repositories (ourostack/.github's tools/yield-to-default-branch). Like a queue for a free
+ * runner, their time is left out of the critical path and the work time, and counted in the wall
+ * time and the runner time.
  */
-export const waitSteps = [/^Yield to the merge queue$/, /^Yield to main's screen-reader lane$/];
+export const waitSteps = [/^Yield to the merge queue$/, /^Yield to main's screen-reader lane$/, /^Yield to the default branch$/];
 
 /** The seconds a job spent in `patterns`' steps. */
 const stepSeconds = (job, patterns) => (job.steps ?? []).filter((step) => patterns.some((pattern) => pattern.test(step.name))).reduce((total, step) => total + seconds(step.started_at, step.completed_at), 0);
