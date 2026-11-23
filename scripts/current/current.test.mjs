@@ -1565,6 +1565,17 @@ test("NuGet and Gradle pins of Ouro UI for Windows and Android move to the relea
     "",
   ].join("\n");
   assert.equal(await run("gradle", "gradle/libs.versions.toml", toml, "android"), toml.replace('ouro = "0.11.0"', 'ouro = "0.12.0"').replace('version = "0.10.0"', 'version = "0.12.0"'));
+  // A version in a variable moves where the file defines it, unless another package reads it too.
+  const property = '<PropertyGroup><Hx>0.11.0</Hx><Shared>0.11.0</Shared><Version>0.11.0</Version></PropertyGroup>\n<PackageReference Include="Ouro.UI.Windows" Version="$(Hx)" />\n<PackageReference Include="Ouro.Actions" Version="$(Shared)" />\n<PackageReference Include="Other" Version="$(Shared)" />';
+  assert.equal(await run("nuget", "App/App.csproj", property, "windows"), property.replace("<Hx>0.11.0", "<Hx>0.12.0"));
+  const buildProps = "<Project><PropertyGroup><OuroUIVersion>0.11.0</OuroUIVersion><Version>0.11.0</Version></PropertyGroup></Project>";
+  assert.equal(await run("nuget", "Directory.Build.props", buildProps, "windows"), buildProps.replace("<OuroUIVersion>0.11.0", "<OuroUIVersion>0.12.0"));
+  const variable = 'val hx = "0.11.0"\nval shared = "0.11.0"\nimplementation("bot.ouro.ui:ouro-hx:$hx")\nimplementation("bot.ouro.ui:ouro-actions:${shared}")\nimplementation("a.b:c:$shared")';
+  assert.equal(await run("gradle", "app/build.gradle.kts", variable, "android"), variable.replace('hx = "0.11.0"', 'hx = "0.12.0"'));
+  const ext = "ext {\n  ouroVersion = '0.11.0'\n}\nimplementation \"bot.ouro.ui:ouro-hx:$ouroVersion\"";
+  assert.equal(await run("gradle", "build.gradle", ext, "android"), ext.replace("0.11.0", "0.12.0"));
+  const properties = "org.gradle.jvmargs=-Xmx2g\nouroUiVersion=0.11.0\nkotlinVersion=0.11.0\n";
+  assert.equal(await run("gradle", "gradle.properties", properties, "android"), properties.replace("ouroUiVersion=0.11.0", "ouroUiVersion=0.12.0"));
 });
 
 test("a NuGet or Gradle update opens one pull request, and names a lock file holding the old package's hashes instead of writing it", async () => {
@@ -1578,6 +1589,9 @@ test("a NuGet or Gradle update opens one pull request, and names a lock file hol
   assert.equal(windows.fileAt(BRANCH, "src/App/packages.lock.json"), lock, "a lock file is never written");
   assert.equal(windows.fileAt("main", "src/App/App.csproj"), csproj, "the default branch is never written");
   assert.match(windows.pulls[0].body, /Leaves `src\/App\/packages\.lock\.json` as it is/);
+  const central = fakeRepo({ "Directory.Packages.props": '<PackageVersion Include="Ouro.UI.Windows" Version="0.11.0" />\n', "src/App/App.csproj": '<PackageReference Include="Ouro.UI.Windows" />\n', "src/App/packages.lock.json": lock });
+  await keepRepo(central.gh, "o/r", RELEASES, {});
+  assert.match(central.pulls[0].body, /Leaves `src\/App\/packages\.lock\.json` as it is/, "a central version names the lock files of the projects under it");
   assert.deepEqual(lintMarkdown(windows.pulls[0].body, { file: "pull request body" }), []);
 
   const kts = 'dependencies {\n    implementation("bot.ouro.ui:ouro-hx:0.11.0")\n    implementation("bot.ouro.ui:ouro-actions:0.11.0")\n}\n';

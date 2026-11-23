@@ -25,20 +25,27 @@ const PBXPROJ = new RegExp(String.raw`(repositoryURL = "${APPLE_URL}";\s*require
 const WORKFLOW_TAG = /(OURO_UI_TAG:\s*["']?)(v[0-9][0-9.]*)/g;
 
 // NuGet: a PackageReference (or a central PackageVersion) of a package ouro-ui-windows releases, with a plain version
-// in its Version or VersionOverride attribute or a <Version> child. A floating or ranged version is left alone.
+// in its Version or VersionOverride attribute or a <Version> child, or in an MSBuild property: one such a reference reads
+// as $(Name) in the same file, or one named Ouro…Version (Directory.Build.props), unless another package reads it too.
+// A floating or ranged version is left alone.
 const NUGET_FILE = /\.(?:csproj|fsproj|vbproj|props|targets)$/i;
 const NUGET_ID = /^Ouro\.(?:UI\.Windows(?:\.[A-Za-z0-9_]+)*|Actions)$/i;
 const NUGET_TAG = /<(PackageReference|PackageVersion)\b([^>]*?)(\/?)>/g;
 const PLAIN_VERSION = "[0-9]+(?:\\.[0-9]+)*";
+const escapeName = (name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const MSBUILD_OWN = new Set(["version", "versionprefix", "versionsuffix", "packageversion", "assemblyversion", "fileversion", "informationalversion"]);
 
 /** Each Ouro package reference in an MSBuild file, its version passed through `move`: the text it makes, and every reference's package and version. */
 function editNuget(text, move) {
   const found = [];
   let out = "";
   let last = 0;
+  const reads = { ouro: new Set(), other: new Set() };
   for (const match of text.matchAll(NUGET_TAG)) {
     const [whole, element, attributes, selfClosing] = match;
     const id = /\b(?:Include|Update)\s*=\s*"([^"]+)"/.exec(attributes)?.[1];
+    const body = selfClosing ? "" : text.slice(match.index + whole.length, Math.max(match.index + whole.length, text.indexOf(`</${element}>`, match.index + whole.length)));
+    for (const read of `${attributes}${body}`.matchAll(/\$\(([A-Za-z_][\w.-]*)\)/g)) (id && NUGET_ID.test(id.trim()) ? reads.ouro : reads.other).add(read[1]);
     if (!id || !NUGET_ID.test(id.trim())) continue;
     const attribute = new RegExp(String.raw`(\b(?:Version|VersionOverride)\s*=\s*")(${PLAIN_VERSION})(")`).exec(attributes);
     if (attribute) {
@@ -57,12 +64,26 @@ function editNuget(text, move) {
     out += text.slice(last, match.index) + whole + inner.replace(child[0], `${child[1]}${move(child[2])}${child[3]}`);
     last = close;
   }
-  return { text: out + text.slice(last), found };
+  out += text.slice(last);
+  const named = [...text.matchAll(/<(Ouro[\w.-]*Version)\b/gi)].map((match) => match[1]);
+  for (const name of new Set([...reads.ouro, ...named])) {
+    if (reads.other.has(name) || MSBUILD_OWN.has(name.toLowerCase())) continue;
+    const property = new RegExp(String.raw`(<${escapeName(name)}(?:\s[^>]*)?>\s*)(${PLAIN_VERSION})(\s*</${escapeName(name)}>)`, "g");
+    out = out.replace(property, (all, head, version, tail) => {
+      found.push({ id: `$(${name})`, version });
+      return `${head}${move(version)}${tail}`;
+    });
+  }
+  return { text: out, found };
 }
 
 // Gradle: a bot.ouro.ui coordinate in a build script or a version catalog, as "group:name:version", as a catalog's
 // module with its version, as group, name and version, or through a catalog's version.ref when only Ouro libraries use it.
-const GRADLE_FILE = /(?:\.gradle(?:\.kts)?|\.versions\.toml)$/;
+// A version in a variable moves where the same file defines it ("bot.ouro.ui:ouro-hx:$ouroVersion" with val, def or ext),
+// as does one named ouro…version in a build script or gradle.properties, unless another library reads it too.
+const GRADLE_FILE = /(?:\.gradle(?:\.kts)?|\.versions\.toml|(?:^|\/)gradle\.properties)$/;
+const GRADLE_VARIABLE_READ = /(["'])([A-Za-z0-9_.-]+):[A-Za-z0-9_.-]+:\$\{?([A-Za-z_]\w*)\}?\1/g;
+const OURO_VERSION_NAME = /^ouro[\w.-]*version$/i;
 const GRADLE_COORDINATE = new RegExp(String.raw`((["'])bot\.ouro\.ui:[A-Za-z0-9_.-]+:)(${PLAIN_VERSION})(\2)`, "g");
 const GRADLE_MODULE = new RegExp(String.raw`(\bmodule\s*=\s*"bot\.ouro\.ui:[A-Za-z0-9_.-]+"\s*,\s*version\s*=\s*")(${PLAIN_VERSION})(")`, "g");
 const GRADLE_PARTS = new RegExp(String.raw`(\bgroup\s*[:=]\s*(["'])bot\.ouro\.ui\2\s*,\s*name\s*[:=]\s*(["'])[A-Za-z0-9_.-]+\3\s*,\s*version\s*[:=]\s*(["']))(${PLAIN_VERSION})(\4)`, "g");
@@ -91,6 +112,19 @@ function editGradle(path, text, move) {
     .replace(GRADLE_COORDINATE, (all, head, quote, version, tail) => swap(head, version, tail))
     .replace(GRADLE_MODULE, (all, head, version, tail) => swap(head, version, tail))
     .replace(GRADLE_PARTS, (all, head, q1, q2, q3, version, tail) => swap(head, version, tail));
+  if (/(?:^|\/)gradle\.properties$/.test(path)) {
+    out = out.replace(new RegExp(String.raw`^([^\S\n]*([\w.-]+)[^\S\n]*[=:][^\S\n]*)(${PLAIN_VERSION})([^\S\n]*)$`, "gm"), (all, head, name, version, tail) => (OURO_VERSION_NAME.test(name) ? swap(head, version, tail) : all));
+  } else if (!path.endsWith(".versions.toml")) {
+    const reads = { ouro: new Set(), other: new Set() };
+    for (const match of text.matchAll(GRADLE_VARIABLE_READ)) (match[2] === "bot.ouro.ui" ? reads.ouro : reads.other).add(match[3]);
+    const named = [...text.matchAll(/\b(ouro\w*version)\b/gi)].map((match) => match[1]);
+    for (const name of new Set([...reads.ouro, ...named])) {
+      if (reads.other.has(name)) continue;
+      const n = escapeName(name);
+      const definition = new RegExp(String.raw`((?:\b(?:val|var|def)\s+|\bext\.|\bextra\[\s*"|\bset\(\s*"|^[^\S\n]*)${n}"?\s*(?:\]\s*)?(?::\s*String\s*)?(?:=|,)\s*(["']))(${PLAIN_VERSION})(\2)`, "gm");
+      out = out.replace(definition, (all, head, quote, version, tail) => swap(head, version, tail));
+    }
+  }
   if (path.endsWith(".versions.toml")) {
     const section = /^\[versions\][^\S\n]*\n([\s\S]*?)(?=^\[|(?![\s\S]))/m.exec(out);
     if (section) {
@@ -208,7 +242,7 @@ async function lockNotes(pin, ctx, release) {
   const paths = ctx.consumerPaths?.() ?? [];
   const locks =
     pin.kind === "nuget"
-      ? paths.filter((path) => posix.basename(path) === "packages.lock.json" && posix.dirname(path) === posix.dirname(pin.file))
+      ? paths.filter((path) => posix.basename(path) === "packages.lock.json" && (posix.dirname(pin.file) === "." || `${posix.dirname(path)}/`.startsWith(`${posix.dirname(pin.file)}/`)))
       : paths.filter((path) => /(^|\/)(gradle\.lockfile|verification-metadata\.xml)$/.test(path));
   const notes = [];
   for (const path of locks) {
