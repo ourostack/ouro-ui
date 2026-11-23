@@ -1,0 +1,10 @@
+{
+  "registry/ouro/components/ouro/collapsible/collapsible-styles.ts": "folded text fades out at its end; becomes a solid cut",
+  "registry/ouro/components/ouro/cover/cover.tsx": "the placeholder fill is a gradient; becomes a solid mix",
+  "registry/ouro/components/ouro/scroll-area/scroll-area.tsx": "scroll-edge fade mask; becomes a glass bar or nothing",
+  "registry/ouro/components/ouro/switch/switch-styles.ts": "the track's inner shade is a gradient; becomes solid",
+  "registry/ouro/components/ouro/tabs/tabs-styles.ts": "scroll-edge fade mask on a row of tabs; becomes nothing",
+  "registry/ouro/components/ouro/time-grid/time-grid.tsx": "scroll-edge fade mask on the hours; becomes nothing",
+  "registry/ouro/lib/ouro/scroll-fade.ts": "the shared scroll-edge fade mask; removed with its users",
+  "registry/ouro/theme/ouro-base.css": "reads the shared scroll-edge fade ramps; removed with them"
+}

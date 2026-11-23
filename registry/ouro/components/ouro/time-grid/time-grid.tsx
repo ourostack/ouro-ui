@@ -1067,7 +1067,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               <div key={day} className="relative min-w-0 border-0 border-s border-solid border-border">
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 [background-image:linear-gradient(to_bottom,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border)_50%,transparent)_1px,transparent_1px)] [background-position:0_0,0_calc(var(--ouro-time-grid-hour)/2)] [background-size:100%_var(--ouro-time-grid-hour)]"
+                  className="pointer-events-none absolute inset-0 [background-image:linear-gradient(to_bottom,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border)_50%,transparent)_1px,transparent_1px)] [background-position:0_0,0_calc(var(--ouro-time-grid-hour)/2)] [background-size:100%_var(--ouro-time-grid-hour)]" // gradient-ok: hard-stop hour lines, no blend
                 />
                 {off ? (
                   <div aria-hidden="true" data-ouro-time-grid-off="" className="pointer-events-none absolute inset-0 bg-[color-mix(in_oklab,var(--foreground)_4%,transparent)]" />
