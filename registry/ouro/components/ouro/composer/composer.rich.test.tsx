@@ -132,6 +132,15 @@ describe("Composer rich mode", () => {
     await expect.poll(() => seen.at(-1)).toBe("trailing word\\_!");
   });
 
+  // Every other trailing-underscore case here types a character after it (the "!" above), which gives unescapeSafeMarkText's `after` an actual value and leaves `after !== undefined` unable to tell "still escaped" from "a mutant that skips that check": replacing the whole value with one that still ends in the escaped underscore keeps it the exported string's own last character, the one case where `after` is truly undefined and the check's own return value is the only thing keeping the backslash.
+  it("keeps a trailing underscore in plain text escaped, where it is the exported string's own last character", async () => {
+    const seen: string[] = [];
+    const { editor } = await render(rich({ defaultValue: "trailing word_", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard("{Control>}a{/Control}Xtrailing word_");
+    await expect.poll(() => seen.at(-1)).toBe("Xtrailing word\\_");
+  });
+
   // Building a run's raw text this way, then round-tripping it out, puts an un-markdown-safe `_`/`~` in a star-spelled italic node without ever handing it back through the real importer or a live keystroke: either path reparses the text as Markdown and can read the character as a second mark's delimiter, which is exactly the ambiguity escapeMarkText's bare/escaped choice exists to settle on export, so the one way to pin the input is to set the node's content and state directly.
   function starItalicState(text: string) {
     return {
@@ -187,6 +196,18 @@ describe("Composer rich mode", () => {
     const lexical = (editor as unknown as { __lexicalEditor: { parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }).__lexicalEditor;
     await act(async () => lexical.setEditorState(lexical.parseEditorState(starItalicState("a_"))));
     await expect.poll(() => seen.at(-1)).toBe("*a\\_*");
+  });
+
+  // markState's own parse validates a deserialized `$.composerMark`, since nothing but "star" and "underscore" ever reaches the two places that read it back (both strict `===` checks): both a stale, hand-edited value and the parse's own default of null land the same way there (neither is "star" or "underscore"), so the two mark checks alone cannot tell a parse that normalizes an unknown value from one that passes it through unchanged. Lexical only drops a state from a node's exported JSON when it equals that state's own default (parse(undefined)), so if parse let an invalid value "slash" straight through instead of returning null, the exported state would still carry it after a round trip; parsing it down to null, the same as the array never having seen that run's mark at all, keeps the export clean.
+  it("normalizes an invalid deserialized mark state to null, not passing it through unchanged", async () => {
+    const { editor } = await render(rich());
+    const lexical = (
+      editor as unknown as { __lexicalEditor: { getEditorState(): { toJSON(): unknown }; parseEditorState(json: unknown): unknown; setEditorState(state: unknown): void } }
+    ).__lexicalEditor;
+    const state = starItalicState("wow");
+    (state.root.children[0].children[0].$ as { composerMark: string }).composerMark = "slash";
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(state)));
+    expect(JSON.stringify(lexical.getEditorState().toJSON())).not.toContain("slash");
   });
 
   // The bold counterpart of starItalicState above, for markState's other value: an underscore-spelled bold run's mark memory round-trips through the same deserialized `$: { composerMark: "underscore" }` the editor state JSON carries, not just through $restoreMarkMemory's own import-time marker scan.
