@@ -132,6 +132,35 @@ describe("Message", () => {
     expect(author.compareDocumentPosition(bubbleOf(message)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("names the article by its author and time, unless the app names it", async () => {
+    await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41">
+          Hello
+        </Message>
+        <Message role="assistant" name="Theo" time="9:42" aria-label="Theo says hi">
+          Hi
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43">
+          Hey
+        </Message>
+      </>,
+    );
+    await expect.element(page.getByRole("article", { name: /^Mara\s*,?\s*9:41$/ })).toBeVisible();
+    await expect.element(page.getByRole("article", { name: "Theo says hi" })).toBeVisible();
+    await expect.element(page.getByRole("article", { name: /^Ana\s*,?\s*9:43$/ })).toBeVisible();
+  });
+
+  it("keeps Sending out of the article's name while it is described as Sending", async () => {
+    const { message } = await render(
+      <Message role="user" variant="reply" name="Ana" time="9:43" pending>
+        Hey
+      </Message>,
+    );
+    await expect.poll(() => message.getAttribute("aria-describedby") && document.getElementById(message.getAttribute("aria-describedby")!)?.textContent).toBeTruthy();
+    await expect.element(page.getByRole("article", { name: /^Ana\s*,?\s*9:43$/ })).toBeVisible();
+  });
+
   it("puts the user's messages at the end in the primary color and others at the start", async () => {
     const { host } = await render(
       <>
