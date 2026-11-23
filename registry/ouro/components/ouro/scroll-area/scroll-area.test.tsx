@@ -294,6 +294,65 @@ describe("ScrollArea", () => {
     await expect.poll(() => viewport.tabIndex).toBe(-1);
   });
 
+  it("follows a disabled button turning enabled, with no resize", async () => {
+    const { viewport, area } = await render(
+      <ScrollArea className="h-40">
+        <button disabled>Go</button>
+        {tall}
+      </ScrollArea>,
+    );
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+    const button = area.querySelector("button")!;
+    await act(async () => {
+      button.disabled = false;
+    });
+    await expect.poll(() => viewport.tabIndex).toBe(-1);
+    await act(async () => {
+      button.disabled = true;
+    });
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+  });
+
+  it("follows a link gaining or losing its href, with no resize", async () => {
+    const { viewport, area } = await render(
+      <ScrollArea className="h-40">
+        <a>Go</a>
+        {tall}
+      </ScrollArea>,
+    );
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+    const link = area.querySelector("a")!;
+    await act(async () => {
+      link.setAttribute("href", "#top");
+    });
+    await expect.poll(() => viewport.tabIndex).toBe(-1);
+    await act(async () => {
+      link.removeAttribute("href");
+    });
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+  });
+
+  it("follows a tabindex added to or removed from plain content, with no resize", async () => {
+    const { viewport, area } = await render(
+      <ScrollArea className="h-40">
+        <div data-testid="probe" tabIndex={-1}>
+          Go
+        </div>
+        {tall}
+      </ScrollArea>,
+    );
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+    const div = area.querySelector('[data-testid="probe"]')!;
+    await act(async () => {
+      div.setAttribute("tabindex", "0");
+    });
+    await expect.poll(() => viewport.tabIndex).toBe(-1);
+    await act(async () => {
+      div.setAttribute("tabindex", "-1");
+    });
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+  });
+
   it("lets the page scroll on once the area reaches its end, unless contain is set", async () => {
     const { viewport } = await render(
       <ScrollArea className="h-40" label="Method">

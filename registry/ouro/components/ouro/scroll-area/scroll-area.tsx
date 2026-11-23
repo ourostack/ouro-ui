@@ -72,7 +72,8 @@ const viewports = {
 const verticalFade =
   "data-ouro-scroll-fade-y:[mask-image:linear-gradient(to_bottom,transparent,#000_min(var(--scroll-area-overflow-y-start),2rem),#000_calc(100%-min(var(--scroll-area-overflow-y-end),2rem)),transparent)]"; // fade-ok: fades a scrolling list of rows, not a picture
 
-const focusable = "a[href],button,input,select,textarea,summary,[tabindex]:not([tabindex='-1']),[contenteditable='true']";
+const focusable =
+  "a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,[tabindex]:not([tabindex='-1']),[contenteditable='true']";
 
 /**
  * Makes the viewport a tab stop while its content overflows, so a keyboard user can scroll it, and
@@ -117,6 +118,7 @@ function useScrollTabStop(viewportRef: { current: HTMLDivElement | null }): void
     return () => {
       // Stryker disable next-line CallExpression: cleanup only releases an observer on an element that is going away, which nothing can observe
       observer.disconnect();
+      // Stryker disable next-line CallExpression: cleanup only releases an observer on an element that is going away, which nothing can observe
       content.disconnect();
       // Stryker disable next-line CallExpression,StringLiteral: cleanup only releases a listener on an element that is going away, which nothing can observe
       viewport.removeEventListener("scroll", update);
