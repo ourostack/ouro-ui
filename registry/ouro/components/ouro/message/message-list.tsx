@@ -2496,6 +2496,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // removed before a notification already queued for it arrives, so it finds no slot left to mark dirty.
       for (const entry of entries) {
         const key = (entry.target as Element).closest(`[${SLOT}]`)?.getAttribute(SLOT);
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: key is never null (getAttribute only
+        // returns null when the attribute is missing, and closest only ever matches an ancestor that carries it), and
+        // nothing after this ever reads dirtySlots.current as a whole or asks it for undefined, only has/delete of a
+        // real key, so forcing this guard true, or swapping && for ||, changes nothing anything after it reads.
         if (key !== null && key !== undefined) dirtySlots.current.add(key);
       }
       windowSync.current!(false);

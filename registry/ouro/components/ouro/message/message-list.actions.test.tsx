@@ -712,4 +712,44 @@ describe("MessageList actions", () => {
     // Everything else was warmed above, so this delta is m70's alone.
     expect(Math.abs(afterHeight - beforeHeight)).toBeLessThan(30);
   });
+
+  it("re-measures a key whose slot left the window and came back, when its cached height never emptied", async () => {
+    // A key's entry in watchedChildren is always dropped once its slot is gone (unconditionally, every pass), but its
+    // entry in the measured cache is pruned only when some other row's size, or the width bucket, moved that same
+    // pass. With the whole cache already warm, a round trip that moves no other row's size reaches a slot whose key
+    // is back with no `before` to compare (forgotten while it was gone) and a real cached height all at once: only
+    // `regrouped`'s own `before === undefined` term forces the fresh read that catches this, rather than reading
+    // `before.length` on the `undefined` it still is and crashing the sync instead.
+    const errors: string[] = [];
+    const onError = (event: ErrorEvent) => {
+      event.preventDefault();
+      errors.push(event.message);
+    };
+    window.addEventListener("error", onError);
+    try {
+      const { scroller } = await render(<Channel count={80} />);
+      await settle(scroller);
+      // Warms the whole cache, so a trip back and forth over it moves no row's size and the bucket holds steady.
+      scroller.scrollTop = scroller.scrollHeight;
+      await settle(scroller);
+      scroller.scrollTop = 0;
+      await settle(scroller);
+      scroller.scrollTop = scroller.scrollHeight;
+      await settle(scroller);
+      expect(document.getElementById("m70")).not.toBeNull();
+      // m70 leaves the window with the cache already warm, so its measured height is kept, but watchedChildren
+      // forgets it regardless.
+      scroller.scrollTop = 0;
+      await settle(scroller);
+      expect(document.getElementById("m70")).toBeNull();
+      // Back once more: before is undefined for m70, cached still holds its real size from above.
+      scroller.scrollTop = scroller.scrollHeight;
+      await settle(scroller);
+      expect(document.getElementById("m70")).not.toBeNull();
+      expect(document.getElementById("m70")!.getBoundingClientRect().height).toBeGreaterThan(0);
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+    expect(errors).toEqual([]);
+  });
 });
