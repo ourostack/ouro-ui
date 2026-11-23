@@ -5,7 +5,7 @@
 A diagnostics bundle: one JSON file a doctor writes for an agent to read or attach, the agent's version of a desktop app's "get logs" menu item. Every string in it is redacted first (ax-redact), and the whole text is checked for anything shaped like a token, an id or an address before a byte is written: a leak refuses the bundle.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-bundle#v1.3.477
+npx shadcn@latest add ourostack/ouro-ui/ax-bundle#v1.3.481
 ```
 
 It installs `lib/ouro/ax/bundle.ts`, with `ax-redact`. Its tests are `ax-bundle-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
