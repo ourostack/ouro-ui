@@ -225,13 +225,14 @@ describe("findLayoutIssues: near-miss", () => {
 
   it("measures a fill against the page behind it, and passes a nested surface with room, for pages with nothing filled", () => {
     const [root, body] = [document.documentElement, document.body];
-    const saved = [root.style.background, body.style.background];
+    const [rootBackground, bodyBackground] = [root.style.background, body.style.background];
     root.style.background = body.style.background = "transparent";
     try {
       render(`${box("a", 10, 10, 60, 30)}${box("b", 74, 10, 60, 30)}`);
       expect(found()).toEqual([["div#a and div#b", "4px"]]);
     } finally {
-      [root.style.background, body.style.background] = saved;
+      root.style.background = rootBackground;
+      body.style.background = bodyBackground;
     }
     host.innerHTML = `<div style="position:fixed;left:0;top:0;width:200px;height:100px;background:#eee;padding:10px"><div style="width:60px;height:30px;background:#cde"></div></div>`;
     expect(found()).toEqual([]);
