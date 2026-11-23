@@ -8,8 +8,12 @@
 //                                           depth), which must be one per shard; exits 1, naming
 //                                           a file and line short of 100% with the shard folder
 //                                           behind a share of it that is itself short, when the
-//                                           merged coverage is short, and 3 when a shard's is
-//                                           missing
+//                                           merged coverage is short; 3 when a shard's is missing;
+//                                           4 when a shard's own file was instrumented twice (its
+//                                           statement, function or branch map holds the same
+//                                           source location under two different keys), which
+//                                           inflates that file's denominator and reports a fully
+//                                           covered file as short (issue #3082)
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, dirname, join } from "node:path";
@@ -31,6 +35,34 @@ export const coverageFiles = (dir) =>
     .filter((file) => file.endsWith("coverage-final.json"))
     .sort()
     .map((file) => join(dir, file));
+
+/** `loc`'s location as a string key: a statementMap entry is itself a location, a fnMap or branchMap entry holds one at `.loc`. */
+const locationKey = (item) => {
+  const loc = item.start ? item : item.loc;
+  return `${loc.start.line}:${loc.start.column}-${loc.end.line}:${loc.end.column}`;
+};
+
+/** The location keys that appear more than once in `itemMap` (a statementMap, fnMap or branchMap): a healthy instrumentation never maps two different keys to the same source location. */
+const duplicateLocations = (itemMap) => {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const item of Object.values(itemMap ?? {})) {
+    const key = locationKey(item);
+    (seen.has(key) ? duplicates : seen).add(key);
+  }
+  return duplicates;
+};
+
+/**
+ * Every file one shard's own coverage-final.json (`map`) instruments twice: its statement,
+ * function or branch map holds the same source location under two different keys, as when a
+ * module was loaded and instrumented under two different URLs in the same shard run (issue
+ * #3082). Merging such a file inflates its denominator, so a fully covered file reports short.
+ */
+export const doubledFiles = (map) =>
+  Object.entries(map)
+    .map(([file, fc]) => ({ file, duplicates: duplicateLocations(fc.statementMap).size + duplicateLocations(fc.fnMap).size + duplicateLocations(fc.branchMap).size }))
+    .filter(({ duplicates }) => duplicates > 0);
 
 /**
  * The merged coverage of `maps` (istanbul coverage-final.json objects): its totals and every file
@@ -77,7 +109,13 @@ async function main([dir, flag, count]) {
     return 3;
   }
   const labels = files.map((file) => basename(dirname(file)));
-  const result = await mergeCoverage(files.map((file) => JSON.parse(readFileSync(file, "utf8"))), labels);
+  const maps = files.map((file) => JSON.parse(readFileSync(file, "utf8")));
+  const doubled = maps.flatMap((map, index) => doubledFiles(map).map((one) => ({ ...one, shard: labels[index] })));
+  if (doubled.length > 0) {
+    for (const { shard, file, duplicates } of doubled) console.error(`::error::${shard}'s own coverage-final.json instruments ${file} twice (${duplicates} duplicate location${duplicates === 1 ? "" : "s"}): merging it would make a fully covered file look short. Rerun that shard instead of chasing the file.`);
+    return 4;
+  }
+  const result = await mergeCoverage(maps, labels);
   const totals = Object.entries(result.totals).map(([metric, pct]) => `${metric} ${pct}%`).join(", ");
   console.log(`Coverage of ${result.files} files, merged from ${files.length} shards: ${totals}.`);
   if (result.files === 0) {

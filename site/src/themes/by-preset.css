@@ -18,9 +18,12 @@ html:not([data-theme]) [data-site-when="pearl"] {
 
 /*
  * The header's ThemePicker button holds every choice's wordmark (data-shows); the one html[data-theme] (or
- * html[data-live]) names shows, before hydration and after, as above.
+ * html[data-live]) names shows, before hydration and after, as above. While a look is previewed (data-preview-from),
+ * html[data-theme] names the previewed look, not the chosen one: the picker's own hidden attributes show the chosen
+ * wordmark then, so the button neither goes blank nor changes width. :where keeps this rule as specific as the rules
+ * that show a look.
  */
-[data-presentation="popover"] [data-ouro-part="trigger"] [data-shows] {
+:where(html:not([data-preview-from])) [data-presentation="popover"] [data-ouro-part="trigger"] [data-shows] {
   display: none;
 }
 html[data-theme="pearl"]:not([data-live]) [data-presentation="popover"] [data-shows="pearl"],
