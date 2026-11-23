@@ -95,7 +95,7 @@ export function ReadReceipt(props: ReadReceiptProps): JSX.Element | null {
     wasSeen.current = seen;
     if (seen && !before) return announce(words);
   }, [seen, words]);
-  if (readers.length === 0) return <span {...rest} data-ouro="read-receipt" aria-hidden="true" className={cn("block h-ouro-4", className)} />;
+  if (readers.length === 0) return <span {...rest} data-ouro="read-receipt" data-slot="read-receipt-hold" aria-hidden="true" className={cn("block h-ouro-4", className)} />;
   const more = readers.length - 3;
   return (
     <span {...rest} data-ouro="read-receipt" className={cn("inline-flex items-center gap-1 text-[0.625rem] leading-none text-muted-foreground", className)}>
