@@ -11,6 +11,7 @@ import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 import { ReadReceipt } from "@/registry/ouro/components/ouro/read-receipt/read-receipt";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
+import { TrayArt } from "./tray-art";
 import { ThreadLayout } from "@/registry/ouro/components/ouro/thread-layout/thread-layout";
 import { ThreadRail } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
 import { TypingIndicator } from "@/registry/ouro/components/ouro/typing-indicator/typing-indicator";
@@ -173,7 +174,7 @@ function ChatDemo(): JSX.Element {
       label="Conversations"
       items={items}
       selectedId={openId}
-      empty="Your conversations show up here once you start one."
+      empty="No conversations"
       onSelect={(id) => {
         if (id !== openId) {
           stopReplies();
@@ -261,13 +262,17 @@ function ChatDemo(): JSX.Element {
 
   const body =
     stage === "loading" ? (
-      <Moment kind="loading" title="Loading your conversations" />
+      <div className="grid h-full place-items-center">
+        <Moment kind="loading" title="Loading your conversations" />
+      </div>
     ) : stage === "empty" ? (
       <div className="grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]">
         <div className="border-e border-border p-2">
           <ConversationList label="Conversations" items={[]} empty="Your conversations show up here once you start one." onSelect={() => {}} />
         </div>
-        <Moment kind="empty" title="Nothing here yet" description="Messages you send and receive show up here." />
+        <div className="grid place-items-center">
+          <Moment kind="empty" art={<TrayArt />} title="Nothing here yet" description="Messages you send and receive show up here." />
+        </div>
       </div>
     ) : (
       <div className="group/app grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]" data-pane={open ? "chat" : "list"}>

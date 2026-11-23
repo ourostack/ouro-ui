@@ -56,6 +56,23 @@ describe("the chat app page", () => {
     await expect.element(page.getByRole("list", { name: "Conversations" })).not.toBeInTheDocument();
   });
 
+  it("draws the empty state with art, centred in its pane, and the loading state centred in the frame", async () => {
+    await page.viewport(1280, 800);
+    await renderPage("/docs/chat-demo/");
+    await page.getByRole("radio", { name: "Empty" }).click();
+    const empty = document.querySelector<HTMLElement>('[data-ouro="moment"][data-moment="empty"]')!;
+    expect(empty.querySelector("[data-moment-art]")).not.toBeNull();
+    expect(empty.querySelector("svg")).not.toBeNull();
+    const pane = empty.parentElement!.getBoundingClientRect();
+    const box = empty.getBoundingClientRect();
+    expect(Math.abs(box.top - pane.top - (pane.bottom - box.bottom))).toBeLessThan(2);
+    await page.getByRole("radio", { name: "Loading" }).click();
+    const loading = document.querySelector<HTMLElement>('[data-ouro="moment"][data-moment="loading"]')!;
+    const frame = loading.parentElement!.getBoundingClientRect();
+    const spot = loading.getBoundingClientRect();
+    expect(Math.abs(spot.top - frame.top - (frame.bottom - spot.bottom))).toBeLessThan(2);
+  });
+
   it("keeps an unsent draft for each conversation when the person switches", async () => {
     await page.viewport(1280, 800);
     try {
