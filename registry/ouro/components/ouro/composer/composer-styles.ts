@@ -1,10 +1,22 @@
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 
-export { composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts };
+export { clearComposerDrafts, composerDrafts, composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts };
 export type { ComposerEdit };
 
 // The text edits and keys Composer's formatting uses, apart from the component so its file
 // exports only components and types (React Fast Refresh).
+
+/** The unsent drafts of uncontrolled composers, by conversation, oldest first; it outlives a composer that unmounts. */
+const composerDrafts = new Map<string | undefined, string>();
+
+/**
+ * Forgets every unsent draft.
+ *
+ * @internal
+ */
+function clearComposerDrafts(): void {
+  composerDrafts.clear();
+}
 
 /**
  * Teams' keys for Composer's formats and its expand button, as `Kbd` and Toolbar's `shortcut`

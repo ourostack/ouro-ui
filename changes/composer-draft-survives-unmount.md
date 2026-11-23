@@ -1,0 +1,1 @@
+- Fixed: `Composer` with a `conversation` keeps the unsent draft when it unmounts, so a draft is back when the box mounts again, such as after a phone goes back to the list and returns.

@@ -8,7 +8,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer, type ComposerEditor, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
-import { composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
+import { clearComposerDrafts, composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
@@ -110,6 +110,33 @@ describe("Composer conversation", () => {
 });
 
 describe("Composer drafts", () => {
+  // A composer unmounted by the test's cleanup leaves its draft, so the store is cleared before each test.
+  beforeEach(clearComposerDrafts);
+
+  it("gives a draft back to a composer that mounts again, as a phone does on its way back to a conversation", async () => {
+    const first = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    await userEvent.type(first.textarea, "half a thought");
+    await first.rerender(<div />);
+    const second = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
+    expect(second.textarea.value).toBe("half a thought");
+    const other = await render(<Composer label="Message" conversation="b" onSend={() => {}} />);
+    expect(other.textarea.value).toBe("");
+  });
+
+  it("forgets a draft the person cleared, and leaves a controlled box and one with no conversation to the app", async () => {
+    const first = await render(<Composer label="Message" conversation="a" defaultValue="hi" onSend={() => {}} />);
+    await userEvent.clear(first.textarea);
+    await first.rerender(<div />);
+    expect((await render(<Composer label="Message" conversation="a" defaultValue="hi" onSend={() => {}} />)).textarea.value).toBe("hi");
+    const controlled = await render(<Composer label="Message" conversation="c" value="mine" onValueChange={() => {}} onSend={() => {}} />);
+    await controlled.rerender(<div />);
+    expect((await render(<Composer label="Message" conversation="c" onSend={() => {}} />)).textarea.value).toBe("");
+    const bare = await render(<Composer label="Message" onSend={() => {}} />);
+    await userEvent.type(bare.textarea, "x");
+    await bare.rerender(<div />);
+    expect((await render(<Composer label="Message" onSend={() => {}} />)).textarea.value).toBe("");
+  });
+
   it("gives a draft back when the person returns to its conversation", async () => {
     const view = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
     await userEvent.type(view.textarea, "half a thought");

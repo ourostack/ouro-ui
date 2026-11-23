@@ -5,7 +5,7 @@ import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRe
 import type { ClipboardEvent, FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { RichEditor, RichEditorHandle } from "@/registry/ouro/components/ouro/composer/composer-parts";
-import { composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
+import { composerDrafts, composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiTextToTokens } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
@@ -558,9 +558,24 @@ export function Composer(props: ComposerProps): JSX.Element {
   const toolbar = expandable && !expanded ? undefined : toolbarProp;
   // Any other value is enter, as the default; expanded, Enter is a new line.
   const modEnter = expanded || sendOnProp === "mod-enter";
-  const [own, setOwn] = useState(defaultValue ?? "");
+  const [own, setOwn] = useState(() => (conversation === undefined ? undefined : composerDrafts.get(conversation)) ?? defaultValue ?? "");
   const [ownConversation, setOwnConversation] = useState(conversation);
-  const [kept] = useState(() => new Map<string | undefined, string>());
+  const kept = composerDrafts;
+  const latest = useRef({ conversation, own, defaultValue, controlled: value !== undefined });
+  useEffect(() => {
+    latest.current = { conversation, own, defaultValue, controlled: value !== undefined };
+  });
+  // A composer that unmounts, such as the box of a conversation a phone leaves for the list, leaves its draft for the next one.
+  useEffect(
+    () => () => {
+      const { conversation: id, own: draft, defaultValue: initial, controlled } = latest.current;
+      if (id === undefined || controlled) return;
+      kept.delete(id);
+      if (draft !== "" && draft !== initial) kept.set(id, draft);
+      if (kept.size > draftLimit) kept.delete(kept.keys().next().value);
+    },
+    [kept],
+  );
   if (conversation !== ownConversation) {
     // The draft left behind waits for its conversation; the oldest of more than `draftLimit` are dropped.
     kept.delete(ownConversation);
