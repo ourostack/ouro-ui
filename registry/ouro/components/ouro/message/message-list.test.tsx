@@ -1445,6 +1445,23 @@ describe("MessageList", () => {
     expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).toBeNull();
   });
 
+  it("reserves room when a still-streaming reply is replaced by a new key with the same text", async () => {
+    // Still pinned while it first streams in: the key swap below is the only thing this test means to
+    // measure, not the first append's own (already-covered) room reservation.
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await settle(scroller);
+    await rerender(<Chat items={[...items, { id: "a", role: "assistant", text: "Two", streaming: true }]} />);
+    await settle(scroller);
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).toBeNull();
+    // Scrolled away now, the still-streaming reply is replaced under a new key, with the same text it already
+    // had: still waiting to be read, it owes room whether or not its text happened to change meanwhile.
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: "b", role: "assistant", text: "Two", streaming: true }]} />);
+    await settle(scroller);
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).not.toBeNull();
+  });
+
   it("shows older messages loading over the top of the list, moving no message as it starts or ends", async () => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} />);

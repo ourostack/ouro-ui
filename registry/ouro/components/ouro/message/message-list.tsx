@@ -2086,10 +2086,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // carry and anchor work above, which also move the scroll position as the turn continues.
     const clearJump = () => {
       const room = jumpRoomRef.current;
-      // Stryker disable next-line LogicalOperator: not reachable with only the first clause swapped to `&&`. `pinned.current`
-      // is set in onScroll, the same tick that calls setShowJump/setJumpRoom, so a render that unmounts the button and the
-      // reserve once pinned goes true always lands well inside the WHEEL_REST delay before this runs off a scrollend; no
-      // call here ever sees pinned true alongside a still-attached jumpRef or room from the state before it.
+      // Stryker disable next-line LogicalOperator,ConditionalExpression: not reachable with only the first clause swapped to
+      // `&&`, or with either clause alone forced false. `pinned.current` is set in onScroll, the same tick that calls
+      // setShowJump/setJumpRoom, so a render that unmounts the button and the reserve once pinned goes true always lands
+      // well inside the WHEEL_REST delay before this runs off a scrollend, and the same holds in reverse: the button only
+      // ever unmounts (jumpRef.current going null) through that same onScroll write or through a conversation switch's
+      // layout effect, which reopen also pins before the browser can paint; no call here ever sees pinned true alongside
+      // a still-attached jumpRef or room from the state before it, nor jumpRef or room null while still unpinned.
       if (pinned.current || jumpRef.current === null || room === null) return;
       const drawn = content.querySelectorAll<HTMLElement>(items);
       const newest = drawn[drawn.length - 1];
@@ -2616,6 +2619,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
         now.slice(last + 1).forEach((message, index) => {
           const old = replaced[index];
           if (redrawn(message)) return;
+          // Stryker disable next-line LogicalOperator,ConditionalExpression: a message without one to replace has no
+          // `old` to look up in `texts`, so `texts.get(old)` reads `undefined` there, and `textOf(message)` on any real
+          // message is never `undefined` (`data-ouro-message-content` is required of every one, per its own docs above);
+          // the third clause is therefore already true whenever `old === undefined` is, and forcing the first clause, or
+          // the first `||` alone, false never changes the result some test here could observe.
           if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) {
             waiting.add(message);
             // A message new to the conversation's end, not merely redrawn by windowing nor a quiet replacement of the one
