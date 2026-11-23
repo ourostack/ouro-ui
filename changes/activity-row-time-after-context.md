@@ -1,0 +1,1 @@
+- Fix: ConversationList now puts an activity row's time after the context line's words, instead of between the title and them.

@@ -246,6 +246,47 @@ describe("ConversationList", () => {
     expect(host.querySelector("[data-ouro-conversation-preview]")).toBeNull();
   });
 
+  it("puts an activity row's time after the context line's words, not between the title and them", async () => {
+    const { rows } = await render(
+      <ConversationList
+        label="Activity"
+        items={[{ id: "react", title: "Alex Example", context: "reacted in Launch planning", time: "12:43 PM", mark: <Badge>2</Badge> }]}
+        onSelect={() => {}}
+      />,
+    );
+    const row = rows[0]!;
+    const title = row.querySelector("[data-ouro-conversation-title]")!;
+    const context = row.querySelector<HTMLElement>("[data-ouro-conversation-context]")!;
+    const time = row.querySelector<HTMLElement>("[data-ouro-conversation-time]")!;
+    const mark = row.querySelector<HTMLElement>("[data-ouro-conversation-mark]")!;
+    // The time shares the context's line, not the title's, and reads after the context's words, before the mark.
+    expect(time.parentElement).toBe(context.parentElement);
+    expect(title.compareDocumentPosition(time) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(context.compareDocumentPosition(time) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(time.compareDocumentPosition(mark) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await expect.element(page.getByRole("button", { name: "Alex Example reacted in Launch planning 12:43 PM 2" })).toBeVisible();
+  });
+
+  it("keeps an activity row's time visible on hover, since it is not the title row's own last word there", async () => {
+    const { rows } = await render(
+      <ConversationList
+        label="Activity"
+        items={[
+          {
+            id: "react",
+            title: "Alex Example",
+            context: "reacted in Launch planning",
+            time: "12:43 PM",
+            menu: [{ label: "Pin", onClick: () => {} }],
+          },
+        ]}
+        onSelect={() => {}}
+      />,
+    );
+    const time = rows[0]!.querySelector<HTMLElement>("[data-ouro-conversation-time]")!;
+    expect(time.className).not.toMatch(/opacity-0/);
+  });
+
   it("shows a draft in place of the preview, after its label in the destructive tone, and hides it when compact", async () => {
     const drafts: ConversationListItem[] = [
       { id: "launch", title: "Launch planning", preview: "Ship it Friday.", draft: "Can we move the review to", time: "9:41" },
