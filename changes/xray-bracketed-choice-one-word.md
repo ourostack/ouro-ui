@@ -1,0 +1,1 @@
+- Fix: X-ray's `cli.optional-args` rule reads a `<...>` alternative in a bracketed `|` choice, such as `[<version> | latest | <dmg or zip>]`, as the one optional word it is, instead of falsely flagging a later alternative as a separate required word that comes after the first.
