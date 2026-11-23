@@ -163,6 +163,17 @@ describe("ThreadRail Escape", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves other keys and already-handled Escape on the close button alone", async () => {
+    const onClose = vi.fn();
+    const { close } = await render(<ThreadRail label="Thread" onClose={onClose} />);
+    close.focus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(onClose).not.toHaveBeenCalled();
+    document.addEventListener("keydown", (event) => event.preventDefault(), { capture: true, once: true });
+    close.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["an input", <input key="x" aria-label="Reply" />],
     ["a textarea", <textarea key="x" aria-label="Draft" />],

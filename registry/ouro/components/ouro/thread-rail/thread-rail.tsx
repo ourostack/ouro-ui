@@ -46,7 +46,6 @@ export interface ThreadRailProps {
 /** Elements that take Escape for themselves when they are open: a menu, a listbox or a dialog. */
 const POPUP = '[role="menu"], [role="listbox"], [role="dialog"]';
 /** The rail's own close button. */
-const CLOSE_BUTTON = '[data-ouro-part="close"]';
 /** Text a person types into: Escape there is not a request to close. */
 const TEXT_ENTRY = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
 // Stryker disable next-line ArrayDeclaration: equivalent; the effect runs once, on mount, with any list that never changes
@@ -104,6 +103,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
   const headingId = useId();
   const railRef = useRef<HTMLElement>(null);
   const opener = useRef<HTMLElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const handoff = useFocusHandoff<HTMLElement>();
   const rail = useMergedRef<HTMLElement>(railRef, handoff);
 
@@ -156,9 +156,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
   // The close button's tooltip names Escape as its shortcut, so it must not take the key: closing
   // here, before the tooltip sees it, makes the first press close the rail.
   function onKeyDownCapture(event: KeyboardEvent<HTMLElement>) {
-    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented) return;
-    const target = event.target as Element;
-    if (!target.matches(CLOSE_BUTTON) || target.parentElement?.closest("[data-ouro]") !== event.currentTarget || inPopup(target, event.currentTarget)) return;
+    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented || event.target !== closeRef.current) return;
     event.preventDefault();
     event.stopPropagation();
     onClose();
@@ -184,6 +182,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
         </div>
         <Tooltip content={<span className="inline-flex items-center gap-2">{closeLabel}<Kbd keys={["escape"]} /></span>}>
           <Button
+            ref={closeRef}
             data-ouro-control="thread-rail"
             data-ouro-part="close"
             variant="plain"
