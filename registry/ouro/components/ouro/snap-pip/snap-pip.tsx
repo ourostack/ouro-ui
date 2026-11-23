@@ -39,6 +39,7 @@ import {
   type SnapPiPRect,
   type SnapPiPSize,
 } from "@/registry/ouro/components/ouro/snap-pip/snap-pip-styles";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -124,6 +125,21 @@ export interface SnapPiPProps {
    * @default { "top-left": "Top left", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-right": "Bottom right" }
    */
   cornerLabels?: SnapPiPCornerLabels | undefined;
+  /**
+   * Whether the picture is collapsed to a small chip that only shows a button to bring it back,
+   * controlled, so a person can clear a face it covers. Pass `onCollapsedChange` too: it shows
+   * the Hide button on the picture, and Escape collapses it. The app's content stays mounted.
+   */
+  collapsed?: boolean | undefined;
+  /** Whether it starts collapsed, uncontrolled. */
+  defaultCollapsed?: boolean | undefined;
+  /** Called with the new state when the person presses the Hide or Show button, or Escape. */
+  onCollapsedChange?: ((collapsed: boolean) => void) | undefined;
+  /**
+   * The names of the Hide and Show buttons, read as they are. Translate them with the rest of your interface.
+   * @default { hide: "Hide", show: "Show" } followed by the label, such as "Hide Your camera"
+   */
+  collapseLabels?: { hide: string; show: string } | undefined;
   /** Layout only. Appearance classes warn in development; style what you put inside it instead. */
   className?: string | undefined;
   /** The picture's id. */
@@ -167,13 +183,15 @@ const arrows: readonly string[] = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowD
  * screen readers read. The hint also shows beside it, toward the middle of the stage and never over
  * it, when it gets keyboard focus or the pointer rests on it, and stays while the pointer is on
  * either. Escape, a move or a press puts it away until focus and the pointer have both left.
- * Double-click it, or press Option-Return, to toggle small and large.
+ * Double-click it, or press Option-Return, to toggle small and large. Pass `onCollapsedChange` and it
+ * carries a Hide button, and Escape hides it too, so a person can clear a face it covers; the
+ * picture then shrinks to a small Show button, and its content stays mounted.
  *
  * With reduced motion it jumps straight to its corner: no spring, no lift and no rubberband.
  *
  * Its agent side, `snapPipAx` in `snap-pip-styles.ts`, declares no reads and one action, `move`,
- * which only the person takes: where their own picture sits is theirs. Hiding the picture is the
- * app's, from its own menu, so the app declares that `hide` action, not SnapPiP.
+ * which only the person takes: where their own picture sits is theirs. Whether to offer hiding it
+ * to an agent is the app's, so the app declares a `hide` action, not SnapPiP.
  *
  * Use `Popover` or `HoverCard` instead for an overlay anchored to a control, `Resizable` for a
  * split layout the person sizes, and `Sheet` for a side panel.
@@ -194,6 +212,7 @@ const arrows: readonly string[] = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowD
  * @claim "The hint also shows beside it," registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > shows the hint when the pointer rests on it, keeps it while the pointer moves onto it, and never on touch)
  * @claim "Escape, a move or a press" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > puts the hint away on Escape, a move or a press, until focus and the pointer have left)
  * @claim "Double-click it, or press Option-Return," registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > toggles small and large on a double-click or Option-Return, controlled or not)
+ * @claim "Pass `onCollapsedChange` and it" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > hides to a Show button with the Hide button or Escape, keeps its content and focus, and shows again)
  * @claim "With reduced motion it jumps straight" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > jumps to its corner with reduced motion, with no lift and no rubberband)
  * @claim "Its agent side, `snapPipAx` in `snap-pip-styles.ts`," registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > declares no agent reads and one move only the person makes, on the picture)
  * @group Layout
@@ -222,6 +241,10 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     aspectRatio = 16 / 10,
     hint = "Option-arrow keys to move it",
     cornerLabels = defaultCornerLabels,
+    collapsed: collapsedProp,
+    defaultCollapsed = false,
+    onCollapsedChange,
+    collapseLabels,
     className,
     id,
     ref,
@@ -235,6 +258,12 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const corner = cornerProp === undefined ? ownCorner : isCorner(cornerProp) ? cornerProp : "bottom-right";
   const [ownSize, setOwnSize] = useState<SnapPiPSize>(isSize(defaultSize) ? defaultSize : "small");
   const size = sizeProp === undefined ? ownSize : isSize(sizeProp) ? sizeProp : "small";
+  const [ownCollapsed, setOwnCollapsed] = useState(defaultCollapsed);
+  const collapsed = collapsedProp === undefined ? ownCollapsed : collapsedProp;
+  const setCollapsed = (next: boolean) => {
+    setOwnCollapsed(next);
+    onCollapsedChange?.(next);
+  };
   // The container's size once measured; until then CSS places it, as on the server.
   const [stage, setStage] = useState<{ width: number; height: number } | undefined>(undefined);
   // A new object on each release, so a controlled corner the app kept is gone back to.
@@ -463,7 +492,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   [reflow, rewatch]);
 
   // A new size, shape or container size: it stays in its corner, at once.
-  useLayoutEffect(() => reflow(true), [stage, size, aspectRatio, reflow]);
+  useLayoutEffect(() => reflow(true), [stage, size, aspectRatio, collapsed, reflow]);
   // New keep-out rectangles or a new inset: it follows its corner's new place with the spring.
   const keepKey = JSON.stringify((keepOut ?? []).map((item) => ("current" in item ? null : item)));
   useLayoutEffect(() => reflow(false), [keepKey, inset, reflow]);
@@ -544,6 +573,12 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       event.stopPropagation();
       return dismissHint();
     }
+    // Only from the picture or its Hide button: an Escape inside the app's own content is that content's.
+    const own = event.target === event.currentTarget || (event.target as Element).closest?.('[data-ouro-part="collapse"]');
+    if (event.key === "Escape" && onCollapsedChange !== undefined && !collapsed && own && !event.defaultPrevented) {
+      event.stopPropagation();
+      return setCollapsed(true);
+    }
     if (!event.altKey || event.ctrlKey || event.metaKey) return;
     if (event.key === "Enter") {
       event.preventDefault();
@@ -597,14 +632,18 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const right = corner.endsWith("right");
   const bottom = corner.startsWith("bottom");
   // Until it has measured its container, as on the server, CSS puts it in its corner.
+  const shape = collapsed ? 1 : aspectRatio;
   const style: CSSProperties = stage
-    ? { left: 0, top: 0, width: widthFor(stage.width, size, inset), aspectRatio }
+    ? { left: 0, top: 0, width: collapsed ? 44 : widthFor(stage.width, size, inset), aspectRatio: shape }
     : {
         [right ? "right" : "left"]: inset,
         [bottom ? "bottom" : "top"]: inset,
-        width: size === "large" ? "clamp(160px, calc(100% / 3), 480px)" : "clamp(160px, calc(100% / 6), 320px)",
-        aspectRatio,
+        width: collapsed ? 44 : size === "large" ? "clamp(160px, calc(100% / 3), 480px)" : "clamp(160px, calc(100% / 6), 320px)",
+        aspectRatio: shape,
       };
+  const collapseName = collapsed
+    ? (collapseLabels?.show ?? `Show ${label}`)
+    : (collapseLabels?.hide ?? `Hide ${label}`);
 
   return (
     <div
@@ -620,6 +659,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       data-ax-action="move"
       data-corner={corner}
       data-size={size}
+      data-collapsed={collapsed ? "" : undefined}
       className={cn(pipClass, className)}
       style={style}
       onPointerDown={dragProps.onPointerDown}
@@ -634,9 +674,26 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       onFocus={onFocus}
       onBlur={() => hideHint("focus")}
     >
-      <div data-ouro="snap-pip-frame" className={frameClass}>
+      <div data-ouro="snap-pip-frame" hidden={collapsed} className={frameClass}>
         {children}
       </div>
+      {onCollapsedChange !== undefined && (
+        <Button
+          data-ouro-control="snap-pip"
+          data-ouro-part="collapse"
+          variant={collapsed ? "soft" : "plain"}
+          aria-label={collapseName}
+          aria-expanded={!collapsed}
+          className={collapsed ? "size-full" : "absolute end-1 top-1 z-10"}
+          onPointerDown={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => event.stopPropagation()}
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            {collapsed ? <path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h6A1.5 1.5 0 0 1 11 5.5v5A1.5 1.5 0 0 1 9.5 12h-6A1.5 1.5 0 0 1 2 10.5zM11 7l3-1.5v5L11 9" /> : <path d="M4 4l8 8M12 4l-8 8" />}
+          </svg>
+        </Button>
+      )}
       <span id={descriptionId} className="sr-only">
         {`${cornerLabels[corner]}. ${hint}`}
       </span>

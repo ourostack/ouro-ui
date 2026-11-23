@@ -2,7 +2,7 @@ import { Activity, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, server, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { AX_ACTION_ATTRIBUTE, expectAxRendered } from "@/registry/ouro/ax/component";
 import { SnapPiP, type SnapPiPCorner, type SnapPiPProps } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
 import { anchorFor, cornerToward, HINT_DELAY, nearestCorner, snapPipAx, widthFor } from "@/registry/ouro/components/ouro/snap-pip/snap-pip-styles";
@@ -252,6 +252,39 @@ describe("SnapPiP", () => {
     expect(hint().getBoundingClientRect().left).toBe(top.getBoundingClientRect().left);
     await act(async () => top.blur());
     expect(hintShown()).toBe(false);
+  });
+
+  it("hides to a Show button with the Hide button or Escape, keeps its content and focus, and shows again", async () => {
+    const changes: boolean[] = [];
+    await render(self({ onCollapsedChange: (next) => changes.push(next) }));
+    expect(page.getByRole("button", { name: "Hide Your camera", exact: true }).element()).toBeTruthy();
+    await userEvent.click(page.getByRole("button", { name: "Hide Your camera", exact: true }));
+    const show = page.getByRole("button", { name: "Show Your camera", exact: true });
+    expect(changes).toEqual([true]);
+    expect(pip().hasAttribute("data-collapsed")).toBe(true);
+    expect(stage.querySelector('[data-testid="video"]')).not.toBeNull();
+    expect(pip().getBoundingClientRect().width).toBeGreaterThanOrEqual(44);
+    expect(pip().getBoundingClientRect().width).toBeLessThan(60);
+    expect(document.activeElement).toBe(show.element());
+    await userEvent.click(show);
+    expect(changes).toEqual([true, false]);
+    expect(pip().hasAttribute("data-collapsed")).toBe(false);
+    expect(pip().getBoundingClientRect().width).toBe(160);
+    // Escape, with the hint not showing, hides it too.
+    pip().focus();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.keyboard("{Escape}");
+    expect(changes).toEqual([true, false, true]);
+    // An Escape from the app's own content inside it is that content's.
+    await userEvent.click(page.getByRole("button", { name: "Show Your camera", exact: true }));
+    const inner = document.createElement("button");
+    stage.querySelector('[data-testid="video"]')!.append(inner);
+    inner.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(changes).toEqual([true, false, true, false]);
+    // Without a handler there is no button.
+    await render(self());
+    expect(stage.querySelector('[data-ouro-part="collapse"]')).toBeNull();
   });
 
   it("puts the hint away on Escape, a move or a press, until focus and the pointer have left", async () => {

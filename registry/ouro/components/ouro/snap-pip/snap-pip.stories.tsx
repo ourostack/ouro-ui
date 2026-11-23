@@ -97,6 +97,22 @@ export const InCall: Story = {
   render: () => <InACall />,
 };
 
+function HideableSelfView() {
+  const [collapsed, setCollapsed] = useState(false);
+  return (
+    <Stage>
+      <SnapPiP label="Your camera" collapsed={collapsed} onCollapsedChange={setCollapsed}>
+        <SelfView />
+      </SnapPiP>
+    </Stage>
+  );
+}
+
+/** With `onCollapsedChange` it carries a Hide button, and Escape hides it too, so a person can clear a face it covers. */
+export const Hideable: Story = {
+  render: () => <HideableSelfView />,
+};
+
 /** The large size, after a double-click or Option-Return: it grows from its corner and still clears the band. */
 export const Large: Story = {
   parameters: { screenshot: { name: "snap-pip-large" } },
