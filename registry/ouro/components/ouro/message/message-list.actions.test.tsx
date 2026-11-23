@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Message, type MessageAction } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
@@ -25,7 +25,24 @@ async function render(node: ReactNode) {
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(node));
-  return { host, scroller: host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")! };
+  return { host, root, scroller: host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")! };
+}
+
+const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+/** Waits until the scroller's position, height and drawn messages read the same across two frames. */
+async function settle(scroller: HTMLElement) {
+  const ids = () => [...scroller.querySelectorAll('[data-ouro="message"]')].map((node) => node.id);
+  let last = "";
+  await expect
+    .poll(async () => {
+      await frame();
+      const now = `${scroller.scrollTop}|${scroller.scrollHeight}|${ids().join(",")}`;
+      const same = now === last;
+      last = now;
+      return same;
+    })
+    .toBe(true);
 }
 
 const authors = ["Grace Hopper", "Ana Lind", "Mara Quill"];
@@ -635,5 +652,178 @@ describe("MessageList actions", () => {
     expect(host.parentNode).not.toBeNull();
     await act(async () => roots.pop()!.unmount());
     expect(host.parentNode).toBeNull();
+  });
+
+  it("measures a slot's box on the very first sync of a windowed list, with no before to compare yet", async () => {
+    // Past 20 messages the list windows, so this is the first `windowSync` any of its slots ever see, with none of
+    // them yet in `watchedChildren`; if that first read stumbled on a slot with nothing to compare, nothing would draw.
+    const { scroller } = await render(<Channel count={30} />);
+    await settle(scroller);
+    const drawn = [...scroller.querySelectorAll('[data-ouro="message"]')];
+    expect(drawn.length).toBeGreaterThan(0);
+    const last = drawn.at(-1)!;
+    expect(last.getBoundingClientRect().height).toBeGreaterThan(0);
+    await ready(last.id);
+    expect(barIn(last.id)).not.toBeNull();
+  });
+
+  it("settles on the real height of a slot whose message remounts under the same key, not a stale cache", async () => {
+    // A consumer can remount a different element under the same key (a placeholder becoming the real message). The
+    // old child is swapped out of the DOM without its own resize observation ever being torn down; this once crashed
+    // on a notification for it arriving after it had no slot ancestor left to find. The new child is reobserved for
+    // the first time on the very next windowSync regardless, so its own first notification lands the real size soon
+    // after, with nothing in between ever reading the gap: the end state settles on the real height either way.
+    const COUNT = 80;
+    const SWAPPED = 70;
+    function Swap({ real }: { real: boolean }) {
+      return (
+        <MessageList label="Launch channel" style={{ height: 360 }}>
+          {Array.from({ length: COUNT }, (_, index) => {
+            const id = `m${index}`;
+            if (index === SWAPPED && !real) return <div key={id} id={id} style={{ height: 20 }} />;
+            return (
+              <Message key={id} id={id} variant="chat" role="assistant" name={authors[index % authors.length]!}>
+                {index === SWAPPED ? <div style={{ height: 120 }} /> : `Message ${index}`}
+              </Message>
+            );
+          })}
+        </MessageList>
+      );
+    }
+    const { root, scroller } = await render(<Swap real={false} />);
+    await settle(scroller);
+    // Warms the whole cache first, so the only thing left to (re)measure after the swap is m70 itself: scrolling
+    // away afterward must not also trigger first-ever measurements of other, still-estimated rows.
+    scroller.scrollTop = 0;
+    await settle(scroller);
+    scroller.scrollTop = scroller.scrollHeight;
+    await settle(scroller);
+    expect(document.getElementById("m70")).not.toBeNull();
+    await act(async () => root.render(<Swap real />));
+    await settle(scroller);
+    expect(document.getElementById("m70")!.getBoundingClientRect().height).toBeGreaterThan(100);
+    const beforeHeight = scroller.scrollHeight;
+    scroller.scrollTop = 0;
+    await settle(scroller);
+    expect(document.getElementById("m70")).toBeNull();
+    const afterHeight = scroller.scrollHeight;
+    // Scrolled away, m70 is a spacer sized from its cached height: a stale 20px cache (the placeholder's) would shrink
+    // the total by the ~100px the real message added, instead of the ~0px a fresh re-measure after the swap keeps.
+    // Everything else was warmed above, so this delta is m70's alone.
+    expect(Math.abs(afterHeight - beforeHeight)).toBeLessThan(30);
+  });
+
+  it("re-measures a key whose slot left the window and came back, when its cached height never emptied", async () => {
+    // A key's entry in watchedChildren is always dropped once its slot is gone (unconditionally, every pass), but its
+    // entry in the measured cache is pruned only when some other row's size, or the width bucket, moved that same
+    // pass. With the whole cache already warm, a round trip that moves no other row's size reaches a slot whose key
+    // is back with no `before` to compare (forgotten while it was gone) and a real cached height all at once: only
+    // `regrouped`'s own `before === undefined` term forces the fresh read that catches this, rather than reading
+    // `before.length` on the `undefined` it still is and crashing the sync instead.
+    const errors: string[] = [];
+    const onError = (event: ErrorEvent) => {
+      event.preventDefault();
+      errors.push(event.message);
+    };
+    window.addEventListener("error", onError);
+    try {
+      const { scroller } = await render(<Channel count={80} />);
+      await settle(scroller);
+      // Warms the whole cache, so a trip back and forth over it moves no row's size and the bucket holds steady.
+      scroller.scrollTop = scroller.scrollHeight;
+      await settle(scroller);
+      scroller.scrollTop = 0;
+      await settle(scroller);
+      scroller.scrollTop = scroller.scrollHeight;
+      await settle(scroller);
+      expect(document.getElementById("m70")).not.toBeNull();
+      // m70 leaves the window with the cache already warm, so its measured height is kept, but watchedChildren
+      // forgets it regardless.
+      scroller.scrollTop = 0;
+      await settle(scroller);
+      expect(document.getElementById("m70")).toBeNull();
+      // Back once more: before is undefined for m70, cached still holds its real size from above.
+      scroller.scrollTop = scroller.scrollHeight;
+      await settle(scroller);
+      expect(document.getElementById("m70")).not.toBeNull();
+      expect(document.getElementById("m70")!.getBoundingClientRect().height).toBeGreaterThan(0);
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+    expect(errors).toEqual([]);
+  });
+
+  it("re-measures a key's slot on the pass its child silently changes, not the pass after", async () => {
+    // A consumer can remount a different element under the same key while that key's slot never leaves the
+    // window (the previous test's placeholder-to-real swap, but read without ever scrolling the key away first).
+    // The slot itself stays put across the render, so nothing here unmounts and `dirtySlots` never gets a stray
+    // mark for this key from a notification that outlived its target: `before` (this key's children from the last
+    // pass) and `children` (read fresh this pass) are the only things that can tell the two renders apart, and they
+    // do, since the new child is a different element than the old even though both are the slot's one and only
+    // child. That identity difference is `regrouped`'s own job to catch; everything else this pass could use to
+    // decide freshness instead (the width bucket, whether a cached height exists at all, whether a resize observer
+    // already marked the key dirty) stays exactly as it was the pass before, since nothing else about the list
+    // changed. What a fresh read changes here is never the live child's own box (it always draws its real height,
+    // on or off the cache), only the number this key's slot leaves behind in the measured cache for whichever later
+    // pass reads it back as a spacer once the key does leave the window: that's the one place a stale cache and a
+    // fresh re-measure disagree, and the one place this test reads.
+    //
+    // Left to catch the swap on its own, the new child's first observation (`slotWatch.current?.observe(child)`,
+    // every pass, every child) would still land its real height one pass later, before anything here could tell a
+    // slot the fallback caught from one `regrouped` caught directly: both would settle on the same number by the
+    // time anything reads it. So the observer that would catch it is held off for the one pass this test reads,
+    // with `observe` itself a no-op meanwhile: nothing already watched stops being watched, the swapped child is
+    // never watched at all, and no later pass (however many more fire while it's held) ever un-sticks a stale
+    // number regrouped forced, leaving only this one pass's own fresh-or-not to decide what the key's slot leaves
+    // behind.
+    const COUNT = 80;
+    const SWAPPED = 70;
+    function Swap({ real }: { real: boolean }) {
+      return (
+        <MessageList label="Launch channel" style={{ height: 360 }}>
+          {Array.from({ length: COUNT }, (_, index) => {
+            const id = `m${index}`;
+            if (index === SWAPPED && !real) return <div key={id} id={id} style={{ height: 20 }} />;
+            return (
+              <Message key={id} id={id} variant="chat" role="assistant" name={authors[index % authors.length]!}>
+                {index === SWAPPED ? <div style={{ height: 120 }} /> : `Message ${index}`}
+              </Message>
+            );
+          })}
+        </MessageList>
+      );
+    }
+    const { root, scroller } = await render(<Swap real={false} />);
+    await settle(scroller);
+    // Warms the whole cache first, including m70's placeholder height, so the only thing left to (re)measure once
+    // it swaps is m70 itself, and m70 stays well short of being the first slot this pass reads (found.size === 0
+    // never applies to it): plenty of other rows sit before it in document order, scrolled all the way down.
+    scroller.scrollTop = 0;
+    await settle(scroller);
+    scroller.scrollTop = scroller.scrollHeight;
+    await settle(scroller);
+    expect(document.getElementById("m70")).not.toBeNull();
+    // Held off for the one pass this test reads: without it, the swapped child's own first notification, queued
+    // the very pass it draws, would land its real height before anything here could tell a stale cache from a
+    // fresh one.
+    const held = vi.spyOn(ResizeObserver.prototype, "observe").mockImplementation(() => {});
+    onTestFinished(() => held.mockRestore());
+    await act(async () => root.render(<Swap real />));
+    await settle(scroller);
+    expect(document.getElementById("m70")).not.toBeNull();
+    // The real child always draws its own box regardless of what the cache holds, so this alone would pass under
+    // the mutation too.
+    expect(document.getElementById("m70")!.getBoundingClientRect().height).toBeGreaterThan(100);
+    const beforeHeight = scroller.scrollHeight;
+    scroller.scrollTop = 0;
+    await settle(scroller);
+    expect(document.getElementById("m70")).toBeNull();
+    const afterHeight = scroller.scrollHeight;
+    held.mockRestore();
+    // Scrolled away, m70 is a spacer sized from whatever that held pass cached for it: a stale 20px placeholder
+    // height (never replaced, since `regrouped` forced false never re-measures, and the observer that would
+    // otherwise still catch it next pass was held off) would shrink the total by the ~100px the real message
+    // added, instead of the ~0px a correct regroup on that one pass keeps.
+    expect(Math.abs(afterHeight - beforeHeight)).toBeLessThan(30);
   });
 });

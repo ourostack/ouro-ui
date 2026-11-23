@@ -13,6 +13,7 @@ export {
   isIsoDate,
   layoutDay,
   lineCount,
+  markedMutedClass,
   minuteClock,
   minVisibleMinutes,
   plainFillClass,
@@ -358,6 +359,10 @@ const timedClass = "absolute inset-0 z-10 scroll-mt-(--ouro-time-grid-head) @con
  */
 const allDayClass = "relative h-5.5 w-full isolate";
 
+// Muted text on a marked day's tint, mixed a fifth toward the foreground as on any muted surface: shadcn's stock
+// muted foreground is short of 4.5:1 on a tint.
+const markedMutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
+
 /**
  * Each tone's start bar, and the outline of a free or unanswered event.
  *
@@ -466,7 +471,7 @@ const barStatusClass: Record<TimeGridStatus, string> = {
 const statusClass: Record<TimeGridStatus, string> = {
   busy: "border-0 border-s-3",
   tentative:
-    "border-0 border-s-3 [border-inline-start-style:dashed] forced-colors:[border-inline-start-style:dashed] [background-image:repeating-linear-gradient(135deg,transparent_0_5px,color-mix(in_oklab,currentColor_4%,transparent)_5px_10px)]",
+    "border-0 border-s-3 [border-inline-start-style:dashed] forced-colors:[border-inline-start-style:dashed] [background-image:repeating-linear-gradient(135deg,transparent_0_5px,color-mix(in_oklab,currentColor_4%,transparent)_5px_10px)]", // gradient-ok: a hard-stop hatch that marks a tentative event, no blend
   free: "border border-s-3",
   unanswered: "border border-s-3 border-dashed",
   cancelled: "border-0 border-s-3 [border-inline-start-style:dotted] forced-colors:[border-inline-start-style:dotted] text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))] line-through",
