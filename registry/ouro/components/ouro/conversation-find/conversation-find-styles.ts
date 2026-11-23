@@ -4,9 +4,9 @@ export { stepFrom, stepTo, resultWords };
 // Fast Refresh needs. The export list comes first because the shadcn CLI drops comments before a file's first statement.
 
 /**
- * The match a step lands on, for a count already known not to be the zero that leaves nothing to land on: one on from the
- * current match, or one back, wrapping round past either end. Starting from null it lands on the first match going on and
- * the last going back.
+ * The match a step lands on, once there is a match to land on: one on from the current match, or one back, wrapping round
+ * past either end. Starting from null it lands on the first match going on and the last going back. `stepFrom` is the
+ * version that still has to find that out.
  *
  * @internal
  */
