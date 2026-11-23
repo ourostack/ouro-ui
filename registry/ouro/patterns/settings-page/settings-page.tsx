@@ -39,7 +39,7 @@ const empty: Settings = { name: "", email: "", language: "en", notifications: tr
  * What it already does, which Ouro's own tests cover, so your tests need only cover what you add: the browser's
  * required and email checks run before `onSave`; a name under 2 letters and the errors `onSave` returns show on
  * their fields; "Settings saved." is announced after each save, and not for a save a later submit or a delete
- * overtook; the delete waits for the person to confirm, and a delete that fails keeps the dialog open.
+ * overtook; the delete waits for the person to confirm, says "Account deleted.", and a delete that fails keeps the dialog open.
  *
  * What the app wires up: the toggle needs `ColorSchemeProvider` around the app, and the script that sets light or
  * dark before the first paint, as the agent quickstart sets up: https://ui.ouroboros.bot/docs/agent-quickstart.md.
@@ -83,6 +83,7 @@ export function SettingsPage({
   const [saved, setSaved] = useState(false);
   // Whether the latest save is still running, so Save shows it and a second press does not send it twice.
   const [saving, setSaving] = useState(false);
+  const [gone, setGone] = useState(false);
   const [form, setForm] = useState(0);
   const frame = useRef(0);
   // Which submit or delete came last, so a save that finishes late changes nothing.
@@ -105,6 +106,7 @@ export function SettingsPage({
               // Cleared first, so a pending or failed save never shows the last success.
               cancelAnimationFrame(frame.current);
               setSaved(false);
+              setGone(false);
               const mine = ++latest.current;
               const data = new FormData(event.currentTarget);
               const settings: Settings = {
@@ -142,7 +144,7 @@ export function SettingsPage({
                 </Button>
               </div>
               <Text role="status" size="sm" tone="muted">
-                {saved ? "Settings saved." : ""}
+                {saved ? "Settings saved." : gone ? "Account deleted." : ""}
               </Text>
             </Stack>
           </Form>
@@ -164,6 +166,8 @@ export function SettingsPage({
                 setSaving(false);
                 setDeleted(true);
                 setForm((n) => n + 1);
+                // A frame after the form is replaced, so the new status region is there to announce it.
+                frame.current = requestAnimationFrame(() => setGone(true));
               }}
               trigger={<Button tone="destructive" variant="soft">Delete account</Button>}
             />

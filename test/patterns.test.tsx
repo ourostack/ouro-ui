@@ -97,7 +97,11 @@ describe("SettingsPage", () => {
     await expect.poll(() => onDelete.mock.calls.length).toBe(1);
     await expect.element(field("Display name")).toHaveValue("");
     await expect.element(field("Email")).toHaveValue("");
-    expect(status().element().textContent).toBe("");
+    await expect.element(status()).toHaveTextContent("Account deleted.");
+    await userEvent.fill(field("Display name"), "Bo");
+    await userEvent.fill(field("Email"), "bo@example.com");
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.element(status()).toHaveTextContent("Settings saved.");
   });
 
   it("clears what it said while the next save runs, so each save is announced and a failed one never reads as saved", async () => {
@@ -182,7 +186,7 @@ describe("SettingsPage", () => {
       await new Promise(requestAnimationFrame);
       await new Promise(requestAnimationFrame);
     });
-    expect(status().element().textContent).toBe("");
+    expect(status().element().textContent).toBe("Account deleted.");
     await expect.element(field("Display name")).toHaveValue("");
   });
 
