@@ -151,6 +151,27 @@ describe("Message", () => {
     await expect.element(page.getByRole("article", { name: /^Ana\s*,?\s*9:43$/ })).toBeVisible();
   });
 
+  it("builds the name from the elements' own text, so an id is a real reference in both layouts", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Mara" time="9:41">
+          Hello
+        </Message>
+        <Message role="user" variant="reply" name="Ana" time="9:43">
+          Hey
+        </Message>
+      </>,
+    );
+    const names = [...host.querySelectorAll("article")].map((article) => {
+      const ids = article.getAttribute("aria-labelledby")!.split(" ");
+      expect(ids.every((id) => id !== "" && document.getElementById(id) !== null)).toBe(true);
+      return ids.map((id) => document.getElementById(id)!.textContent!.trim());
+    });
+    expect(names[0]).toHaveLength(1);
+    expect(names[0]![0]).toMatch(/^Mara\s*,?\s*9:41$/);
+    expect(names[1]).toEqual(["Ana", "9:43"]);
+  });
+
   it("keeps Sending out of the article's name while it is described as Sending", async () => {
     const { message } = await render(
       <Message role="user" variant="reply" name="Ana" time="9:43" pending>
