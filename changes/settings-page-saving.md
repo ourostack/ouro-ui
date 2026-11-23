@@ -1,0 +1,1 @@
+- SettingsPage's Save button shows it is busy and turns off while `onSave` runs, so a slow save can't be sent twice and a person sees it working.

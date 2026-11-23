@@ -81,6 +81,8 @@ export function SettingsPage({
   // Each submit's own answer, so the same mistake shows again after an edit.
   const [answer, setAnswer] = useState<{ errors: FormErrors }>();
   const [saved, setSaved] = useState(false);
+  // Whether the latest save is still running, so Save shows it and a second press does not send it twice.
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(0);
   const frame = useRef(0);
   // Which submit or delete came last, so a save that finishes late changes nothing.
@@ -111,7 +113,18 @@ export function SettingsPage({
                 language: String(data.get("language")),
                 notifications: data.get("notifications") === "on",
               };
-              const errors: FormErrors = settings.name.length < 2 ? { name: "Use at least 2 letters." } : ((await onSave?.(settings)) ?? {});
+              let errors: FormErrors;
+              if (settings.name.length < 2) {
+                errors = { name: "Use at least 2 letters." };
+                setSaving(false);
+              } else {
+                setSaving(true);
+                try {
+                  errors = (await onSave?.(settings)) ?? {};
+                } finally {
+                  if (mine === latest.current) setSaving(false);
+                }
+              }
               if (mine !== latest.current) return;
               setAnswer({ errors });
               // A frame after the clear, so a screen reader hears each save, even one that resolves at once.
@@ -124,7 +137,9 @@ export function SettingsPage({
               <Select label="Language" name="language" defaultValue={start.language} options={languages} />
               <Switch label="Email notifications" name="notifications" defaultChecked={start.notifications} />
               <div>
-                <Button type="submit">Save</Button>
+                <Button type="submit" loading={saving} loadingLabel="Saving settings">
+                  Save
+                </Button>
               </div>
               <Text role="status" size="sm" tone="muted">
                 {saved ? "Settings saved." : ""}
@@ -146,6 +161,7 @@ export function SettingsPage({
                 cancelAnimationFrame(frame.current);
                 setAnswer(undefined);
                 setSaved(false);
+                setSaving(false);
                 setDeleted(true);
                 setForm((n) => n + 1);
               }}
