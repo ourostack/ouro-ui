@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: Stage writes the crew's "still water" line in the same commit as the verdict that stops the fish, not a frame later as a transition, so the line lands with the paced state instead of on whichever frame React's scheduler happened to flush, which had let [the switch's own settle pay for that transition inside its own measured frames](site/e2e/stage-switch.latency.spec.ts "verify:testExists(site/e2e/stage-switch.latency.spec.ts::the switch to still water draws no long frame)").
