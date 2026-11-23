@@ -121,6 +121,7 @@ function ChatDemo(): JSX.Element {
   const [threadOpen, setThreadOpen] = useState(false);
   const [typing, setTyping] = useState<string | null>(null);
   const [pendingLine, setPendingLine] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [seen, setSeen] = useState<{ chat: string; line: string } | null>(null);
   const timers = useRef<number[]>([]);
   const paneRef = useRef<HTMLDivElement | null>(null);
@@ -146,9 +147,10 @@ function ChatDemo(): JSX.Element {
     moved.current = null;
   }, [openId]);
 
-  const items: ConversationListItem[] = chats.map((chat) => ({ id: chat.id, title: chat.title, preview: chat.preview, time: chat.time, unread: chat.unread }));
+  const items: ConversationListItem[] = chats.map((chat) => ({ id: chat.id, title: chat.title, preview: chat.preview, time: chat.time, unread: chat.unread, draft: drafts[chat.id] ? drafts[chat.id] : undefined }));
 
   const send = (chatId: string, text: string, thread: boolean) => {
+    if (!thread) setDrafts((all) => ({ ...all, [chatId]: "" }));
     const line: Line = { id: `m${Date.now()}`, who: ME, own: true, time: "now", text: withMentions(text.replace(/ {2,}/g, " ").trim()) };
     setChats((all) => {
       const next = all.map((chat) => (chat.id !== chatId ? chat : thread ? { ...chat, replies: [...chat.replies, line] } : { ...chat, messages: [...chat.messages, line], preview: text, time: "now", unread: false }));
@@ -236,7 +238,7 @@ function ChatDemo(): JSX.Element {
       </div>
       <div className="border-t border-border p-2">
         <Autocomplete triggers={triggers}>
-          <Composer conversation={open.id} label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onSend={(text) => send(open.id, text, false)} />
+          <Composer conversation={open.id} label={`Message ${open.title}`} format="rich" placeholder="Write a message, @ to mention" onValueChange={(text) => setDrafts((all) => ({ ...all, [open.id]: text.trim() }))} onSend={(text) => send(open.id, text, false)} />
         </Autocomplete>
       </div>
     </div>
