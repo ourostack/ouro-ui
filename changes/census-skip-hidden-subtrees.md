@@ -1,0 +1,1 @@
+- Fixed: the census leaves out a control inside an aria-hidden or inert subtree, so a dialog state no longer carries a copy of the page behind it as unnamed controls.
