@@ -7,7 +7,7 @@ import { Item } from "@/registry/ouro/components/ouro/item/item";
 export default function ItemDemo(): JSX.Element {
   return (
     <div className="grid w-full max-w-md gap-3">
-      <Item variant="outline" href="#short-ribs" title="Braised short ribs" description="Four hours, mostly hands-off" />
+      <Item variant="outline" href="#short-ribs" title="Braised short ribs" description="Four hours, mostly hands-off" chevron />
       <Item
         variant="outline"
         title="Sync token"
