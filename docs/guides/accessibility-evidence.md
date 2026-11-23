@@ -126,7 +126,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [tabs](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/tabs) | 6 | 0 | [tabs.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/tabs.sr.spec.ts): 1 test on `navigation-tabs--links` |
 | [text](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/text) | 9 | 0 | none yet |
 | [text-field](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/text-field) | 10 | 0 | [text-field.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/text-field.sr.spec.ts): 2 tests on `forms-textfield--states`, `forms-form--server-errors` |
-| [theme-picker](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/theme-picker) | 2 | 0 | none yet |
+| [theme-picker](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/theme-picker) | 4 | 0 | none yet |
 | [thread-layout](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/thread-layout) | 3 | 0 | none yet |
 | [thread-rail](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/thread-rail) | 2 | 0 | none yet |
 | [time-grid](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/time-grid) | 10 | 0 | none yet |

@@ -1,37 +1,32 @@
 import type { JSX } from "react";
-import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { ByPreset, choiceList, Swatch } from "./presets";
-import { originOf, useSiteTheme } from "./theme-store";
+import { ThemePicker, type ThemePreset } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
+import { ByPreset, choiceList } from "./presets";
+import { originOf, previewTheme, useSiteTheme } from "./theme-store";
 import { SKY_WORDS } from "./sky-words";
-import { rovingRow } from "@/registry/ouro/lib/ouro/roving-row";
+import type { ThemeChoice } from "../themes/prepaint";
+
+/** Every choice as Ouro HX's ThemePicker takes it: Live (Sky) paints with Pearl's CSS, at dusk (voyage.css). */
+export const PICKER_PRESETS: readonly ThemePreset[] = choiceList.map((item) => ({ name: item.name, label: item.label, ...(item.name === "live" ? { theme: "pearl" } : {}) }));
 
 /**
- * The looks as a row of dots, Live first, with the chosen one's name and mood beside them. A press
- * repaints the whole page, spreading out from the dot. `data-site-preset` lets the head script
- * mark the stored one pressed before the page hydrates.
+ * The looks as Ouro HX's ThemePicker draws them, Live first: each name in its own heading face, ink and paper, ending
+ * in a square of its primary, with the chosen one's name and mood beside them. A press repaints the whole page,
+ * spreading out from the look pressed. The head script marks the stored one pressed before the page hydrates
+ * (prepaint.ts, `data-preset`).
  */
-export function ThemeDots({ label = "Theme", size = "lg", describe = true, nameClassName = "", groupClassName = "" }: { label?: string; size?: "md" | "lg"; describe?: boolean; nameClassName?: string; groupClassName?: string }): JSX.Element {
+export function ThemeDots({ label = "Theme", size = "lg", describe = true, nameClassName = "", className = "" }: { label?: string; size?: "md" | "lg"; describe?: boolean; nameClassName?: string; className?: string }): JSX.Element {
   const { preset, sky, setPreset } = useSiteTheme();
-  const roving = rovingRow(choiceList.map((item) => item.name), preset);
   return (
     <div>
-      <div role="group" aria-label={label} onKeyDown={roving.onKeyDown} className={`flex flex-wrap gap-1.5 ${groupClassName}`}>
-        {choiceList.map((item) => (
-          <Button
-            key={item.name}
-            variant="plain"
-            tone="secondary"
-            aria-pressed={item.name === preset}
-            aria-label={item.label}
-            tabIndex={roving.tabIndex(item.name)}
-            data-site-preset={item.name}
-            onClick={(event) => setPreset(item.name, originOf(event))}
-            className="site-dot h-auto p-1"
-          >
-            <Swatch preset={item.name} size={size} />
-          </Button>
-        ))}
-      </div>
+      <ThemePicker
+        presets={PICKER_PRESETS}
+        label={label}
+        size={size}
+        value={preset}
+        onValueChange={(name, event) => setPreset(name as ThemeChoice, originOf(event))}
+        onPreviewChange={(name) => previewTheme(name as ThemeChoice | null)}
+        className={className}
+      />
       {describe ? (
         <p className={`mt-2.5 mb-0 text-sm ${nameClassName} text-muted-foreground [&_strong]:me-1 [&_strong]:font-semibold [&_strong]:text-foreground`}>
           <ByPreset>
