@@ -1043,6 +1043,23 @@ describe("Chart plot", () => {
     xLabels.forEach((label, category) => expect(numbers(label, "x", "y")).toEqual([left + band * (category + 0.5), bottom + 14]));
   });
 
+  // Right to left, as test/conformance/rtl.test.tsx sets it: `dir="rtl"` on <html>, as an app in Arabic or Hebrew does.
+  it("mirrors the y axis gutter to the right in a right-to-left page, so its labels sit beside the bars, not over them", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      const { chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+      await drawn(chart);
+      const { right } = scale(chart, niceTicks(-5, 30));
+      const yLabels = [...chart.querySelectorAll<SVGTextElement>('[data-ouro-chart-axis="y"] text')];
+      // The gutter sits past the plot's right edge, not inside it over the bars.
+      for (const label of yLabels) expect(Number(label.getAttribute("x"))).toBeGreaterThanOrEqual(right);
+      const widest = Math.max(...yLabels.map((label) => label.getComputedTextLength()));
+      for (const bar of bars(chart, "value")) expect(bar.getBoundingClientRect().right).toBeLessThanOrEqual(chart.getBoundingClientRect().right - widest + 1);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
   it("puts a line's points a step apart from edge to edge, and a lone point in the middle", async () => {
     const { chart, rerender } = await render(<Chart title="Scale" type="line" data={values} categoryKey="at" config={one} />);
     await drawn(chart);

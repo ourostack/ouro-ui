@@ -510,11 +510,12 @@ export function ChartContainer<Row extends object = Record<string, unknown>>(pro
   return <Chart {...props} />;
 }
 
-/** The plot box's size, and the font its axis labels are measured in. */
+/** The plot box's size, the font its axis labels are measured in, and whether it reads right to left. */
 interface PlotSize {
   width: number;
   height: number;
   font: string;
+  rtl: boolean;
 }
 
 /**
@@ -530,7 +531,12 @@ function usePlotSize(ref: RefObject<HTMLDivElement | null>, enabled: boolean): P
     const read = () => {
       // The layout size, which a transform on an ancestor (a dialog scaling in) leaves alone.
       const style = getComputedStyle(element);
-      setSize({ width: element.clientWidth, height: element.clientHeight, font: `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}` });
+      setSize({
+        width: element.clientWidth,
+        height: element.clientHeight,
+        font: `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`,
+        rtl: style.direction === "rtl",
+      });
     };
     read();
     const observer = new ResizeObserver(read);
@@ -590,7 +596,7 @@ interface Active {
  * @claim "Recharts plays no part in it" registry/ouro/components/ouro/chart/chart.load.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.load.test.tsx::draws a chart with type without ever importing recharts)
  */
 function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, size }: SeriesPlotProps): JSX.Element {
-  const { width, height, font } = size;
+  const { width, height, font, rtl } = size;
   const count = data.length;
   const layout = useMemo(() => {
     let low = 0;
@@ -598,8 +604,10 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
     for (const row of data) for (const item of series) if (isValue(row[item.key])) [low, high] = [Math.min(low, row[item.key] as number), Math.max(high, row[item.key] as number)];
     const ticks = niceTicks(low, high);
     const labels = ticks.map((tick) => formatValue(tick, ""));
-    const left = Math.ceil(labels.reduce((widest, label) => Math.max(widest, textWidth(label, font)), 0)) + tickRoom;
-    const right = Math.max(width - plotMargin, left + 1);
+    // The y axis' gutter: beside the start of a line of text, so it moves to the plot's right in a right-to-left page.
+    const gutter = Math.ceil(labels.reduce((widest, label) => Math.max(widest, textWidth(label, font)), 0)) + tickRoom;
+    const left = rtl ? plotMargin : gutter;
+    const right = rtl ? Math.max(width - gutter, left + 1) : Math.max(width - plotMargin, left + 1);
     const top = plotMargin;
     const bottom = Math.max(height - xAxisHeight, top + 1);
     const [first, last] = [ticks[0]!, ticks.at(-1)!];
@@ -621,7 +629,7 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
       edge = center - half;
     }
     return { ticks, labels, left, right, top, bottom, y, band, step, x, categories };
-  }, [data, series, categoryKey, formatValue, type, count, width, height, font]);
+  }, [data, series, categoryKey, formatValue, type, count, width, height, font, rtl]);
   const { ticks, labels, left, right, top, bottom, y, band, step, x, categories } = layout;
   const [active, setActive] = useState<Active | null>(null);
   // A tooltip at a category the data no longer has is put away, so it cannot come back when the data grows again.
@@ -755,6 +763,9 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
         tabIndex={0}
         width={width}
         height={height}
+        // The plot moves its own y axis gutter to the right in a right-to-left page; its text keeps a left-to-right
+        // direction throughout, so "end" and "start" below always mean a label's visual right and left edge.
+        direction="ltr"
         // Some fonts draw a glyph's ink past its box (a 1's flag), so the plot lets the axis labels show whole. A
         // horizontal drag on a touch screen moves the tooltip; a vertical one still scrolls the page.
         className="absolute inset-0 touch-pan-y overflow-visible rounded-ouro-md outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid"
@@ -789,7 +800,7 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
         {dots}
         <g data-ouro-chart-axis="y" className="fill-muted-foreground">
           {ticks.map((tick, place) => (
-            <text key={tick} data-ouro-chart-tick="" x={left - tickRoom} y={y(tick)} dy="0.355em" textAnchor="end">
+            <text key={tick} data-ouro-chart-tick="" x={rtl ? right + tickRoom : left - tickRoom} y={y(tick)} dy="0.355em" textAnchor={rtl ? "start" : "end"}>
               {labels[place]}
             </text>
           ))}
