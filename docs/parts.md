@@ -282,7 +282,7 @@ Each part checks that it sits inside `<TabsRoot>`: outside it, a part throws in 
 
 | Part | What it is |
 | --- | --- |
-| `TabsList` | The row (or column) of tabs. Name it with `aria-label` when the page has more than one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it. A row that scrolls, on a phone, fades out on the side that hides more tabs. A key that moves the selection switches tabs without animation. |
+| `TabsList` | The row (or column) of tabs. Name it with `aria-label` when the page has more than one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it. A row that overflows scrolls sideways, on a phone. A key that moves the selection switches tabs without animation. |
 | `TabsPanel` | The content shown while the tab with the same `value` is selected. |
 | `TabsRoot` | The state owner of tabs built from parts. Use the `Tabs` component instead unless its `items` cannot express your layout, such as a tab that holds a badge next to its label or a panel shared by two tabs. |
 | `TabsTab` | One tab, a button that shows the panel with the same `value`. |

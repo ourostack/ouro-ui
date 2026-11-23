@@ -102,7 +102,7 @@ export type TabsListProps = Omit<BaseTabs.List.Props, "className"> & { className
 /**
  * Part: the row (or column) of tabs. Name it with `aria-label` when the page has more than
  * one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it. A row that
- * scrolls sideways, on a phone. A key that moves the
+ * overflows scrolls sideways, on a phone. A key that moves the
  * selection switches tabs without animation.
  */
 export function TabsList({ className, ref, onKeyDownCapture, ...props }: TabsListProps): JSX.Element {
