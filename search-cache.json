@@ -126,6 +126,37 @@
         "test/components/recipe/CoverPlaceholder.test.tsx",
         "test/lib/mcp/declared-actions.server.test.ts"
       ]
+    },
+    "defineCommand": {
+      "commit": "268827c842113a7b471409448713b80017bcacff",
+      "at": "2026-11-24T03:22:39.558Z",
+      "total": 5,
+      "paths": [
+        "app/lib/ouro/ax/ax-command.ts",
+        "scripts/ouro/ax/xray.kit.mts",
+        "scripts/ouro/ax/xray.ts",
+        "tools/ouro-actions/ouro-actions.mts",
+        "app/lib/ouro/ax/ax-moved.d.ts"
+      ]
+    },
+    "bindAx": {
+      "commit": "268827c842113a7b471409448713b80017bcacff",
+      "at": "2026-11-24T03:22:52.499Z",
+      "total": 4,
+      "paths": [
+        "app/lib/ouro/ax/component.ts",
+        "actions/generated/web.ts",
+        "scripts/ouro/ax/xray.ts",
+        "tools/ouro-actions/ouro-actions.mts"
+      ]
+    },
+    "ax-mcp": {
+      "commit": "268827c842113a7b471409448713b80017bcacff",
+      "at": "2026-11-24T03:23:15.376Z",
+      "total": 1,
+      "paths": [
+        "app/lib/ouro/ax/ax-claims.ts"
+      ]
     }
   },
   "spoonjoy/spoonjoy-apple": {
@@ -330,6 +361,14 @@
     "\"import OuroAX\"": {
       "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
       "at": "2026-11-24T01:25:01.167Z",
+      "total": 0,
+      "paths": []
+    }
+  },
+  "ourostack/ouroboros": {
+    "components/ouro/": {
+      "commit": "a99caab612399551ef2c479c3781eeba81622d31",
+      "at": "2026-11-24T03:27:19.305Z",
       "total": 0,
       "paths": []
     }
