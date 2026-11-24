@@ -21,6 +21,8 @@ const capLabelClass = "[text-box:trim-both_cap_alphabetic]";
  * and as cut text though nothing a person sees moves or clips. `clip` cuts the same pixels with no scroll container
  * at all, so neither finding fires.
  *
+ * @claim "makes the box a scroll container" https://developer.mozilla.org/en-US/docs/Web/CSS/overflow verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/CSS/overflow)
+ * @claim "cuts the same pixels with no scroll container at all, so neither finding fires" test/stories.test.tsx verify:testExists(test/stories.test.tsx::stories pass Ouro check's rules > $id passes Ouro check's rules, except its known findings)
  * @internal
  */
 const capLabelTruncateClass = "[text-box:trim-both_cap_alphabetic] overflow-clip text-ellipsis whitespace-nowrap py-[0.3em] -my-[0.3em]";
