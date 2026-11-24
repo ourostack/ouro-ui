@@ -166,7 +166,7 @@ const KIT = [
 export default function XrayPage(): JSX.Element {
   return (
     <div id="xray" className="part">
-      <StoryOpener scene="xray" line="The lens shows every cog inside the cabinet, and the robot is checking each one." short={false} />
+      <StoryOpener scene="xray" line="The lens shows the cogs inside the cabinet, and the robot checks them one by one." short={false} />
       <div className="part-hero">
         <Hero
           layout="split"

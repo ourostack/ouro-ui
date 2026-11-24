@@ -308,7 +308,7 @@ export const SCENES: Record<SceneName, Scene> = {
     night: { phoneHeight: 384 },
   },
   hackamore: {
-    alt: "In a pear orchard in blossom, a small pink robot leads a carved carousel horse on a wheeled platform by a rope hackamore, with no bit, while Ouro, a smiling emerald snake curled into an O, sits in the saddle.",
+    alt: "In a pear orchard in blossom, a small pink robot leads a carved carousel horse on a wheeled platform by a rope hackamore instead of a bit, while Ouro, a smiling emerald snake curled into an O, sits in the saddle.",
     sky: ["#dfb970","#f5ddb0","#f3dcc2","#e1cbb3","#957a41"],
     height: 576,
     phoneHeight: 512,

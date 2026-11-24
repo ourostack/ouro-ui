@@ -133,7 +133,7 @@ const RULES = [
 export default function HackamorePage(): JSX.Element {
   return (
     <div id="hackamore" className="part">
-      <StoryOpener scene="hackamore" line="A rope and no bit: the robot leads, and the horse still goes where it is asked." short={false} />
+      <StoryOpener scene="hackamore" line="A rope instead of a bit: the robot leads, and the horse goes where it is asked." short={false} />
       <div className="part-hero">
         <Hero
           layout="split"
