@@ -957,7 +957,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
           data-ouro-control="combobox"
           data-ouro-part="chip-remove"
           className={chipRemoveClass}
-          {...(sheet ? { tabIndex: 0, onClick: () => triggerRef.current?.focus() } : {})}
+          {...(sheet ? { tabIndex: 0, onClick: () => triggerRef.current!.focus() } : {})}
         >
           <TouchTarget />
           <CrossIcon />

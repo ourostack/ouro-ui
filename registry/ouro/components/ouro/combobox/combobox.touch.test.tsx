@@ -601,7 +601,7 @@ describe("Combobox multiple on a phone", () => {
   };
 
   it("shows each pick as a chip beside the field's button, wrapping onto more lines, with no text cut", async () => {
-    const host = await render(<Combobox label="Tags" multiple items={tags} defaultValue={tags} />);
+    const host = await render(<Combobox label="Tags" multiple items={tags} defaultValue={tags} placeholder="Add tags" />);
     const trigger = host.querySelector<HTMLButtonElement>(TRIGGER)!;
     const chips = chipsIn(host);
     expect(chips.map((chip) => chip.textContent)).toEqual(tags.map((tag) => `${tag}Remove ${tag}`));
@@ -610,6 +610,8 @@ describe("Combobox multiple on a phone", () => {
     expect(trigger.querySelector("button")).toBeNull();
     expect(trigger.labels![0]!.textContent).toBe("Tags");
     expect(trigger.textContent).not.toContain("Vegan");
+    // Nor the placeholder, which the chips would cover.
+    expect(trigger.textContent).not.toContain("Add tags");
     // Several rows of chips, the field grown around them, and every label whole.
     expect(new Set(chips.map((chip) => Math.round(chip.getBoundingClientRect().top))).size).toBeGreaterThanOrEqual(2);
     const field = host.querySelector<HTMLElement>("[data-ouro-combobox-field]")!.getBoundingClientRect();
