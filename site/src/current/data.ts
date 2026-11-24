@@ -3,7 +3,7 @@ import snapshot from "./current.json";
 /** One pin Ouro Current found in a repository, and the release it follows. */
 export interface CurrentPin {
   file: string;
-  follows: "web" | "core" | "apple";
+  follows: "web" | "core" | "apple" | "windows" | "android";
   current: string;
   latest: string;
   behind: boolean;

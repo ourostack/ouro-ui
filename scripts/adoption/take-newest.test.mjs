@@ -17,6 +17,14 @@ test("the site builds in the hourly ledger only when it is newer and of the same
   assert.equal(newest(committed, null), committed);
 });
 
+test("Ouro Current's list is built in the same way, newest first, and only with the lists the page reads", () => {
+  const committed = { schema: 1, generatedAt: "2026-11-15T20:00:00Z", releases: {}, repos: [] };
+  const published = { ...committed, generatedAt: "2026-11-23T22:59:27Z", repos: [{ repo: "o/r" }] };
+  assert.equal(newest(committed, published), published);
+  assert.equal(newest(committed, { ...published, repos: undefined }), committed);
+  assert.match(readFileSync(join(import.meta.dirname, "../../.github/workflows/pages.yml"), "utf8"), /take-newest\.mjs "https:\/\/api\.github\.com\/repos\/\$REPO\/contents\/current\.json\?ref=adoption-data" site\/src\/current\/current\.json/);
+});
+
 test("the site reads the hourly ledger from the contents API, signed in, so a cached copy never stands in for it", async () => {
   const dir = scratchDir("take-newest-");
   const file = join(dir, "ledger.json");
