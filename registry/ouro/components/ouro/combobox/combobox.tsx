@@ -165,7 +165,7 @@ export interface ComboboxBaseProps {
   /**
    * The name of the sheet's own close button on a phone: an icon button in the top corner,
    * distinct from `doneLabel`'s visible footer button with `multiple`, so a screen reader
-   * never lists two controls with the same name. Translate it with your app.
+   * does not read a matching name for both controls. Translate it with your app.
    * @default "Close"
    */
   closeLabel?: string | undefined;

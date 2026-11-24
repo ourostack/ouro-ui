@@ -31,7 +31,7 @@ The props the modes share. Type: `ComboboxProps`.
 | `autoHighlight` | `boolean` |  | The first item that matches is highlighted as people type, so Enter picks it. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `clearLabel` | `string` | `"Clear"` | The name of the button that clears the field, as visually hidden text and not an `aria-label`, so a test's label lookup for the field finds the field alone. It shows while there is something to clear. Translate it with your app. |
-| `closeLabel` | `string` | `"Close"` | The name of the sheet's own close button on a phone: an icon button in the top corner, distinct from `doneLabel`'s visible footer button with `multiple`, so a screen reader never lists two controls with the same name. Translate it with your app. |
+| `closeLabel` | `string` | `"Close"` | The name of the sheet's own close button on a phone: an icon button in the top corner, distinct from `doneLabel`'s visible footer button with `multiple`, so a screen reader does not read a matching name for both controls. Translate it with your app. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the field and its buttons, and fades it. |
 | `doneLabel` | `string` | `"Done"` | The label of the button that closes the sheet on a phone (a visible button with `multiple`). Translate it with your app. |
