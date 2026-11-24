@@ -9,12 +9,10 @@ interface Node {
   selectors?: string[];
   prop?: string;
   value?: string;
-  important?: boolean;
   parent?: Node;
   nodes?: Node[];
   walkDecls?: (cb: (decl: Node) => void) => void;
   append: (node: object) => unknown;
-  after: (node: object) => unknown;
   prepend: (node: object) => unknown;
   walkRules: (cb: (rule: Node) => void) => void;
 }
@@ -26,7 +24,6 @@ const ENCLOSING_CIRCLE = 0.543;
 // controls and end, drawn from the corner's left edge to its top edge.
 const CORNER = [[0, 1], [0, 0.613, -0.0092, 0.3274, 0.1591, 0.1591], [0.3274, -0.0092, 0.613, 0, 1, 0]] as const;
 const KEYS = ["tl", "tr", "br", "bl"] as const;
-const PHYSICAL = ["border-top-left-radius", "border-top-right-radius", "border-bottom-right-radius", "border-bottom-left-radius"];
 const LONGHANDS: Record<string, number> = {
   "border-top-left-radius": 0, "border-start-start-radius": 0,
   "border-top-right-radius": 1, "border-start-end-radius": 1,
@@ -52,23 +49,18 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
       root.walkRules((rule) => {
         if (skipped(rule)) return;
         const corners = cornersOf(rule);
-        const round = (rule.nodes ?? []).some((d) => d.prop === "corner-shape" && d.value === "round");
-        if (round || corners.every((c) => c === null)) return;
-        const half = halfSize(rule);
-        const nodes: object[] = [];
-        const radii: string[] = [];
-        corners.forEach((c, i) => {
-          if (c === null) return;
-          const capsule = isCapsule(c.value);
-          const value = !capsule && px(c.value) > half ? `${half}px` : c.value;
-          const radius = capsule ? "var(--sq-capsule-radius)" : `calc(${value} * ${ENCLOSING_CIRCLE})`;
-          nodes.push({ prop: `--sq-${KEYS[i]}`, value: capsule ? "var(--sq-half)" : value, important: c.important });
-          // One shorthand when the rule wrote one for every corner; longhands otherwise, so a later longhand still wins.
-          if (corners.every((o) => o?.whole && o.important === c.important)) radii.push(radius);
-          else nodes.push({ prop: c.prop, value: radius, important: c.important });
+        if (!corners.some((c) => c !== null && !isRound(c, rule))) return;
+        const vars: string[] = [];
+        const radii = corners.map((c, i) => {
+          const round = c === null || isRound(c, rule);
+          vars.push(`--sq-${KEYS[i]}: ${round ? "0px" : c}`);
+          return round ? (c ?? "0") : `calc(${c} * ${ENCLOSING_CIRCLE})`;
         });
-        if (radii.length) nodes.push({ prop: "border-radius", value: radii.every((r) => r === radii[0]) ? radii[0] : radii.join(" "), important: corners[0]!.important });
-        rule.after({ name: "supports", params: MISSING, nodes: [{ selector: rule.selector, nodes }] });
+        const sibling = { selector: rule.selector, nodes: [] as object[] };
+        for (const v of vars) sibling.nodes.push({ prop: v.split(": ")[0], value: v.split(": ")[1] });
+        sibling.nodes.push({ prop: "border-radius", value: radii.join(" ") });
+        const wrap = { name: "supports", params: MISSING, nodes: [sibling] };
+        rule.parent!.append(wrap);
         for (const s of rule.selectors ?? []) selectors.add(s);
       });
       if (selectors.size === 0) return;
@@ -82,8 +74,6 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
         ],
       };
       root.append(layer);
-      root.prepend({ name: "property", params: "--sq-capsule-radius", nodes: [{ prop: "syntax", value: '"<length>"' }, { prop: "inherits", value: "false" }, { prop: "initial-value", value: "9999px" }] });
-      root.prepend({ name: "property", params: "--sq-half", nodes: [{ prop: "syntax", value: '"<length>"' }, { prop: "inherits", value: "false" }, { prop: "initial-value", value: "0px" }] });
       for (const k of KEYS) root.prepend({ name: "property", params: `--sq-${k}`, nodes: [{ prop: "syntax", value: '"<length-percentage>"' }, { prop: "inherits", value: "false" }, { prop: "initial-value", value: "0px" }] });
       root.prepend({ name: "property", params: "--sq-notch", nodes: [{ prop: "syntax", value: '"*"' }, { prop: "inherits", value: "false" }] });
       root.prepend({ name: "layer", params: "squircle-corners" });
@@ -99,24 +89,16 @@ function skipped(rule: Node): boolean {
   return false;
 }
 
-interface Corner { value: string; prop: string; important: boolean; whole: boolean }
-
-// The four corners' radii as written (top-left, top-right, bottom-right, bottom-left), each with the property that set it, or
-// null for a corner the rule leaves alone. A later declaration overrides an earlier one, as in the cascade.
-function cornersOf(rule: Node): (Corner | null)[] {
-  const out: (Corner | null)[] = [null, null, null, null];
-  // An important declaration is not overridden by a later one that is not.
-  const set = (i: number, c: Corner) => void (out[i]?.important && !c.important ? null : (out[i] = c));
+// The four corners' radii as written (top-left, top-right, bottom-right, bottom-left), or null for a corner the rule leaves alone.
+function cornersOf(rule: Node): (string | null)[] {
+  const out: (string | null)[] = [null, null, null, null];
   for (const decl of rule.nodes ?? []) {
     if (decl.type !== "decl") continue;
     const value = decl.value!.trim();
-    const important = decl.important === true;
     if (decl.prop === "border-radius" && !value.includes("/")) {
       const [a, b = a, c = a, d = b] = splitTop(value);
-      [a!, b!, c!, d!].forEach((v, i) => set(i, { value: v, prop: PHYSICAL[i]!, important, whole: true }));
-    } else if (decl.prop! in LONGHANDS) {
-      set(LONGHANDS[decl.prop!]!, { value: splitTop(value)[0]!, prop: decl.prop!, important, whole: false });
-    }
+      out.splice(0, 4, a ?? null, b ?? null, c ?? null, d ?? null);
+    } else if (decl.prop! in LONGHANDS) out[LONGHANDS[decl.prop!]!] = splitTop(value)[0] ?? null;
   }
   return out;
 }
@@ -139,16 +121,10 @@ function splitTop(value: string): string[] {
 
 const px = (v: string) => (/px$/.test(v) ? parseFloat(v) : /rem$/.test(v) ? parseFloat(v) * 16 : NaN);
 
-// A capsule: a radius that clamps to half the shorter side. A clip path can't read the height on its horizontal axis, so
-// squircle-capsules (lib/ouro) measures it and sets --sq-half; until it has, the capsule stays round.
-function isCapsule(value: string): boolean {
-  return /infinity/.test(value) || (/%$/.test(value) && parseFloat(value) >= 50) || px(value) >= 999;
-}
-
-// The most a px radius can be: half the smallest height or width the same rule fixes.
-function halfSize(rule: Node): number {
-  const sizes = (rule.nodes ?? []).filter((d) => d.prop === "height" || d.prop === "width").map((d) => px(d.value!)).filter((n) => n > 0);
-  return Math.min(Infinity, ...sizes.map((n) => n / 2));
+// Round by intent: a pill, a circle, half the box, half a height or width the same rule sets, or corner-shape: round.
+function isRound(value: string, rule: Node): boolean {
+  if (/infinity/.test(value) || (/%$/.test(value) && parseFloat(value) >= 50) || px(value) >= 999) return true;
+  return (rule.nodes ?? []).some((d) => (d.prop === "corner-shape" && d.value === "round") || ((d.prop === "height" || d.prop === "width") && px(value) >= px(d.value!) / 2 - 0.5));
 }
 
 // One path: a rectangle far outside, minus the box, plus the squircle. Under the nonzero rule the slivers a plain circular corner
