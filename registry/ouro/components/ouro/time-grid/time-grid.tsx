@@ -918,6 +918,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         <li
           key={placed.key}
           className="pointer-events-auto absolute"
+          data-ouro-allow="near-miss"
+          data-ouro-allow-why="An event sits where its time puts it, so events that start and end together touch."
           style={{
             top: minutesTall(placed.top),
             height: `calc(${minutesTall(placed.bottom - placed.top)} - 1px)`,
@@ -994,7 +996,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       )}
       style={
         {
-          ...(renderDaySummary ? {} : { "--ouro-time-grid-head": `${3.75 + lanes * 1.5}rem` }),
+          ...(renderDaySummary ? {} : { "--ouro-time-grid-head": `${4.25 + lanes * 1.5}rem` }),
           "--ouro-time-grid-lane": labelBackground ? "max(7rem, 40%)" : "0.75rem",
           ...style,
         } as CSSProperties
@@ -1042,11 +1044,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             <ul
               role="list"
               aria-label={allDayLabel}
-              className="m-0 grid list-none auto-rows-[1.375rem] gap-y-0.5 p-0 py-1"
-              style={{ gridColumn: "2 / -1", gridTemplateColumns: `repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))`, minHeight: `${lanes * 1.5 + 0.75}rem` }}
+              className="m-0 grid list-none auto-rows-[1.375rem] gap-y-0.5 p-0 py-2"
+              style={{ gridColumn: "2 / -1", gridTemplateColumns: `repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))`, minHeight: `${lanes * 1.5 + 1.25}rem` }}
             >
               {allDay.map((span) => (
-                <li key={span.key} className="min-w-0 px-0.5" style={{ gridColumn: `${span.first + 1} / ${span.last + 2}`, gridRow: span.lane + 1 }}>
+                <li key={span.key} className="min-w-0 px-2" style={{ gridColumn: `${span.first + 1} / ${span.last + 2}`, gridRow: span.lane + 1 }}>
                   {renderEvent(pieces.find((piece) => piece.key === span.key)!)}
                 </li>
               ))}

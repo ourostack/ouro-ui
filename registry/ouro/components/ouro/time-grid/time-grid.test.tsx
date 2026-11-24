@@ -558,8 +558,8 @@ describe("TimeGrid", () => {
     ]);
     expect(plain(titled("Team offsite").getAttribute("aria-label"))).toBe("Team offsite, Tuesday, March 10 – Wednesday, March 11, All day");
     expect(plain(titled("Office closed").getAttribute("aria-label"))).toBe("Office closed, Friday, All day");
-    expect((row as HTMLElement).style.minHeight).toBe("3.75rem");
-    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("6.75rem");
+    expect((row as HTMLElement).style.minHeight).toBe("4.25rem");
+    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("7.25rem");
   });
 
   it("leaves out an all-day event that falls only on the weekend of a work week, and lists no empty day", async () => {
@@ -1781,7 +1781,7 @@ describe("TimeGrid background events", () => {
     await rerender({ view: "work-week", events: [forum] });
     expect(grid.querySelector("[data-ouro-time-grid-summary]")).toBeNull();
     expect(tall - head.offsetHeight).toBeGreaterThanOrEqual(40);
-    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("5.25rem");
+    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("5.75rem");
   });
 });
 
