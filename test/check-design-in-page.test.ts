@@ -994,13 +994,14 @@ describe("findDesignIssues: off-centre-text", () => {
     expect(document.getElementById("bare")!.getAttribute("data-ouro-check-ref")).toBe(issues[6]!.ref);
   });
 
-  it("passes centred words, a box of two lines or more, words on two lines, an icon over its label, hidden or trimmed words, the opted out and a scaled thumbnail", () => {
+  it("passes centred words, a box of two lines or more, words on two lines, an icon over or under its label, hidden or trimmed words, the opted out and a scaled thumbnail", () => {
     render(`<p><input placeholder="Search" style="font:16px/24px system-ui, sans-serif;padding:8px 12px;border:1px solid #999"></p>
 <p><input value="" style="font:16px/24px system-ui, sans-serif;padding:8px 12px;border:1px solid #999"></p>
 <p><input type="checkbox"></p>
 <p><textarea rows="4" placeholder="A long note" style="font:16px/24px system-ui, sans-serif;padding:8px"></textarea></p>
-<p><button style="font:16px/24px system-ui, sans-serif;padding:8px 16px;border:1px solid #999;background:#fff;display:inline-flex;align-items:center;gap:8px"><svg width="16" height="16" aria-hidden="true"><rect width="16" height="16"/></svg>Save</button></p>
+<p><button style="font:16px/24px system-ui, sans-serif;padding:8px 16px;border:1px solid #999;background:#fff;display:inline-flex;align-items:center;gap:8px"><svg width="16" height="16" aria-hidden="true"><rect width="16" height="16"/></svg><svg width="0" height="0" aria-hidden="true"></svg>Save</button></p>
 <p><button style="display:flex;flex-direction:column;align-items:center;height:56px;box-sizing:border-box;padding:20px 8px 8px;border:0;background:#eee;font:12px/16px system-ui, sans-serif"><svg width="12" height="12" aria-hidden="true"><rect width="12" height="12"/></svg>Chat</button></p>
+<p><button style="display:flex;flex-direction:column;align-items:center;height:56px;box-sizing:border-box;padding:8px 8px 20px;border:0;background:#eee;font:12px/16px system-ui, sans-serif">Files<svg width="12" height="12" aria-hidden="true"><rect width="12" height="12"/></svg></button></p>
 <p><button aria-label="Close" style="width:32px;height:32px"><svg width="16" height="16" aria-hidden="true"></svg></button></p>
 <p><button style="font:16px/24px system-ui, sans-serif;padding:8px 16px">Save <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">changes now</span></button></p>
 <p><button style="font:16px/24px system-ui, sans-serif;padding:8px 16px;max-width:90px">Two words wrap</button></p>
