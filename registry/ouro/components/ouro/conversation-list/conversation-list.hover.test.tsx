@@ -52,6 +52,7 @@ describe("ConversationList hover", () => {
     const plain = rowOf(host, "Trail crew");
     const selected = rowOf(host, "Ana Lind");
     expect(style(plain).boxShadow).toBe("none");
+    expect(style(selected).boxShadow).toBe("none");
     await userEvent.hover(plain);
     await expect.poll(() => style(plain).backgroundColor).toBe(color("var(--ouro-row-hover)"));
     expect(style(plain).borderTopLeftRadius).toBe("6px");
@@ -59,6 +60,9 @@ describe("ConversationList hover", () => {
     await userEvent.hover(selected);
     await expect.poll(() => style(selected).backgroundColor).toBe(color("var(--ouro-row-selected-hover)"));
     expect(style(selected).backgroundColor).not.toBe(color("var(--ouro-row-hover)"));
+    // The open row is marked by its selected fill alone: the plain rows' hover ring would make it
+    // look like a plain row raised off the list, as if it were not the open one (#3477).
+    expect(style(selected).boxShadow).toBe("none");
   });
 
   it("reads the app's own row tokens", async () => {
