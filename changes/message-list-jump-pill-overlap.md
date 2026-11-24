@@ -1,0 +1,1 @@
+- Fix: MessageList keeps the "Jump to latest" pill clear of a message arriving while the reader is scrolled up

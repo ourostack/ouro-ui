@@ -112,6 +112,14 @@ export const knownFindings: KnownFinding[] = [
     sometimes: true,
   },
   {
+    story: "Message/Thread",
+    rule: "overlap",
+    issue: 3337,
+    reason:
+      "The same hover-bar overlap as Message/Chat, sighted on this standalone Message (added after #2177, neither hovered nor focused). It renders its own inline bar, never MessageList's layered one row-hover.ts tracks, so #2177's pointer-position fix could not reach it: a third sighting of the still-open second path, not a stale pointer (#3337, #1957).",
+    sometimes: true,
+  },
+  {
     story: "NavigationRail/LongLabels",
     rule: "lone-word",
     issue: 1955,
@@ -537,6 +545,22 @@ export const knownFindings: KnownFinding[] = [
     issue: 3286,
     reason:
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ThreadLayout/Default",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
+  },
+  {
+    story: "ThreadLayout/Narrow",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "TimeGrid/BackgroundEvents",
