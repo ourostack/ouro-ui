@@ -32,8 +32,10 @@ function measure() {
     return new Set([...range.getClientRects()].filter((r) => r.width > 1).map((r) => Math.round(r.top / 6))).size;
   };
   const limit = innerWidth >= 1024 ? 60 : 24;
-  return [...document.querySelectorAll("[data-lab-panel]")]
-    .filter((panel) => panel.checkVisibility())
+  const visible = (list) => [...document.querySelectorAll(list)].filter((panel) => panel.checkVisibility());
+  // The lab marks its panels; the first build did not, so its panels are found by their parts.
+  const marked = visible("[data-lab-panel]");
+  return (marked.length ? marked : visible('.lab-panel:not([hidden]) > div, [role="dialog"] nav, nav[aria-label="Sections"] > div:not([hidden])'))
     .map((panel) => {
       const style = getComputedStyle(panel);
       const box = panel.getBoundingClientRect();
