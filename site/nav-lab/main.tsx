@@ -28,7 +28,7 @@ function Dock({ current }: { current: string | null }): JSX.Element {
   };
   return (
     <div className="lab-dock pointer-events-none fixed inset-x-0 bottom-3 z-30 flex justify-center px-3 pb-[env(safe-area-inset-bottom)]">
-      <nav aria-label="Mockups" className="pointer-events-auto flex items-center gap-0.5 rounded-ouro-2xl bg-foreground p-1 text-background shadow-(--shadow-lg)">
+      <nav aria-label="Mockups" className="pointer-events-auto flex items-center gap-0.5 rounded-ouro-2xl bg-foreground p-2 text-background shadow-(--shadow-lg)">
         <a href={link(null)} aria-current={current === null ? "page" : undefined} className={dockItem}>
           Lab
         </a>

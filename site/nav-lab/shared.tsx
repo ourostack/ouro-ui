@@ -35,7 +35,7 @@ export const row =
   "transition-colors duration-(--ouro-duration-fast) ease-[ease] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:bg-accent active:bg-accent";
 
 /** A page link: its name, its line under it when there is room, and the mark when you are on it. */
-export function PageLink({ page, here, hint = true, className, size = "md" }: { page: Page; here: string; hint?: boolean; className?: string; size?: "md" | "lg" | "sm" }): JSX.Element {
+export function PageLink({ page, here, hint = true, className, size = "md", hidden }: { page: Page; here: string; hint?: boolean; className?: string; size?: "md" | "lg" | "sm"; hidden?: string }): JSX.Element {
   const current = page.path === here;
   return (
     <a
@@ -44,7 +44,7 @@ export function PageLink({ page, here, hint = true, className, size = "md" }: { 
       className={cn(row, "py-1.5 aria-[current=page]:bg-[color-mix(in_oklab,var(--primary)_10%,transparent)]", className)}
       {...(isAway(page.path) ? { target: "_blank", rel: "noreferrer" } : {})}
     >
-      <span className="grid min-w-0 flex-1 gap-0.5 text-pretty">
+      <span className="grid min-w-0 flex-1 gap-0.5 text-balance">
         <span
           className={cn(
             "font-medium text-foreground",
@@ -54,6 +54,7 @@ export function PageLink({ page, here, hint = true, className, size = "md" }: { 
           )}
         >
           {page.label}
+          {hidden && <span className="sr-only"> {hidden}</span>}
           {isAway(page.path) && (
             <span aria-hidden="true" className="ms-1 text-muted-foreground">
               ↗
@@ -137,7 +138,7 @@ export function PlatformGrid({ slots, here, label = "Platforms", compact = false
             <ul aria-label={p.name} className="m-0 grid list-none gap-0.5 p-0">
               {slots.map((slot) => (
                 <li key={slot}>
-                  <PageLink page={{ label: slots.length === 1 ? p[slot].label : SLOT_NAMES[slot], path: p[slot].path }} here={here} hint={false} size="sm" />
+                  <PageLink page={{ label: SLOT_NAMES[slot], path: p[slot].path }} hidden={slot === "start" ? `on ${p.name}` : `for ${p.name}`} here={here} hint={false} size="sm" />
                 </li>
               ))}
             </ul>

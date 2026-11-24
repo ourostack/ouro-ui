@@ -586,7 +586,7 @@ function ChartHeader({ here, search }: MockupProps): JSX.Element {
         </PhoneOnly>
         <MapButton onOpen={() => setMap(true)} />
       </Bar>
-      <Sheet open={map} onOpenChange={setMap} title="The map" description="Every page on Ouro UI." side="bottom" snapPoints={[0.94]}>
+      <Sheet open={map} onOpenChange={setMap} title="The map" description="Every page on Ouro UI." side="bottom" snapPoints={[0.94]} className="max-w-6xl">
         <nav
           aria-label="Map"
           onClick={(event) => {
