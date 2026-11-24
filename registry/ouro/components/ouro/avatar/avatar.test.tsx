@@ -1041,7 +1041,7 @@ describe("Avatar presence", () => {
       expect(fill.maskImage).toBe("none");
       expect(fill.clipPath).toBe("none");
     }
-    expect(surface(dotted!).hasAttribute("data-ouro-bite")).toBe(true);
+    expect(surface(dotted!).getAttribute("data-ouro-bite")).toBe("");
   });
 
   it("moves to the other corner right to left", async () => {
