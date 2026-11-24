@@ -19,7 +19,7 @@ export default function AndroidAx(): JSX.Element {
       <Hero
         layout="split"
         eyebrow="Ouro AX for Android"
-        title="AppFunctions, from the same declaration."
+        title="Your actions, called by agents."
         description={
           <div className="grid gap-3">
             <p>
@@ -49,9 +49,9 @@ export default function AndroidAx(): JSX.Element {
         }
         media={
           <Capture
-            light="/android/agent-console.webp"
-            dark="/android/agent-console.webp"
-            alt="The sample's agent console on Android: an AppFunction search, an add that ran, and a share waiting for the person to answer."
+            light="/android/composed-light.webp"
+            dark="/android/composed-dark.webp"
+            alt="An agent's card on Android, Pasta night: badges, what's missing, a tip about basil, fields to add an item, and Add to list and Share list buttons."
             note={CI_FOOTNOTE}
             source={kit.ciEvidence}
             width={1080}
@@ -130,6 +130,16 @@ export default function AndroidAx(): JSX.Element {
             <p className="apple-quad-body">{claim("The call waits up to two minutes, then counts as no, and no runs nothing.", { source: { spec: "https://github.com/ourostack/ouro-ui-android/blob/1f47ebe626806473f8c2c971d3e91da32b641dc5/README.md" }, verify: [{ fileLine: "site/src/platforms/kits.json", pattern: "the call suspends until the person answers or two minutes pass" }, { fileLine: "site/src/platforms/kits.json", pattern: "the timeout all mean no, and no runs nothing" }] })}</p>
           </li>
         </ul>
+        <Capture
+          light="/android/agent-console.webp"
+          dark="/android/agent-console.webp"
+          alt="The sample's agent console on Android: an AppFunction search, an add that ran, and a share waiting for the person to answer."
+          note={CI_FOOTNOTE}
+          source={kit.ciEvidence}
+          width={1080}
+          height={2400}
+          phone
+        />
       </Band>
 
       <Band

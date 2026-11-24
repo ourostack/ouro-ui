@@ -19,7 +19,7 @@ export default function AndroidHx(): JSX.Element {
       <Hero
         layout="split"
         eyebrow="Ouro HX for Android"
-        title="Ouro's components, made of Compose."
+        title="Grown in Compose, with Ouro's manners."
         description={
           <div className="grid gap-3">
             <p>

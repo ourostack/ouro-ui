@@ -18,8 +18,8 @@ const TITLES = {
   "/windows/ax/": "Two doors, one declaration.",
   "/windows/start/": "Add it with dotnet.",
   "/android/": "Same manners, now in Compose.",
-  "/android/hx/": "Ouro's components, made of Compose.",
-  "/android/ax/": "AppFunctions, from the same declaration.",
+  "/android/hx/": "Grown in Compose, with Ouro's manners.",
+  "/android/ax/": "Your actions, called by agents.",
   "/android/start/": "Add it in Gradle.",
 } as const;
 

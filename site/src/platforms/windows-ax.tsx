@@ -103,7 +103,7 @@ export default function WindowsAx(): JSX.Element {
           <li className="apple-quad-item">
             <h3 className="apple-quad-title">People can press it</h3>
             <p className="apple-quad-body">
-              {claim("Each declared action has a button with its label and description, and no button goes undeclared.", {
+              {claim("Each declared action has a button with its label and description, and there's no button nobody declared.", {
                 source: { spec: "https://github.com/ourostack/ouro-ui-windows/blob/65dc6dce47d3e7e8f77164f63e617b9ee3e1b773/tools/xray.mts" },
                 verify: [
                   { fileLine: "site/src/platforms/kits.json", pattern: "\"people press it\"" },
