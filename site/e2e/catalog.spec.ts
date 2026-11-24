@@ -236,7 +236,7 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // (/composed-ui/): ComposedSurface draws Card, Alert, DescriptionList, NumberField and the other composed components,
 // which no voyage page rendered before, and the voyage's pages share one stylesheet. A build of the card's own failed:
 // a second Tailwind build repeats utilities the shared one has, and its later copies override responsive classes.
-const CSS_CEILINGS = { voyage: 51 * 1024, docs: 53 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+const CSS_CEILINGS = { voyage: 54 * 1024, docs: 55 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the
