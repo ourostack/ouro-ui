@@ -274,11 +274,11 @@ function Screen(): JSX.Element {
               {clock(minutesOf(new Date(current.end ?? current.start)))}
             </Text>
             <Text size="sm">{kinds.find((candidate) => candidate.value === current.kind)?.label} calendar{current.description ? `, ${current.description}` : ""}</Text>
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-row-reverse justify-start gap-2">
+              <Button onClick={() => edit(current)}>Edit</Button>
               <Button variant="outline" tone="destructive" onClick={() => remove(current)}>
                 Delete
               </Button>
-              <Button onClick={() => edit(current)}>Edit</Button>
             </div>
           </div>
         ) : null}

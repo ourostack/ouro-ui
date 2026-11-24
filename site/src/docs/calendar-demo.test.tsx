@@ -79,6 +79,7 @@ describe("the calendar page", () => {
   }, pageScanTimeout);
 
   it("opens an event's details with focus inside them, not on Delete", async () => {
+    await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: /Sprint planning/ }).first().click();
     const details = page.getByRole("dialog", { name: /Sprint planning/ });
@@ -88,6 +89,7 @@ describe("the calendar page", () => {
   });
 
   it("moves focus into the edit dialog after Edit, and back to the event after Cancel", async () => {
+    await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: /Sprint planning/ }).first().click();
     page.getByRole("button", { name: "Edit" }).element().focus();
@@ -100,6 +102,7 @@ describe("the calendar page", () => {
   });
 
   it("puts focus back in the grid after Delete, so the keyboard does not start over", async () => {
+    await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: /Sprint planning/ }).first().click();
     page.getByRole("button", { name: "Delete" }).element().focus();
