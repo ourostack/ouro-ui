@@ -274,6 +274,18 @@ describe("Tabs", () => {
     await expect.poll(() => list.getAttribute("data-fade")).toBe("left");
   });
 
+  it("clears the fade when the tab list's orientation attribute changes to vertical", async () => {
+    const many = Array.from({ length: 10 }, (_, index) => ({ value: `s${index}`, label: `Section ${index + 1}`, content: <p>Panel {index + 1}</p> }));
+    const { host, root } = await render(<Tabs label="Recipe" items={many} />);
+    host.style.width = "320px";
+    const list = root.querySelector<HTMLElement>('[role="tablist"]')!;
+    await expect.poll(() => list.getAttribute("data-fade")).toBe("right");
+    // Set directly, as a vertical-on-mobile layout would, rather than through React: only the
+    // MutationObserver on this exact attribute, not a resize or scroll, can catch this change.
+    list.setAttribute("aria-orientation", "vertical");
+    await expect.poll(() => list.hasAttribute("data-fade")).toBe(false);
+  });
+
   it("slides the indicator under the selected tab", async () => {
     const r = await render(<Tabs label="Recipe" items={items} />);
     await expect.poll(() => r.indicator).not.toBeNull();
