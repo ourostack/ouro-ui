@@ -406,6 +406,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   useLayoutEffect(() => {
     if (!ending) return;
     let current = true;
+    // Stryker disable next-line OptionalChaining,ArrayDeclaration: the bar is in the host while it ends (it was shown), and an element always answers getAnimations, so the fallback list is never read.
     const running = host!.firstElementChild?.getAnimations() ?? [];
     void Promise.allSettled(running.map((animation) => animation.finished)).then(() => {
       if (!current) return;
