@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import platforms from "../../../scripts/parity-data/platforms.json";
-import { cleanupPage, describeViolations, renderPage, scan } from "../../test/render";
+import { cleanupPage, renderPage } from "../../test/render";
 import { coverage, readCoverage } from "../hx/coverage";
 import { PLATFORM_PATHS } from "../paths";
 import { redirects, routes } from "../routes";
@@ -20,12 +20,11 @@ const TITLES = {
 } as const;
 
 describe("platform pages", () => {
-  it.each(PLATFORM_PATHS)("renders %s with its title and a route, and axe finds nothing", async (path) => {
+  // site.test.tsx runs axe over every route, these included.
+  it.each(PLATFORM_PATHS)("renders %s with its title and a route", async (path) => {
     await renderPage(path);
     await expect.element(page.getByRole("heading", { level: 1, name: TITLES[path] })).toBeInTheDocument();
     expect(routes.some((route) => route.path === path)).toBe(true);
-    const findings = await scan();
-    expect(findings, describeViolations(findings)).toEqual([]);
   });
 
   it.each([
@@ -60,11 +59,11 @@ describe("platform pages", () => {
     expect(coverage.counts.android).toBe(platforms.android.components.length);
   });
 
-  it("control: coverage shows the native kits' rows, then every row with the switch on", async () => {
+  it("control: coverage shows the native kits' rows, then every row once pressed", async () => {
     await renderPage("/hx/");
     const table = () => document.querySelector("#coverage ~ * table, section[aria-labelledby='coverage'] table");
     await expect.poll(() => table()?.querySelectorAll("tbody tr").length).toBe(coverage.rows.filter((row) => row.apple || row.android || row.windows).length);
-    await userEvent.click(page.getByRole("switch", { name: /web-only ones too/ }));
+    await userEvent.click(page.getByRole("button", { name: /web-only ones too/ }));
     await expect.poll(() => table()?.querySelectorAll("tbody tr").length).toBe(coverage.rows.length);
   });
 

@@ -1,7 +1,6 @@
 import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
-import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
 import { Tabs } from "@/registry/ouro/components/ouro/tabs/tabs";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
@@ -243,7 +242,9 @@ function Coverage(): JSX.Element {
         })}
       </p>
       <div className="hx-coverage-controls">
-        <Switch label={`Show all ${coverage.rows.length}, web-only ones too`} checked={all} onCheckedChange={setAll} />
+        <Button variant="outline" tone="secondary" aria-pressed={all} onClick={() => setAll(!all)}>
+          {all ? "Show the native kits' rows" : `Show all ${coverage.rows.length}, web-only ones too`}
+        </Button>
       </div>
       <Table<CoverageRow>
         caption={all ? "The whole matrix, by platform" : "Components a native kit has, by platform"}
@@ -266,7 +267,7 @@ function Coverage(): JSX.Element {
 /** /hx/: Ouro HX on every platform, the same button on four, what each platform has, and how agents read the types. */
 export default function HxPage(): JSX.Element {
   return (
-    <div id="hx" className="apple">
+    <div id="hx" className="apple platform-page">
       <StoryOpener scene="ouro-hx" line="One glass button on a cabin deck. Press it here, then watch three other platforms press back." />
       <Hero
         layout="column"

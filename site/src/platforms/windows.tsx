@@ -21,7 +21,7 @@ const TOUR = [
 /** /windows/: Ouro UI for Windows, its two halves, what every pull request proves, and the way to start. */
 export default function WindowsHome(): JSX.Element {
   return (
-    <div id="windows-home" className="apple">
+    <div id="windows-home" className="apple platform-page">
       <SectionMenu label="Ouro UI for Windows" pages={WINDOWS_PAGES} current="/windows/" />
       <StoryOpener scene="ouro-ui-windows" line="A cabin, a desk, a window that swings open. The robot checked: the panes have names." />
       <Hero
