@@ -19,7 +19,7 @@ export interface ButtonGroupProps {
   /** Stretches the group to the width of its container, with the buttons sharing it equally. */
   fullWidth?: boolean | undefined;
   /**
-   * Draws the group as one Liquid Glass capsule 40px tall: the theme's glass behind blur, a rim, a soft shadow, and a
+   * Draws the group as one Liquid Glass capsule: the theme's glass behind blur, a rim, a soft shadow, and a
    * hairline divider between the buttons, which sit flat inside it. Use it for a window toolbar's back and forward.
    * Solid under reduced transparency or more contrast. Put `variant="plain"` buttons in it.
    */
