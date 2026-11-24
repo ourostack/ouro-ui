@@ -785,7 +785,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     // Stryker disable next-line StringLiteral: a paused state that is not "paused" only lets the first two frames run, which no test can sample.
     for (const element of elements) element.style.animationPlayState = "paused";
     frame.setAttribute("data-ouro-moving", expanded ? "grow" : "shrink");
-    let finish = () => {};
+    let finish!: () => void;
     const playing = new Promise<void>((resolve) => (finish = resolve));
     let frames = 0;
     let ended = false;
