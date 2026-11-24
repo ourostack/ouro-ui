@@ -1,1 +1,1 @@
-- Changed: TimeGrid draws its hour and half-hour lines as borders, not a gradient, so forced colours keep them and the "no gradients" rule needs no exemption for them.
+- Changed: TimeGrid draws its hour and half-hour lines as borders instead of a gradient.
