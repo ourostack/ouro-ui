@@ -1,6 +1,20 @@
 {
   "order": 2640,
   "components": ["composer"],
+  "motion": {
+    "composer": {
+      "states": {
+        "data-expanded": {
+          "kind": "motion",
+          "parts": {
+            "frame": {"properties": ["clip-path"], "reduced": []},
+            "toolbar": {"properties": ["opacity", "transform"], "reduced": ["opacity"]}
+          },
+          "tests": ["registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded motion > clips and fades the box in over a moment, and only fades the toolbar in with reduced motion"]
+        }
+      }
+    }
+  },
   "controls": {
     "composer": [
       {"part": "editor", "role": "textbox", "portal": false},
