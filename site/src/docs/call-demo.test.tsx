@@ -178,6 +178,24 @@ describe("the call window page", () => {
     }
   });
 
+  it("keeps the control bar inside a phone's window at an enlarged text size, moving what does not fit into More", async () => {
+    await page.viewport(390, 844);
+    document.documentElement.style.fontSize = "150%";
+    // The State switcher's five labels outgrow a phone at this size; the control says so, and the demo scrolls it.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await renderPage("/docs/call-demo/");
+      await document.fonts.ready;
+      const bar = () => document.querySelector<HTMLElement>('[data-site-call-demo] [role="toolbar"]')!;
+      await expect.poll(() => bar().getBoundingClientRect().left).toBeGreaterThanOrEqual(0);
+      await expect.poll(() => bar().getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth);
+      expect(bar().querySelector("[data-ouro-toolbar-more]")).not.toBeNull();
+    } finally {
+      document.documentElement.style.fontSize = "";
+      warn.mockRestore();
+    }
+  });
+
   it("says which parts of the demo are scripted", async () => {
     await renderPage("/docs/call-demo/");
     expect(document.body.textContent).toMatch(/own script/);
