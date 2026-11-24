@@ -834,7 +834,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           <span dir="auto" className="line-clamp-(--ouro-lines) font-medium @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
             {event.title}
           </span>{" "}
-          <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-right`}>
+          <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-end`}>
             {rangeText(formats.time, start!, end!)}
           </span>
           {lines >= 3 && event.description ? (

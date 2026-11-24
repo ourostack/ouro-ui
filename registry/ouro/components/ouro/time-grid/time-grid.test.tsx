@@ -771,7 +771,7 @@ describe("TimeGrid", () => {
     const range = titled("Architecture forum").querySelector<HTMLElement>('span[dir="ltr"]')!;
     expect(range.textContent).toMatch(/^\d+:\d+\s*–\s*\d+:\d+/);
     expect(getComputedStyle(range).unicodeBidi).toBe("isolate");
-    expect(getComputedStyle(range).textAlign).toBe("right");
+    expect(getComputedStyle(range).textAlign).toBe("end");
   });
 
   it("gives a short event and an all-day one a hit area at least 24px tall, without drawing them taller", async () => {
