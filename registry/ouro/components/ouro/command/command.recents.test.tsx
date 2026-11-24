@@ -159,4 +159,34 @@ describe("Command recents", () => {
     await userEvent.type(input(), "zz");
     await expect.poll(() => document.querySelector("[data-ouro-command-empty]")).not.toBeNull();
   });
+
+  it("keeps one highlight that the pointer moves between a row and a chip, and an arrow key walks on from it", async () => {
+    await render(
+      <Command
+        title="Go to"
+        open
+        onOpenChange={() => {}}
+        recents={[{ label: "Pie", onSelect: () => {} }, { label: "Soup", onSelect: () => {} }]}
+        items={[{ label: "Bread", onSelect: () => {} }, { label: "Cake", onSelect: () => {} }]}
+      />,
+    );
+    const rows = () => [...document.querySelectorAll<HTMLElement>("[data-ouro-command-value]")];
+    const marked = () => [...document.querySelectorAll("[data-highlighted]")];
+    await userEvent.hover(rows()[0]!);
+    await expect.poll(marked).toEqual([rows()[0]]);
+    await userEvent.hover(chips()[0]!);
+    await expect.poll(marked).toEqual([rows()[0], chips()[0]]);
+    expect(getComputedStyle(rows()[0]!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(chips()[0]!).backgroundColor).not.toBe(getComputedStyle(chips()[1]!).backgroundColor);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(chips()[1]);
+    await expect.poll(() => chips().map((chip) => chip.hasAttribute("data-highlighted"))).toEqual([false, true]);
+    await userEvent.hover(rows()[1]!);
+    await expect.poll(() => document.activeElement === input()).toBe(true);
+    await expect.poll(() => chips().some((chip) => chip.hasAttribute("data-highlighted"))).toBe(false);
+    expect(getComputedStyle(rows()[1]!).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(input());
+    await expect.poll(() => marked()).toEqual([rows()[0]]);
+  });
 });
