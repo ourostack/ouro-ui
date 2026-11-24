@@ -13,13 +13,13 @@ afterEach(async () => {
   host?.remove();
 });
 
-async function mount() {
+async function mount(glass: boolean | "sm" = true) {
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
   await act(async () =>
     root!.render(
-      <ButtonGroup label="History" glass>
+      <ButtonGroup label="History" glass={glass}>
         <Button variant="plain" aria-label="Back">
           B
         </Button>
@@ -53,6 +53,11 @@ describe("ButtonGroup glass", () => {
     expect(parseFloat(getComputedStyle(buttons[0]!).borderStartStartRadius)).toBeGreaterThanOrEqual(19);
     expect(parseFloat(getComputedStyle(buttons[1]!).borderEndEndRadius)).toBeGreaterThanOrEqual(19);
     expect(parseFloat(getComputedStyle(buttons[0]!).borderEndEndRadius)).toBe(0);
+  });
+
+  it("is 36px tall for glass sm", async () => {
+    const { group } = await mount("sm");
+    expect(group.getBoundingClientRect().height).toBe(36);
   });
 
   it("draws a divider between the buttons", async () => {

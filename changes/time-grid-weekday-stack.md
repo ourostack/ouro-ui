@@ -1,0 +1,1 @@
+- Fixed: TimeGrid stacks a day's number over its weekday name in a narrower column, so a week header no longer cuts a weekday name short.

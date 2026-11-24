@@ -236,6 +236,27 @@ describe("findLayoutIssues: near-miss", () => {
     expect(found()).toEqual([["div and div#in", "3px"]]);
   });
 
+  it("skips the container gap on an axis a nearer scrolling ancestor overflows, since where it lands is the scroll position's, not the design's, but still finds one in a container that does not scroll", () => {
+    render(`<div id="scroller" style="position:fixed;left:10px;top:10px;width:200px;height:106px;overflow-y:auto;box-sizing:border-box;background:#eee">
+      <div style="height:120px"></div>
+      <div><div id="row" style="height:40px;background:#cde"></div></div>
+      <div style="height:200px"></div>
+    </div>`);
+    const scroller = host.querySelector("#scroller")!;
+    scroller.scrollTop = 59;
+    expect(found()).toEqual([]);
+    host.innerHTML = `<div id="card" style="position:fixed;left:10px;top:10px;width:200px;height:106px;box-sizing:border-box;overflow:hidden;background:#eee"><div id="row" style="margin-top:71px;width:60px;height:30px;background:#cde"></div></div>`;
+    expect(found()).toEqual([["div#card and div#row", "5px"]]);
+    host.innerHTML = `<div id="hscroller" style="position:fixed;left:10px;top:10px;width:106px;height:60px;overflow-x:auto;box-sizing:border-box;background:#eee;white-space:nowrap">
+      <div style="display:inline-block;width:120px;height:40px"></div>
+      <div id="col" style="display:inline-block;width:40px;height:40px;background:#cde"></div>
+      <div style="display:inline-block;width:200px;height:40px"></div>
+    </div>`;
+    const hscroller = host.querySelector("#hscroller")!;
+    hscroller.scrollLeft = 59;
+    expect(found()).toEqual([]);
+  });
+
   it("passes the parts of one control group, and finds two groups, or a group and a surface outside it, that nearly touch", () => {
     const part = (id: string, left: number) => `<div id="${id}" style="position:absolute;left:${left}px;top:0;width:60px;height:30px;background:#cde"></div>`;
     const group = (attrs: string, top: number, ...parts: string[]) => `<div ${attrs} style="position:fixed;left:10px;top:${top}px;width:300px;height:30px">${parts.join("")}</div>`;

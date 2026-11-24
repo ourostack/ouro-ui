@@ -267,6 +267,10 @@ const LABELS: Record<string, string> = {
   "sibling-reflow": "transition reflows siblings",
   "text-rewrap": "text re-wraps mid-transition",
   "pop-in": "pops in mid-transition",
+  overshoot: "transition overshoots",
+  "off-curve": "transition off its curve",
+  "opacity-step": "opacity steps mid-transition",
+  "label-clip": "label clipped mid-transition",
   "dropped-frames": "dropped frames",
   "leaked-value": "leaked value",
   "odd-timestamp": "odd timestamp",
@@ -328,6 +332,10 @@ const HINTS: Record<string, string> = {
   "sibling-reflow": "animate transform or opacity on the moving box and leave its neighbours' layout alone until it ends",
   "text-rewrap": "hold the text's width through the move (a fixed width, nowrap, or a clip that grows) so its lines don't change mid-transition",
   "pop-in": "fade or grow what appears on the same transition as the box that holds it, never switch it on part way through",
+  overshoot: "animate transform, not width or max-width, so the box never passes where it ends (a max-width that animates to a cap reaches the text's width early)",
+  "off-curve": "let the transition alone move the box: remove the script or observer that sets its size or place on every frame, so it follows its own easing",
+  "opacity-step": "fade over the whole transition on its own easing, not in a few big steps",
+  "label-clip": "size the box to its text, or reveal the text on the same transition, so the label is never cut off while the box moves",
   "dropped-frames": "keep a press's handler to a few milliseconds: defer work with startTransition or after the transition, and don't read layout in a loop",
   "leaked-value": "show a person's words for the value, or nothing, never what the program holds for itself",
   "odd-timestamp": "check the time was set before formatting it, and format it for a person: a date, a time or an age",
@@ -366,6 +374,18 @@ const HINTS: Record<string, string> = {
 // jank's budget is the longest frame of a step, the median of its runs, from Ouro Feel; a step also fails when every run
 // forces more than MAX_FORCED layouts or moves the page by more than MAX_STEP_SHIFT.
 const BUDGETS: Budgets = Object.freeze({ inp: 200, "layout-shift": 0.1, "first-content": 2500, jank: 250 });
+// dropped-frames reads a real wall-clock gap between animation frames, so two such readings at once (another tab's
+// press, or another check() racing this one) can borrow each other's CPU and read a longer gap than either page alone
+// would have. This serializes the measuring window only, across every call in this process, so unrelated work
+// (loading, screenshots) still runs side by side.
+let motionQueue: Promise<unknown> = Promise.resolve();
+const measureMotion = <T,>(task: () => Promise<T>): Promise<T> => {
+  const run = motionQueue.then(task);
+  // allSettled's one callback runs whether run resolves or rejects, so the next measurement waits either way
+  // without a second, rejection-only function that a passing suite would never call.
+  motionQueue = Promise.allSettled([run]).then(() => undefined);
+  return run;
+};
 const MAX_FORCED = 50;
 const MAX_STEP_SHIFT = 0.01;
 // The walk: at most WALK_EACH states of each kind a page, each stepped WALK_RUNS times, at inp's size and theme.
@@ -835,10 +855,12 @@ async function check(options: CheckOptions): Promise<CheckResult> {
           }
           /* node:coverage enable */
         } else {
-          await page.evaluate(resetMotion);
-          await page.mouse.click(point.x, point.y);
-          await page.waitForTimeout(400);
-          const { longestFrameMs } = await page.evaluate(readMotion);
+          const longestFrameMs = await measureMotion(async () => {
+            await page.evaluate(resetMotion);
+            await page.mouse.click(point.x, point.y);
+            await page.waitForTimeout(400);
+            return (await page.evaluate(readMotion)).longestFrameMs;
+          });
           if (longestFrameMs > TRANSITION_LIMITS.frameMs && longestFrameMs <= budgets.inp) faults.push({ rule: "dropped-frames", element: "the page", detail: `its longest frame took ${longestFrameMs} ms after the press (keep to ${TRANSITION_LIMITS.frameMs} ms; a press slower than the ${budgets.inp} ms input budget is the inp rule's)`, value: longestFrameMs, budget: TRANSITION_LIMITS.frameMs, unit: "ms" });
         }
         for (const fault of faults) {
