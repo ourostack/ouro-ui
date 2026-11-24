@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@eaa575bf7baec9a7119747994ade3c7888241fc8:brand/",
+  "origin": "ourostack/.github@108675e318b7c14471e55394ba4305774de71792:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
