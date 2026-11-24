@@ -104,7 +104,7 @@ export const Count: Story = {
   render: () => (
     <Surface>
       <div style={row}>
-        <span data-test-harness style={{ position: "relative", display: "inline-flex", width: 40, height: 40, alignItems: "center", justifyContent: "center", border: "1px solid var(--border)", borderRadius: "50%" }}>
+        <span data-test-harness style={{ position: "relative", display: "inline-flex", width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
           <span aria-hidden="true">✉</span>
           <Badge count overlay>
             3
