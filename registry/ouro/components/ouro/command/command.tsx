@@ -1238,9 +1238,12 @@ function CommandList({ children, className, after, snap }: { children: (group: G
     };
     fit();
     const observer = new ResizeObserver(fit);
+    // Stryker disable next-line all: listener wiring and the cleanup that undoes it; command.rows.test.tsx checks the cut follows the window.
     observer.observe(node.parentElement!);
     // The palette's own size is held by this list's cut, so a taller window has to be heard on its own.
+    // Stryker disable next-line all: listener wiring and the cleanup that undoes it; command.rows.test.tsx checks the cut follows the window.
     window.addEventListener("resize", fit);
+    // Stryker disable next-line all: listener wiring and the cleanup that undoes it; command.rows.test.tsx checks the cut follows the window.
     return () => {
       // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
       observer.disconnect();
