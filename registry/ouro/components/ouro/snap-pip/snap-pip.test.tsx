@@ -1124,6 +1124,35 @@ describe("SnapPiP", () => {
     expect(onCollapsedChange).not.toHaveBeenCalled();
   });
 
+  it("stays open once opened by hand when the first size reports arrive after it", async () => {
+    const Real = ResizeObserver;
+    const held: { callback: ResizeObserverCallback; observer: ResizeObserver }[] = [];
+    // A loaded page delivers the first reports late: hold them back until the test lets them in.
+    vi.stubGlobal(
+      "ResizeObserver",
+      class extends Real {
+        constructor(callback: ResizeObserverCallback) {
+          super(() => undefined);
+          held.push({ callback, observer: this });
+        }
+      },
+    );
+    try {
+      const onCollapsedChange = vi.fn();
+      const covered = [{ x: 0, y: 60, width: 380, height: 420 }];
+      await render(self({ onCollapsedChange }));
+      await render(self({ onCollapsedChange, collapsed: true, keepOut: covered }));
+      await render(self({ onCollapsedChange, collapsed: false, keepOut: covered }));
+      onCollapsedChange.mockClear();
+      const contentRect = { width: 380, height: 480 } as DOMRectReadOnly;
+      await act(async () => held.forEach(({ callback, observer }) => callback([{ target: stage, contentRect } as unknown as ResizeObserverEntry], observer)));
+      await rest();
+      expect(onCollapsedChange).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("hides itself at once when it first shows with a keep-out over every corner", async () => {
     const onCollapsedChange = vi.fn();
     await render(self({ onCollapsedChange, keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));

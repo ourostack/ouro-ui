@@ -434,8 +434,9 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   // Stryker disable next-line BooleanLiteral: the collapsed effect sets it before any reflow reads it, so its first value never shows.
   const held = useRef(false);
   const reflow = useCallback(
-    (jump: boolean) => {
-      if (!jump) held.current = false;
+    (jump: boolean, changed = !jump) => {
+      // Only a change around it ends the person's hold: a size report that brings no new size does not.
+      if (changed) held.current = false;
       if (!stageRef.current || pressed.current) return;
       const pip = element.current!;
       const size = { width: pip.offsetWidth, height: pip.offsetHeight };
@@ -493,11 +494,20 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     const container = element.current!.parentElement!;
     const measure = () => ({ width: container.clientWidth, height: container.clientHeight });
     setStage(measure());
-    const watching = new ResizeObserver(() => {
+    const sizes = new WeakMap<Element, string>();
+    const watching = new ResizeObserver((entries) => {
       const next = measure();
       const last = stageRef.current!;
+      // A first report for an element is its size at the start, not a change.
+      let resized = false;
+      for (const { target, contentRect } of entries) {
+        const size = `${contentRect.width}x${contentRect.height}`;
+        const before = sizes.get(target);
+        sizes.set(target, size);
+        if (before !== undefined && before !== size) resized = true;
+      }
       if (next.width !== last.width || next.height !== last.height) flushSync(() => setStage(next));
-      else reflow(false);
+      else reflow(false, resized);
     });
     watching.observe(container);
     observer.current = watching;
