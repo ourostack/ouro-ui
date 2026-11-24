@@ -1,0 +1,34 @@
+# The bar evaluation: baseline
+
+Judge: claude-opus-5.5. A run passes when the judge finds every criterion met.
+
+| Scenario | claude-sonnet-5.5 | gpt-6.2-sol |
+|---|---|---|
+| cook-settings | 0/2 | 0/2 |
+| households | 0/2 | 0/2 |
+| menus | 0/2 | 0/2 |
+| files | 0/2 | 0/2 |
+| sections (counter) | 0/2 | 0/2 |
+
+| Run | Pass | Criteria met | Missed |
+|---|---|---|---|
+| cook-settings--claude-sonnet-5.5--1 | no | builds | restraint, jobs, proof |
+| cook-settings--claude-sonnet-5.5--2 | no | builds | restraint, jobs, proof |
+| cook-settings--gpt-6.2-sol--1 | no | builds | restraint, jobs, proof |
+| cook-settings--gpt-6.2-sol--2 | no | builds | restraint, jobs, proof |
+| households--claude-sonnet-5.5--1 | no |  | jobs, restraint, craft, proof |
+| households--claude-sonnet-5.5--2 | no |  | jobs, restraint, craft, proof |
+| households--gpt-6.2-sol--1 | no |  | jobs, restraint, craft, proof |
+| households--gpt-6.2-sol--2 | no |  | jobs, restraint, craft, proof |
+| menus--claude-sonnet-5.5--1 | no | basics | restraint, jobs, agents |
+| menus--claude-sonnet-5.5--2 | no | basics | restraint, jobs, agents |
+| menus--gpt-6.2-sol--1 | no | basics | restraint, jobs, agents |
+| menus--gpt-6.2-sol--2 | no | basics | restraint, jobs, agents |
+| files--claude-sonnet-5.5--1 | no |  | one-way, earns-place, journey, proof |
+| files--claude-sonnet-5.5--2 | no |  | one-way, earns-place, journey, proof |
+| files--gpt-6.2-sol--1 | no | one-way, earns-place, journey | proof |
+| files--gpt-6.2-sol--2 | no | earns-place, journey | one-way, proof |
+| sections--claude-sonnet-5.5--1 | no | builds, restraint | both |
+| sections--claude-sonnet-5.5--2 | no | builds, restraint | both |
+| sections--gpt-6.2-sol--1 | no | builds, restraint | both |
+| sections--gpt-6.2-sol--2 | no | builds, restraint | both |
