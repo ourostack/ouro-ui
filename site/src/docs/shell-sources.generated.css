@@ -124,6 +124,7 @@
 @source not "../head.ts";
 @source not "../nautilus";
 @source not "../pages/voyage.tsx";
+@source not "../proof";
 @source not "../render-html.ts";
 @source not "../themes/fonts.json";
 @source not "../themes/themes.json";
