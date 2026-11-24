@@ -55,20 +55,12 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
         const round = (rule.nodes ?? []).some((d) => d.prop === "corner-shape" && d.value === "round");
         if (round || corners.every((c) => c === null)) return;
         const half = halfSize(rule);
-        // A corner's value after clamping a plain radius to half the rule's own height or width; null for a capsule, which
-        // shares --sq-half instead, and for a corner the rule leaves alone.
-        const values = corners.map((c) => (c === null || isCapsule(c.value) ? null : px(c.value) > half ? `${half}px` : c.value));
-        // When every corner shares the same value (one border-radius shorthand is the common case), one extra property
-        // holds it once instead of repeating a long var()-based expression in all four --sq-* declarations and again in
-        // border-radius: a shared property no part of the build folds away, unlike a numeric calc().
-        const shared = corners.every((c) => c !== null) && values[0] !== null && values.every((v) => v === values[0]);
         const nodes: object[] = [];
         const radii: string[] = [];
-        if (shared) nodes.push({ prop: "--sq-r", value: values[0] });
         corners.forEach((c, i) => {
           if (c === null) return;
           const capsule = isCapsule(c.value);
-          const value = capsule ? null : shared ? "var(--sq-r)" : values[i]!;
+          const value = !capsule && px(c.value) > half ? `${half}px` : c.value;
           const radius = capsule ? "var(--sq-capsule-radius)" : `calc(${value} * ${ENCLOSING_CIRCLE})`;
           nodes.push({ prop: `--sq-${KEYS[i]}`, value: capsule ? "var(--sq-half)" : value, important: c.important });
           // One shorthand when the rule wrote one for every corner; longhands otherwise, so a later longhand still wins.
