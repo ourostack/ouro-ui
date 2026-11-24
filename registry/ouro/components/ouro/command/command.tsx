@@ -936,6 +936,7 @@ export function Command(props: CommandProps): JSX.Element {
           <NoMatchNote query={query}>{empty ?? emptyLabel}</NoMatchNote>
           <CommandList
             className={inSheet ? "outline-none" : commandListboxClass}
+            snap={!inSheet}
             // While results are on their way, rows in their shape hold their place under the ones already shown, scrolling with them.
             after={loading && <LoadingRows />}
           >
@@ -1210,10 +1211,32 @@ function LoadingRows(): JSX.Element | null {
  * The list of results, hidden while nothing matches: an empty listbox says nothing, and the
  * empty state beside it says why.
  */
-function CommandList({ children, className, after }: { children: (group: Group, index: number) => ReactNode; className: string; after: ReactNode }): JSX.Element {
+function CommandList({ children, className, after, snap }: { children: (group: Group, index: number) => ReactNode; className: string; after: ReactNode; snap: boolean }): JSX.Element {
   const empty = Autocomplete.useFilteredItems().length === 0;
+  const list = useRef<HTMLDivElement>(null);
+  // The list ends on a whole row or heading, never through one: its height is cut to the last bottom edge that fits.
+  useLayoutEffect(() => {
+    const node = list.current;
+    if (!snap || !node) return;
+    const fit = () => {
+      node.style.maxHeight = "";
+      if (node.scrollHeight <= node.clientHeight) return;
+      const top = node.getBoundingClientRect().top - node.scrollTop;
+      const end = parseFloat(getComputedStyle(node).paddingBottom);
+      let best = 0;
+      for (const edge of node.querySelectorAll("[data-ouro-command-value],[data-ouro-command-group-label]")) {
+        const bottom = edge.getBoundingClientRect().bottom - top + end;
+        if (bottom <= node.clientHeight + 0.5 && bottom > best) best = bottom;
+      }
+      if (best > 0) node.style.maxHeight = `${best}px`;
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(node.parentElement!);
+    return () => observer.disconnect();
+  });
   return (
-    <Autocomplete.List hidden={empty} className={className}>
+    <Autocomplete.List ref={list} hidden={empty} className={className}>
       <Autocomplete.Collection>{children}</Autocomplete.Collection>
       {after}
     </Autocomplete.List>
