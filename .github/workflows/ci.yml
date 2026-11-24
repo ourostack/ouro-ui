@@ -366,37 +366,6 @@ jobs:
             echo "screen_reader=none" >> "$GITHUB_OUTPUT"
             echo "screen_reader_specs=" >> "$GITHUB_OUTPUT"
           fi
-  rerun-guard:
-    # Report-only (contributing/ci.md: a new check lands report-only first, and turns blocking only once a day of
-    # main's runs shows it quiet). A push to main whose run reruns (github.run_attempt > 1) checks #2469, the infra
-    # flake log, for a comment that already names this run alongside a filed signature (scripts/rerun-guard.mjs).
-    # None found, and it marks the run with a ::error:: annotation and a step summary line, and comments on #2469
-    # once per run and attempt, instead of letting a rerun pass with no cause on record. No checkout: the script is
-    # fetched straight from this commit, as the yield job above fetches its own (#1765's checkout retries are for a
-    # job that reads the tree, which this one never does). It never fails the run (the step continues on error
-    # besides, and the script's own exit code is always 0) and joins no required check yet.
-    name: Rerun without a recorded cause?
-    needs: [plan]
-    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt > 1 }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      issues: write # comments on #2469 when this rerun has no cause on record (scripts/rerun-guard.mjs)
-    steps:
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-      - name: Checked #2469 for this rerun's cause
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.run_id }}
-          RUN_ATTEMPT: ${{ github.run_attempt }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          curl -fsSL --retry 2 --max-time 20 "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/scripts/rerun-guard.mjs" -o "$RUNNER_TEMP/rerun-guard.mjs" \
-            && node "$RUNNER_TEMP/rerun-guard.mjs" || echo "::warning::rerun-guard could not run; passing (report-only)"
   sr-yield:
     # Waits while main's screen-reader lane holds or waits for a macOS runner (scripts/sr-yield.mjs), so a pull request's
     # lane takes the runners after it. It fails open and never fails: at worst the lane starts after 10 minutes.
@@ -3933,7 +3902,7 @@ jobs:
     # runs, and the runner time the run took from the shared pool. A required check (ruleset
     # 24881709) that fails only a pull request: on a merge group or a push it only warns, so it
     # never bounces a queue entry.
-    needs: [plan, ci, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-current, install-github, rerun-guard]
+    needs: [plan, ci, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-current, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
