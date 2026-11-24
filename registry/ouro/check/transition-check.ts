@@ -14,12 +14,12 @@ export type { TransitionFault, TransitionTrace };
 type Reading = [number, number, number, number, number, number];
 
 interface TransitionTrace {
-  /** Each frame's readings by element id: the page before the press, then each stepped frame. */
+  /** Readings by element id: the page before the press, then the stepped frames. */
   frames: Record<string, Reading>[];
-  /** Whether each element is animated or inside an animated element ("motion"), an ancestor of one ("ancestor") or neither. */
+  /** An element's role: animated or inside one ("motion"), an ancestor of one ("ancestor") or neither. */
   roles: Record<string, "motion" | "ancestor" | "other">;
   names: Record<string, string>;
-  /** Each element's parent, so a finding is reported once, on the outermost element it holds for. */
+  /** Parents by id, so a finding lands on the outermost element. */
   parents: Record<string, string | undefined>;
   /** Ids of the elements that hold their own text, and of those that opt out. */
   texts: string[];
@@ -33,9 +33,9 @@ interface TransitionFault {
 }
 
 const TRANSITION_LIMITS = Object.freeze({
-  /** A moving edge's least travel to be judged, in px. */
+  /** Travel, in px, below which an edge isn't judged. */
   travel: 8,
-  /** The least step that is a jump, in px, and its share of the travel. */
+  /** Step size, in px and as a share of travel, that is a jump. */
   jumpPx: 24,
   jumpShare: 0.5,
   /** How far an edge may go back before it arrives, in px and as a share of its travel. */
@@ -43,7 +43,7 @@ const TRANSITION_LIMITS = Object.freeze({
   backShare: 0.1,
   /** The area, in px², of a box whose appearing in one frame is a pop. */
   popArea: 100,
-  /** The longest gap between two frames that a person doesn't see as a stutter, in ms. */
+  /** Gap between frames, in ms, past which a stutter shows. */
   frameMs: 50,
 });
 
