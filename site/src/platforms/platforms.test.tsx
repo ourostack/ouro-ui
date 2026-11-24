@@ -60,11 +60,11 @@ describe("platform pages", () => {
     expect(coverage.counts.android).toBe(platforms.android.components.length);
   });
 
-  it("control: coverage shows the native kits' rows, then every row with the switch on", async () => {
+  it("control: coverage shows the native kits' rows, then every row once pressed", async () => {
     await renderPage("/hx/");
     const table = () => document.querySelector("#coverage ~ * table, section[aria-labelledby='coverage'] table");
     await expect.poll(() => table()?.querySelectorAll("tbody tr").length).toBe(coverage.rows.filter((row) => row.apple || row.android || row.windows).length);
-    await userEvent.click(page.getByRole("switch", { name: /web-only ones too/ }));
+    await userEvent.click(page.getByRole("button", { name: /web-only ones too/ }));
     await expect.poll(() => table()?.querySelectorAll("tbody tr").length).toBe(coverage.rows.length);
   });
 

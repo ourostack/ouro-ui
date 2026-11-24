@@ -14,7 +14,7 @@ const kit = kits.windows;
 /** /windows/start/: the feed, the package, a first button with an action, and the agent's card, from the kit's README "Use it". */
 export default function WindowsStart(): JSX.Element {
   return (
-    <div id="windows-start" className="apple">
+    <div id="windows-start" className="apple platform-page">
       <SectionMenu label="Ouro UI for Windows" pages={WINDOWS_PAGES} current="/windows/start/" />
       <StoryOpener scene="ouro-ui-windows" line="Pull up a chair by the window, and the controls move right in." />
       <Hero

@@ -14,7 +14,7 @@ const kit = kits.android;
 /** /android/: Ouro UI for Android, its two halves, what CI proves on the emulator, and the way to start. */
 export default function AndroidHome(): JSX.Element {
   return (
-    <div id="android-home" className="apple">
+    <div id="android-home" className="apple platform-page">
       <SectionMenu label="Ouro UI for Android" pages={ANDROID_PAGES} current="/android/" />
       <StoryOpener scene="ouro-ui-android" line="In the orchard, phones grow on trees. The robot picks one and checks it twice." />
       <Hero
