@@ -1,0 +1,1 @@
+- TimeGrid: the day view's background-events lane no longer draws a dashed edge beside the person's own events, which nothing explained.

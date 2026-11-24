@@ -2309,6 +2309,43 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.match(some.stdout, /^npx playwright test --fully-parallel --reporter=list --pass-with-no-tests --shard=1\/3 e2e\/ouro\/checkbox\.spec\.ts e2e\/ouro\/checkbox-group\.spec\.ts$/m);
 });
 
+test("install-test.sh ties the shipped tests' stall budgets to what is actually left of the job's own OURO_CI_JOB_BUDGET_MS", async () => {
+  const install = readFileSync(join(root, "scripts/install-test.sh"), "utf8");
+  const tail = install.slice(install.indexOf("# The shipped tests to run:"));
+  const run = (env, files = []) => {
+    const scratch = scratchDir("ouro-install-budget-");
+    for (const file of files) {
+      mkdirSync(join(scratch, dirname(file)), { recursive: true });
+      writeFileSync(join(scratch, file), "");
+    }
+    const stubs = `npx() { echo "npx $*"; }`;
+    return spawnSync("bash", ["-e", "-u", "-o", "pipefail", "-c", `${stubs}\nroot=${JSON.stringify(root)}\n${tail}`], { cwd: scratch, encoding: "utf8", env: sandboxEnv({ CI: "", ...env }) });
+  };
+  const shipped = ["src/components/ouro/button/button.test.tsx"];
+  const specs = ["e2e/ouro/dialog.spec.ts"];
+  // Without a job budget (a contributor's own run, and install-shard's job before this change), the
+  // shipped tests' existing defaults are untouched: an unbounded stall reporter and an unbounded
+  // Playwright run (install (ouro, nova, 3/3), run 45307477177, cut off at the job's own 30 minutes
+  // with nothing named).
+  const noBudget = run({ CI: "1", OURO_SYSTEM_PACKAGES: "image", OURO_SHARD: "1/1" }, [...shipped, ...specs]);
+  assert.equal(noBudget.status, 0, noBudget.stderr);
+  assert.doesNotMatch(noBudget.stdout, /OURO_CI_STEP_BUDGET_MS|remaining budget/);
+  assert.doesNotMatch(noBudget.stdout, /--global-timeout/);
+  // With a job budget, the Vitest stall reporter's own OURO_CI_STEP_BUDGET_MS is exported with what
+  // is left of it (close to the whole budget here, since nothing in this sandboxed run has spent any
+  // of it yet), and the Playwright run is bounded the same way, with its own margin subtracted so it
+  // fails first and leaves Playwright's own report time to flush.
+  const budgeted = run({ CI: "1", OURO_SYSTEM_PACKAGES: "image", OURO_SHARD: "1/1", OURO_CI_JOB_BUDGET_MS: "1800000" }, [...shipped, ...specs]);
+  assert.equal(budgeted.status, 0, budgeted.stderr);
+  assert.match(budgeted.stdout, /^Shipped Vitest browser tests: a stall fails within \d+ms \(this job's own remaining budget\), naming what is in flight\.$/m);
+  const vitestMs = Number(budgeted.stdout.match(/a stall fails within (\d+)ms/)[1]);
+  assert.ok(vitestMs > 1_700_000 && vitestMs <= 1_800_000, `vitest budget ${vitestMs} should be close to the full 1800000ms job budget`);
+  assert.match(budgeted.stdout, /^Shipped Playwright specs: a hang anywhere in the run fails within \d+ms \(this job's own remaining budget\)\.$/m);
+  const pwMs = Number(budgeted.stdout.match(/Shipped Playwright specs: a hang anywhere in the run fails within (\d+)ms/)[1]);
+  assert.ok(Math.abs(vitestMs - pwMs - 20_000) <= 1_000, `playwright's ${pwMs}ms should be vitest's ${vitestMs}ms minus its 20s margin`);
+  assert.match(budgeted.stdout, new RegExp(`^npx playwright test --fully-parallel --reporter=list --global-timeout=${pwMs} `, "m"));
+});
+
 test("motion coverage runs beside the ci check, over the partitions the browser shards upload, expecting every project in every shard", async () => {
   const jobs = ciJobs();
   // A browser test job runs Vitest and uploads the partitions it wrote as its next step, before
