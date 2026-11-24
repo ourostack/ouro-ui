@@ -1,0 +1,1 @@
+- Fixed: SnapPiP no longer hides itself again after a person opens it while a keep-out covers its corner, when the browser sends its first size report for the container late, as a busy machine can.

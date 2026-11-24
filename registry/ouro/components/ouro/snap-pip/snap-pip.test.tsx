@@ -1,7 +1,7 @@
 import { Activity, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { AX_ACTION_ATTRIBUTE, expectAxRendered } from "@/registry/ouro/ax/component";
 import { SnapPiP, type SnapPiPCorner, type SnapPiPProps } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
@@ -1121,6 +1121,28 @@ describe("SnapPiP", () => {
     // A new shape for the picture still leaves it open, until a keep-out changes.
     await render(self({ onCollapsedChange, collapsed: false, aspectRatio: 9 / 16, keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));
     await rest();
+    expect(onCollapsedChange).not.toHaveBeenCalled();
+  });
+
+  it("stays open by hand when its container's first size report arrives late, as on a busy machine", async () => {
+    // The browser sends a ResizeObserver's first report at its next frame, which a loaded machine can
+    // put off until after the person opened it again. That report is the same size: nothing moved.
+    const reports: (() => void)[] = [];
+    const Browser = window.ResizeObserver;
+    window.ResizeObserver = class extends Browser {
+      constructor(callback: ResizeObserverCallback) {
+        super(() => {});
+        reports.push(() => callback([{ target: stage } as unknown as ResizeObserverEntry], this));
+      }
+    };
+    onTestFinished(() => {
+      window.ResizeObserver = Browser;
+    });
+    const onCollapsedChange = vi.fn();
+    const covered = [{ x: 0, y: 60, width: 380, height: 420 }];
+    await render(self({ onCollapsedChange, collapsed: true, keepOut: covered }));
+    await render(self({ onCollapsedChange, collapsed: false, keepOut: covered }));
+    await act(async () => reports.forEach((report) => report()));
     expect(onCollapsedChange).not.toHaveBeenCalled();
   });
 

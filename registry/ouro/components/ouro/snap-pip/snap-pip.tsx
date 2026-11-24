@@ -493,11 +493,13 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     const container = element.current!.parentElement!;
     const measure = () => ({ width: container.clientWidth, height: container.clientHeight });
     setStage(measure());
-    const watching = new ResizeObserver(() => {
+    // The container's own report at the same size is the browser's first one, which a busy machine
+    // can send after the person opened the picture again: nothing moved, so it keeps their choice.
+    const watching = new ResizeObserver((entries) => {
       const next = measure();
       const last = stageRef.current!;
       if (next.width !== last.width || next.height !== last.height) flushSync(() => setStage(next));
-      else reflow(false);
+      else if (entries.some((entry) => entry.target !== container)) reflow(false);
     });
     watching.observe(container);
     observer.current = watching;
