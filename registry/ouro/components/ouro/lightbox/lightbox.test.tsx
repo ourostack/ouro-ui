@@ -818,12 +818,20 @@ describe("Lightbox controlled", () => {
     await settled();
     const scroller = viewport();
     scroller.scrollTo = (() => {}) as typeof scroller.scrollTo;
-    await userEvent.click(button("Next image"));
-    // A busy runner can read the DOM before React commits the press: wait for it, not a fixed pause.
-    await expect.poll(() => popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
-    await rerender(<Lightbox label="Kitchen photos" images={images} open index={3} onOpenChange={() => {}} />);
-    // At once, before the new carousel's own scroll settles: the old choice is gone with the old carousel.
-    expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("4 of 4");
+    // The press's choice is pending only until the carousel gives up on a scroll that never
+    // moves (two 150 ms pauses, with scrollTo stubbed): a runner that returns from the click
+    // later than that reads it already gone. Hold the clock, so it stays pending until the app
+    // moves the viewer.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await userEvent.click(button("Next image"));
+      await expect.poll(() => popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
+      await rerender(<Lightbox label="Kitchen photos" images={images} open index={3} onOpenChange={() => {}} />);
+      // At once, before the new carousel's own scroll settles: the old choice is gone with the old carousel.
+      expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("4 of 4");
+    } finally {
+      vi.useRealTimers();
+    }
     await settled();
     expect(position()).toBe("4 of 4");
   });
