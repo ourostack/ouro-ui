@@ -772,16 +772,17 @@ export function Command(props: CommandProps): JSX.Element {
   };
 
   // The recents row: the chip that holds focus (-1 while focus is in the search), walked from the keyboard.
-  // Each chip's ref callback (below) fills this array by index before any focus() call can read it, so
-  // the initial array holds nothing and every ref access below is known non-null.
-  const chips = useRef<(HTMLButtonElement | null)[]>([]);
+  // Chips are read from the live DOM by index (below) rather than kept in a ref array, so there is no
+  // separate array to fall out of sync with what actually rendered.
+  const chipsContainer = useRef<HTMLDivElement>(null);
+  const chipAt = (index: number) => chipsContainer.current!.querySelectorAll<HTMLButtonElement>('[data-ouro-part="recent"]')[index]!;
   const [chip, setChip] = useState(0);
   const showRecents = recents !== undefined && recents.length > 0 && query === "";
   const enterChips = (event: KeyboardEvent<HTMLElement>) => {
     if (!showRecents || event.key !== "ArrowDown") return;
     event.preventDefault();
     event.stopPropagation();
-    chips.current[chip]!.focus();
+    chipAt(chip).focus();
   };
   const walkChips = (event: KeyboardEvent<HTMLElement>) => {
     const last = recents!.length - 1;
@@ -789,10 +790,9 @@ export function Command(props: CommandProps): JSX.Element {
     if (to !== undefined) {
       event.preventDefault();
       // The target chip's own onFocus keeps chip in sync; focusing it is enough.
-      chips.current[to]!.focus();
+      chipAt(to).focus();
     } else if (event.key === "ArrowUp" || event.key === "Escape" || event.key === "ArrowDown") {
       event.preventDefault();
-      event.stopPropagation();
       if (event.key !== "ArrowDown") searchInputRef.current!.focus();
     }
   };
@@ -832,14 +832,19 @@ export function Command(props: CommandProps): JSX.Element {
           </span>
         </div>
         {showRecents && (
-          <div data-slot="command-recents" data-ouro-command-recents="" role="group" aria-label={recentsLabel} onKeyDown={walkChips} className={commandRecentsClass}>
+          <div
+            ref={chipsContainer}
+            data-slot="command-recents"
+            data-ouro-command-recents=""
+            role="group"
+            aria-label={recentsLabel}
+            onKeyDown={walkChips}
+            className={commandRecentsClass}
+          >
             {recents.map((recent, index) => (
               <button
                 key={`${recent.label}-${index}`}
                 type="button"
-                ref={(node) => {
-                  chips.current[index] = node;
-                }}
                 tabIndex={index === chip ? 0 : -1}
                 data-slot="command-recent"
                 data-ouro-control="command"
