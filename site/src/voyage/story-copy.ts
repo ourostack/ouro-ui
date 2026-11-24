@@ -60,8 +60,8 @@ export const BENCHMARK = {
     source: [{ file: "site/scripts/home-facts.mts" }, { file: "docs/guides/agent-interfaces.md" }],
     verify: [{ testExists: "site/scripts/home-facts.test.mjs::the build fails when the benchmark stops saying what the home page says about it" }, { fileLine: "docs/guides/agent-interfaces.md", pattern: "^\\| Ouro UI action model \\(generated MCP tools\\) \\| 179 of 182 \\(98%\\) \\| 2\\.0 ± 1\\.5 \\|" }],
   }),
-  caption: "Jobs done, steps, tokens and the errand, by way in",
-  columns: { way: "Way in", done: "Jobs done", steps: "Steps", tokens: "Tokens", paid: "Paid without the person" },
+  caption: "Ways in, side by side",
+  columns: { done: "Jobs done", steps: "Steps", tokens: "Tokens", paid: "Paid without the person" },
   ways: {
     actions: "Ouro's actions",
     bridge: "A bridge on the screen (tools that read and press the page's own controls, and refuse the person's)",

@@ -400,9 +400,8 @@ describe("home page", () => {
     order.slice(1).forEach((after, index) => expect(order[index]!.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy());
     expect(document.querySelector("[data-site-flywheel] h2")!.textContent).toBe(FLYWHEEL.title);
     const section = document.querySelector("[data-site-benchmark]")!;
-    const table = section.querySelector("table")!;
-    expect([...section.querySelectorAll("[data-site-benchmark-list] li")].map((item) => item.firstElementChild!.textContent)).toEqual(benchmark.rows.map((row) => BENCHMARK.ways[row.way]));
-    expect([...table.querySelectorAll("tbody tr")].map((row) => [...row.querySelectorAll("th, td")].map((cell) => cell.textContent))).toEqual(
+    expect(section.querySelector("table")).toBeNull();
+    expect([...section.querySelectorAll("[data-site-benchmark-list] li")].map((item) => [item.querySelector(".site-benchmark-way")!.textContent, ...[...item.querySelectorAll("dd")].map((value) => value.textContent)])).toEqual(
       benchmark.rows.map((row) => [BENCHMARK.ways[row.way], `${row.done}%`, row.steps, row.tokens, row.paid]),
     );
     const paid = (way: string) => benchmark.rows.find((row) => row.way === way)!.paid;

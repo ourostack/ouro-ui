@@ -294,7 +294,7 @@
       padding-block: 7rem;
     }
   }
-  /* The benchmark's ways in: a list on a phone, where the table would scroll sideways, and the table from 40rem. */
+  /* The benchmark's ways in: one row each under a hairline, the way in above its four numbers on a phone and beside them from 48rem. */
   .site-benchmark-list {
     display: grid;
     gap: 1rem;
@@ -304,19 +304,37 @@
   }
   .site-benchmark-list li {
     display: grid;
-    gap: 0.25rem;
+    gap: 0.5rem 2rem;
     padding-top: 1rem;
     border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
   }
-  .site-benchmark-wide {
-    display: none;
+  .site-benchmark-list li[data-way="actions"] .site-benchmark-way {
+    color: var(--primary);
   }
-  @media (min-width: 40rem) {
-    .site-benchmark-list {
-      display: none;
+  .site-benchmark-way {
+    font-weight: 600;
+  }
+  .site-benchmark-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 1.5rem;
+    margin: 0;
+  }
+  .site-benchmark-stats dt {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+  .site-benchmark-stats dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (min-width: 48rem) {
+    .site-benchmark-list li {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      align-items: start;
     }
-    .site-benchmark-wide {
-      display: block;
+    .site-benchmark-stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
   /* The evidence strip: four facts in a row, a dot between them, wrapping on a phone. */

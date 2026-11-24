@@ -1,7 +1,6 @@
 import type { JSX } from "react";
 import { benchmark } from "virtual:site-home-facts";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
-import { Table } from "@/registry/ouro/components/ouro/table/table";
 import { BENCHMARK, EVIDENCE, FLYWHEEL } from "./story-copy";
 import { href } from "../paths";
 import { Container } from "./layout";
@@ -67,29 +66,26 @@ export function Benchmark(): JSX.Element {
         </p>
         <ul className="site-benchmark-list" aria-label={BENCHMARK.caption} data-site-benchmark-list="">
           {benchmark.rows.map((entry) => (
-            <li key={entry.way}>
-              <span className="font-semibold">{BENCHMARK.ways[entry.way]}</span>
-              <span className="text-sm text-muted-foreground">
-                {BENCHMARK.columns.done}: {entry.done}% · {BENCHMARK.columns.steps}: {entry.steps} · {BENCHMARK.columns.tokens}: {entry.tokens} · {BENCHMARK.columns.paid}: {entry.paid}
-              </span>
+            <li key={entry.way} data-way={entry.way}>
+              <span className="site-benchmark-way">{BENCHMARK.ways[entry.way]}</span>
+              <dl className="site-benchmark-stats">
+                {(
+                  [
+                    [BENCHMARK.columns.done, `${entry.done}%`],
+                    [BENCHMARK.columns.steps, entry.steps],
+                    [BENCHMARK.columns.tokens, entry.tokens],
+                    [BENCHMARK.columns.paid, entry.paid],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div key={label}>
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
             </li>
           ))}
         </ul>
-        <div className="site-benchmark-wide mt-8">
-          <Table
-            caption={BENCHMARK.caption}
-            hideCaption
-            rows={benchmark.rows}
-            rowKey="way"
-            columns={[
-              { key: "way", header: BENCHMARK.columns.way, rowHeader: true, cell: (entry: Row) => BENCHMARK.ways[entry.way] },
-              { key: "done", header: BENCHMARK.columns.done, align: "end", cell: (entry: Row) => `${entry.done}%` },
-              { key: "steps", header: BENCHMARK.columns.steps, align: "end" },
-              { key: "tokens", header: BENCHMARK.columns.tokens, align: "end" },
-              { key: "paid", header: BENCHMARK.columns.paid, align: "end" },
-            ]}
-          />
-        </div>
         <p className="mt-5 mb-0">
           <Link href={href(BENCHMARK.href)} tone="secondary" inline>
             {BENCHMARK.method} ({benchmark.trials} checked trials)
