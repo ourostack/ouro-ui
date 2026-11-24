@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { doubledFiles, mergeCoverage, mismatchedShapes, thresholds } from "./coverage-merge.mjs";
+import { doubledFiles, mergeCoverage, mismatchedShapes, reconcileDuplicateTails, thresholds } from "./coverage-merge.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -101,6 +101,82 @@ test("mismatchedShapes leaves a file alone when every shard that measured it agr
 
 test("mismatchedShapes leaves a file alone when only one shard measured it, with nothing to compare it against", () => {
   assert.deepEqual(mismatchedShapes([reshaped("/a.ts")], ["browser-6"]), []);
+});
+
+/**
+ * Shard 17's actual recurrence (CI run 45293019910, flake log #2469): `@vitest/coverage-istanbul`'s
+ * "uncovered files" pass instruments a file none of that shard's projects executed through one
+ * shared, non-reentrant instrumenter; when two of the shard's projects raced to do that for the
+ * same never-executed file, the second landed its own copy at new locations with zero hits
+ * throughout, appended after the first copy's locations (which exactly repeat the healthy shards').
+ */
+const duplicateTail = (file, { s = [0, 0], f = [0], b = [0, 0] } = {}) => ({
+  [file]: {
+    path: file,
+    statementMap: {
+      0: { start: { line: 1, column: 0 }, end: { line: 1, column: 9 } },
+      1: { start: { line: 2, column: 0 }, end: { line: 2, column: 9 } },
+      2: { start: { line: 1, column: 0 }, end: { line: 1, column: 8 } },
+    },
+    fnMap: {
+      0: { name: "f", decl: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } }, loc: { start: { line: 1, column: 0 }, end: { line: 2, column: 9 } }, line: 1 },
+      1: { name: "f", decl: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } }, loc: { start: { line: 1, column: 0 }, end: { line: 2, column: 8 } }, line: 1 },
+    },
+    branchMap: {
+      0: { type: "if", line: 2, loc: { start: { line: 2, column: 0 }, end: { line: 2, column: 9 } }, locations: [{ start: { line: 2, column: 0 }, end: { line: 2, column: 4 } }, { start: { line: 2, column: 5 }, end: { line: 2, column: 9 } }] },
+      1: { type: "if", line: 2, loc: { start: { line: 2, column: 0 }, end: { line: 2, column: 8 } }, locations: [{ start: { line: 2, column: 0 }, end: { line: 2, column: 3 } }, { start: { line: 2, column: 4 }, end: { line: 2, column: 8 } }] },
+    },
+    s: { 0: s[0], 1: s[1], 2: 0 },
+    f: { 0: f[0], 1: 0 },
+    b: { 0: b, 1: [0, 0] },
+  },
+});
+
+test("reconcileDuplicateTails trims a shard's own zero-hit duplicate tail back to the majority shape", () => {
+  const { maps, notes } = reconcileDuplicateTails([map("/people-cache.ts"), map("/people-cache.ts"), duplicateTail("/people-cache.ts")], ["browser-6", "browser-21", "browser-17"]);
+  assert.deepEqual(notes, [{ file: "/people-cache.ts", shard: "browser-17" }]);
+  assert.deepEqual(maps[2], map("/people-cache.ts"));
+  assert.deepEqual(mismatchedShapes(maps, ["browser-6", "browser-21", "browser-17"]), []);
+});
+
+test("reconcileDuplicateTails leaves a shard alone when its extra entries hold even one hit", () => {
+  const withAHit = duplicateTail("/people-cache.ts", { s: [0, 0] });
+  withAHit["/people-cache.ts"].s[2] = 1;
+  const { maps, notes } = reconcileDuplicateTails([map("/people-cache.ts"), map("/people-cache.ts"), withAHit], ["browser-6", "browser-21", "browser-17"]);
+  assert.deepEqual(notes, []);
+  assert.deepEqual(maps[2], withAHit);
+});
+
+test("reconcileDuplicateTails leaves a shard alone when it disagrees with the majority on a location they both claim to share", () => {
+  const disagreeing = duplicateTail("/people-cache.ts");
+  disagreeing["/people-cache.ts"].statementMap[1] = { start: { line: 2, column: 0 }, end: { line: 2, column: 11 } };
+  const { maps, notes } = reconcileDuplicateTails([map("/people-cache.ts"), map("/people-cache.ts"), disagreeing], ["browser-6", "browser-21", "browser-17"]);
+  assert.deepEqual(notes, []);
+  assert.deepEqual(maps[2], disagreeing);
+});
+
+test("reconcileDuplicateTails leaves a file alone when no shard majority exists to reconcile it against", () => {
+  const { maps, notes } = reconcileDuplicateTails([duplicateTail("/people-cache.ts")], ["browser-17"]);
+  assert.deepEqual(notes, []);
+  assert.deepEqual(maps[0], duplicateTail("/people-cache.ts"));
+});
+
+/** The exact shard-17 symptom reconciled before merging: the zero-hit duplicate never changes a healthy merge's result, so coverage still reports whatever the shards that actually executed the file measured. */
+test("the command merges cleanly, noting the reconciliation, when a shard's extra shape is only an unexecuted, zero-hit duplicate", () => {
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(join(root, ".tmp/coverage-merge-"));
+  const write = (shard, coverage) => {
+    mkdirSync(join(dir, `coverage-browser-${shard}`), { recursive: true });
+    writeFileSync(join(dir, `coverage-browser-${shard}/coverage-final.json`), JSON.stringify(coverage));
+  };
+  write(6, map("/people-cache.ts", { s: [1, 1], f: [1], b: [1, 1] }));
+  write(17, duplicateTail("/people-cache.ts"));
+  write(21, map("/people-cache.ts", { s: [1, 1], f: [1], b: [1, 1] }));
+  const run = (...args) => spawnSync(process.execPath, [join(root, "scripts/coverage-merge.mjs"), dir, ...args], { encoding: "utf8" });
+  const result = run("--shards", "3");
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^coverage-browser-17's own coverage-final\.json instrumented \/people-cache\.ts twice \(an unexecuted file instrumented once per project that raced to do so, flake log #2469\); kept only the measured copy\.$/m);
+  assert.match(result.stdout, /^Coverage of 1 files, merged from 3 shards: lines 100%/m);
 });
 
 test("the merge holds the shards to the thresholds vitest.config.ts holds an unsharded run to", async () => {

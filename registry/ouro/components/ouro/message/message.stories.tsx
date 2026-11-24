@@ -184,7 +184,7 @@ function ChatConversation({ bubble = "filled" }: { bubble?: MessageBubble }) {
   const actions = actionsFor(react, () => setReplying("Replying to Mara Quill"));
   return (
     <Surface>
-      <MessageList label="Chat with Mara Quill and Theo Brandt" style={{ height: 460 }}>
+      <MessageList label="Chat with Mara Quill and Theo Brandt" style={{ height: 476 }}>
         <Message variant="chat" bubble={bubble} role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="9:41 AM" dateTime="2026-05-04T09:41" actions={actions} menu={menu}>
           Morning! The venue confirmed the long table for Friday.
         </Message>
@@ -216,7 +216,8 @@ function ChatConversation({ bubble = "filled" }: { bubble?: MessageBubble }) {
           continued
           actions={actions}
           menu={menu}
-          footer={<span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Edited · Seen</span>}
+          footer={<span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Edited</span>}
+          statusMark={<span style={{ fontSize: 12, color: "color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground))" }}>Seen</span>}
         >
           I will print the seating plan tonight.
         </Message>

@@ -1,0 +1,7 @@
+{
+  "order": 2770,
+  "components": ["build-chip"],
+  "controls": {
+    "build-chip": [{"part": "trigger", "role": "button", "portal": false}]
+  }
+}

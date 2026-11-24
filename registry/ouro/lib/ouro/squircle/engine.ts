@@ -591,7 +591,11 @@ export const createEngine = (doc: Document, options: EngineOptions): Engine => {
     } else if (element.matches(selectorString)) {
       track(element);
     }
-    // Container class/style may have changed inherited custom properties on descendants.
+    // Container class/style may have changed inherited custom properties on descendants; an ordinary style
+    // change (a width, a transform) cannot.
+    if (record.attributeName === "style" && !/--/.test(`${record.oldValue}${element.getAttribute("style")}`)) {
+      return;
+    }
     for (const descendant of element.querySelectorAll(selectorString)) {
       if (descendant instanceof HTMLElement && tracked.has(descendant)) {
         markDirty(descendant);
