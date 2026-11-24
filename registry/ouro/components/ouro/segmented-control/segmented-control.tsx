@@ -3,6 +3,7 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { useEffect, useId, useRef, useState, type CSSProperties, type JSX, type KeyboardEvent, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { capLabelClippedClass } from "@/registry/ouro/lib/ouro/cap-label";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useDisabledReason } from "@/registry/ouro/lib/ouro/disabled-reason";
@@ -127,7 +128,7 @@ function Segment(props: {
       }}
     >
       <TouchTarget />
-      <span className="relative min-w-0 truncate">{item.label}</span>
+      <span className={cn("relative min-w-0 truncate", capLabelClippedClass)}>{item.label}</span>
       {reason.note}
     </Toggle>
   );

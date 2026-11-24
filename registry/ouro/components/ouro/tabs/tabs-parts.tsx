@@ -3,6 +3,7 @@
 import { Tabs as BaseTabs } from "@base-ui/react/tabs";
 import { createContext, memo, useContext, useEffect, useRef, type JSX, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { capLabel } from "@/registry/ouro/lib/ouro/cap-label";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useDisabledReason } from "@/registry/ouro/lib/ouro/disabled-reason";
@@ -192,7 +193,7 @@ export function TabsTab(allProps: TabsTabProps): JSX.Element {
         : {})}
       className={cn(tabClass, className)}
     >
-      <span data-slot="tabs-face" className={tabFaceClass}>{children}</span>
+      <span data-slot="tabs-face" className={tabFaceClass}>{capLabel(children)}</span>
       {reason.note}
     </BaseTabs.Tab>
   );

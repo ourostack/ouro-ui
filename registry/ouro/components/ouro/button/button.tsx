@@ -18,6 +18,7 @@ import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { fontFor, radiusFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { capLabel } from "@/registry/ouro/lib/ouro/cap-label";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDisabledReason } from "@/registry/ouro/lib/ouro/disabled-reason";
 import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
@@ -598,7 +599,7 @@ export function Button(props: ButtonProps): JSX.Element {
         className={cn("inline-flex grow items-center gap-[inherit] [justify-content:inherit]", fade)}
       >
         {StartIcon && <StartIcon aria-hidden="true" className={cn(iconClass, "-ms-0.5")} />}
-        {children}
+        {size === "inline" ? children : capLabel(children)}
       </span>
       {EndIcon && <EndIcon aria-hidden="true" className={cn(iconClass, fade, "-me-0.5")} />}
       {loading && <Spinner fadeIn={mounted} />}
