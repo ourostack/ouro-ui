@@ -2,7 +2,7 @@
 
 import { Children, type ReactNode } from "react";
 
-export { capLabel, capLabelClass, capLabelClippedClass };
+export { capLabel, capLabelClass, capLabelTruncateClass };
 
 /**
  * Trims a block of one line to its cap height and baseline, so the line's middle is what the eye reads as its middle
@@ -14,12 +14,16 @@ export { capLabel, capLabelClass, capLabelClippedClass };
 const capLabelClass = "[text-box:trim-both_cap_alphabetic]";
 
 /**
- * {@link capLabelClass} for a line that clips (`truncate`): the padding gives the clip back the room the trim took
- * above the caps and under the baseline, and the negative margin takes it out of the layout again.
+ * {@link capLabelClass} for a line that truncates: the padding gives the trim back the room it took above the caps
+ * and under the baseline, and the negative margin takes it out of the layout again. Uses `overflow: clip`
+ * (`overflow-clip`), never `truncate`'s `hidden`: `hidden` makes the box a scroll container, and some engines keep
+ * a trimmed line's untrimmed line box as its scrollable overflow, so the padding itself reads as a stray scrollbar
+ * and as cut text though nothing a person sees moves or clips. `clip` cuts the same pixels with no scroll container
+ * at all, so neither finding fires.
  *
  * @internal
  */
-const capLabelClippedClass = "[text-box:trim-both_cap_alphabetic] py-[0.3em] -my-[0.3em]";
+const capLabelTruncateClass = "[text-box:trim-both_cap_alphabetic] overflow-clip text-ellipsis whitespace-nowrap py-[0.3em] -my-[0.3em]";
 
 /**
  * Wraps a control's text children in blocks of their own that {@link capLabelClass} trims, to centre them on

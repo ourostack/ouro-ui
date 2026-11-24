@@ -725,6 +725,13 @@ describe("inline size", () => {
     expect(button.getBoundingClientRect().width).toBeGreaterThanOrEqual(24);
     expect(warn).not.toHaveBeenCalled();
   });
+
+  it("leaves its label untrimmed, unlike every other size's cap-height trim", async () => {
+    const { button } = await render(<Button size="inline">Why</Button>);
+    expect(button.querySelector('[data-slot="cap-label-text"]')).toBeNull();
+    const { button: defaultButton } = await render(<Button>Why</Button>);
+    expect(defaultButton.querySelector('[data-slot="cap-label-text"]')).not.toBeNull();
+  });
 });
 
 describe("icon-only size", () => {

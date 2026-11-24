@@ -3,7 +3,7 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { useEffect, useId, useRef, useState, type CSSProperties, type JSX, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
-import { capLabelClippedClass } from "@/registry/ouro/lib/ouro/cap-label";
+import { capLabelTruncateClass } from "@/registry/ouro/lib/ouro/cap-label";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useDisabledReason } from "@/registry/ouro/lib/ouro/disabled-reason";
@@ -147,7 +147,7 @@ function Segment(props: {
           {item.icon}
         </span>
       )}
-      <span data-slot="segmented-control-label" className={cn("relative min-w-0 truncate", capLabelClippedClass, glass && !selected && item.icon !== undefined && "sr-only")}>{item.label}</span>
+      <span data-slot="segmented-control-label" className={cn("relative min-w-0", capLabelTruncateClass, glass && !selected && item.icon !== undefined && "sr-only")}>{item.label}</span>
       {item.count !== undefined && (glass ? selected : true) && (
         <span data-slot="segmented-control-count" className={countClass}>
           {item.count}
