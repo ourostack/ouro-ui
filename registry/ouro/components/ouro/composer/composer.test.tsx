@@ -1369,10 +1369,10 @@ describe("Composer expanded motion", () => {
     const { host, root } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
     const moves: ComposerMove[] = [];
     host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
-    await userEvent.click(expandButton()!);
+    await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(1);
     expect(frameOf(root).getAttribute("data-ouro-moving")).toBe("grow");
-    await userEvent.click(expandButton()!);
+    await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(2);
     expect(moves[1]!.from).toBeLessThan(moves[0]!.to - 1);
     expect(moves[1]!.from).toBeGreaterThan(moves[0]!.from - 2);
@@ -1383,15 +1383,63 @@ describe("Composer expanded motion", () => {
     const { host } = await render(<Composer label="Reply" defaultExpanded onSend={() => {}} />);
     const moves: ComposerMove[] = [];
     host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
-    await userEvent.click(expandButton()!);
-    await userEvent.click(expandButton()!);
+    await act(async () => expandButton()!.click());
+    await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(2);
     expect(moves[1]!.from).toBeGreaterThan(moves[0]!.to + 1);
     expect(moves[1]!.from).toBeLessThan(moves[0]!.from + 1);
     await moves[1]!.playing;
   });
 
-  it("clips and fades the box in over a moment, and only fades the toolbar in with reduced motion", async () => {
+  it("clips and fades the box   it("keeps the toolbar on screen while a collapse fades it out, and takes it away at the end", async () => {
+    const { root } = await render(<Composer label="Reply" defaultExpanded toolbar={<span>Tools</span>} onSend={() => {}} />);
+    const toolbar = () => root.querySelector('[data-ouro-part="toolbar"]');
+    await act(async () => expandButton()!.click());
+    expect(toolbar()).not.toBeNull();
+    await expect.poll(() => frameOf(root).hasAttribute("data-ouro-moving")).toBe(false);
+    expect(toolbar()).toBeNull();
+  });
+
+  it("takes the toolbar away at once when motion is reduced", async () => {
+    const { root } = await render(<Composer label="Reply" defaultExpanded toolbar={<span>Tools</span>} onSend={() => {}} />);
+    try {
+      await commands.emulateMedia({ reducedMotion: "reduce" });
+      await act(async () => expandButton()!.click());
+      expect(root.querySelector('[data-ouro-part="toolbar"]')).toBeNull();
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
+  });
+
+  it("holds the long height only while a collapse runs, and leaves no variables behind", async () => {
+    const { root, host } = await render(<Composer label="Reply" defaultExpanded onSend={() => {}} />);
+    const frame = frameOf(root);
+    const moves: ComposerMove[] = [];
+    host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
+    await act(async () => expandButton()!.click());
+    expect(frame.style.minHeight).not.toBe("");
+    expect(frame.style.getPropertyValue("--ouro-composer-gap")).not.toBe("");
+    expect(frame.style.getPropertyValue("--ouro-composer-radius")).not.toBe("");
+    await moves[0]!.playing;
+    expect(frame.style.minHeight).toBe("");
+    expect(frame.style.getPropertyValue("--ouro-composer-gap")).toBe("");
+    expect(frame.style.getPropertyValue("--ouro-composer-radius")).toBe("");
+    await act(async () => expandButton()!.click());
+    expect(frame.style.minHeight).toBe("");
+    await moves[1]!.playing;
+  });
+
+  it("lets a move's promise settle when the box is removed mid-way", async () => {
+    const { host, root } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const moves: ComposerMove[] = [];
+    host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
+    await act(async () => expandButton()!.click());
+    expect(frameOf(root).hasAttribute("data-ouro-moving")).toBe(true);
+    await act(async () => roots.splice(0).forEach((r) => r.unmount()));
+    await moves[0]!.playing;
+  });
+
+in over a moment, and only fades the toolbar in with reduced motion", async () => {
     const { root } = await render(<Composer label="Reply" defaultExpanded={false} toolbar={<span>Tools</span>} onSend={() => {}} />);
     const toolbar = () => root.querySelector<HTMLElement>('[data-ouro-part="toolbar"]')!;
     const fast = token("--ouro-duration-fast");
