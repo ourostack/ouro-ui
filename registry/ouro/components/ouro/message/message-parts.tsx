@@ -125,6 +125,7 @@ export function MessageActionBar({
   beside,
   onMenu,
   row,
+  ending,
 }: {
   actions: readonly MessageAction[];
   menu: readonly MenuEntry[] | undefined;
@@ -149,6 +150,8 @@ export function MessageActionBar({
   onMenu?: ((button: HTMLElement) => void) | undefined;
   /** The message a shared bar is on; the Tab stop the bar remembers belongs to that message. */
   row?: Element | undefined;
+  /** The shared bar is fading out after the pointer left its message. */
+  ending?: boolean | undefined;
 }): JSX.Element {
   const platform = usePlatform();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -194,7 +197,9 @@ export function MessageActionBar({
       aria-label={label}
       data-ouro-message-actions=""
       data-ouro-row-layer={layered && beside === undefined ? "" : undefined}
+      data-ouro-part="bar"
       data-menu-open={menuOpen ? "" : undefined}
+      data-ending-style={ending ? "" : undefined}
       onKeyDown={keyDown}
       onFocus={focus}
       className={cn(layered ? layerClass : barClass, beside === undefined ? ["absolute", start ? "start-2" : "end-2", post ? "-top-5" : "-top-8"] : "pointer-events-auto")}
@@ -311,8 +316,12 @@ export function MessageActionBar({
 }
 
 // Loaded with this file: the list's one bar shows as soon as the pointer is over a message.
+// Bars that have had their entrance, so one that moves between messages does not fade in again.
+const entered = new WeakSet<Element>();
 const layerClass =
-  "z-10 flex items-center gap-0.5 rounded-ouro-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid";
+  "z-10 flex items-center gap-0.5 rounded-ouro-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
+  // Fades in as it first shows (the layer marks it data-starting-style for its first frame) and out as the pointer leaves, which the layer waits for before it unmounts the bar. Opacity alone moves, so reduced motion keeps it.
+  "transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out) data-starting-style:opacity-0 data-ending-style:pointer-events-none data-ending-style:opacity-0";
 
 /**
  * A MessageList's shared action bar and menu: the bar on the message the pointer is over (or that
@@ -358,6 +367,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
       : barHost(),
   );
   const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
+
   // Stryker disable next-line ConditionalExpression,LogicalOperator: the slot is found only through the row's data, and the data only through the row, so a slot holds the other two.
   const on = hover.row !== null && data !== undefined && slot !== null ? { row: hover.row, data } : null;
   // Each message gives the layer a new data object on every render, so new data comes with a move to another message too.
@@ -369,10 +379,34 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     /* istanbul ignore if @preserve -- server only */
     // Stryker disable next-line ConditionalExpression: the host is null only where there is no document (a server's render), and layout effects run only in a browser.
     if (host === null) return;
-    if (slot === null) host.parentNode?.removeChild(host);
-    else if (host.parentNode !== slot) slot.appendChild(host);
+    if (slot !== null) {
+      if (host.parentNode !== slot) slot.appendChild(host);
+    } else if (shown === null || !host.parentNode?.isConnected) {
+      host.parentNode?.removeChild(host);
+    }
+    const bar = host.firstElementChild;
+    if (bar !== null && slot !== null && !entered.has(bar)) {
+      entered.add(bar);
+      // Styled transparent once, then cleared, so the opacity runs as a transition.
+      bar.setAttribute("data-starting-style", "");
+      void getComputedStyle(bar).opacity;
+      bar.removeAttribute("data-starting-style");
+    }
     contain(contained, on !== null && on.data.beside !== undefined ? on.row : null);
   });
+  // The pointer left: the bar stays in the message it was on while it fades, and goes when its transition ends (at once when none runs).
+  const ending = shown !== null && on === null;
+  useLayoutEffect(() => {
+    if (!ending) return;
+    let current = true;
+    const running = host!.firstElementChild?.getAnimations() ?? [];
+    void Promise.allSettled(running.map((animation) => animation.finished)).then(() => {
+      if (current) setShown(null);
+    });
+    return () => {
+      current = false;
+    };
+  }, [ending, host]);
   // Stryker disable next-line ArrayDeclaration: host and contained are state that is never set, so [host, contained] and [] run this effect alike.
   useLayoutEffect(() => () => (host!.remove(), contain(contained, null)), [host, contained]);
   // The menu's code, once the bar first shows, so the menu then opens at once.
@@ -400,6 +434,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
         createPortal(
           shown !== null && <MessageActionBar
             row={shown.row}
+            ending={ending}
             actions={shown.data.actions}
             menu={shown.data.menu}
             reactions={shown.data.reactions}
