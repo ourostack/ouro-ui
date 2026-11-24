@@ -1054,7 +1054,7 @@ describe("TimeGrid", () => {
     expect(oofTints[0]).not.toBe(oofTints[1]);
     const tintProbe = document.createElement("div");
     tintProbe.style.backgroundColor = "color-mix(in oklab, var(--ouro-away) calc(var(--ouro-time-grid-tint) / 2), transparent)";
-    oof.grid.append(tintProbe);
+    oof.grid.querySelectorAll("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")[1]!.append(tintProbe);
     expect(oofTints[1]).toBe(getComputedStyle(tintProbe).backgroundColor);
     tintProbe.remove();
     expect(tints).not.toContain(clear);
