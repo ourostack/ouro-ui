@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import * as ts from "./ts71.mts";
 import { bundleCore } from "./core-bundle.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -38,7 +38,7 @@ test("core-bundle joins core's modules in order, with the imports between them t
       "",
     ].join("\n"),
   );
-  const imports = ts.preProcessFile(out, true, true).importedFiles;
+  const imports = ts.importedFiles("out.ts", out);
   assert.deepEqual(imports, []);
 });
 
@@ -54,7 +54,7 @@ test("core-bundle refuses modules that declare the same name, import a module no
 test("the vendored a2ui-core.ts has no relative import, so an app needs no allowImportingTsExtensions", () => {
   const source = readFileSync(join(root, "registry/ouro/lib/ouro/a2ui-core.ts"), "utf8");
   assert.deepEqual(
-    ts.preProcessFile(source, true, true).importedFiles.map((file) => file.fileName),
+    ts.importedFiles("a2ui-core.ts", source),
     [],
   );
 });

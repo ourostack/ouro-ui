@@ -13,7 +13,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import * as ts from "./ts71.mts";
 
 export type Module = { path: string; source: string };
 
@@ -42,7 +42,7 @@ export function bundleCore(modules: Module[], banner: string): string {
   const seen = new Map<string, string>();
   const given = new Set(modules.map((module) => module.path.split("/").at(-1)));
   const parts = modules.map((module, index) => {
-    const file = ts.createSourceFile(module.path, module.source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    const file = ts.createSourceFile(module.path, module.source, ts.ScriptKind.TS);
     for (const name of declared(file)) {
       const other = seen.get(name);
       if (other) throw new Error(`${module.path} and ${other} both declare ${name}; they cannot share one file.`);
