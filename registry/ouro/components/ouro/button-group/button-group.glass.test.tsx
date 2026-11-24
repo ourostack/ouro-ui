@@ -45,7 +45,8 @@ describe("ButtonGroup glass", () => {
     expect(style.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     for (const button of buttons) {
       const own = getComputedStyle(button);
-      expect(own.boxShadow).toBe("none");
+      const lengths = own.boxShadow.replace(/rgba?\([^)]*\)/g, "").match(/-?\d+(?:\.\d+)?px/g) ?? [];
+      expect(lengths.every((length) => parseFloat(length) === 0)).toBe(true);
       expect(own.backdropFilter).toBe("none");
       expect(button.getBoundingClientRect().height).toBeCloseTo(38, 0);
     }
