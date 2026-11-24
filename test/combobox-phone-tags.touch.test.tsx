@@ -21,3 +21,19 @@ it("draws the Combobox/PhoneTags story's field with its four chips on two rows",
   await shot.decode();
   expect(shot.naturalHeight).toBeGreaterThan(shot.naturalWidth / 8);
 });
+
+it("starts the Combobox/PhoneCapsules story's chips past each capsule's curved end", async () => {
+  await renderStory(story("Combobox/PhoneCapsules"));
+  const fields = [...document.querySelectorAll<HTMLElement>("[data-ouro-combobox-field]")];
+  expect(fields.map((field) => field.querySelectorAll("[data-ouro-combobox-chip]").length)).toEqual([1, 4]);
+  for (const field of fields) {
+    const box = field.getBoundingClientRect();
+    const radius = Number.parseFloat(getComputedStyle(field.querySelector("[data-ouro-combobox-trigger]")!).borderTopLeftRadius);
+    expect(radius).toBe(22);
+    for (const chip of field.querySelectorAll("[data-ouro-combobox-chip]")) expect(chip.getBoundingClientRect().left - box.left).toBeGreaterThanOrEqual(radius - 0.05);
+  }
+  const shot = new Image();
+  shot.src = `data:image/png;base64,${await page.screenshot({ save: false, element: document.querySelector<HTMLElement>("[data-ouro-capsules]")!, animations: "disabled" })}`;
+  await shot.decode();
+  expect(shot.naturalHeight).toBeGreaterThan(100);
+});
