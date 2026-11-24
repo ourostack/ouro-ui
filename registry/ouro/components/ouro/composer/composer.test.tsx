@@ -1372,7 +1372,9 @@ describe("Composer expanded motion", () => {
     await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(1);
     expect(frameOf(root).getAttribute("data-ouro-moving")).toBe("grow");
-    await expect.poll(() => frameOf(root).getAnimations().some((animation) => animation.playState === "running")).toBe(true);
+    const clipped = getComputedStyle(frameOf(root)).clipPath;
+    await expect.poll(() => getComputedStyle(frameOf(root)).clipPath).not.toBe(clipped);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(2);
     expect(moves[1]!.from).toBeLessThan(moves[0]!.to - 1);
@@ -1388,7 +1390,9 @@ describe("Composer expanded motion", () => {
     const moves: ComposerMove[] = [];
     host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
     await act(async () => expandButton()!.click());
-    await expect.poll(() => frameOf(root).getAnimations().some((animation) => animation.playState === "running")).toBe(true);
+    const clipped = getComputedStyle(frameOf(root)).clipPath;
+    await expect.poll(() => getComputedStyle(frameOf(root)).clipPath).not.toBe(clipped);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(2);
     expect(moves[1]!.from).toBeGreaterThan(moves[0]!.to + 1);
