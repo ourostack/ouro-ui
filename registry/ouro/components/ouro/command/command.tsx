@@ -874,6 +874,7 @@ export function Command(props: CommandProps): JSX.Element {
                   setChipActive(true);
                 }}
                 onBlur={() => setChipActive(false)}
+                // Stryker disable next-line ObjectLiteral,BooleanLiteral: preventScroll only stops a scroll the row is already in view for.
                 onPointerMove={(event) => event.currentTarget.focus({ preventScroll: true })}
                 onClick={() => run({ label: recent.label, onSelect: recent.onSelect })}
               >
