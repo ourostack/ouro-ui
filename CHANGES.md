@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Ouro check now also fails a transition that passes where it ends (`overshoot`), strays from its own easing curve (`off-curve`), steps an opacity faster than its easing (`opacity-step`) or cuts its text off mid-move (`label-clip`), in Chromium and WebKit.
