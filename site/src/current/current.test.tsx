@@ -18,6 +18,14 @@ describe("Ouro Current's page", () => {
     expect(install.map((link) => link.textContent)).toContain("Install Ouro Current");
   });
 
+  it("says each release arrives as one pull request on all four platforms", async () => {
+    const host = await renderPage("/current/");
+    const lede = host.querySelector(".current-lede")?.textContent ?? "";
+    for (const platform of ["web", "Apple", "Windows", "Android"]) expect(lede).toContain(platform);
+    expect(host.textContent).toContain("NuGet");
+    expect(host.textContent).toContain("Gradle");
+  });
+
   it("names every release it follows, and says what it never does", async () => {
     const host = await renderPage("/current/");
     for (const release of Object.values(SNAPSHOT.releases)) expect(host.textContent).toContain(release.tag);
