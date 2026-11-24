@@ -1230,13 +1230,16 @@ function CommandList({ children, className, after, snap }: { children: (group: G
       }
       if (best > 0) node.style.maxHeight = `${best}px`;
     };
-    // Stryker disable next-line BlockStatement,ExpressionStatement: the observer's first callback runs fit() as well, a frame later.
+    // Stryker disable next-line BlockStatement: the observer's first callback runs fit() as well, a frame later.
     fit();
     const observer = new ResizeObserver(fit);
-    // Stryker disable next-line ExpressionStatement: the observer only reflows after a resize; the test's first fit is the initial call.
     observer.observe(node.parentElement!);
-    // Stryker disable next-line BlockStatement: a disconnected observer on a removed node does nothing visible.
-    return () => observer.disconnect();
+    // The palette's own size is held by this list's cut, so a taller window has to be heard on its own.
+    window.addEventListener("resize", fit);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", fit);
+    };
   });
   return (
     <Autocomplete.List ref={list} hidden={empty} className={className}>
