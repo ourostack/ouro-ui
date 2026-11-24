@@ -131,6 +131,10 @@
   --ouro-duration-draw: 240ms;
   --ouro-duration-slow: 300ms;
   --ouro-duration-sheet: 500ms;
+  --ouro-dialog-duration: var(--ouro-duration-slow);
+  --ouro-dialog-ease: var(--ouro-ease-out);
+  --ouro-dialog-exit-duration: var(--ouro-duration-base);
+  --ouro-dialog-exit-ease: var(--ouro-dialog-ease);
   --ouro-press-scale: 0.97;
   --ouro-backdrop-color: #18181b;
   --ouro-backdrop-max: 0.4;
