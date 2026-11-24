@@ -1492,7 +1492,7 @@ describe("TimeGrid background events", () => {
     const fill = getComputedStyle(spokenAs("All hands")).backgroundColor;
     expect([fill === getComputedStyle(titled("Architecture forum")).backgroundColor, fill === "rgba(0, 0, 0, 0)"]).toEqual([false, false]);
     expect(getComputedStyle(spokenAs("All hands")).borderInlineStartWidth).toBe("3px");
-    expect([getComputedStyle(lanes()[0]!).borderInlineEndStyle, getComputedStyle(lanes()[0]!).borderInlineEndWidth]).toEqual(["dashed", "1px"]);
+    expect([getComputedStyle(lanes()[0]!).borderInlineEndStyle, getComputedStyle(lanes()[0]!).borderInlineEndWidth]).toEqual(["none", "0px"]);
     const lane = lanes()[0]!;
     // 40% of the day's column, at least 7rem.
     expect(Math.abs(lane.getBoundingClientRect().width - lane.parentElement!.clientWidth * 0.4)).toBeLessThan(1);
