@@ -690,8 +690,8 @@ describe("Avatar shapes and icons", () => {
     expect(getComputedStyle(circle!).borderTopLeftRadius).toBe(native ? "44%" : "24%");
     expect(getComputedStyle(square!).borderTopLeftRadius).toBe(native ? "24%" : "13%");
     if (native) {
-      expect(getComputedStyle(circle!).getPropertyValue("corner-shape")).toContain("squircle");
-      expect(getComputedStyle(square!).getPropertyValue("corner-shape")).toContain("squircle");
+      expect(getComputedStyle(circle!).getPropertyValue("corner-shape")).toMatch(/squircle|superellipse\(2\)/);
+      expect(getComputedStyle(square!).getPropertyValue("corner-shape")).toMatch(/squircle|superellipse\(2\)/);
     }
     for (const plain of [circle!, square!]) {
       expect(getComputedStyle(plain, "::after").borderTopWidth).not.toBe("1px");
