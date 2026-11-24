@@ -55,6 +55,15 @@ describe("the calendar page", () => {
     await expect.poll(() => getComputedStyle(root).paddingBottom).toBe("96px");
   });
 
+  it("puts the date heading on its own row above the controls on a phone", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    const heading = document.querySelector<HTMLElement>("[data-site-calendar-demo] h2")!;
+    const jump = [...document.querySelectorAll<HTMLElement>("[data-site-calendar-demo] button")].find((b) => b.textContent === "Go to date")!;
+    await expect.poll(() => heading.getBoundingClientRect().bottom <= jump.getBoundingClientRect().top).toBe(true);
+    expect(Math.round(heading.getBoundingClientRect().width)).toBeGreaterThan(300);
+  });
+
   it("deletes an event from its details and brings it back with Undo", async () => {
     await renderPage("/docs/calendar-demo/");
     const before = eventTitles();
