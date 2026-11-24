@@ -157,7 +157,7 @@ describe("Combobox on a phone", () => {
     const panel = await opened();
     const done = page.getByRole("dialog").getByRole("button", { name: "Done" }).element() as HTMLElement;
     expect(done.getAttribute("data-ouro-part")).toBe("done");
-    expect(panel.querySelector('[data-ouro-part="close"]')!.textContent).not.toBe("Done");
+    expect(panel.querySelector('[data-ouro-part="close"]')!.textContent).toBe("Close");
   });
 
   it("keeps the popup on a landscape phone, past the sm breakpoint", async () => {
