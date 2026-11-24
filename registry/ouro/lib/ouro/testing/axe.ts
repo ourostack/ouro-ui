@@ -1313,6 +1313,7 @@ async function shoot(root: Element, items: Measured[], last: boolean, regions = 
       return top !== null && !element.contains(top) && !top.contains(element) && !top.closest(hiddenFromAt);
     };
     let worst = Number.POSITIVE_INFINITY;
+    let worstPoint: { x: number; y: number; r: number; g: number; b: number } | null = null;
     let measured = 0;
     let covered = 0;
     let offScreen = 0;
@@ -1358,7 +1359,11 @@ async function shoot(root: Element, items: Measured[], last: boolean, regions = 
         }
         measured++;
         const behind = { r: pixels[index]!, g: pixels[index + 1]!, b: pixels[index + 2]!, a: 1 };
-        worst = Math.min(worst, contrast(over(text, behind), behind));
+        const ratio = contrast(over(text, behind), behind);
+        if (ratio < worst) {
+          worst = ratio;
+          worstPoint = { x: screenX, y: screenY, r: behind.r, g: behind.g, b: behind.b };
+        }
       }
     }
     if (measured === 0 && covered > 0) return { pass: true };
@@ -1367,7 +1372,28 @@ async function shoot(root: Element, items: Measured[], last: boolean, regions = 
     if (measured === 0 && offScreen > 0 && held) return { pass: true };
     if (worst === Number.POSITIVE_INFINITY) return { pass: false, reason: "axe left its contrast undecided, and its text is off the screen" };
     if (worst >= required) return { pass: true };
-    if (placeholder) return { pass: false, reason: `its placeholder measured ${worst.toFixed(2)}:1 against the worst pixel behind it, needs ${required}:1` };
-    return { pass: false, reason: `measured ${worst.toFixed(2)}:1 against the worst pixel behind its text, needs ${required}:1` };
+    // DIAGNOSTIC (drain-4, #3361): describe exactly what is at the worst pixel, to find what
+    // is painting over the text on WebKit/Linux. Removed before merge.
+    const diag = (() => {
+      if (!worstPoint) return "";
+      const top = document.elementFromPoint(worstPoint.x, worstPoint.y);
+      const describe = (node: Element | null): string => {
+        if (!node) return "null";
+        const attrs = [...node.attributes].map((a) => `${a.name}=${JSON.stringify(a.value)}`).join(" ");
+        const rect = node.getBoundingClientRect();
+        return `<${node.tagName.toLowerCase()} ${attrs}> rect=${rect.left.toFixed(2)},${rect.top.toFixed(2)},${rect.width.toFixed(2)},${rect.height.toFixed(2)}`;
+      };
+      const stack: string[] = [];
+      let node: Element | null = top;
+      for (let depth = 0; node && depth < 6; depth++) {
+        stack.push(describe(node));
+        node = node.parentElement;
+      }
+      const dpr = window.devicePixelRatio;
+      const elementRect = element.getBoundingClientRect();
+      return ` [diag point=(${worstPoint.x.toFixed(2)},${worstPoint.y.toFixed(2)}) rgb=${worstPoint.r},${worstPoint.g},${worstPoint.b} dpr=${dpr} textRect=${elementRect.left.toFixed(2)},${elementRect.top.toFixed(2)},${elementRect.width.toFixed(2)},${elementRect.height.toFixed(2)} stack=[${stack.join(" | ")}]]`;
+    })();
+    if (placeholder) return { pass: false, reason: `its placeholder measured ${worst.toFixed(2)}:1 against the worst pixel behind it, needs ${required}:1${diag}` };
+    return { pass: false, reason: `measured ${worst.toFixed(2)}:1 against the worst pixel behind its text, needs ${required}:1${diag}` };
   });
 }
