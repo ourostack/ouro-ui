@@ -314,9 +314,15 @@ export function Carousel(props: CarouselProps): JSX.Element {
       if (next !== controlled) onIndexChange?.(next);
       announce(fillTemplate(slideLabel, next + 1, total));
     };
-    // After a pause: settle if the position holds for two frames, else keep waiting. A press's
-    // target not reached once the scroll has stopped (the user scrolled elsewhere) is dropped,
-    // so the next pause settles wherever the scroll is.
+    // After a pause: settle if the position holds for two frames and, when a press is heading
+    // somewhere, has reached that slide. A mismatch alone is not proof the press was abandoned:
+    // the scroll it started may simply not have begun or arrived yet, on a slow device or a busy
+    // runner, with nothing else to say otherwise in a browser with scrollend (there, no event
+    // but a new press or the real scrollend itself ever moves heading on, so it waits like a
+    // pause, for as many pauses as it takes). Only where native scroll events independently
+    // confirm activity (fallback, before scrollend) does a stable mismatch mean a competing
+    // scroll genuinely finished elsewhere, so only there is a stale heading dropped, letting the
+    // next pause settle wherever that scroll left off instead of waiting on a press it dropped.
     const check = () => {
       const left = viewport.scrollLeft;
       frame = requestAnimationFrame(() => {
@@ -325,7 +331,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
           if (viewport.scrollLeft !== left) return wait();
           const target = heading.current;
           if (target !== undefined && Math.min(nearestSlide(viewport), latest.current.lastIndex) !== target) {
-            heading.current = undefined;
+            if (fallback) heading.current = undefined;
             return wait();
           }
           settle();
