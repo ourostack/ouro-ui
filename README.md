@@ -6,7 +6,7 @@
 
 # Ouro UI
 
-**Delightful interfaces, by agents, for everyone.**[^for-everyone] A kit for agents to build interfaces people enjoy and other agents can use, on the web, Apple, Windows and Android.[^native] MIT.[^glance-licence] Components per platform: [web 135](registry.json "verify:count(registry:ui)=135"), Apple 20,[^glance-apple] Windows 26[^glance-windows] and Android 26.[^glance-android] Which ones, including chat: https://ui.ouroboros.bot/docs/platforms/parity/
+**Delightful interfaces, by agents, for everyone.**[^for-everyone] A kit for agents to build interfaces people enjoy and other agents can use, on the web, Apple, Windows and Android.[^native] MIT.[^glance-licence] Components per platform: web, every one in [the catalog](#components); Apple 20,[^glance-apple] Windows 26[^glance-windows] and Android 26.[^glance-android] Which ones, including chat: https://ui.ouroboros.bot/docs/platforms/parity/
 
 - **Ouro HX** (human experience): components. Web: copy-in source from a shadcn registry, start at https://ui.ouroboros.bot/docs/agent-quickstart.md. Apple: Swift package, start at https://ui.ouroboros.bot/apple/start/. Windows: WinUI 3,[^glance-windows] start at https://ui.ouroboros.bot/docs/platforms/windows/. Android: Compose, start at https://ui.ouroboros.bot/docs/platforms/android/. Ouro Current keeps the web and Apple kits up to date with one pull request per release.[^open-current]
 - **Ouro AX** (agent experience): the doors agents use (CLIs, HTTP APIs, MCP servers, App Intents, AppFunctions, Windows App Actions), with a kit and an AX X-ray. Guide: https://ui.ouroboros.bot/docs/ax.md
