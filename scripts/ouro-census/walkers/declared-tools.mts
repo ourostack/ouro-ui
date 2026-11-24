@@ -25,7 +25,7 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, relative, resolve } from "node:path";
-import ts from "typescript";
+import * as ts from "../../ts71.mts";
 import type { Door, DoorCard, WalkerOptions, WalkResult } from "../types.mts";
 
 interface Schema {
@@ -108,7 +108,7 @@ async function gatesConsequential(root: string, spec: string): Promise<true | st
   if (hash <= 0 || hash === spec.length - 1) return `declared-tools: approvals ${spec}: give it as <file>#<function>.`;
   const path = resolve(root, spec.slice(0, hash));
   const name = spec.slice(hash + 1);
-  const sf = ts.createSourceFile(path, await readFile(path, "utf8"), ts.ScriptTarget.Latest, true);
+  const sf = ts.createSourceFile(path, await readFile(path, "utf8"));
   let fn: ts.FunctionLikeDeclaration | null = null;
   const find = (n: ts.Node): void => {
     if (fn) return;

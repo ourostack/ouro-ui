@@ -24,4 +24,8 @@ describe("registerSquirclePolyfill", () => {
       count = 0;
     }
   });
+
+  it("registers once: a second call returns the same promise", async () => {
+    expect(registerSquirclePolyfill()).toBe(registerSquirclePolyfill());
+  });
 });

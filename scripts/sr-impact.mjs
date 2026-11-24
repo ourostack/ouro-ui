@@ -18,7 +18,7 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import * as ts from "./ts71.mts";
 import { treeFiles } from "./tree.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -75,7 +75,7 @@ const unwrap = (node) => (ts.isSatisfiesExpression(node) || ts.isAsExpression(no
 
 /** The story ids a story file defines: its default export's title with each named export, as Storybook names them. */
 export function storyIdsOf(path, text) {
-  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, false);
+  const source = ts.createSourceFile(path, text, );
   const declared = new Map();
   for (const statement of source.statements) {
     if (!ts.isVariableStatement(statement)) continue;
@@ -107,7 +107,7 @@ export function storyIdTable(text) {
 /** The import specifiers a file loads at run time: every import and re-export but those of types alone. */
 function runtimeSpecifiers(path, text) {
   if (!/\.m?tsx?$/.test(path)) return [];
-  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, false);
+  const source = ts.createSourceFile(path, text, );
   const specifiers = [];
   for (const statement of source.statements) {
     if (ts.isImportDeclaration(statement)) {

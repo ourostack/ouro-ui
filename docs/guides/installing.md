@@ -148,7 +148,7 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-plain#v1.3.501
 
 When your pages are served with a policy that refuses inline styles (`style-src 'self'`, with no `'unsafe-inline'` or nonce), wrap the app in `<OuroProvider strictCsp>` in place of Base UI's `CSPProvider`. Under it no Ouro UI part adds a `<style>` element, and the page breaks no rule of that policy, in Chromium and WebKit.[^strict-csp] Styles set from script still apply. The Ouro source rule counts a bare `CSPProvider` and names this fix.[^csp-rule]
 
-The squircle polyfill (`registerSquirclePolyfill`) works under such a policy too: its stylesheets are constructed and adopted by the document, not `<style>` elements, in Chromium, WebKit and Firefox.[^polyfill-style]
+In an engine without native `corner-shape` (a WebKit web view), call `registerSquirclePolyfill()` once at startup to draw true squircles on every rounded Ouro UI surface; give an element of your own `data-corner-shape="squircle"` beside its `border-radius` to draw it too. The polyfill works under such a policy too: its stylesheets are constructed and adopted by the document, not `<style>` elements, in Chromium, WebKit and Firefox.[^polyfill-style]
 
 ## Adding components
 
