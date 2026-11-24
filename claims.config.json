@@ -62,6 +62,11 @@
       "reason": "a latency run's record: the lines the latency spec printed on CI's runners, kept as a pull request's evidence"
     },
     {
+      "match": "^site/e2e/size-evidence/",
+      "mode": "evidence",
+      "reason": "a size-budget run's record: the lines scripts/size-budget.mjs printed locally, kept as a pull request's evidence"
+    },
+    {
       "match": "^site/src/apple/evidence/",
       "mode": "evidence",
       "reason": "the Apple pages' evidence: reports Ouro Feel and Ouro Reins printed, copied unchanged, so the pages' claims about them can be checked"
