@@ -8,6 +8,7 @@ import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { dirname, posix } from "node:path";
 import { BASE_SOURCE, THEME_ITEMS, applyItem, baseImport, basePath, hasItem, importBase } from "./stylesheet.mjs";
+import { SQUIRCLE_ITEM, buildConfigs, namesSquircles, wireSquircles } from "./squircle.mjs";
 
 export const REPOS = { web: "ourostack/ouro-ui", core: "ourostack/ouro-ui-core", apple: "ourostack/ouro-ui-apple", windows: "ourostack/ouro-ui-windows", android: "ourostack/ouro-ui-android" };
 export const NAMES = { web: "Ouro UI", core: "Ouro UI core", apple: "Ouro UI for Apple", windows: "Ouro UI for Windows", android: "Ouro UI for Android" };
@@ -769,6 +770,29 @@ export async function hxStylesheetBehind(pin, text, release, ctx) {
   return Boolean(stylesheetUpdate(tarball, tarball, found, (file) => (file === path ? sheet : null), release.tag)?.text);
 }
 
+/** Whether the tag's registry has an item of that name. */
+const registryHas = (tarball, name) => (JSON.parse(tarball.get("registry.json").toString("utf8")).items ?? []).some((item) => item.name === name);
+
+/** Whether the app installs a component, which draws rounded surfaces, rather than only Ouro's tools (Ouro check, Ouro AX). */
+const drawsSurfaces = (byPath, installed) => installed.some((path) => byPath.get(path)?.target.startsWith("@components/"));
+
+/**
+ * Whether an install record already on the release left the app's build without the squircleCorners() plugin, which
+ * that release needs to draw squircles in WebKit (#3488): it installs a component, and no build config names the plugin.
+ * Reads components.json and the build configs, not the repository's whole tree.
+ */
+export async function hxSquircleBehind(pin, text, release, ctx) {
+  const installed = Object.keys(JSON.parse(text).files ?? {});
+  const tarball = await ctx.tarball("web", release.tag);
+  if (!registryHas(tarball, SQUIRCLE_ITEM) || !drawsSurfaces(installedPaths(tarball, installed), installed)) return false;
+  const configs = new Map();
+  for (const path of ctx.consumerPaths()) if (posix.basename(path) === "components.json") configs.set(path, await ctx.consumerFile(path));
+  const found = findComponentsJson(configs, installed);
+  if (!found) return false;
+  for (const path of buildConfigs(ctx.consumerPaths(), found.dir)) if (namesSquircles(String(await ctx.consumerFile(path)))) return false;
+  return true;
+}
+
 /** The plain-CSS copies a page with no Tailwind links, as the site serves them and the repository holds them at a tag. */
 const STATIC_CSS = "site/public/css/";
 
@@ -918,6 +942,11 @@ async function updateHxInstalled(pin, text, release, ctx) {
     const bytes = rewrite(source);
     if (!bytes.equals(now)) out[path] = bytes;
   }
+  // A release that draws squircles in WebKit only through the squircleCorners() PostCSS plugin (#3426) brings the plugin
+  // to an app that installs a component and whose build does not name it yet, and wires it into the build (#3488).
+  const configs = new Map(found ? buildConfigs([...consumer.keys()], found.dir).map((path) => [path, consumer.get(path)]) : []);
+  const squircles = Boolean(found) && registryHas(next, SQUIRCLE_ITEM) && drawsSurfaces(before, installed) && ![...configs.values()].some((bytes) => namesSquircles(String(bytes)));
+  if (squircles) items.add(SQUIRCLE_ITEM);
   // A file an updated item now includes, or a file of an item it now depends on (a new `lib/ouro/platform.ts` that an
   // updated kbd imports), is added as the CLI would add it. A file the app already has outside the record is its own.
   const wanted = withDependencies(next, items);
@@ -930,6 +959,11 @@ async function updateHxInstalled(pin, text, release, ctx) {
     hashes[path] = sha256(source);
     added.push(path);
   }
+  // Without the plugin in its build, the update would leave Safari with plain round corners: when Ouro Current cannot
+  // wire it, the update is held back whole and says what to add.
+  const wiring = squircles ? wireSquircles({ dir: found.dir, files: configs, plugin: [...after].find(([, entry]) => entry.item === SQUIRCLE_ITEM)[0] }) : { files: {}, notes: [], held: null };
+  if (wiring.held) return { files: {}, notes: [wiring.held], held: true };
+  for (const [path, text] of Object.entries(wiring.files)) out[path] = Buffer.from(text, "utf8");
   // Ouro AX's shared files are imported as `#ouro-ax/*`, which the app's package.json must map to its lib folder. Only
   // the package beside components.json changes, and a script that ran a moved file is pointed at where it now sits.
   const writesAx = Object.values(out).some((value) => Buffer.isBuffer(value) && value.includes("#ouro-ax/"));
@@ -1002,6 +1036,7 @@ async function updateHxInstalled(pin, text, release, ctx) {
   for (const { path, line, from, to } of refs.docs) notes.push(`Check \`${path}:${line}\`: it names \`${from}\`, which moved to \`${to}\`. Ouro Current leaves prose to you.`);
   for (const { from, to } of forwarded) notes.push(`Leaves a forwarding file at \`${from}\` that runs \`${to}\`, so what still names the old path keeps working for one release. Delete it once the old path is gone from your workflows and scripts.`);
   if (added.length) notes.push(`Adds what installed items now include: ${list(added)}.`);
+  notes.push(...wiring.notes);
   if (sheet) notes.push(...sheet.notes);
   if (edited.length) notes.push(`Leaves ${list(edited)} at \`${record.tag}\`, because ${one(edited, "it is", "they are")} not what the CLI wrote for \`${record.tag}\` (edited here, or rewritten in a way Ouro Current does not reproduce). Install ${one(edited, "it", "them")} again with the CLI, or move the change into Ouro UI.`);
   const kitApart = edited.filter((path) => before.get(path)?.target.startsWith(KIT) && axDir && !path.startsWith(axDir));
