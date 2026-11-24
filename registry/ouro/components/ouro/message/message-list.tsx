@@ -2090,27 +2090,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // carry and anchor work above, which also move the scroll position as the turn continues.
     const clearJump = () => {
       const room = jumpRoomRef.current;
-      // Stryker disable next-line LogicalOperator,ConditionalExpression: not reachable with only the first clause swapped to
-      // `&&`, or with either clause alone forced false. `pinned.current` is set in onScroll, the same tick that calls
-      // setShowJump/setJumpRoom, so a render that unmounts the button and the reserve once pinned goes true always lands
-      // well inside the WHEEL_REST delay before this runs off a scrollend, and the same holds in reverse: the button only
-      // ever unmounts (jumpRef.current going null) through that same onScroll write or through a conversation switch's
-      // layout effect, which reopen also pins before the browser can paint; no call here ever sees pinned true alongside
-      // a still-attached jumpRef or room from the state before it, nor jumpRef or room null while still unpinned.
       if (pinned.current || jumpRef.current === null || room === null) return;
       const drawn = content.querySelectorAll<HTMLElement>(items);
-      // Any route that empties `drawn` (the conversation clearing, a window with nothing left in range) is itself
-      // a resize content shrinks to or below the scroller's own height, which hold()'s own at-bottom recompute
-      // re-pins and settles through followEnd() before this closure's pinned.current check above would ever let
-      // it run, so `drawn` always holds at least the newest message here.
       const newest = drawn[drawn.length - 1]!;
       const clear = jumpRef.current.getBoundingClientRect().top - newest.getBoundingClientRect().bottom;
-      // Stryker disable next-line EqualityOperator: not equivalent in intent, but unobservable here; both equalities'
-      // own boundaries (clear exactly 0, clear exactly -room.offsetHeight) are where each would differ, and a real
-      // browser's scrollTop and getBoundingClientRect() report subpixel values no assignment can reliably land on
-      // either exactly. At clear === 0 scrollTop -= clear is a no-op regardless of the branch taken, so the only
-      // mutant-only effect, ownTop.current taking the value it already holds, changes what the next real scroll
-      // (onScroll, above) is judged against only if that scroll happens to land on this same exact pixel too.
       if (clear < 0 && clear >= -room.offsetHeight) {
         scroller.scrollTop -= clear;
         ownTop.current = scroller.scrollTop;
@@ -2125,7 +2108,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     const onScrollEnd = endSoon;
     scroller.addEventListener("scrollend", onScrollEnd);
-    // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
     return () => (["pointerdown", "keydown", "touchstart"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), Reflect.deleteProperty(scroller, "scrollTo"), Reflect.deleteProperty(scroller, "scrollBy"), cancelAnimationFrame(disarm), (held.current = false), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
