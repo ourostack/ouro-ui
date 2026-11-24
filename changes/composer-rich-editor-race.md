@@ -1,0 +1,1 @@
+- Fix: Composer's rich editor no longer sometimes reverts `**bold**`/`_italic_` typed out to literal escaped Markdown; its value-sync effect runs in the same commit as the keystroke, not a later, racing one.

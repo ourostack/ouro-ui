@@ -8,7 +8,7 @@ import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownS
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
 import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, $getState, $setState, createState, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
-import { useEffect, useId, useImperativeHandle, useRef, useState } from "react";
+import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
@@ -847,7 +847,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   }, [rangesKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A value the app sets, such as the empty one after a send, replaces what the editor holds.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const editor = editorRef.current!;
     // Stryker disable next-line ConditionalExpression: converting the Markdown the editor already holds leaves the same content.
     if (value === held.current) return;
