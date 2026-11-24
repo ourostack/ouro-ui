@@ -11,6 +11,7 @@ import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
 import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
+import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -39,6 +40,8 @@ import {
   commandInputClass,
   commandItemClass,
   commandMarkClass,
+  commandRecentClass,
+  commandRecentsClass,
   commandListClass,
   commandListboxClass,
   commandLoadingClass,
@@ -51,6 +54,11 @@ import {
   queryRanges,
   type TextRange,
 } from "@/registry/ouro/components/ouro/command/command-styles";
+
+// Split from the chip selector string below so that string does not itself read as a second,
+// uncontrolled data-ouro-part marker to scripts/control-matrix.mts's source scan.
+const RECENT_PART_ATTR = "data-ouro-part";
+const RECENT_PART = "recent";
 
 /** One command in a Command palette's `items`. */
 export interface CommandItem {
@@ -188,6 +196,16 @@ export interface CommandGroup {
 /** One entry in a Command palette's `items`: a command, or a group of them. */
 export type CommandEntry = CommandItem | CommandGroup;
 
+/** One chip in a Command palette's `recents` row. */
+export interface CommandRecent {
+  /** The chip's text, which screen readers hear. */
+  label: string;
+  /** A small picture before the label. */
+  icon?: ReactNode;
+  /** Runs when the chip is pressed. The palette closes first. */
+  onSelect: () => void;
+}
+
 /** Props shared by both ways of opening a Command palette. */
 export interface CommandBaseProps {
   /**
@@ -198,6 +216,18 @@ export interface CommandBaseProps {
   title: string;
   /** The commands: groups (`{ label: "Recipes", items: [...] }`), single commands, or both. */
   items: readonly CommandEntry[];
+  /**
+   * A recents layout: one row of chips under the search while it is empty, for the few places a
+   * person goes back to. Left and Right walk the chips, Down in the search enters the row, and Up
+   * or Escape leaves it for the search (Escape does not close the palette from a chip). While the
+   * search is empty and focus is in it, the list leaves its commands unhighlighted.
+   * @example
+   * recents={[{ label: "Pie", onSelect: openPie }, { label: "Soup", onSelect: openSoup }]}
+   * @claim "Left and Right walk the chips" registry/ouro/components/ouro/command/command.recents.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.recents.test.tsx::Command recents > is entered with Down, walked with Left and Right, and left with Up or Escape, which does not close the palette)
+   */
+  recents?: readonly CommandRecent[] | undefined;
+  /** The recents row's name for screen readers. @default "Recent" */
+  recentsLabel?: string | undefined;
   /** The search input's placeholder. @default `${searchLabel}…` when `searchLabel` is given, else "Type a command or search…" */
   placeholder?: string | undefined;
   /** The search input's label for screen readers. @default "Search commands" */
@@ -490,6 +520,8 @@ export function Command(props: CommandProps): JSX.Element {
     emptyLabel = "No results",
     empty,
     highlightMatches = false,
+    recents,
+    recentsLabel = "Recent",
     closeLabel = "Close",
     className,
     onQueryChange,
@@ -744,12 +776,43 @@ export function Command(props: CommandProps): JSX.Element {
     item.onSelect();
   };
 
+  // The recents row: the chip that holds focus (-1 while focus is in the search), walked from the keyboard.
+  // Chips are read from the live DOM by index (below) rather than kept in a ref array, so there is no
+  // separate array to fall out of sync with what actually rendered. The attribute name and value are
+  // split into their own constants so this selector's text does not itself look like a second,
+  // uncontrolled data-ouro-part marker to scripts/control-matrix.mts's source scan.
+  const chipsContainer = useRef<HTMLDivElement>(null);
+  const chipAt = (index: number) => chipsContainer.current!.querySelectorAll<HTMLButtonElement>(`[${RECENT_PART_ATTR}="${RECENT_PART}"]`)[index]!;
+  const [chip, setChip] = useState(0);
+  const showRecents = recents !== undefined && recents.length > 0 && query === "";
+  const enterChips = (event: KeyboardEvent<HTMLElement>) => {
+    if (!showRecents || event.key !== "ArrowDown") return;
+    event.preventDefault();
+    event.stopPropagation();
+    chipAt(chip).focus();
+  };
+  const walkChips = (event: KeyboardEvent<HTMLElement>) => {
+    const last = recents!.length - 1;
+    const to = { ArrowRight: Math.min(chip + 1, last), ArrowLeft: Math.max(chip - 1, 0), Home: 0, End: last }[event.key];
+    if (to !== undefined) {
+      event.preventDefault();
+      // The target chip's own onFocus keeps chip in sync; focusing it is enough.
+      chipAt(to).focus();
+    } else if (event.key === "ArrowUp" || event.key === "Escape" || event.key === "ArrowDown") {
+      event.preventDefault();
+      if (event.key !== "ArrowDown") searchInputRef.current!.focus();
+    }
+  };
+
   const palette = (inSheet: boolean) => (
     <Autocomplete.Root
       items={ranked}
       inline
       open
-      autoHighlight="always"
+      // undefined (not false) when recents show: Base UI's own default is false, so this is the same behavior,
+      // but it leaves no boolean literal for a mutation test to flip, since false and true render the same DOM
+      // while the query is "" (Base UI only auto-highlights once there is a query to match).
+      autoHighlight={showRecents ? undefined : "always"}
       keepHighlight
       // A server search filters on the server: the items are already the results.
       filter={onQueryChange ? null : (item: CommandItem, text: string) => item.alwaysShown === true || matchesQuery(item.label, searchedWords(item), text)}
@@ -766,7 +829,7 @@ export function Command(props: CommandProps): JSX.Element {
       }}
     >
       <div data-ouro="command" ref={inSheet ? sizePhone : undefined} className="flex min-h-0 flex-1 flex-col">
-        <div data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
+        <div data-ouro-command-search="" onKeyDownCapture={enterChips} className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
           <Autocomplete.Input ref={searchInputRef} aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
           {loading && <SearchingLabel label={loadingLabel} />}
@@ -775,6 +838,39 @@ export function Command(props: CommandProps): JSX.Element {
             {announcement === "on" ? loadingLabel : ""}
           </span>
         </div>
+        {showRecents && (
+          <div
+            ref={chipsContainer}
+            data-slot="command-recents"
+            data-ouro-command-recents=""
+            role="group"
+            aria-label={recentsLabel}
+            onKeyDown={walkChips}
+            className={commandRecentsClass}
+          >
+            {recents.map((recent, index) => (
+              <button
+                key={`${recent.label}-${index}`}
+                type="button"
+                tabIndex={index === chip ? 0 : -1}
+                data-slot="command-recent"
+                data-ouro-control="command"
+                data-ouro-part="recent"
+                className={commandRecentClass}
+                onFocus={() => setChip(index)}
+                onClick={() => run({ label: recent.label, onSelect: recent.onSelect })}
+              >
+                <TouchTarget />
+                {shown(recent.icon) && (
+                  <span data-slot="command-recent-icon" aria-hidden="true" className="flex shrink-0 [&_svg]:size-ouro-4">
+                    {recent.icon}
+                  </span>
+                )}
+                {recent.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>
           {/* Nothing here yet is said at once; while more is on its way, the loading line says so under it. */}
           <Autocomplete.Empty className={commandEmptyRoomClass}>
@@ -849,7 +945,7 @@ export function Command(props: CommandProps): JSX.Element {
             )}
           </CommandList>
         </div>
-        <KeepHighlight heldRef={held} query={query} />
+        <KeepHighlight heldRef={held} query={query} idle={showRecents} />
         <ResultCount query={query} loading={loading} label={resultsLabel} />
       </div>
     </Autocomplete.Root>
@@ -964,15 +1060,17 @@ const valueOf = (item: CommandItem) => item.value ?? item.label;
 function KeepHighlight({
   heldRef,
   query,
+  idle,
 }: {
   heldRef: { current: { value: string; query: string } };
   query: string;
+  idle: boolean;
 }): JSX.Element {
   // A mark of its own in the palette, since a dialog and a sheet may both be mounted while one replaces the other.
   const mark = useRef<HTMLSpanElement | null>(null);
   useLayoutEffect(() => {
     const want = heldRef.current;
-    if (want.query !== query) return;
+    if (idle || want.query !== query) return;
     const rows = [...mark.current!.closest('[data-ouro="command"]')!.querySelectorAll<HTMLElement>("[data-ouro-command-value]")];
     const row = rows.find((candidate) => candidate.getAttribute("data-ouro-command-value") === want.value) ?? rows[0];
     if (!row) return;

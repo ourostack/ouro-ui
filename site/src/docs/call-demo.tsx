@@ -261,6 +261,8 @@ function CallDemo(): JSX.Element {
               pressed: sharing,
               onPressedChange: (next: boolean) => {
                 setSharing(next);
+                // A shared screen fills a phone's stage, so no corner is clear of the bar or a face.
+                if (next && narrow) setSelfHidden(true);
                 setStatus(next ? "You are sharing your screen" : "You stopped sharing");
               },
             },
@@ -289,7 +291,7 @@ function CallDemo(): JSX.Element {
             { label: "React", icon: SmileIcon, hideLabel: true, onClick: () => setReactionsOpen(true) },
           ] satisfies ToolbarEntry[])),
     ],
-    [muted, cameraOff, sharing, captionsOn, handUp, stage, toggleMute, setStatus],
+    [muted, cameraOff, sharing, captionsOn, handUp, stage, toggleMute, setStatus, narrow],
   );
 
   const selfPicture = cameraOff ? (
@@ -301,7 +303,7 @@ function CallDemo(): JSX.Element {
   );
 
   const bar = (
-    <div className="flex flex-wrap items-center justify-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
       <Toolbar label="Call controls" items={items} />
       {stage === "call" ? (
         <Button tone="destructive" onClick={() => go("left", true)}>
@@ -408,7 +410,7 @@ function CallDemo(): JSX.Element {
   return (
     <div className="grid w-full grid-cols-1 gap-3" data-site-call-demo="">
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <div className="min-w-0">
+        <div className="min-w-0 overflow-x-auto">
           <SegmentedControl
             label="State"
             fullWidth

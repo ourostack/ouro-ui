@@ -6,8 +6,8 @@ import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { AxHero } from "../ax/hero";
 import { Popups, PopupsProvider } from "../components/popups";
 import { HydrateInTurn } from "../hydrate";
-import { APPLE_PATHS, href, normalizePath, PLATFORM_PATHS, type PlatformPath } from "../paths";
-import { AdoptionIsland, AndroidHomeIsland, AndroidStartIsland, AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, CurrentIsland, HomeReferenceIsland, HxIsland, ProofIsland, RepaintIsland, WindowsHomeIsland, WindowsStartIsland } from "../voyage/chapters/island";
+import { APPLE_PATHS, href, normalizePath, PART_PATHS, PLATFORM_PATHS, type PlatformPath } from "../paths";
+import { ActionsIsland, AdoptionIsland, AndroidHomeIsland, AndroidStartIsland, AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, ComposedUiIsland, CurrentIsland, HackamoreIsland, HomeReferenceIsland, HxIsland, ProofIsland, RepaintIsland, WindowsHomeIsland, WindowsStartIsland, XrayIsland } from "../voyage/chapters/island";
 import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
@@ -44,6 +44,15 @@ const PLATFORM_ISLANDS: Record<PlatformPath, () => JSX.Element> = {
 const isPlatform = (page: string): page is PlatformPath => (PLATFORM_PATHS as readonly string[]).includes(page);
 /** The header's current section for a platform page: Ouro HX, or the platform's own overview. */
 const platformSection = (page: PlatformPath) => (page === "/hx/" ? "/hx/" : page.startsWith("/windows/") ? "/windows/" : "/android/");
+
+/** Each part page's body, an island of its own (parts/). */
+const PART_ISLANDS: Record<(typeof PART_PATHS)[number], () => JSX.Element> = {
+  "/actions/": ActionsIsland,
+  "/composed-ui/": ComposedUiIsland,
+  "/xray/": XrayIsland,
+  "/hackamore/": HackamoreIsland,
+};
+const isPart = (page: string): page is (typeof PART_PATHS)[number] => page in PART_ISLANDS;
 
 /** HX Inspector's code loads only once someone turns X-ray on, so the page's first JavaScript carries none of it. */
 const Inspector = lazy(() => import("@/registry/ouro/components/ouro/inspector/inspector").then((module) => ({ default: module.Inspector })));
@@ -91,6 +100,11 @@ function PlatformPage({ page }: { page: PlatformPath }): JSX.Element {
   return <Island />;
 }
 
+function PartPage({ page }: { page: (typeof PART_PATHS)[number] }): JSX.Element {
+  const Island = PART_ISLANDS[page];
+  return <Island />;
+}
+
 export default function VoyagePage({ path }: { path: string }): JSX.Element {
   const page = normalizePath(path);
   const nautilus = page === "/nautilus/";
@@ -105,7 +119,7 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
         <div className="voyage min-h-dvh bg-background text-foreground">
           <Suspense>
             <VoyageHeader
-              path={page === "/nautilus/" || page === "/ax/" ? page : isApple(page) ? "/apple/" : isPlatform(page) ? platformSection(page) : "/"}
+              path={page === "/nautilus/" || page === "/ax/" || isPart(page) ? page : isApple(page) ? "/apple/" : isPlatform(page) ? platformSection(page) : "/"}
               page={page}
               pageNav={isApple(page) || (isPlatform(page) && page !== "/hx/")}
             />
@@ -118,6 +132,11 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
           ) : isPlatform(page) ? (
             <main id="main">
               <PlatformPage page={page} />
+              <Popups />
+            </main>
+          ) : isPart(page) ? (
+            <main id="main">
+              <PartPage page={page} />
               <Popups />
             </main>
           ) : page === "/adoption/" ? (
