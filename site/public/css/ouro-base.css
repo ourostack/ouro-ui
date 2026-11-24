@@ -247,19 +247,19 @@
 
 @keyframes ouro-composer-reveal {
   from {
-    clip-path: inset(var(--ouro-composer-gap) 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: var(--ouro-composer-gap);
   }
   to {
-    clip-path: inset(0 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: 0px;
   }
 }
 
 @keyframes ouro-composer-conceal {
   from {
-    clip-path: inset(0 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: 0px;
   }
   to {
-    clip-path: inset(var(--ouro-composer-gap) 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: var(--ouro-composer-gap);
   }
 }
 
