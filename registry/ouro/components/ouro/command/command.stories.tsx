@@ -58,6 +58,18 @@ export const Playground: Story = {
   parameters: { screenshot: { name: "command-open", open: true } },
 };
 
+/** `recents` puts one row of chips under the search: Down enters it, Left and Right walk it, Up or Escape leaves it. */
+export const Recents: Story = {
+  args: {
+    recents: [
+      { label: "Shakshuka", onSelect: noop },
+      { label: "Pasta al limone", onSelect: noop },
+      { label: "Lentil soup", onSelect: noop },
+    ],
+  },
+  parameters: { screenshot: { name: "command-recents", open: true } },
+};
+
 /** `useCommandShortcut("mod+k")` opens it from anywhere on the page. */
 export const Shortcut: Story = {
   parameters: { plainOpeners: ["Open palette"] },

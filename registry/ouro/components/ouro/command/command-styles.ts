@@ -14,6 +14,8 @@ export {
   commandSheetListClass,
   commandSheetSearchClass,
   commandMarkClass,
+  commandRecentClass,
+  commandRecentsClass,
   matchesQuery,
   oneEditApart,
   queryMatch,
@@ -285,3 +287,10 @@ function queryRanges(text: string, query: string): TextRange[] {
 const commandMarkClass =
   "rounded-[0.2em] bg-[color-mix(in_oklab,var(--primary)_22%,transparent)] font-semibold text-foreground " +
   "forced-colors:bg-[Mark] forced-colors:text-[MarkText]";
+
+/** The single row of recent chips under the search: it scrolls sideways rather than wrapping. @internal */
+const commandRecentsClass = "box-border flex shrink-0 gap-2 overflow-x-auto overscroll-x-contain border-0 border-b border-solid border-border px-4 py-2";
+
+/** One recent chip: a quiet pill that shows focus and press. @internal */
+const commandRecentClass =
+  "press relative box-border inline-flex min-h-ouro-8 shrink-0 cursor-default items-center gap-1.5 rounded-ouro-4xl border-0 bg-secondary px-3 text-sm leading-5 text-secondary-foreground outline-none pointer-fine:hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
