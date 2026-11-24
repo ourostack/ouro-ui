@@ -26,6 +26,8 @@ export function runtimeSource(path) {
   if (vendored.includes(path)) return false;
   // The squircle engine is ourostack/hyperellipse's, mutated and tested there.
   if (path.startsWith("registry/ouro/lib/ouro/squircle/")) return false;
+  // The build-time plugin runs in Node, so its tests are node:test (scripts/squircle-corners.test.mjs).
+  if (path === `${libDir}squircle-corners.ts`) return false;
   // ouro-build-source.ts runs only under Node (it shells to real git), so, like squircle, it is
   // tested outside Stryker's Vitest-only runner, which cannot load node:child_process: its own
   // node --test file (ouro-build-source.test.mts) requires full line, branch and function

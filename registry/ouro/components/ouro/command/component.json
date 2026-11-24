@@ -5,6 +5,7 @@
     "command": [
       {"part": "input", "role": "combobox", "portal": true},
       {"part": "item", "role": "option", "portal": true},
+      {"part": "recent", "role": "button", "portal": true},
       {"part": "hidden-input", "role": "textbox", "portal": true}
     ]
   }

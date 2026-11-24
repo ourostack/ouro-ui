@@ -111,7 +111,14 @@ describe("squircle surface where the engine has no corner-shape", () => {
     const label = button.querySelector<HTMLElement>("[data-ouro-label]")!;
     const position = surface.compareDocumentPosition(label);
     expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(getComputedStyle(label).position).toBe("relative");
+    // Its own stacking context paints it with the positioned surface, in document order, so above it (#3368: not
+    // `relative`, which would anchor an app's absolutely placed children to the label).
+    expect(getComputedStyle(label).isolation).toBe("isolate");
+    // The label is otherwise non-positioned (static), so it stays off the surface's own stacking context;
+    // the surface's negative z-index is what keeps it under the label's paint, as every other
+    // data-ouro-surface consumer (Badge, Card, Toggle, Dialog, TextField) already relies on (#3396).
+    expect(getComputedStyle(label).position).toBe("static");
+    expect(getComputedStyle(surface).zIndex).toBe("-1");
     expect(getComputedStyle(button).borderTopLeftRadius).not.toBe("0px");
   });
 

@@ -150,6 +150,8 @@ When your pages are served with a policy that refuses inline styles (`style-src 
 
 In an engine without native `corner-shape` (a WebKit web view), call `registerSquirclePolyfill()` once at startup to draw true squircles on every rounded Ouro UI surface; give an element of your own `data-corner-shape="squircle"` beside its `border-radius` to draw it too. The polyfill works under such a policy too: its stylesheets are constructed and adopted by the document, not `<style>` elements, in Chromium, WebKit and Firefox.[^polyfill-style]
 
+An app that builds its CSS can draw the same squircles at build time instead, leaving the page's code alone: add `squircleCorners()` from `lib/ouro/squircle-corners` (the `lib-squircle-corners` item, added the way the other items are) to the PostCSS plugins of the app's bundler (`css: { postcss: { plugins: [squircleCorners()] } }` in Vite) and the rules that round a corner come out with a `clip-path: shape()` squircle in WebKit and `corner-shape: squircle` where the engine has it. Corners that are round by design (a pill, a circle, half the box) stay round.
+
 ## Adding components
 
 ```sh
