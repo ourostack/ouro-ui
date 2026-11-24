@@ -62,9 +62,10 @@ describe("findDecisionIssues", () => {
   });
 
   it("holds the matches to an only selector, naming each that is something else", () => {
-    render(`<nav id="bar"><button class="a">a</button><a class="a" id="odd">b</a></nav>`);
+    render(`<nav id="bar"><button class="a">a</button><a class="a" id="odd">b</a><i>c</i></nav>`);
     expect(details([{ name: "buttons only", selector: ".a", only: "button" }])).toEqual([`"buttons only": a#odd.a is not button`]);
     expect(details([{ name: "all", selector: ".a", only: ".a" }])).toEqual([]);
+    expect(details([{ name: "plain", selector: "nav > i", only: "b" }])).toEqual([`"plain": i is not b`]);
   });
 
   it("leaves out what a veil, hidden or a template covers, and says a selector that is not CSS is not", () => {
