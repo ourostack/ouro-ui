@@ -141,6 +141,8 @@
   --success-foreground: #ffffff;
   --warning: #b05109;
   --warning-foreground: #ffffff;
+  /* Away (out of office), Teams' purple: TimeGrid's away events and marked days. Not success, warning or primary. */
+  --ouro-away: #5b5fc7;
   /* Avatar's initials hues (red, orange, gold, green, teal, blue, purple, magenta), tinted toward the background and foreground. */
   --avatar-1: #c4314b;
   --avatar-2: #ca5010;
@@ -264,6 +266,7 @@
   --success-foreground: #000000;
   --warning: #fbbf24;
   --warning-foreground: #000000;
+  --ouro-away: #a5a8f5;
   --avatar-1: #ee8a99;
   --avatar-2: #f4a46c;
   --avatar-3: #f2c661;

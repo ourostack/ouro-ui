@@ -1,0 +1,1 @@
+- New: TimeGrid events take `status: "away"` (out of office), drawn in the new `--ouro-away` theme colour, Teams' purple, and `markedDays` accept `tone: "away"` so a day and its meetings agree.

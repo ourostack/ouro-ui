@@ -76,6 +76,7 @@
   --success-foreground: #ffffff;
   --warning: #b05109;
   --warning-foreground: #ffffff;
+  --ouro-away: #5b5fc7;
   --avatar-1: #c4314b;
   --avatar-2: #ca5010;
   --avatar-3: #986f0b;
@@ -178,6 +179,7 @@
   --success-foreground: #000000;
   --warning: #fbbf24;
   --warning-foreground: #000000;
+  --ouro-away: #a5a8f5;
   --avatar-1: #ee8a99;
   --avatar-2: #f4a46c;
   --avatar-3: #f2c661;
@@ -211,6 +213,7 @@
     --success-foreground: #000000;
     --warning: #fbbf24;
     --warning-foreground: #000000;
+    --ouro-away: #a5a8f5;
     --avatar-1: #ee8a99;
     --avatar-2: #f4a46c;
     --avatar-3: #f2c661;

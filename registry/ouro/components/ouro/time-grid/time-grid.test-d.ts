@@ -28,7 +28,7 @@ expectTypeOf<{
 expectTypeOf<ComponentProps<typeof TimeGrid>>().toEqualTypeOf<TimeGridProps>();
 expectTypeOf<TimeGridView>().toEqualTypeOf<"day" | "work-week" | "week">();
 expectTypeOf<TimeGridTone>().toEqualTypeOf<"primary" | "secondary" | "success" | "warning" | "destructive">();
-expectTypeOf<TimeGridStatus>().toEqualTypeOf<"busy" | "tentative" | "free" | "unanswered" | "cancelled">();
+expectTypeOf<TimeGridStatus>().toEqualTypeOf<"busy" | "tentative" | "free" | "unanswered" | "cancelled" | "away">();
 expectTypeOf<TimeGridSlot>().toEqualTypeOf<{ start: Date; end: Date }>();
 
 // An event: an all-day one has a date for its start, and the fields take named tones and statuses.
