@@ -1,4 +1,34 @@
 {
+  "spoonjoy/spoonjoy-apple": {
+    "OuroButton": {
+      "commit": "daf053a9de6348ab5421c1de76685ce8712f73b2",
+      "at": "2026-11-24T16:29:28.244Z",
+      "total": 7,
+      "paths": [
+        "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift",
+        "Apps/Spoonjoy/Shared/Views/SearchView.swift",
+        "docs/native-design-language.md",
+        "scripts/validate-design-review.rb",
+        "Apps/Spoonjoy/Shared/Views/KitchenView.swift",
+        "scripts/capture-native-screenshots.sh",
+        "Apps/Spoonjoy/Shared/Components/ScreenshotAccessibilityProofWriter.swift"
+      ]
+    },
+    "OuroToast": {
+      "commit": "daf053a9de6348ab5421c1de76685ce8712f73b2",
+      "at": "2026-11-24T16:30:14.407Z",
+      "total": 0,
+      "paths": []
+    },
+    "\"import OuroAX\"": {
+      "commit": "daf053a9de6348ab5421c1de76685ce8712f73b2",
+      "at": "2026-11-24T16:36:14.908Z",
+      "total": 1,
+      "paths": [
+        "Tests/SpoonjoyCoreTests/XrayExpectationTests.swift"
+      ]
+    }
+  },
   "ourostack/ouro-md": {
     "OuroButton": {
       "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
