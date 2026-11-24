@@ -1,0 +1,1 @@
+- New: `<Avatar presence="unknown">` keeps its presence dot in the tree but draws neither the dot nor the notch, for a face whose presence has not loaded yet.
