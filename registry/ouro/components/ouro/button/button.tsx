@@ -234,7 +234,7 @@ export type ButtonProps = ButtonLinkProps | ButtonButtonProps;
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 const base =
-  "press relative box-border inline-flex shrink-0 items-center justify-center align-middle " +
+  "press relative isolate box-border inline-flex shrink-0 items-center justify-center align-middle " +
   "rounded-ouro-control border border-solid font-medium whitespace-nowrap " +
   // A plain button stays borderless at rest in forced colours too, matching a ghost action
   // elsewhere; its focus-visible outline below still marks it.
@@ -564,7 +564,13 @@ export function Button(props: ButtonProps): JSX.Element {
   // for an app's absolutely placed children. The label is otherwise non-positioned (static), so it
   // paints in an earlier step than the surface's own `position: absolute` unless the surface takes a
   // negative z-index first, as every other `data-ouro-surface` consumer (Badge, Card, Toggle, Dialog,
-  // TextField, ThemePicker) already does for the same reason (#3396).
+  // TextField, ThemePicker) already does for the same reason (#3396). The root itself carries `isolate`
+  // (in `base`, above) for the same reason: without its own stacking context, a negative z-index on the
+  // surface escapes the root's own box entirely and paints behind whatever the *page* puts there instead
+  // (an ancestor with its own background, painted in a later step than the surface once it has left the
+  // root) -- not just behind the label. In the design check's forced-fallback job, where every engine runs
+  // the clip-path surface, that let the docs demo panel's own translucent background paint over the
+  // surface, muting its true color and failing color-contrast on the label.
   const fade = cn("isolate transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out)", loading && "opacity-0");
   const content = (
     <>
