@@ -38,6 +38,16 @@ describe("Command rows", () => {
     return render(<Command title="Go to" open onOpenChange={() => {}} items={items} />);
   };
 
+  it("lets the list grow back to its content when the window gets taller", async () => {
+    await page.viewport(1280, 520);
+    await show(12, false);
+    const box = listbox();
+    await expect.poll(() => box.style.maxHeight).not.toBe("");
+    await page.viewport(1280, 1600);
+    await expect.poll(() => box.style.maxHeight).toBe("");
+    expect(box.scrollHeight).toBeLessThanOrEqual(box.clientHeight);
+  });
+
   it("ends the list on a whole row or heading at rest, never through one, at any height and with or without groups", async () => {
     for (const height of [520, 600, 700, 800]) {
       for (const grouped of [false, true]) {
@@ -52,6 +62,13 @@ describe("Command rows", () => {
           return rect.top < bottom - 0.5 && rect.bottom > bottom + 0.5;
         });
         expect(cut, `${height}px, grouped ${grouped}`).toEqual([]);
+        expect(box.style.maxHeight, `${height}px, grouped ${grouped}`).not.toBe("");
+        // The cut is flush with the last whole edge that fits: the next one would not have fitted.
+        const top = box.getBoundingClientRect().top - box.scrollTop;
+        const end = parseFloat(getComputedStyle(box).paddingBottom);
+        const bottoms = edges().map((edge) => edge.getBoundingClientRect().bottom - top + end);
+        expect(Math.max(...bottoms.filter((value) => value <= box.clientHeight + 0.5))).toBeCloseTo(box.clientHeight, 0);
+        expect(Math.min(...bottoms.filter((value) => value > box.clientHeight + 0.5))).toBeGreaterThan(box.clientHeight);
         await act(async () => roots.splice(0).forEach((root) => root.unmount()));
         for (const node of mounted.splice(0)) node.remove();
       }

@@ -1230,9 +1230,12 @@ function CommandList({ children, className, after, snap }: { children: (group: G
       }
       if (best > 0) node.style.maxHeight = `${best}px`;
     };
+    // Stryker disable next-line BlockStatement,ExpressionStatement: the observer's first callback runs fit() as well, a frame later.
     fit();
     const observer = new ResizeObserver(fit);
+    // Stryker disable next-line ExpressionStatement: the observer only reflows after a resize; the test's first fit is the initial call.
     observer.observe(node.parentElement!);
+    // Stryker disable next-line BlockStatement: a disconnected observer on a removed node does nothing visible.
     return () => observer.disconnect();
   });
   return (
