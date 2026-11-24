@@ -52,11 +52,13 @@ These came from a review of a chat app's shell mocks that the person rejected. T
 When you work on a screen with someone, let them watch it change rather than sending them pictures:
 
 - Run the app itself on made-up data, with hot reload, and give each state an address (a place, a theme, the chrome), so the person opens it where they already look and each save reaches their eyes in about a second.
-- Don't drive the person's view. Run your own checks against a second dev server and browser, headless, and open no window on their screen.
+- Don't drive the person's view. Run your own checks against a second dev server and browser, headless, and open no window on their screen: [watch it while you iterate](guardrails.md#watch-it-while-you-iterate).
 - Turn each note into one small edit, run the checks, and reply in one line. Don't batch notes into a rewrite.
-- Make every decision the person makes a check that runs on every edit, so nothing they approved comes back. List the states in `ouro-check.json`'s `states` so Ouro check reaches them.
+- Make every decision the person makes a check that runs on every edit, so nothing they approved comes back ([keep a decision as a check](guardrails.md#keep-a-decision-as-a-check)). List the states in `ouro-check.json`'s `states` so Ouro check reaches them.
 - Run critics in the background for taste only, and never let them hold up an edit.
-- Cover a state nobody has designed yet with a plain "not designed yet" veil, so the person doesn't judge it.
+- Cover a state nobody has designed yet with a plain "not designed yet" veil, so the person doesn't judge it ([cover a state nobody has designed yet](guardrails.md#cover-a-state-nobody-has-designed-yet)).
+
+How an Ouro app runs the loop: start the app on made-up data with hot reload and one URL parameter per state, and the person watches it there. Start a second dev server and run Ouro check in watch mode against it, headless, so it prints only the findings that appeared or went away on each save. Record each decision the person makes as a `decisions` entry in `ouro-check.json`, which runs in that same loop, and mark states not yet designed with the veil so Ouro check skips them.
 
 ## Steal, don't copy
 
