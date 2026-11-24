@@ -62,8 +62,8 @@ export const VOYAGE_HERO = {
   platforms: [
     { label: "Web", href: "/docs/" },
     { label: "Apple", href: "/apple/" },
-    { label: "Windows", href: "/docs/platforms/windows/" },
-    { label: "Android", href: "/docs/platforms/android/" },
+    { label: "Windows", href: "/windows/" },
+    { label: "Android", href: "/android/" },
   ],
 } as const;
 

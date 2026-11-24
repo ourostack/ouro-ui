@@ -55,7 +55,7 @@ export const WHY = {
         source: [{ spec: "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md" }, { file: "docs/platforms/README.md" }],
         verify: [{ urlOk: "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md" }, { fileLine: "docs/platforms/README.md", pattern: "The kits are written in their platforms' own toolkits" }],
       }),
-      coverage: { label: "the coverage page shows which", href: "/docs/platforms/parity/" },
+      coverage: { label: "the coverage page shows which", href: "/hx/#coverage" },
     },
     people: {
       title: "For people and for agents.",

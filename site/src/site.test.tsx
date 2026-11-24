@@ -355,8 +355,8 @@ describe("home page", () => {
     expect([...document.querySelectorAll("[data-site-hero-links] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Web", "/docs/"],
       ["Apple", "/apple/"],
-      ["Windows", "/docs/platforms/windows/"],
-      ["Android", "/docs/platforms/android/"],
+      ["Windows", "/windows/"],
+      ["Android", "/android/"],
     ]);
     // The home page's title leads with the parent, Ouro UI, before what it is for.
     expect(routes[0]!.title).toMatch(/^Ouro UI: /);
@@ -560,8 +560,8 @@ describe("home page", () => {
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`, { exact: true })).toBeVisible();
   });
 
-  it("keeps the agents section: each example with its type check, source and console line", async () => {
-    await renderPage("/");
+  it("keeps the agents section on /hx/: each example with its type check, source and console line", async () => {
+    await renderPage("/hx/");
     await expect.element(page.getByRole("heading", { level: 2, name: "Agents read the types" })).toBeVisible();
     for (const example of agentExamples) {
       const item = page.getByTestId(`agent-example-${example.id}`);
