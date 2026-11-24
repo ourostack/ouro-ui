@@ -7,7 +7,6 @@ import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
-import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { TimeGrid, type TimeGridEvent, type TimeGridSlot, type TimeGridView } from "@/registry/ouro/components/ouro/time-grid/time-grid";
@@ -240,13 +239,12 @@ function Screen(): JSX.Element {
         />
       </Popover>
       {stage === "empty" ? (
-        <Moment kind="empty" quiet art={<TrayArt />} title="Nothing on this week" description="Press an empty slot, or New event, to add something." />
+        <Moment kind="empty" art={<TrayArt />} title="Nothing on this week" description="Press an empty slot, or New event, to add something." />
       ) : null}
       <div className="h-160 min-h-0 overflow-hidden">
         {stage === "loading" ? (
-          <div role="group" aria-label={label} aria-busy="true" className="flex h-full flex-col gap-3 p-4">
-            <Skeleton shape="text" size="sm" lines={1} />
-            <Skeleton shape="row" count={5} />
+          <div role="group" aria-label={label} aria-busy="true" className="flex h-full items-center justify-center p-4">
+            <Moment kind="loading" announce title="Loading your week" />
           </div>
         ) : (
           <TimeGrid

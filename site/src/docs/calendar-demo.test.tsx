@@ -41,6 +41,8 @@ describe("the calendar page", () => {
       await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
       await page.getByRole("radio", { name: "Loading" }).click();
       await expect.poll(() => document.querySelector("[data-site-calendar-demo] [aria-busy=true]")).not.toBeNull();
+      await expect.element(page.getByText("Loading your week")).toBeInTheDocument();
+      expect(document.querySelector("[data-site-calendar-demo] [data-ouro='moment'][data-kind='loading'], [data-site-calendar-demo] [data-ouro='moment']")).not.toBeNull();
     } finally {
       vi.useRealTimers();
     }
