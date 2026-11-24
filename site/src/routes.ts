@@ -53,7 +53,7 @@ export const guessedAddresses: Array<{ from: string; to: string; note?: string }
 ];
 
 /** Old and guessed addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
-export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, { from: "/benchmark/", to: "/proof/" }, { from: "/web/", to: "/hx/#web" }, ...guessedAddresses];
+export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, { from: "/benchmark/", to: "/proof/" }, { from: "/web/", to: "/hx/#web" }, { from: "/composed/", to: "/composed-ui/" }, ...guessedAddresses];
 
 // The words a person or an agent searches with: what it is (React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits), who it is for (agents building A2UI and MCP Apps interfaces) and how it installs.
 const DESCRIPTION = claim("Accessible React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits, for agents building A2UI and MCP Apps. Installs with the shadcn CLI.", {
@@ -94,6 +94,43 @@ export const routes: Route[] = [
   { path: "/android/", title: "Ouro UI for Android", description: "Ouro HX in Jetpack Compose, and AppFunctions for agents." },
   { path: "/android/start/", title: "Get started · Ouro UI for Android", description: "Add bot.ouro.ui:ouro-hx and give agents your actions as AppFunctions." },
   { path: "/adoption/", title: "Adoption · Ouro UI", description: "Who uses Ouro UI, and who gives back to it: our maintained products, measured from GitHub and CI hourly, furthest from confirmed first." },
+  // The part pages (parts/); each description is its page's lede (copy deck 3.3).
+  { path: "/actions/", title: "Actions · Ouro UI", description: "Write an action once. People press it, agents call it, and paying, sending and deleting wait for the person's yes." },
+  {
+    path: "/composed-ui/",
+    title: "Composed UI · Ouro UI",
+    description: claim("Your agent sends a card as data. Ouro checks every component and button against your app's list, then each kit draws it natively, so a button your app never offered can't appear. It sends cards to any MCP Apps host and reads A2UI.", {
+      source: { file: "docs/guides/composed-ui.md" },
+      verify: [
+        { fileLine: "docs/guides/composed-ui.md", pattern: "A sender can't relabel a button, loosen its consent or add a component the catalog lacks" },
+        { testExists: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > draws a composed tree in structuredContent.ouro with ComposedSurface" },
+        { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+      ],
+    }),
+  },
+  {
+    path: "/xray/",
+    title: "X-ray · Ouro UI",
+    description: claim("See inside. HX X-ray outlines and names every component on a screen. AX X-ray calls every door the way an agent would. Ouro check, Feel and Reins live here too.", {
+      source: [{ file: "docs/Inspector.md" }, { file: "docs/guides/ax-conformance.md" }],
+      verify: [
+        { testExists: "test/inspector-names.test.ts::X-ray's item names > name a registry item for every component root, and skip only an overlay's wrappers" },
+        { fileLine: "docs/guides/ax-conformance.md", pattern: "\\*\\*A CLI\\*\\* \\(`--cli" },
+      ],
+    }),
+  },
+  {
+    path: "/hackamore/",
+    title: "Hackamore · Ouro UI",
+    description: claim("Reins for apps that never had any. Drive any Mac app through its accessibility tree; ask for something that isn't there and it says no, with the fix, before touching the app.", {
+      source: [{ evidence: "site/src/parts/evidence/hackamore-README.txt" }, { evidence: "site/src/parts/evidence/hackamore-refusal.txt" }],
+      verify: [
+        { fileLine: "site/src/parts/evidence/hackamore-README.txt", pattern: "hackamore steers apps that were never built for it" },
+        { fileLine: "site/src/parts/evidence/hackamore-README.txt", pattern: "Asking for something that isn't there is refused before anything moves, with the fix\\." },
+        { fileLine: "site/src/parts/evidence/hackamore-refusal.txt", pattern: "\"code\": \"action-unavailable\"" },
+      ],
+    }),
+  },
   { path: "/current/", title: "Ouro Current · Ouro UI", description: "Our own Dependabot for Ouro UI: install the GitHub App, and Ouro UI releases arrive as one pull request with auto-merge on." },
   // Proof's lede (copy deck v7, 3.3; proof/copy.ts says the same on the page).
   {

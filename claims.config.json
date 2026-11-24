@@ -72,6 +72,11 @@
       "reason": "the Apple pages' evidence: reports Ouro Feel and Ouro Reins printed, copied unchanged, so the pages' claims about them can be checked"
     },
     {
+      "match": "^site/src/parts/evidence/",
+      "mode": "evidence",
+      "reason": "the part pages' evidence: what AX X-ray and hackamore printed, and the files ouro-ui-core and hackamore published at a pinned commit, copied unchanged or trimmed where the file says so, so the pages' claims about them can be checked"
+    },
+    {
       "match": "^docs/guides/evidence/",
       "mode": "evidence",
       "reason": "a guide's evidence: records copied as GitHub's API returned them, so a guide's claim about GitHub's behaviour can be checked"

@@ -125,6 +125,7 @@
 @source not "../hx";
 @source not "../nautilus";
 @source not "../pages/voyage.tsx";
+@source not "../parts";
 @source not "../platforms";
 @source not "../proof";
 @source not "../render-html.ts";
