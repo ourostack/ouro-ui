@@ -1,0 +1,2 @@
+- Fixed: ThreadLayout drops the thread rail's own `border-s` below the breakpoint where the conversation pane hides, since the rail would otherwise sit alone against the layout box's own edge and double its line.
+- Fixed: the ThreadLayout and ThreadRail stories wrap their Composer in a bordered, padded box, since an unwrapped Composer's own end border landed on the rail's `border-s` line.
