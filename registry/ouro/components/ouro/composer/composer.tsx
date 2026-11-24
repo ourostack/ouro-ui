@@ -597,6 +597,17 @@ export function Composer(props: ComposerProps): JSX.Element {
   const expanded = expandedProp ?? ownExpanded;
   const rows = expanded ? expandedRows : rowsProp;
   const maxRows = expanded ? expandedMaxRows : maxRowsProp;
+  // The frame, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const height = useRef<{ expanded: boolean; px: number } | null>(null);
+  const move = useRef<{ end: () => void } | null>(null);
+  // A collapse keeps the toolbar on screen while it fades out; the render that collapses sets this.
+  const [wasExpanded, setWasExpanded] = useState(expanded);
+  const [leaving, setLeaving] = useState(false);
+  if (wasExpanded !== expanded) {
+    setWasExpanded(expanded);
+    setLeaving(!expanded && expandable && toolbarProp !== undefined && !matchMedia(reducedQuery).matches);
+  }
   const toolbar = expandable && !expanded && !leaving ? undefined : toolbarProp;
   // Any other value is enter, as the default; expanded, Enter is a new line.
   const modEnter = expanded || sendOnProp === "mod-enter";
@@ -633,17 +644,6 @@ export function Composer(props: ComposerProps): JSX.Element {
   }
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  // The frame, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
-  const frameRef = useRef<HTMLDivElement | null>(null);
-  const height = useRef<{ expanded: boolean; px: number } | null>(null);
-  const move = useRef<{ end: () => void } | null>(null);
-  // A collapse keeps the toolbar on screen while it fades out; the render that collapses sets this.
-  const [wasExpanded, setWasExpanded] = useState(expanded);
-  const [leaving, setLeaving] = useState(false);
-  if (wasExpanded !== expanded) {
-    setWasExpanded(expanded);
-    setLeaving(!expanded && expandable && toolbarProp !== undefined && !matchMedia(reducedQuery).matches);
-  }
   const setRef = useMergedRef(ref, textareaRef);
   const richRef = useRef<RichEditorHandle | null>(null);
   const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
