@@ -928,11 +928,7 @@ describe("MessageList", () => {
     );
     const { scroller: whole } = await render(<Rows />);
     const overflow = whole.scrollHeight;
-    const log: string[] = [];
-    const desc = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
-    Object.defineProperty(Element.prototype, "scrollTop", { configurable: true, get: desc.get, set(v: number) { log.push(`${v} ${new Error().stack!.split("\n").slice(2, 5).map((l) => l.replace(/.*\//, "")).join("|")}`); desc.set!.call(this, v); } });
-    let scroller: HTMLElement, rerender: (el: React.ReactElement) => Promise<void>;
-    ({ scroller, rerender } = await render(<Rows height={overflow - 1} />));
+    const { scroller, rerender } = await render(<Rows height={overflow - 1} />);
     expect(scroller.scrollHeight - scroller.clientHeight).toBeLessThanOrEqual(1);
     await nextFrame(scroller);
     await nextFrame(scroller);
@@ -941,8 +937,7 @@ describe("MessageList", () => {
     const placed = top();
     await rerender(<Rows height={overflow - 1} last={101} />);
     await settle(scroller);
-    Object.defineProperty(Element.prototype, "scrollTop", desc);
-    expect(scroller.scrollTop, `opened ${opened} ` + log.join(" ## ")).toBe(opened);
+    expect(scroller.scrollTop).toBe(opened);
     expect(top()).toBe(placed);
   });
 
