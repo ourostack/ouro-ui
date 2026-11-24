@@ -1,22 +1,8 @@
 {
-  "spoonjoy/spoonjoy-v2": {
-    "defineCommand": {
-      "commit": "bc93dc446073beefc90c3f302401678b9dc2596a",
-      "at": "2026-11-24T05:17:53.097Z",
-      "total": 5,
-      "paths": [
-        "app/lib/ouro/ax/ax-command.ts",
-        "scripts/ouro/ax/xray.kit.mts",
-        "scripts/ouro/ax/xray.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "app/lib/ouro/ax/ax-moved.d.ts"
-      ]
-    }
-  },
   "spoonjoy/spoonjoy-apple": {
     "OuroButton": {
-      "commit": "96e1f31edb6b0df144f92ee4db25cbfb57ae7bc2",
-      "at": "2026-11-24T05:23:50.364Z",
+      "commit": "173ff560c8e317afa97eefad1e939d19d826b1ee",
+      "at": "2026-11-24T06:34:02.047Z",
       "total": 6,
       "paths": [
         "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift",
@@ -26,12 +12,6 @@
         "scripts/capture-native-screenshots.sh",
         "Apps/Spoonjoy/Shared/Components/ScreenshotAccessibilityProofWriter.swift"
       ]
-    },
-    "OuroToast": {
-      "commit": "96e1f31edb6b0df144f92ee4db25cbfb57ae7bc2",
-      "at": "2026-11-24T05:23:56.366Z",
-      "total": 0,
-      "paths": []
     }
   },
   "ourostack/ouro-md": {
