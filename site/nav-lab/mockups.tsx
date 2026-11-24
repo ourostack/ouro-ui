@@ -351,7 +351,7 @@ function CompassBar({ here }: { here: string }): JSX.Element {
         ))}
       </Nav.List>
       <Nav.Portal>
-        <Nav.Positioner sideOffset={8} align="start" collisionPadding={16} collisionAvoidance={{ side: "none" }} className={cn(positioner, "z-50")}>
+        <Nav.Positioner sideOffset={12} align="start" collisionPadding={16} collisionAvoidance={{ side: "none" }} className={cn(positioner, "z-50")}>
           <Nav.Popup data-lab-panel="" className={popup}>
             <Nav.Viewport className="relative h-full w-full overflow-hidden rounded-[inherit]" />
           </Nav.Popup>
@@ -747,7 +747,9 @@ function ChartHeader({ here, search }: MockupProps): JSX.Element {
           }}
         >
           <ChartMap here={here} />
-          <FamilyFoot />
+          <div className="mt-6">
+            <FamilyFoot bare />
+          </div>
         </nav>
       </Sheet>
     </>

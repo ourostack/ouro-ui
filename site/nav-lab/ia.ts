@@ -218,7 +218,7 @@ export const FAMILY_LINES: Record<string, string> = {
   desk: "Your agent's work, in a Git repository you own",
   apps: "Download Ouro MD, Desk and the rest",
   ari: "Who builds all this",
-  github: "ourostack: every Ouro repository",
+  github: "Every Ouro repository",
 };
 
 /** The repository: in the Docs section, once. The family strip's GitHub is the organisation. */

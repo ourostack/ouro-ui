@@ -580,11 +580,11 @@ function FamilySwitcher(): JSX.Element {
 }
 
 /** The family's sites at the foot of a phone's menu: after the site's own sections, small and quiet. */
-export function FamilyFoot(): JSX.Element | null {
+export function FamilyFoot({ bare = false }: { bare?: boolean }): JSX.Element | null {
   const id = useId();
   if (FAMILY_MODE === "switcher") return null;
   return (
-    <section aria-labelledby={id} className="mt-6 grid gap-1 border-0 border-t border-solid border-border pt-4">
+    <section aria-labelledby={id} className={cn("grid gap-1", !bare && "mt-6 border-0 border-t border-solid border-border pt-4")}>
       <Eyebrow id={id}>The Ouro family</Eyebrow>
       <ul className="m-0 flex list-none flex-wrap gap-x-1 p-0">
         {FAMILY.map((site) => (
