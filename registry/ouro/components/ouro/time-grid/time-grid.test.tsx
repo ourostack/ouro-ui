@@ -442,7 +442,7 @@ describe("TimeGrid", () => {
 
   it("shares a day's width between overlapping events", async () => {
     await render({ view: "day", events: [forum, focus] });
-    const [first, second] = [forum, focus].map((event) => titled(event.title).closest("li")!.getBoundingClientRect());
+    const [first, second] = [forum, focus].map((event) => titled(event.title).closest("li")!.getBoundingClientRect()) as [DOMRect, DOMRect];
     expect(second.left - first.left).toBeCloseTo(first.width, 0);
     expect(second.width).toBeCloseTo(first.width, 0);
   });
