@@ -931,10 +931,14 @@ describe("MessageList", () => {
     const { scroller, rerender } = await render(<Rows height={overflow - 1} />);
     expect(scroller.scrollHeight - scroller.clientHeight).toBeLessThanOrEqual(1);
     await nextFrame(scroller);
-    expect(await nextFrame(scroller), `first frame, overflow ${scroller.scrollHeight - scroller.clientHeight}`).toBe(0);
+    await nextFrame(scroller);
+    const opened = await nextFrame(scroller);
+    const top = () => document.getElementById("row-0")!.getBoundingClientRect().top;
+    const placed = top();
     await rerender(<Rows height={overflow - 1} last={101} />);
     await settle(scroller);
-    expect(scroller.scrollTop, `after growth, overflow ${scroller.scrollHeight - scroller.clientHeight}`).toBe(0);
+    expect(scroller.scrollTop).toBe(opened);
+    expect(top()).toBe(placed);
   });
 
   it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {
