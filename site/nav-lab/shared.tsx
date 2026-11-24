@@ -47,7 +47,7 @@ export function PageLink({ page, here, hint = true, className, size = "md", hidd
       className={cn(row, "py-1.5 pointer-fine:py-1 aria-[current=page]:bg-[color-mix(in_oklab,var(--primary)_10%,transparent)]", className)}
       {...(isAway(page.path) ? { target: "_blank", rel: "noreferrer" } : {})}
     >
-      <span className="grid min-w-0 flex-1 gap-0.5 whitespace-nowrap max-sm:whitespace-normal max-sm:text-balance">
+      <span className="grid min-w-0 flex-1 gap-0.5 text-balance lg:whitespace-nowrap">
         <span
           className={cn(
             "font-medium text-foreground",
@@ -136,7 +136,7 @@ export function PlatformGrid({ slots, here, label = "Platforms", compact = false
         {PLATFORMS.map((p) => (
           <li key={p.id} className="grid content-start gap-0.5">
             <span className="px-3 pb-0.5">
-              <PlatformName id={p.id} name={p.name} kit={p.kit} />
+              <PlatformName id={p.id} name={p.name} kit={p.kit} className={compact ? "[&>span:last-child]:hidden" : undefined} />
             </span>
             <ul aria-label={p.name} className="m-0 grid list-none gap-0.5 p-0">
               {slots.map((slot) => (
@@ -153,15 +153,15 @@ export function PlatformGrid({ slots, here, label = "Platforms", compact = false
 }
 
 /** One part on the four platforms, one link each, side by side: "Ouro HX for Apple", shown as "Apple · SwiftUI". */
-export function PlatformRow({ slot, here, label }: { slot: "hx" | "ax"; here: string; label: string }): JSX.Element {
+export function PlatformRow({ slot, here, label, compact = false }: { slot: "hx" | "ax"; here: string; label: string; compact?: boolean }): JSX.Element {
   const id = useId();
   return (
     <section aria-labelledby={id} className="grid content-start">
       <Eyebrow id={id}>{label}</Eyebrow>
-      <ul className="m-0 grid list-none grid-cols-2 gap-0.5 p-0 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-max">
+      <ul className={cn("m-0 grid list-none grid-cols-2 gap-0.5 p-0", !compact && "sm:grid-flow-col sm:grid-cols-none sm:auto-cols-max")}>
         {PLATFORMS.map((p) => (
           <li key={p.id}>
-            <PageLink page={p[slot]} here={here} hint={false} shown={<PlatformName id={p.id} name={p.name} kit={p.kit} />} />
+            <PageLink page={p[slot]} here={here} hint={false} shown={<PlatformName id={p.id} name={p.name} kit={p.kit} className={compact ? "[&>span:last-child]:hidden" : undefined} />} />
           </li>
         ))}
       </ul>

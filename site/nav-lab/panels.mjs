@@ -26,10 +26,16 @@ const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^
 
 /** In the page: each visible panel's coverage, short lines that wrap, and boxed blurbs. */
 function measure() {
+  // The lines an element's own text takes: its text nodes' boxes, with tops within 4px counted as one line.
   const lines = (el) => {
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    return new Set([...range.getClientRects()].filter((r) => r.width > 1).map((r) => Math.round(r.top / 6))).size;
+    const tops = [];
+    for (const node of el.childNodes) {
+      if (node.nodeType !== 3 || !node.textContent.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      for (const r of range.getClientRects()) if (r.width > 1 && !tops.some((top) => Math.abs(top - r.top) < 4)) tops.push(r.top);
+    }
+    return tops.length;
   };
   const limit = innerWidth >= 1024 ? 60 : 24;
   const visible = (list) => [...document.querySelectorAll(list)].filter((panel) => panel.checkVisibility());
@@ -65,7 +71,7 @@ function measure() {
       const wraps = [];
       for (const el of panel.querySelectorAll("a, span, p, h2, h3, li")) {
         if ([...el.childNodes].some((node) => node.nodeType === 1 && !node.matches("[aria-hidden=true], .sr-only"))) continue;
-        const text = el.textContent.trim();
+        const text = [...el.childNodes].filter((node) => node.nodeType === 3).map((node) => node.textContent).join("").trim();
         if (text && text.length <= limit && el.checkVisibility() && lines(el) > 1) wraps.push(text);
       }
       const cards = [];
@@ -90,7 +96,8 @@ function measure() {
       const clipped = [];
       for (const el of [panel, ...panel.querySelectorAll("*")]) {
         const s = getComputedStyle(el);
-        if (el.clientWidth <= 2 || !/hidden|clip/.test(s.overflowY + s.overflowX) || /auto|scroll/.test(s.overflowY)) continue;
+        // A box with no height or width is folded away (a closed accordion), not cutting anything off.
+        if (el.clientWidth <= 2 || el.clientHeight === 0 || !/hidden|clip/.test(s.overflowY + s.overflowX) || /auto|scroll/.test(s.overflowY)) continue;
         if ((el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2) && el.textContent.trim()) clipped.push(`${el.tagName.toLowerCase()} shows ${el.clientWidth}×${el.clientHeight} of ${el.scrollWidth}×${el.scrollHeight}`);
       }
       const height = Math.round(inner.bottom - inner.top);

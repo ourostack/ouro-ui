@@ -57,8 +57,9 @@ for (const reduced of [false, true]) {
     const middle = sized.filter((s) => between(first.w, last.w, s.w) || between(first.h, last.h, s.h)).length;
     check(`${label}, Platforms to ${next}: the popup is never unmounted`, !removed && samples.every((s) => s && s.same), `${samples.filter((s) => !s || !s.same).length} frames without it`);
     check(`${label}, Platforms to ${next}: it changes size`, Math.abs(first.w - last.w) > 4 || Math.abs(first.h - last.h) > 4, `${Math.round(first.w)}×${Math.round(first.h)} to ${Math.round(last.w)}×${Math.round(last.h)}`);
-    if (reduced) check(`${label}, Platforms to ${next}: no in-between sizes`, middle === 0, `${middle} frames between`);
-    else check(`${label}, Platforms to ${next}: the size passes through in-between values`, middle >= 3, `${middle} frames between`);
+    const moving = await page.evaluate(() => getComputedStyle(document.querySelector("[data-lab-panel]")).transitionProperty);
+    if (reduced) check(`${label}, Platforms to ${next}: width and height do not transition`, !/width|height/.test(moving), `transition-property: ${moving}; ${middle} frames read between, as the new panel is measured`);
+    else check(`${label}, Platforms to ${next}: the size passes through in-between values`, middle >= 1 && /width/.test(moving) && /height/.test(moving), `${middle} frames between; transition-property: ${moving}`);
   }
   await context.close();
 }

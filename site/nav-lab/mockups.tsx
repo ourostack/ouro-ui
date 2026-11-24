@@ -139,7 +139,7 @@ function DocsPanel({ here, fill = false, compact = false }: { here: string; fill
     <div className="grid gap-3">
       {!compact && <PanelHead section={DOCS} here={here} end={<PageLink page={SOURCE} here={here} hint={false} size="sm" />} />}
       <ChipList label="Components, by group" pages={COMPONENT_GROUPS} here={here} />
-      <div className={cn("grid gap-x-6 gap-y-3", compact ? "grid-cols-1" : fill ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-[repeat(4,max-content)]")}>
+      <div className={cn("grid gap-x-6 gap-y-3", compact ? "grid-cols-1" : fill ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-[repeat(4,max-content)]")}>
         {GUIDES.map((group) => (
           <GuideList key={group.label} group={{ ...group, label: `Guides: ${group.label}` }} here={here} />
         ))}
@@ -218,7 +218,7 @@ function PhoneSections({ here, sections }: { here: string; sections: readonly Se
             ) : (
               <>
                 <Columns groups={section.groups} here={here} />
-                {section.platformSlot && <PlatformRow slot={section.platformSlot} here={here} label="On every platform" />}
+                {section.platformSlot && <PlatformRow compact slot={section.platformSlot} here={here} label="On every platform" />}
               </>
             )}
           </div>
