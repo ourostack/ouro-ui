@@ -208,4 +208,34 @@ describe("Command recents", () => {
     await act(() => list.dispatchEvent(new PointerEvent("pointermove", { pointerType: "mouse", bubbles: true })));
     expect(document.activeElement).toBe(input());
   });
+
+  it("shares the row fairly: a chip is as wide as its name up to an equal share of what the shorter ones leave, and only the longest names are cut", async () => {
+    const long = "A very long name for a place a person goes back to, long enough to need the whole row by itself";
+    const labels = ["Pie", "Soup", long, `${long} again`];
+    const show = (names: string[]) =>
+      render(
+        <Command
+          title="Go to"
+          open
+          onOpenChange={() => {}}
+          recents={names.map((label) => ({ label, onSelect: () => {} }))}
+          items={[{ label: "Bread", onSelect: () => {} }]}
+        />,
+      );
+    const labelOf = (chip: HTMLElement) => chip.querySelector<HTMLElement>("[data-slot='command-recent-label']")!;
+    await show(labels);
+    const row = document.querySelector<HTMLElement>("[data-ouro-command-recents]")!;
+    await expect.poll(() => chips()[2]!.getBoundingClientRect().width).toBeLessThan(row.clientWidth);
+    const cut = chips().map((chip) => labelOf(chip).scrollWidth > labelOf(chip).clientWidth + 1);
+    expect(cut).toEqual([false, false, true, true]);
+    expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
+    expect(Math.abs(chips()[2]!.getBoundingClientRect().width - chips()[3]!.getBoundingClientRect().width)).toBeLessThan(2);
+  });
+
+  it("leaves chips whose names all fit at their own width", async () => {
+    await open();
+    await expect.poll(() => chips().length).toBe(3);
+    expect(chips().map((chip) => chip.style.maxWidth)).toEqual(["", "", ""]);
+    expect(chips().every((chip) => chip.querySelector<HTMLElement>("[data-slot='command-recent-label']")!.scrollWidth <= chip.clientWidth)).toBe(true);
+  });
 });

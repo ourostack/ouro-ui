@@ -411,6 +411,19 @@ function toGroups(entries: readonly CommandEntry[]): Group[] {
 /** The widths of the rows that hold the place of results on their way. */
 const LOADING_ROWS = ["w-2/3", "w-1/2", "w-3/4"] as const;
 
+// The widest a chip may be so that chips share a row fairly: each is as wide as its name, up to an equal share of
+// what the shorter ones leave. Infinity when every name fits.
+function fairShare(natural: readonly number[], room: number): number {
+  let left = room;
+  const sorted = [...natural].sort((a, b) => a - b);
+  for (const [index, width] of sorted.entries()) {
+    const share = left / (sorted.length - index);
+    if (width > share) return share;
+    left -= width;
+  }
+  return Infinity;
+}
+
 const shown = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false;
 
 // Muted, but mixed toward the text so it keeps its contrast on the highlighted row.
@@ -787,6 +800,22 @@ export function Command(props: CommandProps): JSX.Element {
   // Whether a chip holds focus: the chip is then the one highlight, whether the keyboard or the pointer put it there.
   const [chipActive, setChipActive] = useState(false);
   const showRecents = recents !== undefined && recents.length > 0 && query === "";
+  useLayoutEffect(() => {
+    const row = chipsContainer.current;
+    if (!row) return;
+    const share = () => {
+      const nodes = [...row.querySelectorAll<HTMLElement>(`[${RECENT_PART_ATTR}="${RECENT_PART}"]`)];
+      for (const node of nodes) node.style.maxWidth = "";
+      const style = getComputedStyle(row);
+      const room = row.clientWidth - parseFloat(style.paddingInlineStart) - parseFloat(style.paddingInlineEnd) - parseFloat(style.columnGap) * (nodes.length - 1);
+      const cap = fairShare(nodes.map((node) => node.getBoundingClientRect().width), room);
+      for (const node of nodes) node.style.maxWidth = Number.isFinite(cap) ? `${Math.floor(cap)}px` : "";
+    };
+    share();
+    const observer = new ResizeObserver(share);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [showRecents, recents]);
   const enterChips = (event: KeyboardEvent<HTMLElement>) => {
     if (!showRecents || event.key !== "ArrowDown") return;
     // A row the pointer highlighted is walked from, not skipped for the chips.
@@ -884,7 +913,9 @@ export function Command(props: CommandProps): JSX.Element {
                     {recent.icon}
                   </span>
                 )}
-                {recent.label}
+                <span data-slot="command-recent-label" className="min-w-0 truncate">
+                  {recent.label}
+                </span>
               </button>
             ))}
           </div>
