@@ -1,4 +1,4 @@
-// Ouro UI's bar, for every agent that works in a repository Ouro Current keeps: three sentences in the repository's
+// Ouro UI's bar, for every agent that works in a repository Ouro Current keeps: a few lines in the repository's
 // AGENTS.md, between markers, which each update brings in step with BAR. The rest of AGENTS.md is the repository's own
 // and is never touched. A repository that wants its AGENTS.md left alone lists it under `ignore` in
 // .github/ouro-current.json; one with no AGENTS.md gets nothing.
@@ -12,10 +12,13 @@ const START = "<!-- ouro-ui:bar -->";
 const END = "<!-- /ouro-ui:bar -->";
 
 export const BAR = [
-  "**The bar, for people and agents alike** ([design craft](https://ui.ouroboros.bot/docs/design-craft/#the-bar)): ship a pixel, a control, a command, a flag or a line of output only if the people who made the Mac and the iPhone would.",
-  "Start from the jobs people do, never a reference product's item list; let each element earn its place, and build the basics people use every day, well.",
-  "Give an agent's door the same care as a screen (one way to do each thing, right the first time from `--help`, few calls, effects nobody can miss), and prove both with fresh people or agents doing real tasks, rerun by whoever owns the thing after each small change.",
-].join(" ");
+  "**The bar, for people and agents alike** ([design craft](https://ui.ouroboros.bot/docs/design-craft/#the-bar)): would the people who made the Mac and the iPhone ship it? Whenever you scope or design something a person or an agent meets (a screen, a menu, a setting, a command, an action, a tool, a line of output):",
+  "",
+  "1. Start from the jobs people do, in their words. Read a reference product's items, a service's functions or an API's fields as evidence of jobs, never as the list to build.",
+  "2. Make the first cut restraint: for each thing, name the job it serves and ask what breaks if it goes; if nothing does, leave it out and say why. Give each job one way in, not one per item or function, and extend the one that exists before adding another.",
+  "3. Build what is left well, the basics people use daily among it, for the person and for agents, with a result that says what it did.",
+  "4. Write how fresh people or fresh agents doing a real job will prove it, and rerun them after each small change.",
+].join("\n");
 
 const BLOCK = `${START}\n${BAR}\n${END}`;
 
