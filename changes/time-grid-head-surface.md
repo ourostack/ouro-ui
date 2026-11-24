@@ -1,0 +1,1 @@
+- Changed: TimeGrid's day header is the grid's own surface at rest, with no border, and turns to glass with an edge once hours scroll under it.
