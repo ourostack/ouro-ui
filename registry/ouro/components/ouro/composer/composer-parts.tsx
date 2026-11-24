@@ -646,9 +646,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       // Stryker disable next-line CallExpression: a test's popover never moves the real document selection away from the editor, so skipping the restore reads the same selection either way; a person who tabbed to the popover's own field would lose their place without it.
       $setSelection(selection.clone());
       if (href) $toggleLink(href);
-      // Stryker disable next-line ObjectLiteral,BooleanLiteral: discrete only forces this update's DOM reconciliation to flush before the function returns; a test that reads the result afterwards, as every one here does, cannot tell a flushed render from a microtask-later one apart.
-    }, { discrete: true });
-    // Stryker disable next-line ObjectLiteral,BooleanLiteral: jsdom and Chromium's headless layout have nothing to scroll to keep in place, so a test cannot tell preventScroll from its absence apart; a long composer keeps the page where it was with it.
+    },
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: discrete only forces this update's DOM reconciliation to flush before the function returns; a test that reads the result afterwards, as every one here does, cannot tell a flushed render from a microtask-later one apart.
+    { discrete: true });
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral,CallExpression: jsdom and Chromium's headless layout have nothing to scroll to keep in place and nowhere else for focus to land, so a test cannot tell this call, preventScroll or its absence apart; a long composer keeps the page where it was and the caret's affordance in view with it.
     rootRef.current!.focus({ preventScroll: true });
   };
   // Stryker disable next-line ArrayDeclaration: the first measure replaces whatever the boxes start as, before a test or a person reads the layer (the effect that measures runs as the box mounts).
