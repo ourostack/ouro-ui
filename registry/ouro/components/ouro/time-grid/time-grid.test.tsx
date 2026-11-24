@@ -475,6 +475,72 @@ describe("TimeGrid", () => {
     }
   });
 
+  async function placedBoxes(events: TimeGridEvent[], width: string) {
+    await render({ view: "day", events }, (grid) => <div style={{ width }}>{grid}</div>);
+    const items = () => events.map((event) => titled(event.title).closest("li")!);
+    const read = () => items().map((item) => item.getBoundingClientRect());
+    let last: DOMRect[] = [];
+    await expect
+      .poll(() => {
+        const next = read();
+        const stable = next.every((box, index) => box.left === last[index]?.left && box.width === last[index]?.width);
+        last = next;
+        return stable;
+      })
+      .toBe(true);
+    const day = items()[0]!.closest("ul")!.getBoundingClientRect();
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    return { boxes: read(), items: items(), day, rem };
+  }
+
+  it("gives each stepped event a left offset and width from the day's width, in the order of its column", async () => {
+    const third = { id: "third", title: "Third", start: at(12, "10:15"), end: at(12, "11:15") };
+    const { boxes, day, rem } = await placedBoxes([forum, third, focus], "240px");
+    const step = Math.max(0.75 * rem, Math.min(day.width / 3, (day.width - 4.5 * rem) / 2));
+    boxes.forEach((box, column) => {
+      expect(box.left - day.left).toBeCloseTo(step * column, 0);
+      expect(box.width).toBeCloseTo(Math.min(Math.max(day.width / 3, 4.5 * rem), day.width - step * column), 0);
+    });
+  });
+
+  it("splits a day's width evenly between two overlapping events when there is room", async () => {
+    const { boxes, day } = await placedBoxes([forum, focus], "1000px");
+    expect(boxes[0]!.left - day.left).toBeCloseTo(0, 0);
+    expect(boxes[0]!.width).toBeCloseTo(day.width / 2, 0);
+    expect(boxes[1]!.left - day.left).toBeCloseTo(day.width / 2, 0);
+    expect(boxes[1]!.width).toBeCloseTo(day.width / 2, 0);
+  });
+
+  it("gives events that only touch the whole day each, and no room kept for a later one", async () => {
+    const after = { id: "after", title: "After", start: at(12, "11:00"), end: at(12, "12:00") };
+    const { boxes, items, day } = await placedBoxes([forum, after], "400px");
+    for (const box of boxes) {
+      expect(box.left - day.left).toBeCloseTo(0, 0);
+      expect(box.width).toBeCloseTo(day.width, 0);
+    }
+    for (const item of items) expect(item.style.getPropertyValue("--ouro-time-grid-cover")).toBe("");
+  });
+
+  it("gives an event that reaches past its column the width of the free columns beside it", async () => {
+    const tall = { id: "tall", title: "Tall", start: at(12, "10:00"), end: at(12, "12:00") };
+    const early = { id: "early", title: "Early", start: at(12, "10:00"), end: at(12, "11:00") };
+    const early2 = { id: "early2", title: "Early two", start: at(12, "10:00"), end: at(12, "11:00") };
+    const late = { id: "late", title: "Late", start: at(12, "11:00"), end: at(12, "12:00") };
+    const { boxes, day } = await placedBoxes([tall, early, early2, late], "1000px");
+    expect(boxes[3]!.width).toBeCloseTo((day.width * 2) / 3, 0);
+    expect(boxes[3]!.left - day.left).toBeCloseTo(day.width / 3, 0);
+  });
+
+  it("ends the words of a stepped event where the nearest event over it begins", async () => {
+    const third = { id: "third", title: "Third", start: at(12, "10:15"), end: at(12, "11:15") };
+    const { boxes, items } = await placedBoxes([forum, third, focus], "240px");
+    const words = items[0]!.querySelector<HTMLElement>("span.flex-1")!.getBoundingClientRect();
+    expect(words.right).toBeLessThanOrEqual(boxes[1]!.left + 1);
+    expect(words.right).toBeGreaterThan(boxes[1]!.left - 0.875 * parseFloat(getComputedStyle(document.documentElement).fontSize) - 2);
+    expect(items[0]!.style.getPropertyValue("--ouro-time-grid-cover")).not.toBe("");
+    expect(items[2]!.style.getPropertyValue("--ouro-time-grid-cover")).toBe("");
+  });
+
   it("names each event by the words it shows first, its title and its time, then its day, its status and its description", async () => {
     await render({
       events: [
