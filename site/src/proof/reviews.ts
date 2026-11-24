@@ -1,4 +1,4 @@
-import reviewsPage from "@/docs/guides/model-reviews.md?raw";
+import reviewsPage from "@/docs/guides/model-reviews.md?raw&proof";
 
 /** What the latest model review found: how many models picked Ouro UI, out of how many, from how many toolkits, and when. */
 export type Review = {

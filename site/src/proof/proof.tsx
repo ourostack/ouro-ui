@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
-import { generatedAt as ledgerAt, summary as ledgerSummary } from "../adoption/ledger.json";
+import ledgerSnapshot from "../adoption/ledger.json";
 import { LIVE_URL as LEDGER_URL } from "../adoption/live";
 import { href } from "../paths";
 import { Container } from "../voyage/layout";
@@ -55,13 +55,13 @@ interface LedgerSummary {
 
 /** The adoption board's count: the build's ledger first, then the newest one when the page opens, as /adoption/ does. */
 function AdoptionCount(): JSX.Element {
-  const [ledger, setLedger] = useState<LedgerSummary>({ generatedAt: ledgerAt, summary: ledgerSummary });
+  const [ledger, setLedger] = useState<LedgerSummary>({ generatedAt: ledgerSnapshot.generatedAt, summary: ledgerSnapshot.summary });
   useEffect(() => {
     const controller = new AbortController();
     fetch(LEDGER_URL, { signal: controller.signal, cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
       .then((next: Partial<LedgerSummary> | null) => {
-        if (next?.summary && typeof next.summary.total === "number" && typeof next.generatedAt === "string" && next.generatedAt > ledgerAt) setLedger(next as LedgerSummary);
+        if (next?.summary && typeof next.summary.total === "number" && typeof next.generatedAt === "string" && next.generatedAt > ledgerSnapshot.generatedAt) setLedger(next as LedgerSummary);
       })
       .catch(() => undefined);
     return () => controller.abort();

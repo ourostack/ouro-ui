@@ -1,4 +1,4 @@
-import benchmarkPage from "@/docs/guides/agent-interfaces.md?raw";
+import benchmarkPage from "@/docs/guides/agent-interfaces.md?raw&proof";
 
 /** The four ways in, in the order the copy deck names them, each with how docs/guides/agent-interfaces.md names it. */
 export const WAYS = [
