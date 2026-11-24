@@ -215,8 +215,7 @@ export interface CommandBaseProps {
    * A recents layout: one row of chips under the search while it is empty, for the few places a
    * person goes back to. Left and Right walk the chips, Down in the search enters the row, and Up
    * or Escape leaves it for the search (Escape does not close the palette from a chip). While the
-   * search is empty and focus is in it, no command is highlighted, so Enter does nothing until a
-   * person types or enters the row.
+   * search is empty and focus is in it, the list leaves its commands unhighlighted.
    * @example
    * recents={[{ label: "Pie", onSelect: openPie }, { label: "Soup", onSelect: openSoup }]}
    * @claim "Left and Right walk the chips" registry/ouro/components/ouro/command/command.recents.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.recents.test.tsx::Command recents > is entered with Down, walked with Left and Right, and left with Up or Escape, which does not close the palette)
