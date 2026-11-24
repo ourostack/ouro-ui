@@ -6,8 +6,8 @@
  */
 @layer components {
   /* The hero's last row (its buttons, or a capture) clears the next band's hairline instead of sitting on it. */
-  .platform-page [data-ouro="hero"] {
-    padding-block-end: calc(var(--spacing) * 12);
+  .platform-page [data-ouro="hero"] + .apple-band {
+    margin-block-start: calc(var(--spacing) * 12);
   }
 
   /* A CI capture: a screen, so framed, with the dark run's picture in dark mode. */
