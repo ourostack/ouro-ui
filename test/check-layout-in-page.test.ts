@@ -236,6 +236,19 @@ describe("findLayoutIssues: near-miss", () => {
     expect(found()).toEqual([["div and div#in", "3px"]]);
   });
 
+  it("skips the container gap on an axis a nearer scrolling ancestor overflows, since where it lands is the scroll position's, not the design's, but still finds one in a container that does not scroll", () => {
+    render(`<div id="scroller" style="position:fixed;left:10px;top:10px;width:200px;height:106px;overflow-y:auto;box-sizing:border-box;background:#eee">
+      <div style="height:120px"></div>
+      <div id="row" style="height:40px;background:#cde"></div>
+      <div style="height:200px"></div>
+    </div>`);
+    const scroller = host.querySelector("#scroller")!;
+    scroller.scrollTop = 59;
+    expect(found()).toEqual([]);
+    host.innerHTML = `<div id="card" style="position:fixed;left:10px;top:10px;width:200px;height:106px;box-sizing:border-box;overflow:hidden;background:#eee"><div id="row" style="margin-top:71px;width:60px;height:30px;background:#cde"></div></div>`;
+    expect(found()).toEqual([["div#card and div#row", "5px"]]);
+  });
+
   it("measures a fill against the page behind it, and passes a nested surface with room, for pages with nothing filled", () => {
     const [root, body] = [document.documentElement, document.body];
     const [rootBackground, bodyBackground] = [root.style.background, body.style.background];

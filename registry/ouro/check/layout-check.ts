@@ -211,6 +211,15 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     return 0;
   };
   const near: { a: Element; b: Element; gap: number }[] = [];
+  // A surface's position against a scrolling ancestor is wherever it's scrolled to, not a design gap.
+  const scrolls = (el: Element, axis: "x" | "y") => (axis === "x" ? /auto|scroll/.test(getComputedStyle(el).overflowX) && el.scrollWidth > el.clientWidth : /auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight);
+  const scrollsBetween = (a: Element, container: Element, axis: "x" | "y") => {
+    for (let n = a.parentElement; n; n = n.parentElement) {
+      if (scrolls(n, axis)) return true;
+      if (n === container) return false;
+    }
+    return false;
+  };
   surfaces.forEach((a, i) => {
     for (const b of surfaces.slice(i + 1)) {
       const gap = a.contains(b) || b.contains(a) ? 0 : apart(rects.get(a)!, rects.get(b)!);
@@ -220,7 +229,14 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     if (!container || isControlPiece(container)) return;
     const r = rects.get(a)!;
     const c = rects.get(container)!;
-    const inner = [r.left - c.left - container.clientLeft, r.top - c.top - container.clientTop, c.right - r.right - (c.width - container.clientLeft - container.clientWidth), c.bottom - r.bottom - (c.height - container.clientTop - container.clientHeight)];
+    const scrollX = scrollsBetween(a, container, "x");
+    const scrollY = scrollsBetween(a, container, "y");
+    const inner = [
+      scrollX ? Infinity : r.left - c.left - container.clientLeft,
+      scrollY ? Infinity : r.top - c.top - container.clientTop,
+      scrollX ? Infinity : c.right - r.right - (c.width - container.clientLeft - container.clientWidth),
+      scrollY ? Infinity : c.bottom - r.bottom - (c.height - container.clientTop - container.clientHeight),
+    ];
     const gap = Math.min(...inner.filter((d) => d > touchPx && d < gapMin));
     if (gap < Infinity) near.push({ a: container, b: a, gap });
   });
