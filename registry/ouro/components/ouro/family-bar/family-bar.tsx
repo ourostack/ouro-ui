@@ -166,10 +166,10 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
           {brand}
         </div>
       )}
-      <div ref={scroller} data-ouro-family-row="" data-more={more ? "" : undefined} className={familyScrollerClass}>
+      <div ref={scroller} data-ouro-family-row="" data-more={more || undefined} className={familyScrollerClass}>
         {heading !== null && (
           // The nav's name says it already; read twice, it would be noise.
-          <span aria-hidden="true" data-ouro-family-heading="" className={familyHeadingClass}>
+          <span aria-hidden="true" data-ouro-family-heading="" data-slot="family-bar-heading" className={familyHeadingClass}>
             {heading}
           </span>
         )}
