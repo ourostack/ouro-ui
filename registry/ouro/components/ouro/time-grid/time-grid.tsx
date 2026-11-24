@@ -225,7 +225,8 @@ export interface TimeGridOwnProps {
   /**
    * Called with the ISO date to show when a key moves the days while focus is in the grid: Page
    * Down and ⌥↓ (Alt+↓) the next day or week, Page Up and ⌥↑ the one before, and ⌥⇧Y
-   * (Alt+Shift+Y) today, as in Teams. Set `date` to it. `TimeGridNav` gives the same moves as
+   * (Alt+Shift+Y) today, as in Teams. With `onSlotSelect` set, Page Up and Page Down on the
+   * slots move an hour instead, so use ⌥↑ and ⌥↓ there. Set `date` to it. `TimeGridNav` gives the same moves as
    * buttons, with these keys in their tooltips.
    * @claim "Called with the ISO date to show when a key moves the days" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > moves to the next or previous period with Page Down and Page Up, or Alt with the arrows, and to today with Alt+Shift+Y)
    */
@@ -779,12 +780,18 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
 
   const [hover, setHover] = useState<{ day: number; minutes: number } | null>(null);
   // The keyboard's slot is virtual: the grid below owns focus and names this slot through aria-activedescendant.
-  const [cursor, setCursor] = useState<{ day: number; minutes: number } | null>(null);
+  const [heldCursor, setCursor] = useState<{ day: number; minutes: number } | null>(null);
+  // The days can shrink under a focused grid (a controlled `view` changes), so the cursor stays on a day that exists.
+  const cursor = heldCursor && days.length > 0 ? { ...heldCursor, day: Math.min(heldCursor.day, days.length - 1) } : null;
   const cursorId = useId();
   const cursorRef = useRef<HTMLSpanElement | null>(null);
   useLayoutEffect(() => {
-    cursorRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [cursor]);
+    const slot = cursorRef.current;
+    if (!slot) return;
+    // The sticky day header covers the top of the scrolling area, so a slot scrolled "into view" would sit behind it.
+    slot.style.scrollMarginTop = `${slot.closest("[data-ouro=\"time-grid\"]")?.querySelector("[data-ouro-time-grid-head]")?.getBoundingClientRect().height ?? 0}px`;
+    slot.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [heldCursor]);
   const cursorStart = () => {
     const from = nowAt && todayIndex >= 0 ? nowAt.minutes : workingHours.start * 60;
     return { day: Math.max(todayIndex, 0), minutes: between(0, Math.floor(from / slotMinutes) * slotMinutes, dayLength - slotMinutes) };
@@ -1114,7 +1121,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               aria-activedescendant={cursor ? cursorId : undefined}
               data-ouro-control="time-grid"
               data-ouro-part="slots"
-              className="pointer-events-none absolute inset-0 outline-none"
+              className="pointer-events-none absolute inset-0 outline-ring -outline-offset-2 focus-visible:outline-2"
               onFocus={() => setCursor((now) => now ?? cursorStart())}
               onBlur={() => setCursor(null)}
               onKeyDown={onSlotKeyDown}

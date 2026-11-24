@@ -922,13 +922,34 @@ describe("TimeGrid", () => {
       expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T11:00:00-04:00"), end: new Date("2026-03-12T12:00:00-04:00") });
     });
 
-    it("leaves Page Up and Page Down to the period when the slots do not have focus", async () => {
+    it("moves an hour with Page Down on the slots, and leaves the period to Alt+Down, and drops the cursor on blur", async () => {
       const onDateChange = vi.fn();
       const { grid } = await open({ onDateChange });
       await userEvent.keyboard("{PageDown}");
       expect(onDateChange).not.toHaveBeenCalled();
+      await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
+      expect(onDateChange).toHaveBeenCalledTimes(1);
       await act(async () => (grid.querySelector<HTMLElement>('[role="grid"]')!).blur());
       expect(grid.querySelector("[data-ouro-time-grid-cursor]")).toBeNull();
+    });
+
+    it("keeps a cursor on a day that exists when the view shrinks under a focused grid", async () => {
+      const slot = vi.fn();
+      const { grid, rerender } = await render({ view: "week", onSlotSelect: slot });
+      await act(async () => grid.querySelector<HTMLElement>('[role="grid"]')!.focus());
+      await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}");
+      await rerender({ view: "day", onSlotSelect: slot });
+      expect(named(grid)).toBe("Thursday, March 12, 10:30 AM");
+      await userEvent.keyboard("{Enter}");
+      expect(slot).toHaveBeenCalledTimes(1);
+    });
+
+    it("scrolls a slot clear of the sticky day header", async () => {
+      const { grid } = await open();
+      const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
+      const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+      expect(head.getBoundingClientRect().height).toBeGreaterThan(0);
+      expect(parseFloat(cursor.style.scrollMarginTop)).toBeCloseTo(head.getBoundingClientRect().height, 0);
     });
 
     it("draws the slot with an outline-weight border that forced colours keep, and adds nothing without onSlotSelect", async () => {
