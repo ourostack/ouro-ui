@@ -3,6 +3,7 @@
 import { CSPProvider } from "@base-ui/react/csp-provider";
 import { Tooltip } from "@base-ui/react/tooltip";
 import { useEffect, useLayoutEffect, useMemo, type JSX, type ReactNode, type RefObject } from "react";
+import { installSquircleCapsules } from "@/registry/ouro/lib/ouro/squircle-capsules";
 import { TooltipsGrouped } from "@/registry/ouro/lib/ouro/portal-container";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { DefaultLink, OuroContext, useOuro, type OuroContextValue, type OuroLinkComponent, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
@@ -248,6 +249,7 @@ export function OuroProvider({
       if (quietProviders === 0) document.documentElement.removeAttribute("data-ouro-quiet");
     };
   }, [quiet]);
+  useEffect(() => installSquircleCapsules(document), []);
   const tooltips = (
     <Tooltip.Provider>
       <TooltipsGrouped value>{children}</TooltipsGrouped>
