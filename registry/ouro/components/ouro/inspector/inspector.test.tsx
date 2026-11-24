@@ -620,7 +620,7 @@ describe("Inspector", () => {
     const vegetarian = [...host.querySelectorAll<HTMLElement>("*")].find(
       (element) => element.textContent?.trim() === "Vegetarian" && [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE),
     )!;
-    const ratios: Array<{ iter: number; ratio: string; reason?: string }> = [];
+    const ratios: Array<{ iter: number; ratio: string; reason: string }> = [];
     for (let iter = 0; iter < 25; iter++) {
       await act(() => setOpen(false));
       await settled();
@@ -628,7 +628,11 @@ describe("Inspector", () => {
       await drawn(pageRoots(host).length);
       await settled();
       const verdict = await measureTextContrast(vegetarian, 4.5);
-      ratios.push({ iter, ratio: verdict.pass ? String((verdict as { diagRatio?: number }).diagRatio ?? "pass") : "fail", reason: verdict.pass ? undefined : verdict.reason });
+      ratios.push({
+        iter,
+        ratio: verdict.pass ? String((verdict as { diagRatio?: number }).diagRatio ?? "pass") : "fail",
+        reason: verdict.pass ? "" : verdict.reason,
+      });
     }
     await act(() => roots.splice(0).forEach((root) => root.unmount()));
     host.remove();
