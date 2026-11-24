@@ -302,6 +302,22 @@ describe("the call window page", () => {
     expect(scroller.scrollHeight - scroller.clientHeight).toBeLessThanOrEqual(0);
   });
 
+  it("fills the height on a phone too, with the self view tucked away and one caption line", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/call-demo/");
+    await document.fonts.ready;
+    const scroller = document.querySelector<HTMLElement>('[data-site-call-demo] .overflow-auto')!;
+    const grid = scroller.querySelector<HTMLElement>(".grid")!;
+    const bottom = document.querySelector<HTMLElement>('[data-site-call-demo] [role="toolbar"]')!.parentElement!.closest<HTMLElement>("div.grid")!;
+    for (const count of ["1", "6"]) {
+      await page.getByRole("radio", { name: count }).click();
+      await expect.poll(() => scroller.querySelectorAll('[data-ouro="media-tile"]').length).toBe(Number(count));
+      await expect.poll(() => bottom.getBoundingClientRect().top - grid.getBoundingClientRect().bottom, { message: `${count} people` }).toBeLessThan(24);
+    }
+    const captions = document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="live-captions"]')!;
+    expect(captions.getBoundingClientRect().height).toBeLessThan(56);
+  });
+
   it("says which parts of the demo are scripted", async () => {
     await renderPage("/docs/call-demo/");
     expect(document.body.textContent).toMatch(/own script/);
