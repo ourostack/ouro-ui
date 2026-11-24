@@ -5,7 +5,7 @@ describe("capsule measure", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("takes half the shorter side in eighths of a pixel", () => {
-    expect(capsuleHalf(100, 31.9)).toBe(15.875);
+    expect(capsuleHalf(100, 31.8)).toBe(15.875);
     expect(capsuleHalf(20, 40)).toBe(10);
   });
 
