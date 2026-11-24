@@ -5,7 +5,10 @@ import { beginTrace, findTransitionFaults, stepTrace, type TransitionTrace } fro
 // through the whole check, on fixtures made up to show each fault.
 
 let host: HTMLDivElement;
-afterEach(() => host?.remove());
+afterEach(() => {
+  for (const a of document.getAnimations()) a.cancel();
+  document.body.replaceChildren();
+});
 
 /** Draws `html`, runs `press` between beginTrace and stepTrace, and returns the faults the trace holds. */
 async function trace(html: string, press: () => void, attrs = "") {
