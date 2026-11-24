@@ -188,6 +188,14 @@ export const knownFindings: KnownFinding[] = [
       "At 2560px, past the root type step, an event's Japanese time range (11時00分～12時00分) has no break point, so it sits on its own line below the event's title; the copy and its locale are the story's.",
   },
   {
+    story: "TimeGrid/Locales",
+    rule: "near-miss",
+    issue: 3387,
+    theme: "nova",
+    reason:
+      "Under nova the 'Team offsite' event starts 6px below the sticky day header: an event sits where its start time puts it, so its gap to the header is the story's data, not spacing anyone chose.",
+  },
+  {
     story: "AgentHandoff/InContext",
     rule: "near-miss",
     issue: 3286,
