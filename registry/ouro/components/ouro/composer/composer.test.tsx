@@ -1466,7 +1466,7 @@ describe("Composer expanded motion", () => {
           ]);
         } else {
           await Promise.all([
-            expectMotion(frameOf(root), { stem: "composer", state: "data-expanded", properties: { "clip-path": slow }, reduced }),
+            expectMotion(frameOf(root), { stem: "composer", state: "data-expanded", properties: { "--ouro-composer-inset": slow }, reduced }),
             expectMotion(toolbar(), { stem: "composer", state: "data-expanded", properties: { opacity: slow, transform: slow }, reduced }),
           ]);
         }

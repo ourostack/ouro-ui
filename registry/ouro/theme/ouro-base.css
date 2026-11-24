@@ -421,21 +421,28 @@
     rotate: 1turn;
   }
 }
-/* Composer's expand and collapse: a clip over the frame opens or closes by --ouro-composer-gap, and the toolbar comes and goes. */
+/* Composer's expand and collapse: a clip over the frame opens or closes by --ouro-composer-gap, and the toolbar comes and goes.
+   The clip's inset is a registered length, so the animation runs on the main thread, which paints under a backdrop-filter;
+   a clip-path animation is composited, and Chromium leaves a clip like that unpainted for a while there. */
+@property --ouro-composer-inset {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
 @keyframes ouro-composer-reveal {
   from {
-    clip-path: inset(var(--ouro-composer-gap) 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: var(--ouro-composer-gap);
   }
   to {
-    clip-path: inset(0 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: 0px;
   }
 }
 @keyframes ouro-composer-conceal {
   from {
-    clip-path: inset(0 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: 0px;
   }
   to {
-    clip-path: inset(var(--ouro-composer-gap) 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: var(--ouro-composer-gap);
   }
 }
 @keyframes ouro-composer-toolbar-in {
