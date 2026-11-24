@@ -1005,7 +1005,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                   formats.dayNumber.formatToParts(utcDate(day)).find((part) => part.type === "day")!.value
                 }
               </span>
-              <span className={`truncate text-xs ${markOf(day) ? markedMutedClass : "text-muted-foreground"} group-data-today/day:font-medium group-data-today/day:text-foreground`}>{formats.weekdayShort.format(utcDate(day))}</span>
+              <span className={`truncate text-xs ${markedMutedClass} group-data-today/day:font-medium group-data-today/day:text-foreground`}>{formats.weekdayShort.format(utcDate(day))}</span>
               </span>
               {markOf(day) ? <span data-ouro-time-grid-mark="" data-slot="time-grid-mark-label" className={`block truncate px-2 pb-1 text-xs ${markedMutedClass} @max-[4.5rem]/day:px-0.5`}>{markOf(day)!.label}</span> : null}
             </div>
