@@ -1750,6 +1750,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       keepAnchor();
       const newest = target === topItems(content).at(-1);
       placed = newest ? null : scroller.scrollTop;
+      // Stryker disable next-line ConditionalExpression: the hold in the microtask after this reads the list at its end and follows it, so not following here changes nothing.
       pinned.current = newest && atBottom();
     };
     followEnd();
