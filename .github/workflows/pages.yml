@@ -12,6 +12,10 @@ name: Pages
 # released code. Deploys on every push to main, from that commit, without waiting for main's
 # CI (which still runs, and a bad deploy is reversed by deploying again), and only when that
 # push is still main's tip, so a slower run for an older commit never deploys over a newer one.
+# The pages concurrency group below never runs two deploys together, so a job stuck with no
+# timeout-minutes (the default six hours) blocked every later run until it was cancelled by hand
+# (ourostack/ouro-ui#3375); each job's own timeout-minutes (tip 5, build 10, deploy 15, each about
+# twice a recent run's worst case) frees the group on its own instead.
 on:
   push:
     branches: [main]
@@ -27,6 +31,7 @@ jobs:
   tip:
     # A run for an older commit can start after the run for a newer one; deploy only main's tip.
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       current: ${{ steps.tip.outputs.current }}
     steps:
@@ -46,6 +51,7 @@ jobs:
     needs: tip
     if: needs.tip.outputs.current == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -137,6 +143,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment:
       name: github-pages
       url: ${{ steps.again.outputs.page_url || steps.deployment.outputs.page_url }}

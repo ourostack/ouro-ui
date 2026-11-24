@@ -932,6 +932,48 @@ test("pages-clear.sh cancels other builds' Pages deployments that did not succee
   assert.equal(broken.stdout, "");
 });
 
+test("pages-clear.sh bounds every gh call, so one that hangs returns within its own bound instead of blocking the job for hours (#3375)", () => {
+  const bin = scratchDir("ouro-gh-hang-");
+  // A gh that never answers the deployments listing, as happened when GitHub's own retry for a rate limit hung for
+  // nearly two hours with no timeout on the call (#3375).
+  writeFileSync(join(bin, "gh"), `#!/usr/bin/env bash\ncase "$*" in\n  *"deployments?environment=github-pages"*) sleep 600 ;;\n  *) exit 99 ;;\nesac\n`);
+  chmodSync(join(bin, "gh"), 0o755);
+  const before = Date.now();
+  const cleared = spawnSync("bash", [join(root, "scripts/pages-clear.sh"), "cur"], {
+    encoding: "utf8",
+    env: sandboxEnv({ GH_REPO: "o/r", GH_TOKEN: "t", PAGES_CLEAR_SLEEP: "0", PAGES_CLEAR_GH_TIMEOUT: "1" }, [bin]),
+  });
+  assert.equal(cleared.status, 0, cleared.stderr);
+  assert.ok(Date.now() - before < 30_000, "returned well within its own one-second-per-call bound, not after the hang");
+});
+
+test("pages-clear.sh skips a deployments listing that is not a clean sha list, instead of splitting it into words and treating each as a sha (#3375)", () => {
+  const bin = scratchDir("ouro-gh-garbage-");
+  const log = join(bin, "calls.log");
+  // The error body a secondary rate limit actually leaked onto stdout in place of the sha list (#3375), word-split by
+  // the old `for sha in $(...)`, into dozens of fake shas it then polled and tried to cancel one by one.
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${log}"\ncase "$*" in\n  *"deployments?environment=github-pages"*) echo "You have exceeded a secondary rate limit" ;;\n  *) exit 99 ;;\nesac\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const cleared = spawnSync("bash", [join(root, "scripts/pages-clear.sh"), "cur"], { encoding: "utf8", env: sandboxEnv({ GH_REPO: "o/r", GH_TOKEN: "t", PAGES_CLEAR_SLEEP: "0" }, [bin]) });
+  assert.equal(cleared.status, 0, cleared.stderr);
+  assert.equal(cleared.stdout, "");
+  // Only the one listing call: no per-word follow-up call for "you", "have", "exceeded" and so on.
+  assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), ["api repos/o/r/deployments?environment=github-pages&per_page=5 --jq .[].sha"]);
+});
+
+test("every job in pages.yml has timeout-minutes, so a hung step frees the pages concurrency group instead of blocking every later run (#3375)", () => {
+  const pages = workflow("pages.yml");
+  const jobs = pages.split(/^jobs:\n/m)[1].split(/\n(?= {2}[\w-]+:\n)/);
+  assert.ok(jobs.length >= 3, "tip, build and deploy are all present");
+  for (const job of jobs) {
+    const id = job.match(/^ {2}([\w-]+):/)[1];
+    assert.match(job, /^ {4}timeout-minutes: \d+$/m, `${id} has no timeout-minutes, so a hung step could block the pages concurrency group for the default six hours`);
+  }
+});
+
 test("Pages clears a deployment still in progress before it deploys, and deploys once more after clearing again when GitHub refuses it (#2447)", () => {
   const deploy = workflow("pages.yml").split("\n  deploy:\n")[1];
   const steps = deploy.slice(deploy.indexOf("    steps:"));

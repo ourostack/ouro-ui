@@ -146,7 +146,7 @@ export function pickInstall(release: string, registry: string): Install {
  * tag's version (scripts/registry.mts --release), it is this checkout's own: CI on that commit runs
  * before the tag exists, and has to pass for the tag to be pushed.
  */
-export function registryAt(tag: string, root = repo, retryAfter = 2000, tries = 4, fetchTimeout = 10_000): string {
+export function registryAt(tag: string, root = repo, retryAfter = 2000, tries = 3, fetchTimeout = 16_000): string {
   const own = reader(root)("registry.json");
   if (tag === `v${(JSON.parse(own) as { version?: string }).version}`) return own;
   const show = () => execFileSync("git", ["show", `${tag}:registry.json`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
@@ -158,10 +158,13 @@ export function registryAt(tag: string, root = repo, retryAfter = 2000, tries = 
     // fails while the winner's brings the tag in (ourostack/ouro-ui#1746). So after a failed fetch the tag is read
     // again before the next try, and a failure says what git said first and last. A fetch that stalls is ended, by git
     // when its transfer stops and by a time limit otherwise, so the tries end within the 60 s Vite gives this module
-    // (ourostack/ouro-ui#1757): 4 tries of 10 s and 3 waits of 2 s. The time limit ends git with SIGTERM, on which it
-    // removes its lock files (git's tempfile.c), and git's stderr goes to a file, so a helper git leaves behind cannot
-    // hold the call open. A shallow.lock older than the time limit is no live fetch's, so it is removed before a
-    // retry rather than failing every one (ourostack/ouro-ui#1781).
+    // (ourostack/ouro-ui#1757): 3 tries of 16 s and 2 waits of 2 s, 52 s in all, leaving 8 s of margin. A measured
+    // depth=1 fetch of one tag took 8-9.5 s on an ordinary connection, and a loaded runner's fetch of v1.3.506 for
+    // #3375 still timed out at 10 s four times running, so 10 s left no real headroom; 16 s is the longest a try can
+    // run and still end three tries, two waits and the read that follows inside the 60 s. The time limit ends git with
+    // SIGTERM, on which it removes its lock files (git's tempfile.c), and git's stderr goes to a file, so a helper
+    // git leaves behind cannot hold the call open. A shallow.lock older than the time limit is no live fetch's, so
+    // it is removed before a retry rather than failing every one (ourostack/ouro-ui#1781).
     const logs = mkdtempSync(join(tmpdir(), "ouro-proof-fetch-"));
     const shallowLock = () => {
       try {
@@ -230,7 +233,7 @@ const id = "virtual:site-proof";
 
 /**
  * Serves `virtual:site-proof`, the proof computed from the repository (`root`) when the site builds. It is computed in
- * `buildStart`, when Vite starts, and not in `load`: the work is synchronous, with up to 46 s of waits for the release
+ * `buildStart`, when Vite starts, and not in `load`: the work is synchronous, with up to 52 s of waits for the release
  * tag's fetch, and Vite's module runner gives a module 60 s from its request (ourostack/ouro-ui#2469), a request that
  * also waits behind everything else the loaded runner is doing. `load` serves what `buildStart` computed, or the error.
  */
