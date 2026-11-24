@@ -29,14 +29,35 @@ export interface ViewportSize {
   height: number;
 }
 
-/** Vitest's own fallback viewport, for a project (`ouro-chromium`, `ouro-webkit`) with an unconfigured one. */
-const VITEST_DEFAULT_VIEWPORT: ViewportSize = { width: 414, height: 896 };
+/**
+ * A fallback for a headed run whose context has an unfixed viewport (Playwright's
+ * `page.viewportSize()` reads `null` there, since the page adopts the real window). CI runs
+ * headless, where a context has one, so this path is a headed-only edge case.
+ */
+const NO_FIXED_VIEWPORT_FALLBACK: ViewportSize = { width: 1280, height: 720 };
 
 /** The value this kit last set for a page's real viewport; a page not yet resized has its project's configured default. */
 const resizedViewport = new WeakMap<object, ViewportSize>();
 
+/**
+ * A project (`ouro-chromium`, `ouro-webkit`) that leaves `browser.viewport` unset defers to
+ * Playwright's own context default. Rather than guess that value, this reads the page's real size
+ * the first time a file in its worker asks for it, before this kit has resized it, and keeps that
+ * reading as the default for a later file sharing the same page.
+ *
+ * @claim "Rather than guess that value, this reads the page's real size the first time a file in its worker asks for it" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::projectDefaultViewport reads the page's own unconfigured viewport instead of a hardcoded guess)
+ */
+const originalViewport = new WeakMap<object, ViewportSize>();
+
 function projectDefaultViewport(ctx: Parameters<BrowserCommand<[]>>[0]): ViewportSize {
-  return ctx.project.config.browser?.viewport ?? VITEST_DEFAULT_VIEWPORT;
+  const configured = ctx.project.config.browser?.viewport;
+  if (configured) return configured;
+  let original = originalViewport.get(ctx.page);
+  if (!original) {
+    original = ctx.page.viewportSize() ?? NO_FIXED_VIEWPORT_FALLBACK;
+    originalViewport.set(ctx.page, original);
+  }
+  return original;
 }
 
 const currentViewport = (ctx: Parameters<BrowserCommand<[]>>[0]): ViewportSize => resizedViewport.get(ctx.page) ?? projectDefaultViewport(ctx);
