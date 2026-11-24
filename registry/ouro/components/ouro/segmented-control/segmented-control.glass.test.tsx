@@ -37,6 +37,17 @@ async function mount(glass = true) {
 }
 
 describe("SegmentedControl glass", () => {
+  it("marks the group with an empty data-glass, and fills its container with fullWidth", async () => {
+    const { group } = await mount();
+    expect(group.getAttribute("data-glass")).toBe("");
+    await act(async () =>
+      root!.render(<SegmentedControl label="View" hideLabel glass fullWidth items={[{ value: "a", label: "A" }, { value: "b", label: "B" }]} />),
+    );
+    const wide = host!.querySelector<HTMLElement>('[role="radiogroup"]')!;
+    expect(Math.round(wide.getBoundingClientRect().width)).toBe(Math.round(host!.getBoundingClientRect().width));
+    expect(getComputedStyle(wide).display).toBe("grid");
+  });
+
   it("is a 40px glass capsule with a rim and blur", async () => {
     const { group } = await mount();
     const style = getComputedStyle(group);
