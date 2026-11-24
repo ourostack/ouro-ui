@@ -62,8 +62,8 @@ export interface ButtonBaseProps {
    * Liquid Glass capsule (a circle when it holds only an icon) that floats over
    * content, such as a window toolbar's button. A glass button stays pressed while the popup it opens is open
    * (`aria-expanded`), draws solid with a defined edge under reduced transparency or more contrast,
-   * and takes the tone's text colour. A glass button is 40 tall; `size="sm"` makes it 36, the height of macOS 26's
-   * window toolbar, a 36 circle for an icon.
+   * and takes the tone's text colour. `size="sm"` makes a glass button the height of a macOS Tahoe window toolbar,
+   * a circle for an icon.
    * shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and
    * `destructive` and `secondary` are tones: `tone="destructive"`. Any other
    * string is a type error whose message names the fix.

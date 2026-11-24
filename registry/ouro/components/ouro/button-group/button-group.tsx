@@ -21,7 +21,7 @@ export interface ButtonGroupProps {
   /**
    * Draws the group as one Liquid Glass capsule: the theme's glass behind blur, a rim, a soft shadow, and a
    * hairline divider between the buttons, which sit flat inside it. Use it for a window toolbar's back and forward.
-   * Solid under reduced transparency or more contrast. Put `variant="plain"` buttons in it. It is 40 tall; `glass="sm"` makes it 36 to match a `size="sm"` glass Button.
+   * Solid under reduced transparency or more contrast. Put `variant="plain"` buttons in it. `glass="sm"` makes it as tall as a `size="sm"` glass Button.
    */
   glass?: boolean | "sm" | undefined;
   /** Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development. */
