@@ -258,9 +258,14 @@ describe("SnapPiP", () => {
     const changes: boolean[] = [];
     await render(self({ onCollapsedChange: (next) => changes.push(next) }));
     expect(page.getByRole("button", { name: "Hide Your camera", exact: true }).element()).toBeTruthy();
-    await userEvent.click(page.getByRole("button", { name: "Hide Your camera", exact: true }));
+    const hide = page.getByRole("button", { name: "Hide Your camera", exact: true }).element();
+    expect(hide.getAttribute("aria-expanded")).toBe("true");
+    expect(hide.getAttribute("data-variant")).toBe("plain");
+    await userEvent.click(hide);
     const show = page.getByRole("button", { name: "Show Your camera", exact: true });
     expect(changes).toEqual([true]);
+    expect(show.element().getAttribute("aria-expanded")).toBe("false");
+    expect(show.element().getAttribute("data-variant")).toBe("soft");
     expect(pip().getAttribute("data-collapsed")).toBe("");
     expect(stage.querySelector('[data-testid="video"]')).not.toBeNull();
     expect(pip().getBoundingClientRect().width).toBeGreaterThanOrEqual(44);
