@@ -1,6 +1,7 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { commands } from "vitest/browser";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 let root: Root | undefined;
@@ -47,5 +48,28 @@ describe("Button glass", () => {
       </Button>,
     );
     expect(getComputedStyle(button, "::before").opacity).toBe("0");
+  });
+
+  it("is a translucent capsule with a rim, rounded to the full height", async () => {
+    const button = await mount(
+      <Button variant="glass" aria-label="Back">
+        <svg aria-hidden="true" viewBox="0 0 24 24" />
+      </Button>,
+    );
+    const style = getComputedStyle(button);
+    expect(style.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(style.backgroundColor).not.toMatch(/^rgb\(/);
+    expect(style.borderTopColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(Number.parseFloat(style.borderTopLeftRadius)).toBeGreaterThanOrEqual(20);
+  });
+
+  it("draws solid and unblurred under more contrast", async () => {
+    await commands.emulateMedia({ contrast: "more" });
+    try {
+      const button = await mount(<Button variant="glass">Filters</Button>);
+      expect(getComputedStyle(button).backdropFilter).toBe("none");
+    } finally {
+      await commands.emulateMedia({ contrast: "no-preference" });
+    }
   });
 });
