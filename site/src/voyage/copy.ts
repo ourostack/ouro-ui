@@ -94,7 +94,7 @@ export const WHY = {
       source: [
         { test: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" },
         { file: "registry/ouro/lib/ouro/touch-target.tsx" },
-        { file: "test/stock-theme.test.tsx" },
+        { file: "docs/guides/installing.md" },
         { test: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" },
         { file: "docs/guides/agent-interfaces.md" },
         { file: "docs/platforms/parity.md" },
@@ -103,7 +103,7 @@ export const WHY = {
         { testExists: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" },
         { fileLine: "registry/ouro/lib/ouro/touch-target.tsx", pattern: "pointer-coarse" },
         { testExists: "scripts/motion-coverage.test.mjs::a motion state with no reduced-motion record for a part fails, even when that part's reduced list is empty" },
-        { fileLine: "test/stock-theme.test.tsx", pattern: "4\\.5" },
+        { fileLine: "docs/guides/installing.md", pattern: "with defaults that pass 4\\.5:1 on shadcn's stock themes" },
         { testExists: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" },
         { fileLine: "docs/guides/agent-interfaces.md", pattern: "^- Ouro UI action model \\(generated MCP tools\\): 0 of 32\\.$" },
         { fileLine: "docs/platforms/parity.md", pattern: "." },
@@ -192,8 +192,8 @@ export const FLYWHEEL = {
   ].join(" "),
   feel: { label: "See what Feel caught", href: "/apple/feel/" },
   under: claim("Your app can be a corner of this too. Fix something in your copy, offer it back as a pull request, and every app gets it. The adoption board counts who has.", {
-    source: { test: "site/src/adoption/adoption.test.tsx::reading the checks > marks a check that does not apply, and one with nothing given back" },
-    verify: { fileLine: "site/src/adoption/adoption.test.tsx", pattern: "Nothing given back yet" },
+    source: { file: "site/src/adoption/checks.ts" },
+    verify: [{ fileLine: "site/src/adoption/checks.ts", pattern: "Nothing given back yet" }, { fileLine: "site/src/adoption/checks.ts", pattern: "gaveBack: \"giveBack\"" }],
   }),
   adoption: { label: "The adoption board", href: "/adoption/" },
 } as const;
