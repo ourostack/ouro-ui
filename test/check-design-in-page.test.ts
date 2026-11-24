@@ -915,6 +915,11 @@ describe("findDesignIssues: doubled-line", () => {
     expect(of("doubled-line").map(({ detail }) => detail)).toEqual([line(0)]);
   });
 
+  it("passes a pair of lines a fixed opaque layer hides, not just the one under a sticky bar", () => {
+    render(`<div style="position:fixed;top:0;left:0;width:320px;height:60px;background:#fff;z-index:5"></div><div style="border-bottom:1px solid #bbb;width:300px;height:20px"></div><div style="border-top:1px solid #bbb;width:300px;height:20px"></div>`);
+    expect(of("doubled-line")).toEqual([]);
+  });
+
   it("reads lines further apart as one drawn twice when told a wider gap", () => {
     render(`<div style="border-bottom:1px solid #bbb;width:300px;height:20px"></div><div style="border-top:1px solid #bbb;width:300px;margin-top:10px;height:20px"></div>`);
     expect(of("doubled-line")).toEqual([]);
