@@ -766,6 +766,14 @@ describe("TimeGrid", () => {
     expect(document.activeElement).toBe(titled("Standup"));
   });
 
+  it("keeps an event's time range in reading order in a right-to-left page", async () => {
+    await render({ view: "day", events: [forum], locale: "en-US" }, (grid) => <div dir="rtl">{grid}</div>);
+    const range = titled("Architecture forum").querySelector("bdi")!;
+    expect(range.getAttribute("dir")).toBe("ltr");
+    expect(range.textContent).toMatch(/^\d+:\d+\s*–\s*\d+:\d+/);
+    expect(getComputedStyle(range).unicodeBidi).toBe("isolate");
+  });
+
   it("gives a short event and an all-day one a hit area at least 24px tall, without drawing them taller", async () => {
     await render({ view: "day", events: [{ ...standup, start: at(12, "09:30"), end: at(12, "09:45") }, { id: "closed", title: "Office closed", start: "2026-03-12" }] });
     for (const title of ["Standup", "Office closed"]) {
