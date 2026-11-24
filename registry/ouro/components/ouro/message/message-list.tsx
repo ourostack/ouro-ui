@@ -1746,7 +1746,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
-      pinned.current = atBottom();
+      pinned.current = target === topItems(content).at(-1) && atBottom();
     };
     followEnd();
     keepAnchor();
@@ -1763,7 +1763,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const target = anchored();
       if (target) {
         centre(target);
-        pinned.current = atBottom();
+        pinned.current = target === topItems(content).at(-1) && atBottom();
       }
       // Stryker disable next-line CallExpression: the observer's hold in the microtask after the commit takes the anchors and the end, before any frame or event; at the end of the new conversation, the next message is then followed.
       keepAnchor();

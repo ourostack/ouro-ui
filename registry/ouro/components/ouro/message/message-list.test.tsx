@@ -916,6 +916,27 @@ describe("MessageList", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("opened at a message before the newest, with the content 1px taller than the view, stays there instead of following the end", async () => {
+    const Rows = ({ height, last = 100 }: { height?: number; last?: number }) => (
+      <MessageList label="Conversation" style={{ height }} initialAnchor="row-0">
+        {[0, 1, 2].map((index) => (
+          <Message key={index} id={`row-${index}`} role="assistant" name="Ouro" style={{ height: index === 2 ? last : 100 }}>
+            Row {index}
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const { scroller: whole } = await render(<Rows />);
+    const overflow = whole.scrollHeight;
+    const { scroller, rerender } = await render(<Rows height={overflow - 1} />);
+    expect(scroller.scrollHeight - scroller.clientHeight).toBeLessThanOrEqual(1);
+    await nextFrame(scroller);
+    expect(await nextFrame(scroller)).toBe(0);
+    await rerender(<Rows height={overflow - 1} last={101} />);
+    await settle(scroller);
+    expect(scroller.scrollTop).toBe(0);
+  });
+
   it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {
     const items = history(30, 10);
     const { scroller } = await render(<Found windowing={false} items={[]} />);
