@@ -176,8 +176,9 @@ const mediaPull = { outline: { md: "-mt-6", sm: "-mt-4" }, plain: { md: "rounded
 // none of it (#2643).
 const backdropCorner = { outline: { md: "rounded-[inherit]", sm: "rounded-[inherit]" }, plain: { md: "rounded-ouro-xl", sm: "rounded-ouro-lg" } } as const;
 const backdropClass = "pointer-events-none absolute -z-1 overflow-clip";
-const backdropStyle: CSSProperties = { inset: "var(--ouro-card-backdrop-inset, 0px)" };
-const plainBackdropStyle = { md: backdropStyle, sm: backdropStyle } as Record<"md" | "sm", CSSProperties>;
+// An outlined card's picture reaches under its 1px border, to the border box's edge.
+const backdropStyle: CSSProperties = { inset: "-1px" };
+const plainBackdropStyle: CSSProperties = { inset: 0 };
 /** The picture fills the backdrop, cropped to it. */
 const backdropPictureStyle: CSSProperties = { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" };
 // A linked card's hover and press tint, which its stretched link draws as a plain rectangle, lies on the backdrop
@@ -449,7 +450,7 @@ export function Card(props: CardProps): JSX.Element {
         data-card-backdrop=""
         data-ouro-avatar-surface=""
         className={cn(backdropClass, backdropCorner[variant][size])}
-        style={variant === "plain" ? plainBackdropStyle[size] : backdropStyle}
+        style={variant === "plain" ? plainBackdropStyle : backdropStyle}
       >
         {isValidElement<{ style?: CSSProperties }>(backdrop) ? cloneElement(backdrop, { style: { ...backdropPictureStyle, ...backdrop.props.style } }) : backdrop}
         {linked && (
