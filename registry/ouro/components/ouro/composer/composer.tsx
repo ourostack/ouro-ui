@@ -770,6 +770,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     const reduced = matchMedia(reducedQuery).matches;
     if (reduced && !expanded) return;
     const from = running ? shown : before.px;
+    if (Math.abs(px - from) < 0.5 && !toolbarElement) return;
     const elements = [frame, toolbarElement].filter((element) => element !== null);
     frame.style.setProperty("--ouro-composer-gap", `${Math.abs(px - from)}px`);
     frame.style.setProperty("--ouro-composer-radius", getComputedStyle(frame).borderTopLeftRadius);
