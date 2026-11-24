@@ -267,20 +267,6 @@ export const knownFindings: KnownFinding[] = [
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
-    story: "Inspector/InContext",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "Inspector/Playground",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
     story: "Lightbox/ChatMosaic",
     rule: "near-miss",
     issue: 3286,
@@ -289,13 +275,6 @@ export const knownFindings: KnownFinding[] = [
   },
   {
     story: "Lightbox/MosaicWithMore",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "MediaTile/ReducedMotion",
     rule: "near-miss",
     issue: 3286,
     reason:
@@ -386,21 +365,7 @@ export const knownFindings: KnownFinding[] = [
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
-    story: "Patterns/Settings",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
     story: "Porthole/Action",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "Porthole/Live",
     rule: "near-miss",
     issue: 3286,
     reason:
@@ -484,13 +449,6 @@ export const knownFindings: KnownFinding[] = [
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
-    story: "RouteProgress/InContext",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
     story: "Row/InContext",
     rule: "near-miss",
     issue: 3286,
@@ -499,34 +457,6 @@ export const knownFindings: KnownFinding[] = [
   },
   {
     story: "Stack/InContext",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "Switch/Playground",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "Switch/Settings",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "Switch/States",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "SyncStatus/InContext",
     rule: "near-miss",
     issue: 3286,
     reason:

@@ -224,6 +224,18 @@ describe("findLayoutIssues: near-miss", () => {
     expect(found()).toEqual([]);
   });
 
+  it("passes a surface a few pixels inside a button, switch, checkbox, radio or slider, whose parts are drawn as one piece", () => {
+    const piece = (left: number, extra = "") =>
+      `<div ${extra} style="position:fixed;left:${left}px;top:10px;width:200px;height:100px;box-sizing:border-box;padding:3px 40px 40px 40px;background:#eee">${box("in", 0, 0, 60, 30).replace("position:fixed", "position:relative")}</div>`;
+    render(`${piece(10, 'role="switch" tabindex="0"')}${piece(220, 'role="checkbox" tabindex="0"')}${piece(430, 'role="radio" tabindex="0"')}${piece(640, 'role="slider" tabindex="0"')}`);
+    expect(found()).toEqual([]);
+    host.innerHTML = `<button style="position:fixed;left:10px;top:10px;width:200px;height:100px;box-sizing:border-box;padding:3px 40px 40px 40px;background:#eee;border:0">${box("in", 0, 0, 60, 30).replace("position:fixed", "position:relative")}</button>`;
+    expect(found()).toEqual([]);
+    // A plain div with no control role still finds the same gap: the skip is for a control's own parts only.
+    host.innerHTML = `<div style="position:fixed;left:10px;top:10px;width:200px;height:100px;box-sizing:border-box;padding:3px 40px 40px 40px;background:#eee">${box("in", 0, 0, 60, 30).replace("position:fixed", "position:relative")}</div>`;
+    expect(found()).toEqual([["div and div#in", "3px"]]);
+  });
+
   it("measures a fill against the page behind it, and passes a nested surface with room, for pages with nothing filled", () => {
     const [root, body] = [document.documentElement, document.body];
     const [rootBackground, bodyBackground] = [root.style.background, body.style.background];

@@ -25,7 +25,10 @@ import type { PageIssue } from "./size-check.ts";
 //                      (--ouro-gap-min, read from the page; `gapMin` px where it has none). A surface is a block or inline-block box of at
 //                      least 16x16 with a fill unlike what is behind it, a frame (a border on every side, an outline
 //                      or a ring) or a picture. Two surfaces are a near miss when they don't overlap, aren't nested
-//                      and face each other across that gap along at least half of the shorter one's facing side
+//                      and face each other across that gap along at least half of the shorter one's facing side.
+//                      A surface's inner edge is never judged against the surface it sits in when that surface is, or
+//                      sits inside, a button or a switch, checkbox, radio or slider role: a control's own parts
+//                      (Switch's track and thumb, a custom checkbox's box and mark) are drawn as one piece
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
 // do. `element` names the element by its words, the same at every size; `detail` has this size's numbers.
@@ -182,6 +185,13 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     const ringed = /0px 0px 0px [1-9]/.test(s.boxShadow.replace(/[^,]*inset[^,]*/g, ""));
     return filled || framed || outlined || ringed;
   };
+  // A control's own parts (Switch's track and thumb, a custom checkbox's box and mark, a slider's track and thumb)
+  // are drawn as one piece, so a surface's inner edge is never judged against a control it sits in.
+  const controlPieceRoles = new Set(["button", "switch", "checkbox", "radio", "slider"]);
+  const isControlPiece = (el: Element) => {
+    for (let n: Element | null = el; n; n = n.parentElement) if (controlPieceRoles.has(roleOf(n))) return true;
+    return false;
+  };
   const surfaces = [...document.body.querySelectorAll("*")].filter((el) => {
     if (el instanceof SVGElement || getComputedStyle(el).display === "inline" || optedOut(el, "near-miss") || !drawn(el)) return false;
     const r = el.getBoundingClientRect();
@@ -207,7 +217,7 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
       if (gap) near.push({ a, b, gap });
     }
     const container = surfaces.filter((c) => c !== a && c.contains(a)).pop();
-    if (!container) return;
+    if (!container || isControlPiece(container)) return;
     const r = rects.get(a)!;
     const c = rects.get(container)!;
     const inner = [r.left - c.left - container.clientLeft, r.top - c.top - container.clientTop, c.right - r.right - (c.width - container.clientLeft - container.clientWidth), c.bottom - r.bottom - (c.height - container.clientTop - container.clientHeight)];
