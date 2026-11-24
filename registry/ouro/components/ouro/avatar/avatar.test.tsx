@@ -1513,7 +1513,7 @@ describe("Avatar development messages", () => {
     [
       "presence",
       { presence: "dnd", presenceLabel: "Do not disturb" },
-      'presence="dnd" is not a presence; use "available", "busy", "away", "do-not-disturb", "offline", "out-of-office"',
+      'presence="dnd" is not a presence; use "available", "busy", "away", "do-not-disturb", "offline", "out-of-office", "unknown"',
       '<Avatar presence="do-not-disturb" presenceLabel="Do not disturb">',
     ],
   ])("renders the default for an unknown %s, with the fix", async (_name, extra, problem, fix) => {

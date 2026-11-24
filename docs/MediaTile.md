@@ -224,7 +224,7 @@ interface AvatarOwnProps {
 A person's presence, drawn as a dot with its own shape: a check (available), a solid dot (busy), a bar (do not disturb), a clock (away), a ring with a cross (offline) and a ring with an arrow (out of office), so it never relies on color alone.
 
 ```ts
-type AvatarPresence = "available" | "busy" | "away" | "do-not-disturb" | "offline" | "out-of-office";
+type AvatarPresence = "available" | "busy" | "away" | "do-not-disturb" | "offline" | "out-of-office" | "unknown";
 ```
 
 ### `AvatarPresenceProps`
