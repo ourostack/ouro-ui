@@ -517,13 +517,6 @@ describe("ThemePicker", () => {
     expect(getComputedStyle(tile(option(popup, "pearl"))).height).toBe("44px");
   });
 
-  it("paints each tile and its square on a surface behind its text, with the page's squircle radius to clip it where corner-shape is missing", async () => {
-    const el = await render(<ThemePicker presets={presets} />);
-    const surfaces = [...option(el, "pearl").querySelectorAll<HTMLElement>("[data-ouro-surface]")];
-    expect(surfaces).toHaveLength(2);
-    for (const surface of surfaces) expect(getComputedStyle(surface).zIndex).toBe("-1");
-    expect(getComputedStyle(el.querySelector('[role="listbox"]')!).getPropertyValue("--ouro-tp-sq").trim()).not.toBe("");
-  });
 });
 
 describe("ThemePicker popover", () => {

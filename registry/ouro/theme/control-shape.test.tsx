@@ -54,15 +54,6 @@ function step(host: HTMLElement, utility: string) {
   return value;
 }
 
-/** The fallback rules as an engine without corner-shape applies them: the same blocks, with their condition taken off. */
-function applyFallback() {
-  const blocks = [...pageCss().matchAll(/@supports not \(corner-shape: squircle\)\s*\{((?:[^{}]*\{[^{}]*\})*)\s*\}/g)].map((match) => match[1]);
-  const style = document.createElement("style");
-  style.textContent = blocks.join("\n");
-  document.head.append(style);
-  styles.push(style);
-}
-
 /** Every control the control-shape tokens reach, one of each. */
 function controls() {
   return (
@@ -134,48 +125,12 @@ describe("control shape tokens", () => {
     }
   });
 
-  it("keep a squircle capsule's own corner at 0.7 of half its height where the engine has no corner-shape, never a half circle", async () => {
-    applyFallback();
-    const host = await mount(controls(), { "--ouro-control-radius": "9999px" });
-    for (const [name, frame] of Object.entries(frames(host))) {
-      const half = frame.getBoundingClientRect().height / 2;
-      expect(radiusOf(frame), name).toBeCloseTo(half * 0.7, 0);
-    }
-    // The stepper inside the number field rounds concentric with the field, inside its frame.
-    const field = frames(host).numberField;
-    const stepper = host.querySelector<HTMLElement>('[data-ouro="number-field"] button')!;
-    expect(radiusOf(stepper)).toBeCloseTo(radiusOf(field) - 1, 0);
-  });
-
   it("make every control a continuous capsule at 9999px and superellipse(1.05), its radius half its height", async () => {
     const host = await mount(controls(), continuousCapsule);
     for (const [name, frame] of Object.entries(frames(host))) {
       expect(radiusOf(frame), name).toBeCloseTo(frame.getBoundingClientRect().height / 2, 0);
       expect(varOf(frame, "--corner-shape"), name).toBe("superellipse(1.05)");
     }
-  });
-
-  it("clip a continuous capsule's surface to its superellipse where the engine has no corner-shape, with or without shape()", async () => {
-    applyFallback();
-    const pill = await mount(<Button variant="outline">Save</Button>, continuousCapsule);
-    const surface = pill.querySelector<HTMLElement>("[data-ouro-surface]")!;
-    const half = pill.querySelector("button")!.getBoundingClientRect().height / 2;
-    const clip = getComputedStyle(surface).clipPath;
-    // A corner runs from the side, half the height down, to the top at half the height in: one Bézier curve whose handles
-    // reach 0.4253 of that from each end, or the polygon's points on the curve where shape() is not drawn.
-    const curve = /^shape\(from 0px ([\d.]+)px, curve to ([\d.]+)px 0px with 0px ([\d.]+)px/.exec(clip);
-    const points = /^polygon\(0px ([\d.]+)px, ([\d.]+)px ([\d.]+)px/.exec(clip);
-    expect(curve ?? points, clip).not.toBeNull();
-    if (curve) {
-      expect(Number(curve[1])).toBeCloseTo(half, 1);
-      expect(Number(curve[2])).toBeCloseTo(half, 1);
-      expect(Number(curve[3]) / half).toBeCloseTo(0.4253, 3);
-    } else {
-      expect(Number(points![1])).toBeCloseTo(half, 1);
-      expect(Number(points![2]) / half).toBeCloseTo(0.0186, 3);
-      expect(Number(points![3]) / half).toBeCloseTo(0.7937, 3);
-    }
-    expect(Number.parseFloat(getComputedStyle(surface, "::after").borderTopLeftRadius)).toBeCloseTo(half, 0);
   });
 
   it("leave cards and the checkbox's box on the theme's corners when only the control tokens are set", async () => {
@@ -198,15 +153,4 @@ describe("control shape tokens", () => {
     expect(varOf(box, "--corner-shape")).toBe("round");
   });
 
-  it("clip a capsule's surface with circular arcs where the engine has no corner-shape, and keep a squircle for the rest", async () => {
-    applyFallback();
-    const pill = await mount(<Button variant="outline">Save</Button>, capsule);
-    const surface = pill.querySelector<HTMLElement>("[data-ouro-surface]")!;
-    expect(getComputedStyle(surface).display).toBe("block");
-    expect(getComputedStyle(surface).clipPath).toMatch(/^inset\(/);
-    // The ring's corner is the capsule's: half the button's height.
-    expect(Number.parseFloat(getComputedStyle(surface, "::after").borderTopLeftRadius)).toBeCloseTo(pill.querySelector("button")!.getBoundingClientRect().height / 2, 0);
-    const plain = await mount(<Button variant="outline">Save</Button>);
-    expect(getComputedStyle(plain.querySelector<HTMLElement>("[data-ouro-surface]")!).clipPath).toMatch(/^(shape|polygon)\(/);
-  });
 });

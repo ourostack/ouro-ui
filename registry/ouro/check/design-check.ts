@@ -38,8 +38,8 @@ import type { PageIssue } from "./size-check.ts";
 //                      at (a title's span may set it)
 //
 //   squircle-missing  in an engine without corner-shape (WebKit's WKWebView), a drawn surface (a fill, a frame or a
-//                      picture) rounded under half its size by a plain circular radius, neither clipped to a squircle
-//                      (data-ouro-squircle) nor drawn by the polyfill (data-hyperellipse-host). Circles and capsules,
+//                      picture) rounded under half its size by a plain circular radius, not clipped to a squircle
+//                      (the squircleCorners() build step does that). Circles and capsules,
 //                      whose ends are round by design, and corners under `squirclePx` are no finding
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
@@ -613,8 +613,8 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const radius = Math.max(...([s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius]).map((value) => {
       return value.endsWith("%") ? (parseFloat(value) / 100) * 2 * half : px(value);
     }));
-    if (radius < squirclePx || radius >= half - 0.5 || s.clipPath !== "none" || el.closest("[data-ouro-squircle], [data-hyperellipse-host]") || optedOut(el, "squircle-missing") || !filled(el)) continue;
-    issues.push({ ref: ref(el), rule: "squircle-missing", element: `${describe(el)}${quoted(el)}`, detail: `${Math.round(radius)}px plain circular radius on a ${Math.round(box.width)}x${Math.round(box.height)} surface, in an engine without corner-shape: clip it to a squircle (data-ouro-squircle) or register the polyfill (registerSquirclePolyfill)` });
+    if (radius < squirclePx || radius >= half - 0.5 || s.clipPath !== "none" || optedOut(el, "squircle-missing") || !filled(el)) continue;
+    issues.push({ ref: ref(el), rule: "squircle-missing", element: `${describe(el)}${quoted(el)}`, detail: `${Math.round(radius)}px plain circular radius on a ${Math.round(box.width)}x${Math.round(box.height)} surface, in an engine without corner-shape: add squircleCorners() to your build's PostCSS plugins, or clip the surface to a squircle with clip-path` });
   }
   return issues;
 }

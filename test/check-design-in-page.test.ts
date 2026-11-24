@@ -475,13 +475,11 @@ describe("findDesignIssues: squircle-missing", () => {
       <div style="background:#e8eefc;border-radius:50%;width:60px;height:60px">Disc</div>
       <div style="border-radius:16px;width:200px;height:100px">Unpainted</div>
       <div style="background:#e8eefc;border-radius:16px;width:200px;height:100px;clip-path:inset(0 round 16px)">Clipped</div>
-      <div data-ouro-squircle style="background:#e8eefc;border-radius:16px;width:200px;height:100px"><span data-ouro-surface style="display:block;background:#e8eefc;border-radius:16px;width:100px;height:50px">Slot</span></div>
-      <div data-hyperellipse-host="layer" style="background:#e8eefc;border-radius:16px;width:200px;height:100px">Polyfilled</div>
       <div data-ouro-allow="squircle-missing" data-ouro-allow-why="a deliberate circle arc" style="background:#e8eefc;border-radius:16px;width:200px;height:100px">Allowed</div>`);
     expect(of("squircle-missing", { cornerShape: false }).map(({ element, detail }) => [element, detail])).toEqual([
-      ['div#card "Card"', "16px plain circular radius on a 200x100 surface, in an engine without corner-shape: clip it to a squircle (data-ouro-squircle) or register the polyfill (registerSquirclePolyfill)"],
-      ['div#percent "Percent"', "10px plain circular radius on a 200x100 surface, in an engine without corner-shape: clip it to a squircle (data-ouro-squircle) or register the polyfill (registerSquirclePolyfill)"],
-      ['div "Frame"', "12px plain circular radius on a 200x100 surface, in an engine without corner-shape: clip it to a squircle (data-ouro-squircle) or register the polyfill (registerSquirclePolyfill)"],
+      ['div#card "Card"', "16px plain circular radius on a 200x100 surface, in an engine without corner-shape: add squircleCorners() to your build's PostCSS plugins, or clip the surface to a squircle with clip-path"],
+      ['div#percent "Percent"', "10px plain circular radius on a 200x100 surface, in an engine without corner-shape: add squircleCorners() to your build's PostCSS plugins, or clip the surface to a squircle with clip-path"],
+      ['div "Frame"', "12px plain circular radius on a 200x100 surface, in an engine without corner-shape: add squircleCorners() to your build's PostCSS plugins, or clip the surface to a squircle with clip-path"],
     ]);
     expect(of("squircle-missing", { cornerShape: true })).toEqual([]);
   });

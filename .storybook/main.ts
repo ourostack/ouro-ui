@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
+import { squircleCorners } from "../registry/ouro/lib/ouro/squircle-corners.ts";
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
@@ -17,6 +18,7 @@ const config: StorybookConfig = {
       ...viteConfig,
       resolve: { ...viteConfig.resolve, alias: { ...viteConfig.resolve?.alias, "@": fileURLToPath(new URL("..", import.meta.url)) } },
       plugins: [...(viteConfig.plugins ?? []), tailwindcss()],
+      css: { ...viteConfig.css, postcss: { plugins: [squircleCorners()] } },
       server: {
         ...viteConfig.server,
         watch: { ...viteConfig.server?.watch, ignored: [...ignored, "**/.tmp/**", "**/test-results/**", "**/playwright-report/**"] },

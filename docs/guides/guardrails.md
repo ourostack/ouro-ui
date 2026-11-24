@@ -235,7 +235,7 @@ The check also holds pages to design rules that measurement can decide, after Re
 | `shadow-scale` | More than 5 different shadows on a page.[^check-design] |
 | `grey-on-colour` | Grey text on a coloured background, which reads washed out: use a shade of the background's own hue.[^check-design] |
 | `heading-hierarchy` | A heading drawn larger than the heading of higher rank it sits under, each at the largest size its text is drawn at.[^check-design] |
-| `squircle-missing` | In an engine without `corner-shape` (an app's WKWebView; run `--engine wkwebview`), a drawn surface rounded under half its size by a plain circular radius, neither clipped to a squircle nor drawn by the polyfill.[^check-design] |
+| `squircle-missing` | In an engine without `corner-shape` (an app's WKWebView; run `--engine webkit`), a drawn surface rounded under half its size by a plain circular radius and not clipped to a squircle; add `squircleCorners()` to the build's PostCSS plugins.[^check-design] |
 | `https` | For a site on the web, once a run: `http://` that doesn't answer with a 301 or 308 to `https://`, an `https://` with no `Strict-Transport-Security` of a year or more, or a bare name's `www.` twin (or a `www.` site's bare name) that moves anywhere but to `https://` or doesn't answer over HTTPS.[^check-https] Local addresses are left out.[^check-https] |
 
 `blurry-image` covers videos too: a video drawn larger than its frames at the screen's density.[^check-video]

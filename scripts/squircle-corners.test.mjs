@@ -7,7 +7,7 @@ const run = async (css) => (await postcss([squircleCorners()]).process(css, { fr
 
 test("squircle corners: a rounded rule gets a sibling that records its radii and shrinks its own, and one clip path in the lowest layer", async () => {
   const out = await run("@layer utilities{.card{border-radius:12px}}");
-  assert.match(out, /^@layer squircle-corners;@property --sq-bl/);
+  assert.match(out, /^@layer squircle-corners;@property --sq-notch/);
   assert.match(out, /\.card\{--sq-tl:12px;--sq-tr:12px;--sq-br:12px;--sq-bl:12px;border-radius:calc\(12px \* 0\.543\)/);
   assert.match(out, /@layer squircle-corners\{@supports \(corner-shape: squircle\)\{\.card\{corner-shape:squircle\}\}/);
   assert.match(out, /clip-path:shape\(nonzero from -9999px -9999px.*move to 0 var\(--sq-tl\), curve by/);

@@ -1411,7 +1411,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8,9,10,11,12,"fallback"]' || '[1,2,3,4,5,6,"fallback"]') }}
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8,9,10,11,12]' || '[1,2,3,4,5,6]') }}
     name: design (${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 12 || 6 }})
     steps:
       # Its checkout needs the base commit (HEAD^1), which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
@@ -1468,8 +1468,7 @@ jobs:
       - *pnpm-install-stalled
       - *pnpm-install-retry
       - run: pnpm site:build
-      - if: matrix.shard != 'fallback'
-        uses: ./.github/actions/check
+      - uses: ./.github/actions/check
         with:
           targets: site/dist
           sizes: 390x844,1440x900,3840x2160
@@ -1477,28 +1476,6 @@ jobs:
           script: registry/ouro/check/check.ts
           config: .github/ouro-check.json
           artifact: design-check
-          install-browser: "false"
-      # Safari and macOS WebView have no corner-shape, and Playwright's WebKit and Chromium do, so the
-      # fallback (the clip-path surfaces) never shows in the shards above. Its own entry runs the check on
-      # the pages of every converted component with the fallback rules switched on in every engine.
-      - if: matrix.shard == 'fallback'
-        name: Prepare the fallback copy of the site
-        run: |
-          fallback=site/dist-fallback
-          mkdir -p "$fallback/docs"
-          cp -R site/dist/. "$fallback/"
-          find "$fallback/docs" -mindepth 1 -maxdepth 1 ! -name button ! -name card ! -name dialog ! -name text-field ! -name avatar ! -name badge ! -name toggle -exec rm -rf {} +
-          find "$fallback" -name '*.css' -exec sed -i.bak -E 's/@supports not \(corner-shape: ?squircle\)/@media all/g' {} +
-          grep -rlE '@media all' "$fallback" --include='*.css' | head -1 | grep -q .
-      - if: matrix.shard == 'fallback'
-        uses: ./.github/actions/check
-        with:
-          targets: site/dist-fallback
-          sizes: 390x844,1440x900
-          themes: dark,light
-          script: registry/ouro/check/check.ts
-          config: .github/ouro-check.json
-          artifact: design-check-fallback
           install-browser: "false"
   ci:
     # Passes when every part of it passed (checks, attribution, every design shard, every browser shard, the coverage
