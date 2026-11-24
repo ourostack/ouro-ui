@@ -126,7 +126,7 @@ function findTransitionFaults(trace: TransitionTrace): TransitionFault[] {
     const series = stepped.map((f) => f[id]);
     const present = series.filter((s): s is Reading => !!s);
     const whole = present.length === series.length;
-    const add = (rule: TransitionFault["rule"], detail: string) => found.push({ id, rule, element, detail });
+    const add = (rule: TransitionFault["rule"], detail: string) => void (found.some((f) => f.id === id && f.rule === rule) || found.push({ id, rule, element, detail }));
     for (const [edge, label] of [[0, "left edge"], [1, "top edge"], [2, "right edge"], [3, "bottom edge"]] as const) {
       const pts = present.map((s) => s[edge]);
       const net = pts[pts.length - 1]! - pts[0]!;

@@ -741,8 +741,10 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   // press that starts a navigation counts as leaving the page, even before the address changes: the page opens again
   // and that control's presses end. The finding is the presses' 75th percentile, so one slow press on a busy machine
   // does not make one; its photograph is the page after the presses.
+  const leaves = new Set<number>();
   const press = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
+    leaves.clear();
     let at = page.url();
     // Counts the navigations the page's main frame requests, which a press starts before the address changes.
     let navigations = 0;
@@ -770,6 +772,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
           } catch (problem) {
             // A navigation that committed before the listener saw its request ends the page's context, so the press left.
             if (!/Execution context was destroyed|navigat/i.test((problem as Error).message)) throw problem;
+            leaves.add(i);
             await reopen();
             break;
           }
@@ -782,6 +785,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
           const ms = await page.evaluate(interactionSince, since).catch(() => 0);
           await page.keyboard.press("Escape");
           if (navigations !== requested || page.url() !== at) {
+            leaves.add(i);
             await reopen();
             break;
           }
@@ -809,6 +813,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     const list = () => page.evaluate(markPressables, { limit: config.pressLimit ?? MAX_PRESSES, press: [...(config.press ?? []), ...(config.pressAll ? [AUTO_PRESS] : [])], never: NEVER_PRESS });
     const total = (await list()).length;
     for (let i = 0; i < total; i++) {
+      // A control whose press left the page has no transition to step.
+      if (leaves.has(i)) continue;
       for (const stepped of [true, false]) {
         await reach(page, target);
         const { ref, element } = (await list())[i]!;
