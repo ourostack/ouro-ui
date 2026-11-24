@@ -373,10 +373,9 @@ const BUDGETS: Budgets = Object.freeze({ inp: 200, "layout-shift": 0.1, "first-c
 let motionQueue: Promise<unknown> = Promise.resolve();
 const measureMotion = <T,>(task: () => Promise<T>): Promise<T> => {
   const run = motionQueue.then(task);
-  motionQueue = run.then(
-    () => undefined,
-    () => undefined,
-  );
+  // allSettled's one callback runs whether run resolves or rejects, so the next measurement waits either way
+  // without a second, rejection-only function that a passing suite would never call.
+  motionQueue = Promise.allSettled([run]).then(() => undefined);
   return run;
 };
 const MAX_FORCED = 50;
