@@ -68,6 +68,16 @@ describe("the calendar page", () => {
     await expect.poll(eventTitles).toBe(before);
   });
 
+  it.each(["light", "dark"] as const)("passes the accessibility scan in the week view on a phone in %s", async (scheme) => {
+    setScheme(scheme);
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("radio", { name: /Work week/ }).click();
+    await expect.element(page.getByRole("radio", { name: /Work week/ })).toBeChecked();
+    const violations = await scan();
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, pageScanTimeout);
+
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
     setScheme(scheme);
     await renderPage("/docs/calendar-demo/");
