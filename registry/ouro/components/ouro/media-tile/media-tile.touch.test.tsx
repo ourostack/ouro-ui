@@ -47,7 +47,8 @@ describe("MediaTile on a touch screen", () => {
     const box = pin.getBoundingClientRect();
     const x = box.left + box.width / 2;
     const y = box.top + box.height / 2;
-    for (const [dx, dy] of [[20, 0], [-20, 0], [0, 20], [0, -20]]) {
+    const offsets: [number, number][] = [[20, 0], [-20, 0], [0, 20], [0, -20]];
+    for (const [dx, dy] of offsets) {
       expect(pin.contains(document.elementFromPoint(x + dx, y + dy)), `${dx},${dy}`).toBe(true);
     }
   });
