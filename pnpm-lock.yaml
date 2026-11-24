@@ -140,6 +140,9 @@ importers:
       playwright:
         specifier: 1.65.0
         version: 1.65.0
+      playwright-core-chromium-floor:
+        specifier: npm:playwright-core@1.65.0
+        version: playwright-core@1.65.0
       postcss:
         specifier: 8.5.28
         version: 8.5.28

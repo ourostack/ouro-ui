@@ -311,9 +311,9 @@ export const SCENES: Record<SceneName, Scene> = {
     alt: "In a pear orchard, a pink robot leads a carousel horse by a rope hackamore, and Ouro sits in the saddle.",
     sky: ["#dfb970","#f5ddb0","#f3dcc2","#e1cbb3","#957a41"],
     height: 576,
-    phoneHeight: 512,
+    phoneHeight: 480,
     band: 50,
-    night: { phoneHeight: 512 },
+    night: { phoneHeight: 480 },
   },
 };
 
