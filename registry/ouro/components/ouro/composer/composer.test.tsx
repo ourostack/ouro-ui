@@ -1366,7 +1366,7 @@ describe("Composer expanded motion", () => {
   });
 
   it("clips and fades the box in over a moment, and only fades the toolbar in with reduced motion", async () => {
-    const { root } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const { root } = await render(<Composer label="Reply" defaultExpanded={false} toolbar={<span>Tools</span>} onSend={() => {}} />);
     const toolbar = () => root.querySelector<HTMLElement>('[data-ouro-part="toolbar"]')!;
     const fast = token("--ouro-duration-fast");
     const slow = token("--ouro-duration-slow");
@@ -1391,7 +1391,7 @@ describe("Composer expanded motion", () => {
   });
 
   it("only fades the toolbar in with reduced motion, and clips nothing", async () => {
-    const { root, frame } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const { root, frame } = await render(<Composer label="Reply" defaultExpanded={false} toolbar={<span>Tools</span>} onSend={() => {}} />);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     try {
       await userEvent.click(expandButton()!);
