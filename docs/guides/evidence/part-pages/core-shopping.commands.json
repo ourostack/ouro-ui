@@ -1,0 +1,120 @@
+{
+  "generator": "ouro-actions 1.12.0",
+  "set": "shopping",
+  "tool": "shop",
+  "commands": [
+    {
+      "name": "list show",
+      "summary": "Read the person's shopping list: each item's id, name, quantity, unit and whether it is checked.",
+      "effect": "private",
+      "readOnly": true,
+      "args": [
+        {
+          "name": "sort",
+          "description": "How to order the items.",
+          "values": [
+            "added",
+            "name"
+          ],
+          "default": "added"
+        },
+        {
+          "name": "store",
+          "description": "Only the items for this store, by its name; every store when left out."
+        }
+      ],
+      "flags": {
+        "show": {
+          "type": "enum",
+          "description": "Which items to list; all of them when left out.",
+          "values": [
+            "all",
+            "unchecked"
+          ]
+        },
+        "limit": {
+          "type": "number",
+          "description": "The most items to list.",
+          "min": 1,
+          "max": 100,
+          "default": 50
+        }
+      },
+      "output": "{ items }"
+    },
+    {
+      "name": "list add",
+      "summary": "Add one item to the person's shopping list. Give the name as the person said it; leave quantity and unit out when they gave none.",
+      "effect": "private",
+      "args": [
+        {
+          "name": "name",
+          "description": "What to buy, as the person said it, such as \"oat milk\".",
+          "required": true
+        }
+      ],
+      "flags": {
+        "quantity": {
+          "type": "number",
+          "description": "How many or how much.",
+          "min": 0
+        },
+        "unit": {
+          "type": "string",
+          "description": "The unit of the quantity, such as g, cups or cans."
+        },
+        "idempotency-key": {
+          "type": "string",
+          "description": "Send the same key again when retrying this exact call, and the item is added once."
+        }
+      },
+      "output": "{ id, name }"
+    },
+    {
+      "name": "list remove",
+      "summary": "Remove one item from the person's shopping list by its id. Removing an item that is already gone changes nothing.",
+      "effect": "private",
+      "args": [
+        {
+          "name": "id",
+          "description": "The item's id, from get_shopping_list.",
+          "required": true
+        }
+      ],
+      "flags": {
+        "also-ids": {
+          "type": "string",
+          "description": "More item ids to remove in the same call, as JSON."
+        }
+      }
+    },
+    {
+      "name": "list share",
+      "summary": "Share the person's shopping list with another person, who can then see and change it.",
+      "effect": "others",
+      "args": [
+        {
+          "name": "with",
+          "description": "The email address of the person to share with.",
+          "required": true
+        }
+      ],
+      "flags": {
+        "can-edit": {
+          "type": "boolean",
+          "description": "Whether they may change the list, not only see it."
+        },
+        "message": {
+          "type": "string",
+          "description": "A note to send with the invitation. It may run over several lines."
+        }
+      }
+    }
+  ],
+  "personOnly": {
+    "list order": {
+      "reason": "You can't place an order or pay for the person; only they can.",
+      "how": "with Place order on the shopping list"
+    }
+  }
+}

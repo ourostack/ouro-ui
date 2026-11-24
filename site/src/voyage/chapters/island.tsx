@@ -186,6 +186,11 @@ export const AppleReinsIsland = island("apple-reins", () => import("../../apple/
 export const AdoptionIsland = island("adoption", () => import("../../adoption/adoption"));
 /** Ouro Current (current/): its list and page load only on /current/. */
 export const CurrentIsland = island("current", () => import("../../current/current"));
+/** The part pages (parts/): each loads only on its own page. */
+export const ActionsIsland = island("actions", () => import("../../parts/actions"));
+export const ComposedUiIsland = island("composed-ui", () => import("../../parts/composed-ui"));
+export const XrayIsland = island("xray", () => import("../../parts/xray"));
+export const HackamoreIsland = island("hackamore", () => import("../../parts/hackamore"));
 export const AppleStartIsland = island("apple-start", () => import("../../apple/start"));
 /** Proof (proof/): the benchmark, the Errand's transcripts and the rest load only on /proof/. */
 export const ProofIsland = island("proof", () => import("../../proof/proof"));
