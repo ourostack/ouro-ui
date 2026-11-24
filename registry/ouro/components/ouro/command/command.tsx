@@ -772,8 +772,9 @@ export function Command(props: CommandProps): JSX.Element {
   };
 
   // The recents row: the chip that holds focus (-1 while focus is in the search), walked from the keyboard.
-  // Each chip's ref is always set before it can be focused, so every ref access below is known non-null.
-  const chips = useRef<(HTMLButtonElement | null)[]>(new Array(recents?.length ?? 0).fill(null));
+  // Each chip's ref callback (below) fills this array by index before any focus() call can read it, so
+  // the initial array holds nothing and every ref access below is known non-null.
+  const chips = useRef<(HTMLButtonElement | null)[]>([]);
   const [chip, setChip] = useState(0);
   const showRecents = recents !== undefined && recents.length > 0 && query === "";
   const enterChips = (event: KeyboardEvent<HTMLElement>) => {
