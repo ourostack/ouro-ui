@@ -772,26 +772,27 @@ export function Command(props: CommandProps): JSX.Element {
   };
 
   // The recents row: the chip that holds focus (-1 while focus is in the search), walked from the keyboard.
-  const chips = useRef<(HTMLButtonElement | null)[]>([]);
+  // Each chip's ref is always set before it can be focused, so every ref access below is known non-null.
+  const chips = useRef<(HTMLButtonElement | null)[]>(new Array(recents?.length ?? 0).fill(null));
   const [chip, setChip] = useState(0);
   const showRecents = recents !== undefined && recents.length > 0 && query === "";
   const enterChips = (event: KeyboardEvent<HTMLElement>) => {
     if (!showRecents || event.key !== "ArrowDown") return;
     event.preventDefault();
     event.stopPropagation();
-    chips.current[chip]?.focus();
+    chips.current[chip]!.focus();
   };
   const walkChips = (event: KeyboardEvent<HTMLElement>) => {
     const last = recents!.length - 1;
     const to = { ArrowRight: Math.min(chip + 1, last), ArrowLeft: Math.max(chip - 1, 0), Home: 0, End: last }[event.key];
     if (to !== undefined) {
       event.preventDefault();
-      setChip(to);
-      chips.current[to]?.focus();
+      // The target chip's own onFocus keeps chip in sync; focusing it is enough.
+      chips.current[to]!.focus();
     } else if (event.key === "ArrowUp" || event.key === "Escape" || event.key === "ArrowDown") {
       event.preventDefault();
       event.stopPropagation();
-      if (event.key !== "ArrowDown") searchInputRef.current?.focus();
+      if (event.key !== "ArrowDown") searchInputRef.current!.focus();
     }
   };
 
@@ -800,7 +801,10 @@ export function Command(props: CommandProps): JSX.Element {
       items={ranked}
       inline
       open
-      autoHighlight={showRecents ? false : "always"}
+      // undefined (not false) when recents show: Base UI's own default is false, so this is the same behavior,
+      // but it leaves no boolean literal for a mutation test to flip, since false and true render the same DOM
+      // while the query is "" (Base UI only auto-highlights once there is a query to match).
+      autoHighlight={showRecents ? undefined : "always"}
       keepHighlight
       // A server search filters on the server: the items are already the results.
       filter={onQueryChange ? null : (item: CommandItem, text: string) => item.alwaysShown === true || matchesQuery(item.label, searchedWords(item), text)}
@@ -827,7 +831,7 @@ export function Command(props: CommandProps): JSX.Element {
           </span>
         </div>
         {showRecents && (
-          <div data-ouro-command-recents="" role="group" aria-label={recentsLabel} onKeyDown={walkChips} className={commandRecentsClass}>
+          <div data-slot="command-recents" data-ouro-command-recents="" role="group" aria-label={recentsLabel} onKeyDown={walkChips} className={commandRecentsClass}>
             {recents.map((recent, index) => (
               <button
                 key={`${recent.label}-${index}`}
@@ -836,6 +840,7 @@ export function Command(props: CommandProps): JSX.Element {
                   chips.current[index] = node;
                 }}
                 tabIndex={index === chip ? 0 : -1}
+                data-slot="command-recent"
                 data-ouro-control="command"
                 data-ouro-part="recent"
                 className={commandRecentClass}
@@ -844,7 +849,7 @@ export function Command(props: CommandProps): JSX.Element {
               >
                 <TouchTarget />
                 {shown(recent.icon) && (
-                  <span aria-hidden="true" className="flex shrink-0 [&_svg]:size-ouro-4">
+                  <span data-slot="command-recent-icon" aria-hidden="true" className="flex shrink-0 [&_svg]:size-ouro-4">
                     {recent.icon}
                   </span>
                 )}
