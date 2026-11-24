@@ -1376,11 +1376,15 @@ describe("Composer expanded motion", () => {
         await userEvent.click(expandButton()!);
         if (reduced) {
           expect(getComputedStyle(frameOf(root)).clipPath).toBe("none");
-          await expectNoMotion(frameOf(root), { stem: "composer", state: "data-expanded", reduced });
-          await expectMotion(toolbar(), { stem: "composer", state: "data-expanded", properties: { opacity: fast }, reduced });
+          await Promise.all([
+            expectNoMotion(frameOf(root), { stem: "composer", state: "data-expanded", reduced }),
+            expectMotion(toolbar(), { stem: "composer", state: "data-expanded", properties: { opacity: fast }, reduced }),
+          ]);
         } else {
-          await expectMotion(frameOf(root), { stem: "composer", state: "data-expanded", properties: { "clip-path": slow }, reduced });
-          await expectMotion(toolbar(), { stem: "composer", state: "data-expanded", properties: { opacity: slow, transform: slow }, reduced });
+          await Promise.all([
+            expectMotion(frameOf(root), { stem: "composer", state: "data-expanded", properties: { "clip-path": slow }, reduced }),
+            expectMotion(toolbar(), { stem: "composer", state: "data-expanded", properties: { opacity: slow, transform: slow }, reduced }),
+          ]);
         }
         await userEvent.click(expandButton()!);
         await expect.poll(() => frameOf(root).hasAttribute("data-ouro-moving")).toBe(false);
