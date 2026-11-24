@@ -63,7 +63,11 @@ interface DesignOptions {
   lineGapPx?: number;
   /** How far, in pixels, a count badge's numerals may sit from its middle. */
   badgeSlackPx?: number;
-  /** How far, in pixels, one line of a control's words may sit from its middle, by its cap height. */
+  /**
+   * How far, in pixels, one line of a control's words may sit from its middle, by its cap height. The default passes a
+   * font whose line box sits a little off its cap height, as shadcn's nova preset does, so the rule
+   * names a layout that pushes words off, such as a bottom-aligned row.
+   */
   textSlackPx?: number;
   /** The limit on a page's text sizes and font weights. */
   maxSizes?: number;
@@ -101,7 +105,7 @@ interface CornerReading {
   corners: string[];
 }
 
-function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 1.25 }: DesignOptions = {}): PageIssue[] {
+function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 2.5 }: DesignOptions = {}): PageIssue[] {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
