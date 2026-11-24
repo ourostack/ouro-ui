@@ -403,13 +403,13 @@
     "status": 200,
     "checked": "2026-11-20"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml": {
-    "status": 200,
-    "checked": "2026-11-19"
-  },
   "https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96": {
     "status": 200,
     "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml": {
+    "status": 200,
+    "checked": "2026-11-19"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Sources/OuroA2UI/ComposedSurface.swift": {
     "status": 200,
@@ -463,10 +463,6 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md": {
-    "status": 200,
-    "checked": "2026-11-18"
-  },
   "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#L26": {
     "status": 200,
     "checked": "2026-11-19"
@@ -478,6 +474,10 @@
   "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#L330": {
     "status": 200,
     "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md": {
+    "status": 200,
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0": {
     "status": 200,
@@ -607,19 +607,19 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/guides/a2ui.md": {
-    "status": 200,
-    "checked": "2026-11-20"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/guides/a2ui.md#1-vendor-the-files": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts": {
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/guides/a2ui.md": {
+    "status": 200,
+    "checked": "2026-11-20"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130": {
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -659,13 +659,13 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md": {
-    "status": 200,
-    "checked": "2026-11-18"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md#L20": {
     "status": 200,
     "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md": {
+    "status": 200,
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/fdbbd24ecb91929f4a090552db3b66d4a51a90a3/tokens/ouro.tokens.json": {
     "status": 200,
@@ -838,6 +838,10 @@
   "https://github.com/ourostack/ouro-ui/pull/2496": {
     "status": 200,
     "checked": "2026-11-20"
+  },
+  "https://github.com/ourostack/ouro-ui/pull/3494": {
+    "status": 200,
+    "checked": "2026-11-24"
   },
   "https://github.com/ourostack/ouro-ui/pull/354": {
     "status": 200,
@@ -1047,6 +1051,10 @@
     "status": 200,
     "checked": "2026-11-17"
   },
+  "https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
   "https://learn.microsoft.com/en-us/windows/ai/app-actions/": {
     "status": 200,
     "checked": "2026-11-19"
@@ -1154,6 +1162,10 @@
   "https://www.apple.com/legal/intellectual-property/guidelinesfor3rdparties.html": {
     "status": 200,
     "checked": "2026-11-04"
+  },
+  "https://www.electronjs.org/docs/latest/tutorial/electron-timelines": {
+    "status": 200,
+    "checked": "2026-11-24"
   },
   "https://www.electronjs.org/docs/latest/tutorial/security": {
     "status": 200,
