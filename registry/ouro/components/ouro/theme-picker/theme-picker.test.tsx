@@ -341,10 +341,10 @@ describe("ThemePicker", () => {
     const abyss = option(el, "abyss");
     expect(abyss.getAttribute("aria-label")).toBe("Abyss");
     expect(abyss.textContent).toBe("Abyss");
-    const name = tile(abyss).children[1] as HTMLElement;
+    const name = tile(abyss).children[0] as HTMLElement;
     expect(getComputedStyle(name).fontFamily).toContain("monospace");
     expect(getComputedStyle(name).fontSizeAdjust).toMatch(/0\.53/);
-    const square = tile(abyss).children[2] as HTMLElement;
+    const square = tile(abyss).children[1] as HTMLElement;
     expect(getComputedStyle(square).backgroundColor).toBe("rgb(15, 118, 110)");
   });
 
@@ -362,8 +362,8 @@ describe("ThemePicker", () => {
     document.head.append(wordmark);
     try {
       const el = await render(<ThemePicker presets={presets} />);
-      expect(getComputedStyle(tile(option(el, "abyss")).children[1]!).fontFamily).toBe("fantasy");
-      expect(getComputedStyle(tile(option(el, "pearl")).children[1]!).fontFamily).toContain("sans-serif");
+      expect(getComputedStyle(tile(option(el, "abyss")).children[0]!).fontFamily).toBe("fantasy");
+      expect(getComputedStyle(tile(option(el, "pearl")).children[0]!).fontFamily).toContain("sans-serif");
     } finally {
       wordmark.remove();
     }
