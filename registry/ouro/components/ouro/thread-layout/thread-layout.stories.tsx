@@ -50,7 +50,12 @@ function Conversation() {
           </Message>
         ))}
       </MessageList>
-      <Composer label="Message the channel" onSend={() => {}} />
+      {/* With a thread open, the conversation pane sits flush against the rail's own border-s: an unwrapped
+          Composer's own end border would land on that same line, so this gives it the same inset the rail's
+          composer gets. */}
+      <div className="border-t border-border p-2">
+        <Composer label="Message the channel" onSend={() => {}} />
+      </div>
     </>
   );
 }
@@ -66,7 +71,9 @@ function Replies() {
           </Message>
         ))}
       </MessageList>
-      <Composer label="Reply in thread" onSend={() => {}} />
+      <div className="border-t border-border p-2">
+        <Composer label="Reply in thread" onSend={() => {}} />
+      </div>
     </>
   );
 }

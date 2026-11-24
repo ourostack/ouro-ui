@@ -187,3 +187,11 @@ export const AdoptionIsland = island("adoption", () => import("../../adoption/ad
 /** Ouro Current (current/): its list and page load only on /current/. */
 export const CurrentIsland = island("current", () => import("../../current/current"));
 export const AppleStartIsland = island("apple-start", () => import("../../apple/start"));
+/** Proof (proof/): the benchmark, the Errand's transcripts and the rest load only on /proof/. */
+export const ProofIsland = island("proof", () => import("../../proof/proof"));
+// The platform pages beside Apple's: Ouro HX on every platform, and Windows' and Android's own.
+export const HxIsland = island("hx", () => import("../../hx/hx"));
+export const WindowsHomeIsland = island("windows-home", () => import("../../platforms/windows"));
+export const WindowsStartIsland = island("windows-start", () => import("../../platforms/windows-start"));
+export const AndroidHomeIsland = island("android-home", () => import("../../platforms/android"));
+export const AndroidStartIsland = island("android-start", () => import("../../platforms/android-start"));

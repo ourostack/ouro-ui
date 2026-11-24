@@ -44,7 +44,9 @@ function Thread() {
           </Message>
         ))}
       </MessageList>
-      <Composer label="Reply in thread" onSend={() => {}} />
+      <div className="border-t border-border p-2">
+        <Composer label="Reply in thread" onSend={() => {}} />
+      </div>
     </>
   );
 }

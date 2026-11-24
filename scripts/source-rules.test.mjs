@@ -208,6 +208,7 @@ test("needsClientDirective finds hooks in other modules, also under another name
   assert.equal(lib("import { Component } from 'react';\nexport class A extends Component {}\n"), true);
   assert.equal(lib("/** useEffect(() => {}) in a comment */\nexport const cn = () => '';\n"), false);
   assert.equal(lib("import { memo as m } from 'react';\nexport const a = m(() => null);\n"), false);
+  assert.equal(lib("export function a(server) { server.middlewares.use(() => {}); }\n"), false);
 });
 
 test("every runtime registry file that renders or calls hooks starts with \"use client\", so a Next.js Server Component can render it", () => {

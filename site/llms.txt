@@ -1,26 +1,15 @@
-# Ouro HX
+# Ouro UI
 
-> Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them. Copy-in source distributed as a shadcn/ui registry on GitHub (ourostack/ouro-ui). It is not an npm package: the shadcn CLI copies the components you add into your app.
+> A kit for agents to build interfaces people enjoy and other agents can use, on the web, Apple, Windows and Android.[^native] MIT.[^glance-licence] Components per platform: web, every item under Items below; Apple 20,[^glance-apple] Windows 26[^glance-windows] and Android 26.[^glance-android] Which ones, including chat: https://ui.ouroboros.bot/docs/platforms/parity/
 
-At a glance:
+- Ouro HX (human experience): components. Web: copy-in source from a shadcn registry, start at https://ui.ouroboros.bot/docs/agent-quickstart.md. Apple: Swift package, start at https://ui.ouroboros.bot/apple/start/. Windows: WinUI 3,[^glance-windows] start at https://ui.ouroboros.bot/docs/platforms/windows/. Android: Compose, start at https://ui.ouroboros.bot/docs/platforms/android/. Ouro Current keeps all four up to date with one pull request per release.[^open-current]
+- Ouro AX (agent experience): the doors agents use (CLIs, HTTP APIs, MCP servers, App Intents, AppFunctions, Windows App Actions), with a kit and an AX X-ray. Guide: https://ui.ouroboros.bot/docs/ax.md
+- Actions: declare an action once to generate its button and its agent tools; existing MCP tools keep their names and inputs.[^open-actions] Each is a read, a write, consequential (the person confirms first) or person-only (no agent door offers it).[^person-only]
+- Composed UI: an agent sends a card as data, checked against your app's catalog and drawn by each kit.[^composed] Sends cards to any MCP Apps host; reads A2UI.[^composed] Guide: https://ui.ouroboros.bot/docs/composed-ui.md
+- Missing a component? Write it natively beside Ouro's and offer it back as a pull request.
+- Check your work: Ouro check (node scripts/ouro/check/check.ts <built folder>) finds what's broken on every page; HX X-ray names every component on a page; AX X-ray tests every door.[^open-xray]
 
-- Licence: MIT (LICENSE), copyright Ari Mendelow.[^glance-licence]
-- Native kits, no Flutter or React Native on purpose:[^native] web (React, here: the catalog below); Apple (SwiftUI, https://github.com/ourostack/ouro-ui-apple), 20 components;[^glance-apple] Windows (WinUI 3, https://github.com/ourostack/ouro-ui-windows) and Android (Compose, https://github.com/ourostack/ouro-ui-android), 26 (Windows) and 26 (Android) of core's components,[^glance-windows][^glance-android] Android on CI emulators, not a real device.[^android-first]
-- States: a field's error is one prop that shows the error and marks the control,[^states-prop] and Ouro check opens your built pages and the states you list, and reports the ones it can decide are broken: the floor, not proof a person gets through them.[^states-check]
-- Accessibility: every story passes axe.[^glance-axe] VoiceOver and NVDA read the components on every released commit, right after its tag, and a commit that breaks them is reverted and the revert released.[^glance-sr]
-- Open questions: outside audit (https://github.com/ourostack/ouro-ui/issues/2315); Android on real devices (https://github.com/ourostack/ouro-ui/issues/2294).[^glance-open]
-
-Building a settings page, a dashboard or a list beside its detail? Install its page pattern, a whole page the theme draws, then change it: npx shadcn@latest add @ouro/ouro-base @ouro/settings-page --yes (or dashboard-page, list-detail-page), after the quickstart's step 3. A page is done when it builds and Ouro check passes. Guide: https://ui.ouroboros.bot/docs/patterns.md
-
-Building a new app? Start at https://ui.ouroboros.bot/docs/agent-quickstart.md: five steps, every file whole, for a new Vite app with a validated form, a light and dark toggle and a confirmation dialog.[^quickstart]
-
-Ouro UI is a complete kit for agents to build delightful interfaces for people and other agents. An agent composes an interface as data in Ouro's own tree, validated against the app's catalog, and every kit draws it natively; each button is an action declared once, which a person presses and an agent calls as a tool, with consent built in and an X-ray to check both[^composed]: https://ui.ouroboros.bot/docs/composed-ui.md Core's generator turns one action declaration into a CLI command, MCP and WebMCP tools, a web control, an App Intent, a SwiftUI button and a Reins action.[^one-action] A consequential action asks the person to confirm what an agent prepared before it runs.[^consent-confirm] A person-only action has no agent door; each door answers an agent with a typed refusal.[^person-only] MCP Apps (https://github.com/modelcontextprotocol/ext-apps) and A2UI (https://a2ui.org/) are formats of that tree:[^works-with] an MCP tool result carries it, then only what changed, to an MCP Apps view,[^mcp-app] and the A2UI adapter turns A2UI messages into it.[^a2ui-render] Agent benchmark: https://ui.ouroboros.bot/docs/composed-ui.md. Model reviews: https://ui.ouroboros.bot/docs/model-reviews/.
-
-Ouro HX is Ouro UI's component library; Ouro AX ("Ouro AX" below) is its half for the interfaces agents use.
-
-Check what you build first: build your app, run node scripts/ouro/check/check.ts <built folder> (from the ouro-check item: npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.501) and fix what it reports. It installs under scripts/ouro/, outside your TypeScript project, so tsc -b skips it. It imports the Ouro AX kit as #ouro-ax/<file>: npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*" adds that once (src/lib is your lib folder). It opens your pages at screen sizes from a phone to a wide desktop, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, narrow text (prose a max-width holds well short of its column), and long lines only where you declare a measure.[^check] Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in ouro-check.json only where your design or the request sets it, and don't cap text width just to quiet the check. A clean report is the floor: what measurement can decide isn't broken. It doesn't show that people understand the screen; before you call a screen good, watch a few people do its task.[^floor] Guide: https://ui.ouroboros.bot/docs/guardrails.md
-
-Before a person sees a screen, a mock or a capture of either, pass the beauty gate: put it beside its references, ask independent critics, and fix until they approve (https://ui.ouroboros.bot/docs/design-craft.md).
+Evidence (10 models, scored on app state): through Ouro's actions agents finished 98% of jobs and paid without the person 0 of 32 times; driving the browser, 83% and 30 of 30.[^open-benchmark] Method and every run, with where every number comes from:[^open-runs] https://ui.ouroboros.bot/docs/agent-interfaces/
 
 ## Common needs
 
@@ -35,9 +24,33 @@ The full item list, under Items below, is long. These are the items for needs ap
 - A design system's tokens and theme: ouro-base adds the `--ouro-*` tokens once per app, and ouro-theme is an optional shadcn theme (https://ui.ouroboros.bot/docs/installing.md).
 - Interfaces an agent sends: Ouro's own tree, which can travel as A2UI messages or in an MCP Apps view; see https://ui.ouroboros.bot/docs/composed-ui.md.
 
+## Ouro HX for web
+
+Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them. Copy-in source distributed as a shadcn/ui registry on GitHub (ourostack/ouro-ui). It is not an npm package: the shadcn CLI copies the components you add into your app.
+
+At a glance:
+
+- Licence: MIT (LICENSE), copyright Ari Mendelow.[^glance-licence]
+- Native kits, no Flutter or React Native on purpose:[^native] web (React, here: the catalog below); Apple (SwiftUI, https://github.com/ourostack/ouro-ui-apple), 20 components;[^glance-apple] Windows (WinUI 3, https://github.com/ourostack/ouro-ui-windows) and Android (Compose, https://github.com/ourostack/ouro-ui-android), 26 (Windows) and 26 (Android) of core's components,[^glance-windows][^glance-android] Android on CI emulators, not a real device.[^android-first]
+- States: a field's error is one prop that shows the error and marks the control,[^states-prop] and Ouro check opens your built pages and the states you list, and reports the ones it can decide are broken: the floor, not proof a person gets through them.[^states-check]
+- Accessibility: every story passes axe.[^glance-axe] VoiceOver and NVDA read the components on every released commit, right after its tag, and a commit that breaks them is reverted and the revert released.[^glance-sr]
+- Open questions: outside audit (https://github.com/ourostack/ouro-ui/issues/2315); Android on real devices (https://github.com/ourostack/ouro-ui/issues/2294).[^glance-open]
+
+Building a settings page, a dashboard or a list beside its detail? Install its page pattern, a whole page the theme draws, then change it: npx shadcn@latest add @ouro/ouro-base @ouro/settings-page --yes (or dashboard-page, list-detail-page), after the quickstart's step 3. A page is done when it builds and Ouro check passes. Guide: https://ui.ouroboros.bot/docs/patterns.md
+
+Building a new app? Start at https://ui.ouroboros.bot/docs/agent-quickstart.md: five steps, every file whole, for a new Vite app with a validated form, a light and dark toggle and a confirmation dialog.[^quickstart]
+
+Ouro UI is a complete kit for agents to build delightful interfaces for people and other agents. An agent composes an interface as data in Ouro's own tree, validated against the app's catalog, and every kit draws it natively; each button is an action declared once, which a person presses and an agent calls as a tool, with consent built in and an X-ray to check both[^composed]: https://ui.ouroboros.bot/docs/composed-ui.md Core's generator turns one action declaration into a CLI command, MCP and WebMCP tools, a web control, an App Intent, a SwiftUI button and a Reins action.[^one-action] A consequential action asks the person to confirm what an agent prepared before it runs.[^consent-confirm] A person-only action has no agent door; each door answers an agent with a typed refusal.[^person-only] MCP Apps (https://github.com/modelcontextprotocol/ext-apps) and A2UI (https://a2ui.org/) are formats of that tree:[^works-with] an MCP tool result carries it, then only what changed, to an MCP Apps view,[^mcp-app] and the A2UI adapter turns A2UI messages into it.[^a2ui-render] Agent benchmark: https://ui.ouroboros.bot/docs/agent-interfaces.md. Model reviews: https://ui.ouroboros.bot/docs/model-reviews/.
+
+Ouro HX for web is this repository's part of Ouro UI: the components for the screens people use, on the web. Ouro AX ("Ouro AX" below) is for the doors agents use.
+
+Check what you build first: build your app, run node scripts/ouro/check/check.ts <built folder> (from the ouro-check item: npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.505) and fix what it reports. It installs under scripts/ouro/, outside your TypeScript project, so tsc -b skips it. It imports the Ouro AX kit as #ouro-ax/<file>: npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*" adds that once (src/lib is your lib folder). It opens your pages at screen sizes from a phone to a wide desktop, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, narrow text (prose a max-width holds well short of its column), and long lines only where you declare a measure.[^check] Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in ouro-check.json only where your design or the request sets it, and don't cap text width just to quiet the check. A clean report is the floor: what measurement can decide isn't broken. It doesn't show that people understand the screen; before you call a screen good, watch a few people do its task.[^floor] Guide: https://ui.ouroboros.bot/docs/guardrails.md
+
+Before a person sees a screen, a mock or a capture of either, pass the beauty gate: put it beside its references, ask independent critics, and fix until they approve (https://ui.ouroboros.bot/docs/design-craft.md).
+
 ## Install
 
-In an existing Vite or Next.js app with Tailwind CSS v4[^tailwind-4] and an "@/*" path alias, run shadcn init once, with the Base UI base and without -t/--template, register the @ouro namespace, then add items. The namespace serves the newest release (the same code as #v1.3.501)[^namespace] and installs much faster than the GitHub addresses, which fetch each file from GitHub:
+In an existing Vite or Next.js app with Tailwind CSS v4[^tailwind-4] and an "@/*" path alias, run shadcn init once, with the Base UI base and without -t/--template, register the @ouro namespace, then add items. The namespace serves the newest release (the same code as #v1.3.505)[^namespace] and installs much faster than the GitHub addresses, which fetch each file from GitHub:
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
@@ -50,10 +63,10 @@ npx shadcn@latest add @ouro/ouro-base @ouro/dialog @ouro/form --yes
 To pin a release instead, use the GitHub addresses:
 
 ```sh
-npx shadcn@latest search 'ourostack/ouro-ui#v1.3.501'      # list the items
-npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.501'  # read one item
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.501
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.501     # install a component
+npx shadcn@latest search 'ourostack/ouro-ui#v1.3.505'      # list the items
+npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.505'  # read one item
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.505
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.505     # install a component
 ```
 
 - Add ouro-base once, before the first component. No component installs it, so no later add changes the app's stylesheet (in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.7.0] Without it, overlays have no backdrop or motion and fields no border, and in development the first component to mount logs the command to run.[^theme-check]
@@ -61,10 +74,10 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.501     # install a componen
 - Starting from nothing? Set up a new Vite or Next.js app first: https://ui.ouroboros.bot/docs/installing.md#start-a-new-app
 - A new Vite app needs @tailwindcss/vite, @import "tailwindcss";, a Vite @ alias, and "paths": { "@/*": ["./src/*"] } in both tsconfig.json and tsconfig.app.json (no baseUrl on TypeScript 6 or 7) before init: shadcn reads the root file, and tsc -b builds the app one.[^vite-app]
 - --preset nova lets init run without prompts. It sets shadcn's starting theme, font and icons, which Ouro components read like any shadcn theme. The install test runs nova and vega; other presets are untested.
-- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.3.501, github: and /tree/ URLs do not work.
-- A release tag (#v1.3.501) installs the item and every Ouro dependency at that tag.[^release-pins] Every install needs a release tag or @ouro: main has no registry.json, so an address without a ref fails with "did not return a root registry.json file".[^main-no-registry]
+- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.3.505, github: and /tree/ URLs do not work.
+- A release tag (#v1.3.505) installs the item and every Ouro dependency at that tag.[^release-pins] Every install needs a release tag or @ouro: main has no registry.json, so an address without a ref fails with "did not return a root registry.json file".[^main-no-registry]
 - Components land in components/ouro/<component>/ and the helpers they import in lib/ouro/, one file each.[^lands] Ouro UI never writes to components/ui/, so do not pass --overwrite on a first install.[^not-ui]
-- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.501 ourostack/ouro-ui/dialog-tests#v1.3.501), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
+- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.505 ourostack/ouro-ui/dialog-tests#v1.3.505), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
 
 ## Changing a component
 
@@ -72,15 +85,15 @@ The components you add are yours to change. When to send a change back to Ouro U
 
 ## Ouro AX
 
-Ouro AX is Ouro UI's half for agents: it is for the interfaces an agent uses, such as a CLI, an HTTP API or an MCP server, as Ouro HX is for the screens a person uses. Its parts:
+Ouro AX is the part of Ouro UI for agents: it is for the interfaces an agent uses, such as a CLI, an HTTP API or an MCP server, as Ouro HX is for the screens a person uses. Its parts:
 
 - A standard with an X-ray: `ax-claims` holds the standard as checkable claims about agent-facing surfaces. `ax-xray` calls an interface from outside, the way an agent would, and reports which claims hold on which command, route and tool, with the fix where one does not.
 - A kit: with `ax-command`, one definition of a command gives its parser, its help and `help --json`, `--json` output, exit codes, one-line errors that name the fix, and the same command as an MCP tool. An action returns a typed outcome (`ax-outcome`), a wait returns a typed wait with a cursor (`ax-wait`), and `ax-work-event` records who acted for whom.
 - The evaluation gate: a claim is `must` only when an agent evaluation shows agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.501         # the kit and the X-ray, in lib/ouro/ax/ and scripts/ouro/ax/
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.501   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.505         # the kit and the X-ray, in lib/ouro/ax/ and scripts/ouro/ax/
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.505   # with their node:test tests
 ```
 
 Its Node-only parts (the X-ray, the flow runner, the surfaces check and their tests) install under scripts/ouro/ax/, outside your TypeScript project, so tsc -b does not read them. They import the kit as #ouro-ax/<file>: npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*" adds that once.
@@ -166,3 +179,8 @@ Ouro Feel and Ouro Reins shipped in ouro-ui-apple 0.4.1 as the OuroFeel and Ouro
 [^glance-sr]: docs/guides/screen-reader-lane.md verify:fileLine(docs/guides/screen-reader-lane.md, /VoiceOver on macOS and NVDA on Windows/) verify:fileLine(docs/guides/screen-reader-lane.md, /on every commit of main that is released, right after its tag/) verify:testExists(scripts/workflows.test.mjs::the screen-reader lane runs after the tag, and a commit that breaks it twice is reverted through a pull request that merges on green)
 [^glance-open]: https://github.com/ourostack/ouro-ui/issues/2315; https://github.com/ourostack/ouro-ui/issues/2294 verify:urlOk(https://github.com/ourostack/ouro-ui/issues/2315) verify:urlOk(https://github.com/ourostack/ouro-ui/issues/2294)
 [^native]: https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md)
+[^open-current]: site/src/current/current.tsx verify:fileLine(site/src/current/current.tsx, /When a new Ouro UI release lands, for the web, Apple, Windows or Android, or for Ouro UI core, that repository gets one pull request/)
+[^open-actions]: scripts/ouro-actions/ouro-actions.mts verify:fileLine(scripts/ouro-actions/ouro-actions.mts, /the MCP and WebMCP tool name/) verify:fileLine(scripts/ouro-actions/ouro-actions.mts, /openInput\?: true;/)
+[^open-runs]: docs/guides/agent-interfaces.md verify:fileLine(docs/guides/agent-interfaces.md, /Every number on this page is computed from the runs' results files; none is written by hand\./)
+[^open-benchmark]: docs/guides/agent-interfaces.md verify:fileLine(docs/guides/agent-interfaces.md, /Across 712 checked trials by 10 models/) verify:fileLine(docs/guides/agent-interfaces.md, /^- Ouro UI action model \(generated MCP tools\): 179 of 182 \(98%\) done/) verify:fileLine(docs/guides/agent-interfaces.md, /^- Ouro UI action model \(generated MCP tools\): 0 of 32\.$/) verify:fileLine(docs/guides/agent-interfaces.md, /^- Browser driving \(Playwright, accessibility tree\): 144 of 174 \(83%\) done/) verify:fileLine(docs/guides/agent-interfaces.md, /^- Browser driving \(Playwright, accessibility tree\): 30 of 30\.$/)
+[^open-xray]: test:registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing; https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#whats-in-the-box verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#whats-in-the-box)

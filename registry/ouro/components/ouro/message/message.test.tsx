@@ -860,7 +860,7 @@ describe("Message context", () => {
 });
 
 describe("Message chat", () => {
-  it("shows that a wide table or a long line of code in a bubble scrolls sideways, with a fade where it goes on", async () => {
+  it("shows that a wide table or a long line of code in a bubble scrolls sideways", async () => {
     const columns = ["Task", "Owner", "Status", "Due", "Notes"];
     const { message } = await render(
       <Message variant="chat" role="assistant" name="Mara Quill">
@@ -887,16 +887,14 @@ describe("Message chat", () => {
     const viewport = message.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const code = message.querySelector<HTMLElement>('[data-ouro-part="code"]')!;
     for (const box of [viewport, code]) {
-      await expect.poll(() => box.hasAttribute("data-ouro-scroll-fade")).toBe(true);
-      expect(box.scrollWidth).toBeGreaterThan(box.clientWidth);
-      expect(getComputedStyle(box).maskImage).toContain("linear-gradient");
-      expect(box.style.getPropertyValue("--ouro-scroll-fade-left")).toBe("0px");
+      await expect.poll(() => box.scrollWidth > box.clientWidth).toBe(true);
+      expect(getComputedStyle(box).maskImage).toBe("none");
     }
     // The bubble stays inside the list's width, rather than growing to the table's.
     expect(message.getBoundingClientRect().width).toBeLessThanOrEqual(600);
   });
 
-  it("fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with a smaller corner toward its sender", async () => {
+  it("fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with equal corners", async () => {
     const { host } = await render(
       <>
         <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM">
@@ -918,11 +916,12 @@ describe("Message chat", () => {
     expect(own.backgroundColor).toBe(probeColor(host, "var(--primary)"));
     expect(own.color).toBe(probeColor(host, "var(--primary-foreground)"));
     expect(bubbleOf(mine!).getBoundingClientRect().right).toBeGreaterThan(hostBox.right - 2);
-    // Round, with the corner at the bottom toward the sender smaller: the end for the user's own, the start for others'.
+    // A lone bubble has four equal corners, with no sharper tail.
     const radius = (style: CSSStyleDeclaration, corner: string) => Number.parseFloat(style.getPropertyValue(`border-${corner}-radius`));
     expect(radius(own, "top-left")).toBeGreaterThanOrEqual(16);
-    expect(radius(own, "bottom-right")).toBeLessThan(radius(own, "bottom-left"));
-    expect(radius(theirs, "bottom-left")).toBeLessThan(radius(theirs, "bottom-right"));
+    for (const style of [own, theirs]) {
+      for (const corner of ["top-right", "bottom-right", "bottom-left"]) expect(radius(style, corner)).toBe(radius(style, "top-left"));
+    }
   });
 
   it("keeps the primary color readable inside the user's filled bubble: a link or mention in it takes the bubble's text color", async () => {

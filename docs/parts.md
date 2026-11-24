@@ -116,7 +116,7 @@ Each part checks that it sits inside `<DialogRoot>`: outside it, a part throws i
 | `DialogContent` | The dialog's body. It scrolls when the dialog is taller than the screen, and while it overflows it is a tab stop, so a keyboard can scroll it. Its focus ring is drawn over the content, so a header that sticks to the top never hides an edge of it. |
 | `DialogDescription` | A line under the title that describes the dialog. |
 | `DialogFooter` | The actions row. A row at the end on wider screens; on phones the actions stack full width. Put the primary action last, so it sits at the bottom on phones, nearest the thumb. |
-| `DialogPopup` | The dialog panel. It scales up from 0.96 and fades in over 300ms, and scales and fades out in 200ms; reduced motion keeps only the fade. |
+| `DialogPopup` | The dialog panel. It scales up from 0.96 and fades in over `--ouro-dialog-duration` (300ms) on `--ouro-dialog-ease` (the ease-out token), and scales and fades out over `--ouro-dialog-exit-duration` (200ms) on `--ouro-dialog-exit-ease` (the enter easing); the backdrop uses the same four tokens. An app sets them on `:root` to give its dialogs, command palettes and lightboxes their own timing, such as `--ouro-dialog-duration: 320ms` with `--ouro-dialog-exit-duration: 320ms` and `--ouro-dialog-ease: cubic-bezier(0.32, 0.72, 0, 1)`. Reduced motion keeps only the fade. |
 | `DialogPortal` | Moves the dialog to the end of `<body>`, in its own stacking context at the `--ouro-layer` z-index (50 by default, from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the line shadcn wrote; `shadcn add` resets it. Opened from inside a Sheet, it shows above it. |
 | `DialogRoot` | The state owner of a centered dialog built from parts. Use the `Dialog` component instead unless its props cannot express your layout; `Dialog` also becomes a bottom sheet on phones, which parts do not. |
 | `DialogTitle` | The dialog's title, which names it. Every dialog needs one. |
@@ -282,7 +282,7 @@ Each part checks that it sits inside `<TabsRoot>`: outside it, a part throws in 
 
 | Part | What it is |
 | --- | --- |
-| `TabsList` | The row (or column) of tabs. Name it with `aria-label` when the page has more than one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it. A row that scrolls, on a phone, fades out on the side that hides more tabs. A key that moves the selection switches tabs without animation. |
+| `TabsList` | The row (or column) of tabs. Name it with `aria-label` when the page has more than one set of tabs. `activateOnFocus` selects a tab when the arrow keys focus it. A row that overflows scrolls sideways, on a phone. A key that moves the selection switches tabs without animation. |
 | `TabsPanel` | The content shown while the tab with the same `value` is selected. |
 | `TabsRoot` | The state owner of tabs built from parts. Use the `Tabs` component instead unless its `items` cannot express your layout, such as a tab that holds a badge next to its label or a panel shared by two tabs. |
 | `TabsTab` | One tab, a button that shows the panel with the same `value`. |

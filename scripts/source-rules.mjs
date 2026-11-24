@@ -52,10 +52,10 @@
 // compares the comments of each installed file with its source.
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
-import ts from "typescript";
+import * as ts from "./ts71.mts";
 
 const kind = (path) => (path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
-const parse = (path, text) => ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, kind(path));
+const parse = (path, text) => ts.createSourceFile(path, text, kind(path));
 
 /** The comments before the first statement, as text, or "" when there are none (or no statement). */
 export function leadingComment(path, text) {
@@ -117,7 +117,13 @@ export function needsClientDirective(path, text) {
     if (ts.isCallExpression(node)) {
       const callee = node.expression;
       if (ts.isIdentifier(callee) && (isHookName(callee.text) || hookAliases.has(callee.text))) found = true;
-      if (ts.isPropertyAccessExpression(callee) && isHookName(callee.name.text)) found = true;
+      // A member-call hook (React.use(...), React.createContext(...)) is `use`/`useX` only on a
+      // known react import; `createContext` stays unrestricted, as it always has been, since no
+      // other API shares that name the way plain `.use(...)` collides with Node's middleware method.
+      if (ts.isPropertyAccessExpression(callee) && isHookName(callee.name.text)) {
+        if (callee.name.text === "createContext") found = true;
+        else if (ts.isIdentifier(callee.expression) && reactNamespaces.has(callee.expression.text)) found = true;
+      }
     }
     if (ts.isClassLike(node) && node.heritageClauses?.some((clause) => /\b(Component|PureComponent)\b/.test(clause.getText(source)))) found = true;
     ts.forEachChild(node, visit);

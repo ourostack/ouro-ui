@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { routes } from "../routes";
@@ -101,6 +101,34 @@ describe("the call window page", () => {
     host.style.overflow = "";
   });
 
+  it("shows a short assembly under the demo", async () => {
+    await renderPage("/docs/call-demo/");
+    const code = document.querySelector("[data-site-call-demo-page] pre, main pre");
+    expect(code?.textContent).toMatch(/<SnapPiP[\s\S]*keepOut/);
+  });
+
+  it("keeps the self view clear of every tile, in each corner it can take", async () => {
+    // The grid's columns follow the viewport's width, so the test sets the one it measures at, whatever a file before it left.
+    await page.viewport(1280, 800);
+    await renderPage("/docs/call-demo/");
+    await document.fonts.ready;
+    const pip = document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
+    const overlaps = () => {
+      const a = pip.getBoundingClientRect();
+      return [...document.querySelectorAll<HTMLElement>('[data-site-call-demo] [data-ouro="media-tile"]')].filter((tile) => {
+        const b = tile.getBoundingClientRect();
+        return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      }).length;
+    };
+    await page.getByRole("radio", { name: "6" }).click();
+    await expect.poll(overlaps).toBe(0);
+    pip.focus();
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    // The first frames of the move still read the old place: wait for it to land before it is judged.
+    await expect.poll(() => pip.hasAttribute("data-ouro-settling")).toBe(false);
+    await expect.poll(overlaps).toBe(0);
+  });
+
   it("starts the self view tucked away on a phone with a full grid, and shows it on request", async () => {
     const real = window.matchMedia.bind(window);
     const spy = vi.spyOn(window, "matchMedia").mockImplementation((query) => (query === "(max-width: 639px)" ? ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} } as unknown as MediaQueryList) : real(query)));
@@ -113,6 +141,11 @@ describe("the call window page", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  it("says which parts of the demo are scripted", async () => {
+    await renderPage("/docs/call-demo/");
+    expect(document.body.textContent).toMatch(/own script/);
   });
 
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {

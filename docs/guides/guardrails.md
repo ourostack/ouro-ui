@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.501 ourostack/ouro-ui/ouro-source-rules#v1.3.501
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.505 ourostack/ouro-ui/ouro-source-rules#v1.3.505
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -227,6 +227,8 @@ The check also holds pages to design rules that measurement can decide, after Re
 | `giant-picture` | A banner-shaped picture (scenery, 1.8 times as wide as tall or wider) in the flow, leading a content item, such as a work entry or a card with its own heading, that outweighs its words: it fills the item's width, is over 55% of its height and over 1.25 times the height of the rest.[^check-design-limits] Show the work itself, a screenshot or the component, or a small picture beside the words. A picture of the work, squarer, may be as big as it likes, and so may a figure's picture, which is its subject.[^check-design] |
 | `cramped-heading` | A heading, with the icon on its row, closer to a picture or a filled or framed box above it than half its font size (a quarter, for its own card's picture). A heading on a row is measured by what the row draws, so the row's own padding counts as room. What follows a heading belongs to it, so only the space above is judged.[^check-design] |
 | `nested-frame` | A frame inside a frame: a framed box hugging another within 6px on every side (a double border); or a rounded, filled or framed box whose child has an edge of its own (a fill, a frame, or a picture that runs to its corner, not an icon or a clear logo) and sits near its corner with a radius that isn't the outer radius less the inset, so the corners don't nest.[^check-design] |
+| `doubled-line` | Two dividing lines side by side where one would separate: a divider (a border on some sides of a box, an `hr`, a separator, or a fill 3px thick or less) within 6px of another line or of a frame's edge, along most of its length, such as a list's last row's border against its card's.[^check-doubled-line] Frames side by side (chips in a row), lines that share pixels, a table whose borders collapse, a thick coloured accent edge and a line under a sticky bar pass.[^check-doubled-line-pass] |
+| `count-badge` | A count on a small filled pill laid over an icon, such as a bell's unread number, that a box around it clips, whose numerals' ink sits more than 0.75px off the pill's middle (as a count centred on its line box rather than its cap height can), or that sits at another offset from its icon than the page's other count badges on icons of that size.[^check-count-badge] |
 | `baked-corner` | A picture or video whose own pixels draw a corner inside the page's frame (the roundest clipping box it fills, past a wrapper of zero size), such as a screen recording of a window with its dark corner showing in a rounded frame.[^check-corner-frame] Read from the pixels, on the video's first frame, at two corners or more in the same colour.[^check-design] |
 | `type-scale` | More than 10 text sizes, or more than 3 font weights in a text role, on a page: headings are one role and the rest of the text another, so a semibold heading leaves running text its regular, medium and bold.[^check-design][^check-weight-roles] Text inside an element that opts out with `data-ouro-allow="type-scale"` and a reason (hand lettering, say) is left out of the counts; the rest of the page is still held to the scale. |
 | `giant-text` | The size most of a page's running text is drawn at, counted by its characters outside headings, is over 24px, as when an app grows its root type with the screen and a 4K display at 1x draws its body text at 27px.[^check-giant-text] [A page with under 120 characters at its main size](registry/ouro/check/design-check.ts "verify:fileLine(registry/ouro/check/design-check.ts, /main\[1\]\.chars >= 120/)") has no reading size to judge. Let `ouro-base`'s wide-screen step (125% at most) set the root, or set the reading size in rem; text that opts out with `data-ouro-allow="giant-text"` and a reason (a poster line, say) is left out of the count. Emoji count for nothing: they are pictures, and a picker draws its grid of them large on purpose.[^check-giant-emoji] |
@@ -258,6 +260,7 @@ The check measures the boxes the browser drew for layout that reads as broken: c
 | `off-screen` | Text or a control the screen cuts off at its left or right edge by more than 2px, where nothing scrolls to it, measured as drawn: a box around it that hides overflow cuts it first, so an ellipsis inside the screen is `clipped-text`'s.[^check-layout-limits] A box wholly off the screen, such as a closed drawer, and visually hidden text pass.[^check-layout] |
 | `duplicate-control` | Two controls in view with the same role and name in one place (the same section, group, nav, header, aside, form or dialog), such as two Close buttons on a panel.[^check-layout] Controls in repeated items (a list's rows, a table's cells, articles) each have their own, and pass; so do two links to the same place, and toggles that each open their own panel (`aria-controls`).[^check-layout-pass] |
 | `stray-scrollbar` | A region, or the page, that scrolls by 1 to 8px down, or 2 to 8px across: a scrollbar for almost nothing, often a margin, a border or a rounding that spills over.[^check-layout-limits] Text that doesn't wrap (code, a nowrap row) and a list's region (rows, messages, options) overflow by however long their content runs, and pass.[^check-layout-pass] |
+| `near-miss` | Two separate surfaces (a filled box, a framed one, a picture) that don't touch, facing each other across a gap that is more than 0 and under the page's `--ouro-gap-min`, or a surface that sits that close inside the edge of the one around it: neither touching nor clearly apart.[^check-near-miss] Surfaces that touch, overlap, nest or are a gap apart pass.[^check-near-miss-pass] |
 
 Line length stays opt-in ([Long lines are opt-in](#long-lines-are-opt-in)); contrast is axe's. To keep a finding on purpose, mark it with `data-ouro-allow` and a reason, as below.
 
@@ -303,6 +306,7 @@ The check reads each disabled control for a reason the page gives for it, as App
 | --- | --- |
 | `disabled-no-reason` | A disabled control (`disabled`, `aria-disabled="true"`, or in a disabled fieldset) with no reason tied to it: no `title`, no `aria-description` and no `aria-describedby` text, on it or its disabled fieldset.[^check-interaction] A hint beside it that nothing ties to it isn't enough. Three cases explain themselves and pass: a busy control (`aria-busy`, such as a loading Button), a control that moves one way (Previous, Next, Back, Later, Zoom out, Undo) at its end, and a control beside an empty field in its form or in a box up to three out, such as Send under an empty message.[^check-interaction-pass] A field on the page itself, such as a search box in the header, excuses nothing.[^check-interaction-pass] |
 | `decision` | An element that breaks a decision recorded in `ouro-check.json`: see [Keep a decision as a check](#keep-a-decision-as-a-check).[^check-decision] |
+| `pointer-not-control` | A pointing-hand cursor, where it starts (a child inherits it), on an element that is no control, isn't in one and holds none, such as a pane or a heading set to `cursor: pointer`: a person expects a press to do something there, and a keyboard can't reach it.[^check-pointer] |
 | `linked-card-dead-zone` | A card or row that is one link (Ouro's `data-linked`, or a box around a link whose `::after` is stretched over it) where a click at some spot outside its own controls opens nothing, as when the page positions one of its parts and the link's layer stops there. The check hit-tests a grid of spots on each card, as a click would land, and runs none of the page's code.[^check-dead-zone] A card whose root opens its link from any click on it says so with `data-follows-link` and passes; Ouro's Card, Item and Table do.[^check-dead-zone] |
 | `reveal-reflow` | A card whose hover or keyboard focus reveals a part (Card's `revealDescription`, an Item's `revealActions`, or `data-ouro-reveal`) and moves the card's own box or anything outside it. The check hovers each such card, then gives its link keyboard focus, and compares where everything is with where it was at rest.[^check-reveal-reflow] |
 
@@ -361,7 +365,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.501
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.505
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -445,7 +449,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.501
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.505
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -455,7 +459,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.501
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.505
         with:
           merge: "true"
 ```
@@ -475,7 +479,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.501
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.505
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -495,6 +499,10 @@ const hero = images["hero.png"];
 It refuses a picture too small to be drawn sharp, names it and why, writes nothing for it and exits 1, while it writes the rest: with `--max-width <px>`, the widest the pictures are drawn in CSS pixels, a picture narrower than twice that, and with `--min-long-edge <px>` one whose long edge is shorter.[^images-refuse] A picture in a folder named `hero`, `heroes`, `scene` or `scenes` needs a long edge of 2048 or more whatever the options say.[^images-refuse]
 
 `ouro-images` installs `scripts/ouro/images/images.ts`, outside your TypeScript project, with the [Ouro AX](ax.md) files it runs on in `lib/ouro/ax/`, imported as `#ouro-ax/<file>` (the imports line in [the screen check](#the-screen-check) names that folder), and names `sharp` as a devDependency.
+
+### Cover a state nobody has designed yet
+
+Put `data-ouro-veil` on the element a state isn't designed for (the whole app below its narrowest designed width, a panel whose states are still open), and `ouro-base` covers it with a solid "Not designed yet" layer, dashed and plain, so no one takes it for the design. The value is the reason: `data-ouro-veil="below 600px"` reads "Not designed yet: below 600px". Ouro check leaves every finding inside the veil alone.[^check-veil] The veil is only the cover: the app sets and removes the attribute itself (a media query's class, a flag) and puts `inert` on the veiled content so a keyboard can't reach what is under it.
 
 ### Keep a decision as a check
 
@@ -528,6 +536,10 @@ Run `ouro check --handoff` and it writes `handoff.md` beside `summary.md`: the f
 
 Fix the findings that fail first, so a session is spent on the task and not on a broken screen. A clean check leaves those questions open.
 
+[^check-doubled-line]: test:test/check-design-in-page.test.ts::findDesignIssues: doubled-line > finds a divider drawn against a frame's edge or another line, across and down, naming both and marking the later verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: doubled-line > finds a divider drawn against a frame's edge or another line, across and down, naming both and marking the later) verify:fileLine(registry/ouro/check/design-check.ts, /lineGapPx = 6/)
+[^check-doubled-line-pass]: test:test/check-design-in-page.test.ts::findDesignIssues: doubled-line > passes frames side by side, lines that share pixels, collapsed tables, accents, lines apart or short, and the opted out; test:test/check-design-in-page.test.ts::findDesignIssues: doubled-line > passes a line a sticky bar covers, and finds a pair off the screen, where nothing can be hit verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: doubled-line > passes frames side by side, lines that share pixels, collapsed tables, accents, lines apart or short, and the opted out) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: doubled-line > passes a line a sticky bar covers, and finds a pair off the screen, where nothing can be hit)
+[^check-count-badge]: test:test/check-design-in-page.test.ts::findDesignIssues: count-badge > finds a count off its middle, high, low, right or left, a clipped one, and one at another offset from its icon; test:test/check-design-in-page.test.ts::findDesignIssues: count-badge > passes centred counts at one offset, either side of their icons, and what is no count badge or is opted out verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: count-badge > finds a count off its middle, high, low, right or left, a clipped one, and one at another offset from its icon) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: count-badge > passes centred counts at one offset, either side of their icons, and what is no count badge or is opted out) verify:fileLine(registry/ouro/check/design-check.ts, /badgeSlackPx = 0\.75/)
+[^check-pointer]: test:test/check-interaction-in-page.test.ts::findInteractionIssues: pointer-not-control > finds a pointer cursor where it starts, on an element that is no control and holds none; test:test/check-interaction-in-page.test.ts::findInteractionIssues: pointer-not-control > passes a pointer on a control, inside one, around one, opted out or not drawn verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: pointer-not-control > finds a pointer cursor where it starts, on an element that is no control and holds none) verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: pointer-not-control > passes a pointer on a control, inside one, around one, opted out or not drawn)
 [^handoff]: test:scripts/check/check-command.test.mts::Ouro check's command > the handoff separates what the check measured from what a person judges, and lists the sessions verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > the handoff separates what the check measured from what a person judges, and lists the sessions)
 
 ## How a list feels
@@ -535,7 +547,7 @@ Fix the findings that fail first, so a session is spent on the task and not on a
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.501
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.505
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -747,6 +759,8 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-dialog-escape]: test:registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > closes on Escape and returns focus to the trigger verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::centered dialog > closes on Escape and returns focus to the trigger)
 [^check-interaction]: test:test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > finds a disabled control the page gives no reason for, however it is turned off, named by its words verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > finds a disabled control the page gives no reason for, however it is turned off, named by its words)
 [^check-interaction-pass]: test:test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > passes a reason tied to it or its fieldset, a busy control (aria-busy), a control moving one way at its end, one waiting for an empty field, enabled, hidden and allowed controls; test:test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > counts a field only in the control's own form or a box up to three out, short of the page, and an allow only with its reason verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > passes a reason tied to it or its fieldset, a busy control (aria-busy), a control moving one way at its end, one waiting for an empty field, enabled, hidden and allowed controls) verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > counts a field only in the control's own form or a box up to three out, short of the page, and an allow only with its reason)
+[^check-near-miss]: test:test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > finds two surfaces a few pixels apart, across and down, and a surface a few pixels inside the one around it verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > finds two surfaces a few pixels apart, across and down, and a surface a few pixels inside the one around it)
+[^check-near-miss-pass]: test:test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > passes surfaces that touch, are a gap apart, overlap or nest, small and unfilled boxes, and the opted out verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > passes surfaces that touch, are a gap apart, overlap or nest, small and unfilled boxes, and the opted out)
 [^check-layout-limits]: registry/ouro/check/layout-check.ts verify:fileLine(registry/ouro/check/layout-check.ts, /cutPx = 2, minScroll = 1, maxScroll = 8/)
 [^hand-drawn-hero]: test:scripts/kits/source-rules.test.mjs::hand-drawn hero > flags a section or header classed as a hero, naming the registry Hero; test:scripts/kits/source-rules.test.mjs::hand-drawn hero > passes a registry Hero, other sections and a component given a hero class verify:testExists(scripts/kits/source-rules.test.mjs::hand-drawn hero > flags a section or header classed as a hero, naming the registry Hero) verify:testExists(scripts/kits/source-rules.test.mjs::hand-drawn hero > passes a registry Hero, other sections and a component given a hero class)
 
@@ -796,4 +810,5 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-needs-a-person]: test:scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds)
 [^check-press-all]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > pressAll presses each Ouro button, switch, checkbox, tab and menu item by name, with the page opened again after each, and never a link, a submit, a destructive or an opted-out one)
 [^vague-escape]: test:scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it verify:testExists(scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it)
+[^check-veil]: test:scripts/check/check.test.mts::Ouro check > a finding inside a [data-ouro-veil] layer is skipped, and the same page unveiled still fails verify:testExists(scripts/check/check.test.mts::Ouro check > a finding inside a [data-ouro-veil] layer is skipped, and the same page unveiled still fails)
 [^check-decision]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > a decision in the config is a check: it fails where its expectation, count or only breaks, and holds where the page, width or a veil leaves it out)

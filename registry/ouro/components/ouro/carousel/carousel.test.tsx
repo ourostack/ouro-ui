@@ -775,6 +775,121 @@ describe("Carousel settling without scrollend, interrupted", () => {
   });
 });
 
+describe("Carousel settling without scrollend, retargeted", () => {
+  it("settles where a later press is heading, not a reading a stale schedule from an earlier press catches mid-wait", async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "onscrollend");
+    if (descriptor) delete (HTMLElement.prototype as { onscrollend?: unknown }).onscrollend;
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    const { viewport, slides } = screen;
+    const rect = viewport.getBoundingClientRect();
+    const atSlide = (index: number) => DOMRect.fromRect({ ...rect.toJSON(), x: rect.x + (slides[index]!.getBoundingClientRect().left - rect.left) });
+    // Frozen so only the mocked slide position below decides what each check sees; a press's
+    // own scroll never actually moves it, so the "is it still moving" half of a check always
+    // reads stable, leaving only the "does it match the heading" half to exercise.
+    const scrollTo = vi.spyOn(viewport, "scrollTo").mockImplementation(() => {});
+    const nearest = vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(atSlide(0));
+    // Runs a check's two nested frames in the same tick as the fake timer that starts it, so a
+    // stale schedule's reading is fixed by the mock in place when it fires, not by a later one.
+    const raf = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // Next heads for the second slide; its own scrollend is missing, so a pause stands in,
+      // scheduled from the scroll event its (mocked) scroll still fires.
+      await userEvent.click(screen.button("Next slide"));
+      viewport.dispatchEvent(new Event("scroll"));
+      // Next again, 50ms later, retargets to the third slide. A schedule left over from the
+      // first press must not be the one a check judges this one against.
+      await vi.advanceTimersByTimeAsync(50);
+      await userEvent.click(screen.button("Next slide"));
+      // At the first press's original 150ms mark the scroll has reached only the second slide,
+      // consistent with either press; a check reading this must not drop the pending heading.
+      nearest.mockReturnValue(atSlide(1));
+      await vi.advanceTimersByTimeAsync(100);
+      // By the second press's own 150ms mark the scroll has genuinely reached the third slide.
+      nearest.mockReturnValue(atSlide(2));
+      await vi.advanceTimersByTimeAsync(50);
+      // A reading that belongs to neither press, were the heading already dropped, letting a
+      // stale, re-armed check settle there instead of where the second press is heading. (Not
+      // the start slide: settle() reports nothing when a reading matches where it began.)
+      nearest.mockReturnValue(atSlide(3));
+      await vi.advanceTimersByTimeAsync(200);
+      expect(onIndexChange.mock.calls).toEqual([[2]]);
+    } finally {
+      vi.useRealTimers();
+      raf.mockRestore();
+      nearest.mockRestore();
+      scrollTo.mockRestore();
+      if (descriptor) Object.defineProperty(HTMLElement.prototype, "onscrollend", descriptor);
+    }
+  });
+
+  it("announces the app's own later index change, not a reading a stale schedule from an earlier one catches mid-wait", async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "onscrollend");
+    if (descriptor) delete (HTMLElement.prototype as { onscrollend?: unknown }).onscrollend;
+    const record = recordAnnouncements("Slide");
+    const at = (index: number) => (
+      <Carousel label="Recipe photos" index={index}>
+        {photos()}
+      </Carousel>
+    );
+    const screen = await render(at(0));
+    const { viewport, slides } = screen;
+    const rect = viewport.getBoundingClientRect();
+    const atSlide = (index: number) => DOMRect.fromRect({ ...rect.toJSON(), x: rect.x + (slides[index]!.getBoundingClientRect().left - rect.left) });
+    const scrollTo = vi.spyOn(viewport, "scrollTo").mockImplementation(() => {});
+    const nearest = vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(atSlide(0));
+    const raf = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // The app first heads for the second slide; its own scrollend is missing, so a pause
+      // stands in, scheduled from the scroll event its (mocked) scroll still fires.
+      await screen.rerender(at(1));
+      viewport.dispatchEvent(new Event("scroll"));
+      // The app retargets to the third slide 50ms later. A schedule left over from the first
+      // index change must not be the one a check judges this one against.
+      await vi.advanceTimersByTimeAsync(50);
+      await screen.rerender(at(2));
+      // At the first change's original 150ms mark the scroll has reached only the second
+      // slide, consistent with either change; a check reading this must not drop the heading.
+      nearest.mockReturnValue(atSlide(1));
+      await vi.advanceTimersByTimeAsync(100);
+      // By the second change's own 150ms mark the scroll has genuinely reached the third slide.
+      nearest.mockReturnValue(atSlide(2));
+      await vi.advanceTimersByTimeAsync(50);
+      // A reading that belongs to neither change, were the heading already dropped, letting a
+      // stale, re-armed check settle there instead of where the app's later index is heading.
+      // (A screen reader hears whichever slide settle() announces, so this is the user-facing
+      // signal the bug gets wrong: suppressing onIndexChange here, since next equals the app's
+      // own controlled index, would hide it.)
+      nearest.mockReturnValue(atSlide(3));
+      await vi.advanceTimersByTimeAsync(200);
+      expect(record.texts).toEqual(["Slide 3 of 5"]);
+    } finally {
+      vi.useRealTimers();
+      raf.mockRestore();
+      nearest.mockRestore();
+      scrollTo.mockRestore();
+      record.stop();
+      if (descriptor) Object.defineProperty(HTMLElement.prototype, "onscrollend", descriptor);
+    }
+  });
+});
+
 describe("Carousel motion", () => {
   it.each([
     { direction: "Next", loop: false, target: 1 },

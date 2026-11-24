@@ -2,7 +2,7 @@
 
 # ScrollArea
 
-A scrolling region with a thin scrollbar in the theme's color, inside a height you set. It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and momentum all work; Content wider than the area fades out at the side where it goes on, and a vertical area fades at the top and bottom edge that hides more, so at rest it reads as more to scroll to, not as cut off. A vertical area also marks the viewport with `data-overflow-y-start` and `data-overflow-y-end` while that edge hides content, and sets `--scroll-area-overflow-y-start` and `--scroll-area-overflow-y-end` (pixels hidden), so a parent can draw a hairline once it is scrolled from the start. Its focus ring is drawn over the content, so a header that sticks to the top never hides an edge of it.
+A scrolling region with a thin scrollbar in the theme's color, inside a height you set. It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and momentum come with it. Content that goes on past an edge is cut off there. A vertical area also marks the viewport with `data-overflow-y-start` and `data-overflow-y-end` while that edge hides content, and sets `--scroll-area-overflow-y-start` and `--scroll-area-overflow-y-end` (pixels hidden), so a parent can draw a hairline once it is scrolled from the start. Its focus ring is drawn over the content, so a header that sticks to the top never hides an edge of it.
 
 ```tsx
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";

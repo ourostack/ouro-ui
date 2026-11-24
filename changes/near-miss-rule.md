@@ -1,0 +1,1 @@
+- New: Ouro check reports `near-miss` when separate surfaces sit closer than `--ouro-gap-min` without touching; opt out with `data-ouro-allow="near-miss"` and a reason.

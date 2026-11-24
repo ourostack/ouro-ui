@@ -239,7 +239,7 @@ describe("Ouro check", () => {
     // one too, which starts once an earlier one has saved its view.
     const remembering = site("remembering", {
       "page.html": page(
-        '<h1>Views</h1><button id="cal">Calendar</button><div id="chat"><button>Open row</button></div><div id="calendar" hidden>Days</div><script>const show = (v) => { chat.hidden = v !== "chat"; calendar.hidden = v !== "calendar"; }; show(localStorage.getItem("view") ?? "chat"); cal.onclick = () => { localStorage.setItem("view", "calendar"); show("calendar"); };</script>',
+        '<h1>Views</h1><button id="cal">Calendar</button><div id="chat" style="margin-top:24px"><button>Open row</button></div><div id="calendar" hidden>Days</div><script>const show = (v) => { chat.hidden = v !== "chat"; calendar.hidden = v !== "calendar"; }; show(localStorage.getItem("view") ?? "chat"); cal.onclick = () => { localStorage.setItem("view", "calendar"); show("calendar"); };</script>',
       ),
     });
     const views = await check({ targets: [remembering], out: dir("remembering"), sizes: [[390, 844], [1440, 900]], themes: ["light", "dark"], config: { walk: false, states: { "/page.html": { calendar: ["text=Calendar"], "calendar again": ["text=Calendar"], "calendar a third time": ["text=Calendar"], "calendar a fourth time": ["text=Calendar"], "a row open": ["text=Open row"] } } }, chromium, log: quiet });

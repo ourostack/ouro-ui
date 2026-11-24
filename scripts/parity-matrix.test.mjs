@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { appleComponents, claimMatrix, componentMatrix, gather, pinnedDrift, PAGE, readData, renderMatrix, renderPage, kitClaims, windowsComponents, androidComponents } from "./parity-matrix.mjs";
+import { appleComponents, claimMatrix, componentMatrix, gather, gatherApple, pinnedDrift, PAGE, readData, renderMatrix, renderPage, kitClaims, windowsComponents, androidComponents } from "./parity-matrix.mjs";
 
 const real = (path) => readFileSync(path, "utf8");
 
@@ -184,8 +184,59 @@ test("gather with only one kit reads that kit from GitHub and keeps each other k
   assert.equal(facts.android, stored.android);
   assert.deepEqual(Object.keys(facts), ["$comment", "apple", "android", "windows"]);
   assert.ok(asked.every((url) => url.includes("ouro-ui-windows") || url.includes("/def/")), `asked only for Windows: ${asked.join(", ")}`);
-  const appleOnly = await gather({ fetch: async (url) => (asked.push(url), { ok: false, status: 500, json: async () => null, text: async () => null }), apple: { tag: "v1.0.0", commit: "abc" }, only: "apple", stored }).catch((error) => error);
+  const appleOnly = await gather({ fetch: async (url) => (asked.push(url), { ok: false, status: 500, json: async () => null, text: async () => null }), apple: { tag: "v1.0.0", commit: "abc" }, only: "apple", stored, wait: async () => {}, log: () => {} }).catch((error) => error);
   assert.ok(appleOnly instanceof Error, "Apple alone is read from GitHub, which this fetch refuses");
+});
+
+test("a 503 from raw.githubusercontent.com (ourostack/ouro-ui-apple's run 45308495839) clears on retry, after one 5s wait, with no real time spent", async () => {
+  const body = (value, status = 200) => ({ ok: status === 200, status, json: async () => value, text: async () => value });
+  let rawCalls = 0;
+  const fetch = async (url) => {
+    if (url.includes("/git/trees/abc")) return body({ tree: [{ path: "Sources/OuroHX/Components/OuroButton.swift" }] });
+    rawCalls += 1;
+    return rawCalls === 1 ? body(null, 503) : body("public struct OuroButton: View {}");
+  };
+  const waits = [];
+  const logs = [];
+  const apple = await gatherApple({ fetch, apple: { tag: "v0.5.1", commit: "abc" }, wait: async (ms) => waits.push(ms), log: (message) => logs.push(message) });
+  assert.deepEqual(apple.components, [{ name: "OuroButton", web: "button" }]);
+  assert.equal(rawCalls, 2, "retried the raw file once after the 503");
+  assert.deepEqual(waits, [5000], "waited 5s before the retry, not the real clock");
+  assert.match(logs[0], /answered 503.*Retrying in 5s/);
+});
+
+test("three 5xx answers in a row exhaust the retries: 5s then 20s, then Unreadable, never a 4xx retry", async () => {
+  const body = (value, status = 200) => ({ ok: status === 200, status, json: async () => value, text: async () => value });
+  let rawCalls = 0;
+  const fetch = async (url) => {
+    if (url.includes("/git/trees/abc")) return body({ tree: [{ path: "Sources/OuroHX/Components/OuroButton.swift" }] });
+    rawCalls += 1;
+    return body(null, 503);
+  };
+  const waits = [];
+  await assert.rejects(
+    gatherApple({ fetch, apple: { tag: "v0.5.1", commit: "abc" }, wait: async (ms) => waits.push(ms), log: () => {} }),
+    (error) => /answered 503/.test(error.message),
+  );
+  assert.equal(rawCalls, 3, "the initial try plus two retries, then it gives up");
+  assert.deepEqual(waits, [5000, 20000]);
+});
+
+test("a 404 (real drift, not a GitHub hiccup) throws straight away, with no retry and no wait", async () => {
+  const body = (value, status = 200) => ({ ok: status === 200, status, json: async () => value, text: async () => value });
+  let rawCalls = 0;
+  const fetch = async (url) => {
+    if (url.includes("/git/trees/abc")) return body({ tree: [{ path: "Sources/OuroHX/Components/OuroButton.swift" }] });
+    rawCalls += 1;
+    return body(null, 404);
+  };
+  const waits = [];
+  await assert.rejects(
+    gatherApple({ fetch, apple: { tag: "v0.5.1", commit: "abc" }, wait: async (ms) => waits.push(ms), log: () => {} }),
+    (error) => /answered 404/.test(error.message),
+  );
+  assert.equal(rawCalls, 1, "no retry of a 404");
+  assert.deepEqual(waits, []);
 });
 
 test("no hand-written page states web's component count: the parity matrix holds it", async () => {
