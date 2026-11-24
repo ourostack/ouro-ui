@@ -291,7 +291,7 @@
     clip-path: shape(evenodd var(--ouro-sq-cmds), move to calc(var(--ouro-bite-x) + var(--ouro-bite-r)) calc(100% - var(--ouro-bite-c)), arc to calc(var(--ouro-bite-x) - var(--ouro-bite-r)) calc(100% - var(--ouro-bite-c)) of var(--ouro-bite-r), arc to calc(var(--ouro-bite-x) + var(--ouro-bite-r)) calc(100% - var(--ouro-bite-c)) of var(--ouro-bite-r), close);
   }
   [dir="rtl"] [data-ouro-avatar-surface][data-ouro-bite] {
-    --ouro-bite-x: var(--ouro-bite-c);
+    --ouro-bite-x: calc(0% + var(--ouro-bite-c));
   }
 }
 
