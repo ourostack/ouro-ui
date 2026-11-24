@@ -253,6 +253,7 @@ describe("the call window page", () => {
       seen.push(Math.min(...tiles.slice(1).map((tile) => tile.getBoundingClientRect().height)));
     }
     expect(Math.min(...seen)).toBeGreaterThanOrEqual(80);
+  });
 
   it("rests a reopened self view above the captions, never on them or the control bar", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
