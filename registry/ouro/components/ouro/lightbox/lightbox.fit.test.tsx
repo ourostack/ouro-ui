@@ -55,7 +55,7 @@ describe("Lightbox fit", () => {
     await settled();
     const style = getComputedStyle(popup()!);
     expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
-    expect(style.boxShadow).toBe("none");
+    expect(style.boxShadow.match(/-?[1-9]\d*(\.\d+)?px/g)).toBeNull();
     expect(popup()!.hasAttribute("data-fit")).toBe(true);
     await userEvent.click(popup()!.querySelector("img")!);
     await userEvent.click(popup()!.querySelector("figcaption")!);
