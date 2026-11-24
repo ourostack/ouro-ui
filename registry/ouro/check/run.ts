@@ -1778,6 +1778,8 @@ async function runCheck(context: Env, cli: Cli, cmd: CommandDef, input: Input, j
     }
     const failing = group(result.gated);
     lines.push(`\n${group(result.findings).length} finding(s), ${failing.length} gated, ${result.fixed.length} fixed since --before. Report: ${relative(cwd, join(out, "report.json"))}`);
+    // Said when nothing gated is left, the moment someone might call the screen done.
+    if (!failing.length) lines.push("Nothing gated is left: that's the floor, not the bar. Before a person sees it, pass the beauty gate (https://ui.ouroboros.bot/docs/design-craft/#the-beauty-gate).");
     return outcome({ action: cmd.name, state: failing.length ? "needs-human" : "done", summary: lines.join("\n") });
   } catch (problem) {
     if (isAxError(problem)) throw problem;
