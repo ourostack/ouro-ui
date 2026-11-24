@@ -117,7 +117,13 @@ export function needsClientDirective(path, text) {
     if (ts.isCallExpression(node)) {
       const callee = node.expression;
       if (ts.isIdentifier(callee) && (isHookName(callee.text) || hookAliases.has(callee.text))) found = true;
-      if (ts.isPropertyAccessExpression(callee) && isHookName(callee.name.text)) found = true;
+      // A member-call hook (React.use(...), React.createContext(...)) is `use`/`useX` only on a
+      // known react import; `createContext` stays unrestricted, as it always has been, since no
+      // other API shares that name the way plain `.use(...)` collides with Node's middleware method.
+      if (ts.isPropertyAccessExpression(callee) && isHookName(callee.name.text)) {
+        if (callee.name.text === "createContext") found = true;
+        else if (ts.isIdentifier(callee.expression) && reactNamespaces.has(callee.expression.text)) found = true;
+      }
     }
     if (ts.isClassLike(node) && node.heritageClauses?.some((clause) => /\b(Component|PureComponent)\b/.test(clause.getText(source)))) found = true;
     ts.forEachChild(node, visit);

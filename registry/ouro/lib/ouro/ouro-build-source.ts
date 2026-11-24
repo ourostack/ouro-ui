@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import type { IncomingMessage, ServerResponse } from "node:http";
 import { buildSourceInfo, type OuroBuildSourceInfo } from "./ouro-build-source-info.ts";
 
 export { ouroBuildSource };
@@ -9,13 +8,16 @@ export type { OuroBuildSourceOptions };
  * The slice of Vite's `Plugin` and `ViteDevServer` this file reads, named here instead of
  * imported from `vite`, so the registry generator skips pinning `vite` as a runtime dependency.
  * An app's own `vite.config.ts` carries `vite`'s real, wider types, which satisfy this narrower
- * shape.
+ * shape. The request and response types are a local subset too, for the same reason: this
+ * plugin only ever reads `req.url` and writes a JSON response.
  */
 interface DevServerPlugin {
   name: string;
   configureServer(server: {
     watcher: { on(event: "change", listener: (file: string) => void): void };
-    middlewares: { use(handler: (req: IncomingMessage, res: ServerResponse, next: () => void) => void): void };
+    middlewares: {
+      use(handler: (req: { url?: string | undefined }, res: { setHeader(name: string, value: string): void; end(chunk: string): void }, next: () => void) => void): void;
+    };
   }): void;
 }
 

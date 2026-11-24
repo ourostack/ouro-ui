@@ -801,6 +801,9 @@ export function buildRegistry(root: string): Registry {
       // env.d.ts declares process.env.NODE_ENV for apps without @types/node; nothing imports it.
       // An ax file runs in Node, whose types declare process.env.
       if (!isDev && entry.name !== "lib-env" && entry.kind !== "ax" && /\bprocess\.env\b/.test(source)) registryDeps.add("lib-env");
+      // ouro-build-source-node.d.ts declares the two Node calls ouro-build-source.ts makes
+      // (execFileSync, process.cwd()) for apps without @types/node; nothing imports it either.
+      if (entry.name === "lib-ouro-build-source") registryDeps.add("lib-ouro-build-source-node");
       // OuroProvider is the one helper only the app imports. It comes with what it serves: a
       // component that renders links reads the app's router link from it, and it groups
       // tooltips. Any other app adds it by name (the README's Next.js steps do).
