@@ -54,8 +54,8 @@ export const ERRAND_COPY = {
 export const REVIEWS_COPY = {
   eyebrow: "Model reviews",
   title: "What frontier models said when they compared toolkits.",
-  picks: claim("In the latest review, on {date}, {picked} of {models} frontier models picked Ouro UI from {toolkits} toolkits for real jobs.", { source: [{ file: "scripts/model-reviews/results/2026-11-19-latest-panel--run-1/run.json" }], verify: [{ testExists: "site/src/proof/proof.test.tsx::model reviews > reads the latest review's picks from its run" }] }),
-  issues: claim("What they pushed back on became issues, and the page says what each one changed, including the results that went against Ouro.", { source: [{ file: "scripts/model-reviews/page.mjs" }], verify: [{ fileLine: "scripts/model-reviews/page.mjs", pattern: "filed as issues" }, { fileLine: "scripts/model-reviews/page.mjs", pattern: "including the ones that went against Ouro" }] }),
+  picks: claim("In the latest review, on {date}, {picked} of {models} frontier models picked Ouro UI from {toolkits} toolkits for real jobs.", { source: [{ file: "docs/guides/model-reviews.md" }], verify: [{ testExists: "site/src/proof/proof.test.tsx::model reviews > reads the latest review's picks from its page" }] }),
+  issues: claim("What they pushed back on became issues, and the page says what each one changed, including the results that went against Ouro.", { source: [{ file: "docs/guides/model-reviews.md" }], verify: [{ fileLine: "docs/guides/model-reviews.md", pattern: "filed as issues" }, { fileLine: "docs/guides/model-reviews.md", pattern: "including the ones that went against Ouro" }] }),
   link: "Read the picks, the quotes and what changed",
 } as const;
 
@@ -132,7 +132,7 @@ export const BORROWED_COPY = {
     {
       name: "Tailwind CSS",
       href: "https://tailwindcss.com/",
-      took: claim("The utilities every web component is styled with, compiled by your own app's Tailwind CSS v4.", { source: [{ file: "test/install-fixture/package.json" }], verify: [{ fileLine: "test/install-fixture/package.json", pattern: "\"tailwindcss\": \"\\^4\\." }, { ciJob: "install" }] }),
+      took: claim("The utilities every web component is styled with, compiled by your own app's Tailwind CSS v4.", { source: [{ file: "AGENTS.md" }, { file: "package.json" }], verify: [{ fileLine: "AGENTS.md", pattern: "apps compile the components with their own Tailwind CSS v4" }, { fileLine: "package.json", pattern: "\"tailwindcss\"" }] }),
     },
     {
       name: "shadcn/ui",

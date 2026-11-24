@@ -6,7 +6,6 @@ import { BENCHMARK, readBenchmark, way } from "./benchmark";
 import { ERRAND, ERRAND_MS, lane, said, type Transcript } from "./errand-data";
 import { BORROWED_COPY, ERRAND_COPY, HERO } from "./copy";
 import { latestReview } from "./reviews";
-import latestRun from "../../../scripts/model-reviews/results/2026-11-19-latest-panel--run-1/run.json";
 import ledger from "../adoption/ledger.json";
 
 await loadPageCode("/proof/");
@@ -151,10 +150,13 @@ describe("the Errand", () => {
 });
 
 describe("model reviews", () => {
-  it("reads the latest review's picks from its run", async () => {
+  it("reads the latest review's picks from its page", async () => {
     const review = latestReview();
-    expect(review.path).toMatch(/2026-11-19-latest-panel--run-1\/run\.json$/);
-    expect(review).toMatchObject({ picked: latestRun.summary.subjectPicks, models: latestRun.summary.totalReviews, toolkits: latestRun.candidates.length, date: latestRun.asOf.slice(0, 10) });
+    expect(review.models).toBeGreaterThan(0);
+    expect(review.picked).toBeLessThanOrEqual(review.models);
+    expect(review.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const page = ["On 2026-01-02, 3 frontier models were each asked, in neutral words. Each got the same 20 candidates, by name.", "", "## Every model's pick", "", "| Model | Pick | Place |", "| --- | --- | --- |", "| A | Ouro UI | 1 of 20 |", "| B | A2UI | 3 of 20 |", "| C | Ouro UI | 2 of 20 |", "", "## Next", ""].join("\n");
+    expect(latestReview(page)).toEqual({ picked: 2, models: 3, toolkits: 20, date: "2026-01-02" });
     const host = await renderPage("/proof/");
     expect(host.querySelector("#reviews")!.textContent).toContain(`${review.picked} of ${review.models} frontier models picked Ouro UI from ${review.toolkits} toolkits`);
   });

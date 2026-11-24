@@ -2,7 +2,7 @@ import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
 import { generatedAt as ledgerAt, summary as ledgerSummary } from "../adoption/ledger.json";
-import { LIVE_URL as LEDGER_URL } from "../adoption/ledger";
+import { LIVE_URL as LEDGER_URL } from "../adoption/live";
 import { href } from "../paths";
 import { Container } from "../voyage/layout";
 import { BENCHMARK, countWord, figure, way, type WayResult } from "./benchmark";
