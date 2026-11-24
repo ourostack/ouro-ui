@@ -113,7 +113,9 @@ function useFakeLevel(active: boolean): number {
 }
 
 // On a wide screen the grid is as wide as its area's height allows, so 16:9 tiles fit without a scrollbar of their own.
-function gridFit(tiles: number, sharing: boolean): CSSProperties {
+function gridFit(tiles: number, sharing: boolean, room: number): CSSProperties {
+  // Without a share the tiles take the whole height, leaving the room the self view needs while it is showing.
+  if (!sharing) return { "--call-grid-height": `calc(100cqh - ${room}px)` } as CSSProperties;
   const faces = tiles - (sharing ? 1 : 0);
   const columns = tiles <= 1 ? 1 : tiles <= 4 ? 2 : 3;
   const rows = Math.ceil(faces / columns);
@@ -389,9 +391,10 @@ function CallDemo(): JSX.Element {
           ) : null}
           <div
             ref={gridRef}
-            style={gridFit(tiles, sharing)}
+            style={gridFit(tiles, sharing, selfHidden ? 0 : SELF_ROOM)}
             className={
-              "grid gap-2 md:mx-auto md:w-(--call-grid-width) " +
+              "grid gap-2 " +
+              (sharing ? "md:mx-auto md:w-(--call-grid-width) " : "md:h-(--call-grid-height) md:auto-rows-fr ") +
               (tiles <= 1 ? "grid-cols-1" : tiles === 2 ? "grid-cols-1 md:grid-cols-2" : tiles <= 4 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3")
             }
           >
@@ -404,6 +407,7 @@ function CallDemo(): JSX.Element {
               <MediaTile
                 key={person.name}
                 name={person.name}
+                className={sharing ? undefined : "md:aspect-auto md:h-full"}
                 speaking={index === speaking}
                 muted={person.muted}
                 cameraOn={!person.cameraOff}
