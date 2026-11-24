@@ -40,8 +40,14 @@ const prefix = "ourostack/ouro-ui/";
 // own pull request's budget; #3107 (cfc87eaf5), the plain Button and Popover forced-colours fix, was the commit whose
 // small addition tipped the running total over the ceiling. Measured by CI over main at cfc87eaf5 (main's run 45146865070,
 // scripts 2/2): 105,063 bytes of JavaScript, 13,990 of CSS (CSS stays under its own ceiling, so only JavaScript moves).
+// dashboard-page's JavaScript ceiling raised 2026-11-23 (#3301): Card's titleSize="inherit" (#3270) added a
+// real type-scale step, Heading's "inherit" class string and Card's forwarding of the new prop, to every page that
+// renders a Card; the dev-message branches that check the prop are stripped from production builds like every other dev
+// message, so nothing there reached the bundle, and no cheaper cut was found for this small, genuinely new code. Measured
+// by CI over main at 902939ded (main's run 45293648025, Size ceilings): 86,430 bytes of JavaScript (CSS stays under its
+// own ceiling, so only JavaScript moves).
 export const CEILINGS = {
-  "dashboard-page": { js: 85_369 + 1024, css: 10_598 + 512 },
+  "dashboard-page": { js: 86_430 + 1024, css: 10_598 + 512 },
   "list-detail-page": { js: 85_796 + 1024, css: 9_731 + 512 },
   "settings-page": { js: 105_063 + 1024, css: 13_737 + 512 },
 };
