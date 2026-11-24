@@ -87,6 +87,7 @@ export interface TimeGridMark {
  * @claim "A marked day's tint" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /backgroundColor: `color-mix\(in oklab, \$\{markColor\[tone\]\} calc\(var\(--ouro-time-grid-tint\) \/ 2\), transparent\)`/)
  */
 const markColor: Record<TimeGridTone | "away", string> = { away: "var(--ouro-away)", primary: "var(--primary)", secondary: "var(--muted-foreground)", success: "var(--success)", warning: "var(--warning)", destructive: "var(--destructive)" };
+const markTones = [...tones, "away"] as const;
 const markStyle = (tone: TimeGridTone | "away"): CSSProperties => ({ backgroundColor: `color-mix(in oklab, ${markColor[tone]} calc(var(--ouro-time-grid-tint) / 2), transparent)` });
 
 /** One event on a {@link TimeGrid}. */
@@ -471,7 +472,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const weekend = weekendDays(locale);
   const markOf = (day: string) => {
     const mark = markedDays && Object.hasOwn(markedDays, day) ? markedDays[day] : undefined;
-    return mark?.label ? { label: mark.label, style: markStyle(oneOf(tones, mark.tone, "primary")) } : null;
+    return mark?.label ? { label: mark.label, style: markStyle(oneOf(markTones, mark.tone, "primary")) } : null;
   };
   const formats = useMemo(
     () => ({
