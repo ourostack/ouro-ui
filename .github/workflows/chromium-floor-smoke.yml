@@ -1,0 +1,44 @@
+name: Chromium floor smoke
+# Report-only: not a required check (not in .github/required-checks.json). Builds the real app.css
+# (ouro-base plus squircleCorners()) and loads it in the pinned, independent playwright-core-chromium-floor
+# Chromium (docs/guides/browser-support.md's documented floor), so a parse stop mid-sheet on the oldest
+# supported Chromium fails this job even when CI's main Chromium (the playwright devDependency) is newer.
+# scripts/chromium-floor-smoke.mjs has the test; contributing/ci.md's report-only gate conventions apply.
+# Flip to blocking (add "Chromium floor smoke" to .github/required-checks.json and the main ruleset,
+# in the same pull request as this comment's removal) once a quiet week of runs shows it green.
+on:
+  pull_request:
+    paths:
+      - "scripts/chromium-floor-smoke.mjs"
+      - "scripts/scratch.mjs"
+      - "registry/ouro/lib/ouro/squircle-corners.ts"
+      - "registry/ouro/theme/**"
+      - "app.css"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/chromium-floor-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: chromium-floor-smoke-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  chromium-floor-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    continue-on-error: true
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - run: node --test scripts/chromium-floor-smoke.mjs
