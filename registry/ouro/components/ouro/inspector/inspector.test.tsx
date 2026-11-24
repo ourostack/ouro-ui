@@ -612,6 +612,30 @@ describe("Inspector", () => {
     // Every line of text measured twice in each scheme: about 16 s in WebKit on CI, so the budget is twice that.
   }, 60_000);
 
+  // DIAGNOSTIC (drain-4, #3361): repeat the Vegetarian label's measurement across many X-ray
+  // open/close cycles, capturing every ratio seen (not just a failure), so the log always holds
+  // data even when this run's draws happen not to dip under 4.5:1. Removed before merge.
+  it("diag: stresses the Vegetarian label's measured contrast across many draws", async () => {
+    const { host } = await render(<Page />);
+    const vegetarian = [...host.querySelectorAll<HTMLElement>("*")].find(
+      (element) => element.textContent?.trim() === "Vegetarian" && [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE),
+    )!;
+    const ratios: Array<{ iter: number; ratio: string; reason?: string }> = [];
+    for (let iter = 0; iter < 25; iter++) {
+      await act(() => setOpen(false));
+      await settled();
+      await act(() => setOpen(true));
+      await drawn(pageRoots(host).length);
+      await settled();
+      const verdict = await measureTextContrast(vegetarian, 4.5);
+      ratios.push({ iter, ratio: verdict.pass ? String((verdict as { diagRatio?: number }).diagRatio ?? "pass") : "fail", reason: verdict.pass ? undefined : verdict.reason });
+    }
+    await act(() => roots.splice(0).forEach((root) => root.unmount()));
+    host.remove();
+    // Force every captured ratio into the failure diff, whether or not any iteration failed.
+    expect(ratios).toEqual([]);
+  }, 120_000);
+
   it("does not outline itself, an overlay's wrappers, a hidden component or a part apart from its component", async () => {
     const { host } = await render(
       <Page>

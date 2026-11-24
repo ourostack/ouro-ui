@@ -1371,7 +1371,8 @@ async function shoot(root: Element, items: Measured[], last: boolean, regions = 
     // scroll it fails here, and audit measures it again on its own, scrolled onto the screen.
     if (measured === 0 && offScreen > 0 && held) return { pass: true };
     if (worst === Number.POSITIVE_INFINITY) return { pass: false, reason: "axe left its contrast undecided, and its text is off the screen" };
-    if (worst >= required) return { pass: true };
+    // DIAGNOSTIC (drain-4, #3361): carry the measured ratio on a pass too, for the stress test. Removed before merge.
+    if (worst >= required) return { pass: true, diagRatio: worst } as Verdict;
     // DIAGNOSTIC (drain-4, #3361): describe exactly what is at the worst pixel, to find what
     // is painting over the text on WebKit/Linux. Removed before merge.
     const diag = (() => {
