@@ -48,7 +48,7 @@ const familyBarClass =
  * @internal
  */
 const familyScrollerClass =
-  "@container min-w-0 flex-1 first:-ms-2.5 overflow-x-auto overflow-y-hidden overscroll-x-contain pointer-coarse:snap-x pointer-coarse:snap-proximity scroll-px-2 " +
+  "@container min-w-0 flex-1 first:-ms-2.5 overflow-x-auto overflow-y-hidden overscroll-x-contain pointer-coarse:snap-x pointer-coarse:snap-proximity scroll-px-8 " +
   "[scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] pointer-coarse:[scrollbar-width:none]";
 
 /**
