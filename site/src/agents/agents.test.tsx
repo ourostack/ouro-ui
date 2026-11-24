@@ -31,8 +31,8 @@ it("has generated compiler output for every example", () => {
   expect(Object.keys(generated).sort()).toEqual(agentExamples.map((example) => example.id).sort());
 });
 
-it.each(agentExamples)("$id: the landing page shows the code, the type error, the prop's source and the dev message", async (example) => {
-  await renderPage("/");
+it.each(agentExamples)("$id: the Ouro HX page shows the code, the type error, the prop's source and the dev message", async (example) => {
+  await renderPage("/hx/");
   const output = generated[example.id as keyof typeof generated];
   const card = page.getByTestId(`agent-example-${example.id}`);
   await expect.element(card.getByText(example.code, { exact: true })).toBeInTheDocument();
