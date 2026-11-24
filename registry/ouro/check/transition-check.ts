@@ -90,7 +90,7 @@ function beginTrace(): void {
 async function stepTrace(): Promise<TransitionTrace> {
   const state = (window as unknown as { __ouroTrace: { read: () => Record<string, Reading>; ids: WeakMap<Element, string>; first: Record<string, Reading> } }).__ouroTrace;
   await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-  const animations = document.getAnimations().filter((a) => Number.isFinite(a.effect!.getComputedTiming().endTime as number) && (a.effect as KeyframeEffect).target);
+  const animations = document.getAnimations().filter((a) => a.playState !== "finished" && Number.isFinite(a.effect!.getComputedTiming().endTime as number) && (a.effect as KeyframeEffect).target);
   const end = Math.min(2000, Math.max(0, ...animations.map((a) => a.effect!.getComputedTiming().endTime as number)));
   for (const a of animations) a.pause();
   // Per element, the longest two-keyframe animation of its box and the longest of its opacity give the curves its edges
@@ -151,6 +151,7 @@ function findTransitionFaults(trace: TransitionTrace): TransitionFault[] {
     const present = series.filter((s): s is Reading => !!s);
     const whole = present.length === series.length;
     const pace = trace.progress[id];
+    const lines = [...new Set(present.map((s) => s[4]))];
     const fadePace = trace.progress[`${id}:fade`];
     const add = (rule: TransitionFault["rule"], detail: string) => void (found.some((f) => f.id === id && f.rule === rule) || found.push({ id, rule, element, detail }));
     for (const [edge, label] of [[0, "left edge"], [1, "top edge"], [2, "right edge"], [3, "bottom edge"]] as const) {
@@ -161,7 +162,7 @@ function findTransitionFaults(trace: TransitionTrace): TransitionFault[] {
       const deltas = pts.slice(1).map((v, i) => v - pts[i]!);
       const limit = Math.max(L.jumpPx, L.jumpShare * travel);
       const past = Math.max(...pts.map((v) => (v - pts[pts.length - 1]!) * Math.sign(net)));
-      const stray = whole && pace ? Math.max(...pts.map((v, i) => Math.abs(v - (pts[0]! + net * pace[i]!)))) : 0;
+      const stray = whole && pace && lines.length === 1 ? Math.max(...pts.map((v, i) => Math.abs(v - (pts[0]! + net * pace[i]!)))) : 0;
       const biggest = Math.max(...deltas.map(Math.abs));
       // Going back counts only before the edge first arrives within 1px of where it ends.
       const arrived = pts.findIndex((v) => Math.abs(v - pts[pts.length - 1]!) <= 1);
@@ -173,7 +174,6 @@ function findTransitionFaults(trace: TransitionTrace): TransitionFault[] {
     }
     const moved = present.some((s, i) => i > 0 && s.slice(0, 4).some((v, k) => Math.abs(v - present[i - 1]![k]!) >= 1));
     if (role === "other" && whole && moved) add("sibling-reflow", "it moved or resized while something else was in motion: a transition must not make the page lay out again around it");
-    const lines = [...new Set(present.map((s) => s[4]))];
     if (trace.texts.includes(id) && whole && lines.length > 1) add("text-rewrap", `its text re-wrapped mid-transition, between ${lines.join(" and ")} lines`);
     const shown = series.map((s) => (s ? s[5] : 0));
     const big = trace.texts.includes(id) || series.some((s) => area(s) >= L.popArea);
