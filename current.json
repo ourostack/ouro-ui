@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-24T00:58:42.233Z",
+  "generatedAt": "2026-11-24T01:12:29.432Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -16,6 +16,16 @@
       "name": "Ouro UI for Apple",
       "tag": "v1.10.1",
       "url": "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1"
+    },
+    "windows": {
+      "name": "Ouro UI for Windows",
+      "tag": "v0.12.1",
+      "url": "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.1"
+    },
+    "android": {
+      "name": "Ouro UI for Android",
+      "tag": "v0.12.0",
+      "url": "https://github.com/ourostack/ouro-ui-android/releases/tag/v0.12.0"
     }
   },
   "installations": 3,
@@ -212,14 +222,14 @@
     },
     {
       "repo": "ourostack/m365crawl",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit ee7b9e9",
+          "current": "commit 3d38eac",
           "latest": "v1.3.502",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
@@ -229,9 +239,54 @@
           "behind": false
         }
       ],
+      "pr": null
+    },
+    {
+      "repo": "ourostack/ouro-current-fixture-android",
+      "state": "pr",
+      "pins": [
+        {
+          "file": "app/build.gradle.kts",
+          "follows": "android",
+          "current": "0.11.0",
+          "latest": "v0.12.0",
+          "behind": true
+        },
+        {
+          "file": "gradle/libs.versions.toml",
+          "follows": "android",
+          "current": "0.11.0",
+          "latest": "v0.12.0",
+          "behind": true
+        }
+      ],
       "pr": {
-        "number": 563,
-        "url": "https://github.com/ourostack/m365crawl/pull/563"
+        "number": 1,
+        "url": "https://github.com/ourostack/ouro-current-fixture-android/pull/1"
+      }
+    },
+    {
+      "repo": "ourostack/ouro-current-fixture-windows",
+      "state": "pr",
+      "pins": [
+        {
+          "file": "src/FixtureApp/FixtureApp.csproj",
+          "follows": "windows",
+          "current": "0.11.0",
+          "latest": "v0.12.1",
+          "behind": true
+        },
+        {
+          "file": "src/FixtureApp/FixtureApp.csproj",
+          "follows": "windows",
+          "current": "0.11.0",
+          "latest": "v0.12.1",
+          "behind": true
+        }
+      ],
+      "pr": {
+        "number": 1,
+        "url": "https://github.com/ourostack/ouro-current-fixture-windows/pull/1"
       }
     },
     {
