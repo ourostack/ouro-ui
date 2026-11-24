@@ -22,6 +22,9 @@ const { values } = parseArgs({
     phase: { type: "string" },
     out: { type: "string" },
     repo: { type: "string", multiple: true, default: [] },
+    // <name>=<ref>: run that repository at a ref of the local clone instead of origin/main, such as main with a change
+    // that hasn't merged yet applied on top.
+    ref: { type: "string", multiple: true, default: [] },
     scenarios: { type: "string", multiple: true, default: [join(here, "scenarios.json")] },
     models: { type: "string", default: "claude-sonnet-5.5,gpt-6.2-sol" },
     judge: { type: "string", default: "claude-opus-5.5" },
@@ -44,6 +47,7 @@ const { suffix } = files[0];
 const all = files.flatMap((file) => file.scenarios);
 const scenarios = values.only ? all.filter((s) => values.only.split(",").includes(s.id)) : all;
 const repos = Object.fromEntries(values.repo.map((pair) => pair.split("=")).map(([name, path]) => [name, resolve(path)]));
+const refs = Object.fromEntries(values.ref.map((pair) => pair.split("=")));
 const models = values.models.split(",");
 const out = resolve(values.out);
 mkdirSync(out, { recursive: true });
@@ -136,18 +140,20 @@ async function judge(record, scenario) {
   if (existsSync(join(dir, "verdict.json"))) return JSON.parse(readFileSync(join(dir, "verdict.json"), "utf8"));
   const answer = readFileSync(join(dir, "answer.md"), "utf8");
   if (!answer) return { criteria: [], pass: false, summary: "No answer: the run ended without one." };
-  mkdirSync(join(dir, "judge-home"), { recursive: true });
-  const result = await copilot(
-    ["-p", judgePrompt(scenario, answer), "--model", values.judge, "--available-tools", "view", "--no-ask-user", "--disable-builtin-mcps", "-s"],
-    { cwd: dir, home: join(dir, "judge-home"), timeoutMs: 10 * 60_000 },
-  );
-  rmSync(join(dir, "judge-home"), { recursive: true, force: true });
-  const json = result.stdout.slice(result.stdout.indexOf("{"), result.stdout.lastIndexOf("}") + 1);
   let verdict;
-  try {
-    verdict = JSON.parse(json);
-  } catch {
-    verdict = { criteria: [], summary: `The judge's reply was not JSON: ${result.stdout.slice(0, 200)}` };
+  // A reply that is not JSON is asked for again once, from a fresh judge.
+  for (let attempt = 0; attempt < 2 && !verdict?.criteria?.length; attempt++) {
+    mkdirSync(join(dir, "judge-home"), { recursive: true });
+    const result = await copilot(
+      ["-p", judgePrompt(scenario, answer), "--model", values.judge, "--available-tools", "view", "--no-ask-user", "--disable-builtin-mcps", "-s"],
+      { cwd: dir, home: join(dir, "judge-home"), timeoutMs: 10 * 60_000 },
+    );
+    rmSync(join(dir, "judge-home"), { recursive: true, force: true });
+    try {
+      verdict = JSON.parse(result.stdout.slice(result.stdout.indexOf("{"), result.stdout.lastIndexOf("}") + 1));
+    } catch {
+      verdict = { criteria: [], summary: `The judge's reply was not JSON: ${result.stdout.slice(0, 200)}` };
+    }
   }
   const ids = scenario.criteria.map((c) => c.id);
   verdict.pass = ids.every((cid) => verdict.criteria.some((c) => c.id === cid && c.met === true));
@@ -174,8 +180,8 @@ if (values["judge-only"]) {
 } else {
   const commits = {};
   for (const name of new Set(scenarios.map((s) => s.repo))) {
-    execFileSync("git", ["-C", repos[name], "fetch", "-q", "origin", "main"]);
-    commits[name] = execFileSync("git", ["-C", repos[name], "rev-parse", "origin/main"], { encoding: "utf8" }).trim();
+    if (!refs[name]) execFileSync("git", ["-C", repos[name], "fetch", "-q", "origin", "main"]);
+    commits[name] = execFileSync("git", ["-C", repos[name], "rev-parse", refs[name] ?? "origin/main"], { encoding: "utf8" }).trim();
   }
   records = await pool(jobs, Number(values.concurrency), async ({ scenario, model, rep }) => {
     const record = await runOne(scenario, model, rep, commits);
