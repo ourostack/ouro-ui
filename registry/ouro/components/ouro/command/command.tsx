@@ -810,8 +810,10 @@ export function Command(props: CommandProps): JSX.Element {
       const style = getComputedStyle(row);
       const room = row.clientWidth - parseFloat(style.paddingInlineStart) - parseFloat(style.paddingInlineEnd) - parseFloat(style.columnGap) * (nodes.length - 1);
       const cap = fairShare(nodes.map((node) => node.offsetWidth), room);
+      // Stryker disable next-line StringLiteral: the loop above already cleared every cap, and an invalid value leaves it cleared.
       for (const node of nodes) node.style.maxWidth = Number.isFinite(cap) ? `${Math.floor(cap)}px` : "";
     };
+    // Stryker disable next-line CallExpression: observing the row reports its first size, which shares the row too.
     share();
     const observer = new ResizeObserver(share);
     observer.observe(row);
