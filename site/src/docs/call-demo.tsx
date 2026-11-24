@@ -443,7 +443,7 @@ function CallDemo(): JSX.Element {
   );
 }
 
-const shortCall = `<MediaTile name="Ada" speaking={speaking} muted={muted} cameraOn={cameraOn}>
+const shortCall = `<MediaTile name="Maya" speaking={speaking} muted={muted} cameraOn={cameraOn}>
   <video ref={videoRef} />
 </MediaTile>
 <LiveCaptions label="Captions" hideLabel lines={lines} />
