@@ -1,1 +1,1 @@
-- Changed: a glass `Button` with `size="sm"` is 36 tall (a 36 circle for an icon), and `<ButtonGroup glass="sm">` is a 36 capsule, the height of macOS 26's window toolbar; the default glass height stays 40.
+- Changed: a glass `Button` with `size="sm"` takes the height of a macOS Tahoe window toolbar, a circle for an icon, and `<ButtonGroup glass="sm">` is a capsule of that height; glass without `sm` is unchanged.
