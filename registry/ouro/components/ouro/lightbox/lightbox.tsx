@@ -268,13 +268,21 @@ function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number)
   event.preventDefault();
   if (key === "Home" || key === "End") {
     // Scrolled to the start or the end, as the carousel's buttons scroll: the carousel reports and
-    // announces where it settles. Right to left, the end is the most negative scrollLeft.
+    // announces where it settles. Right to left, the end is the most negative scrollLeft. The jump
+    // goes through the carousel itself (the "ouro-carousel-goto" event its viewport listens for),
+    // the same heading-tracked path a button press takes, so a press just before or after this one
+    // is never read against a stale or missing heading.
     const viewport = event.currentTarget.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
     const end = getComputedStyle(viewport).direction === "rtl" ? -viewport.scrollWidth : viewport.scrollWidth;
     const behavior = reduced ? "instant" : "smooth";
     // Stryker disable next-line ArithmeticOperator: the position stops at the last image, so one past it shows the same.
-    choose(key === "Home" ? 0 : viewport.children.length - 1);
-    viewport.scrollTo({ left: key === "Home" ? 0 : end, behavior });
+    const index = key === "Home" ? 0 : viewport.children.length - 1;
+    choose(index);
+    viewport.dispatchEvent(
+      new CustomEvent<{ index: number; left: number; behavior: ScrollBehavior }>("ouro-carousel-goto", {
+        detail: { index, left: key === "Home" ? 0 : end, behavior },
+      }),
+    );
     return;
   }
   const rtl = getComputedStyle(event.currentTarget).direction === "rtl";

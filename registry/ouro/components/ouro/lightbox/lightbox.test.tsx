@@ -605,7 +605,8 @@ describe("Lightbox viewer", () => {
     }) as typeof scroller.scrollTo;
     await userEvent.keyboard("{ArrowRight}");
     expect(held).toBeDefined();
-    expect(counter.textContent).toBe("2 of 4");
+    // A busy runner can read the DOM before React commits the press: wait for it, not a fixed pause.
+    await expect.poll(() => counter.textContent).toBe("2 of 4");
     expect(counter.getAttribute("data-pending")).toBe("");
     expect(page.getByRole("dialog", { name: "Kitchen photos, 2 of 4", exact: true }).element()).toBe(popup());
     expect(onIndexChange).not.toHaveBeenCalled();
@@ -623,9 +624,10 @@ describe("Lightbox viewer", () => {
       held = options;
     }) as typeof scroller.scrollTo;
     await userEvent.click(button("Next image"));
-    expect(counter.textContent).toBe("3 of 4");
+    // Same wait: a busy runner can still be behind the click when the next line runs.
+    await expect.poll(() => counter.textContent).toBe("3 of 4");
     await userEvent.keyboard("{End}");
-    expect(counter.textContent).toBe("4 of 4");
+    await expect.poll(() => counter.textContent).toBe("4 of 4");
     expect(counter.hasAttribute("data-pending")).toBe(true);
     scroller.scrollTo = scrollTo;
     scroller.scrollTo(held!);
@@ -635,7 +637,7 @@ describe("Lightbox viewer", () => {
       held = options;
     }) as typeof scroller.scrollTo;
     await userEvent.keyboard("{Home}");
-    expect(counter.textContent).toBe("1 of 4");
+    await expect.poll(() => counter.textContent).toBe("1 of 4");
     expect(counter.hasAttribute("data-pending")).toBe(true);
     scroller.scrollTo = scrollTo;
     scroller.scrollTo(held!);
@@ -817,7 +819,8 @@ describe("Lightbox controlled", () => {
     const scroller = viewport();
     scroller.scrollTo = (() => {}) as typeof scroller.scrollTo;
     await userEvent.click(button("Next image"));
-    expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
+    // A busy runner can read the DOM before React commits the press: wait for it, not a fixed pause.
+    await expect.poll(() => popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
     await rerender(<Lightbox label="Kitchen photos" images={images} open index={3} onOpenChange={() => {}} />);
     // At once, before the new carousel's own scroll settles: the old choice is gone with the old carousel.
     expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("4 of 4");
