@@ -1,0 +1,1 @@
+- Fixed: a true-negative test proving `pressTint()` never tints, and one proving a vanished opener's reopener poll never finds it, each waited out the shared 10s poll default; both now pass a short poll bound to prove the same negative in well under a second, removing three stale headroom exemptions.
