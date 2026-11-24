@@ -1,0 +1,42 @@
+name: Ceiling ratchet
+# Report-only (AGENTS.md's "Red-main fixes": a new gate lands report-only first, issue #3524): a pull
+# request that raises a size ceiling, a budget/margin or a pattern's measured baseline, with no
+# `ceiling: <reason>` line in its description, gets a warning annotation here — never a failed run.
+# scripts/ceiling-ratchet.mjs holds the mechanics; flip this job to fail on its problems once it has run
+# against real pull requests with no false positive (see issue #3524 for when and how).
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: ceiling-ratchet-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  ceiling-ratchet:
+    name: ceiling ratchet
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The merge base with main needs the history; the files on each side are fetched as they are read.
+          fetch-depth: 0
+          filter: blob:none
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # The description comes through the environment, never into the script's text.
+      - name: Ceiling ratchet against the base
+        env:
+          BASE_REF: ${{ github.base_ref || 'main' }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ -n "$PR" ] && body=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json body --jq .body); then
+            export PR_BODY="$body"
+          fi
+          BASE_REF="origin/$BASE_REF" node scripts/ceiling-ratchet.mjs
