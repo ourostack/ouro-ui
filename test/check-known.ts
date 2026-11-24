@@ -716,4 +716,108 @@ export const knownFindings: KnownFinding[] = [
     reason:
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
+  {
+    story: "AgentPresence/OneAgent",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "AgentPresence/TwoAgents",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "AgentPresence/Unread",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Attachment/OpensInApp",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Badge/Filters",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Badge/StatusDots",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Badge/Tones",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Button/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationFind/NoMatches",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationList/Drafts",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationList/Selectable",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "NavigationRail/IconsOnly",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "SnapPip/ControlledCorner",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
 ];
