@@ -447,8 +447,8 @@ export default function CallDemoPage(): JSX.Element {
     <DocsShell current="/docs/call-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A call window" }}>
       <Text size="lg" tone="muted" className="mb-10 max-w-2xl text-pretty" data-ouro-measure="">
         The call components together, with made-up people and placeholder pictures: a tile grid that grows as people join, speaking, muted and camera-off
-        tiles, captions, the control bar, your own picture in a corner, a timer, and the lobby, joining and waiting states. Try the keyboard, a narrow
-        window and dark mode.
+        tiles, captions, the control bar, your own picture in a corner, a timer, and the lobby, joining and waiting states. The switchers above the window and the moving speaker, captions
+        and microphone level are the demo's own script; an app supplies the real ones. Try the keyboard, a narrow window and dark mode.
       </Text>
       <CallDemo />
     </DocsShell>
