@@ -407,10 +407,12 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     if (!ending) return;
     let current = true;
     // Stryker disable next-line OptionalChaining,ArrayDeclaration: the bar is in the host while it ends (it was shown), and an element always answers getAnimations, so the fallback list is never read.
+    /* istanbul ignore next @preserve -- same invariant: the bar is in the host while it ends, so the optional chain and the fallback list are never read */
     const running = host!.firstElementChild?.getAnimations() ?? [];
     void Promise.allSettled(running.map((animation) => animation.finished)).then(() => {
       if (!current) return;
       // The next showing fades in again.
+      /* istanbul ignore else @preserve -- the bar stays in the host while it ends, so firstElementChild is never null here */
       if (host!.firstElementChild !== null) entered.delete(host!.firstElementChild);
       setParked(true);
     });
