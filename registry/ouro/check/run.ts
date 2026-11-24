@@ -372,7 +372,7 @@ const BUDGETS: Budgets = Object.freeze({ inp: 200, "layout-shift": 0.1, "first-c
 // (loading, screenshots) still runs side by side.
 let motionQueue: Promise<unknown> = Promise.resolve();
 const measureMotion = <T,>(task: () => Promise<T>): Promise<T> => {
-  const run = motionQueue.then(task, task);
+  const run = motionQueue.then(task);
   motionQueue = run.then(
     () => undefined,
     () => undefined,
