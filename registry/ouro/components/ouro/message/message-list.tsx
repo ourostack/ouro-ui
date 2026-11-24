@@ -1950,10 +1950,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
       // not following starts only when the browser reports that scroll: in a windowed list the bottom may come up as heights
       // replace estimates above the view, which holding the place below undoes first.
-      // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
       // A list opened at a message before the newest, still where that put it, is not at its end by a pixel or two of overflow:
       // nothing scrolled it there, so it does not start following.
       if (placed !== null && scroller.scrollTop !== placed) placed = null;
+      // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
       if (placed === null) pinned.current = Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || (pinned.current && farthest() < end - AT_BOTTOM);
       // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
