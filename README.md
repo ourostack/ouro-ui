@@ -597,6 +597,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-announce`,
 `lib-appearance-hints`,
 `lib-avatar-pictures`,
+`lib-cap-label`,
 `lib-celebration-cap`,
 `lib-claims`,
 `lib-class-name-check`,
