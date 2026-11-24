@@ -400,6 +400,7 @@ describe("home page", () => {
     expect(document.querySelector("[data-site-flywheel] h2")!.textContent).toBe(FLYWHEEL.title);
     const section = document.querySelector("[data-site-benchmark]")!;
     const table = section.querySelector("table")!;
+    expect([...section.querySelectorAll("[data-site-benchmark-list] li")].map((item) => item.firstElementChild!.textContent)).toEqual(benchmark.rows.map((row) => BENCHMARK.ways[row.way]));
     expect([...table.querySelectorAll("tbody tr")].map((row) => [...row.querySelectorAll("th, td")].map((cell) => cell.textContent))).toEqual(
       benchmark.rows.map((row) => [BENCHMARK.ways[row.way], `${row.done}%`, row.steps, row.tokens, row.paid]),
     );
@@ -728,7 +729,8 @@ describe("docs", () => {
     const hero = document.querySelector<HTMLElement>(".site-voyage-hero")!;
     const more = hero.querySelector<HTMLElement>('[data-slot="more"]')!;
     const media = hero.querySelector<HTMLElement>('[data-slot="media"]')!;
-    await expect.poll(() => more.getBoundingClientRect().bottom).toBeLessThanOrEqual(844);
+    const copy = more.querySelector<HTMLElement>("[data-site-handoff] button")!;
+    await expect.poll(() => copy.getBoundingClientRect().bottom).toBeLessThanOrEqual(844);
     expect(more.getBoundingClientRect().bottom).toBeLessThanOrEqual(media.getBoundingClientRect().top);
     expect(getComputedStyle(hero.querySelector("h1")!).fontSize).toBe("32px");
   });

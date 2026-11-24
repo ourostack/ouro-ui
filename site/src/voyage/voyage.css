@@ -178,6 +178,10 @@
     .site-hero-side {
       gap: 1.5rem;
     }
+    /* On a phone the hand-off comes first, so its Copy button is on the first screen under the longer lede; the looks follow it. */
+    .site-hero-paint {
+      order: 1;
+    }
   }
   /* The eyebrow is a pill saying what Ouro UI is for. */
   .site-hero-brand {
@@ -289,6 +293,31 @@
   @media (min-width: 64rem) {
     .site-band {
       padding-block: 7rem;
+    }
+  }
+  /* The benchmark's ways in: a list on a phone, where the table would scroll sideways, and the table from 40rem. */
+  .site-benchmark-list {
+    display: grid;
+    gap: 1rem;
+    margin: 2rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .site-benchmark-list li {
+    display: grid;
+    gap: 0.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  }
+  .site-benchmark-wide {
+    display: none;
+  }
+  @media (min-width: 40rem) {
+    .site-benchmark-list {
+      display: none;
+    }
+    .site-benchmark-wide {
+      display: block;
     }
   }
   /* The evidence strip: four facts in a row, a dot between them, wrapping on a phone. */
