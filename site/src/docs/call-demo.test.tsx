@@ -61,7 +61,11 @@ describe("the call window page", () => {
     await renderPage("/docs/call-demo/");
     await page.getByRole("button", { name: "Leave" }).click();
     await expect.poll(() => document.querySelector("[data-site-call-demo] [data-ouro=\"moment\"]")?.textContent).toContain("You left the call");
-    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Call");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Rejoin");
+    await page.getByRole("button", { name: "Rejoin" }).click();
+    await page.getByRole("button", { name: "Join now" }).click();
+    await expect.poll(() => document.querySelector("[data-site-call-demo] [role=status]")?.textContent).toBe("You joined the call");
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Mute");
     await page.getByRole("radio", { name: "Alone" }).click();
     const empty = document.querySelector<HTMLElement>('[data-ouro="moment"][data-moment="empty"]')!;
     expect(empty.querySelector("[data-moment-art]")).not.toBeNull();
