@@ -354,7 +354,10 @@ describe("the stage's controls", () => {
     await userEvent.click(bell);
     await expect.poll(lastLog).toContain(LOG.bell[1].text);
     expect(ring()).toBe("b");
-    await act(() => undefined);
+    // The crew's line reads its words a frame after the log's own afterPaint write (CrewLine's own
+    // comment), so the second answer lands another frame after lastLog already shows it: poll for
+    // the announcement itself instead of a single flush, which raced it on a slow run.
+    await expect.poll(() => announced.count(LOG.bell[1].text)).toBe(1);
     announced.stop();
     // Each answer is heard once, from the crew's line, and nothing raises a toast over the bell.
     expect(announced.count(LOG.bell[0].text)).toBe(1);
