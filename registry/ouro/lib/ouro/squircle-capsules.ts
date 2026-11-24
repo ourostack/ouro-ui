@@ -26,7 +26,6 @@ function selectorsOf(rules: CSSRuleList, out: string[]): void {
  * `clip-path: shape()` is missing, and returns a function that stops it.
  * @example
  * const stop = installSquircleCapsules(document);
- * @group App setup
  */
 function installSquircleCapsules(doc: Document): () => void {
   const css = doc.defaultView!.CSS;
