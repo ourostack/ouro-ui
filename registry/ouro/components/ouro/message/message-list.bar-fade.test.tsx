@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -100,6 +100,29 @@ describe("MessageList bar fade", () => {
     expect(restyled).toEqual([]);
     expect(bar()).toBe(before);
     expect(getComputedStyle(before).opacity).toBe("1");
+  });
+
+  it("takes the bar away at once, with no fade, as it opens the menu", async () => {
+    slowFade();
+    const host = document.createElement("div");
+    document.body.append(host);
+    hosts.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () =>
+      root.render(
+        <MessageList label="Launch channel" style={{ height: 240 }}>
+          <Message id="m0" variant="chat" role="assistant" name="Grace Hopper" menu={[{ label: "Copy link", onClick: () => {} }]}>
+            Message m0
+          </Message>
+        </MessageList>,
+      ),
+    );
+    await shown("m0");
+    await expect.poll(() => bar()!.getAnimations().length).toBe(0);
+    await userEvent.click(bar()!.querySelector<HTMLElement>('[data-ouro-part="menu"]')!);
+    await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+    expect(bar()).toBeNull();
   });
 
   it("moves the bar from one message to the next without a fade", async () => {
