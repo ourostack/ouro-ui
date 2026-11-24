@@ -54,7 +54,7 @@ describe("transition rules", () => {
   it("finds text that changes its number of lines, and a box that appears in one frame", async () => {
     const press = () => {
       document.getElementById("t-text")!.animate([{ width: "200px" }, { width: "40px" }], { duration: 300, fill: "forwards" });
-      document.getElementById("t-box")!.animate([{ opacity: 0, offset: 0 }, { opacity: 1, offset: 0.5 }], { duration: 300, easing: "steps(1, start)", fill: "forwards" });
+      document.getElementById("t-box")!.animate([{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.5 }, { opacity: 1, offset: 0.505 }], { duration: 300, fill: "forwards" });
     };
     const { faults } = await trace(`<div id="t-box"></div><p id="t-text">Words that wrap as it narrows</p>`, press);
     expect(faults.map((f) => `${f.rule} ${f.element}`).sort()).toEqual(["pop-in div#t-box", "text-rewrap p#t-text"]);
