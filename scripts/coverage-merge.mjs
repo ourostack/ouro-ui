@@ -10,14 +10,21 @@
 //                                           a file and line short of 100% with the shard folder
 //                                           behind a share of it that is itself short, when the
 //                                           merged coverage is short; 3 when a shard's is missing;
-//                                           4 when a shard's own file was instrumented twice,
-//                                           either with the same source location under two
-//                                           different keys (one shard's own map) or with a
+//                                           4 when a shard's own file was instrumented twice with a
 //                                           different number of statement, function or branch
 //                                           entries than the other shards that measured the same
-//                                           file (across shards): either way the extra entries
-//                                           inflate that file's denominator and report a fully
-//                                           covered file as short (issue #3082)
+//                                           file (across shards), either under the same source
+//                                           location with two different keys (one shard's own map)
+//                                           or at different locations: either way the extra entries
+//                                           would inflate that file's denominator and report a
+//                                           fully covered file as short (issue #3082) — unless
+//                                           every extra entry has zero hits and repeats the other
+//                                           shards' own entries as an exact prefix, which
+//                                           reconcileDuplicateTails trims away first, since that
+//                                           shape is a harmless race in the coverage provider's own
+//                                           instrumentation of a file none of that shard's projects
+//                                           executed, not a second, disputed measurement (flake log
+//                                           #2469)
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, dirname, join } from "node:path";
@@ -98,6 +105,83 @@ export const mismatchedShapes = (maps, labels) => {
   return problems;
 };
 
+const mapKeys = ["statementMap", "fnMap", "branchMap"];
+const hitKeyOf = { statementMap: "s", fnMap: "f", branchMap: "b" };
+
+/** The total of a hit count, which is a plain number for a statement or function and an array of per-path counts for a branch. */
+const hitTotal = (hit) => (Array.isArray(hit) ? hit.reduce((sum, one) => sum + one, 0) : (hit ?? 0));
+
+/**
+ * `fc`, with every map and hit-count entry trimmed to the ids `majorityFc` itself has, when `fc`'s
+ * statement, function and branch maps repeat `majorityFc`'s own ids at `majorityFc`'s own locations
+ * exactly and every id beyond them has zero hits everywhere; `null` when any of that isn't so (an id
+ * `majorityFc` has at a different location, an id `majorityFc` lacks, or an extra id with even one
+ * hit), which leaves the file to `mismatchedShapes`.
+ */
+const reconcileOne = (majorityFc, fc) => {
+  for (const mapKey of mapKeys) {
+    const majorityMap = majorityFc[mapKey] ?? {};
+    const map = fc[mapKey] ?? {};
+    const majorityIds = Object.keys(majorityMap);
+    if (Object.keys(map).length <= majorityIds.length) return null;
+    for (const id of majorityIds) if (!(id in map) || locationKey(map[id]) !== locationKey(majorityMap[id])) return null;
+    const hits = fc[hitKeyOf[mapKey]] ?? {};
+    for (const id of Object.keys(map)) if (!majorityIds.includes(id) && hitTotal(hits[id]) !== 0) return null;
+  }
+  const trimmed = { ...fc };
+  for (const mapKey of mapKeys) {
+    const majorityIds = Object.keys(majorityFc[mapKey] ?? {});
+    const hitKey = hitKeyOf[mapKey];
+    trimmed[mapKey] = Object.fromEntries(majorityIds.map((id) => [id, fc[mapKey][id]]));
+    trimmed[hitKey] = Object.fromEntries(majorityIds.map((id) => [id, fc[hitKey][id]]));
+  }
+  return trimmed;
+};
+
+/**
+ * `maps`, with every shard's file that `mismatchedShapes` would flag reconciled to the majority
+ * shape where that's safe (`reconcileOne`), so merging never runs on a file still in dispute. A
+ * reconciled file's extra entries carry zero hits throughout, so trimming them cannot turn a
+ * genuinely covered line, function or branch short: the shard's real measurement, whatever it is,
+ * lives entirely in the entries the majority shape already accounts for. `@vitest/coverage-istanbul`
+ * instruments a file its browser projects never execute through its own "uncovered files" pass
+ * (`getCoverageMapForUncoveredFiles`, which keeps its coverage in one instrumenter shared by every
+ * project, admittedly "cannot be run parallel"), once per project that finds the file uncovered;
+ * when two of a shard's projects race to do that for the same file, the second's instrumentation
+ * lands at different (but equally unexecuted) locations in the one shard's map, inflating its shape
+ * with a tail of zero-hit entries (flake log #2469, issues #3082 and #3171's earlier recurrences,
+ * this one's root cause). A file whose extra entries disagree with the majority on a shared id, or
+ * carry even one hit, is left for `mismatchedShapes` to fail loudly: a genuinely different
+ * measurement, not a race's harmless duplicate.
+ */
+export const reconcileDuplicateTails = (maps, labels) => {
+  const byFile = new Map();
+  maps.forEach((map, index) => {
+    for (const file of Object.keys(map)) {
+      if (!byFile.has(file)) byFile.set(file, []);
+      byFile.get(file).push(index);
+    }
+  });
+  const reconciled = maps.map((map) => ({ ...map }));
+  const notes = [];
+  for (const [file, indices] of byFile) {
+    const shapeCounts = new Map();
+    for (const index of indices) shapeCounts.set(shapeOf(maps[index][file]), (shapeCounts.get(shapeOf(maps[index][file])) ?? 0) + 1);
+    if (shapeCounts.size < 2) continue;
+    const majorityShape = [...shapeCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    const majorityFc = maps[indices.find((index) => shapeOf(maps[index][file]) === majorityShape)][file];
+    for (const index of indices) {
+      const fc = maps[index][file];
+      if (shapeOf(fc) === majorityShape) continue;
+      const trimmed = reconcileOne(majorityFc, fc);
+      if (!trimmed) continue;
+      reconciled[index] = { ...reconciled[index], [file]: trimmed };
+      notes.push({ file, shard: labels[index] });
+    }
+  }
+  return { maps: reconciled, notes };
+};
+
 /**
  * The merged coverage of `maps` (istanbul coverage-final.json objects): its totals and every file
  * short of a threshold, with the lines no shard reached. With `labels` (one per map, same order),
@@ -146,7 +230,9 @@ async function main([dir, flag, count]) {
     return 3;
   }
   const labels = files.map((file) => basename(dirname(file)));
-  const maps = files.map((file) => JSON.parse(readFileSync(file, "utf8")));
+  const rawMaps = files.map((file) => JSON.parse(readFileSync(file, "utf8")));
+  const { maps, notes } = reconcileDuplicateTails(rawMaps, labels);
+  for (const { shard, file } of notes) console.log(`${shard}'s own coverage-final.json instrumented ${file} twice (an unexecuted file instrumented once per project that raced to do so, flake log #2469); kept only the measured copy.`);
   const doubled = maps.flatMap((map, index) => doubledFiles(map).map((one) => ({ ...one, shard: labels[index] })));
   const mismatched = mismatchedShapes(maps, labels);
   if (doubled.length > 0 || mismatched.length > 0) {
