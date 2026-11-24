@@ -59,7 +59,7 @@ export interface ButtonBaseProps {
   /**
    * Visual weight: `solid` for the primary action, `soft` for secondary actions,
    * `outline` for a quiet bordered control, `plain` for a borderless one, and `glass` for a
-   * Liquid Glass capsule 40px tall (a circle when it holds only an icon) that floats over
+   * Liquid Glass capsule (a circle when it holds only an icon) that floats over
    * content, such as a window toolbar's button. A glass button stays pressed while the popup it opens is open
    * (`aria-expanded`), draws solid with a defined edge under reduced transparency or more contrast,
    * and takes the tone's text colour.
