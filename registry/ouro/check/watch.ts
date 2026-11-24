@@ -2,7 +2,7 @@ export { changesBetween, waitForChange, watchLoop };
 
 import { watch } from "node:fs";
 
-/** A run's open findings, each by its identity: the same finding keeps its key from one run to the next. */
+/** A run's open findings, keyed by identity: a finding keeps its key from one run to the next. */
 type Open = Map<string, string>;
 
 // What a run adds and what it clears, in the order they are read: new findings first.
@@ -32,7 +32,7 @@ function waitForChange(folders: string[], seconds: number): Promise<void> {
 }
 
 /**
- * Runs the check, prints what changed since the run before (the first run prints everything open), waits, and goes
+ * Runs the check, prints what changed since the run before (the first run prints the whole open list), waits, and goes
  * again, `times` runs or until the process stops. Returns the findings open at the end.
  */
 async function watchLoop(options: { run: () => Promise<Open>; wait: () => Promise<void>; times: number; log: (line: string) => void }): Promise<Open> {
