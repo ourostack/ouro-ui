@@ -105,6 +105,7 @@
     "motion": "14.0.0",
     "oxlint": "1.86.0",
     "playwright": "1.65.0",
+    "playwright-core-chromium-floor": "npm:playwright-core@1.65.0",
     "postcss": "8.5.28",
     "react": "19.3.0",
     "react-dom": "19.3.0",
