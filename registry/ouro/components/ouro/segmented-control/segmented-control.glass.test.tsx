@@ -46,6 +46,7 @@ describe("SegmentedControl glass", () => {
     );
     const labels = [...host.querySelectorAll<HTMLElement>('[data-slot="segmented-control-label"]')];
     expect(labels.map((l) => l.classList.contains("sr-only"))).toEqual([false, false]);
+    expect(host.querySelector('[data-slot="segmented-control-icon"]')).toBeNull();
   });
 
   it("marks the group with an empty data-glass, and fills its container with fullWidth", async () => {
