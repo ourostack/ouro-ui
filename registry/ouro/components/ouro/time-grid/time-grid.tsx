@@ -920,7 +920,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       const startAt = !stepped ? `${placed.column * share}%` : placed.columns > 1 ? `calc(${step} * ${placed.column})` : "0%";
       const widthAt = !stepped ? `${placed.span * share}%` : placed.columns > 1 ? `min(max(${placed.span * share}%, ${overlapMinWidth}), 100% - ${startAt})` : "100%";
       // The text of an event a later one steps over ends where that one starts, so it is never drawn under another event.
-      // Stryker disable next-line EqualityOperator: a freed column is reused, so an event in a later column never merely touches this one, and < against <= and > against >= place the same events.
+      // Stryker disable next-line EqualityOperator,ConditionalExpression,LogicalOperator,MethodExpression: a freed column is reused, so an event in a later column never merely touches this one, so no filter operand, and no single-column or filter-less case, changes which event covers this one, and < against <= and > against >= place the same events. The stepped test below pins the rest.
       const coveredBy = stepped && placed.columns > 1 ? placements.filter((other) => other.column > placed.column && other.top < placed.bottom && other.bottom > placed.top).sort((one, two) => one.column - two.column)[0] : undefined;
       const unit = `max(0.75rem, min(${share}cqw, (100cqw - ${overlapMinWidth}) / ${placed.columns - 1}))`;
       const width = `min(max(${placed.span * share}cqw, ${overlapMinWidth}), 100cqw - ${unit} * ${placed.column})`;

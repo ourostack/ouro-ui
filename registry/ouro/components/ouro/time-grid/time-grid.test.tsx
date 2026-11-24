@@ -1629,6 +1629,13 @@ describe("TimeGrid background events", () => {
     expect(Math.abs(box("Second").width - (half - 16))).toBeLessThan(2.5);
   });
 
+  it("leaves the text of overlapping background events uncovered, since they split the width rather than step", async () => {
+    const back = (id: string, from: string, to: string): TimeGridEvent => ({ id, title: id, start: at(12, from), end: at(12, to) });
+    await render({ view: "day", events: [], backgroundEvents: [back("Room one", "10:00", "11:00"), back("Room two", "10:30", "11:30")] });
+    const items = [...document.querySelectorAll<HTMLElement>("[data-ouro-time-grid-background] li, li")].filter((item) => item.style.getPropertyValue("--ouro-time-grid-cover") !== "");
+    expect(items).toEqual([]);
+  });
+
   it("names a week's thin bars in a tooltip, and labels them in a day", async () => {
     const { rerender } = await render({ events: [forum], backgroundEvents: [hands, { ...review, href: "#review" }] });
     const bar = spokenAs("All hands");
