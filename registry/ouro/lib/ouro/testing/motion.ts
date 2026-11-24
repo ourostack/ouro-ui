@@ -49,8 +49,8 @@ const kebabCase = (name: string) => name.replace(/[A-Z]/g, (letter) => `-${lette
 
 /**
  * A named `@keyframes` rule's declared properties, read from its CSS text rather than a running
- * animation's effect: WebKit's `KeyframeEffect.getKeyframes()` reports no property for a step that
- * only sets a registered custom property (`@property`), though the animation itself runs it.
+ * animation's effect: WebKit's `KeyframeEffect.getKeyframes()` omits a step's registered custom
+ * property (`@property`) from what it reports, though the animation itself still runs it.
  */
 function keyframeRulePropertiesOf(name: string): string[] {
   const properties = new Set<string>();
