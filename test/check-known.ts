@@ -191,9 +191,8 @@ export const knownFindings: KnownFinding[] = [
     story: "TimeGrid/Locales",
     rule: "near-miss",
     issue: 3387,
-    theme: "nova",
     reason:
-      "Under nova the 'Team offsite' event starts 6px below the sticky day header: an event sits where its start time puts it, so its gap to the header is the story's data, not spacing anyone chose.",
+      "The 'Team offsite' event starts 6px below the sticky day header: an event sits where its start time puts it, so its gap to the header is the story's data, not spacing anyone chose.",
   },
   {
     story: "AgentHandoff/InContext",
