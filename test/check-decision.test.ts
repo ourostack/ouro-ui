@@ -30,6 +30,8 @@ describe("findDecisionIssues", () => {
     expect(hold({ width: { min: 41 } })).toEqual([`"chip": width is 40px, under 41`]);
     expect(hold({ width: { max: 39 } })).toEqual([`"chip": width is 40px, over 39`]);
     expect(hold({ width: { not: 40 } })).toEqual([`"chip": width is 40px, which it must not be`]);
+    expect(hold({ width: 1, height: 1 })).toEqual([`"chip": width is 40px, not 1`, `"chip": height is 20px, not 1`]);
+    expect(document.querySelector(".chip")!.getAttribute("data-ouro-check-ref")!.split(" ").length).toBeGreaterThan(1);
     expect(hold({ width: { match: "^5" } })).toEqual([`"chip": width is 40px, which does not match ^5`]);
   });
 
