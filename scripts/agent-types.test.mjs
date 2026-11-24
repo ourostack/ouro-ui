@@ -175,5 +175,5 @@ test("hovering any prop shows its JSDoc, including on elements with a type error
   const { lines, file } = fixtureOf("s01");
   const offset = lines.slice(0, line - 1).join("\n").length + 1 + lines[line - 1].indexOf('"ghost"') + 1;
   const completions = service.getCompletionsAtPosition(file, offset, {});
-  assert.deepEqual(completions?.entries.map((entry) => entry.name).sort(), ["outline", "plain", "soft", "solid"]);
+  assert.deepEqual(completions?.entries.map((entry) => entry.name).sort(), ["glass", "outline", "plain", "soft", "solid"]);
 });

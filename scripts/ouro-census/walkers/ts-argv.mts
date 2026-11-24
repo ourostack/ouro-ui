@@ -10,7 +10,7 @@
 // argv array or word to a function the source set can resolve (same file, or a relative import) are followed.
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import * as ts from "../../ts71.mts";
+import ts from "typescript";
 
 export type Fn = ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
 type Binding = { arr: number } | { word: number | null };
@@ -59,7 +59,7 @@ export class Sources {
   file(path: string): ts.SourceFile {
     let sf = this.files.get(path);
     if (!sf) {
-      sf = ts.createSourceFile(path, readFileSync(path, "utf8"), );
+      sf = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
       this.files.set(path, sf);
     }
     return sf;
@@ -125,7 +125,7 @@ export class Sources {
     const env = new Map<string, Binding>();
     const bindPattern = (pattern: ts.ArrayBindingPattern, offset: number) => {
       pattern.elements.forEach((el, i) => {
-        if (!ts.isOmittedExpression(el) && !!el.name && ts.isIdentifier(el.name)) env.set(el.name.text, el.dotDotDotToken ? { arr: offset + i } : { word: offset + i });
+        if (!ts.isOmittedExpression(el) && ts.isIdentifier(el.name)) env.set(el.name.text, el.dotDotDotToken ? { arr: offset + i } : { word: offset + i });
       });
     };
     const bind = (name: ts.BindingName, init: ts.Expression) => {
@@ -139,7 +139,7 @@ export class Sources {
       const arr = arrayOf(init);
       if (arr === null) return;
       if (ts.isArrayBindingPattern(name)) bindPattern(name, arr);
-      else for (const el of name.elements) if (el.name && ts.isIdentifier(el.name)) env.set(el.name.text, { arr });
+      else for (const el of name.elements) if (ts.isIdentifier(el.name)) env.set(el.name.text, { arr });
     };
     if (!ts.isSourceFile(body)) {
       body.parameters.forEach((p, i) => {
@@ -275,7 +275,7 @@ export class Sources {
       if (ts.isArrayLiteralExpression(e)) return e.elements.filter(isText);
       if (ts.isNewExpression(e)) return e.arguments?.[0] ? tableOf(e.arguments[0]) : null;
       if (ts.isObjectLiteralExpression(e)) {
-        return e.properties.map((p) => (p as ts.PropertyAssignment).name).filter((n): n is ts.Identifier | ts.StringLiteral => !!n && (ts.isIdentifier(n) || ts.isStringLiteral(n)));
+        return e.properties.map((p) => p.name).filter((n): n is ts.Identifier | ts.StringLiteral => !!n && (ts.isIdentifier(n) || ts.isStringLiteral(n)));
       }
       return null;
     };

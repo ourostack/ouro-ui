@@ -261,6 +261,8 @@ function CallDemo(): JSX.Element {
               pressed: sharing,
               onPressedChange: (next: boolean) => {
                 setSharing(next);
+                // A shared screen fills a phone's stage, so no corner is clear of the bar or a face.
+                if (next && narrow) setSelfHidden(true);
                 setStatus(next ? "You are sharing your screen" : "You stopped sharing");
               },
             },
@@ -289,7 +291,7 @@ function CallDemo(): JSX.Element {
             { label: "React", icon: SmileIcon, hideLabel: true, onClick: () => setReactionsOpen(true) },
           ] satisfies ToolbarEntry[])),
     ],
-    [muted, cameraOff, sharing, captionsOn, handUp, stage, toggleMute, setStatus],
+    [muted, cameraOff, sharing, captionsOn, handUp, stage, toggleMute, setStatus, narrow],
   );
 
   const selfPicture = cameraOff ? (

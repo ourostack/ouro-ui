@@ -7,7 +7,7 @@
 // its subcommands. Those are read from the syntax tree only: nothing here is run.
 import { readdirSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import * as ts from "../../ts71.mts";
+import ts from "typescript";
 import type { Door, WalkerOptions, WalkResult } from "../types.mts";
 import { applyCards, loadCards, Raises } from "./cli-cards.mts";
 import { nextWords, Sources } from "./ts-argv.mts";
@@ -29,7 +29,7 @@ const isProcess = (n: ts.Node): boolean =>
 const isArgv = (n: ts.Node): boolean =>
   (ts.isPropertyAccessExpression(n) && isProcess(n.expression) && n.name.text === "argv") ||
   (ts.isElementAccessExpression(n) && isProcess(n.expression) && ts.isStringLiteral(n.argumentExpression) && n.argumentExpression.text === "argv") ||
-  (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && !!n.initializer && isProcess(n.initializer) && n.name.elements.some((e) => (e.propertyName ?? e.name)?.getText() === "argv"));
+  (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && !!n.initializer && isProcess(n.initializer) && n.name.elements.some((e) => (e.propertyName ?? e.name).getText() === "argv"));
 
 /** The node of the module's first `process.argv` read when the module is an entry point, else null. */
 function entryRead(sf: ts.SourceFile): ts.Node | null {
