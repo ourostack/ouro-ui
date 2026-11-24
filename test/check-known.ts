@@ -204,13 +204,6 @@ export const knownFindings: KnownFinding[] = [
       "Under nova, the sticky day header sits 6px above an event's own title button in each locale: more than touching, under the 8px minimum gap, so neither reads as one surface nor as clearly apart; #3286 tracks time-grid among the near-miss rule's confirmed, not-yet-fixed cases.",
   },
   {
-    story: "TimeGrid/Locales",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Under the Ouro theme too, at both the phone and the laptop size, light and dark, the sticky day header sits 6px above an event's own title button in each locale: more than touching, under the 8px minimum gap, so neither reads as one surface nor as clearly apart; #3286 tracks time-grid among the near-miss rule's confirmed, not-yet-fixed cases.",
-  },
-  {
     story: "AgentHandoff/InContext",
     rule: "near-miss",
     issue: 3286,
