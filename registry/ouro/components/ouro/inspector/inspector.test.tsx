@@ -616,7 +616,20 @@ describe("Inspector", () => {
   // open/close cycles, capturing every ratio seen (not just a failure), so the log always holds
   // data even when this run's draws happen not to dip under 4.5:1. Removed before merge.
   it("diag: stresses the Vegetarian label's measured contrast across many draws", async () => {
-    const { host } = await render(<Page />);
+    // Match the failing test's exact layout: dense content right below the Checkbox, which is
+    // what differs from a bare <Page />, and may be what forces a tag near the Vegetarian label.
+    const { host } = await render(
+      <Page>
+        <div style={{ display: "grid", gap: 2 }}>
+          <Heading level={2}>Braised short ribs</Heading>
+          <Text>Brown the ribs, then braise them low for three hours.</Text>
+          <Badge>Make ahead</Badge>
+          <Text>Serves six, with polenta or mash.</Text>
+          <Link href="/recipes/polenta">Soft polenta</Link>
+          <Text size="sm">Keeps for four days in the fridge.</Text>
+        </div>
+      </Page>,
+    );
     const vegetarian = [...host.querySelectorAll<HTMLElement>("*")].find(
       (element) => element.textContent?.trim() === "Vegetarian" && [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE),
     )!;
