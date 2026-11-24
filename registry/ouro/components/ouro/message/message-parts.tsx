@@ -367,11 +367,13 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
       : barHost(),
   );
   const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
-
+  // The bar has finished fading out and is out of the page; its element stays, as it always has, for the next message.
+  const [parked, setParked] = useState(false);
   // Stryker disable next-line ConditionalExpression,LogicalOperator: the slot is found only through the row's data, and the data only through the row, so a slot holds the other two.
   const on = hover.row !== null && data !== undefined && slot !== null ? { row: hover.row, data } : null;
   // Each message gives the layer a new data object on every render, so new data comes with a move to another message too.
   if (on !== null && (shown === null || shown.data !== on.data)) setShown(on);
+  if (on !== null && parked) setParked(false);
   // The message a bar beside its bubble is on measures its width (100cqw) while the bar is there, and only then: the browser
   // styles a container's insides as it lays the container out, which a list paid for each message it drew as it opened.
   const [contained] = useState<{ row: HTMLElement | null }>(() => ({ row: null }));
@@ -381,7 +383,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     if (host === null) return;
     if (slot !== null) {
       if (host.parentNode !== slot) slot.appendChild(host);
-    } else if (shown === null || !host.parentNode?.isConnected) {
+    } else if (shown === null || parked || !host.parentNode?.isConnected) {
       host.parentNode?.removeChild(host);
     }
     const bar = host.firstElementChild;
@@ -395,13 +397,16 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     contain(contained, on !== null && on.data.beside !== undefined ? on.row : null);
   });
   // The pointer left: the bar stays in the message it was on while it fades, and goes when its transition ends (at once when none runs).
-  const ending = shown !== null && on === null;
+  const ending = shown !== null && on === null && !parked;
   useLayoutEffect(() => {
     if (!ending) return;
     let current = true;
     const running = host!.firstElementChild?.getAnimations() ?? [];
     void Promise.allSettled(running.map((animation) => animation.finished)).then(() => {
-      if (current) setShown(null);
+      if (!current) return;
+      // The next showing fades in again.
+      if (host!.firstElementChild !== null) entered.delete(host!.firstElementChild);
+      setParked(true);
     });
     return () => {
       current = false;
