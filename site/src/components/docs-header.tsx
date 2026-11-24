@@ -39,7 +39,7 @@ export function headerPath(current: string): string {
   if (current === "") return "";
   if (current === "/docs/" || docsItems.some((item) => current === `/docs/${item.name}/`) || helpers.some((page) => page.path === current)) return "/docs/";
   if (/^\/docs\/ax(-[a-z0-9-]+)?\/$/.test(current)) return "/ax/";
-  return "/docs/installing/";
+  return "/docs/";
 }
 
 const asPage = ({ path, label }: DocsLink) => ({ label, href: path });
