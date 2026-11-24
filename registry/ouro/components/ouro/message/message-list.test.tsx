@@ -1478,6 +1478,10 @@ describe("MessageList", () => {
     delete (pillElement as { getBoundingClientRect?: unknown }).getBoundingClientRect;
     delete (newest as { getBoundingClientRect?: unknown }).getBoundingClientRect;
     expect(room.dataset.ouroMessageListJumpClears).toBe("true");
+    // Asserted alongside ouroMessageListJumpClears, not on its own: a run that passed the guard always sets
+    // this to "ran" first, so only this value, not merely some truthy string, tells apart a mutant that
+    // empties or renames it from real source.
+    expect(scroller.dataset.ouroMessageListJumpGuard).toBe("ran");
   });
 
   it("leaves the pill alone at clear exactly 0, where < must not fire", async () => {
