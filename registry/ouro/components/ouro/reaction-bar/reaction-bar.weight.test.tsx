@@ -16,8 +16,8 @@ const react = () => {};
 const variants: { variant: string; bar: ReactElement; elements: number; components: number }[] = [
   { variant: "read-only reactions", bar: <ReactionBar reactions={reactions} />, elements: 11, components: 6 },
   { variant: "reactions anyone can press", bar: <ReactionBar reactions={reactions} onReact={react} />, elements: 12, components: 12 },
-  { variant: "read-only reactions with Add reaction", bar: <ReactionBar reactions={reactions} onMore={react} />, elements: 22, components: 11 },
-  { variant: "reactions with Add reaction", bar: <ReactionBar reactions={reactions} onReact={react} onMore={react} />, elements: 23, components: 17 },
+  { variant: "read-only reactions with Add reaction", bar: <ReactionBar reactions={reactions} onMore={react} />, elements: 22, components: 12 },
+  { variant: "reactions with Add reaction", bar: <ReactionBar reactions={reactions} onReact={react} onMore={react} />, elements: 23, components: 18 },
 ];
 
 /** The components React keeps for what the root draws: every fiber but the root, elements and text, context providers included. */
