@@ -55,7 +55,7 @@ describe("SegmentedControl glass", () => {
     expect(people.querySelectorAll('[data-slot="segmented-control-icon"]')).toHaveLength(1);
     expect(places.querySelector('[data-slot="segmented-control-count"]')?.textContent).toBe("14");
     expect(people.querySelector('[data-slot="segmented-control-count"]')).toBeNull();
-    const labelOf = (segment: HTMLElement) => segment.querySelector<HTMLElement>("[data-slot="segmented-control-label"]")!;
+    const labelOf = (segment: HTMLElement) => segment.querySelector<HTMLElement>('[data-slot="segmented-control-label"]')!;
     expect(labelOf(places).getBoundingClientRect().width).toBeGreaterThan(1);
     expect(labelOf(people).getBoundingClientRect().width).toBeLessThanOrEqual(1);
     expect(group.querySelectorAll('[role="radio"][aria-checked="true"]')).toHaveLength(1);
@@ -79,7 +79,7 @@ describe("SegmentedControl glass", () => {
     expect(group.getBoundingClientRect().height).not.toBe(40);
     expect(getComputedStyle(group).backdropFilter).toBe("none");
     expect(segments.every((segment) => segment.querySelector('[data-slot="segmented-control-count"]'))).toBe(true);
-    expect(segments[1]!.querySelector<HTMLElement>("[data-slot="segmented-control-label"]")!.getBoundingClientRect().width).toBeGreaterThan(1);
+    expect(segments[1]!.querySelector<HTMLElement>('[data-slot="segmented-control-label"]')!.getBoundingClientRect().width).toBeGreaterThan(1);
   });
 
   it("is solid and unblurred under more contrast", async () => {
