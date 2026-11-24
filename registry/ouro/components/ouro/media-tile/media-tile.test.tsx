@@ -301,10 +301,11 @@ describe("MediaTile", () => {
     expect(getComputedStyle(plate).backgroundColor).toBe(themeColor("--background"));
     reduced.remove();
     await commands.emulateMedia({ contrast: "more" });
-    expect(getComputedStyle(plate).backgroundColor).toBe(themeColor("--background"));
+    // WebKit hasn't always applied the emulated media by the next statement (#3518): poll instead of reading once.
+    await expect.poll(() => getComputedStyle(plate).backgroundColor).toBe(themeColor("--background"));
     expect(getComputedStyle(plate).borderTopColor).toBe(getComputedStyle(plate).color);
     await commands.emulateMedia({ contrast: "no-preference", forcedColors: "active" });
-    expect(getComputedStyle(plate).borderTopStyle).toBe("solid");
+    await expect.poll(() => getComputedStyle(plate).borderTopStyle).toBe("solid");
     expect(parseFloat(getComputedStyle(plate).borderTopWidth)).toBeGreaterThan(0);
     expect(getComputedStyle(tile).borderTopStyle).toBe("solid");
   });
