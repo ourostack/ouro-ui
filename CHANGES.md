@@ -1,0 +1,8 @@
+# Changes in this release
+
+- Added: `Card` takes `backdrop`, a picture behind the whole card with its title, body and footer over it. [Only the picture is clipped to the card's corner; the card and its text and controls aren't](registry/ouro/components/ouro/card/card.test.tsx "verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > lays a backdrop behind the whole card, edge to edge, clipping only the picture and not the card or its text)").
+- Fix: `Combobox` with `multiple` no longer names both the footer button and the phone sheet's close button "Done"; the sheet's close button now takes its own `closeLabel` prop, defaulting to "Close".
+- Changed: squircles are drawn by `squircleCorners()` alone: the `[data-ouro-surface]` clip-path layer, `--ouro-corner-fallback` and `registerSquirclePolyfill()` are removed, so add `squircleCorners()` to your build's PostCSS plugins (see UPGRADING.md) to keep squircles in WebKit.
+- New: TimeGrid events take `status: "away"` (out of office), drawn in the new `--ouro-away` theme colour, Teams' purple, and `markedDays` accept `tone: "away"` so a day and its meetings agree.
+- New: [Ouro check steps each transition a frame at a time](docs/guides/guardrails.md "verify:fileLine(docs/guides/guardrails.md, /backtrack/)") and fails a jump, a backtrack, siblings that reflow, text that re-wraps, content that pops in within a frame and a frame over 50 ms, in Chromium and WebKit.
+- Fixed: ax-xray's `mcp.no-stream-promise` no longer fails a tool whose description names a stream as a thing, such as a channel's streaming capability; it fails only a promise that the tool itself streams.
