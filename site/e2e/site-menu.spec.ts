@@ -16,6 +16,9 @@ const PHONE = { width: 390, height: 844 };
  * menu lists the family's sites.
  */
 const framed = (...own: string[]) => [...own, "All sites", "Ouro UI"];
+
+/** Escapes a label's regex metacharacters, so a site named with literal parentheses (such as "GitHub (ourostack)") still matches itself. */
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const PAGES: ReadonlyArray<{ path: string; navs: string[] }> = [
   { path: "./", navs: framed() },
   { path: "nautilus/", navs: framed("Chapters") },
@@ -148,7 +151,7 @@ for (const { path, navs } of PAGES) {
     // the others marked as leaving the site.
     await expect(sheet(page).getByRole("heading", { name: "Ouro family", exact: true })).toHaveCount(1);
     await expect(sheet(page).getByRole("list", { name: "Ouro family", exact: true }).getByRole("link")).toHaveText(
-      family.links.map((site) => new RegExp(`^${site.label}${site.id === "ouro-ui" ? "" : "↗"}`)),
+      family.links.map((site) => new RegExp(`^${escapeRegExp(site.label)}${site.id === "ouro-ui" ? "" : "↗"}`)),
     );
     await expect(sheet(page).locator('[aria-current="true"]')).toHaveAttribute("href", family.links.find((site) => site.id === "ouro-ui")!.href);
     // Nothing sticks out of the window sideways.
