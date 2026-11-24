@@ -56,14 +56,18 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
         if (round || corners.every((c) => c === null)) return;
         const half = halfSize(rule);
         const nodes: object[] = [];
+        const radii: string[] = [];
         corners.forEach((c, i) => {
           if (c === null) return;
           const capsule = isCapsule(c.value);
           const value = !capsule && px(c.value) > half ? `${half}px` : c.value;
-          const important = c.important;
-          nodes.push({ prop: `--sq-${KEYS[i]}`, value: capsule ? "var(--sq-half)" : value, important });
-          nodes.push({ prop: c.prop, value: capsule ? "var(--sq-capsule-radius)" : `calc(${value} * ${ENCLOSING_CIRCLE})`, important });
+          const radius = capsule ? "var(--sq-capsule-radius)" : `calc(${value} * ${ENCLOSING_CIRCLE})`;
+          nodes.push({ prop: `--sq-${KEYS[i]}`, value: capsule ? "var(--sq-half)" : value, important: c.important });
+          // One shorthand when the rule wrote one for every corner; longhands otherwise, so a later longhand still wins.
+          if (corners.every((o) => o?.whole && o.important === c.important)) radii.push(radius);
+          else nodes.push({ prop: c.prop, value: radius, important: c.important });
         });
+        if (radii.length) nodes.push({ prop: "border-radius", value: radii.every((r) => r === radii[0]) ? radii[0] : radii.join(" "), important: corners[0]!.important });
         rule.after({ name: "supports", params: MISSING, nodes: [{ selector: rule.selector, nodes }] });
         for (const s of rule.selectors ?? []) selectors.add(s);
       });
@@ -95,7 +99,7 @@ function skipped(rule: Node): boolean {
   return false;
 }
 
-interface Corner { value: string; prop: string; important: boolean }
+interface Corner { value: string; prop: string; important: boolean; whole: boolean }
 
 // The four corners' radii as written (top-left, top-right, bottom-right, bottom-left), each with the property that set it, or
 // null for a corner the rule leaves alone. A later declaration overrides an earlier one, as in the cascade.
@@ -109,9 +113,9 @@ function cornersOf(rule: Node): (Corner | null)[] {
     const important = decl.important === true;
     if (decl.prop === "border-radius" && !value.includes("/")) {
       const [a, b = a, c = a, d = b] = splitTop(value);
-      [a!, b!, c!, d!].forEach((v, i) => set(i, { value: v, prop: PHYSICAL[i]!, important }));
+      [a!, b!, c!, d!].forEach((v, i) => set(i, { value: v, prop: PHYSICAL[i]!, important, whole: true }));
     } else if (decl.prop! in LONGHANDS) {
-      set(LONGHANDS[decl.prop!]!, { value: splitTop(value)[0]!, prop: decl.prop!, important });
+      set(LONGHANDS[decl.prop!]!, { value: splitTop(value)[0]!, prop: decl.prop!, important, whole: false });
     }
   }
   return out;
