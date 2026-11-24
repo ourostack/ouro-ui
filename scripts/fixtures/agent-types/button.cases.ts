@@ -2,7 +2,7 @@ import { type AgentCase, tones, notAssignable, hint } from "./shared.ts";
 
 const sizes = `"sm" | "md" | "lg" | "inline" | (string & { 'From shadcn? default is "md"; for icon, pass aria-label with the icon as children': never; }) | undefined`;
 const variants =
-  `(string & { 'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never; }) | "solid" | "soft" | "outline" | "plain" | undefined`;
+  `(string & { 'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never; }) | "solid" | "soft" | "outline" | "plain" | "glass" | undefined`;
 
 /** The button snippets in button.snippets.tsx that make mistakes, in file order. */
 export const agentCases: AgentCase[] = [
