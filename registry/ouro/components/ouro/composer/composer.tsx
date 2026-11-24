@@ -436,6 +436,21 @@ function RemoveIcon(): JSX.Element {
   );
 }
 
+let insetRegistered = false;
+
+// Registers the clip's inset as a length, so the keyframes animate it on the main thread; done once, before the first move.
+function registerInset(): void {
+  if (insetRegistered) return;
+  insetRegistered = true;
+  /* istanbul ignore next @preserve -- a browser without registerProperty keeps the clip, which then jumps rather than animates */
+  if (typeof CSS === "undefined" || !("registerProperty" in CSS)) return;
+  try {
+    CSS.registerProperty({ name: "--ouro-composer-inset", syntax: "<length>", inherits: false, initialValue: "0px" });
+  } catch {
+    /* istanbul ignore next @preserve -- another copy of Composer registered it first */
+  }
+}
+
 const reducedQuery = "(prefers-reduced-motion: reduce)";
 
 // The visible height a running move has left to clear: the frame's clip-path inset from the top, in px.
@@ -782,6 +797,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (Math.abs(px - from) < 0.5 && !toolbarElement) return;
     // Stryker disable next-line ArrayDeclaration,ArrowFunction,ConditionalExpression: the elements only hold the animations' paused state for two frames, which a test cannot sample.
     const elements = [frame, toolbarElement].filter((element) => element !== null);
+    registerInset();
     frame.style.setProperty("--ouro-composer-gap", `${Math.abs(px - from)}px`);
     frame.style.setProperty("--ouro-composer-radius", getComputedStyle(frame).borderTopLeftRadius);
     if (!expanded) frame.style.minHeight = `${Math.max(from, px)}px`;
