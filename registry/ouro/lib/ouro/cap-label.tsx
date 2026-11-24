@@ -16,11 +16,14 @@ const capLabelClass = "[text-box:trim-both_cap_alphabetic]";
 /**
  * {@link capLabelClass} for a line that truncates: the padding gives the trim back the room it took above the caps
  * and under the baseline, and the negative margin takes it out of the layout again. Uses `overflow: clip`
- * (`overflow-clip`), never `truncate`'s `hidden`: `hidden` makes the box a scroll container, and some engines keep
- * a trimmed line's untrimmed line box as its scrollable overflow, so the padding itself reads as a stray scrollbar
- * and as cut text though nothing a person sees moves or clips. `clip` cuts the same pixels with no scroll container
- * at all, so neither finding fires.
+ * (`overflow-clip`), not `truncate`'s `hidden`: `hidden` makes the box a scroll container when its content
+ * overflows, and the trim padding can read there as scrollable overflow, so the padding itself reads as a stray
+ * scrollbar and as cut text though nothing a person sees moves or clips.
+ * {@link https://developer.mozilla.org/en-US/docs/web/css/overflow | MDN's `overflow` page} says `clip` does not
+ * create a scroll container, so clipped content is skipped when an ancestor walk looks for one.
  *
+ * @claim "`hidden` makes the box a scroll container when its content overflows" https://developer.mozilla.org/en-US/docs/web/css/overflow verify:urlOk(https://developer.mozilla.org/en-US/docs/web/css/overflow)
+ * @claim "`clip` does not create a scroll container, so clipped content is skipped when an ancestor walk looks for one" https://developer.mozilla.org/en-US/docs/web/css/overflow verify:urlOk(https://developer.mozilla.org/en-US/docs/web/css/overflow)
  * @internal
  */
 const capLabelTruncateClass = "[text-box:trim-both_cap_alphabetic] overflow-clip text-ellipsis whitespace-nowrap py-[0.3em] -my-[0.3em]";
