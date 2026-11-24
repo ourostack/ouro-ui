@@ -1,0 +1,1 @@
+- Fixed: TimeGrid's glass day header keeps its text legible over the events scrolling beneath it: a stronger tint and blur, and a darker All day label.

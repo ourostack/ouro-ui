@@ -1001,6 +1001,47 @@ describe("TimeGrid", () => {
     expect(warnings()).toEqual([]);
   });
 
+  it.each(["light", "dark"])("keeps the glass day header's text legible over the busiest event beneath it (%s)", async (scheme) => {
+    document.documentElement.classList.toggle("dark", scheme === "dark");
+    try {
+      await render();
+      await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(true);
+      const head = viewport().querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+      const rgba = (css: string) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 1;
+        const context = canvas.getContext("2d", { willReadFrequently: true })!;
+        context.fillStyle = css;
+        context.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data as unknown as number[];
+        return [r!, g!, b!, a! / 255] as const;
+      };
+      const luminance = ([r, g, b]: readonly number[]) => {
+        const [lr, lg, lb] = [r!, g!, b!].map((value) => (value / 255 <= 0.04045 ? value / 255 / 12.92 : ((value / 255 + 0.055) / 1.055) ** 2.4));
+        return 0.2126 * lr! + 0.7152 * lg! + 0.0722 * lb!;
+      };
+      const ratio = (a: readonly number[], b: readonly number[]) => {
+        const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (hi! + 0.05) / (lo! + 0.05);
+      };
+      await expect.poll(() => rgba(getComputedStyle(head).backgroundColor)[3]).toBeGreaterThan(0.5);
+      const tint = rgba(getComputedStyle(head).backgroundColor);
+      // The worst thing that can scroll under the glass is the page's foreground colour, unblurred.
+      const probe = head.appendChild(document.createElement("span"));
+      probe.className = "text-foreground";
+      const worst = rgba(getComputedStyle(probe).color);
+      probe.remove();
+      const over = [0, 1, 2].map((channel) => tint[channel]! * tint[3] + worst[channel]! * (1 - tint[3]));
+      const labels = [...head.querySelectorAll<HTMLElement>("*")].filter((element) => rgba(getComputedStyle(element).backgroundColor)[3] === 0 && [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.textContent!.trim() !== ""));
+      expect(labels.length).toBeGreaterThan(0);
+      for (const label of labels) {
+        expect(ratio(rgba(getComputedStyle(label).color), over), label.textContent!).toBeGreaterThanOrEqual(4.5);
+      }
+    } finally {
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
   it("opens at today's first event when now is before it, rather than at empty hours before now", async () => {
     // Where a grid opens, in hours from midnight.
     const opensAt = async (props: Partial<TimeGridProps>) => {

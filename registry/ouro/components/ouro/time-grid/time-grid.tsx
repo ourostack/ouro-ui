@@ -1008,7 +1008,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       onKeyDown={onKeyDown}
     >
       <ScrollArea label={label} className="min-h-0 flex-1">
-        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/80 [[data-overflow-y-start]_&]:backdrop-blur-md [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
+        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/95 [[data-overflow-y-start]_&]:backdrop-blur-lg [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
           <div aria-hidden="true" />
           {days.map((day, index) => (
             <div
@@ -1041,7 +1041,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               ))}
             </>
           ) : null}
-          <div aria-hidden="true" className="flex items-start justify-end py-1 pe-2 text-[11px] leading-5 text-muted-foreground">
+          <div aria-hidden="true" className="flex items-start justify-end py-1 pe-2 text-[11px] leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
             {allDayLabel}
           </div>
           {allDay.length > 0 ? (
