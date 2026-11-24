@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [Command's pointer moves the one highlight](registry/ouro/components/ouro/command/command.recents.test.tsx "verify:testExists(registry/ouro/components/ouro/command/command.recents.test.tsx::Command recents > keeps one highlight that the pointer moves between a row and a chip, and an arrow key walks on from it)"), in the results and in the recents chips, so a row and a chip are never both lit and an arrow key walks on from the one the pointer is over.
