@@ -1,0 +1,1 @@
+- Changed: a glass `Button` with `size="sm"` takes the height of a macOS Tahoe window toolbar, a circle for an icon, and `<ButtonGroup glass="sm">` is a capsule of that height; glass without `sm` is unchanged.
