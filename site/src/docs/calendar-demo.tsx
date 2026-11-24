@@ -47,13 +47,14 @@ const minutesOf = (date: Date) => date.getHours() * 60 + date.getMinutes();
 const clock = (minutes: number) => new Date(2000, 0, 1, 0, minutes).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
 const startOptions = Array.from({ length: 48 }, (_, slot) => ({ value: String(slot * 30), label: clock(slot * 30) }));
-const lengthOptions = [
-  { value: "15", label: "15 minutes" },
-  { value: "30", label: "30 minutes" },
-  { value: "60", label: "1 hour" },
-  { value: "90", label: "1 hour 30 minutes" },
-  { value: "120", label: "2 hours" },
-];
+const lengthLabel = (minutes: number) => {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  const hourPart = hours > 0 ? `${hours} ${hours === 1 ? "hour" : "hours"}` : "";
+  const minutePart = rest > 0 ? `${rest} minutes` : "";
+  return [hourPart, minutePart].filter(Boolean).join(" ");
+};
+const lengthOptions = [15, 30, 60, 90, 120].map((minutes) => ({ value: String(minutes), label: lengthLabel(minutes) }));
 
 /** A made-up week around the reader's today, so the now line shows. */
 function seed(today: string): Entry[] {
@@ -184,7 +185,7 @@ function Screen(): JSX.Element {
           onValueChange={(value) => setStage(value as Stage)}
           items={[
             { value: "week", label: "Full week" },
-            { value: "empty", label: "No events" },
+            { value: "empty", label: "Empty week" },
             { value: "loading", label: "Loading" },
           ]}
         />

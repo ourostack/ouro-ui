@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
 import { routes } from "../routes";
@@ -34,11 +34,16 @@ describe("the calendar page", () => {
   });
 
   it("shows an empty week and a loading state from the State switcher", async () => {
-    await renderPage("/docs/calendar-demo/");
-    await page.getByRole("radio", { name: "No events" }).click();
-    await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
-    await page.getByRole("radio", { name: "Loading" }).click();
-    await expect.poll(() => document.querySelector("[data-site-calendar-demo] [aria-busy=true]")).not.toBeNull();
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      await renderPage("/docs/calendar-demo/");
+      await page.getByRole("radio", { name: "Empty week" }).click();
+      await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
+      await page.getByRole("radio", { name: "Loading" }).click();
+      await expect.poll(() => document.querySelector("[data-site-calendar-demo] [aria-busy=true]")).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("deletes an event from its details and brings it back with Undo", async () => {
