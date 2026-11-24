@@ -1,0 +1,1 @@
+- New: `squircleCorners()` (item `lib-squircle-corners`), a PostCSS plugin that draws squircle corners at build time in engines without `corner-shape`, and sets `corner-shape: squircle` where the engine has it; the page runs nothing of it.

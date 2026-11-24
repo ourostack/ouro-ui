@@ -97,7 +97,7 @@ describe("the drawings", () => {
 describe("the hero", () => {
   it("says what Ouro UI is in six words, under what it is for, and engraves the ship's name on the porthole's ring", async () => {
     await renderPage("/");
-    expect(EYEBROW).toBe("A complete kit for agents");
+    expect(EYEBROW).toBe("Open source, for coding agents");
     expect(document.querySelector("h1")!.textContent).toBe("Delightful interfaces, by agents, for everyone.");
     expect(document.querySelector("h1")!.textContent!.split(/\s+/)).toHaveLength(6);
     // It never breaks after "by": the second half's phrases each hold one line.

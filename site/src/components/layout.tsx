@@ -1,3 +1,4 @@
+import { FOR_EVERYONE } from "../copy";
 import type { JSX, ReactNode } from "react";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-footer";
@@ -22,7 +23,7 @@ export function SiteFooter(): JSX.Element {
         <div className="flex basis-full flex-col gap-6 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="m-0 flex items-center gap-2 text-sm text-muted-foreground">
             <span>
-              Ouro UI: Ouro HX for people, Ouro AX for agents. Part of Ouro. MIT license.
+              Ouro UI: delightful interfaces, {FOR_EVERYONE} Part of Ouro. MIT license.
             </span>
           </p>
           <nav aria-label="Ouro UI">

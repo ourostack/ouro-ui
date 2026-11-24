@@ -147,6 +147,9 @@ test("settleMotion waits out a mover that starts between two takes, so both agre
 test("stagePaced waits out the home page's stage before a control elsewhere on the page is taken twice (#2989)", async ({ page }) => {
   await slowFrames(page, 120);
   await page.goto("./");
+  // A page held 120 ms every frame is never idle, so each hydration turn waits out its idle timeout: allow what openSlow
+  // (stage-helpers.ts) allows such a page before the settle's own ready wait.
+  await expect(page.locator("html[data-site-ready]")).toBeAttached({ timeout: 20_000 });
   await settled(page);
   await quiet(page);
   await loaded(page);

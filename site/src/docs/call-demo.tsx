@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type SVGProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type ReactNode, type SVGProps } from "react";
 import { AgentPresence, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -109,6 +109,16 @@ function useFakeLevel(active: boolean): number {
   return level;
 }
 
+// On a wide screen the grid is as wide as its area's height allows, so 16:9 tiles fit without a scrollbar of their own.
+function gridFit(tiles: number, sharing: boolean): CSSProperties {
+  const faces = tiles - (sharing ? 1 : 0);
+  const columns = tiles <= 1 ? 1 : tiles <= 4 ? 2 : 3;
+  const rows = Math.ceil(faces / columns);
+  const units = (sharing ? 1 : 0) + rows / columns;
+  const gaps = rows + (sharing ? 1 : 0) - 1;
+  return { "--call-grid-width": `min(100%, max(14rem, calc((100cqh - ${gaps * 0.5}rem) * 16 / 9 / ${units})))` } as CSSProperties;
+}
+
 function subscribeNarrow(notify: () => void): () => void {
   const query = window.matchMedia("(max-width: 639px)");
   query.addEventListener("change", notify);
@@ -127,6 +137,7 @@ function CallDemo(): JSX.Element {
   const [handUp, setHandUp] = useState(false);
   const [captionsOn, setCaptionsOn] = useState(true);
   const [reactionsOpen, setReactionsOpen] = useState(false);
+  const [reacted, setReacted] = useState<typeof quick[number] | null>(null);
   const [corner, setCorner] = useState<SnapPiPCorner>("bottom-right");
   // On a phone with a full grid no corner is free of a face, so the picture starts tucked away; the person can show it.
   const narrow = useSyncExternalStore(subscribeNarrow, () => window.matchMedia("(max-width: 639px)").matches, () => false);
@@ -349,11 +360,17 @@ function CallDemo(): JSX.Element {
     const tiles = (sharing ? 1 : 0) + visible.length;
     body = (
       <div className="relative flex h-full min-h-0 flex-col">
-        <div className="min-h-0 flex-1 overflow-auto p-2">
+        <div className="min-h-0 flex-1 overflow-auto p-2 [container-type:size]">
+          {reacted ? (
+            <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center" data-site-call-reaction>
+              <ReactionBar reactions={[{ ...reacted, count: 1, mine: true, tooltip: "You" }]} />
+            </div>
+          ) : null}
           <div
             ref={gridRef}
+            style={gridFit(tiles, sharing)}
             className={
-              "grid gap-2 " +
+              "grid gap-2 md:mx-auto md:w-(--call-grid-width) " +
               (tiles <= 1 ? "grid-cols-1" : tiles === 2 ? "grid-cols-1 md:grid-cols-2" : tiles <= 4 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3")
             }
           >
@@ -382,9 +399,7 @@ function CallDemo(): JSX.Element {
         </div>
         <div ref={bottomRef} className="grid gap-2 p-2">
           {captionsOn ? (
-            <div style={{ height: "7rem" }}>
-              <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={3} />
-            </div>
+            <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={2} />
           ) : null}
           <div className="flex min-w-0 justify-center">
             {bar}
@@ -399,6 +414,7 @@ function CallDemo(): JSX.Element {
             quick={quick}
             onReact={(key) => {
               setReactionsOpen(false);
+              setReacted(quick.find((option) => option.key === key) ?? null);
               setStatus(`You reacted: ${quick.find((option) => option.key === key)?.label ?? key}`);
             }}
           />

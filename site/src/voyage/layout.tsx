@@ -1,3 +1,4 @@
+import { FOR_EVERYONE } from "../copy";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import type { JSX, ReactNode } from "react";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
@@ -21,7 +22,7 @@ export function VoyageFooter(): JSX.Element {
         <div className="grid basis-full gap-6 pt-4 text-sm lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div className="grid gap-2">
             <p className="m-0">
-              Ouro UI: Ouro HX for people, Ouro AX for agents. Part of Ouro. MIT license.
+              Ouro UI: delightful interfaces, {FOR_EVERYONE} Part of Ouro. MIT license.
             </p>
             <p className="m-0">
               {claim("The story is Jules Verne’s", { source: { spec: "https://www.gutenberg.org/ebooks/164" }, verify: { urlOk: "https://www.gutenberg.org/ebooks/164" } })}{" "}
