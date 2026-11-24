@@ -59,10 +59,12 @@ describe("listenForMeasures", () => {
     const holder = document.createElement("p");
     const text = holder.appendChild(document.createTextNode("words"));
     const rect = { x: 1.4, y: 2.4, width: 3.4, height: 4.4 } as DOMRectReadOnly;
-    m.add({ value: 0.01, startTime: 1000, hadRecentInput: false, sources: [{ node: plain }, { node: text, previousRect: rect }, { node: document.createTextNode("gone") }, { node: null }] });
-    expect(m.shiftLog).toEqual(["1000 ms after navigation: 0.010, section ? -> ?; p 1,2 3x4 -> ?; (removed) ? -> ?; (removed) ? -> ?"]);
-    m.add({ value: 0.01, startTime: 1100, hadRecentInput: false, sources: [] });
-    expect(m.shiftLog[1]).toBe("1100 ms after navigation: 0.010");
+    m.add({ value: 0.01, startTime: 1000, hadRecentInput: false, sources: [{ node: plain }, { node: text, previousRect: rect }, { node: null }, { node: plain }] });
+    expect(m.shiftLog).toEqual(["1000 ms after navigation: 0.010, section ? -> ?; p 1,2 3x4 -> ?; (removed) ? -> ?"]);
+    m.add({ value: 0.01, startTime: 1100, hadRecentInput: false, sources: [{ node: document.createTextNode("gone") }] });
+    expect(m.shiftLog[1]).toBe("1100 ms after navigation: 0.010, (removed) ? -> ?");
+    m.add({ value: 0.01, startTime: 1150, hadRecentInput: false, sources: [] });
+    expect(m.shiftLog[2]).toBe("1150 ms after navigation: 0.010");
     for (let i = 1; i < 14; i += 1) m.add({ value: 0.001, startTime: 1100 + i * 10, hadRecentInput: false, sources: [] });
     expect(m.shiftLog).toHaveLength(12);
   });
