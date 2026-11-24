@@ -536,7 +536,7 @@ export default function CallDemoPage(): JSX.Element {
     <DocsShell current="/docs/call-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A call window" }}>
       <Text size="lg" tone="muted" className="mb-10 max-w-2xl text-pretty" data-ouro-measure="">
         The call components together, with made-up people and placeholder pictures: a tile grid that grows as people join, speaking, muted and camera-off
-        tiles, captions, the control bar, your own picture in a corner, a timer, and the lobby, joining and waiting states. The State and Others in the call switchers above the window, the moving speaker, captions
+        tiles, captions, the control bar, your own camera picture in a corner (it tucks into a small camera button when it would cover someone, and the button brings it back), a timer, and the lobby, joining and waiting states. The State and Others in the call switchers above the window, the moving speaker, captions
         and microphone level, the Design review header, the made-up half-hour timer and the invite link are the demo's own script; an app supplies the real ones.
         The tiles, captions, control bar, level meter, picture-in-picture, reactions and timer are Ouro components. Try the keyboard, a narrow window and dark mode.
       </Text>

@@ -288,6 +288,7 @@ describe("the call window page", () => {
     expect(document.body.textContent).toMatch(/own script/);
     expect(document.body.textContent).toMatch(/State and Others in the call switchers/);
     expect(document.body.textContent).toMatch(/timer is the app's to set/);
+    expect(document.body.textContent).toMatch(/tucks into a small camera button/);
   });
 
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
