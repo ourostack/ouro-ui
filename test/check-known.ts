@@ -110,24 +110,6 @@ export const knownFindings: KnownFinding[] = [
     sometimes: true,
   },
   {
-    story: "ThreadLayout/Default",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "The rail's border-s runs against the story frame's own edge, so the line between thread and frame is drawn twice; ThreadRail should drop its border where it meets an edge.",
-  },
-  {
-    story: "ThreadLayout/Narrow",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "The rail's border-s runs against the story frame's own edge, so the line between thread and frame is drawn twice; ThreadRail should drop its border where it meets an edge.",
-  },
-  {
-    story: "ThreadRail/Playground",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "The Composer's frame sits flush against the rail's border-s, so the rail's divider is drawn twice down the composer's side; the composer wants room inside the rail.",
-  },
-  {
     story: "TimeGrid/BackgroundEvents",
     rule: "doubled-line",
     issue: 3257,

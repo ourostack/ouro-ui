@@ -1,4 +1,4 @@
-export { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe };
+export { ALIASES, behindModal, veiled, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe };
 export type { Allowance, AxeIssue, Box };
 
 import type { PageIssue } from "./size-check.ts";
@@ -75,6 +75,15 @@ function behindModal(refs: string[]): string[] {
   return refs.filter((ref) => {
     const els = [...document.querySelectorAll(`[data-ouro-check-ref~="${ref}"]`)];
     return els.length > 0 && els.every((el) => !modals.some((m) => m.contains(el) || el.contains(m)));
+  });
+}
+
+// The refs, of those given, whose every marked element sits inside a [data-ouro-veil] layer: a state nobody has designed
+// yet, which the page covers with its own "not designed yet" and which the rules therefore leave alone.
+function veiled(refs: string[]): string[] {
+  return refs.filter((ref) => {
+    const els = [...document.querySelectorAll(`[data-ouro-check-ref~="${ref}"]`)];
+    return els.length > 0 && els.every((el) => el.closest("[data-ouro-veil]"));
   });
 }
 

@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.505 ourostack/ouro-ui/ouro-source-rules#v1.3.505
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.506 ourostack/ouro-ui/ouro-source-rules#v1.3.506
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -365,7 +365,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.505
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.506
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -449,7 +449,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.505
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.506
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -459,7 +459,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.505
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.506
         with:
           merge: "true"
 ```
@@ -479,7 +479,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.505
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.506
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -499,6 +499,10 @@ const hero = images["hero.png"];
 It refuses a picture too small to be drawn sharp, names it and why, writes nothing for it and exits 1, while it writes the rest: with `--max-width <px>`, the widest the pictures are drawn in CSS pixels, a picture narrower than twice that, and with `--min-long-edge <px>` one whose long edge is shorter.[^images-refuse] A picture in a folder named `hero`, `heroes`, `scene` or `scenes` needs a long edge of 2048 or more whatever the options say.[^images-refuse]
 
 `ouro-images` installs `scripts/ouro/images/images.ts`, outside your TypeScript project, with the [Ouro AX](ax.md) files it runs on in `lib/ouro/ax/`, imported as `#ouro-ax/<file>` (the imports line in [the screen check](#the-screen-check) names that folder), and names `sharp` as a devDependency.
+
+### Cover a state nobody has designed yet
+
+Put `data-ouro-veil` on the element a state isn't designed for (the whole app below its narrowest designed width, a panel whose states are still open), and `ouro-base` covers it with a solid "Not designed yet" layer, dashed and plain, so no one takes it for the design. The value is the reason: `data-ouro-veil="below 600px"` reads "Not designed yet: below 600px". Ouro check leaves every finding inside the veil alone.[^check-veil] The veil is only the cover: the app sets and removes the attribute itself (a media query's class, a flag) and puts `inert` on the veiled content so a keyboard can't reach what is under it.
 
 ### Keep a decision as a check
 
@@ -543,7 +547,7 @@ Fix the findings that fail first, so a session is spent on the task and not on a
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.505
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.506
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -806,4 +810,5 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-needs-a-person]: test:scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds)
 [^check-press-all]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > pressAll presses each Ouro button, switch, checkbox, tab and menu item by name, with the page opened again after each, and never a link, a submit, a destructive or an opted-out one)
 [^vague-escape]: test:scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it verify:testExists(scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it)
+[^check-veil]: test:scripts/check/check.test.mts::Ouro check > a finding inside a [data-ouro-veil] layer is skipped, and the same page unveiled still fails verify:testExists(scripts/check/check.test.mts::Ouro check > a finding inside a [data-ouro-veil] layer is skipped, and the same page unveiled still fails)
 [^check-decision]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > a decision in the config is a check: it fails where its expectation, count or only breaks, and holds where the page, width or a veil leaves it out)

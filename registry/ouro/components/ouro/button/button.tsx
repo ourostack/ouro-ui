@@ -558,10 +558,11 @@ export function Button(props: ButtonProps): JSX.Element {
     Boolean(named["aria-label"] || named["aria-labelledby"]);
   const classes = cn(base, iconChildClass, sizes[size], iconOnly && iconOnlyClass, looks[variant][tone], fullWidth && "w-full", className);
 
-  // The touch target comes first and the label is positioned, so the label paints above
+  // The touch target comes first and the label is its own stacking context, so the label paints above
   // the target: the target still enlarges the hit area, and nothing covers the text
-  // (axe can check its contrast).
-  const fade = cn("relative transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out)", loading && "opacity-0");
+  // (axe can check its contrast). It is `isolate`, not `relative`, so it is no containing block
+  // for an app's absolutely placed children.
+  const fade = cn("isolate transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out)", loading && "opacity-0");
   const content = (
     <>
       <TouchTarget />
