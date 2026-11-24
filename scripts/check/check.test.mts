@@ -37,8 +37,9 @@ describe("Ouro check", () => {
     // http-error and not-ready are about the page, not its content, https about a site on the web, and dark-art compares
     // a light run with a dark one, and decision runs only what the config declares: each has tests of its own.
     // The wrap rules read where a font broke a page's lines, and the system font the other fixtures' words are set in breaks
-    // them differently on a Mac and on CI's Linux: each wrap rule is held to its own pages, set in monospace.
-    const wrap = new Set(["lone-word", "tall-heading", "one-word-line", "narrow-heading"]);
+    // them differently on a Mac and on CI's Linux: each wrap rule is held to its own pages, set in monospace. Near-miss reads the gaps the other rules' pages leave between their demo controls,
+    // so it too is held to its own pages.
+    const wrap = new Set(["lone-word", "tall-heading", "one-word-line", "narrow-heading", "near-miss"]);
     for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready" && r !== "https" && r !== "dark-art" && r !== "squircle-missing" && r !== "decision")) {
       assert.ok(result.findings.some((f) => f.page === `/${rule}-fail.html` && f.rule === rule), `${rule} fires on its fail page`);
       const pass = result.findings.filter((f) => f.page === `/${rule}-pass.html` && (f.rule === rule || !wrap.has(f.rule)));
