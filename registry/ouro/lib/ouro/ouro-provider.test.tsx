@@ -409,3 +409,13 @@ describe("OuroProvider quiet", () => {
     }
   });
 });
+
+describe("OuroProvider squircles", () => {
+  it("loads the squircle polyfill by default, and not when squircles is false", async () => {
+    const sheets = document.adoptedStyleSheets.length;
+    await mount(<OuroProvider squircles={false}>x</OuroProvider>);
+    expect(document.adoptedStyleSheets.length).toBe(sheets);
+    await mount(<OuroProvider>x</OuroProvider>);
+    await expect.poll(() => document.adoptedStyleSheets.length).toBeGreaterThan(sheets);
+  });
+});
