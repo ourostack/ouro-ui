@@ -14,6 +14,7 @@ import { findImageFades } from "./fade-check.ts";
 import { ALIASES, behindModal, boxOf, veiled, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { AUTO_PRESS, findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
 import { findPopupJumps, watchPopups } from "./popup-check.ts";
+import { beginTrace, findTransitionFaults, stepTrace, TRANSITION_LIMITS } from "./transition-check.ts";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, type MotionReading } from "./motion-check.ts";
 import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
@@ -260,6 +261,12 @@ const LABELS: Record<string, string> = {
   "squircle-missing": "plain corner where a squircle belongs",
   jank: "jank",
   repaint: "repaints at rest",
+  jump: "jumping transition",
+  backtrack: "transition goes back",
+  "sibling-reflow": "transition reflows siblings",
+  "text-rewrap": "text re-wraps mid-transition",
+  "pop-in": "pops in mid-transition",
+  "dropped-frames": "dropped frames",
   "leaked-value": "leaked value",
   "odd-timestamp": "odd timestamp",
   "console-error": "console error",
@@ -314,6 +321,12 @@ const HINTS: Record<string, string> = {
   "squircle-missing": "register the polyfill (registerSquirclePolyfill) or clip the surface to a squircle (data-ouro-squircle); run with --engine wkwebview to see it",
   jank: "batch layout reads before writes, animate transform and opacity, and keep hover from moving content",
   repaint: "animate transform or opacity, outside SVG, or let the animation end",
+  jump: "ease the whole move on one easing and duration: a box's edge moves a share of its travel each frame, never half of it at once",
+  backtrack: "move each edge one way to where it ends; drive a box's size and place from one transition, not two that cross",
+  "sibling-reflow": "animate transform or opacity on the moving box and leave its neighbours' layout alone until it ends",
+  "text-rewrap": "hold the text's width through the move (a fixed width, nowrap, or a clip that grows) so its lines don't change mid-transition",
+  "pop-in": "fade or grow what appears on the same transition as the box that holds it, never switch it on part way through",
+  "dropped-frames": "keep a press's handler to a few milliseconds: defer work with startTransition or after the transition, and don't read layout in a loop",
   "leaked-value": "show a person's words for the value, or nothing, never what the program holds for itself",
   "odd-timestamp": "check the time was set before formatting it, and format it for a person: a date, a time or an age",
   "console-error": "fix what threw or warned; a warning a library prints is fixed by using it as it asks",
@@ -788,6 +801,39 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       page.off("request", onRequest);
     }
   };
+  // The transition rules: each listed control is pressed once, with its transitions paused and stepped a frame at a time
+  // (transition-check.ts), and once more in real time for the longest gap between frames, since a handler that blocks
+  // the page drops frames whatever its transition is. Each control meets the page as it was loaded.
+  const transit = async (page: Page, target: Target, width: number, height: number, theme: string) => {
+    let found = 0;
+    const list = () => page.evaluate(markPressables, { limit: config.pressLimit ?? MAX_PRESSES, press: [...(config.press ?? []), ...(config.pressAll ? [AUTO_PRESS] : [])], never: NEVER_PRESS });
+    const total = (await list()).length;
+    for (let i = 0; i < total; i++) {
+      for (const stepped of [true, false]) {
+        await reach(page, target);
+        const { ref, element } = (await list())[i]!;
+        const point = await page.evaluate(pressPoint, { ref, never: NEVER_PRESS });
+        if (!point) continue;
+        const faults: { rule: string; element: string; detail: string; value?: number; budget?: number; unit?: string }[] = [];
+        if (stepped) {
+          await page.evaluate(beginTrace);
+          await page.mouse.click(point.x, point.y);
+          faults.push(...findTransitionFaults(await page.evaluate(stepTrace)));
+        } else {
+          await page.evaluate(resetMotion);
+          await page.mouse.click(point.x, point.y);
+          await page.waitForTimeout(400);
+          const { longestFrameMs } = await page.evaluate(readMotion);
+          if (longestFrameMs > TRANSITION_LIMITS.frameMs) faults.push({ rule: "dropped-frames", element: "the page", detail: `its longest frame took ${longestFrameMs} ms after the press (keep to ${TRANSITION_LIMITS.frameMs} ms)`, value: longestFrameMs, budget: TRANSITION_LIMITS.frameMs, unit: "ms" });
+        }
+        for (const fault of faults) {
+          found++;
+          await record(page, target, { ref, ...fault, element: `pressing ${element}: ${fault.element}` }, width, height, theme);
+        }
+      }
+    }
+    return found;
+  };
   // baked-corner: each picture and video as drawn, from its top, as far as the screen shows it, with the corners the
   // screen shows of it.
   const cornerShots = async (page: Page, height: number): Promise<CornerReading[]> => {
@@ -1012,6 +1058,11 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await reach(tab, target);
       pressed = await press(tab, target, width, height, theme);
       await own.close();
+      const moving = await contextFor(width, height, theme, "no-preference");
+      const stage = await moving.newPage();
+      await reach(stage, target);
+      pressed += await transit(stage, target, width, height, theme);
+      await moving.close();
     }
     let walked = 0;
     if (measured && !failed && config.walk !== false && inpAt === `${width}x${height} ${theme}`) {

@@ -62,5 +62,29 @@
   {
     "rule": "near-miss",
     "summary": "Two separate surfaces, or a surface and the edge of the one it sits in, that are neither touching nor at least the minimum gap (--ouro-gap-min) apart."
+  },
+  {
+    "rule": "jump",
+    "summary": "A box that moves in a transition but whose edge, in one frame at 60 fps, moves half its travel or more; the fix is to ease the whole move on one easing and duration. Run in Chromium or WebKit."
+  },
+  {
+    "rule": "backtrack",
+    "summary": "A box that goes back before it arrives in a transition, by more than 10% of its travel; the fix is to move each edge one way to where it ends."
+  },
+  {
+    "rule": "sibling-reflow",
+    "summary": "A box next to a moving one that changes place or size on the frames of its transition; the fix is to animate transform or opacity and leave the neighbours' layout alone."
+  },
+  {
+    "rule": "text-rewrap",
+    "summary": "Text that wraps to a different number of lines while a transition runs; the fix is to hold the text's width through the move."
+  },
+  {
+    "rule": "pop-in",
+    "summary": "A text, or a box over 100 square pixels, that goes from invisible to visible, or back, in one frame inside a transition; the fix is to fade or grow it on the transition that moves its box."
+  },
+  {
+    "rule": "dropped-frames",
+    "summary": "A press after which one frame took over 50 ms (the jank rule's budget is 250 ms); the fix is to keep the handler to a few milliseconds."
   }
 ]
