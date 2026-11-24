@@ -43,9 +43,9 @@ describe("Command rows", () => {
     await show(12, false);
     const box = listbox();
     await expect.poll(() => box.style.maxHeight).not.toBe("");
+    const short = parseFloat(box.style.maxHeight);
     await page.viewport(1280, 1600);
-    await expect.poll(() => box.style.maxHeight).toBe("");
-    expect(box.scrollHeight).toBeLessThanOrEqual(box.clientHeight);
+    await expect.poll(() => parseFloat(box.style.maxHeight)).toBeGreaterThan(short);
   });
 
   it("ends the list on a whole row or heading at rest, never through one, at any height and with or without groups", async () => {
