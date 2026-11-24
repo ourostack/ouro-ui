@@ -46,7 +46,18 @@ describe("the calendar page", () => {
     }
   });
 
+  it("opens on one day on a phone and on a work week on a laptop", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await expect.element(page.getByRole("radio", { name: "Day" })).toBeChecked();
+    await cleanupPage();
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    await expect.element(page.getByRole("radio", { name: /Work week/ })).toBeChecked();
+  });
+
   it("deletes an event from its details and brings it back with Undo", async () => {
+    await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
     const before = eventTitles();
     await page.getByRole("button", { name: /Sprint planning/ }).first().click();

@@ -109,7 +109,7 @@ function CalendarDemo(): JSX.Element {
 function Screen(): JSX.Element {
   const today = iso(new Date());
   const [date, setDate] = useState(today);
-  const [view, setView] = useState<TimeGridView>("work-week");
+  const [view, setView] = useState<TimeGridView>(() => (window.matchMedia("(max-width: 639px)").matches ? "day" : "work-week"));
   const [stage, setStage] = useState<Stage>("week");
   const [events, setEvents] = useState<Entry[]>(() => seed(today));
   const [draft, setDraft] = useState<Draft | null>(null);
