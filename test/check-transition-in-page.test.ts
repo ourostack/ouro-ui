@@ -60,6 +60,31 @@ describe("transition rules", () => {
     expect(faults.map((f) => `${f.rule} ${f.element}`).sort()).toEqual(["pop-in div#t-box", "text-rewrap p#t-text"]);
   });
 
+  it("finds an edge that passes where it ends, one off its own easing, a fade off its own curve, and a label cut off mid-move", async () => {
+    const slideTo = '[{"transform":"translateX(0)"},{"transform":"translateX(200px)"}]';
+    const over = await trace(slide(), go(slideTo, '{ "duration": 480, "easing": "cubic-bezier(.3,1.7,.6,1)", "fill": "forwards" }'));
+    expect(over.faults.map((f) => f.rule)).toEqual(["overshoot"]);
+    const press = () => {
+      const box = document.getElementById("t-box")!;
+      box.animate(JSON.parse(slideTo), { duration: 300, easing: "ease-in-out", fill: "forwards" });
+      box.animate([{ marginLeft: "0px" }, { marginLeft: "20px" }], { duration: 600, easing: "linear", fill: "forwards" });
+    };
+    const lag = await trace(slide(), press);
+    expect(lag.faults.map((f) => f.rule)).toEqual(["off-curve"]);
+    const fade = () => {
+      const box = document.getElementById("t-box")!;
+      box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, easing: "linear", fill: "both" });
+      box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 100, easing: "linear", fill: "both" });
+    };
+    expect((await trace(slide(), fade)).faults.map((f) => f.rule)).toEqual(["opacity-step"]);
+    const clip = (width: string[]) => () => void document.getElementById("t-label")!.animate([{ width: width[0]! }, { width: width[1]! }], { duration: 300, fill: "forwards" });
+    const label = '<p id="t-label" style="display:block;overflow:hidden;white-space:nowrap;margin:0;width:20px">Garden room</p>';
+    const cut = await trace(label, clip(["20px", "200px"]));
+    expect(cut.faults.map((f) => f.rule)).toEqual(["label-clip"]);
+    const fits = await trace(label.replace("width:20px", "width:200px"), clip(["200px", "200px"]));
+    expect(fits.faults).toEqual([]);
+  });
+
   it("skips an element that says why it may, and reads the rest of the page as it was", async () => {
     const press = go('[{"transform":"none"},{"transform":"translateX(200px)"}]', '{ "duration": 480, "easing": "steps(1, end)", "fill": "forwards" }');
     const { faults } = await trace(slide(), press, 'data-ouro-allow="transition" data-ouro-allow-why="a step is the design"');
@@ -83,19 +108,20 @@ describe("transition rules", () => {
   });
 
   it("reports an outer element's fault once, leaves a bare trace's ids alone, and reads a frame missing an id as absent", () => {
-    const reading = (x: number): TransitionTrace["frames"][number] => ({ a: [x, 0, x + 40, 40, 0, 1], b: [x, 0, x + 40, 40, 0, 1] });
+    const reading = (x: number): TransitionTrace["frames"][number] => ({ a: [x, 0, x + 40, 40, 0, 1, 0], b: [x, 0, x + 40, 40, 0, 1, 0] });
     const frames = [reading(0), ...[0, 100, 200].map(reading)];
-    const base = { frames, roles: { a: "motion", b: "motion" }, names: { a: "a", b: "b" }, parents: { a: undefined, b: "a" }, texts: [], allowed: [] } as TransitionTrace;
+    const base = { frames, roles: { a: "motion", b: "motion" }, names: { a: "a", b: "b" }, parents: { a: undefined, b: "a" }, texts: [], progress: {}, allowed: [] } as TransitionTrace;
     expect(findTransitionFaults(base).map((f) => f.element)).toEqual(["a"]);
 
     // A frame that drops an id partway through (as when an element briefly has no box) reads as absent there, with no
     // crash, and an opacity that swings from shown to hidden across that gap still pops.
     const sparse: TransitionTrace = {
-      frames: [{ c: [0, 0, 50, 50, 0, 1] }, { c: [0, 0, 50, 50, 0, 1] }, {}, { c: [0, 0, 50, 50, 0, 1] }],
+      frames: [{ c: [0, 0, 50, 50, 0, 1, 0] }, { c: [0, 0, 50, 50, 0, 1, 0] }, {}, { c: [0, 0, 50, 50, 0, 1, 0] }],
       roles: { c: "motion" },
       names: { c: "div#c" },
       parents: { c: undefined },
       texts: [],
+      progress: {},
       allowed: [],
     };
     expect(findTransitionFaults(sparse)).toEqual([{ rule: "pop-in", element: "div#c", detail: "it went from shown to hidden within one frame of a 3-frame transition" }]);
@@ -103,11 +129,12 @@ describe("transition rules", () => {
     // A frame missing an id before any frame that still has it reads its area as 0 rather than skipping the read:
     // `series.some` must call area() on that absent reading, not short-circuit past it on an earlier truthy one.
     const missingFirst: TransitionTrace = {
-      frames: [{}, {}, { d: [0, 0, 50, 50, 0, 1] }],
+      frames: [{}, {}, { d: [0, 0, 50, 50, 0, 1, 0] }],
       roles: { d: "motion" },
       names: { d: "div#d" },
       parents: { d: undefined },
       texts: [],
+      progress: {},
       allowed: [],
     };
     expect(findTransitionFaults(missingFirst)).toEqual([]);
