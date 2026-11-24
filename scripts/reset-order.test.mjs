@@ -3,6 +3,10 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+// The empty import binds nothing: it spawns Vitest's own Chromium rather than driving Playwright
+// itself, but this import is what routes the file to CI's scripts-browser job
+// (scripts/shard.mjs's drivesBrowser), where the browser this spawned Vitest launches is installed.
+import {} from "playwright";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const files = [

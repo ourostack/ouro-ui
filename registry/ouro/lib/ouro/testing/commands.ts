@@ -29,7 +29,7 @@ export interface ViewportSize {
   height: number;
 }
 
-/** Vitest's own fallback when a project sets no `browser.viewport` (`ouro-touch` sets 390x844). */
+/** Vitest's own fallback viewport, for a project (`ouro-chromium`, `ouro-webkit`) with an unconfigured one. */
 const VITEST_DEFAULT_VIEWPORT: ViewportSize = { width: 414, height: 896 };
 
 /** The value this kit last set for a page's real viewport; a page not yet resized has its project's configured default. */
@@ -105,6 +105,8 @@ export const resetMedia: BrowserCommand<[]> = async (ctx) => {
  * command, a CDP call, anything that does not go through that channel) leaves no trace for
  * `vitest/browser`'s own per-file reset to see, so it carries over into the next file in the
  * same browser session unless this kit's own `resetViewport` puts it back.
+ *
+ * @claim "A direct set like this (a custom command, a CDP call, anything that does not go through that channel) leaves no trace for `vitest/browser`'s own per-file reset to see, so it carries over into the next file in the same browser session unless this kit's own `resetViewport` puts it back." scripts/reset-order.test.mjs verify:testExists(scripts/reset-order.test.mjs::the kit resets the real viewport and media between files sharing a worker, not just between tests)
  */
 export const setViewport: BrowserCommand<[ViewportSize]> = async (ctx, size) => {
   await ctx.page.setViewportSize(size);
