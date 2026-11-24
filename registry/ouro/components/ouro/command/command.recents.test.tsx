@@ -190,4 +190,22 @@ describe("Command recents", () => {
     await userEvent.keyboard("{ArrowDown}");
     expect(document.activeElement).toBe(input());
   });
+
+  it("leaves a chip focused when a touch moves over the list, and takes the focus back for a mouse", async () => {
+    await render(
+      <Command
+        title="Go to"
+        open
+        onOpenChange={() => {}}
+        recents={[{ label: "Pie", onSelect: () => {} }]}
+        items={[{ label: "Bread", onSelect: () => {} }]}
+      />,
+    );
+    const list = document.querySelector<HTMLElement>("[data-ouro-command-list]")!;
+    await act(() => chips()[0]!.focus());
+    await act(() => list.dispatchEvent(new PointerEvent("pointermove", { pointerType: "touch", bubbles: true })));
+    expect(document.activeElement).toBe(chips()[0]);
+    await act(() => list.dispatchEvent(new PointerEvent("pointermove", { pointerType: "mouse", bubbles: true })));
+    expect(document.activeElement).toBe(input());
+  });
 });

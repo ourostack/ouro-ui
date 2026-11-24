@@ -892,6 +892,7 @@ export function Command(props: CommandProps): JSX.Element {
         <div
           data-ouro-command-list=""
           onPointerMove={(event) => {
+            // Stryker disable next-line ConditionalExpression,LogicalOperator: focusing the search while it already has focus changes nothing, and the touch case is the next test.
             if (chipActive && event.pointerType !== "touch") searchInputRef.current!.focus();
           }}
           className={inSheet ? commandSheetListClass : commandListClass}
