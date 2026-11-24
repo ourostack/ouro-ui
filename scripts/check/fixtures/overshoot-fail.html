@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overshoot: fails</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:60rem;margin:0 auto}button{font:inherit}</style>
+<style>.switch{position:relative;display:flex;width:260px;padding:4px;border:1px solid #889;border-radius:999px}.switch button{position:relative;z-index:1;flex:1;padding:8px;border:0;background:none;color:#123;font:inherit}.pill{position:absolute;top:4px;left:4px;width:120px;height:40px;border-radius:999px;background:#cde}.switch.second .pill{left:132px}.pill{transition:left 240ms cubic-bezier(.3,1.7,.6,1)}</style>
+<main><h1>Rooms</h1><p>Two rooms, one highlight.</p>
+<div class="switch" id="rooms"><span class="pill"></span><button type="button" data-ouro-check-press onclick="rooms.classList.remove('second')">Lobby</button><button type="button" data-ouro-check-press onclick="rooms.classList.add('second')">Garden</button></div></main>
