@@ -244,7 +244,7 @@ describe("the call window page", () => {
     await renderPage("/docs/call-demo/");
     await document.fonts.ready;
     await page.getByRole("button", { name: "Share screen" }).click();
-    const seen: string[] = [];
+    const seen: number[] = [];
     for (const count of ["1", "2", "3", "4", "5", "6"]) {
       await page.getByRole("radio", { name: count }).click();
       await expect.poll(() => document.querySelectorAll('[data-site-call-demo] [data-ouro="media-tile"]').length).toBe(Number(count) + 1);
