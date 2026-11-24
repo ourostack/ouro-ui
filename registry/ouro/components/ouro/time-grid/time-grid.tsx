@@ -834,8 +834,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           <span dir="auto" className="line-clamp-(--ouro-lines) font-medium @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
             {event.title}
           </span>{" "}
-          <span className={mutedLineClass}>
-            <bdi dir="ltr">{rangeText(formats.time, start!, end!)}</bdi>
+          <span dir="ltr" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-right`}>
+            {rangeText(formats.time, start!, end!)}
           </span>
           {lines >= 3 && event.description ? (
             <>
@@ -896,7 +896,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         content={
           <>
             <span className="block tabular-nums">
-              <bdi dir="ltr">{rangeText(formats.time, start!, end!)}</bdi>
+              <span dir="ltr" className="[unicode-bidi:isolate]">{rangeText(formats.time, start!, end!)}</span>
             </span>
             <span dir="auto" className="block font-medium">
               {event.title}
