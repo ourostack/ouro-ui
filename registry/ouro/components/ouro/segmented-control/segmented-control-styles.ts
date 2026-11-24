@@ -97,7 +97,7 @@ const segmentClass =
  * @internal
  */
 const glassGroupClass =
-  "[--ouro-segmented-h:calc(var(--spacing)*10)] sm:pointer-fine:[--ouro-segmented-h:calc(var(--spacing)*10)] " +
+  "[--ouro-segmented-h:2.5rem] sm:pointer-fine:[--ouro-segmented-h:2.5rem] " +
   "rounded-full [corner-shape:superellipse(1.05)] border border-(--ouro-glass-rim) " +
   "bg-[color-mix(in_oklab,var(--ouro-glass)_var(--ouro-glass-tint),transparent)] shadow-(--shadow-sm) backdrop-blur-xl " +
   "[&_[data-ouro-segment]]:rounded-full [&_[data-ouro-segment-thumb]]:rounded-full [&_[data-ouro-segment-thumb]]:shadow-none " +

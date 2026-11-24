@@ -146,7 +146,7 @@ function Segment(props: {
           {item.icon}
         </span>
       )}
-      <span className={cn("relative min-w-0 truncate", glass && !selected && item.icon !== undefined && "sr-only")}>{item.label}</span>
+      <span data-slot="segmented-control-label" className={cn("relative min-w-0 truncate", glass && !selected && item.icon !== undefined && "sr-only")}>{item.label}</span>
       {item.count !== undefined && (glass ? selected : true) && (
         <span data-slot="segmented-control-count" className={countClass}>
           {item.count}
