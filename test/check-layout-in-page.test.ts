@@ -236,6 +236,46 @@ describe("findLayoutIssues: near-miss", () => {
     expect(found()).toEqual([["div and div#in", "3px"]]);
   });
 
+  it("passes the parts of one control group, and finds two groups, or a group and a surface outside it, that nearly touch", () => {
+    const part = (id: string, left: number) => `<div id="${id}" style="position:absolute;left:${left}px;top:0;width:60px;height:30px;background:#cde"></div>`;
+    const group = (attrs: string, top: number, ...parts: string[]) => `<div ${attrs} style="position:fixed;left:10px;top:${top}px;width:300px;height:30px">${parts.join("")}</div>`;
+    const narrow = (attrs: string, left: number, top: number, content: string) => `<div ${attrs} style="position:fixed;left:${left}px;top:${top}px;width:60px;height:30px">${content}</div>`;
+    render(`
+      ${group('role="group"', 10, part("a", 0), part("b", 64))}
+      ${group('role="radiogroup"', 60, part("c", 0), part("d", 64))}
+      ${group('role="toolbar"', 110, part("e", 0), part("f", 64))}
+      ${group('role="tablist"', 160, part("g", 0), part("h", 64))}
+      ${group('data-ouro="toggle-group"', 210, part("i", 0), part("j", 64))}
+      <div role="toolbar" style="position:fixed;left:10px;top:260px;width:200px;height:40px;box-sizing:border-box;padding:3px;background:#eee"><div id="k" style="width:60px;height:30px;background:#cde"></div></div>`);
+    expect(found()).toEqual([]);
+    host.innerHTML = `
+      ${narrow('role="group"', 10, 10, part("a", 0))}${narrow('role="group"', 74, 10, part("b", 0))}
+      ${narrow('role="group"', 10, 60, part("c", 0))}<div id="d" style="position:fixed;left:74px;top:60px;width:60px;height:30px;background:#cde"></div>`;
+    expect(found()).toEqual([
+      ["div#a and div#b", "4px"],
+      ["div#c and div#d", "4px"],
+    ]);
+  });
+
+  it("passes a small surface centred in a control's frame, and finds one that is off centre, in a frame with room, or in no control", () => {
+    const field = (id: string, frame: string, kbd: string, control = '<input style="position:absolute;left:10px;top:10px;width:100px;height:10px;border:0;background:none">') =>
+      `<div id="${id}" style="position:fixed;box-sizing:border-box;left:10px;width:240px;border:1px solid #888;${frame}">${control}<kbd style="position:absolute;right:20px;width:30px;background:#cde;${kbd}"></kbd></div>`;
+    render(`
+      ${field("a", "top:10px;height:32px", "top:5.5px;height:19px")}
+      ${field("b", "top:60px;height:32px", "top:5.5px;height:19px", '<button style="position:absolute;left:0;top:0;width:5px;height:5px;padding:0;border:0"></button>')}
+      ${field("c", "top:110px;height:36px", "top:7.5px;height:19px")}`);
+    expect(found()).toEqual([]);
+    host.innerHTML = `
+      ${field("d", "top:10px;height:32px", "top:3px;height:19px")}
+      ${field("e", "top:60px;height:32px", "top:5.5px;height:19px", "")}
+      ${field("f", "top:110px;height:36px", "top:7.6px;height:18px")}`;
+    expect(found()).toEqual([
+      ["div#d and kbd", "3px"],
+      ["div#e and kbd", "5.5px"],
+      ["div#f and kbd", "7.6px"],
+    ]);
+  });
+
   it("measures a fill against the page behind it, and passes a nested surface with room, for pages with nothing filled", () => {
     const [root, body] = [document.documentElement, document.body];
     const [rootBackground, bodyBackground] = [root.style.background, body.style.background];
