@@ -1,5 +1,5 @@
 // Ouro Current: our own Dependabot for Ouro UI pins. For every repository the Ouro Current GitHub App is installed on,
-// it finds the Ouro UI pin files by name, and when one is behind the newest release it follows, opens or updates one
+// it finds the Ouro UI pin files by name (web, core, SwiftPM, NuGet and Gradle), and when one is behind the newest release it follows, opens or updates one
 // pull request, "Update to Ouro UI vX", on the branch `ouro-current/update`, with auto-merge on (or, where the repository's `.github/ouro-current.json` names a review team, off and with that team asked to review). See scripts/current/README.md.
 //
 //   OURO_CURRENT_APP_ID=… OURO_CURRENT_PRIVATE_KEY=… node scripts/current/current.mjs [--out current.json] [--only owner/repo]
@@ -55,7 +55,7 @@ export function body(behind, releases, notes, sections = []) {
     "|---|---|---|---|",
     ...[...new Set(rows)],
     "",
-    ...(notes.length ? [...notes.map((note) => `- ${note}`), ""] : []),
+    ...(notes.length ? [...new Set(notes)].map((note) => `- ${note}`).concat("") : []),
     ...sections.flatMap((section) => [section, ""]),
     "Your checks decide: this pull request merges itself when they pass. A newer release updates this same pull request. The release notes say what changed: https://github.com/ourostack/ouro-ui/blob/main/UPGRADING.md",
     "",

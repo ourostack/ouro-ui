@@ -302,6 +302,7 @@ The check reads each disabled control for a reason the page gives for it, as App
 | Rule | What it finds |
 | --- | --- |
 | `disabled-no-reason` | A disabled control (`disabled`, `aria-disabled="true"`, or in a disabled fieldset) with no reason tied to it: no `title`, no `aria-description` and no `aria-describedby` text, on it or its disabled fieldset.[^check-interaction] A hint beside it that nothing ties to it isn't enough. Three cases explain themselves and pass: a busy control (`aria-busy`, such as a loading Button), a control that moves one way (Previous, Next, Back, Later, Zoom out, Undo) at its end, and a control beside an empty field in its form or in a box up to three out, such as Send under an empty message.[^check-interaction-pass] A field on the page itself, such as a search box in the header, excuses nothing.[^check-interaction-pass] |
+| `decision` | An element that breaks a decision recorded in `ouro-check.json`: see [Keep a decision as a check](#keep-a-decision-as-a-check).[^check-decision] |
 | `linked-card-dead-zone` | A card or row that is one link (Ouro's `data-linked`, or a box around a link whose `::after` is stretched over it) where a click at some spot outside its own controls opens nothing, as when the page positions one of its parts and the link's layer stops there. The check hit-tests a grid of spots on each card, as a click would land, and runs none of the page's code.[^check-dead-zone] A card whose root opens its link from any click on it says so with `data-follows-link` and passes; Ouro's Card, Item and Table do.[^check-dead-zone] |
 | `reveal-reflow` | A card whose hover or keyboard focus reveals a part (Card's `revealDescription`, an Item's `revealActions`, or `data-ouro-reveal`) and moves the card's own box or anything outside it. The check hovers each such card, then gives its link keyboard focus, and compares where everything is with where it was at rest.[^check-reveal-reflow] |
 
@@ -494,6 +495,28 @@ const hero = images["hero.png"];
 It refuses a picture too small to be drawn sharp, names it and why, writes nothing for it and exits 1, while it writes the rest: with `--max-width <px>`, the widest the pictures are drawn in CSS pixels, a picture narrower than twice that, and with `--min-long-edge <px>` one whose long edge is shorter.[^images-refuse] A picture in a folder named `hero`, `heroes`, `scene` or `scenes` needs a long edge of 2048 or more whatever the options say.[^images-refuse]
 
 `ouro-images` installs `scripts/ouro/images/images.ts`, outside your TypeScript project, with the [Ouro AX](ax.md) files it runs on in `lib/ouro/ax/`, imported as `#ouro-ax/<file>` (the imports line in [the screen check](#the-screen-check) names that folder), and names `sharp` as a devDependency.
+
+### Keep a decision as a check
+
+When a person decides something about the design while you iterate ("people use the squircle", "the toolbar holds only window-wide actions", "one label per place"), write it into `ouro-check.json` as a `decisions` entry instead of a test file. It runs with the rest of Ouro check, so the decision keeps holding.[^check-decision]
+
+```json
+{
+  "decisions": [
+    { "name": "people use the squircle", "selector": "[data-person]", "expect": { "border-radius": { "not": "50%" } } },
+    { "name": "the toolbar holds only window-wide actions", "selector": "[data-toolbar] > *", "only": "[data-window-action]" },
+    { "name": "one label per place", "selector": ".label", "within": ".place", "count": { "max": 1 }, "width": { "min": 640 } }
+  ]
+}
+```
+
+Each entry has a `name` (the person's words, which head the finding), a `selector`, and at least one of `expect`, `count` or `only`.[^check-decision] `pages` (a page glob) and `width` (`{ "min", "max" }`) say where it holds; without them it holds on every page at every width.[^check-decision]
+
+- `expect` maps a computed style property (`border-radius`) or a box measure (`@width`, `@height`, `@x`, `@y`, `@right`, `@bottom`, in pixels) to a text it must equal, a number it must equal within half a pixel, or `{ "min", "max", "not", "match" }`, where `match` is a regular expression's source.
+- `count` is how many drawn matches there may be (a number, or `{ "min", "max" }`); with `within`, a selector, it is counted in each matching box.[^check-decision]
+- `only` means each drawn match must also match this selector.[^check-decision]
+
+Only drawn elements outside a veil count. A selector the browser refuses is reported as a finding, and a malformed entry stops the run with the fix.
 
 ### Hand off to a person
 
@@ -773,3 +796,4 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-needs-a-person]: test:scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > the summary names the floor and ends with what needs a person, drawn from what the page holds)
 [^check-press-all]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > pressAll presses each Ouro button, switch, checkbox, tab and menu item by name, with the page opened again after each, and never a link, a submit, a destructive or an opted-out one)
 [^vague-escape]: test:scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it verify:testExists(scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it)
+[^check-decision]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > a decision in the config is a check: it fails where its expectation, count or only breaks, and holds where the page, width or a veil leaves it out)

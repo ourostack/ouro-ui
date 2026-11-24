@@ -160,9 +160,12 @@ function CallDemo(): JSX.Element {
     return () => window.clearTimeout(timer);
   }, [stage, go]);
 
-  // Hand focus to the new view when the app, not the person's own switch, changes it: the control that was pressed is gone.
+  // Hand focus to a control in the new view when the app, not the person's own switch, changes it: the control that was pressed is gone, and a bare group would say nothing useful.
   useEffect(() => {
-    if (moved.current) stageRef.current?.focus();
+    if (moved.current) {
+      const scope = stage === "call" ? bottomRef.current : stageRef.current;
+      (scope?.querySelector<HTMLElement>("button:not([disabled])") ?? stageRef.current)?.focus();
+    }
     moved.current = false;
   }, [stage]);
 
@@ -424,11 +427,7 @@ function CallDemo(): JSX.Element {
         onPointerEnter={() => setStill(true)}
         onPointerLeave={() => setStill(false)}
         onFocusCapture={() => setStill(true)}
-        onBlurCapture={() => setStill(false)}
-        style={inCall && others > 4 ? { height: "46rem" } : undefined}
-        aria-label="Call"
-        role="group"
-        className="h-160 overflow-hidden rounded-lg border border-border outline-none">
+        onBlurCapture={() => setStill(false)} aria-label="Call" role="group" className="h-160 overflow-hidden rounded-lg border border-border outline-none">
         {body}
       </div>
       <div className="min-w-0 max-w-sm">

@@ -21,6 +21,7 @@ import { findTextIssues } from "./text-check.ts";
 import { findLayoutIssues } from "./layout-check.ts";
 import { findThemeIssues } from "./theme-check.ts";
 import { findOffThemeIssues } from "./token-check.ts";
+import { findDecisionIssues, type Decision } from "./decision-check.ts";
 import { findInteractionIssues } from "./interaction-check.ts";
 import { findDeadZones, markReveals, movedSince, revealLayout } from "./reach-check.ts";
 import { findFirstRunIssues, type FirstRunOptions } from "./first-run-check.ts";
@@ -163,6 +164,8 @@ interface Gate {
   // The sessions a person runs after the check: each a task to give them, the question that tells whether they got
   // there, and what to watch for. handoff.md lists them beside what the check measured.
   usability?: UsabilitySession[];
+  // What the person decided, each kept as a check that runs with the rest (and in watch mode): see decision-check.ts.
+  decisions?: Decision[];
 }
 
 interface UsabilitySession {
@@ -265,6 +268,7 @@ const LABELS: Record<string, string> = {
   "off-scale": "spacing off the scale",
   "hero-dark-art": "hero without night art",
   "disabled-no-reason": "disabled, no reason",
+  decision: "decision no longer holds",
   "linked-card-dead-zone": "card link dead zone",
   "reveal-reflow": "reveal moves the page",
   "blank-pane": "blank screen",
@@ -314,6 +318,7 @@ const HINTS: Record<string, string> = {
   "off-theme": "take the value from the token the finding names (its var() or its Tailwind class), so a theme change reaches it",
   "off-scale": "take the spacing from the step the finding names (its Tailwind class, or a layout component's gap)",
   "hero-dark-art": "pass picture={{ light, dark }}, the same scene by day and at night",
+  decision: "restore what the decision names, or, if the person decided otherwise, change the decision in ouro-check.json to say so",
   "disabled-no-reason": "say why beside it and tie the words to it with aria-describedby, or give it a title",
   "linked-card-dead-zone": "use Ouro's Card, Item or Table, which open from a click anywhere on them; or keep the card's parts unpositioned so the link's layer covers the whole card; or open the link from any click on the card's root and mark the root data-follows-link",
   "reveal-reflow": "lay the revealed part over the card (absolute, or Card's revealDescription=\"rise\") or keep its room at rest, so revealing it changes no box",
@@ -412,6 +417,11 @@ async function shoot(page: Page, path: string, box: Box): Promise<Box> {
   return { x: clip.x + at.sx, y: clip.y + at.sy, width: clip.width, height: clip.height };
 }
 
+// The decisions that hold on `page` at `width`.
+const decisionsFor = (config: Gate, page: string, width: number): Decision[] =>
+  (config.decisions ?? []).filter(
+    (d) => (d.pages === undefined || globToRegExp(d.pages.startsWith("/") ? d.pages : `/${d.pages}`).test(page)) && width >= (d.width?.min ?? 0) && width <= (d.width?.max ?? Infinity),
+  );
 // A measure key is a page glob when it starts with a slash, or is only stars (two of them for all pages); anything else
 // is a CSS selector, which may hold a slash of its own, as an attribute selector on an address can.
 const isPageGlob = (key: string) => key.startsWith("/") || /^\*+$/.test(key);
@@ -947,6 +957,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       // fragment-focus reads the page's stylesheets and scripts, the same at every size and theme: at one, inp's.
       if (inpAt === `${width}x${height} ${theme}`) issues.push(...(await page.evaluate(findFragmentFocusIssues)));
       shown.push(...(await page.evaluate(findInteractionIssues)));
+      shown.push(...(await page.evaluate(findDecisionIssues, decisionsFor(config, target.page, width))));
       shown.push(...(await page.evaluate(findWrapIssues, {})));
       shown.push(...(await page.evaluate(findFirstRunIssues, config.firstRun ?? {})));
       // Last, as it scrolls the window to each linked card to hit-test it, and puts the scroll back.
@@ -1514,7 +1525,7 @@ async function readJson<T>(file: string): Promise<T> {
 }
 
 // What is wrong with a config's press and state settings, which JSON leaves unchecked: a string would read as its letters.
-function configProblem({ press, pressRepeat, pressAll, pressLimit, states, waive, firstRun, usability }: Gate): string | null {
+function configProblem({ press, pressRepeat, pressAll, pressLimit, states, waive, firstRun, usability, decisions }: Gate): string | null {
   const waived = Object.entries(waive ?? {}).find(([, rules]) => Object.hasOwn(Object(rules), "blurry-image"));
   if (waived)
     return `"waive" > "${waived[0]}" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source, or a srcset whose largest file covers its drawn width at 2x.`;
@@ -1538,6 +1549,22 @@ function configProblem({ press, pressRepeat, pressAll, pressLimit, states, waive
   const text = (value: unknown) => typeof value === "string" && value.trim() !== "";
   if (usability !== undefined && !(Array.isArray(usability) && usability.every((u) => named(u) && text(u.task) && text(u.outcome) && text(u.observe) && (u.page === undefined || text(u.page)))))
     return '"usability" takes sessions, each with a task, the outcome question to ask afterwards and what to observe, such as [{"task": "Book an appointment", "outcome": "What appointment do you have now?", "observe": "Where they hesitate before the confirm button"}].';
+  const bounds = (value: unknown) => value === undefined || (named(value) && Object.keys(value).every((k) => k === "min" || k === "max") && Object.values(value).every((n) => typeof n === "number"));
+  const condition = (value: unknown) =>
+    typeof value === "string" || typeof value === "number" || (named(value) && Object.keys(value).length > 0 && Object.entries(value).every(([k, v]) => (k === "match" ? pattern(v) : ["min", "max", "not"].includes(k) && (k === "not" ? ["string", "number"].includes(typeof v) : typeof v === "number"))));
+  if (
+    decisions !== undefined &&
+    !(
+      Array.isArray(decisions) &&
+      decisions.every(
+        (d) =>
+          named(d) && text(d.name) && text(d.selector) && (d.pages === undefined || text(d.pages)) && bounds(d.width) && (d.within === undefined || text(d.within)) &&
+          (d.count === undefined || typeof d.count === "number" || bounds(d.count)) && (d.only === undefined || text(d.only)) &&
+          (d.expect === undefined || (named(d.expect) && Object.values(d.expect).every(condition))) && (d.count !== undefined || d.only !== undefined || (d.expect !== undefined && Object.keys(d.expect).length > 0)),
+      )
+    )
+  )
+    return '"decisions" takes a name, a selector and what must hold, such as [{"name": "people use the squircle", "selector": "[data-person]", "expect": {"border-radius": {"not": "50%"}}}]: count, only or expect, each as the guide says.';
   return null;
 }
 
