@@ -160,6 +160,10 @@ function CallDemo(): JSX.Element {
   const step = useRef(0);
 
   const visible = everyone.slice(0, others);
+  // A pinned tile leads the grid, so pinning changes the picture even when nobody is sharing.
+  const ordered = visible
+    .map((person, index) => ({ person, index }))
+    .sort((a, b) => Number(b.person.name === pinned) - Number(a.person.name === pinned));
   const inCall = stage === "call";
   const level = useFakeLevel(stage === "lobby" && !still);
 
@@ -379,7 +383,7 @@ function CallDemo(): JSX.Element {
                 <Camera hue={90} />
               </MediaTile>
             ) : null}
-            {visible.map((person, index) => (
+            {ordered.map(({ person, index }) => (
               <MediaTile
                 key={person.name}
                 name={person.name}

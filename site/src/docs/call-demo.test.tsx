@@ -255,6 +255,15 @@ describe("the call window page", () => {
     expect(Math.min(...seen)).toBeGreaterThanOrEqual(80);
   });
 
+  it("moves a pinned tile to the front of the grid, with no one sharing", async () => {
+    await renderPage("/docs/call-demo/");
+    const names = () => [...document.querySelectorAll('[data-ouro="media-tile"]')].map((tile) => tile.getAttribute("aria-label") ?? tile.textContent ?? "");
+    await expect.poll(() => names().length).toBe(4);
+    const before = names();
+    await page.getByRole("button", { name: /^Pin/ }).last().click({ force: true });
+    await expect.poll(() => names()[0]).not.toBe(before[0]);
+  });
+
   it("says which parts of the demo are scripted", async () => {
     await renderPage("/docs/call-demo/");
     expect(document.body.textContent).toMatch(/own script/);
