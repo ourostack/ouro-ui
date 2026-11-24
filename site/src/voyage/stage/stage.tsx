@@ -321,12 +321,33 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
  */
 const CrewLine = memo(function CrewLine({ entry, logOpen }: { entry: Entry; logOpen: Flag }): JSX.Element {
   const quiet = useSyncExternalStore(logOpen.subscribe, logOpen.get, logOpen.get);
+  // The words a frame after this one paints, in a sr-only live region beside the plain paragraph
+  // that already shows them: WebKit rebuilds its accessibility tree for a changed live region
+  // before the next paint, and that cost landed in the same frame as the switch to still water once
+  // #3139 made this line's own commit synchronous (ourostack/ouro-ui#728). Deferred this way
+  // (afterPaint, as the picture's own update is), it never delays the frame the switch is measured
+  // in. A region of its own, not the shared announce() others use, so two lines close together (the
+  // bell answers in turn) are each still heard once instead of the second dropping the first. The
+  // ref starts at this entry's id so the opening line, already on screen when the region appears,
+  // is never read aloud on mount.
+  const spoken = useRef(entry.id);
+  const region = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const before = spoken.current;
+    spoken.current = entry.id;
+    if (quiet || before === entry.id) return;
+    return afterPaint(() => {
+      const node = region.current;
+      if (node) node.textContent = `${SPEAKER[entry.name]}: ${entry.text}`;
+    });
+  }, [entry, quiet]);
   return (
-    <p className="stage-crew" data-stage-crew="" aria-live={quiet ? "off" : "polite"} aria-atomic="true">
+    <p className="stage-crew" data-stage-crew="">
       <Avatar name={entry.name} src={crewFace(entry.name)} alt="" size="sm" />
       <span className="stage-crew-words">
         <span className="stage-crew-name">{SPEAKER[entry.name]}:</span> {entry.text}
       </span>
+      <span ref={region} className="sr-only" aria-live="polite" aria-atomic="true" />
     </p>
   );
 });
