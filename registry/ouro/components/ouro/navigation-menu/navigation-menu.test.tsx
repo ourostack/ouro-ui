@@ -285,16 +285,44 @@ describe("NavigationMenu", () => {
     expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*>Pricing<\/a>/);
   });
 
-  it("animates only opacity and scale when a pointer opens it, growing from its button", async () => {
+  it("animates opacity and scale when a pointer opens it, growing from its button, and its size between panels", async () => {
     await render(<NavigationMenu label="Main" items={items} />);
     await userEvent.click(page.getByRole("button", { name: "Recipes" }));
     await expect.poll(() => popup()).not.toBeNull();
     // Base UI turns transitions off for a moment while it measures the panel, so wait.
-    await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity, scale");
+    await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity, scale, width, height");
     expect(getComputedStyle(popup()!).transitionTimingFunction).toContain("cubic-bezier(0.23, 1, 0.32, 1)");
     expect(popup()!.className).toContain("origin-(--transform-origin)");
-    // The popup's box and place change at once between panels: layout does not animate.
-    expect(getComputedStyle(popup()!.parentElement!).transitionDuration).toBe("0s");
+  });
+
+  it("keeps one popup when you move to another panel, resizing it on the way", async () => {
+    await page.viewport(1280, 800);
+    const wide = [
+      { label: "Small", content: <p style={{ width: 200, margin: 0 }}>A small panel</p> },
+      { label: "Large", fit: true, content: <p style={{ width: 600, height: 300, margin: 0 }}>A large panel</p> },
+    ];
+    await render(<NavigationMenu label="Main" items={wide} />);
+    await userEvent.click(page.getByRole("button", { name: "Small" }));
+    await expect.poll(() => popup()).not.toBeNull();
+    await settled();
+    const first = popup()!;
+    const before = first.getBoundingClientRect().width;
+    const widths: number[] = [];
+    let sampling = true;
+    requestAnimationFrame(function sample() {
+      if (popup()) widths.push(popup()!.getBoundingClientRect().width);
+      if (sampling) requestAnimationFrame(sample);
+    });
+    await userEvent.hover(page.getByRole("button", { name: "Large" }));
+    await expect.poll(() => popup()?.getBoundingClientRect().width ?? 0).toBeGreaterThan(before + 300);
+    // Between panels it slides along the bar, never up or down, so a page that scrolls never leaves it behind.
+    expect(getComputedStyle(popup()!.parentElement!).transitionProperty).toBe("left, right");
+    await settled();
+    sampling = false;
+    const after = popup()!.getBoundingClientRect().width;
+    // The same element throughout, never closed and opened again, and some frames between the two sizes.
+    expect(popup()).toBe(first);
+    expect(widths.some((width) => width > before + 2 && width < after - 2)).toBe(true);
   });
 
   it("does not animate when the keyboard opens and closes it", async () => {
@@ -314,7 +342,7 @@ describe("NavigationMenu", () => {
     await userEvent.click(trigger);
     await expect.poll(() => popup()).not.toBeNull();
     expect(popup()!.hasAttribute("data-ouro-instant")).toBe(false);
-    await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity, scale");
+    await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity, scale, width, height");
   });
 
   it("fades without moving under reduced motion", async () => {
@@ -329,6 +357,8 @@ describe("NavigationMenu", () => {
     };
     await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity");
     expect(moves(popup()!.parentElement!)).toBe(false);
+    // A panel's content fades, without sliding, when another opens.
+    expect(moves(document.querySelector('[data-ouro="navigation-menu-popup"] [data-open]')!)).toBe(false);
     expect(moves(page.getByRole("button", { name: "Recipes" }).element().querySelector("svg")!.parentElement!)).toBe(false);
   });
 
@@ -395,7 +425,7 @@ describe("NavigationMenu panels and easing", () => {
   it("eases on the theme's --ouro-ease-out token, with no curve of its own", async () => {
     await render(<NavigationMenu label="Main" items={items} />);
     await userEvent.click(page.getByRole("button", { name: "Recipes" }));
-    await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity, scale");
+    await expect.poll(() => getComputedStyle(popup()!).transitionProperty).toBe("opacity, scale, width, height");
     expect(popup()!.className).toContain("ease-(--ouro-ease-out)");
     expect(document.querySelector('[data-ouro="navigation-menu"]')!.outerHTML + popup()!.outerHTML).not.toContain("cubic-bezier");
     expect(getComputedStyle(popup()!).transitionTimingFunction).toContain("cubic-bezier(0.23, 1, 0.32, 1)");

@@ -50,7 +50,7 @@ const asPage = ({ path, label }: DocsLink) => ({ label, href: path });
  */
 function Folds({ groups, current }: { groups: ReadonlyArray<{ label: string; links: readonly DocsLink[] }>; current: string }): JSX.Element {
   return (
-    <ul className="m-0 ms-4 grid list-none gap-0.5 border-0 border-s border-solid border-border p-0 ps-2">
+    <ul className="m-0 grid list-none gap-0.5 p-0">
       {groups.map((group) => (
         <Fold key={group.label} label={group.label} links={group.links} current={current} />
       ))}

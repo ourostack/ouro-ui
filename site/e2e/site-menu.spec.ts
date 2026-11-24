@@ -10,16 +10,12 @@ import { heightsUntilStill, quietFrames } from "./frames";
 
 const PHONE = { width: 390, height: 844 };
 
-// A label a site owns can hold characters a regex treats specially (family.json's "GitHub (ourostack)"), so a check
-// built from it escapes them first; otherwise the parentheses read as a capture group instead of literal text.
-const escapeForRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 /**
- * Every kind of page, with the navigation landmarks it shows on a phone besides the header's (hidden) one: the page's
- * own, then the family footer's ("All sites") and the site's. The family bar ("Ouro family") is hidden on a phone, where the
- * menu lists the family's sites.
+ * Every kind of page, with the navigation landmarks it shows on a phone besides the header's (hidden) one: the family
+ * strip's ("Ouro family"), which shows on a phone too, the page's own, then the family footer's ("All sites") and the
+ * site's.
  */
-const framed = (...own: string[]) => [...own, "All sites", "Ouro UI"];
+const framed = (...own: string[]) => ["Ouro family", ...own, "All sites", "Ouro UI"];
 const PAGES: ReadonlyArray<{ path: string; navs: string[] }> = [
   { path: "./", navs: framed() },
   { path: "nautilus/", navs: framed("Chapters") },
@@ -68,7 +64,7 @@ async function openers(page: Page, root: string): Promise<string[]> {
     return [...document.querySelectorAll(selector)]
       .flatMap((scope) => [...scope.querySelectorAll("button[aria-haspopup], button[aria-expanded], [role='button'][aria-haspopup], [role='button'][aria-expanded], summary")])
       .filter((element) => shown(element) && !element.closest(".site-theme-picker [data-ouro-part='trigger']"))
-      .filter((element) => !(element.closest("[role='dialog']") && element.matches("[data-ouro-control='collapsible']:not([aria-haspopup])")))
+      .filter((element) => !(element.closest("[role='dialog']") && element.matches("[data-ouro-control='collapsible']:not([aria-haspopup]), [data-site-fold]")))
       .map((element) => element.getAttribute("aria-label") ?? element.textContent!.trim());
   }, root);
 }
@@ -138,7 +134,7 @@ for (const { path, navs } of PAGES) {
   test(`on a phone, /${path} has one menu, and nothing in it opens another`, async ({ page }) => {
     await open(page, path);
     // The page's navigation chrome: the header and any navigation or sidebar outside the page's own content.
-    expect(await openers(page, "header, nav, aside")).toEqual(["Menu"]);
+    expect(await openers(page, "header, nav, aside")).toEqual(["Menu", "Search"]);
     const shownNavs = await page.getByRole("navigation").evaluateAll((elements) =>
       elements.filter((element) => element.getBoundingClientRect().height > 0).map((element) => element.getAttribute("aria-label")),
     );
@@ -148,13 +144,9 @@ for (const { path, navs } of PAGES) {
     // The page you are on is marked, once.
     await expect(sheet(page).locator('[aria-current="page"]')).toHaveCount(1);
     await expect(sheet(page).locator('[aria-current="page"]')).toBeInViewport();
-    // The family's sites, under their heading in the menu rather than a landmark of their own, with this one marked and
-    // the others marked as leaving the site.
-    await expect(sheet(page).getByRole("heading", { name: "Ouro family", exact: true })).toHaveCount(1);
-    await expect(sheet(page).getByRole("list", { name: "Ouro family", exact: true }).getByRole("link")).toHaveText(
-      family.links.map((site) => new RegExp(`^${escapeForRegExp(site.label)}${site.id === "ouro-ui" ? "" : "↗"}`)),
-    );
-    await expect(sheet(page).locator('[aria-current="true"]')).toHaveAttribute("href", family.links.find((site) => site.id === "ouro-ui")!.href);
+    // The family's sites are in the strip over the bar on a phone too, not in the menu.
+    await expect(sheet(page).getByText("Ouro family", { exact: true })).toHaveCount(0);
+    await expect(page.locator('[data-ouro="family-bar"] [aria-current="true"]')).toHaveAttribute("href", family.links.find((site) => site.id === "ouro-ui")!.href);
     // Nothing sticks out of the window sideways.
     // Polled, because a loaded WebKit can still be sliding the sheet in after it has looked still.
     await expect.poll(async () => (await sheet(page).boundingBox())!.x).toBeGreaterThanOrEqual(0);
@@ -191,13 +183,17 @@ test("the site's CSS has no rule that makes an open restyle more than it changes
   }
 });
 
-test("on a phone the menu lists each section's pages, the Apple pages from their own list", async ({ page }) => {
+test("on a phone the menu lists every platform's four pages, then every part's, the page you are on marked", async ({ page }) => {
   await open(page, "apple/hx/");
   await openMenu(page);
-  const links = await sheet(page).getByRole("link").evaluateAll((elements) => elements.map((element) => new URL((element as HTMLAnchorElement).href).pathname));
-  for (const path of APPLE_PATHS) expect(links).toContain(path);
-  for (const path of ["/", "/nautilus/", "/ax/", "/docs/installing/", "/docs/"]) expect(links).toContain(path);
+  const paths = async () => sheet(page).getByRole("link").evaluateAll((elements) => elements.map((element) => new URL((element as HTMLAnchorElement).href).pathname));
+  const byPlatform = await paths();
+  for (const path of ["/", "/nautilus/", "/apple/", "/apple/hx/", "/apple/ax/", "/apple/start/", "/windows/", "/windows/hx/", "/windows/ax/", "/windows/start/", "/android/", "/android/hx/", "/android/ax/", "/android/start/", "/docs/installing/", "/proof/"]) expect(byPlatform).toContain(path);
   await expect(sheet(page).getByRole("link", { name: "Ouro HX for Apple" })).toHaveAttribute("aria-current", "page");
+  await sheet(page).getByRole("radio", { name: "By part" }).click();
+  await expect(sheet(page).getByRole("link", { name: "Ouro HX", exact: true })).toBeVisible();
+  const byPart = await paths();
+  for (const path of ["/hx/", "/ax/", "/actions/", "/composed-ui/", "/xray/", "/apple/feel/", "/apple/reins/", "/hackamore/"]) expect(byPart).toContain(path);
 });
 
 test("on a docs page the menu holds every component, with a search for any docs page", async ({ page }) => {
@@ -274,6 +270,8 @@ test("on any docs page the menu lists the guides and the components, as the side
   // A guide that shares a section's name says it is the guide, so no two links share a name.
   await sheet(page).getByRole("button", { name: /^More guides \d+ pages$/ }).click();
   await expect(sheet(page).getByRole("link", { name: "Ouro AX guide", exact: true })).toBeVisible();
+  // Ouro AX's parts fold under Ouro AX, by part.
+  await sheet(page).getByRole("radio", { name: "By part" }).click();
   await expect(sheet(page).getByRole("link", { name: "Ouro AX", exact: true })).toHaveCount(1);
   await foldsStill(page);
   await sheet(page).getByRole("button", { name: /^Ouro AX, part by part \d+ pages$/ }).click();
@@ -383,8 +381,8 @@ test("on a wide screen the theme picker leaves the page as it is: a click on a l
   await page.goto("docs/button/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await openPicker(page);
-  await page.getByRole("banner").getByRole("link", { name: "Proof", exact: true }).click();
-  await expect(page).toHaveURL(/\/proof\/$/);
+  await page.getByRole("banner").getByRole("link", { name: "Ouro UI", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("on a phone the menu's close button closes it", async ({ page }) => {
@@ -398,6 +396,7 @@ test("on a phone the menu's close button closes it", async ({ page }) => {
 test("on a phone the menu closes on a choice, and Back returns to the page with it closed", async ({ page }) => {
   await open(page, "./");
   await openMenu(page);
+  await sheet(page).getByRole("radio", { name: "By part" }).click();
   await sheet(page).getByRole("link", { name: "Ouro AX", exact: true }).click();
   await expect(page).toHaveURL(/\/ax\/$/);
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
@@ -577,36 +576,28 @@ test("on a phone the open menu keeps focus inside it, both ways round", async ({
   await expect(menuButton(page)).toBeFocused();
 });
 
-test("on a wide screen the bar keeps its links, and the docs sidebar and the Apple pages' row stay", async ({ page }) => {
+test("on a wide screen the bar keeps its menus, marks the section you are in, and the docs sidebar and the Apple pages' row stay", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  const marked = (name: string) => page.getByRole("banner").getByRole("button", { name, exact: true });
   await page.goto("apple/hx/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(menuButton(page)).toBeHidden();
   await expect(page.getByRole("navigation", { name: "Ouro UI for Apple" })).toBeVisible();
+  await expect(marked("Platforms")).toHaveAttribute("data-current", "");
   await page.goto("docs/button/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.getByRole("navigation", { name: "Docs" })).toBeVisible();
   // The bar marks the section you are in; the sidebar alone marks the page, so a screen reader hears one current page.
-  await expect(page.getByRole("banner").getByRole("link", { name: "Docs", exact: true })).toHaveAttribute("aria-current", "true");
+  await expect(marked("Docs")).toHaveAttribute("data-current", "");
   await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
-  // A helper's page is under Docs too.
-  await page.goto("docs/use-timer/");
-  await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await expect(page.getByRole("banner").getByRole("link", { name: "Docs", exact: true })).toHaveAttribute("aria-current", "true");
-  // An Ouro AX docs page is under Ouro AX, though its address is under the docs.
+  // An Ouro AX docs page is under Parts, though its address is under the docs.
   await page.goto("docs/ax-terminal/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro AX", exact: true })).toHaveAttribute("aria-current", "true");
-  await expect(page.getByRole("banner").getByRole("link", { name: "Docs", exact: true })).not.toHaveAttribute("aria-current");
-  // A section's own page, where its row marks the page, is the section in the bar too.
-  await page.goto("apple/");
-  await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).toHaveAttribute("aria-current", "true");
-  await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
-  // With no other navigation, a section's own page is the page.
+  await expect(marked("Parts")).toHaveAttribute("data-current", "");
+  await expect(marked("Docs")).not.toHaveAttribute("data-current");
   await page.goto("proof/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await expect(page.getByRole("banner").getByRole("link", { name: "Proof", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(marked("Proof")).toHaveAttribute("data-current", "");
 });
 
 for (const path of ["./", "docs/button/"]) {
@@ -626,7 +617,7 @@ for (const path of ["./", "docs/button/"]) {
     const pills = sheet(page).getByRole("button", { name: /^(Search|Show X-ray)$/ });
     expect(await pills.count()).toBeGreaterThan(0);
     // What sits under the title row: the docs' search field, or the menu's first heading.
-    const below = await box(path === "./" ? sheet(page).getByText("Ouro family", { exact: true }) : sheet(page).getByRole("searchbox"));
+    const below = await box(path === "./" ? sheet(page).getByRole("heading", { name: "Home", exact: true }) : sheet(page).getByRole("searchbox"));
     for (const pill of await pills.all()) {
       const at = await box(pill);
       expect(Math.abs(at.y + at.height / 2 - (close.y + close.height / 2))).toBeLessThanOrEqual(1);

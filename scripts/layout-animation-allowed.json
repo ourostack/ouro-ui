@@ -13,5 +13,9 @@
   },
   "registry/ouro/lib/ouro/css-panel.tsx": {
     "transition-[grid-template-rows]": "an in-flow disclosure: the panel's height moves the content below it, which a transform would overlap; it is off with reduced motion"
+  },
+  "registry/ouro/components/ouro/navigation-menu/navigation-menu.tsx": {
+    "motion-safe:transition-[left,right]": "moving between panels, the one popup slides along under the bar to the new button instead of closing and opening again; it sits in its own fixed layer, so nothing in the page moves, and with reduced motion it jumps",
+    "motion-safe:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out),scale_var(--ouro-duration-base)_var(--ouro-ease-out),width_var(--ouro-duration-slow)_var(--ouro-ease-out),height_var(--ouro-duration-slow)_var(--ouro-ease-out)]": "the one popup resizes to the next panel (Base UI's --popup-width and --popup-height) instead of closing and opening again; it is in its own fixed layer, so the page does not reflow, and with reduced motion only opacity changes"
   }
 }

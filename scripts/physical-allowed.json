@@ -22,5 +22,11 @@
     "after:right-[calc(100%-1px)]": "the overscroll fill behind a sheet from side=\"left\" sits off its left edge",
     "pr-[env(safe-area-inset-right,0px)]": "a sheet from side=\"right\" stays clear of the screen's right-hand cut-out",
     "after:left-[calc(100%-1px)]": "the overscroll fill behind a sheet from side=\"right\" sits off its right edge"
+  },
+  "registry/ouro/components/ouro/navigation-menu/navigation-menu.tsx": {
+    "motion-safe:data-starting-style:data-[activation-direction=left]:-translate-x-[30%]": "Base UI's data-activation-direction says which way on the screen the pointer or key moved (left or right), so the panel slides that screen way in either text direction",
+    "motion-safe:data-starting-style:data-[activation-direction=right]:translate-x-[30%]": "Base UI's data-activation-direction says which way on the screen the pointer or key moved (left or right), so the panel slides that screen way in either text direction",
+    "motion-safe:data-ending-style:data-[activation-direction=left]:translate-x-[30%]": "Base UI's data-activation-direction says which way on the screen the pointer or key moved (left or right), so the panel slides that screen way in either text direction",
+    "motion-safe:data-ending-style:data-[activation-direction=right]:-translate-x-[30%]": "Base UI's data-activation-direction says which way on the screen the pointer or key moved (left or right), so the panel slides that screen way in either text direction"
   }
 }
