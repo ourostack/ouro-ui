@@ -202,7 +202,7 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
     else issues.push({ ref, rule, element, detail, value: value!, budget: budgets[rule as keyof LoadingBudgets], unit: rule === "layout-shift" ? "" : "ms" });
   };
   const shift = Math.round(m.shift * 1000) / 1000;
-  if (shift > budgets["layout-shift"]) report("layout-shift", m.shiftNode, shift, `shifted ${shift} while loading, over the budget of ${budgets["layout-shift"]}${m.shiftLog?.length ? `\n${m.shiftLog.join("\n")}` : ""}`);
+  if (shift > budgets["layout-shift"]) report("layout-shift", m.shiftNode, shift, `shifted ${shift} while loading, over the budget of ${budgets["layout-shift"]}${m.shiftLog.length ? `\n${m.shiftLog.join("\n")}` : ""}`);
   const paint = Math.round(m.paint);
   if (paint > budgets["first-content"]) report("first-content", m.paintNode, paint, `${paint} ms to its largest content, over the budget of ${budgets["first-content"]} ms`);
   // A control the first frames drew that is gone at rest, and a control a later frame drew over its place, with no input

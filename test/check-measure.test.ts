@@ -53,6 +53,20 @@ describe("listenForMeasures", () => {
     expect(m.shiftLog).toEqual(["812 ms after navigation: 0.300, div#hero.media 120,242 1200x480 -> 120,402 1200x480"]);
   });
 
+  it("names a shift's source by its element, its parent for a text node, or as removed, and keeps twelve lines", () => {
+    const m = measures();
+    const plain = document.createElement("section");
+    const holder = document.createElement("p");
+    const text = holder.appendChild(document.createTextNode("words"));
+    const rect = { x: 1.4, y: 2.4, width: 3.4, height: 4.4 } as DOMRectReadOnly;
+    m.add({ value: 0.01, startTime: 1000, hadRecentInput: false, sources: [{ node: plain }, { node: text, previousRect: rect }, { node: document.createTextNode("gone") }, { node: null }] });
+    expect(m.shiftLog).toEqual(["1000 ms after navigation: 0.010, section ? -> ?; p 1,2 3x4 -> ?; (removed) ? -> ?; (removed) ? -> ?"]);
+    m.add({ value: 0.01, startTime: 1100, hadRecentInput: false, sources: [] });
+    expect(m.shiftLog[1]).toBe("1100 ms after navigation: 0.010");
+    for (let i = 1; i < 14; i += 1) m.add({ value: 0.001, startTime: 1100 + i * 10, hadRecentInput: false, sources: [] });
+    expect(m.shiftLog).toHaveLength(12);
+  });
+
   it("scores the largest burst of shifts no input caused, and keeps the element that moved most", () => {
     const m = measures();
     const [a, b, c] = ["a", "b", "c"].map((id) => Object.assign(document.createElement("div"), { id }));
@@ -175,6 +189,13 @@ describe("findLoadingIssues", () => {
       { ref: "m2", rule: "first-content", element: 'p#late "Late words"', detail: "3200 ms to its largest content, over the budget of 2500 ms", value: 3200, budget: 2500, unit: "ms" },
     ]);
     expect(document.getElementById("late")!.getAttribute("data-ouro-check-ref")).toBe("m2");
+  });
+
+  it("adds the shifts of the burst under the finding, so a failing run names what moved", async () => {
+    render("<div id=\"moved\">Moved</div>");
+    recorded({ shift: 0.3, shiftNode: host.querySelector("div"), shiftLog: ["800 ms after navigation: 0.300, div#moved 0,0 10x10 -> 0,50 10x10"] });
+    const [issue] = await findLoadingIssues(budgets);
+    expect(issue!.detail).toBe("shifted 0.3 while loading, over the budget of 0.1\n800 ms after navigation: 0.300, div#moved 0,0 10x10 -> 0,50 10x10");
   });
 
   it("names an element by its tag, id, classes and first words, or its label", async () => {
