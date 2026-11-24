@@ -437,6 +437,19 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBe("pointer");
   });
 
+  it("a row that goes while focus is in its layer does not take focus back during the unmount: that would hide the layer from inside React's own commit", async () => {
+    const { rerender } = await render(<List count={10} />);
+    await userEvent.keyboard("{Shift}");
+    await act(async () => row("r9").focus());
+    expect(layerIn("r9")).not.toBeNull();
+    await act(async () => layerIn("r9")!.querySelector("button")!.focus());
+    const focusedRow = vi.fn();
+    row("r9").addEventListener("focusin", (event) => event.target === row("r9") && focusedRow());
+    await rerender(<List count={9} />);
+    expect(focusedRow).not.toHaveBeenCalled();
+    expect(layers()).toHaveLength(0);
+  });
+
   it("moving the layer to a different row does not steal focus from a field inside the row it is leaving: only focus that was in the floating layer goes back to the row", async () => {
     await render(<List count={3} />);
     await userEvent.hover(row("r0").querySelector("[data-text]")!);
