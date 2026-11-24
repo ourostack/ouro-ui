@@ -20,9 +20,8 @@ function selectorsOf(rules: CSSRuleList, out: string[]): void {
 }
 
 /**
- * Draws capsules as squircles where the engine lacks `corner-shape`. The build step `squircleCorners()` leaves a capsule's
- * clip waiting on `--sq-half`, because a clip path can't read the height on its horizontal axis; this measures each capsule
- * and sets it. Use it once at the root; `OuroProvider` calls it for you. It does nothing where `corner-shape` is drawn or
+ * Draws capsules as squircles where the engine lacks `corner-shape`. Sets `--sq-half` on each capsule, the variable the
+ * clip from `squircleCorners()` waits on. Use it once at the root; `OuroProvider` calls it for you. It does nothing where `corner-shape` is drawn or
  * `clip-path: shape()` is missing, and returns a function that stops it.
  * @example
  * const stop = installSquircleCapsules(document);
