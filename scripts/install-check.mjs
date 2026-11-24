@@ -44,7 +44,7 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
-import ts from "typescript";
+import * as ts from "./ts71.mts";
 import { baseImport } from "./current/stylesheet.mjs";
 import { comments, hasClientDirective } from "./source-rules.mjs";
 import { treeFiles } from "./tree.mjs";
@@ -102,7 +102,7 @@ export function checkInstall(app, variant, stage) {
     for (const path of runtimeSources) {
       // The TypeScript parser, as scripts/registry.mts reads imports: dynamic imports count, and
       // an import written in a comment or a string does not.
-      for (const { fileName: specifier } of ts.preProcessFile(read(path), true, true).importedFiles) {
+      for (const specifier of ts.importedFiles(path, read(path))) {
         // A Node built-in (`node:fs`, as the Ouro AX kit's x-ray uses) is no package to depend on.
         if (/^(\.|~\/|@\/|#|node:)/.test(specifier)) continue;
         needed.add(specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0]);

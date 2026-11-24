@@ -63,7 +63,7 @@ export const runsAll = {
     "pre-push.mjs", "public-registry.mjs", "published-release.mjs", "radius-codemod.mjs", "read-stdin.mjs", "readme-steps.mjs", "real-clock-ratchet.mjs", "registry.mts",
     "safari-squircle.mjs", "sandbox.mjs", "scratch.mjs", "shard.d.mts", "size-gate.d.mts", "size-gate.mjs", "source-rules.mjs", "squircle-cost/", "squircle-surface.mjs", "sr-classify.mjs", "sr-impact.mjs",
     "sr-lane-timings.mjs", "sr-yield.mjs", "stale-pages.mjs", "stall-reporter-default.mts", "stall-reporter.mts", "story-costs.mjs", "subset-coverage.mjs", "sweeps-compare.mjs", "sweeps-retake.mjs",
-    "test-impact.mjs", "timings-node-reporter.mjs", "timings-playwright-reporter.mjs", "tree.d.mts", "tree.mjs", "upkeep/", "vendored.d.mts", "vendored.mjs", "waivers.mjs",
+    "test-impact.mjs", "ts71.mts", "timings-node-reporter.mjs", "timings-playwright-reporter.mjs", "tree.d.mts", "tree.mjs", "upkeep/", "vendored.d.mts", "vendored.mjs", "waivers.mjs",
     "write-atomic.mjs",
   ],
   test: [

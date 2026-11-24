@@ -1,0 +1,1 @@
+- New: `data-ouro-veil` covers a state nobody has designed yet with a solid "Not designed yet" layer (ouro-base), and Ouro check skips what is inside it.

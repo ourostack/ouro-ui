@@ -146,8 +146,24 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * itself the same way `ThemeDots` already was. The base had grown past this ceiling by more than #3284 could
  * recover, from other work landed since the docs' 196,004 baseline above; #3284's own commits found no further
  * cheap cut.
+ *
+ * The voyage's set again 2026-11-24 at 294,386 bytes, what CI measured on main at 71a68f136 (run 45309360133, e2e
+ * job 138161324780, issue #3347), 525 bytes over its 293,861 base: the equal-corner, joined-run chat bubbles
+ * (#3278) added a new `--ouro-jr` custom property and three new gating selectors (a continued bubble's own mark, a
+ * run-next bubble's mark from `markRunNext` in message-list.tsx, and a has-() fallback for the sibling not yet
+ * marked) to each of `bubbles.user`/`assistant` and `layouts.filled.user`/`assistant`, classes `message.tsx` and
+ * `message-list.tsx` carry in the voyage's first script already (the stage's own messages). Folding the four
+ * near-identical copies into two shared strings measured 8 bytes worse after gzip (294,151 against 294,143 before
+ * the fold): gzip already finds the repeat within the file, and the fold's two new identifiers cost more than the
+ * repeat did, so #3278 left no cheaper cut.
+ * The voyage's set again at 295,904 bytes and the docs' at 197,793, as CI measured them on #3351 (run 45318695844) for
+ * the platform pages (/hx/, /windows/, /android/ and their start pages). Built locally against main at 4bca81ce1 the
+ * voyage grew 1,814 bytes and the docs 643: the voyage page's island table and paths are 443 of them, and the rest is
+ * the bundler moving its runtime helpers into a shared chunk of their own (430 bytes) once five islands joined, which
+ * lengthens each of some 40 shared chunks' import lines by about 20 bytes. The two new scenes' night alts were dropped
+ * (the day alts name no time of day) and the routes' descriptions shortened before this was set.
  */
-const MEASURED = { voyage: 293_861, docs: 196_591 } as const;
+const MEASURED = { voyage: 295_904, docs: 197_793 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
@@ -214,7 +230,9 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // wordmark ThemePicker (#2987): its tiles, page-token ring and squircle square, and the phone menu's and the theming guide's rows.
 // Raised docs a KiB (53,258 bytes measured in CI run 45251076301, merged with main at 5b21e7c48, 10 over) for Porthole's
 // floating look (#3236): contrast-more, forced-colors and reduced-transparency fallback classes on its live demo page.
-const CSS_CEILINGS = { voyage: 49 * 1024, docs: 53 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+// Raised voyage a KiB (50,246 bytes measured in CI run 45286452756, 70 over) for the bubble run corners: the joined-corner
+// classes on the chat bubbles the home page's chat shows.
+const CSS_CEILINGS = { voyage: 50 * 1024, docs: 53 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the

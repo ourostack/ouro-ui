@@ -1,0 +1,204 @@
+/*
+ * The platform pages (/hx/, /windows/, /android/ and their start pages), on top of apple.css's bands, menu and doors. Like
+ * apple.css, its classes stand in for Tailwind utilities no other voyage page uses, and every colour is a theme variable
+ * or mixed from one. Only captures are framed, because they are screens; corners follow --ouro-corner-shape, a squircle.
+ * Nothing here moves, so reduced motion needs no rule of its own.
+ */
+@layer components {
+  /* A CI capture: a screen, so framed, with the dark run's picture in dark mode. */
+  .platform-capture {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+    margin: 0;
+    min-width: 0;
+  }
+  .platform-capture-frame {
+    overflow: hidden;
+    border-radius: calc(var(--radius) * 1.6);
+    corner-shape: var(--ouro-corner-shape);
+    background: var(--apple-stage);
+    outline: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+    outline-offset: -1px;
+  }
+  .platform-capture-frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .platform-capture-frame .platform-capture-dark,
+  .dark .platform-capture-frame .platform-capture-light {
+    display: none;
+  }
+  .dark .platform-capture-frame .platform-capture-dark {
+    display: block;
+  }
+  .platform-capture-phone {
+    max-width: 18rem;
+  }
+  .platform-footnote {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+  @media (prefers-contrast: more) {
+    .platform-capture-frame {
+      outline-color: var(--foreground);
+    }
+  }
+
+  /* A row of captures, laid out openly. */
+  .platform-gallery {
+    display: grid;
+    gap: calc(var(--spacing) * 8) var(--apple-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .platform-gallery > li {
+    display: grid;
+    align-content: start;
+    gap: calc(var(--spacing) * 3);
+    min-width: 0;
+  }
+  .platform-gallery-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .platform-gallery-body {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+
+  /* Get started: numbered steps, each with its code. */
+  .platform-steps {
+    display: grid;
+    gap: calc(var(--spacing) * 10);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: platform-step;
+  }
+  .platform-step {
+    display: grid;
+    gap: calc(var(--spacing) * 3);
+    min-width: 0;
+    padding-top: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--apple-hairline);
+  }
+  .platform-step > p {
+    margin: 0;
+    max-width: var(--measure-band);
+  }
+
+  /* /hx/: one button, four platforms. */
+  .hx-four {
+    display: grid;
+    gap: calc(var(--spacing) * 10) var(--apple-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .hx-four > li {
+    display: grid;
+    align-content: start;
+    gap: calc(var(--spacing) * 3);
+    min-width: 0;
+    padding-top: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--apple-hairline);
+  }
+  .hx-four-kicker {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .hx-four-live {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 2);
+    align-items: center;
+    min-height: 5.5rem;
+  }
+  .hx-four-said {
+    margin: 0;
+    min-height: 1.5em;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+  .hx-four .platform-capture-frame {
+    padding: calc(var(--spacing) * 4);
+    background: var(--background);
+  }
+
+  /* /hx/: what each platform has. */
+  .hx-counts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: calc(var(--spacing) * 6) var(--apple-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .hx-counts > li {
+    display: grid;
+    gap: calc(var(--spacing) * 1);
+    padding-top: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--apple-hairline);
+  }
+  .hx-count {
+    font-family: var(--font-heading);
+    font-size: clamp(2.25rem, 6vw, 3rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .hx-count-label {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+  .hx-cell-name {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+  }
+  .hx-cell-none {
+    color: var(--muted-foreground);
+  }
+  .hx-coverage-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--spacing) * 4);
+  }
+
+  /* /hx/'s platform tabs: each panel is a short story with its links. */
+  .hx-panel {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    padding-top: calc(var(--spacing) * 6);
+    max-width: 46rem;
+  }
+  .hx-panel > p {
+    margin: 0;
+  }
+
+  @media (min-width: 40rem) {
+    .platform-gallery {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .hx-four {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .hx-counts {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 56rem) {
+    .platform-steps {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

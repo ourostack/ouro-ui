@@ -106,6 +106,13 @@ describe("ThreadLayout", () => {
     expect(rail!.getBoundingClientRect().left).toBeCloseTo(conversation.getBoundingClientRect().left, 0);
   });
 
+  it("drops the rail's own border-s below 32rem, where it would double the box's own edge, and keeps it from 32rem up", async () => {
+    const { host, rail } = await render(<ThreadLayout conversation={<Conversation />} thread={<Thread />} />, 640);
+    expect(getComputedStyle(rail!).borderInlineStartWidth).not.toBe("0px");
+    host.style.width = "360px";
+    await expect.poll(() => getComputedStyle(rail!).borderInlineStartWidth).toBe("0px");
+  });
+
   it("keeps the conversation mounted and its draft while a narrow box hides it", async () => {
     const { host, conversation, rerender } = await render(<ThreadLayout conversation={<Conversation />} thread={<Thread />} />, 640);
     const draft = host.querySelector("textarea")!;

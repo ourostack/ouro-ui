@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import * as ts from "./ts71.mts";
 import { treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -40,7 +40,7 @@ const textOf = (node) => (node && (ts.isStringLiteral(node) || ts.isNoSubstituti
  * `clientOnly`, by the story.
  */
 export function storyEntries(path, text) {
-  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const source = ts.createSourceFile(path, text, ts.ScriptKind.TSX);
   const found = [];
   const storyOf = (node) => {
     for (let at = node.parent; at; at = at.parent) if (ts.isVariableDeclaration(at) && ts.isIdentifier(at.name)) return at.name.text === "meta" ? fileKey(path) : `${fileKey(path)}/${at.name.text}`;
@@ -73,7 +73,7 @@ export function storyEntries(path, text) {
  * `clientOnly` a plain string. Each problem is `path:line: what`.
  */
 export function storyShapeProblems(path, text) {
-  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const source = ts.createSourceFile(path, text, ts.ScriptKind.TSX);
   const problems = [];
   const report = (node, what) => problems.push(`${path}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}: ${what}`);
   const literalKey = (property) => (ts.isPropertyAssignment(property) ? keyOf(property.name) : undefined);

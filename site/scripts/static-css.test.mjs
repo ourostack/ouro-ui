@@ -40,7 +40,7 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
   assert.deepEqual(split.utilities, ["rounded-full", "rounded-ouro-control", "rounded-ouro-control-md", "rounded-ouro-inner", "rounded-ouro-check", "press"]);
   assert.deepEqual(
     split.keyframes.map((text) => /@keyframes\s+([\w-]+)/.exec(text)[1]),
-    ["ouro-spin", "ouro-composer-reveal", "ouro-composer-conceal", "ouro-composer-toolbar-in", "ouro-composer-toolbar-out", "ouro-composer-fade-in", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-scroll-fade-left", "ouro-scroll-fade-right", "ouro-hero-rise", "ouro-hero-fade", "ouro-moment-arrive"],
+    ["ouro-spin", "ouro-composer-reveal", "ouro-composer-conceal", "ouro-composer-toolbar-in", "ouro-composer-toolbar-out", "ouro-composer-fade-in", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-hero-rise", "ouro-hero-fade", "ouro-moment-arrive"],
   );
   const css = outputs["ouro-base.css"];
   const root = parseBlocks(css.replace(/@media[^{]*\{[\s\S]*?\n\}/g, "").replace(/@(?:supports|container)[^{]*\{[\s\S]*?\n\}/g, "").replace(/@keyframes[\s\S]*$/, "")).find((block) => block.selector === ":root");
@@ -48,7 +48,7 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
   for (const line of [...declarations(split.inline), ...declarations(split.blocks.find((block) => block.selector === ":root").body)]) {
     assert.ok(rootLines.includes(line), line);
   }
-  for (const name of ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-scroll-fade-left", "ouro-scroll-fade-right"]) assert.ok(css.includes(`@keyframes ${name} {`), name);
+  for (const name of ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe"]) assert.ok(css.includes(`@keyframes ${name} {`), name);
   assert.ok(css.includes("Tailwind utilities left out: rounded-full, rounded-ouro-control, rounded-ouro-control-md, rounded-ouro-inner, rounded-ouro-check, press."));
   assert.deepEqual(split.supports.slice(0, 1), ["@supports not (corner-shape: squircle) {\n  :root {\n    --ouro-corner-fallback: 0.7;\n  }\n}"]);
   assert.ok(css.includes(split.supports[0]));

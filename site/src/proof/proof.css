@@ -1,0 +1,322 @@
+/*
+ * Proof (/proof/). It loads with its island and the page links it in its HTML (site/scripts/prerender.mts), so it paints
+ * styled. Every colour is a theme variable or mixed from one, so light, dark and the six presets all repaint it. The
+ * Errand's trolley rides its rail and each receipt prints; with reduced motion neither moves, and every step and till
+ * fades in where it stands.
+ */
+@layer components {
+  /* The page's reading measure, which Ouro check's narrow-text accepts as declared. */
+  :root {
+    --measure-prose: 62ch;
+  }
+  .proof {
+    --proof-hairline: color-mix(in oklab, var(--border) 70%, transparent);
+    --proof-quiet: color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground));
+    padding-bottom: calc(var(--spacing) * 16);
+  }
+  .proof-hero {
+    padding-block: calc(var(--spacing) * 12) calc(var(--spacing) * 10);
+  }
+  .proof-hero .site-h1 {
+    margin-block: calc(var(--spacing) * 3) calc(var(--spacing) * 5);
+  }
+  .proof-lede p,
+  .proof-prose p {
+    max-width: var(--measure-prose);
+  }
+  .proof-prose {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    margin-bottom: calc(var(--spacing) * 6);
+    text-wrap: pretty;
+  }
+  .proof-prose p,
+  .proof-more,
+  .proof-count {
+    margin: 0;
+  }
+  .proof-jump ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 2) calc(var(--spacing) * 6);
+    margin: calc(var(--spacing) * 6) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .proof-section {
+    padding-block: calc(var(--spacing) * 12);
+    border-top: 1px solid var(--proof-hairline);
+    scroll-margin-top: calc(var(--spacing) * 16);
+  }
+  .proof-h2 {
+    margin: calc(var(--spacing) * 2) 0 calc(var(--spacing) * 5);
+    font-family: var(--font-heading);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: var(--site-heading-weight, 600);
+    line-height: 1.1;
+    letter-spacing: var(--site-h2-tracking, -0.03em);
+    text-wrap: balance;
+  }
+  .proof-table {
+    margin-bottom: calc(var(--spacing) * 5);
+  }
+  .proof-way {
+    font-weight: 600;
+  }
+  .proof-way-note {
+    color: var(--proof-quiet);
+    font-size: 0.875rem;
+  }
+  .proof-table [data-paid] {
+    color: color-mix(in oklab, var(--destructive) 80%, var(--foreground));
+    font-weight: 600;
+  }
+  .proof-count {
+    display: grid;
+    gap: calc(var(--spacing) * 1);
+    margin-bottom: calc(var(--spacing) * 5);
+    max-width: var(--measure-prose);
+  }
+  .proof-count-number {
+    font-family: var(--font-heading);
+    font-size: clamp(3rem, 7vw, 5rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .proof-borrowed {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+    gap: calc(var(--spacing) * 6) calc(var(--spacing) * 8);
+    margin: 0;
+  }
+  .proof-borrowing {
+    display: grid;
+    align-content: start;
+    gap: calc(var(--spacing) * 2);
+    padding-top: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--proof-hairline);
+  }
+  .proof-borrowing dd {
+    margin: 0;
+    color: var(--proof-quiet);
+  }
+
+  /* The Errand. */
+  .errand {
+    display: grid;
+    gap: calc(var(--spacing) * 6);
+  }
+  .errand-ask {
+    justify-self: start;
+    max-width: min(100%, 44rem);
+    margin: 0;
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
+    border-radius: var(--radius-ouro-xl);
+    corner-shape: var(--ouro-corner-shape);
+    background: color-mix(in oklab, var(--primary) 9%, var(--background));
+    font-size: 1.0625rem;
+  }
+  .errand-ask-who {
+    display: block;
+    color: var(--proof-quiet);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .errand-lanes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15.5rem), 1fr));
+    gap: calc(var(--spacing) * 8) calc(var(--spacing) * 6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .errand-lane {
+    --errand-tone: var(--primary);
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 3);
+    min-width: 0;
+  }
+  .errand-lane[data-outcome="paid"] {
+    --errand-tone: var(--destructive);
+  }
+  .errand-lane[data-outcome="handed-back"] {
+    --errand-tone: var(--success);
+  }
+  .errand-lane-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: calc(var(--spacing) * 3);
+    padding-bottom: calc(var(--spacing) * 2);
+    border-bottom: 1px solid var(--proof-hairline);
+  }
+  .errand-lane-name {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.3;
+  }
+  .errand-clock {
+    color: var(--proof-quiet);
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .errand-track {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 4);
+    padding-inline-start: calc(var(--spacing) * 6);
+  }
+  .errand-rail {
+    position: absolute;
+    inset-block: calc(var(--spacing) * 1);
+    inset-inline-start: calc(var(--spacing) * 1.5);
+    width: 2px;
+    background: var(--proof-hairline);
+  }
+  .errand-rail::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--errand-tone);
+    transform: scaleY(var(--errand-progress, 1));
+    transform-origin: top;
+    transition: background-color var(--ouro-duration-base) ease;
+  }
+  .errand-trolley {
+    position: absolute;
+    top: calc(var(--errand-progress, 1) * 100%);
+    inset-inline-start: calc(50% - var(--spacing) * 2);
+    width: calc(var(--spacing) * 4);
+    height: calc(var(--spacing) * 4);
+    margin-top: calc(var(--spacing) * -2);
+    border-radius: 999px;
+    corner-shape: round;
+    background: var(--errand-tone);
+    box-shadow: 0 0 0 3px var(--background);
+    transition: background-color var(--ouro-duration-base) ease;
+  }
+  .errand-steps {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .errand-step,
+  .errand-till {
+    opacity: 0;
+    transition: opacity var(--ouro-duration-fast) ease;
+  }
+  .errand-step[data-reached],
+  .errand-till[data-reached] {
+    opacity: 1;
+  }
+  /* With motion allowed, each step and till rises into place as it fades in. */
+  @media (prefers-reduced-motion: no-preference) {
+    .errand-step,
+    .errand-till {
+      translate: 0 calc(var(--spacing) * 1.5);
+      transition:
+        opacity var(--ouro-duration-base) ease,
+        translate var(--ouro-duration-slow) var(--ouro-ease-out);
+    }
+    .errand-step[data-reached],
+    .errand-till[data-reached] {
+      translate: 0 0;
+    }
+    /* The receipt prints, top to bottom, as the till rings. */
+    .errand-receipt {
+      clip-path: inset(0 0 100% 0);
+      transition: clip-path 900ms var(--ouro-ease-out);
+    }
+    .errand-till[data-reached] .errand-receipt {
+      clip-path: inset(0);
+    }
+  }
+  .errand-step {
+    display: grid;
+    gap: calc(var(--spacing) * 1);
+  }
+  .errand-call {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    overflow-wrap: anywhere;
+  }
+  .errand-said {
+    margin: 0;
+    color: var(--proof-quiet);
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+  }
+  .errand-till {
+    display: grid;
+    justify-items: start;
+    gap: calc(var(--spacing) * 3);
+    margin-top: auto;
+    padding-top: calc(var(--spacing) * 2);
+  }
+  .errand-receipt {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+    width: 100%;
+    margin: 0;
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
+    border-block: 2px dashed color-mix(in oklab, var(--destructive) 45%, transparent);
+    border-radius: var(--radius-ouro-sm);
+    corner-shape: var(--ouro-corner-shape);
+    background: color-mix(in oklab, var(--destructive) 6%, var(--background));
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+  }
+  .errand-receipt-head {
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .errand-reply {
+    margin: 0;
+    padding-inline-start: calc(var(--spacing) * 3);
+    border-inline-start: 2px solid var(--success);
+    font-size: 0.9375rem;
+  }
+  .errand-source {
+    font-size: 0.875rem;
+  }
+  .errand-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--spacing) * 3) calc(var(--spacing) * 6);
+  }
+  .errand-note {
+    max-width: var(--measure-prose);
+    margin: 0;
+    color: var(--proof-quiet);
+    font-size: 0.875rem;
+  }
+
+  /* Reduced motion: nothing moves or draws. The rail shows whole, the trolley stays home, and steps and tills only fade. */
+  @media (prefers-reduced-motion: reduce) {
+    .errand-rail::before {
+      transform: none;
+    }
+    .errand-trolley {
+      display: none;
+    }
+  }
+  @media (forced-colors: active) {
+    .errand-rail,
+    .errand-rail::before,
+    .errand-trolley {
+      background: CanvasText;
+    }
+  }
+}

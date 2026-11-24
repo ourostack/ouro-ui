@@ -837,6 +837,19 @@ fi
 [ -z "${OURO_PREPARE_ONLY:-}" ] || { echo "Prepared the $variant app; the shards run the shipped tests."; exit 0; }
 
 # The shipped tests to run: every one, or a reduced run's (OURO_COMPONENTS), in one shard (OURO_SHARD).
+# This stage's own start, in whole seconds (bash's own clock): read against OURO_CI_JOB_BUDGET_MS
+# (ci.yml, the install-shard job's own timeout-minutes) so a stall below, in whichever of the shipped
+# Vitest run or the shipped Playwright run reaches it, gets only what is actually left of the job's
+# budget rather than assuming the whole of it is still there: install (ouro, nova, 3/3) ran its
+# "Install test" step from 01:54:51Z to past the job's 30-minute limit with no test named, because the
+# shipped Vitest run's stall reporter had no budget to tighten its five-minute fail threshold against
+# (run 45307477177). Outside CI, OURO_CI_JOB_BUDGET_MS is unset and remaining_job_budget_ms prints
+# nothing, so neither stage's timeout changes for a contributor's own run.
+stage_started_at=$SECONDS
+remaining_job_budget_ms() {
+  [ -n "${OURO_CI_JOB_BUDGET_MS:-}" ] || return 0
+  echo $(( OURO_CI_JOB_BUDGET_MS - (SECONDS - stage_started_at) * 1000 ))
+}
 vitest_filters=()
 spec_filters=(e2e/ouro)
 # A full run fails when it finds no test; a reduced run's filters may match none in a shard.
@@ -915,6 +928,14 @@ workers=()
 stall=()
 if [ -n "${CI:-}" ] && [ -n "${OURO_SHARD:-}" ] && [ -f "$root/scripts/stall-reporter-default.mts" ]; then
   stall=(--reporter=default "--reporter=$root/scripts/stall-reporter-default.mts")
+  # Tightens the stall reporter's own thresholds to what is actually left of the job's budget here,
+  # not the whole of it again, so a stall that begins late in the step still fails before the job's
+  # own hard timeout does, with nothing named.
+  vitest_budget_ms=$(remaining_job_budget_ms)
+  if [ -n "$vitest_budget_ms" ]; then
+    export OURO_CI_STEP_BUDGET_MS="$vitest_budget_ms"
+    echo "Shipped Vitest browser tests: a stall fails within ${vitest_budget_ms}ms (this job's own remaining budget), naming what is in flight."
+  fi
 fi
 npx vitest run ${workers[@]+"${workers[@]}"} ${stall[@]+"${stall[@]}"} ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${vitest_shard[@]+"${vitest_shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
 echo "::endgroup::"
@@ -924,7 +945,19 @@ if [ "${#spec_filters[@]}" -gt 0 ]; then
   # A sharded run lists each test with its time, so the log shows which specs the installed app runs slowly.
   reporter=()
   [ -z "${OURO_SHARD:-}" ] || reporter=(--reporter=list)
-  npx playwright test --fully-parallel ${reporter[@]+"${reporter[@]}"} ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${spec_shard[@]+"${spec_shard[@]}"} "${spec_filters[@]}"
+  # Playwright has no reporter of its own that names a hang outside a test body (worker launch, teardown,
+  # between specs): a globalTimeout bounds the whole run instead, to what is actually left of the job's
+  # budget here, with margin for Playwright's own report to flush and the process to exit before the job's
+  # own hard timeout does, with nothing named.
+  global_timeout=()
+  if [ -n "${CI:-}" ] && [ -n "${OURO_SHARD:-}" ] && [ -n "${OURO_CI_JOB_BUDGET_MS:-}" ]; then
+    playwright_budget_ms=$(remaining_job_budget_ms)
+    margin_ms=20000
+    bounded_ms=$(( playwright_budget_ms > margin_ms ? playwright_budget_ms - margin_ms : 1 ))
+    global_timeout=(--global-timeout="$bounded_ms")
+    echo "Shipped Playwright specs: a hang anywhere in the run fails within ${bounded_ms}ms (this job's own remaining budget)."
+  fi
+  npx playwright test --fully-parallel ${reporter[@]+"${reporter[@]}"} ${global_timeout[@]+"${global_timeout[@]}"} ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${spec_shard[@]+"${spec_shard[@]}"} "${spec_filters[@]}"
 else
   echo "No selected component has a spec."
 fi

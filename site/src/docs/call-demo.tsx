@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { AgentPresence, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { LevelMeter } from "@/registry/ouro/components/ouro/level-meter/level-meter";
 import { LiveCaptions, type LiveCaptionLine } from "@/registry/ouro/components/ouro/live-captions/live-captions";
 import { MediaTile } from "@/registry/ouro/components/ouro/media-tile/media-tile";
@@ -13,6 +14,7 @@ import { SnapPiP, type SnapPiPCorner } from "@/registry/ouro/components/ouro/sna
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { Timer } from "@/registry/ouro/components/ouro/timer/timer";
 import { Toolbar, type ToolbarEntry } from "@/registry/ouro/components/ouro/toolbar/toolbar";
+import { CodeBlock } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
 import { TrayArt } from "./tray-art";
 
@@ -113,6 +115,8 @@ function subscribeNarrow(notify: () => void): () => void {
   return () => query.removeEventListener("change", notify);
 }
 
+const inviteLink = "https://example.com/join/design-review";
+
 /** A call window in one box: a lobby, a joining moment, the call itself, an empty room and a goodbye. */
 function CallDemo(): JSX.Element {
   const [stage, setStage] = useState<Stage>("call");
@@ -129,13 +133,17 @@ function CallDemo(): JSX.Element {
   const [chosenHidden, setSelfHidden] = useState<boolean | null>(null);
   const selfHidden = chosenHidden ?? narrow;
   const [agents, setAgents] = useState<ListeningAgent[]>([helper]);
-  const [status, setStatus] = useState("");
+  // Each message is its own node, so the same words said twice are announced twice.
+  const [said, setSaid] = useState({ text: "", n: 0 });
+  const status = said.text;
+  const setStatus = useCallback((text: string) => setSaid((now) => ({ text, n: now.n + 1 })), []);
   const [lines, setLines] = useState<LiveCaptionLine[]>([]);
   const [speaker, setSpeaker] = useState(0);
   const [pinned, setPinned] = useState("");
   // The made-up speaker, captions and level hold still while a pointer or focus is in the window, so what a person aims at stays put.
   const [still, setStill] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const moved = useRef(false);
   const step = useRef(0);
@@ -153,7 +161,7 @@ function CallDemo(): JSX.Element {
       setPinned("");
       setSharing(false);
     }
-  }, []);
+  }, [setStatus]);
   useEffect(() => {
     if (stage !== "joining") return;
     const timer = window.setTimeout(() => go("call", true), 1400);
@@ -198,7 +206,7 @@ function CallDemo(): JSX.Element {
       setStatus(now ? "You are unmuted" : "You are muted");
       return !now;
     });
-  }, []);
+  }, [setStatus]);
   // The app binds the shortcut the toolbar shows: ⇧⌘M, or Ctrl+Shift+M off Apple platforms.
   useEffect(() => {
     if (stage !== "call" && stage !== "lobby") return;
@@ -216,6 +224,15 @@ function CallDemo(): JSX.Element {
     if (next > others) setStatus(`${everyone[next - 1]!.name} joined`);
     else if (next < others) setStatus(`${everyone[others - 1]!.name} left`);
     setOthers(next);
+  };
+
+  const copyInvite = () => {
+    const copied = navigator.clipboard?.writeText(inviteLink);
+    if (!copied) return setStatus("Couldn't copy the link");
+    copied.then(
+      () => setStatus("Invite link copied"),
+      () => setStatus("Couldn't copy the link"),
+    );
   };
 
   const items = useMemo<ToolbarEntry[]>(
@@ -272,7 +289,7 @@ function CallDemo(): JSX.Element {
             { label: "React", icon: SmileIcon, hideLabel: true, onClick: () => setReactionsOpen(true) },
           ] satisfies ToolbarEntry[])),
     ],
-    [muted, cameraOff, sharing, captionsOn, handUp, stage, toggleMute],
+    [muted, cameraOff, sharing, captionsOn, handUp, stage, toggleMute, setStatus],
   );
 
   const selfPicture = cameraOff ? (
@@ -304,7 +321,7 @@ function CallDemo(): JSX.Element {
   } else if (stage === "waiting") {
     body = (
       <div className="grid h-full place-items-center">
-        <Moment kind="empty" art={<TrayArt />} title="Waiting for others to join" description="You're the first one here. Share the link and they can join." action={<Button variant="outline" tone="secondary" onClick={() => setStatus("Invite link copied")}>Copy invite link</Button>} />
+        <Moment kind="empty" art={<TrayArt />} title="Waiting for others to join" description="You're the first one here. Share the link and they can join." action={<Button variant="outline" tone="secondary" onClick={copyInvite}>Copy invite link</Button>} />
       </div>
     );
   } else if (stage === "left") {
@@ -332,6 +349,7 @@ function CallDemo(): JSX.Element {
       <div className="relative flex h-full min-h-0 flex-col">
         <div className="min-h-0 flex-1 overflow-auto p-2">
           <div
+            ref={gridRef}
             className={
               "grid gap-2 " +
               (tiles <= 1 ? "grid-cols-1" : tiles === 2 ? "grid-cols-1 md:grid-cols-2" : tiles <= 4 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3")
@@ -370,7 +388,7 @@ function CallDemo(): JSX.Element {
             {bar}
           </div>
         </div>
-        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} collapsed={selfHidden} onCollapsedChange={setSelfHidden} keepOut={[bottomRef]}>
+        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} collapsed={selfHidden} onCollapsedChange={setSelfHidden} keepOut={[gridRef, bottomRef]}>
           {selfPicture}
         </SnapPiP>
         <Popover title="React" open={reactionsOpen} onOpenChange={setReactionsOpen} anchor={bottomRef}>
@@ -417,7 +435,7 @@ function CallDemo(): JSX.Element {
       <div className="flex min-h-10 flex-wrap items-center gap-3 rounded-lg border border-border px-3 py-1.5">
         <span className="text-sm font-semibold">Design review</span>
         <p role="status" className="m-0 min-w-0 flex-1 truncate text-sm text-muted-foreground">
-          {status}
+          <span key={said.n}>{status}</span>
         </p>
         <AgentPresence label="Agents listening" agents={agents} onStop={(id) => setAgents((now) => now.filter((agent) => agent.id !== id))} onStopAll={() => setAgents([])} compact />
       </div>
@@ -427,15 +445,50 @@ function CallDemo(): JSX.Element {
         onPointerEnter={() => setStill(true)}
         onPointerLeave={() => setStill(false)}
         onFocusCapture={() => setStill(true)}
-        onBlurCapture={() => setStill(false)} aria-label="Call" role="group" className="h-160 overflow-hidden rounded-lg border border-border outline-none">
+        onBlurCapture={() => setStill(false)}
+        style={inCall && others > 4 ? { height: "46rem" } : undefined}
+        aria-label="Call"
+        role="group"
+        className="h-160 overflow-hidden rounded-lg border border-border outline-none">
         {body}
       </div>
       <div className="min-w-0 max-w-sm">
+        <Text size="sm" tone="muted" className="mb-2">
+          The timer is the app's to set: here it counts down a made-up half-hour limit, apart from the window.
+        </Text>
         <Timer label="Meeting ends in" duration={1800} />
       </div>
     </div>
   );
 }
+
+const shortCall = `import { MediaTile } from "@/components/ouro/media-tile/media-tile";
+import { LiveCaptions } from "@/components/ouro/live-captions/live-captions";
+import { Toolbar } from "@/components/ouro/toolbar/toolbar";
+import { SnapPiP } from "@/components/ouro/snap-pip/snap-pip";
+
+export function CallWindow({ people, lines, controls }) {
+  const gridRef = useRef(null);
+  const controlsRef = useRef(null);
+  return (
+    <>
+      <div ref={gridRef}>
+        {people.map((person) => (
+          <MediaTile key={person.id} name={person.name} speaking={person.speaking} muted={person.muted} cameraOn={person.cameraOn}>
+            <video ref={person.videoRef} />
+          </MediaTile>
+        ))}
+      </div>
+      <div ref={controlsRef}>
+        <LiveCaptions label="Captions" hideLabel lines={lines} />
+        <Toolbar label="Call controls" items={controls} />
+      </div>
+      <SnapPiP label="Your camera" keepOut={[gridRef, controlsRef]}>
+        <video />
+      </SnapPiP>
+    </>
+  );
+}`;
 
 /** The docs/call-demo/ page: the demo behind its own lazy chunk, lead text and shell included. */
 export default function CallDemoPage(): JSX.Element {
@@ -443,10 +496,15 @@ export default function CallDemoPage(): JSX.Element {
     <DocsShell current="/docs/call-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A call window" }}>
       <Text size="lg" tone="muted" className="mb-10 max-w-2xl text-pretty" data-ouro-measure="">
         The call components together, with made-up people and placeholder pictures: a tile grid that grows as people join, speaking, muted and camera-off
-        tiles, captions, the control bar, your own picture in a corner, a timer, and the lobby, joining and waiting states. Try the keyboard, a narrow
-        window and dark mode.
+        tiles, captions, the control bar, your own picture in a corner, a timer, and the lobby, joining and waiting states. The State and Others in the call switchers above the window, the moving speaker, captions
+        and microphone level, the Design review header, the made-up half-hour timer and the invite link are the demo's own script; an app supplies the real ones.
+        The tiles, captions, control bar, level meter, picture-in-picture, reactions and timer are Ouro components. Try the keyboard, a narrow window and dark mode.
       </Text>
       <CallDemo />
+      <Heading level={2} className="mt-12 mb-4">
+        A short assembly
+      </Heading>
+      <CodeBlock label="Call window" code={shortCall} copy />
     </DocsShell>
   );
 }

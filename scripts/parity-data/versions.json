@@ -7,8 +7,8 @@
     "treeCoreTag": "v1.2.0"
   },
   "windows": {
-    "tag": "v0.12.0",
-    "commit": "65dc6dce47d3e7e8f77164f63e617b9ee3e1b773",
+    "tag": "v0.12.1",
+    "commit": "9e94c11b8931b998a224a98739fb1754ab4358ef",
     "coreTag": "v1.8.0",
     "treeCoreTag": "v1.8.0"
   },

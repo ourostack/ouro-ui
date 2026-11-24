@@ -935,12 +935,12 @@ describe("TimeGrid", () => {
     await near(0);
   });
 
-  it("never fades its day header: scrolled down, only the bottom edge fades", async () => {
+  it("draws its day header as glass over the hours scrolled beneath it, with no mask on the scroller", async () => {
     await render();
     await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(true);
-    const mask = getComputedStyle(viewport()).maskImage;
-    expect(mask).toMatch(/^linear-gradient\(rgb\(0, 0, 0\) /);
-    expect(mask).toMatch(/rgba\(0, 0, 0, 0\)\)$/);
+    expect(getComputedStyle(viewport()).maskImage).toBe("none");
+    const head = viewport().querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    expect(getComputedStyle(head).backdropFilter).toContain("blur");
     expect(warnings()).toEqual([]);
   });
 
@@ -1492,7 +1492,7 @@ describe("TimeGrid background events", () => {
     const fill = getComputedStyle(spokenAs("All hands")).backgroundColor;
     expect([fill === getComputedStyle(titled("Architecture forum")).backgroundColor, fill === "rgba(0, 0, 0, 0)"]).toEqual([false, false]);
     expect(getComputedStyle(spokenAs("All hands")).borderInlineStartWidth).toBe("3px");
-    expect([getComputedStyle(lanes()[0]!).borderInlineEndStyle, getComputedStyle(lanes()[0]!).borderInlineEndWidth]).toEqual(["dashed", "1px"]);
+    expect([getComputedStyle(lanes()[0]!).borderInlineEndStyle, getComputedStyle(lanes()[0]!).borderInlineEndWidth]).toEqual(["solid", "0px"]);
     const lane = lanes()[0]!;
     // 40% of the day's column, at least 7rem.
     expect(Math.abs(lane.getBoundingClientRect().width - lane.parentElement!.clientWidth * 0.4)).toBeLessThan(1);

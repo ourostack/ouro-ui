@@ -11,6 +11,8 @@ import { claim } from "../../registry/ouro/lib/ouro/claims.ts";
 export type SceneName =
   | "ouro-hx"
   | "ouro-ui-apple"
+  | "ouro-ui-windows"
+  | "ouro-ui-android"
   | "ouro-ui-core"
   | "playwright-focus-proof"
   | "ouroboros-skills"
@@ -82,6 +84,22 @@ export const SCENES: Record<SceneName, Scene> = {
     band: 16,
     shortY: 20,
     night: { phoneHeight: 576, alt: "At night under a crescent moon, in a calm studio by a window onto a city park with a few lit windows across it, a small white robot in a blue apron checks the same settings card on a phone, a tablet and a laptop lined up on a long pale table, while Ouro, a smiling emerald snake curled into an O, watches from a folded cloth." },
+  },
+  "ouro-ui-windows": {
+    alt: "In a log cabin study, a glass person at a desk points at a settings card on a monitor, while a small mint robot swings open a window pane and Ouro, a smiling emerald snake curled into an O, basks on the sill.",
+    sky: ["#622c0c", "#ca897b", "#ecb3a1", "#e9bf92", "#dda778"],
+    height: 512,
+    phoneHeight: 432,
+    band: 40,
+    night: { phoneHeight: 432 },
+  },
+  "ouro-ui-android": {
+    alt: "In an orchard where phones grow like fruit, a small mint robot on a stepladder lifts one down to check it, a glass person reaches for another, and Ouro, a smiling emerald snake curled into an O, rests in a basket of picked phones.",
+    sky: ["#c1a8d1", "#bc9c85", "#8b7120", "#f8ccab", "#fdd8b7"],
+    height: 512,
+    phoneHeight: 461,
+    band: 40,
+    night: { phoneHeight: 461 },
   },
   "ouro-ui-core": {
     alt: "In a skylit design studio, a small robot and Ouro, a smiling emerald snake curled into an O, rest on a towel at a long worktable with fabric swatches.",
@@ -296,6 +314,11 @@ export const CARDS: Record<string, Card> = {
   "/apple/ax/": { file: "apple-ax.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro AX for Apple" },
   "/apple/reins/": { file: "apple-reins.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro Reins" },
   "/apple/start/": { file: "apple-start.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Get started" },
+  "/hx/": { file: "hx.jpg", scene: "ouro-hx", kicker: "Ouro HX", title: "Components for people's screens", size: 44 },
+  "/windows/": { file: "windows.jpg", scene: "ouro-ui-windows", kicker: "Ouro UI for Windows", title: "Same manners, now in WinUI.", size: 44 },
+  "/windows/start/": { file: "windows-start.jpg", scene: "ouro-ui-windows", kicker: "Ouro UI for Windows", title: "Get started" },
+  "/android/": { file: "android.jpg", scene: "ouro-ui-android", kicker: "Ouro UI for Android", title: "Same manners, now in Compose.", size: 44 },
+  "/android/start/": { file: "android-start.jpg", scene: "ouro-ui-android", kicker: "Ouro UI for Android", title: "Get started" },
   "/docs/": {
     file: "docs.jpg",
     scene: "ouro-ui-core",

@@ -93,7 +93,7 @@ async function focusBrowser(page: Page): Promise<void> {
  */
 export function nvdaFor(page: Page): NVDAPlaywright {
   const reader = nvda as NVDAPlaywright;
-  reader.navigateToWebContent = async ({ capture } = {}) => {
+  reader.navigateToWebContent = async ({ capture }: Parameters<NVDAPlaywright["navigateToWebContent"]>[0] = {}) => {
     await nvda.perform(nvda.keyboardCommands.exitFocusMode, { capture: false });
     await sleep(100);
     await focusBrowser(page);

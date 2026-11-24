@@ -39,6 +39,10 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://capacitorjs.com/docs/guides/live-reload": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
   "https://carbondesignsystem.com/patterns/status-indicator-pattern/": {
     "status": 200,
     "checked": "2026-11-06"
@@ -108,10 +112,6 @@
     "checked": "2026-11-06"
   },
   "https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate": {
-    "status": 200,
-    "checked": "2026-11-06"
-  },
-  "https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode": {
     "status": 200,
     "checked": "2026-11-06"
   },
@@ -543,6 +543,34 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/8ffe74b1e8a0e60325866403f7316b2c900845be/docs/decisions/2026-11-04-responsiveness.md#L92": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/8ffe74b1e8a0e60325866403f7316b2c900845be/docs/decisions/2026-11-13-a2ui-catalog.md#L49": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/8ffe74b1e8a0e60325866403f7316b2c900845be/docs/decisions/2026-11-13-agents-use-agent-interfaces.md#L47": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/8ffe74b1e8a0e60325866403f7316b2c900845be/docs/decisions/2026-11-13-agents-use-agent-interfaces.md#L51": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/8ffe74b1e8a0e60325866403f7316b2c900845be/docs/decisions/2026-11-17-composed-tree-leads.md#L31": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/8ffe74b1e8a0e60325866403f7316b2c900845be/docs/decisions/2026-11-17-native-kits-no-cross-platform.md#L33": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/8ffe74b1e8a0e60325866403f7316b2c900845be/docs/decisions/2026-11-20-hover-and-selected-states.md#L25": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/9620eb4d6e99f276f1146b3e0e5cdbc2a71152cf/AGENTS.md#L31": {
     "status": 200,
     "checked": "2026-11-03"
@@ -699,14 +727,6 @@
     "status": 200,
     "checked": "2026-11-20"
   },
-  "https://github.com/ourostack/ouro-ui-windows/blob/65dc6dce47d3e7e8f77164f63e617b9ee3e1b773/.github/workflows/ci.yml#L37-L48": {
-    "status": 200,
-    "checked": "2026-11-21"
-  },
-  "https://github.com/ourostack/ouro-ui-windows/blob/65dc6dce47d3e7e8f77164f63e617b9ee3e1b773/core-provenance.json": {
-    "status": 200,
-    "checked": "2026-11-21"
-  },
   "https://github.com/ourostack/ouro-ui-windows/blob/7f62ae7a10e99669a81f0ac095430e030d7f947c/README.md#L11": {
     "status": 200,
     "checked": "2026-11-19"
@@ -723,6 +743,14 @@
     "status": 200,
     "checked": "2026-11-21"
   },
+  "https://github.com/ourostack/ouro-ui-windows/blob/9e94c11b8931b998a224a98739fb1754ab4358ef/.github/workflows/ci.yml#L37-L48": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/9e94c11b8931b998a224a98739fb1754ab4358ef/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
   "https://github.com/ourostack/ouro-ui-windows/blob/b07eaea5ff53d17c64c79f02d2952ce9336f0acf/tools/registration-check.mts": {
     "status": 200,
     "checked": "2026-11-20"
@@ -731,9 +759,9 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.0": {
+  "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.1": {
     "status": 200,
-    "checked": "2026-11-21"
+    "checked": "2026-11-24"
   },
   "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0": {
     "status": 200,
@@ -1075,6 +1103,10 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://vite.dev/config/server-options.html#server-hmr": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
   "https://vite.dev/guide/env-and-mode": {
     "status": 200,
     "checked": "2026-11-06"
@@ -1103,6 +1135,10 @@
     "status": 200,
     "checked": "2026-11-04"
   },
+  "https://www.electronjs.org/docs/latest/tutorial/security": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
   "https://www.gutenberg.org/ebooks/164": {
     "status": 200,
     "checked": "2026-11-06"
@@ -1126,6 +1162,10 @@
   "https://www.unicode.org/reports/tr51/#Diversity": {
     "status": 200,
     "checked": "2026-11-06"
+  },
+  "https://www.w3.org/TR/CSP3/#directive-script-src": {
+    "status": 200,
+    "checked": "2026-11-24"
   },
   "https://www.w3.org/TR/CSS2/visufx.html#overflow": {
     "status": 200,

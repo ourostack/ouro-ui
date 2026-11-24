@@ -34,7 +34,9 @@ export default function ThreadRailDemo(): JSX.Element {
                   Shipped the settings page this morning.
                 </Message>
               </MessageList>
-              <Composer label="Reply in thread" onSend={() => {}} />
+              <div className="border-t border-border p-2">
+                <Composer label="Reply in thread" onSend={() => {}} />
+              </div>
             </ThreadRail>
           ) : null
         }

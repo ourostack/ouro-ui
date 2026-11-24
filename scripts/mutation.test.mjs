@@ -22,6 +22,8 @@ test("runtimeSource takes component and lib code, and leaves tests, stories, typ
     "registry/ouro/lib/ouro/testing/act.ts",
     "registry/ouro/e2e/ouro/button.spec.ts",
     "test/stories.tsx",
+    "registry/ouro/lib/ouro/squircle/engine.ts",
+    "registry/ouro/lib/ouro/ouro-build-source.ts",
   ]) {
     assert.ok(!runtimeSource(path), path);
   }

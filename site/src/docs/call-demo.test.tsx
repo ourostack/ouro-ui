@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { routes } from "../routes";
@@ -89,6 +89,41 @@ describe("the call window page", () => {
     await expect.element(page.getByRole("button", { name: "Raise hand" })).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("announces the same message again when the same thing happens twice", async () => {
+    const original = navigator.clipboard;
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async () => undefined } });
+    const announced = watchAnnouncements();
+    try {
+      await renderPage("/docs/call-demo/");
+      await page.getByRole("radio", { name: "Alone" }).click();
+      await page.getByRole("button", { name: "Copy invite link" }).click();
+      await expect.poll(() => announced.count("Invite link copied")).toBe(1);
+      await page.getByRole("button", { name: "Copy invite link" }).click();
+      await expect.poll(() => announced.count("Invite link copied")).toBe(2);
+    } finally {
+      announced.stop();
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: original });
+    }
+  });
+
+  it("copies the invite link, and says so only when it did", async () => {
+    const written: string[] = [];
+    const original = navigator.clipboard;
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text: string) => void written.push(text) } });
+    try {
+      await renderPage("/docs/call-demo/");
+      await page.getByRole("radio", { name: "Alone" }).click();
+      await page.getByRole("button", { name: "Copy invite link" }).click();
+      await expect.poll(() => written.length).toBe(1);
+      await expect.poll(() => document.querySelector("[data-site-call-demo] [role=status]")?.textContent).toBe("Invite link copied");
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async () => Promise.reject(new Error("no")) } });
+      await page.getByRole("button", { name: "Copy invite link" }).click();
+      await expect.poll(() => document.querySelector("[data-site-call-demo] [role=status]")?.textContent).toBe("Couldn't copy the link");
+    } finally {
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: original });
+    }
+  });
+
   it("keeps its switchers inside a narrow column with six others in the call", async () => {
     await renderPage("/docs/call-demo/");
     const root = document.querySelector<HTMLElement>("[data-site-call-demo]")!;
@@ -99,6 +134,34 @@ describe("the call window page", () => {
     await expect.poll(() => root.scrollWidth <= root.clientWidth).toBe(true);
     host.style.width = "";
     host.style.overflow = "";
+  });
+
+  it("shows a short assembly under the demo", async () => {
+    await renderPage("/docs/call-demo/");
+    const code = document.querySelector("[data-site-call-demo-page] pre, main pre");
+    expect(code?.textContent).toMatch(/import \{ SnapPiP \}[\s\S]*<SnapPiP[^>]*keepOut=\{\[gridRef, controlsRef\]\}/);
+  });
+
+  it("keeps the self view clear of every tile, in each corner it can take", async () => {
+    // The grid's columns follow the viewport's width, so the test sets the one it measures at, whatever a file before it left.
+    await page.viewport(1280, 800);
+    await renderPage("/docs/call-demo/");
+    await document.fonts.ready;
+    const pip = document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
+    const overlaps = () => {
+      const a = pip.getBoundingClientRect();
+      return [...document.querySelectorAll<HTMLElement>('[data-site-call-demo] [data-ouro="media-tile"]')].filter((tile) => {
+        const b = tile.getBoundingClientRect();
+        return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      }).length;
+    };
+    await page.getByRole("radio", { name: "6" }).click();
+    await expect.poll(overlaps).toBe(0);
+    pip.focus();
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    // The first frames of the move still read the old place: wait for it to land before it is judged.
+    await expect.poll(() => pip.hasAttribute("data-ouro-settling")).toBe(false);
+    await expect.poll(overlaps).toBe(0);
   });
 
   it("starts the self view tucked away on a phone with a full grid, and shows it on request", async () => {
@@ -113,6 +176,13 @@ describe("the call window page", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  it("says which parts of the demo are scripted", async () => {
+    await renderPage("/docs/call-demo/");
+    expect(document.body.textContent).toMatch(/own script/);
+    expect(document.body.textContent).toMatch(/State and Others in the call switchers/);
+    expect(document.body.textContent).toMatch(/timer is the app's to set/);
   });
 
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {

@@ -142,8 +142,7 @@ export interface Previous {
 /** The ledger as it was when the site was built; the page asks for a newer one when it opens. */
 export const SNAPSHOT = snapshot as unknown as Ledger;
 
-/** Where the hourly workflow (.github/workflows/adoption-ledger.yml) publishes the newest ledger. */
-export const LIVE_URL = "https://raw.githubusercontent.com/ourostack/ouro-ui/adoption-data/ledger.json";
+export { LIVE_URL } from "./live";
 
 /** Whether a fetched value is a ledger of a shape this page reads, and newer than the one it has. */
 export function isNewer(candidate: unknown, current: Ledger): candidate is Ledger {
