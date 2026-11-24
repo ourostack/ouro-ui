@@ -366,6 +366,18 @@ const HINTS: Record<string, string> = {
 // jank's budget is the longest frame of a step, the median of its runs, from Ouro Feel; a step also fails when every run
 // forces more than MAX_FORCED layouts or moves the page by more than MAX_STEP_SHIFT.
 const BUDGETS: Budgets = Object.freeze({ inp: 200, "layout-shift": 0.1, "first-content": 2500, jank: 250 });
+// dropped-frames reads a real wall-clock gap between animation frames, so two such readings at once (another tab's
+// press, or another check() racing this one) can borrow each other's CPU and read a longer gap than either page alone
+// would have. This serializes the measuring window only, across every call in this process, so unrelated work
+// (loading, screenshots) still runs side by side.
+let motionQueue: Promise<unknown> = Promise.resolve();
+const measureMotion = <T,>(task: () => Promise<T>): Promise<T> => {
+  const run = motionQueue.then(task);
+  // allSettled's one callback runs whether run resolves or rejects, so the next measurement waits either way
+  // without a second, rejection-only function that a passing suite would never call.
+  motionQueue = Promise.allSettled([run]).then(() => undefined);
+  return run;
+};
 const MAX_FORCED = 50;
 const MAX_STEP_SHIFT = 0.01;
 // The walk: at most WALK_EACH states of each kind a page, each stepped WALK_RUNS times, at inp's size and theme.
@@ -835,10 +847,12 @@ async function check(options: CheckOptions): Promise<CheckResult> {
           }
           /* node:coverage enable */
         } else {
-          await page.evaluate(resetMotion);
-          await page.mouse.click(point.x, point.y);
-          await page.waitForTimeout(400);
-          const { longestFrameMs } = await page.evaluate(readMotion);
+          const longestFrameMs = await measureMotion(async () => {
+            await page.evaluate(resetMotion);
+            await page.mouse.click(point.x, point.y);
+            await page.waitForTimeout(400);
+            return (await page.evaluate(readMotion)).longestFrameMs;
+          });
           if (longestFrameMs > TRANSITION_LIMITS.frameMs && longestFrameMs <= budgets.inp) faults.push({ rule: "dropped-frames", element: "the page", detail: `its longest frame took ${longestFrameMs} ms after the press (keep to ${TRANSITION_LIMITS.frameMs} ms; a press slower than the ${budgets.inp} ms input budget is the inp rule's)`, value: longestFrameMs, budget: TRANSITION_LIMITS.frameMs, unit: "ms" });
         }
         for (const fault of faults) {
