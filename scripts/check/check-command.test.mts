@@ -47,10 +47,17 @@ describe("Ouro check's command", () => {
       imagesReport: undefined,
       handoff: false,
       engine: "chromium",
+      watching: false,
+      every: 0,
+      times: 0,
+      folders: [],
     });
     assert.deepEqual(parseArgs(["merge", "a", "b", "--out", "o", "--config", "c.json"]), { ...parseArgs(["a"]), merge: true, targets: ["a", "b"], out: "o", config: "c.json" });
     assert.equal(parseArgs(["a", "--images-report", "images.json"]).imagesReport, "images.json");
     assert.equal(parseArgs(["a", "--handoff"]).handoff, true);
+    const watching = parseArgs(["watch", "http://localhost:1", "--watch", "src,lib", "--every", "2", "--times", "3"]);
+    assert.deepEqual([watching.watching, watching.sizes, watching.themes, watching.axe, watching.measured, watching.every, watching.times, watching.folders.map((f) => f.split("/").pop())], [true, [[1280, 800]], ["light"], false, false, 2, 3, ["src", "lib"]]);
+    assert.deepEqual([parseArgs(["watch", "a"]).every, parseArgs(["watch", "a"]).times, parseArgs(["watch", "a", "--sizes", "390x844", "--themes", "dark"]).sizes], [5, Infinity, [[390, 844]]]);
     assert.equal(parseArgs(["a", "--engine", "wkwebview"]).engine, "wkwebview");
     assert.equal(parseArgs(["merge", "a", "--handoff"]).handoff, true);
     assert.equal(parseArgs(["merge", "a", "--images-report", "images.json"]).imagesReport, "images.json");
@@ -97,6 +104,13 @@ describe("Ouro check's command", () => {
     const mrege = await run(["mrege", ...fast]);
     assert.equal(mrege.code, 2);
     assert.equal(mrege.err, `ouro-check: check: "mrege" is not a folder or an http(s) URL. Fix: ouro-check merge <out folders>.`);
+    const wacth = await run(["wacth"]);
+    assert.equal(wacth.err, `ouro-check: check: "wacth" is not a folder or an http(s) URL. Fix: ouro-check watch <built folder or URL>.`);
+    for (const flag of ["every", "times"]) {
+      const bad = await run(["watch", "http://localhost:1", `--${flag}`, "soon"]);
+      assert.equal(bad.code, EXIT.usage);
+      assert.match(bad.err, new RegExp(`watch --${flag}: takes a number above 0, not "soon"`));
+    }
   });
 
   test("--engine wkwebview runs the page in WebKit with corner-shape hidden, and fails a plain radius there", async () => {
