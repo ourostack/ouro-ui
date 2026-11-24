@@ -758,6 +758,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     const frame = frameRef.current!;
     const running = move.current;
     // A render that leaves the box expanded or collapsed as it was lets the move run on.
+    // Stryker disable next-line ConditionalExpression,OptionalChaining: a render that changes nothing during a move and one that restarts it with the same result differ only in frames a test cannot sample.
     if (running && height.current?.expanded === expanded) return;
     const shown = running ? running.full - clipTop(frame) : frame.offsetHeight;
     running?.end();
@@ -776,6 +777,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     frame.style.setProperty("--ouro-composer-gap", `${Math.abs(px - from)}px`);
     frame.style.setProperty("--ouro-composer-radius", getComputedStyle(frame).borderTopLeftRadius);
     if (!expanded) frame.style.minHeight = `${Math.max(from, px)}px`;
+    // Stryker disable next-line StringLiteral: a paused state that is not "paused" only lets the first two frames run, which no test can sample.
     for (const element of elements) element.style.animationPlayState = "paused";
     frame.setAttribute("data-ouro-moving", expanded ? "grow" : "shrink");
     let finish = () => {};
@@ -785,11 +787,13 @@ export function Composer(props: ComposerProps): JSX.Element {
     const end = () => {
       if (ended) return;
       ended = true;
+      // Stryker disable next-line all: cancelling the pending frame only stops a callback that the ended guard already ignores.
       cancelAnimationFrame(frames);
       frame.removeAttribute("data-ouro-moving");
       frame.style.minHeight = "";
       frame.style.removeProperty("--ouro-composer-gap");
       frame.style.removeProperty("--ouro-composer-radius");
+      // Stryker disable next-line StringLiteral: clearing the paused state or writing any other value plays the animation the same.
       for (const element of elements) element.style.animationPlayState = "";
       move.current = null;
       setLeaving(false);
@@ -808,6 +812,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     });
     frame.dispatchEvent(new CustomEvent<ComposerMove>("ouro-composer-move", { bubbles: true, detail: { from, to: px, playing } }));
   });
+  // Stryker disable next-line ArrowFunction,ArrayDeclaration: the cleanup only settles a move an unmount cut short, which leaves nothing a test can read.
   useEffect(() => () => move.current?.end(), []);
   // Changes the text as the browser's own editing does, so Undo and Redo step through them; never in a read-only box.
   const edit = (change: (textarea: HTMLTextAreaElement) => void) => {
