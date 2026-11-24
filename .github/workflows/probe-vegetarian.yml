@@ -38,7 +38,6 @@ jobs:
     env:
       OURO_PRESET: nova
       OURO_APP: ${{ github.workspace }}/.probe-app
-      OURO_PREPARE_ONLY: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -50,6 +49,11 @@ jobs:
           cache: ""
       - run: pnpm i --frozen-lockfile
       - run: scripts/install-test.sh shadcn "$OURO_APP" "${{ github.sha }}"
+        env:
+          OURO_PREPARE_ONLY: "1"
       # Shard 6/6 is the one #3361 keeps failing in: run the real shard, not just this file, so
       # whatever else that shard's workers run alongside Inspector (if that's the trigger) runs too.
-      - run: OURO_REUSE_APP=1 OURO_SHARD=6/6 scripts/install-test.sh shadcn "$OURO_APP" "${{ github.sha }}"
+      - run: scripts/install-test.sh shadcn "$OURO_APP" "${{ github.sha }}"
+        env:
+          OURO_REUSE_APP: "1"
+          OURO_SHARD: "6/6"
