@@ -65,13 +65,13 @@ function Stub({ here }: { here: string }): JSX.Element {
     <main id="main" className="min-w-0 flex-1 py-10 pb-32 sm:py-14">
       <p className="m-0 text-sm font-medium text-muted-foreground">You followed the menu to</p>
       <h1 className="mt-2 mb-0 font-[family-name:var(--font-heading,inherit)] text-4xl leading-tight font-semibold tracking-[-0.02em] text-foreground sm:text-5xl">{page.label}</h1>
-      {lede && <p className="mt-4 mb-0 max-w-[42rem] text-lg leading-7 text-muted-foreground">{lede}</p>}
+      {lede && <p className="mt-4 mb-0 text-pretty text-lg leading-7 text-muted-foreground">{lede}</p>}
       <div className="mt-6 flex flex-wrap gap-2">
         <Button href={`${LIVE}${here}`} variant="outline" tone="secondary">
           Open the real page ↗
         </Button>
       </div>
-      <section aria-label="Try" className="mt-12 grid max-w-[42rem] gap-3 text-[0.9375rem] leading-6 text-foreground">
+      <section aria-label="Try" className="mt-12 grid gap-3 text-pretty text-[0.9375rem] leading-6 text-foreground">
         <h2 className="m-0 font-[family-name:var(--font-heading,inherit)] text-xl font-semibold">Things to try</h2>
         <ul className="m-0 grid gap-1.5 ps-5 text-muted-foreground">
           <li>Find Ouro AX for Windows, then Get started on Android. Every platform should look the same.</li>
@@ -82,7 +82,7 @@ function Stub({ here }: { here: string }): JSX.Element {
         </ul>
       </section>
       {Array.from({ length: 6 }, (_, index) => (
-        <p key={index} className="mt-8 mb-0 max-w-[42rem] text-[0.9375rem] leading-7 text-muted-foreground">
+        <p key={index} className="mt-8 mb-0 text-pretty text-[0.9375rem] leading-7 text-muted-foreground">
           This page is a stand-in, so you can feel how the header marks where you are. The real page lives at the link above.
         </p>
       ))}

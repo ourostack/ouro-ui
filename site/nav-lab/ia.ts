@@ -211,6 +211,13 @@ export function sectionOf(path: string): string | undefined {
   return undefined;
 }
 
+/** The part a platform's page belongs to: Ouro HX for Apple is Ouro HX's. */
+export function partOf(path: string): "hx" | "ax" | undefined {
+  if (PLATFORMS.some((p) => p.hx.path === path && p.ax.path !== path)) return "hx";
+  if (PLATFORMS.some((p) => p.ax.path === path && p.hx.path !== path)) return "ax";
+  return undefined;
+}
+
 export const DESCRIPTIONS: Record<string, string> = {
   "/": "About to build any kind of interface at all? Pick Ouro UI and never think about it again.",
   "/hx/": "Components for people's screens, in React, SwiftUI, WinUI and Compose.",

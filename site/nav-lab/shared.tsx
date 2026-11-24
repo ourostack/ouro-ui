@@ -44,7 +44,7 @@ export function PageLink({ page, here, hint = true, className, size = "md" }: { 
       className={cn(row, "py-1.5 aria-[current=page]:bg-[color-mix(in_oklab,var(--primary)_10%,transparent)]", className)}
       {...(isAway(page.path) ? { target: "_blank", rel: "noreferrer" } : {})}
     >
-      <span className="grid min-w-0 flex-1 gap-0.5">
+      <span className="grid min-w-0 flex-1 gap-0.5 text-pretty">
         <span
           className={cn(
             "font-medium text-foreground",
@@ -408,7 +408,7 @@ export function FamilyFoot(): JSX.Element {
             <a
               href={site.href}
               aria-current={site.id === FAMILY_CURRENT ? "true" : undefined}
-              className={cn(row, "min-h-11 text-sm text-muted-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground")}
+              className={cn(row, "min-h-11 gap-1 text-sm text-muted-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground")}
             >
               {site.label}
               {site.id !== FAMILY_CURRENT && <span aria-hidden="true">↗</span>}

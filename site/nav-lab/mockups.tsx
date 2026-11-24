@@ -3,7 +3,7 @@ import { Accordion } from "@/registry/ouro/components/ouro/accordion/accordion";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { COMPONENT_GROUPS, DOCS, GUIDES, HOME, PARTS, PLATFORMS, PROOF, SLOTS, SLOT_NAMES, SOURCE, sectionOf, type Page, type Section } from "./ia";
+import { COMPONENT_GROUPS, DOCS, GUIDES, HOME, PARTS, PLATFORMS, PROOF, SLOTS, SLOT_NAMES, SOURCE, partOf, sectionOf, type Page, type Section } from "./ia";
 import {
   Bar,
   Brand,
@@ -114,7 +114,7 @@ function ChipList({ label, pages, here }: { label: string; pages: readonly Page[
   return (
     <div className="grid content-start gap-1">
       <Eyebrow id={id}>{label}</Eyebrow>
-      <ul aria-labelledby={id} className="m-0 flex list-none flex-wrap gap-1.5 p-0 px-2">
+      <ul aria-labelledby={id} className="m-0 flex list-none flex-wrap gap-2 p-0 px-2">
         {pages.map((page) => (
           <li key={page.path}>
             <Chip page={page} here={here} />
@@ -139,21 +139,17 @@ function Chip({ page, here, label }: { page: Page; here: string; label?: string 
 
 /** The site's own sections, as a phone's menu folds them: each a heading you open. */
 function PhoneSections({ here, sections }: { here: string; sections: readonly Section[] }): JSX.Element {
-  const open = sections.find((section) => sectionOf(here) === section.id)?.id;
+  const open = sections.find((section) => sectionOf(here) === section.id || partOf(here) === section.id)?.id;
   return (
     <Accordion
       headingLevel={2}
       defaultValue={open ?? null}
       items={sections.map((section) => ({
         value: section.id,
-        title: (
-          <span className="grid gap-0.5 text-start">
-            <span className="font-[family-name:var(--font-heading,inherit)] text-lg leading-6 font-semibold">{section.label}</span>
-            <span className="text-sm leading-5 font-normal text-muted-foreground">{section.hint}</span>
-          </span>
-        ),
+        title: <span className="font-[family-name:var(--font-heading,inherit)] text-lg leading-6 font-semibold">{section.label}</span>,
         content: (
           <div className="grid gap-3 pb-2">
+            <p className="m-0 px-3 text-sm leading-5 text-muted-foreground">{section.hint}</p>
             <LinkList pages={[{ label: `${section.label} overview`, path: section.path }, ...section.pages]} here={here} hint={false} />
             {section.platformSlot && <PlatformGrid compact slots={[section.platformSlot]} here={here} label="On every platform" />}
             {section.id === "docs" && <DocsPanel here={here} compact />}
@@ -184,7 +180,7 @@ function AtlasHeader({ here, search }: MockupProps): JSX.Element {
         <DesktopOnly>
           <div className="ms-4">
             <DisclosureBar
-              section={sectionOf(here) === "platforms" ? (here.includes("ax") ? "ax" : "hx") : sectionOf(here)}
+              section={partOf(here) ?? sectionOf(here)}
               items={sections.map((section) => ({
                 id: section.id,
                 label: section.label,
@@ -202,8 +198,7 @@ function AtlasHeader({ here, search }: MockupProps): JSX.Element {
         </PhoneOnly>
       </Bar>
       <PhoneMenu open={menu} onOpenChange={setMenu}>
-        <PageLink page={HOME} here={here} size="lg" />
-        <PhoneSections here={here} sections={sections} />
+        <PhoneSections here={here} sections={[HOME, ...sections]} />
         <FamilyFoot />
       </PhoneMenu>
     </>
@@ -237,7 +232,7 @@ function PartsPanel({ here, compact = false }: { here: string; compact?: boolean
 
 function CompassHeader({ here, search }: MockupProps): JSX.Element {
   const [menu, setMenu] = useState(false);
-  const [way, setWay] = useState(sectionOf(here) === "platforms" ? "platform" : "part");
+  const [way, setWay] = useState(sectionOf(here) === "platforms" || partOf(here) ? "platform" : "part");
   const section = sectionOf(here);
   return (
     <>
@@ -426,7 +421,7 @@ function HullAside({ here }: MockupProps): JSX.Element {
 function SonarHeader({ here, search }: MockupProps): JSX.Element {
   const sections: readonly Section[] = [...PARTS, { id: "platforms", label: "Platforms", path: PLATFORMS[0]!.overview.path, hint: "", pages: [] }, PROOF, DOCS];
   const [open, setOpen] = useState<string | null>(null);
-  const current = sectionOf(here);
+  const current = partOf(here) ?? sectionOf(here);
   const shown = sections.find((section) => section.id === open);
   const base = useId();
   return (
@@ -450,7 +445,7 @@ function SonarHeader({ here, search }: MockupProps): JSX.Element {
           </button>
         </div>
         <nav aria-label="Sections" className="mx-auto max-w-7xl">
-          <ul className="m-0 flex list-none gap-1.5 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none] sm:px-6 lg:px-8">
+          <ul className="m-0 flex list-none gap-2 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none] sm:px-6 lg:px-8">
             <li>
               <Chip page={HOME} here={here} />
             </li>
@@ -478,7 +473,7 @@ function SonarHeader({ here, search }: MockupProps): JSX.Element {
               <DocsPanel here={here} />
             ) : shown ? (
               <div className="grid gap-3">
-                <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">
+                <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
                   {[{ ...shown, label: `${shown.label} overview` }, ...shown.pages].map((page) => (
                     <li key={page.path}>
                       <Chip page={page} here={here} />
@@ -486,7 +481,7 @@ function SonarHeader({ here, search }: MockupProps): JSX.Element {
                   ))}
                 </ul>
                 {shown.platformSlot && (
-                  <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label={`${shown.label} on every platform`}>
+                  <ul className="m-0 flex list-none flex-wrap gap-2 p-0" aria-label={`${shown.label} on every platform`}>
                     {PLATFORMS.map((p) => (
                       <li key={p.id}>
                         <Chip page={p[shown.platformSlot!]} here={here} label={`For ${p.name}`} />
@@ -511,7 +506,7 @@ function Matrix({ here }: { here: string }): JSX.Element {
   return (
     <section aria-labelledby={id} className="grid gap-2">
       <Eyebrow id={id}>Every platform, the same four doors</Eyebrow>
-      <div role="table" aria-labelledby={id} className="grid grid-cols-[auto_repeat(4,minmax(0,1fr))] gap-1 text-sm">
+      <div role="table" aria-labelledby={id} className="grid grid-cols-[auto_repeat(4,minmax(0,1fr))] gap-2 text-sm">
         <div role="row" className="contents">
           <span role="columnheader" />
           {SLOTS.map((slot) => (
@@ -547,10 +542,10 @@ function Matrix({ here }: { here: string }): JSX.Element {
 function ChartMap({ here }: { here: string }): JSX.Element {
   return (
     <div className="grid gap-6">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+      <div className="max-w-xl">
         <Matrix here={here} />
-        <PartsPanel here={here} />
       </div>
+      <PartsPanel here={here} />
       <ProofPanel here={here} />
       <DocsPanel here={here} />
     </div>
