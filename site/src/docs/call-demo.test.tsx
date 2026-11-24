@@ -253,6 +253,24 @@ describe("the call window page", () => {
       seen.push(Math.min(...tiles.slice(1).map((tile) => tile.getBoundingClientRect().height)));
     }
     expect(Math.min(...seen)).toBeGreaterThanOrEqual(80);
+
+  it("rests a reopened self view above the captions, never on them or the control bar", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    for (const [width, height] of [[1100, 800], [390, 844]] as const) {
+      await page.viewport(width, height);
+      await renderPage("/docs/call-demo/");
+      await document.fonts.ready;
+      const pip = () => document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
+      const bottom = () => document.querySelector<HTMLElement>('[data-site-call-demo] [role="toolbar"]')!.parentElement!.closest<HTMLElement>("div.grid")!;
+      await expect.poll(() => document.querySelector('[data-site-call-demo] [role="toolbar"]')).not.toBeNull();
+      await page.getByRole("radio", { name: "2" }).click();
+      if (pip().hasAttribute("data-collapsed")) await page.getByRole("button", { name: "Show Your camera" }).click();
+      await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(false);
+      await expect.poll(() => pip().hasAttribute("data-ouro-settling")).toBe(false);
+      await expect.poll(() => pip().getBoundingClientRect().bottom <= bottom().getBoundingClientRect().top).toBe(true);
+      await cleanupPage();
+    }
+    warn.mockRestore();
   });
 
   it("moves a pinned tile to the front of the grid, with no one sharing", async () => {
