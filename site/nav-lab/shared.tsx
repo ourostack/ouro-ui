@@ -1,14 +1,16 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type JSX, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
 import { FamilyBar } from "@/registry/ouro/components/ouro/family-bar/family-bar";
+import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-footer";
+import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { HxLogo } from "../src/components/brand";
 import { FAMILY, FAMILY_CURRENT } from "../src/family";
-import { COMPONENT_GROUPS, GUIDES, HOME, PARTS, PLATFORMS, PROOF, SLOT_NAMES, SOURCE, type Page, type Slot } from "./ia";
+import { COMPONENT_GROUPS, FAMILY_LINES, GUIDES, HOME, PARTS, PLATFORMS, PROOF, SLOT_NAMES, SOURCE, type Page, type Slot } from "./ia";
 
 /* ---------------------------------------------------------------- where you are */
 
@@ -31,20 +33,21 @@ export const hrefOf = (path: string) => (isAway(path) ? path : `#${path}`);
 /* ---------------------------------------------------------------- links */
 
 export const row =
-  "relative flex min-h-11 items-center gap-3 rounded-ouro-lg px-3 no-underline outline-ring -outline-offset-2 touch-manipulation [-webkit-tap-highlight-color:transparent] " +
+  "relative flex min-h-11 pointer-fine:min-h-8 items-center gap-3 rounded-ouro-lg px-3 no-underline outline-ring -outline-offset-2 touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-[ease] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:bg-accent active:bg-accent";
 
 /** A page link: its name, its line under it when there is room, and the mark when you are on it. */
-export function PageLink({ page, here, hint = true, className, size = "md", hidden }: { page: Page; here: string; hint?: boolean; className?: string; size?: "md" | "lg" | "sm"; hidden?: string }): JSX.Element {
+export function PageLink({ page, here, hint = true, className, size = "md", hidden, shown }: { page: Page; here: string; hint?: boolean; className?: string; size?: "md" | "lg" | "sm"; hidden?: string; shown?: ReactNode }): JSX.Element {
   const current = page.path === here;
   return (
     <a
       href={hrefOf(page.path)}
+      aria-label={shown ? page.label : undefined}
       aria-current={current ? "page" : undefined}
-      className={cn(row, "py-1.5 aria-[current=page]:bg-[color-mix(in_oklab,var(--primary)_10%,transparent)]", className)}
+      className={cn(row, "py-1.5 pointer-fine:py-1 aria-[current=page]:bg-[color-mix(in_oklab,var(--primary)_10%,transparent)]", className)}
       {...(isAway(page.path) ? { target: "_blank", rel: "noreferrer" } : {})}
     >
-      <span className="grid min-w-0 flex-1 gap-0.5 text-balance">
+      <span className="grid min-w-0 flex-1 gap-0.5 whitespace-nowrap max-sm:whitespace-normal max-sm:text-balance">
         <span
           className={cn(
             "font-medium text-foreground",
@@ -53,7 +56,7 @@ export function PageLink({ page, here, hint = true, className, size = "md", hidd
             size === "sm" && "text-sm leading-5 text-muted-foreground",
           )}
         >
-          {page.label}
+          {shown ?? page.label}
           {hidden && <span className="sr-only"> {hidden}</span>}
           {isAway(page.path) && (
             <span aria-hidden="true" className="ms-1 text-muted-foreground">
@@ -81,7 +84,7 @@ export function Here(): JSX.Element {
 /** A small heading over a list of links. */
 export function Eyebrow({ children, id }: { children: ReactNode; id?: string }): JSX.Element {
   return (
-    <p id={id} className="m-0 px-3 pt-1 pb-1.5 text-xs leading-4 font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+    <p id={id} className="m-0 px-3 pt-1 pb-1 text-xs leading-4 font-semibold tracking-[0.08em] text-muted-foreground uppercase">
       {children}
     </p>
   );
@@ -129,7 +132,7 @@ export function PlatformGrid({ slots, here, label = "Platforms", compact = false
   return (
     <section aria-labelledby={id} className="grid gap-1">
       <Eyebrow id={id}>{label}</Eyebrow>
-      <ul className={cn("m-0 grid list-none gap-x-2 gap-y-3 p-0", compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4")}>
+      <ul className={cn("m-0 grid list-none gap-x-2 gap-y-3 p-0", compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-[repeat(4,max-content)] sm:gap-x-6")}>
         {PLATFORMS.map((p) => (
           <li key={p.id} className="grid content-start gap-0.5">
             <span className="px-3 pb-0.5">
@@ -149,6 +152,44 @@ export function PlatformGrid({ slots, here, label = "Platforms", compact = false
   );
 }
 
+/** One part on the four platforms, one link each, side by side: "Ouro HX for Apple", shown as "Apple · SwiftUI". */
+export function PlatformRow({ slot, here, label }: { slot: "hx" | "ax"; here: string; label: string }): JSX.Element {
+  const id = useId();
+  return (
+    <section aria-labelledby={id} className="grid content-start">
+      <Eyebrow id={id}>{label}</Eyebrow>
+      <ul className="m-0 grid list-none grid-cols-2 gap-0.5 p-0 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-max">
+        {PLATFORMS.map((p) => (
+          <li key={p.id}>
+            <PageLink page={p[slot]} here={here} hint={false} shown={<PlatformName id={p.id} name={p.name} kit={p.kit} />} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * Keeps a panel inside the screen: its most height is what is left under its top, less a margin, so it never runs off
+ * the bottom. Content is laid out to fit; a scroll inside the panel is the last resort.
+ */
+export function useFitToScreen(ref: RefObject<HTMLElement | null>, active: unknown): void {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !active) return;
+    const fit = () => {
+      el.style.maxHeight = `${Math.max(160, innerHeight - el.getBoundingClientRect().top - 12)}px`;
+    };
+    fit();
+    addEventListener("resize", fit);
+    addEventListener("scroll", fit, { passive: true });
+    return () => {
+      removeEventListener("resize", fit);
+      removeEventListener("scroll", fit);
+    };
+  }, [ref, active]);
+}
+
 /* ---------------------------------------------------------------- the disclosure bar (APG disclosure navigation) */
 
 /** NN/g's mega menu timings: rest 0.5 s before a hover opens, close 0.5 s after the pointer leaves both. */
@@ -161,6 +202,8 @@ export interface BarItem {
   /** A plain link, or a button that discloses `panel`. */
   href?: string;
   panel?: ReactNode;
+  /** The panel takes the bar's whole width, for a panel whose content wraps to fit (Docs). */
+  wide?: boolean;
 }
 
 /**
@@ -169,8 +212,10 @@ export interface BarItem {
  * HOVER_OPEN_MS, and once one is open the others open on hover at once. Escape closes and puts focus back on the
  * button; focus or a press leaving the nav closes it; following a link closes it.
  */
-export function DisclosureBar({ items, label = "Main", section, panelClassName }: { items: readonly BarItem[]; label?: string; section: string | undefined; panelClassName?: string }): JSX.Element {
+export function DisclosureBar({ items, label = "Main", section }: { items: readonly BarItem[]; label?: string; section: string | undefined }): JSX.Element {
   const [open, setOpen] = useState<string | null>(null);
+  const shown = useRef<HTMLDivElement>(null);
+  useFitToScreen(shown, open);
   const openRef = useRef<string | null>(null);
   openRef.current = open;
   const nav = useRef<HTMLElement>(null);
@@ -273,16 +318,24 @@ export function DisclosureBar({ items, label = "Main", section, panelClassName }
             hidden={open !== item.id}
             onPointerEnter={(event) => event.pointerType === "mouse" && stop()}
             onPointerLeave={(event) => event.pointerType === "mouse" && closeLater()}
-            className={cn("lab-panel absolute inset-x-0 top-full z-50 px-4 pt-2 sm:px-6 lg:px-8", panelClassName)}
+            className="lab-panel absolute inset-x-0 top-full z-50 pt-2"
           >
-            <div className="mx-auto max-w-6xl rounded-ouro-3xl bg-popover p-4 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-border/60 sm:p-5">{item.panel}</div>
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div
+                ref={open === item.id ? shown : undefined}
+                data-lab-panel=""
+                className={cn("overflow-y-auto overscroll-contain rounded-ouro-3xl bg-popover p-4 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-border/60 sm:p-5", item.wide ? "w-full" : "w-max max-w-full")}
+              >
+                {item.panel}
+              </div>
+            </div>
           </div>
         ))}
     </nav>
   );
 }
 
-const barItem =
+export const barItem =
   "relative inline-flex min-h-11 items-center gap-1 rounded-ouro-lg px-3 text-[0.9375rem] font-medium text-muted-foreground no-underline outline-ring touch-manipulation " +
   "transition-colors duration-(--ouro-duration-fast) ease-[ease] focus-visible:outline-2 focus-visible:outline-solid focus-visible:-outline-offset-2 " +
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground aria-[current=true]:text-foreground " +
@@ -392,14 +445,144 @@ export function Brand(): JSX.Element {
   );
 }
 
-/** The family's sites: a quiet strip over the header from 1024px, the only place GitHub (the organisation) shows. */
+/** The brand, and in switcher mode the family switcher beside it. */
+export function BrandArea(): JSX.Element {
+  return (
+    <div className="flex shrink-0 items-center">
+      <Brand />
+      {FAMILY_MODE === "switcher" && <FamilySwitcher />}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- the Ouro family: four ways to show it */
+
+/** How the family's sites show: today's strip, a switcher by the logo, a slim strip that hides on the way down, or the footer only. */
+export type FamilyMode = "strip" | "switcher" | "slim" | "footer";
+export const FAMILY_MODES: ReadonlyArray<{ id: FamilyMode; label: string }> = [
+  { id: "strip", label: "Strip" },
+  { id: "switcher", label: "Switcher" },
+  { id: "slim", label: "Slim" },
+  { id: "footer", label: "Footer" },
+];
+const wanted = typeof location === "undefined" ? null : new URLSearchParams(location.search).get("f");
+export const FAMILY_MODE: FamilyMode = FAMILY_MODES.some((mode) => mode.id === wanted) ? (wanted as FamilyMode) : "strip";
+
+/** Today's strip over the header, from 1024px. */
 export function FamilyStrip(): JSX.Element {
   return <FamilyBar links={FAMILY} current={FAMILY_CURRENT} className="px-4 max-lg:hidden sm:px-6 lg:px-8" />;
 }
 
+/** The family as one line each, for the switcher and the slim strip's names. */
+const familyLabel = (id: string, label: string) => (id === "github" ? "GitHub (ourostack)" : label);
+
+/** A 24px strip, small type, that slides away as you scroll down and back as you scroll up. From 640px. */
+function SlimStrip(): JSX.Element {
+  return (
+    <nav aria-label="Ouro family" className="h-6 border-0 border-b border-solid border-border bg-background max-sm:hidden">
+      <ul className="m-0 mx-auto flex h-full max-w-7xl list-none items-stretch gap-4 px-4 sm:px-6 lg:px-8">
+        <li aria-hidden="true" className="flex items-center text-[0.6875rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+          Ouro family
+        </li>
+        {FAMILY.map((site) => (
+          <li key={site.id} className="flex">
+            <a
+              href={site.href}
+              aria-current={site.id === FAMILY_CURRENT ? "true" : undefined}
+              className="relative inline-flex items-center text-xs text-muted-foreground no-underline outline-ring focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:text-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground pointer-coarse:min-h-11"
+            >
+              {familyLabel(site.id, site.label)}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/** Whether the page is being scrolled down (true) or up (false), past the first 40px. */
+function useScrollingDown(): boolean {
+  const [down, setDown] = useState(false);
+  useEffect(() => {
+    let last = scrollY;
+    const on = () => {
+      const now = scrollY;
+      if (Math.abs(now - last) < 6) return;
+      setDown(now > last && now > 40);
+      last = now;
+    };
+    addEventListener("scroll", on, { passive: true });
+    return () => removeEventListener("scroll", on);
+  }, []);
+  return down;
+}
+
+/** The family's sites and the bar under them, as the chosen mode shows them. */
+export function Masthead({ children }: { children: ReactNode }): JSX.Element {
+  const down = useScrollingDown();
+  if (FAMILY_MODE === "slim")
+    return (
+      <div
+        data-lab-masthead=""
+        className="sticky top-0 z-40 sm:transition-transform sm:duration-(--ouro-duration-base) sm:ease-(--ouro-ease-out) motion-reduce:transition-none sm:data-[down]:-translate-y-6 [&>*]:static"
+        data-down={down ? "" : undefined}
+      >
+        <SlimStrip />
+        {children}
+      </div>
+    );
+  return (
+    <>
+      {FAMILY_MODE === "strip" && <FamilyStrip />}
+      {children}
+    </>
+  );
+}
+
+/** The switcher: a button by the logo that drops the family's sites down, each with its line. A sheet on a phone. */
+function FamilySwitcher(): JSX.Element {
+  return (
+    <Popover
+      title="The Ouro family"
+      description="Ari's sites, in one order everywhere."
+      align="start"
+      trigger={
+        <button type="button" aria-label="Ouro family" className={cn(iconButton, "-ms-1 w-9 pointer-coarse:w-11")}>
+          <Chevron open={false} className="size-4" />
+        </button>
+      }
+    >
+      <ul className="m-0 grid list-none gap-0.5 p-0">
+        {FAMILY.map((site) => {
+          const here = site.id === FAMILY_CURRENT;
+          return (
+            <li key={site.id}>
+              <a href={site.href} aria-current={here ? "true" : undefined} className={cn(row, "py-1.5 aria-[current=true]:bg-[color-mix(in_oklab,var(--primary)_10%,transparent)]")}>
+                <span className="grid min-w-0 flex-1 gap-0.5">
+                  <span className="text-[0.9375rem] leading-5 font-medium text-foreground">
+                    {familyLabel(site.id, site.label)}
+                    {!here && (
+                      <span aria-hidden="true" className="ms-1 text-muted-foreground">
+                        ↗
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[0.8125rem] leading-[1.125rem] text-muted-foreground">{FAMILY_LINES[site.id]}</span>
+                </span>
+                {here && <Here />}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </Popover>
+  );
+}
+
 /** The family's sites at the foot of a phone's menu: after the site's own sections, small and quiet. */
-export function FamilyFoot(): JSX.Element {
+export function FamilyFoot(): JSX.Element | null {
   const id = useId();
+  if (FAMILY_MODE === "switcher") return null;
   return (
     <section aria-labelledby={id} className="mt-6 grid gap-1 border-0 border-t border-solid border-border pt-4">
       <Eyebrow id={id}>The Ouro family</Eyebrow>
@@ -409,9 +592,9 @@ export function FamilyFoot(): JSX.Element {
             <a
               href={site.href}
               aria-current={site.id === FAMILY_CURRENT ? "true" : undefined}
-              className={cn(row, "min-h-11 gap-1 text-sm text-muted-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground")}
+              className={cn(row, "gap-1 text-sm text-muted-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground")}
             >
-              {site.label}
+              {familyLabel(site.id, site.label)}
               {site.id !== FAMILY_CURRENT && <span aria-hidden="true">↗</span>}
             </a>
           </li>
@@ -419,6 +602,11 @@ export function FamilyFoot(): JSX.Element {
       </ul>
     </section>
   );
+}
+
+/** The page's footer: the family, as every Ouro site ends. */
+export function SiteFooter(): JSX.Element {
+  return <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} className="mt-16" />;
 }
 
 /** The sticky bar under the family strip. */
@@ -436,6 +624,7 @@ export function PhoneMenu({ open, onOpenChange, children, title = "Menu", side =
     <Sheet open={open} onOpenChange={onOpenChange} title={title} side={side} className={side === "right" ? "w-[min(26rem,92vw)]" : undefined} {...(side === "bottom" ? { snapPoints: [0.92] } : {})}>
       <nav
         aria-label="Site"
+        data-lab-panel=""
         onClick={(event) => {
           const link = (event.target as HTMLElement).closest("a");
           if (link && !link.target) onOpenChange(false);

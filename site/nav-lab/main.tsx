@@ -4,7 +4,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { DESCRIPTIONS, pageAt } from "./ia";
 import { MOCKUPS } from "./mockups";
-import { SearchPalette, useSearch, usePath } from "./shared";
+import { FAMILY_MODE, FAMILY_MODES, SearchPalette, SiteFooter, useSearch, usePath } from "./shared";
 import "./lab.css";
 
 const params = new URLSearchParams(location.search);
@@ -27,8 +27,22 @@ function Dock({ current }: { current: string | null }): JSX.Element {
     return `?${next.toString()}${location.hash}`;
   };
   return (
-    <div className="lab-dock pointer-events-none fixed inset-x-0 bottom-3 z-30 flex justify-center px-3 pb-[env(safe-area-inset-bottom)]">
-      <nav aria-label="Mockups" className="pointer-events-auto flex items-center gap-0.5 rounded-ouro-2xl bg-foreground p-2 text-background shadow-(--shadow-lg)">
+    <div className="lab-dock pointer-events-none fixed inset-x-0 bottom-3 z-30 flex flex-col items-center gap-2 px-3 pb-[env(safe-area-inset-bottom)]">
+      {current && (
+        <nav aria-label="Family bar" className="pointer-events-auto flex items-center gap-0.5 rounded-ouro-2xl bg-foreground p-1.5 text-background shadow-(--shadow-lg)">
+          <span className="px-2 text-xs font-semibold">Family</span>
+          {FAMILY_MODES.map((mode) => {
+            const next = new URLSearchParams(location.search);
+            next.set("f", mode.id);
+            return (
+              <a key={mode.id} href={`?${next.toString()}${location.hash}`} aria-current={FAMILY_MODE === mode.id ? "page" : undefined} className={`${dockItem} h-11 w-auto px-2.5 text-xs pointer-fine:h-8`}>
+                {mode.label}
+              </a>
+            );
+          })}
+        </nav>
+      )}
+      <nav aria-label="Mockups" className="pointer-events-auto flex items-center gap-2 rounded-ouro-2xl bg-foreground p-2 text-background shadow-(--shadow-lg)">
         <a href={link(null)} aria-current={current === null ? "page" : undefined} className={dockItem}>
           Lab
         </a>
@@ -78,14 +92,15 @@ function Stub({ here }: { here: string }): JSX.Element {
           <li>Rest the pointer on a menu for half a second, then slide across to another.</li>
           <li>Tab in, open a panel with Enter, press Escape. Focus goes back to its button.</li>
           <li>Press ⌘K, or the search button on a phone, and type "sheet".</li>
-          <li>Scroll: the bar stays, the family strip goes.</li>
+          <li>Scroll: the bar stays. Try each family bar (Strip, Switcher, Slim, Footer) in the pill over the dock.</li>
         </ul>
       </section>
-      {Array.from({ length: 6 }, (_, index) => (
+      {Array.from({ length: 10 }, (_, index) => (
         <p key={index} className="mt-8 mb-0 text-pretty text-[0.9375rem] leading-7 text-muted-foreground">
           This page is a stand-in, so you can feel how the header marks where you are. The real page lives at the link above.
         </p>
       ))}
+      <SiteFooter />
     </main>
   );
 }

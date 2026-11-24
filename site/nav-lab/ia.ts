@@ -44,16 +44,27 @@ export const SLOTS = ["overview", "hx", "ax", "start"] as const;
 export type Slot = (typeof SLOTS)[number];
 export const SLOT_NAMES: Record<Slot, string> = { overview: "Overview", hx: "Ouro HX", ax: "Ouro AX", start: "Get started" };
 
+export interface Group {
+  /** What the group holds, said over it; empty for a part with one group. */
+  label: string;
+  pages: readonly Page[];
+}
+
 export interface Section {
   id: string;
   label: string;
   path: string;
   hint: string;
-  /** Pages under it, shown on request. */
+  /** The pages under it in named groups, laid side by side in a panel. */
+  groups: readonly Group[];
+  /** Every page of `groups`, in order. */
   pages: readonly Page[];
   /** Whether the four platforms show under it, each in the same shape. */
   platformSlot?: "hx" | "ax";
 }
+
+const grouped = (groups: readonly Group[]) => ({ groups, pages: groups.flatMap((group) => group.pages) });
+const one = (...pages: Page[]) => grouped([{ label: "", pages }]);
 
 /** Ouro UI by part (AGENTS.md, Names). */
 export const PARTS: readonly Section[] = [
@@ -63,7 +74,7 @@ export const PARTS: readonly Section[] = [
     path: "/hx/",
     hint: "Components for people's screens, on every platform",
     platformSlot: "hx",
-    pages: [{ label: "What each platform has", path: "/hx/#coverage", hint: "Component by component" }],
+    ...one({ label: "What each platform has", path: "/hx/#coverage", hint: "Component by component" }),
   },
   {
     id: "ax",
@@ -71,38 +82,50 @@ export const PARTS: readonly Section[] = [
     path: "/ax/",
     hint: "Doors for agents: CLI, MCP, App Intents and more",
     platformSlot: "ax",
-    pages: [
-      { label: "Be the agent", path: "/ax/#be-the-agent", hint: "A morning on the other side" },
-      { label: "The Ouro AX claims", path: "/docs/ax-standard/", hint: "The standard, as checkable promises" },
-    ],
+    ...one({ label: "Be the agent", path: "/ax/#be-the-agent", hint: "A morning on the other side" }, { label: "The Ouro AX claims", path: "/docs/ax-standard/", hint: "The standard, as checkable promises" }),
   },
   {
     id: "actions",
     label: "Actions",
     path: "/actions/",
     hint: "One declaration, a button and a tool, with consent",
-    pages: [{ label: "Consent", path: "/actions/#consent", hint: "Read, write, confirm first, person only" }],
+    ...one({ label: "Consent", path: "/actions/#consent", hint: "Read, write, confirm first, person only" }),
   },
   {
     id: "composed",
     label: "Composed UI",
     path: "/composed-ui/",
     hint: "Cards your agent sends, drawn natively",
-    pages: [{ label: "MCP Apps and A2UI", path: "/composed-ui/#formats", hint: "The formats it speaks" }],
+    ...one({ label: "MCP Apps and A2UI", path: "/composed-ui/#formats", hint: "The formats it speaks" }),
   },
   {
     id: "xray",
     label: "X-ray",
     path: "/xray/",
     hint: "See inside screens and doors",
-    pages: [
-      { label: "HX X-ray", path: "/xray/#hx", hint: "Names every component on a screen" },
-      { label: "AX X-ray", path: "/xray/#ax", hint: "Calls every door like an agent" },
-      { label: "Ouro check", path: "/xray/#check", hint: "Every page, every size, light and dark" },
-      { label: "Ouro Feel", path: "/apple/feel/", hint: "How an app feels in use" },
-      { label: "Ouro Reins", path: "/apple/reins/", hint: "Drive your screens as state" },
-      { label: "Hackamore", path: "/hackamore/", hint: "Reins for any Mac app" },
-    ],
+    ...grouped([
+      {
+        label: "See inside",
+        pages: [
+          { label: "HX X-ray", path: "/xray/#hx", hint: "Names every component on a screen" },
+          { label: "AX X-ray", path: "/xray/#ax", hint: "Calls every door like an agent" },
+        ],
+      },
+      {
+        label: "Check",
+        pages: [
+          { label: "Ouro check", path: "/xray/#check", hint: "Every page, every size, light and dark" },
+          { label: "Ouro Feel", path: "/apple/feel/", hint: "How an app feels in use" },
+        ],
+      },
+      {
+        label: "Drive",
+        pages: [
+          { label: "Ouro Reins", path: "/apple/reins/", hint: "Drive your screens as state" },
+          { label: "Hackamore", path: "/hackamore/", hint: "Reins for any Mac app" },
+        ],
+      },
+    ]),
   },
 ];
 
@@ -111,15 +134,25 @@ export const PROOF: Section = {
   label: "Proof",
   path: "/proof/",
   hint: "The benchmark, model reviews, adoption, Ouro UI at a company",
-  pages: [
-    { label: "The benchmark", path: "/proof/#benchmark", hint: "Agents building with and without it" },
-    { label: "The Errand", path: "/proof/#errand", hint: "One job, every way in" },
-    { label: "Model reviews", path: "/proof/#reviews", hint: "What frontier models said" },
-    { label: "Adoption", path: "/adoption/", hint: "Every product on it, checked hourly" },
-    { label: "Ouro Current", path: "/current/", hint: "Each release arrives as one pull request" },
-    { label: "At a company", path: "/docs/company/", hint: "Your own registry, your own pace" },
-    { label: "What we borrowed", path: "/proof/#borrowed", hint: "The projects we learned from" },
-  ],
+  ...grouped([
+    {
+      label: "Tested",
+      pages: [
+        { label: "The benchmark", path: "/proof/#benchmark", hint: "Agents building with and without it" },
+        { label: "The Errand", path: "/proof/#errand", hint: "One job, every way in" },
+        { label: "Model reviews", path: "/proof/#reviews", hint: "What frontier models said" },
+      ],
+    },
+    {
+      label: "In use",
+      pages: [
+        { label: "Adoption", path: "/adoption/", hint: "Every product on it, checked hourly" },
+        { label: "Ouro Current", path: "/current/", hint: "Each release arrives as one pull request" },
+        { label: "At a company", path: "/docs/company/", hint: "Your own registry, your own pace" },
+      ],
+    },
+    { label: "Thanks", pages: [{ label: "What we borrowed", path: "/proof/#borrowed", hint: "The projects we learned from" }] },
+  ]),
 };
 
 export interface GuideGroup {
@@ -169,10 +202,24 @@ export const DOCS: Section = {
   label: "Docs",
   path: "/docs/",
   hint: "Every component for the web, and the guides",
-  pages: [{ label: "Components", path: "/docs/", hint: "Every Ouro HX for web component" }, ...GUIDES[0]!.pages.slice(0, 4)],
+  ...one({ label: "Components", path: "/docs/", hint: "Every Ouro HX for web component" }, ...GUIDES[0]!.pages.slice(0, 4)),
 };
 
-export const HOME: Section = { id: "home", label: "Home", path: "/", hint: "Peek through the porthole", pages: [{ label: "The Nautilus", path: "/nautilus/", hint: "A story told in components" }] };
+export const HOME: Section = { id: "home", label: "Home", path: "/", hint: "Peek through the porthole", ...one({ label: "The Nautilus", path: "/nautilus/", hint: "A story told in components" }) };
+
+/**
+ * A line for each of the family's sites, for the family switcher: each cut from that site's own meta description.
+ * family.json has no such field yet; a switcher needs one added there, for every site.
+ */
+export const FAMILY_LINES: Record<string, string> = {
+  ouro: "Ari's workshop of tools for working with agents",
+  "ouro-ui": "For every interface you build",
+  "ouro-md": "A Mac Markdown editor for your agent's plans",
+  desk: "Your agent's work, in a Git repository you own",
+  apps: "Download Ouro MD, Desk and the rest",
+  ari: "Who builds all this",
+  github: "ourostack: every Ouro repository",
+};
 
 /** The repository: in the Docs section, once. The family strip's GitHub is the organisation. */
 export const SOURCE: Page = { label: "Source code", path: "https://github.com/ourostack/ouro-ui", hint: "The blueprints, on GitHub" };

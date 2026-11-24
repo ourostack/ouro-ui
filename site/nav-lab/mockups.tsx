@@ -1,30 +1,36 @@
-import { useEffect, useId, useState, type JSX, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useRef, useState, type JSX, type ReactNode } from "react";
+import { NavigationMenu as Nav } from "@base-ui/react/navigation-menu";
 import { Accordion } from "@/registry/ouro/components/ouro/accordion/accordion";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { COMPONENT_GROUPS, DOCS, GUIDES, HOME, PARTS, PLATFORMS, PROOF, SLOTS, SLOT_NAMES, SOURCE, partOf, sectionOf, type Page, type Section } from "./ia";
+import { COMPONENT_GROUPS, DOCS, GUIDES, HOME, PARTS, PLATFORMS, PROOF, SLOTS, SLOT_NAMES, SOURCE, partOf, sectionOf, type Group, type Page, type Section } from "./ia";
 import {
   Bar,
-  Brand,
+  BrandArea,
   Chevron,
   DisclosureBar,
   Eyebrow,
   FamilyFoot,
-  FamilyStrip,
+  HOVER_CLOSE_MS,
+  HOVER_OPEN_MS,
   Here,
   LinkList,
+  Masthead,
   MenuButton,
   PageLink,
   PhoneMenu,
   PlatformGrid,
   PlatformName,
+  PlatformRow,
   SearchButton,
   SearchGlyph,
   SearchIconButton,
+  barItem,
   hrefOf,
   iconButton,
   row,
+  useFitToScreen,
 } from "./shared";
 
 export interface MockupProps {
@@ -43,76 +49,111 @@ export interface Mockup {
 
 /* ---------------------------------------------------------------- panels the mockups share */
 
-/** A part's panel: the part itself with its line, its own pages, and the four platforms when it has them. */
-function PartPanel({ section, here }: { section: Section; here: string }): JSX.Element {
+/** A panel's first line: the section's own page and its line, as open text, and anything for its end. */
+function PanelHead({ section, here, end }: { section: Section; here: string; end?: ReactNode }): JSX.Element {
   return (
-    <div className="grid gap-4 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
-      <div className="grid content-start gap-1">
-        <PageLink page={section} here={here} size="lg" />
-        {section.pages.length > 0 && <LinkList pages={section.pages} here={here} />}
-      </div>
-      {section.platformSlot ? (
-        <PlatformGrid slots={[section.platformSlot]} here={here} label={`${section.label} on every platform`} />
-      ) : (
-        <Doodle section={section} />
-      )}
+    <div className="mb-2 flex flex-wrap items-center gap-x-1 border-0 border-b border-solid border-border pb-2">
+      <PageLink page={section} here={here} hint={false} size="lg" />
+      <span className="pe-4 text-sm leading-5 text-muted-foreground">{section.hint}</span>
+      {end && <span className="ms-auto">{end}</span>}
     </div>
   );
 }
 
-/** Where a part has no platforms of its own, a line of play instead of an empty half. */
-function Doodle({ section }: { section: Section }): JSX.Element {
-  const lines: Record<string, string> = {
-    actions: "One action. A person presses it, an agent calls it, and paying waits for a yes.",
-    composed: "Your agent sends a card as data. Every kit draws it in its own hand.",
-    xray: "Hold the page up to the light and see every component and door inside.",
-  };
+/** Groups side by side, each as wide as its longest line, so no line wraps. Stacked on a phone. */
+function Columns({ groups, here, first }: { groups: readonly Group[]; here: string; first?: string }): JSX.Element {
   return (
-    <p className="m-0 self-center rounded-ouro-2xl bg-[color-mix(in_oklab,var(--primary)_6%,transparent)] p-5 font-[family-name:var(--font-heading,inherit)] text-lg leading-7 text-foreground">
-      {lines[section.id] ?? section.hint}
-    </p>
+    <>
+      {groups.map((group, index) => (
+        <LinkList key={group.label || index} label={group.label || (index === 0 ? first : undefined)} pages={group.pages} here={here} />
+      ))}
+    </>
+  );
+}
+
+const side = "grid gap-x-8 gap-y-3 sm:grid-flow-col sm:auto-cols-max";
+
+/** A part's panel: its head, its groups, and the four platforms when it has them, all in one row. */
+function PartPanel({ section, here }: { section: Section; here: string }): JSX.Element {
+  return (
+    <div>
+      <PanelHead section={section} here={here} />
+      <div className={side}>
+        <Columns groups={section.groups} here={here} first={section.platformSlot ? "Start here" : undefined} />
+        {section.platformSlot && <PlatformRow slot={section.platformSlot} here={here} label="On every platform" />}
+      </div>
+    </div>
   );
 }
 
 function ProofPanel({ here }: { here: string }): JSX.Element {
   return (
-    <div className="grid gap-4 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
-      <PageLink page={PROOF} here={here} size="lg" />
-      <LinkList pages={PROOF.pages} here={here} columns={2} />
+    <div>
+      <PanelHead section={PROOF} here={here} />
+      <div className={side}>
+        <Columns groups={PROOF.groups} here={here} />
+      </div>
     </div>
   );
 }
 
-/** Docs: the components by group, then every guide by group, and the source, once. */
-function DocsPanel({ here, compact = false }: { here: string; compact?: boolean }): JSX.Element {
+const FIRST_GUIDES = 3;
+
+/** A group of guides: its first three, and the rest on request. */
+function GuideList({ group, here }: { group: Group; here: string }): JSX.Element {
+  const [all, setAll] = useState(() => group.pages.slice(FIRST_GUIDES).some((page) => page.path === here));
+  const id = useId();
+  const rest = group.pages.length - FIRST_GUIDES;
   return (
-    <div className="grid gap-5">
-      <div className="grid gap-4 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
-        <div className="grid content-start gap-1">
-          <PageLink page={DOCS} here={here} size="lg" />
-          <PageLink page={SOURCE} here={here} />
-        </div>
-        <ChipList label="Components, by group" pages={COMPONENT_GROUPS} here={here} />
-      </div>
-      <div className={cn("grid gap-x-2 gap-y-4", compact ? "grid-cols-1" : "sm:grid-cols-2 lg:grid-cols-4")}>
-        {GUIDES.slice(0, 3).map((group) => (
-          <LinkList key={group.label} label={`Guides: ${group.label}`} pages={group.pages} here={here} hint={false} />
+    <div className="grid content-start">
+      <Eyebrow id={id}>{group.label}</Eyebrow>
+      <ul id={`${id}list`} aria-labelledby={id} className="m-0 grid list-none gap-0.5 p-0">
+        {(all ? group.pages : group.pages.slice(0, FIRST_GUIDES)).map((page) => (
+          <li key={page.path}>
+            <PageLink page={page} here={here} hint={false} />
+          </li>
         ))}
-        <div className="grid content-start gap-4">
-          {GUIDES.slice(3).map((group) => (
-            <LinkList key={group.label} label={group.label} pages={group.pages} here={here} hint={false} />
-          ))}
-        </div>
-      </div>
+      </ul>
+      {rest > 0 && (
+        <button
+          type="button"
+          aria-expanded={all}
+          aria-controls={`${id}list`}
+          onClick={() => setAll(!all)}
+          className={cn(row, "w-full cursor-pointer border-0 bg-transparent text-start text-sm font-medium text-primary")}
+        >
+          {all ? "Fewer" : `${rest} more`}
+          <Chevron open={all} className="size-3" />
+        </button>
+      )}
     </div>
   );
 }
 
-/** Small squircle chips: for lists of equals that need no line each. */
+/**
+ * Docs: the components by group, then the guides, each group's first three and the rest on request, and the source
+ * once. `fill` spreads it across a full-width rail; `compact` stacks it for a phone and leaves off its head.
+ */
+function DocsPanel({ here, fill = false, compact = false }: { here: string; fill?: boolean; compact?: boolean }): JSX.Element {
+  return (
+    <div className="grid gap-3">
+      {!compact && <PanelHead section={DOCS} here={here} end={<PageLink page={SOURCE} here={here} hint={false} size="sm" />} />}
+      <ChipList label="Components, by group" pages={COMPONENT_GROUPS} here={here} />
+      <div className={cn("grid gap-x-6 gap-y-3", compact ? "grid-cols-1" : fill ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-[repeat(4,max-content)]")}>
+        {GUIDES.map((group) => (
+          <GuideList key={group.label} group={{ ...group, label: `Guides: ${group.label}` }} here={here} />
+        ))}
+      </div>
+      {compact && <PageLink page={SOURCE} here={here} hint={false} />}
+    </div>
+  );
+}
+
+/** Small squircle chips for a list of equals. Adds nothing to the panel's width: it wraps to whatever the rest needs. */
 function ChipList({ label, pages, here }: { label: string; pages: readonly Page[]; here: string }): JSX.Element {
   const id = useId();
   return (
-    <div className="grid content-start gap-1">
+    <div className="grid content-start gap-1 [contain:inline-size]">
       <Eyebrow id={id}>{label}</Eyebrow>
       <ul aria-labelledby={id} className="m-0 flex list-none flex-wrap gap-2 p-0 px-2">
         {pages.map((page) => (
@@ -125,15 +166,36 @@ function ChipList({ label, pages, here }: { label: string; pages: readonly Page[
   );
 }
 
-function Chip({ page, here, label }: { page: Page; here: string; label?: string }): JSX.Element {
+function Chip({ page, here, label }: { page: Page; here: string; label?: ReactNode }): JSX.Element {
   return (
     <a
       href={hrefOf(page.path)}
+      aria-label={label ? page.label : undefined}
       aria-current={page.path === here ? "page" : undefined}
-      className="inline-flex min-h-11 items-center rounded-ouro-xl border border-solid border-border px-3.5 text-sm font-medium whitespace-nowrap text-foreground no-underline outline-ring touch-manipulation transition-colors duration-(--ouro-duration-fast) ease-[ease] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:bg-accent active:bg-accent aria-[current=page]:border-primary aria-[current=page]:text-primary sm:min-h-9 pointer-coarse:min-h-11"
+      className="inline-flex min-h-11 items-center gap-2 rounded-ouro-xl border border-solid border-border px-3.5 text-sm font-medium whitespace-nowrap text-foreground no-underline outline-ring touch-manipulation transition-colors duration-(--ouro-duration-fast) ease-[ease] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:min-h-8 pointer-fine:px-3 pointer-fine:hover:bg-accent active:bg-accent aria-[current=page]:border-primary aria-[current=page]:text-primary"
     >
       {label ?? page.label}
     </a>
+  );
+}
+
+/** Every part on a line: the part and its line, then its pages across. Stacked on a phone. */
+function PartRows({ here, compact = false }: { here: string; compact?: boolean }): JSX.Element {
+  return (
+    <div className={cn("grid gap-y-1", !compact && "sm:grid-cols-[max-content_minmax(0,max-content)] sm:items-center sm:gap-x-6")}>
+      {PARTS.map((part) => (
+        <Fragment key={part.id}>
+          <PageLink page={part} here={here} />
+          <ul aria-label={`In ${part.label}`} className={cn("m-0 flex list-none flex-wrap items-center gap-0.5 p-0", compact && "ps-4 pb-2")}>
+            {part.pages.map((page) => (
+              <li key={page.path}>
+                <PageLink page={page} here={here} hint={false} size="sm" />
+              </li>
+            ))}
+          </ul>
+        </Fragment>
+      ))}
+    </div>
   );
 }
 
@@ -150,9 +212,15 @@ function PhoneSections({ here, sections }: { here: string; sections: readonly Se
         content: (
           <div className="grid gap-3 pb-2">
             <p className="m-0 px-3 text-sm leading-5 text-muted-foreground">{section.hint}</p>
-            <LinkList pages={[{ label: `${section.label} overview`, path: section.path }, ...section.pages]} here={here} hint={false} />
-            {section.platformSlot && <PlatformGrid compact slots={[section.platformSlot]} here={here} label="On every platform" />}
-            {section.id === "docs" && <DocsPanel here={here} compact />}
+            <LinkList pages={[{ label: `${section.label} overview`, path: section.path }]} here={here} hint={false} />
+            {section.id === "docs" ? (
+              <DocsPanel here={here} compact />
+            ) : (
+              <>
+                <Columns groups={section.groups} here={here} />
+                {section.platformSlot && <PlatformRow slot={section.platformSlot} here={here} label="On every platform" />}
+              </>
+            )}
           </div>
         ),
       }))}
@@ -174,29 +242,31 @@ function AtlasHeader({ here, search }: MockupProps): JSX.Element {
   const sections = [...PARTS, PROOF, DOCS];
   return (
     <>
-      <FamilyStrip />
-      <Bar>
-        <Brand />
-        <DesktopOnly>
-          <div className="ms-4">
-            <DisclosureBar
-              section={partOf(here) ?? sectionOf(here)}
-              items={sections.map((section) => ({
-                id: section.id,
-                label: section.label,
-                panel: section.id === "proof" ? <ProofPanel here={here} /> : section.id === "docs" ? <DocsPanel here={here} /> : <PartPanel section={section} here={here} />,
-              }))}
-            />
-          </div>
-          <div className="ms-auto">
-            <SearchButton onOpen={search} />
-          </div>
-        </DesktopOnly>
-        <PhoneOnly>
-          <SearchIconButton onOpen={search} />
-          <MenuButton onOpen={() => setMenu(true)} />
-        </PhoneOnly>
-      </Bar>
+      <Masthead>
+        <Bar>
+          <BrandArea />
+          <DesktopOnly>
+            <div className="ms-4">
+              <DisclosureBar
+                section={partOf(here) ?? sectionOf(here)}
+                items={sections.map((section) => ({
+                  id: section.id,
+                  label: section.label,
+                  wide: section.id === "docs",
+                  panel: section.id === "proof" ? <ProofPanel here={here} /> : section.id === "docs" ? <DocsPanel here={here} /> : <PartPanel section={section} here={here} />,
+                }))}
+              />
+            </div>
+            <div className="ms-auto">
+              <SearchButton onOpen={search} />
+            </div>
+          </DesktopOnly>
+          <PhoneOnly>
+            <SearchIconButton onOpen={search} />
+            <MenuButton onOpen={() => setMenu(true)} />
+          </PhoneOnly>
+        </Bar>
+      </Masthead>
       <PhoneMenu open={menu} onOpenChange={setMenu}>
         <PhoneSections here={here} sections={[HOME, ...sections]} />
         <FamilyFoot />
@@ -211,55 +281,108 @@ function PlatformsPanel({ here }: { here: string }): JSX.Element {
   return <PlatformGrid slots={SLOTS} here={here} label="Every platform, the same four doors" />;
 }
 
-function PartsPanel({ here, compact = false }: { here: string; compact?: boolean }): JSX.Element {
+function PartsPanel({ here }: { here: string }): JSX.Element {
+  const id = useId();
   return (
-    <div className={cn("grid gap-x-2 gap-y-4", compact ? "grid-cols-1" : "sm:grid-cols-2 lg:grid-cols-5")}>
-      {PARTS.map((part) => (
-        <div key={part.id} className="grid content-start gap-0.5">
-          <PageLink page={part} here={here} />
-          <ul className="m-0 grid list-none gap-0.5 p-0 ps-3">
-            {part.pages.map((page) => (
-              <li key={page.path}>
-                <PageLink page={page} here={here} hint={false} size="sm" />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
+    <section aria-labelledby={id}>
+      <Eyebrow id={id}>Ouro UI, part by part</Eyebrow>
+      <PartRows here={here} />
+    </section>
+  );
+}
+
+// One popup for every panel (Base UI's Navigation Menu): moving from one menu to the next, it resizes to the new
+// panel and the content slides across in the direction you moved, rather than closing and opening again. The first
+// open rises 4px and fades in, and the last close fades out, as A's panels do. With reduced motion nothing moves or
+// changes size in between: the new panel's content crossfades over --ouro-duration-fast.
+const positioner =
+  "box-border h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) " +
+  "motion-safe:[transition:top_var(--ouro-duration-slow)_var(--ouro-ease-out),left_var(--ouro-duration-slow)_var(--ouro-ease-out)] data-instant:transition-none";
+const popup =
+  "relative box-border h-(--popup-height) w-(--popup-width) origin-(--transform-origin) rounded-ouro-3xl bg-popover text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) outline-none " +
+  "[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)] " +
+  "motion-safe:[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out),translate_var(--ouro-duration-fast)_var(--ouro-ease-out),width_var(--ouro-duration-slow)_var(--ouro-ease-out),height_var(--ouro-duration-slow)_var(--ouro-ease-out)] " +
+  "data-starting-style:opacity-0 data-ending-style:opacity-0 motion-safe:data-starting-style:-translate-y-1 data-instant:transition-none";
+const content =
+  "box-border w-max max-w-[calc(100vw-2rem)] max-h-[calc(var(--available-height,80vh)-4px)] overflow-y-auto overscroll-contain p-4 sm:p-5 " +
+  "[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)] " +
+  "motion-safe:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out),translate_var(--ouro-duration-slow)_var(--ouro-ease-out)] " +
+  "data-starting-style:opacity-0 data-ending-style:opacity-0 " +
+  "motion-safe:data-starting-style:data-[activation-direction=left]:-translate-x-[30%] motion-safe:data-starting-style:data-[activation-direction=right]:translate-x-[30%] " +
+  "motion-safe:data-ending-style:data-[activation-direction=left]:translate-x-[30%] motion-safe:data-ending-style:data-[activation-direction=right]:-translate-x-[30%]";
+
+function CompassBar({ here }: { here: string }): JSX.Element {
+  const [value, setValue] = useState<string | null>(null);
+  const section = sectionOf(here);
+  const items = [
+    { id: "platforms", label: "Platforms", current: section === "platforms" || partOf(here) !== undefined, panel: <PlatformsPanel here={here} /> },
+    { id: "parts", label: "Parts", current: PARTS.some((p) => p.id === section), panel: <PartsPanel here={here} /> },
+    { id: "proof", label: "Proof", current: section === "proof", panel: <ProofPanel here={here} /> },
+    { id: "docs", label: "Docs", current: section === "docs", panel: <DocsPanel here={here} /> },
+  ];
+  return (
+    <Nav.Root aria-label="Main" value={value} onValueChange={(next) => setValue(next as string | null)} delay={HOVER_OPEN_MS} closeDelay={HOVER_CLOSE_MS}>
+      <Nav.List className="m-0 flex list-none items-center gap-0.5 p-0">
+        {items.map((item, index) => (
+          <Nav.Item key={item.id} value={item.id}>
+            <Nav.Trigger
+              data-lab-open={index === 0 ? "" : undefined}
+              aria-current={item.current ? "true" : undefined}
+              className={cn(barItem, "cursor-pointer border-0 bg-transparent data-popup-open:bg-accent data-popup-open:text-foreground")}
+              // Once a panel is open, the next one opens as the pointer reaches its button, as A's do.
+              onPointerEnter={(event) => {
+                if (event.pointerType === "mouse" && value !== null && value !== item.id) setValue(item.id);
+              }}
+            >
+              {item.label}
+              <Nav.Icon className="inline-flex motion-safe:transition-[rotate] motion-safe:duration-(--ouro-duration-fast) motion-safe:ease-(--ouro-ease-out) data-popup-open:rotate-180">
+                <Chevron open={false} />
+              </Nav.Icon>
+            </Nav.Trigger>
+            <Nav.Content
+              className={content}
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("a")) setValue(null);
+              }}
+            >
+              {item.panel}
+            </Nav.Content>
+          </Nav.Item>
+        ))}
+      </Nav.List>
+      <Nav.Portal>
+        <Nav.Positioner sideOffset={8} align="start" collisionPadding={16} collisionAvoidance={{ side: "none" }} className={cn(positioner, "z-50")}>
+          <Nav.Popup data-lab-panel="" className={popup}>
+            <Nav.Viewport className="relative h-full w-full overflow-hidden rounded-[inherit]" />
+          </Nav.Popup>
+        </Nav.Positioner>
+      </Nav.Portal>
+    </Nav.Root>
   );
 }
 
 function CompassHeader({ here, search }: MockupProps): JSX.Element {
   const [menu, setMenu] = useState(false);
   const [way, setWay] = useState(sectionOf(here) === "platforms" || partOf(here) ? "platform" : "part");
-  const section = sectionOf(here);
   return (
     <>
-      <FamilyStrip />
-      <Bar>
-        <Brand />
-        <DesktopOnly>
-          <div className="ms-4">
-            <DisclosureBar
-              section={section === "platforms" ? "platforms" : PARTS.some((p) => p.id === section) ? "parts" : section}
-              items={[
-                { id: "platforms", label: "Platforms", panel: <PlatformsPanel here={here} /> },
-                { id: "parts", label: "Parts", panel: <PartsPanel here={here} /> },
-                { id: "proof", label: "Proof", panel: <ProofPanel here={here} /> },
-                { id: "docs", label: "Docs", panel: <DocsPanel here={here} /> },
-              ]}
-            />
-          </div>
-          <div className="ms-auto">
-            <SearchButton onOpen={search} />
-          </div>
-        </DesktopOnly>
-        <PhoneOnly>
-          <SearchIconButton onOpen={search} />
-          <MenuButton onOpen={() => setMenu(true)} />
-        </PhoneOnly>
-      </Bar>
+      <Masthead>
+        <Bar>
+          <BrandArea />
+          <DesktopOnly>
+            <div className="ms-4">
+              <CompassBar here={here} />
+            </div>
+            <div className="ms-auto">
+              <SearchButton onOpen={search} />
+            </div>
+          </DesktopOnly>
+          <PhoneOnly>
+            <SearchIconButton onOpen={search} />
+            <MenuButton onOpen={() => setMenu(true)} />
+          </PhoneOnly>
+        </Bar>
+      </Masthead>
       <PhoneMenu open={menu} onOpenChange={setMenu}>
         <div className="grid gap-4">
           <SegmentedControl
@@ -272,7 +395,7 @@ function CompassHeader({ here, search }: MockupProps): JSX.Element {
             value={way}
             onValueChange={setWay}
           />
-          {way === "platform" ? <PlatformGrid compact slots={SLOTS} here={here} label="Every platform, the same four doors" /> : <PartsPanel here={here} compact />}
+          {way === "platform" ? <PlatformGrid compact slots={SLOTS} here={here} label="Every platform, the same four doors" /> : <PartRows here={here} compact />}
           <PhoneSections here={here} sections={[PROOF, DOCS]} />
         </div>
         <FamilyFoot />
@@ -364,7 +487,7 @@ function Branch({ node, here, depth }: { node: TreeNode; here: string; depth: nu
         <Chevron open={open} className="-ms-1 shrink-0 text-muted-foreground [&:not(.rotate-180)]:-rotate-90" />
         {node.label}
       </button>
-      <ul id={id} hidden={!open} className="m-0 ms-4 grid list-none gap-px border-0 border-s border-solid border-border p-0 ps-1">
+      <ul id={id} hidden={!open} className="lab-tree m-0 ms-4 grid list-none gap-px border-0 border-s border-solid border-border p-0 ps-1">
         {node.children.map((child) => (
           <Branch key={child.id} node={child} here={here} depth={depth + 1} />
         ))}
@@ -375,7 +498,7 @@ function Branch({ node, here, depth }: { node: TreeNode; here: string; depth: nu
 
 function Tree({ here }: { here: string }): JSX.Element {
   return (
-    <ul className="m-0 grid list-none gap-px p-0">
+    <ul className="lab-tree m-0 grid list-none gap-px p-0">
       {tree().map((node) => (
         <Branch key={node.id} node={node} here={here} depth={0} />
       ))}
@@ -387,9 +510,9 @@ function HullHeader({ here, search }: MockupProps): JSX.Element {
   const [menu, setMenu] = useState(false);
   return (
     <>
-      <FamilyStrip />
-      <Bar>
-        <Brand />
+      <Masthead>
+        <Bar>
+          <BrandArea />
         <DesktopOnly>
           <div className="flex flex-1 justify-center">
             <SearchButton onOpen={search} wide />
@@ -400,6 +523,7 @@ function HullHeader({ here, search }: MockupProps): JSX.Element {
           <MenuButton onOpen={() => setMenu(true)} label="Browse" />
         </PhoneOnly>
       </Bar>
+      </Masthead>
       <PhoneMenu open={menu} onOpenChange={setMenu} title="Browse" side="bottom">
         <Tree here={here} />
         <FamilyFoot />
@@ -419,17 +543,18 @@ function HullAside({ here }: MockupProps): JSX.Element {
 /* ---------------------------------------------------------------- D. Sonar: search first, sections as a rail */
 
 function SonarHeader({ here, search }: MockupProps): JSX.Element {
-  const sections: readonly Section[] = [...PARTS, { id: "platforms", label: "Platforms", path: PLATFORMS[0]!.overview.path, hint: "", pages: [] }, PROOF, DOCS];
+  const sections: readonly Section[] = [...PARTS, { id: "platforms", label: "Platforms", path: PLATFORMS[0]!.overview.path, hint: "", groups: [], pages: [] }, PROOF, DOCS];
   const [open, setOpen] = useState<string | null>(null);
   const current = partOf(here) ?? sectionOf(here);
   const shown = sections.find((section) => section.id === open);
+  const rail = useRef<HTMLDivElement>(null);
+  useFitToScreen(rail, open);
   const base = useId();
   return (
-    <>
-      <FamilyStrip />
+    <Masthead>
       <div className="sticky top-0 z-40 border-0 border-b border-solid border-border bg-background">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
-          <Brand />
+          <BrandArea />
           <button
             type="button"
             onClick={search}
@@ -458,7 +583,7 @@ function SonarHeader({ here, search }: MockupProps): JSX.Element {
                   aria-controls={`${base}rail`}
                   aria-current={current === section.id ? "true" : undefined}
                   onClick={() => setOpen(open === section.id ? null : section.id)}
-                  className="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-ouro-xl border border-solid border-border bg-transparent px-3.5 text-sm font-medium whitespace-nowrap text-foreground outline-ring touch-manipulation transition-colors duration-(--ouro-duration-fast) ease-[ease] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:bg-accent aria-expanded:border-foreground aria-expanded:bg-foreground aria-expanded:text-background aria-[current=true]:border-primary sm:min-h-9 pointer-coarse:min-h-11"
+                  className="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-ouro-xl border border-solid border-border bg-transparent px-3.5 text-sm font-medium whitespace-nowrap text-foreground outline-ring touch-manipulation transition-colors duration-(--ouro-duration-fast) ease-[ease] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:min-h-8 pointer-fine:px-3 pointer-fine:hover:bg-accent aria-expanded:border-foreground aria-expanded:bg-foreground aria-expanded:text-background aria-[current=true]:border-primary"
                 >
                   {section.label}
                   <Chevron open={open === section.id} className="size-3" />
@@ -466,35 +591,57 @@ function SonarHeader({ here, search }: MockupProps): JSX.Element {
               </li>
             ))}
           </ul>
-          <div id={`${base}rail`} hidden={!shown} className="lab-panel border-0 border-t border-solid border-border px-4 py-3 sm:px-6 lg:px-8" onClick={(event) => (event.target as HTMLElement).closest("a") && setOpen(null)} onKeyDown={(event) => event.key === "Escape" && setOpen(null)}>
+          <div
+            ref={rail}
+            id={`${base}rail`}
+            data-lab-panel=""
+            hidden={!shown}
+            className="lab-panel overflow-y-auto overscroll-contain border-0 border-t border-solid border-border px-4 py-3 sm:px-6 lg:px-8"
+            onClick={(event) => (event.target as HTMLElement).closest("a") && setOpen(null)}
+            onKeyDown={(event) => event.key === "Escape" && setOpen(null)}
+          >
             {shown?.id === "platforms" ? (
-              <PlatformGrid slots={SLOTS} here={here} label="Every platform, the same four doors" />
+              <div className="grid gap-x-8 gap-y-2 lg:grid-cols-2">
+                {PLATFORMS.map((p) => (
+                  <div key={p.id} className="flex flex-wrap items-center gap-2">
+                    <span className="w-36 shrink-0">
+                      <PlatformName id={p.id} name={p.name} kit={p.kit} />
+                    </span>
+                    <ul aria-label={p.name} className="m-0 flex list-none flex-wrap gap-2 p-0">
+                      {SLOTS.map((slot) => (
+                        <li key={slot}>
+                          <Chip page={{ ...p[slot], label: slot === "start" ? `Get started on ${p.name}` : p[slot].label }} here={here} label={SLOT_NAMES[slot]} />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             ) : shown?.id === "docs" ? (
-              <DocsPanel here={here} />
+              <DocsPanel here={here} fill />
             ) : shown ? (
-              <div className="grid gap-3">
-                <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-                  {[{ ...shown, label: `${shown.label} overview` }, ...shown.pages].map((page) => (
-                    <li key={page.path}>
-                      <Chip page={page} here={here} />
-                    </li>
-                  ))}
-                </ul>
+              <ul className="m-0 flex list-none flex-wrap items-center gap-2 p-0">
+                {[{ ...shown, label: `${shown.label} overview` }, ...shown.pages].map((page) => (
+                  <li key={page.path}>
+                    <Chip page={page} here={here} />
+                  </li>
+                ))}
                 {shown.platformSlot && (
-                  <ul className="m-0 flex list-none flex-wrap gap-2 p-0" aria-label={`${shown.label} on every platform`}>
+                  <>
+                    <li aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
                     {PLATFORMS.map((p) => (
                       <li key={p.id}>
                         <Chip page={p[shown.platformSlot!]} here={here} label={`For ${p.name}`} />
                       </li>
                     ))}
-                  </ul>
+                  </>
                 )}
-              </div>
+              </ul>
             ) : null}
           </div>
         </nav>
       </div>
-    </>
+    </Masthead>
   );
 }
 
@@ -504,13 +651,13 @@ function SonarHeader({ here, search }: MockupProps): JSX.Element {
 function Matrix({ here }: { here: string }): JSX.Element {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="grid gap-2">
+    <section aria-labelledby={id} className="grid content-start gap-2">
       <Eyebrow id={id}>Every platform, the same four doors</Eyebrow>
-      <div role="table" aria-labelledby={id} className="grid grid-cols-[auto_repeat(4,minmax(0,1fr))] gap-2 text-sm">
+      <div role="table" aria-labelledby={id} className="grid grid-cols-[auto_repeat(4,4.5rem)] gap-2 text-sm">
         <div role="row" className="contents">
           <span role="columnheader" />
           {SLOTS.map((slot) => (
-            <span role="columnheader" key={slot} className="px-1 pb-1 text-center text-xs font-semibold text-muted-foreground">
+            <span role="columnheader" key={slot} className="px-1 text-center text-xs font-semibold whitespace-nowrap text-muted-foreground">
               {SLOT_NAMES[slot].replace("Get started", "Start")}
             </span>
           ))}
@@ -526,7 +673,7 @@ function Matrix({ here }: { here: string }): JSX.Element {
                   href={hrefOf(p[slot].path)}
                   aria-current={p[slot].path === here ? "page" : undefined}
                   aria-label={slot === "start" ? `Get started on ${p.name}` : p[slot].label}
-                  className="grid min-h-11 place-items-center rounded-ouro-xl bg-[color-mix(in_oklab,var(--primary)_7%,transparent)] font-medium text-primary no-underline outline-ring touch-manipulation transition-colors duration-(--ouro-duration-fast) ease-[ease] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:bg-[color-mix(in_oklab,var(--primary)_16%,transparent)] aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground"
+                  className="grid min-h-11 place-items-center rounded-ouro-xl bg-[color-mix(in_oklab,var(--primary)_7%,transparent)] font-medium text-primary no-underline outline-ring touch-manipulation transition-colors duration-(--ouro-duration-fast) ease-[ease] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:min-h-9 pointer-fine:hover:bg-[color-mix(in_oklab,var(--primary)_16%,transparent)] aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground"
                 >
                   <span aria-hidden="true">{{ overview: "◎", hx: "HX", ax: "AX", start: "→" }[slot]}</span>
                 </a>
@@ -540,63 +687,65 @@ function Matrix({ here }: { here: string }): JSX.Element {
 }
 
 function ChartMap({ here }: { here: string }): JSX.Element {
+  const id = useId();
   return (
-    <div className="grid gap-6">
-      <div className="max-w-xl">
-        <Matrix here={here} />
+    <div className="grid gap-5">
+      <div className="lg:hidden">
+        <PageLink page={HOME} here={here} size="lg" />
       </div>
-      <PartsPanel here={here} />
+      <div className="grid gap-x-10 gap-y-5 lg:grid-cols-[max-content_minmax(0,1fr)]">
+        <Matrix here={here} />
+        <section aria-labelledby={id}>
+          <Eyebrow id={id}>Ouro UI, part by part</Eyebrow>
+          <PartRows here={here} />
+        </section>
+      </div>
       <ProofPanel here={here} />
-      <DocsPanel here={here} />
+      <DocsPanel here={here} fill />
     </div>
   );
 }
 
 function ChartHeader({ here, search }: MockupProps): JSX.Element {
   const [map, setMap] = useState(false);
-  const section = sectionOf(here);
+  const section = partOf(here) ?? sectionOf(here);
   const links = [...PARTS, PROOF, DOCS];
   return (
     <>
-      <FamilyStrip />
-      <Bar>
-        <Brand />
-        <DesktopOnly>
-          <nav aria-label="Main" className="ms-4">
-            <ul className="m-0 flex list-none items-center gap-0.5 p-0">
-              {links.map((link) => (
-                <li key={link.id}>
-                  <a
-                    href={hrefOf(link.path)}
-                    aria-current={link.path === here ? "page" : section === link.id ? "true" : undefined}
-                    className="relative inline-flex min-h-11 items-center rounded-ouro-lg px-3 text-[0.9375rem] font-medium text-muted-foreground no-underline outline-ring transition-colors duration-(--ouro-duration-fast) ease-[ease] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:bg-accent pointer-fine:hover:text-foreground aria-[current]:text-foreground after:absolute after:inset-x-3 after:bottom-1.5 after:h-0.5 after:rounded-full after:bg-primary after:opacity-0 aria-[current]:after:opacity-100"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <div className="ms-auto flex items-center gap-2">
-            <SearchButton onOpen={search} />
-          </div>
-        </DesktopOnly>
-        <PhoneOnly>
-          <SearchIconButton onOpen={search} />
-        </PhoneOnly>
-        <MapButton onOpen={() => setMap(true)} />
-      </Bar>
+      <Masthead>
+        <Bar>
+          <BrandArea />
+          <DesktopOnly>
+            <nav aria-label="Main" className="ms-4">
+              <ul className="m-0 flex list-none items-center gap-0.5 p-0">
+                {links.map((link) => (
+                  <li key={link.id}>
+                    <a href={hrefOf(link.path)} aria-current={link.path === here ? "page" : section === link.id ? "true" : undefined} className={barItem}>
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <div className="ms-auto flex items-center gap-2">
+              <SearchButton onOpen={search} />
+            </div>
+          </DesktopOnly>
+          <PhoneOnly>
+            <SearchIconButton onOpen={search} />
+          </PhoneOnly>
+          <MapButton onOpen={() => setMap(true)} />
+        </Bar>
+      </Masthead>
       <Sheet open={map} onOpenChange={setMap} title="The map" description="Every page on Ouro UI." side="bottom" snapPoints={[0.94]} className="max-w-6xl">
         <nav
           aria-label="Map"
+          data-lab-panel=""
           onClick={(event) => {
             const link = (event.target as HTMLElement).closest("a");
             if (link && !link.target) setMap(false);
           }}
         >
-          <div className="lg:hidden">
-            <PageLink page={HOME} here={here} size="lg" />
-          </div>
           <ChartMap here={here} />
           <FamilyFoot />
         </nav>
@@ -607,8 +756,8 @@ function ChartHeader({ here, search }: MockupProps): JSX.Element {
 
 function MapButton({ onOpen }: { onOpen: () => void }): JSX.Element {
   return (
-    <button type="button" onClick={onOpen} aria-haspopup="dialog" data-lab-open="" className={cn(iconButton, "group w-auto gap-1.5 px-3 text-[0.9375rem] font-medium max-lg:ms-0")}>
-      <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" className="size-5 transition-transform duration-(--ouro-duration-normal,200ms) ease-(--ouro-ease-out) motion-safe:group-hover:rotate-45">
+    <button type="button" onClick={onOpen} aria-haspopup="dialog" data-lab-open="" className={cn(iconButton, "group w-auto gap-1.5 px-3 text-[0.9375rem] font-medium")}>
+      <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" className="size-5 transition-transform duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-safe:group-hover:rotate-45">
         <circle cx="10" cy="10" r="7.25" />
         <path d="m12.75 7.25-1.6 3.9-3.9 1.6 1.6-3.9 3.9-1.6Z" />
       </svg>
@@ -621,7 +770,7 @@ function MapButton({ onOpen }: { onOpen: () => void }): JSX.Element {
 
 export const MOCKUPS: readonly Mockup[] = [
   { id: "a", name: "Atlas", idea: "Every part opens a panel; Ouro HX and Ouro AX each show the four platforms in one row.", Header: AtlasHeader },
-  { id: "b", name: "Compass", idea: "Two ways in: by platform (four identical columns) or by part, then Proof and Docs.", Header: CompassHeader },
+  { id: "b", name: "Compass", idea: "Two ways in: by platform (four identical columns) or by part, in one panel that reshapes as you move.", Header: CompassHeader },
   { id: "c", name: "Hull", idea: "The whole site as a tree beside every page, with a search bar in the middle of the header.", Header: HullHeader, Aside: HullAside },
   { id: "d", name: "Sonar", idea: "Search first, with every section as a chip; a chip opens its pages in a row under it.", Header: SonarHeader },
   { id: "e", name: "Chart", idea: "A slim bar of plain links, and a Map that unrolls every page, with platforms as a grid.", Header: ChartHeader },
