@@ -7,13 +7,14 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Composer, type ComposerEditor, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
+import { Composer, type ComposerEditor, type ComposerMove, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
 import { clearComposerDrafts, composerDrafts, composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
@@ -1246,85 +1247,163 @@ describe("Composer expanded", () => {
     expect(expandButton()!.getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("grows and shrinks in height over a moment, and at once with reduced motion", async () => {
-    const heights = (element: Element) => element.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty);
-    const { root, textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
-    const body = root.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
-    const settled = () => heights(body).length === 0 && body.style.height === "" && !body.classList.contains("transition-[height]");
-    // Each change the test reads runs for 10 s, then is finished: a busy runner can resume the test after the click later
-    // than the base duration's 200 ms, when a change that long has already ended.
-    const finish = () => act(async () => body.getAnimations().forEach((animation) => animation.finish()));
-    body.style.setProperty("--ouro-duration-base", "10s");
+  it("does not animate when expanding leaves the box its height", async () => {
+    const { root } = await render(<Composer label="Reply" defaultExpanded={false} expandedRows={1} onSend={() => {}} />, 200);
+    const frame = root.querySelector<HTMLElement>("[data-ouro-composer-frame]")!;
     await userEvent.click(expandButton()!);
-    // WebKit on Linux can start the change a frame after the click.
-    await expect.poll(() => heights(body)).toEqual(["height"]);
-    expect(getComputedStyle(body).overflow).toBe("hidden");
-    // The text has its new height at once; the row around it shows it as it grows.
-    expect(textarea.rows).toBe(6);
-    expect(heights(textarea)).toEqual([]);
-    await finish();
-    await expect.poll(settled).toBe(true);
-    body.style.removeProperty("--ouro-duration-base");
-    const expandedHeight = body.getBoundingClientRect().height;
-    // Typing grows the box at once, as before.
-    await userEvent.keyboard("a{Enter}b{Enter}c{Enter}d{Enter}e{Enter}f");
-    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    const sixLines = body.getBoundingClientRect().height;
-    // The seventh line grows the box past its six rows, at once; a long duration would hold a change still running.
-    body.style.setProperty("--ouro-duration-base", "10s");
-    await userEvent.keyboard("{Enter}");
-    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    expect(heights(body)).toEqual([]);
-    expect(body.getBoundingClientRect().height).toBeGreaterThan(sixLines);
-    body.style.removeProperty("--ouro-duration-base");
-    await userEvent.clear(textarea);
-    body.style.setProperty("--ouro-duration-base", "10s");
-    await userEvent.click(expandButton()!);
-    await expect.poll(() => heights(body)).toEqual(["height"]);
-    await finish();
-    await expect.poll(settled).toBe(true);
-    // Collapsed again mid-way: it turns back from the height it shows, not from the full height, and ends at its own.
-    const small = body.getBoundingClientRect().height;
-    await userEvent.click(expandButton()!);
-    // Held 200 ms in, below halfway, so the collapse starts from a height the test chose, however long the next click takes.
-    await expect.poll(() => heights(body)).toEqual(["height"]);
-    for (const animation of body.getAnimations()) {
-      animation.pause();
-      animation.currentTime = 200;
+    expect(frame.getAnimations()).toEqual([]);
+    expect(frame.hasAttribute("data-ouro-moving")).toBe(false);
+  });
+});
+
+describe("Composer expanded motion", () => {
+  const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
+  const frameOf = (root: HTMLElement) => root.querySelector<HTMLElement>("[data-ouro-composer-frame]")!;
+  /** The top of the frame's clip, in pixels: how much of its height the clip still hides. */
+  const clipTop = (frame: HTMLElement) => Number(/inset\(([\d.]+)px/.exec(getComputedStyle(frame).clipPath)?.[1] ?? 0);
+  const rects = (...elements: Element[]) => elements.map((element) => JSON.stringify(element.getBoundingClientRect().toJSON()));
+  /** The share of a cubic-bezier(0.32, 0.72, 0, 1) change made between two moments, as fractions of its duration. */
+  const curve = (t: number) => {
+    let low = 0;
+    let high = 1;
+    const x = (u: number) => 3 * (1 - u) ** 2 * u * 0.32 + 3 * (1 - u) * u ** 2 * 0 + u ** 3;
+    for (let i = 0; i < 40; i++) {
+      const mid = (low + high) / 2;
+      if (x(mid) < t) low = mid;
+      else high = mid;
     }
-    const shown = body.getBoundingClientRect().height;
-    expect(shown).toBeGreaterThan(small);
-    expect(shown).toBeLessThan(small + (expandedHeight - small) / 2);
+    const u = (low + high) / 2;
+    return 3 * (1 - u) ** 2 * u * 0.72 + 3 * (1 - u) * u ** 2 + u ** 3;
+  };
+  /** The most the curve moves in `dt` ms of a `duration` ms change, as a fraction of the change. */
+  const largestStep = (dt: number, duration: number) => {
+    let most = 0;
+    for (let at = 0; at <= duration; at += duration / 400) most = Math.max(most, curve(Math.min(at + dt, duration) / duration) - curve(at / duration));
+    return most;
+  };
+
+  /** Runs `change` while sampling the frame on every animation frame, until the move it starts has ended. */
+  async function sampled(frame: HTMLElement, others: Element[], change: () => Promise<void>) {
+    const samples: Array<{ at: number; height: number; moving: boolean; others: string[]; duration: number }> = [];
+    let sampling = true;
+    const loop = (at: number) => {
+      const moving = frame.hasAttribute("data-ouro-moving");
+      samples.push({
+        at,
+        height: frame.getBoundingClientRect().height - clipTop(frame),
+        moving,
+        others: rects(...others),
+        duration: moving ? parseDuration(getComputedStyle(frame).animationDuration.split(",")[0]!) : 0,
+      });
+      if (sampling) requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+    await change();
+    await expect.poll(() => samples.some((sample) => sample.moving)).toBe(true);
+    await expect.poll(() => !samples.at(-1)!.moving).toBe(true);
+    sampling = false;
+    return samples;
+  }
+
+  const unsettledHeader = () => {
+    const header = document.createElement("header");
+    header.style.height = "40px";
+    return header;
+  };
+
+  it("moves one way in steps the curve allows, with no layout of the page around it, and ends on one line", async () => {
+    const { host, root, textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const header = unsettledHeader();
+    const thread = document.createElement("div");
+    thread.style.height = "120px";
+    host.prepend(header, thread);
+    const frame = frameOf(root);
+    const oneLine = frame.getBoundingClientRect().height;
+    const heights: number[] = [];
+    for (const open of [true, false]) {
+      const samples = await sampled(frame, [header, thread], () => userEvent.click(expandButton()!));
+      const moving = samples.filter((sample) => sample.moving);
+      expect(moving.length).toBeGreaterThan(3);
+      const first = samples[0]!.height;
+      const last = samples.at(-1)!.height;
+      heights.push(last);
+      const change = Math.abs(last - first);
+      expect(change).toBeGreaterThan(20);
+      samples.slice(1).forEach((sample, index) => {
+        const step = sample.height - samples[index]!.height;
+        // One direction only, and no step bigger than the curve makes in the time that frame really took.
+        expect(open ? step : -step).toBeGreaterThanOrEqual(-0.5);
+        const allowed = largestStep(sample.at - samples[index]!.at, moving[0]!.duration) * change + 2;
+        expect(Math.abs(step)).toBeLessThanOrEqual(allowed);
+        expect(sample.others).toEqual(samples[0]!.others);
+      });
+      expect(frame.hasAttribute("data-ouro-moving")).toBe(false);
+      expect(frame.style.minHeight).toBe("");
+      expect(frame.style.getPropertyValue("--ouro-composer-gap")).toBe("");
+      if (!open) {
+        expect(textarea.rows).toBe(1);
+        expect(Math.abs(frame.getBoundingClientRect().height - oneLine)).toBeLessThan(0.75);
+      }
+    }
+    expect(heights[0]!).toBeGreaterThan(heights[1]!);
+  });
+
+  it("tells the surroundings the heights it moves between, and when it has stopped", async () => {
+    const { host, root } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const moves: ComposerMove[] = [];
+    host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
     await userEvent.click(expandButton()!);
-    // From the height it shows, the collapse starts there and only goes down; from the full height, it would start far above
-    // it, and a 10 s change takes seconds to come back down that far. A pixel spares the rounding of the height it starts from.
-    expect(body.getBoundingClientRect().height).toBeLessThan(shown + 1);
-    await expect.poll(() => heights(body)).toEqual(["height"]);
-    await finish();
-    await expect.poll(settled).toBe(true);
-    // A render that is no expand or collapse ends a change at once.
+    expect(moves).toHaveLength(1);
+    expect(moves[0]!.to).toBeGreaterThan(moves[0]!.from);
+    expect(frameOf(root).getBoundingClientRect().height).toBeCloseTo(moves[0]!.to, 0);
+    await moves[0]!.playing;
+    expect(frameOf(root).hasAttribute("data-ouro-moving")).toBe(false);
     await userEvent.click(expandButton()!);
-    await expect.poll(() => heights(body)).toEqual(["height"]);
-    await userEvent.keyboard("b");
-    expect(settled()).toBe(true);
-    body.style.removeProperty("--ouro-duration-base");
-    await commands.emulateMedia({ reducedMotion: "reduce" });
+    expect(moves).toHaveLength(2);
+    expect(moves[1]!.from).toBeCloseTo(moves[0]!.to, 0);
+    expect(moves[1]!.to).toBeLessThan(moves[1]!.from);
+    await moves[1]!.playing;
+  });
+
+  it("clips and fades the box in over a moment, and only fades the toolbar in with reduced motion", async () => {
+    const { root } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const toolbar = () => root.querySelector<HTMLElement>('[data-ouro-part="toolbar"]')!;
+    const fast = token("--ouro-duration-fast");
+    const slow = token("--ouro-duration-slow");
     try {
-      await userEvent.click(expandButton()!);
-      expect(heights(body)).toEqual([]);
-      expect(settled()).toBe(true);
-      expect(textarea.rows).toBe(1);
+      for (const reduced of [false, true]) {
+        await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+        await userEvent.click(expandButton()!);
+        if (reduced) {
+          expect(getComputedStyle(frameOf(root)).clipPath).toBe("none");
+          await expectNoMotion(frameOf(root), { stem: "composer", state: "data-expanded", reduced });
+          await expectMotion(toolbar(), { stem: "composer", state: "data-expanded", properties: { opacity: fast }, reduced });
+        } else {
+          await expectMotion(frameOf(root), { stem: "composer", state: "data-expanded", properties: { "clip-path": slow }, reduced });
+          await expectMotion(toolbar(), { stem: "composer", state: "data-expanded", properties: { opacity: slow, transform: slow }, reduced });
+        }
+        await userEvent.click(expandButton()!);
+        await expect.poll(() => frameOf(root).hasAttribute("data-ouro-moving")).toBe(false);
+      }
     } finally {
       await commands.emulateMedia({ reducedMotion: "no-preference" });
     }
   });
 
-  it("does not animate when expanding leaves the box its height", async () => {
-    const { root } = await render(<Composer label="Reply" defaultExpanded={false} expandedRows={1} onSend={() => {}} />, 200);
-    const body = root.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
-    await userEvent.click(expandButton()!);
-    expect(body.getAnimations()).toEqual([]);
-    expect(body.style.height).toBe("");
+  it("only fades the toolbar in with reduced motion, and clips nothing", async () => {
+    const { root, frame } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    try {
+      await userEvent.click(expandButton()!);
+      expect(frame.getAnimations().filter((animation) => (animation as CSSAnimation).animationName === "ouro-composer-reveal")).toEqual([]);
+      expect(getComputedStyle(frame).clipPath).toBe("none");
+      const names = root.querySelector<HTMLElement>('[data-ouro-part="toolbar"]')!.getAnimations().map((animation) => (animation as CSSAnimation).animationName);
+      expect(names).toEqual(["ouro-composer-fade-in"]);
+      await userEvent.click(expandButton()!);
+      expect(frame.hasAttribute("data-ouro-moving")).toBe(false);
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
   });
 });
 

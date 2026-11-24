@@ -34,6 +34,25 @@ function loadRich(): Promise<RichModule> {
   return (richLoading ??= import("@/registry/ouro/components/ouro/composer/composer-parts").then((loaded) => (richModule = loaded)));
 }
 
+/**
+ * What the bubbling `ouro-composer-move` event carries while the box expands or collapses, so the
+ * surroundings can follow on transforms: a thread that makes room, a header that keeps its place.
+ * Listen on the composer's root or above; use `playing` to know when the move is over.
+ *
+ * @example
+ * element.addEventListener("ouro-composer-move", (event) => {
+ *   const { from, to, playing } = (event as CustomEvent<ComposerMove>).detail;
+ * });
+ */
+export interface ComposerMove {
+  /** The height the box showed when the move began, in pixels. */
+  from: number;
+  /** The height it ends at, in pixels. */
+  to: number;
+  /** Settles when the move has ended or another render has cut it short. */
+  playing: Promise<void>;
+}
+
 /** The message a reply quotes, for Composer's `quote`: who wrote it and a line of what they wrote. */
 export interface ComposerQuote {
   /** Who wrote the quoted message: "Ana Lind", or "You". */
@@ -211,14 +230,18 @@ export interface ComposerOwnProps {
    * (Command+Enter on a Mac) or the send button sends, whatever `sendOn` says. It is the same text
    * either way, and the caret stays where it was. ⌘⇧X (Ctrl+Shift+X off Apple platforms) expands and
    * collapses it, as in Teams, and the expand button's tooltip shows the key. Escape collapses it,
-   * and that Escape goes no further. The box grows and shrinks in height over a moment, and at once with reduced motion.
+   * and that Escape goes no further. The box takes its new height at once and a clip over its frame opens or closes to it, with the toolbar
+   * fading and sliding as it comes and goes; with reduced motion nothing is clipped and the toolbar only fades in.
+   * While it runs the frame carries `data-ouro-moving`, and a bubbling `ouro-composer-move` event (`ComposerMove`) tells
+   * the surroundings the heights it moves between.
    * Controlled; pair it with `onExpandedChange`, or use `defaultExpanded`.
    *
    * @claim "Enter starts a new line while" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > starts a new line on Enter and sends on Ctrl+Enter or Command+Enter, whatever sendOn says)
    * @claim "It is the same text either" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > keeps the text, focus and the caret when it expands and collapses)
    * @claim "expands and collapses it, as in Teams" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer formatting > expands and collapses on Command+Shift+X, and shows the key in the expand button's tooltip)
    * @claim "Escape collapses it, and that Escape" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > collapses on Escape, and that Escape goes no further)
-   * @claim "The box grows and shrinks in" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > grows and shrinks in height over a moment, and at once with reduced motion)
+   * @claim "The box takes its new height at once" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded motion > moves one way in steps the curve allows, with no layout of the page around it, and ends on one line)
+   * @claim "nothing is clipped and the toolbar only fades in" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded motion > only fades the toolbar in with reduced motion, and clips nothing)
    */
   expanded?: boolean | undefined;
   /** Whether it starts expanded, for an uncontrolled composer that the expand button opens; `false` to start small. */
@@ -345,7 +368,17 @@ const draftLimit = 50;
 const frameClass =
   "relative box-border flex min-w-0 flex-col rounded-ouro-lg border border-solid border-input bg-card text-card-foreground " +
   "ouro-field-cue outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid has-[[data-ouro-composer-editor]:focus-visible]:outline-2 has-[[data-ouro-composer-editor]:focus-visible]:outline-solid " +
-  "[&_textarea:focus-visible]:outline-0";
+  "[&_textarea:focus-visible]:outline-0 group/frame " +
+  "data-[ouro-moving=grow]:motion-safe:animate-[ouro-composer-reveal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
+  "data-[ouro-moving=shrink]:motion-safe:animate-[ouro-composer-conceal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] data-[ouro-moving=shrink]:justify-end";
+
+// The toolbar fades and slides up into place when the box expands, and out when it collapses; with
+// reduced motion it only fades in.
+const toolbarClass =
+  "flex min-w-0 flex-wrap items-center gap-0.5 border-0 border-b border-solid border-border px-1 py-1 " +
+  "group-data-[ouro-moving=grow]/frame:motion-safe:animate-[ouro-composer-toolbar-in_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
+  "group-data-[ouro-moving=grow]/frame:motion-reduce:animate-[ouro-composer-fade-in_var(--ouro-duration-fast)_ease_both] " +
+  "group-data-[ouro-moving=shrink]/frame:motion-safe:animate-[ouro-composer-toolbar-out_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both]";
 
 // The quote: a box on the muted surface with a hairline, which fades in when it appears after the
 // composer is on screen (not with reduced motion); a quote there at mount is drawn at once. Message's quote looks the same (message.tsx).
@@ -400,9 +433,10 @@ function RemoveIcon(): JSX.Element {
   );
 }
 
-// The row's height transition while the box expands or collapses, clipped: the classes are added
-// for that moment only.
-const growClasses = ["overflow-hidden", "transition-[height]", "duration-(--ouro-duration-base)", "ease-(--ouro-ease-out)"];
+const reducedQuery = "(prefers-reduced-motion: reduce)";
+
+// The visible height a running move has left to clear: the frame's clip-path inset from the top, in px.
+const clipTop = (frame: HTMLElement) => Number(/inset\(\s*([\d.]+)px/.exec(getComputedStyle(frame).clipPath)?.[1] ?? 0);
 
 /** Arrows: out to expand, in to collapse. */
 function ExpandIcon({ expanded }: { expanded: boolean }): JSX.Element {
@@ -563,7 +597,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   const expanded = expandedProp ?? ownExpanded;
   const rows = expanded ? expandedRows : rowsProp;
   const maxRows = expanded ? expandedMaxRows : maxRowsProp;
-  const toolbar = expandable && !expanded ? undefined : toolbarProp;
+  const toolbar = expandable && !expanded && !leaving ? undefined : toolbarProp;
   // Any other value is enter, as the default; expanded, Enter is a new line.
   const modEnter = expanded || sendOnProp === "mod-enter";
   const [own, setOwn] = useState(() => composerDrafts.get(conversation) ?? defaultValue ?? "");
@@ -599,9 +633,17 @@ export function Composer(props: ComposerProps): JSX.Element {
   }
   const text = value ?? own;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  // The row around the text, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
-  const rowRef = useRef<HTMLDivElement | null>(null);
+  // The frame, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
+  const frameRef = useRef<HTMLDivElement | null>(null);
   const height = useRef<{ expanded: boolean; px: number } | null>(null);
+  const move = useRef<{ end: () => void } | null>(null);
+  // A collapse keeps the toolbar on screen while it fades out; the render that collapses sets this.
+  const [wasExpanded, setWasExpanded] = useState(expanded);
+  const [leaving, setLeaving] = useState(false);
+  if (wasExpanded !== expanded) {
+    setWasExpanded(expanded);
+    setLeaving(!expanded && expandable && toolbarProp !== undefined && !matchMedia(reducedQuery).matches);
+  }
   const setRef = useMergedRef(ref, textareaRef);
   const richRef = useRef<RichEditorHandle | null>(null);
   const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
@@ -709,31 +751,59 @@ export function Composer(props: ComposerProps): JSX.Element {
   };
 
   // After every render, once TextArea has fitted the box: a render that expands or collapses it
-  // grows or shrinks the row around the text from the height it had, clipped, while the text takes
-  // its new height at once (so autoGrow measures it as ever). Any other render ends that at once.
+  // gives the frame its new height at once and clips it from the old one, the clip running to
+  // nothing (a collapse reads its short height in a layout pass of its own first, then keeps the
+  // toolbar and the old height while the clip closes). Nothing lays out while it runs. Any other
+  // render ends a move at once.
   useLayoutEffect(() => {
-    const row = rowRef.current!;
-    const animating = row.style.height !== "";
-    // What shows now: a running change's height, or the row's own.
-    const shown = row.offsetHeight;
-    row.style.height = "";
-    const px = row.offsetHeight;
+    const frame = frameRef.current!;
+    const running = move.current;
+    const shown = frame.offsetHeight - (running ? clipTop(frame) : 0);
+    running?.end();
+    const toolbarElement = frame.querySelector<HTMLElement>("[data-ouro-composer-toolbar]");
+    if (toolbarElement && leaving) toolbarElement.style.display = "none";
+    const px = frame.offsetHeight;
+    if (toolbarElement) toolbarElement.style.display = "";
     const before = height.current;
     height.current = { expanded, px };
-    const from = animating ? shown : before?.px;
-    // A change still running stops at once here: its classes go once its transition is cancelled, below.
-    if (before === null || before.expanded === expanded || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    row.style.height = `${from}px`;
-    void row.offsetHeight;
-    row.classList.add(...growClasses);
-    row.style.height = `${px}px`;
-    // Once it ends, or is cancelled with nothing after it, the row takes its own height again.
-    void Promise.allSettled(row.getAnimations().map((animation) => animation.finished)).then(() => {
-      if (row.getAnimations().length > 0) return;
-      row.classList.remove(...growClasses);
-      row.style.height = "";
+    if (before === null || before.expanded === expanded) return;
+    const reduced = matchMedia(reducedQuery).matches;
+    if (reduced && !expanded) return;
+    const from = running ? shown : before.px;
+    const elements = [frame, toolbarElement].filter((element) => element !== null);
+    frame.style.setProperty("--ouro-composer-gap", `${Math.abs(px - from)}px`);
+    frame.style.setProperty("--ouro-composer-radius", getComputedStyle(frame).borderTopLeftRadius);
+    if (!expanded) frame.style.minHeight = `${Math.max(from, px)}px`;
+    for (const element of elements) element.style.animationPlayState = "paused";
+    frame.setAttribute("data-ouro-moving", expanded ? "grow" : "shrink");
+    let finish = () => {};
+    const playing = new Promise<void>((resolve) => (finish = resolve));
+    let frames = 0;
+    let ended = false;
+    const end = () => {
+      if (ended) return;
+      ended = true;
+      cancelAnimationFrame(frames);
+      frame.removeAttribute("data-ouro-moving");
+      frame.style.minHeight = "";
+      frame.style.removeProperty("--ouro-composer-gap");
+      frame.style.removeProperty("--ouro-composer-radius");
+      for (const element of elements) element.style.animationPlayState = "";
+      move.current = null;
+      setLeaving(false);
+      finish();
+    };
+    move.current = { end };
+    // The animations wait two frames, so the commit's own work does not eat their first ones.
+    frames = requestAnimationFrame(() => {
+      frames = requestAnimationFrame(() => {
+        for (const element of elements) element.style.animationPlayState = "";
+        void Promise.allSettled(frame.getAnimations({ subtree: true }).map((animation) => animation.finished)).then(end);
+      });
     });
+    frame.dispatchEvent(new CustomEvent<ComposerMove>("ouro-composer-move", { bubbles: true, detail: { from, to: px, playing } }));
   });
+  useEffect(() => () => move.current?.end(), []);
   // Changes the text as the browser's own editing does, so Undo and Redo step through them; never in a read-only box.
   const edit = (change: (textarea: HTMLTextAreaElement) => void) => {
     const textarea = textareaRef.current!;
@@ -820,9 +890,9 @@ export function Composer(props: ComposerProps): JSX.Element {
 
   return (
     <div data-ouro="composer" data-expanded={expanded ? "" : undefined} data-sending={sending ? "" : undefined} data-send-disabled={sendDisabledReason !== undefined ? "" : undefined} className={cn("box-border flex min-w-0 flex-col gap-1.5", className)}>
-      <div data-ouro-composer-frame="" className={frameClass}>
+      <div ref={frameRef} data-ouro-composer-frame="" data-ouro-part="frame" className={frameClass}>
         {toolbar && (
-          <div data-ouro-composer-toolbar="" className="flex min-w-0 flex-wrap items-center gap-0.5 border-0 border-b border-solid border-border px-1 py-1">
+          <div data-ouro-composer-toolbar="" data-ouro-part="toolbar" className={toolbarClass}>
             {toolbar}
           </div>
         )}
@@ -848,7 +918,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           </div>
         )}
         {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. At rest the padding makes the text row as tall as the actions' (the send button, lg, and its padding), so one line sits centred beside the icons; the actions stay at the bottom as the text grows. */}
-        <div ref={rowRef} data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end [--ouro-composer-action-h:calc(var(--spacing)*11)] [--ouro-composer-lh:1.5rem] [--ouro-composer-py:calc((var(--ouro-composer-action-h)+var(--spacing)*2-var(--ouro-composer-lh))/2)] [&_:is(textarea,[data-ouro-composer-editor],[data-ouro-composer-placeholder])]:[--ouro-text-area-py:var(--ouro-composer-py)] sm:[--ouro-composer-action-h:calc(var(--spacing)*9)] sm:pointer-fine:[--ouro-composer-lh:1.25rem]">
+        <div data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end [--ouro-composer-action-h:calc(var(--spacing)*11)] [--ouro-composer-lh:1.5rem] [--ouro-composer-py:calc((var(--ouro-composer-action-h)+var(--spacing)*2-var(--ouro-composer-lh))/2)] [&_:is(textarea,[data-ouro-composer-editor],[data-ouro-composer-placeholder])]:[--ouro-text-area-py:var(--ouro-composer-py)] sm:[--ouro-composer-action-h:calc(var(--spacing)*9)] sm:pointer-fine:[--ouro-composer-lh:1.25rem]">
           {ActiveEditor ? (
             <ActiveEditor
               handleRef={richRef}
