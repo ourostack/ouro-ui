@@ -18,6 +18,7 @@ import {
 import { flushSync } from "react-dom";
 import {
   anchorFor,
+  clearsKeepOut,
   corners,
   cornerToward,
   DECELERATION,
@@ -102,7 +103,8 @@ export interface SnapPiPProps {
    * behind the same ref, such as a captions band, counts as soon as it comes or goes. A corner
    * that would overlap one moves just clear of it, toward the middle. An app with a tile grid passes
    * the grid as a keep-out, or a move to a corner lands on a face: the picture does not look for faces. When they change, the
-   * picture follows its corner with the spring.
+   * picture follows its corner with the spring. When none of a corner's places clears them and
+   * `onCollapsedChange` is given, it hides itself instead of sitting on them.
    * @claim "A corner that would overlap one" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > keeps its corners clear of keep-outs, rectangles or elements, and follows them with the spring when they change)
    * @claim "A ref is read again after" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > goes back to its corner when a keep-out element behind the same ref goes away, and clears it when it comes back)
    */
@@ -329,10 +331,16 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const stageRef = useRef(stage);
   // The latest props and measurements, for the callbacks that outlive a render.
   // Stryker disable next-line ObjectLiteral: the layout effect below fills it before anything reads it.
-  const latest = useRef({ inset, keepOut, reduced, cornerLabels });
+  const latest = useRef({ inset, keepOut, reduced, cornerLabels, collapse: undefined as (() => void) | undefined });
   useLayoutEffect(() => {
     stageRef.current = stage;
-    latest.current = { inset, keepOut, reduced, cornerLabels };
+    latest.current = {
+      inset,
+      keepOut,
+      reduced,
+      cornerLabels,
+      collapse: onCollapsedChange !== undefined && !collapsed ? () => setCollapsed(true) : undefined,
+    };
   });
 
   const place = useCallback(
@@ -426,6 +434,12 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const reflow = useCallback(
     (jump: boolean) => {
       if (!stageRef.current || pressed.current) return;
+      const pip = element.current!;
+      const size = { width: pip.offsetWidth, height: pip.offsetHeight };
+      // No place in its corner clears what is in the way: a picture the person can hide gets out of it.
+      if (!clearsKeepOut(target.current, stageRef.current, size, latest.current.inset, keepRects())) {
+        if (latest.current.collapse) return latest.current.collapse();
+      }
       const { x, y } = anchor(target.current);
       // Already there, or on its way there.
       const goal = springs.current ? springs.current.to : at.current;
