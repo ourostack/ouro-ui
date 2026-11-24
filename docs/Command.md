@@ -242,3 +242,18 @@ interface CommandItem {
   onClick?: { 'Use onSelect: { label: "New recipe", onSelect: create }': never };
 }
 ```
+
+### `CommandRecent`
+
+One chip in a Command palette's `recents` row.
+
+```ts
+interface CommandRecent {
+  /** The chip's text, which screen readers hear. */
+  label: string;
+  /** A small picture before the label. */
+  icon?: ReactNode;
+  /** Runs when the chip is pressed. The palette closes first. */
+  onSelect: () => void;
+}
+```
