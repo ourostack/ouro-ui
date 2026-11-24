@@ -36,6 +36,14 @@ test("Windows's bump moves its own lines and its release link, and leaves Androi
   assert.equal(moved[3], `The Windows kit is at [0.11](${WINDOWS}v0.11.0) now.`);
 });
 
+test("a row where every kit shares one line, as parity.md's Kit row does, bumps only the cell that names the kit, leaving another kit's cell alone even on the same version", () => {
+  const android = "https://github.com/ourostack/ouro-ui-android/releases/tag/";
+  const apple = "https://github.com/ourostack/ouro-ui-apple/releases/tag/";
+  const row = `| Kit | this repository | [ourostack/ouro-ui-apple v1.10.1](${apple}v1.10.1) | [ourostack/ouro-ui-android v0.12.0](${android}v0.12.0) | [ourostack/ouro-ui-windows v0.12.0](${WINDOWS}v0.12.0) |`;
+  const moved = bumpText(row, "0.12.0", "0.12.1", { mixed: true, word: KITS.windows.word, link: WINDOWS });
+  assert.equal(moved, `| Kit | this repository | [ourostack/ouro-ui-apple v1.10.1](${apple}v1.10.1) | [ourostack/ouro-ui-android v0.12.0](${android}v0.12.0) | [ourostack/ouro-ui-windows v0.12.1](${WINDOWS}v0.12.1) |`);
+});
+
 test("Android's release link minor version moves with its statements, and a line that names another kit's link does not", () => {
   const android = "https://github.com/ourostack/ouro-ui-android/releases/tag/";
   assert.equal(bumpLine(`Android is at [0.10](${android}v0.10.0).`, "0.10.0", "0.11.0", android), `Android is at [0.11](${android}v0.11.0).`);
