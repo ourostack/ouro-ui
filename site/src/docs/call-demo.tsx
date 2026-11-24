@@ -136,6 +136,7 @@ function CallDemo(): JSX.Element {
   // The made-up speaker, captions and level hold still while a pointer or focus is in the window, so what a person aims at stays put.
   const [still, setStill] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const moved = useRef(false);
   const step = useRef(0);
@@ -332,6 +333,7 @@ function CallDemo(): JSX.Element {
       <div className="relative flex h-full min-h-0 flex-col">
         <div className="min-h-0 flex-1 overflow-auto p-2">
           <div
+            ref={gridRef}
             className={
               "grid gap-2 " +
               (tiles <= 1 ? "grid-cols-1" : tiles === 2 ? "grid-cols-1 md:grid-cols-2" : tiles <= 4 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3")
@@ -370,7 +372,7 @@ function CallDemo(): JSX.Element {
             {bar}
           </div>
         </div>
-        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} collapsed={selfHidden} onCollapsedChange={setSelfHidden} keepOut={[bottomRef]}>
+        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} collapsed={selfHidden} onCollapsedChange={setSelfHidden} keepOut={[gridRef, bottomRef]}>
           {selfPicture}
         </SnapPiP>
         <Popover title="React" open={reactionsOpen} onOpenChange={setReactionsOpen} anchor={bottomRef}>

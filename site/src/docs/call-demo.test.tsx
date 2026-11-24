@@ -118,6 +118,8 @@ describe("the call window page", () => {
     await expect.poll(overlaps).toBe(0);
     pip.focus();
     await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    // The first frames of the move still read the old place: wait for it to land before it is judged.
+    await expect.poll(() => pip.hasAttribute("data-ouro-settling")).toBe(false);
     await expect.poll(overlaps).toBe(0);
   });
 
