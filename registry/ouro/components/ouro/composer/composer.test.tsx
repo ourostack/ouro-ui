@@ -1387,7 +1387,7 @@ describe("Composer expanded motion", () => {
     await userEvent.click(expandButton()!);
     expect(moves).toHaveLength(2);
     expect(moves[1]!.from).toBeGreaterThan(moves[0]!.to + 1);
-    expect(moves[1]!.from).toBeGreaterThan(moves[0]!.from - 2);
+    expect(moves[1]!.from).toBeLessThan(moves[0]!.from + 1);
     await moves[1]!.playing;
   });
 
