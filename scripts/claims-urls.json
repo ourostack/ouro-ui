@@ -907,6 +907,10 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.244": {
+    "status": 200,
+    "checked": "2026-11-23"
+  },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.444": {
     "status": 200,
     "checked": "2026-11-22"
@@ -914,6 +918,10 @@
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.5": {
     "status": 200,
     "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.506": {
+    "status": 200,
+    "checked": "2026-11-23"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.6": {
     "status": 200,

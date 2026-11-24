@@ -77,10 +77,8 @@ export interface CardOwnProps {
    * A picture behind the whole card, edge to edge, with the title, body and footer over it:
    * usually an `<img alt="" />` (it fills the card, cropped to cover), and a shade of your own
    * where the text needs it. Only the picture is clipped to the card's squircle, so its title,
-   * text and controls repaint without a clip, and where the engine has no corner-shape it takes
-   * the same squircle clip as an avatar's photo, at the card's radius.
+   * text and controls repaint without a clip.
    * @claim "Only the picture is clipped to" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > lays a backdrop behind the whole card, edge to edge, clipping only the picture and not the card or its text)
-   * @claim "where the engine has no corner-shape" registry/ouro/theme/squircle-surface.test.tsx verify:testExists(registry/ouro/theme/squircle-surface.test.tsx::squircle surface where the engine has no corner-shape > clips a Card's backdrop, and only it, to the squircle at the card's radius)
    */
   backdrop?: ReactNode;
   /** The card's body, under the title. */
