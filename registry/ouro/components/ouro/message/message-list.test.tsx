@@ -883,6 +883,8 @@ describe("MessageList", () => {
     expect(inView(scroller, "found-29")).toBe(false);
     expect([...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].every((message) => message.style.transform === "")).toBe(true);
     await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+    // Opening away from the end is not an arrival: it reserves no room for the pill to clear.
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).toBeNull();
     // A new message leaves the reader where they are, and does not take them back to the message they opened at.
     await wheel(scroller, 200);
     const top = scroller.scrollTop;
@@ -914,6 +916,31 @@ describe("MessageList", () => {
     const { scroller: unnamed } = await render(<Chat items={history(30)} initialAnchor="" />);
     expect(distanceFromBottom(unnamed)).toBeLessThanOrEqual(1);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("opened at a message before the newest, with the content 1px taller than the view, stays there instead of following the end", async () => {
+    const Rows = ({ height, last = 100 }: { height?: number; last?: number }) => (
+      <MessageList label="Conversation" style={{ height }} initialAnchor="row-0">
+        {[0, 1, 2].map((index) => (
+          <Message key={index} id={`row-${index}`} role="assistant" name="Ouro" style={{ height: index === 2 ? last : 100 }}>
+            Row {index}
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const { scroller: whole } = await render(<Rows />);
+    const overflow = whole.scrollHeight;
+    const { scroller, rerender } = await render(<Rows height={overflow - 1} />);
+    expect(scroller.scrollHeight - scroller.clientHeight).toBeLessThanOrEqual(1);
+    await nextFrame(scroller);
+    await nextFrame(scroller);
+    const opened = await nextFrame(scroller);
+    const top = () => document.getElementById("row-0")!.getBoundingClientRect().top;
+    const placed = top();
+    await rerender(<Rows height={overflow - 1} last={101} />);
+    await settle(scroller);
+    expect(scroller.scrollTop).toBe(opened);
+    expect(top()).toBe(placed);
   });
 
   it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {
@@ -1363,6 +1390,247 @@ describe("MessageList", () => {
     await rerender(<Chat items={[...items.slice(0, -1), { id: 30, role: "assistant", text: "A new reply." }]} />);
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("keeps the jump pill off a message that arrives scrolled close to the end", async () => {
+    // Stays under the windowing threshold throughout, so what is measured is the room the arrival
+    // reserves, not a windowing transition's own remounts.
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    const room = scroller.querySelector<HTMLElement>("[data-ouro-message-list-jump-room]")!;
+    const last = () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
+    const clearOf = () => (pill.element() as HTMLElement).getBoundingClientRect().top - last().getBoundingClientRect().bottom;
+    // The reader scrolls back down toward the new message, landing with it overlapping the pill by half the
+    // reserve's own budget: on its own this would clip the pill, so only the list's settle-time correction, once
+    // the browser says the scroll has ended, clears it.
+    await act(async () => void (scroller.scrollTop += -room.offsetHeight / 2 - clearOf()));
+    scroller.dispatchEvent(new Event("scroll"));
+    scroller.dispatchEvent(new Event("scrollend"));
+    // Sub-pixel rounding of the scroll position it corrects to may leave a fraction of a pixel of overlap, the same
+    // tolerance "keeps following the end" (above) allows for at the bottom.
+    await expect.poll(() => clearOf()).toBeGreaterThanOrEqual(-1);
+  });
+
+  it("leaves a deeper overlap than the reserve alone, since it is there for its own reason", async () => {
+    // An overlap past the room's own height did not come from this arrival settling near the pill: a page up or
+    // a jump elsewhere put the reader there on purpose, and correcting it would itself move the place they landed.
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    const room = scroller.querySelector<HTMLElement>("[data-ouro-message-list-jump-room]")!;
+    const last = () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
+    const clearOf = () => (pill.element() as HTMLElement).getBoundingClientRect().top - last().getBoundingClientRect().bottom;
+    // Land an overlap twice the reserve's own height: far past what the reserve alone could have caused.
+    await act(async () => void (scroller.scrollTop += -room.offsetHeight * 2 - clearOf()));
+    // clearJump's own correction runs off a real setTimeout set at scrollend (WHEEL_REST, message-list.tsx).
+    // Waiting out that timer on the real clock once needed 2000ms of margin for a loaded runner to be sure it
+    // had fired if it were going to, and CI's own mutation harness runs this file's tests alongside many others
+    // in parallel, which is loaded enough that even that margin left the correction's absence unproven: proving
+    // it did not fire, rather than merely outlasting a real timer that might run late, means not depending on
+    // the real clock for it at all. Faking just setTimeout/clearTimeout here, after scrollend schedules it,
+    // and advancing straight past WHEEL_REST runs that exact callback deterministically, however loaded the
+    // runner is.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    scroller.dispatchEvent(new Event("scroll"));
+    scroller.dispatchEvent(new Event("scrollend"));
+    await vi.advanceTimersByTimeAsync(100);
+    // Still deeply overlapped: a correction would have pulled it back close to clearing, as the shallower
+    // overlap above is pulled back to -1.
+    expect(clearOf()).toBeLessThan(-room.offsetHeight);
+  });
+
+  it("leaves the jump pill where it already clears the newest message, with nothing to correct", async () => {
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    const last = () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
+    const clearOf = () => (pill.element() as HTMLElement).getBoundingClientRect().top - last().getBoundingClientRect().bottom;
+    // Land clear of the newest message by a healthy margin, the same way the overlap above is landed, so nothing
+    // here overlaps to begin with.
+    await act(async () => void (scroller.scrollTop += 50 - clearOf()));
+    expect(clearOf()).toBeGreaterThan(0);
+    const before = clearOf();
+    // clearJump's own guard runs off scrollend alone (onScrollEnd === endSoon, message-list.tsx); dispatching a
+    // "scroll" alongside it as the other tests here do also re-runs onScroll's own carry and anchor bookkeeping
+    // (pay/release/keepAnchor), which can itself move the scroll position for reasons of its own once arrival
+    // settles here, unrelated to clearJump: asserting raw scrollTop then could fail even on correct source, by
+    // conflating that bookkeeping with what this guard alone decides. Dispatching scrollend alone, with no
+    // further "scroll" to re-run that bookkeeping, isolates clearJump: faking just setTimeout/clearTimeout and
+    // advancing straight past WHEEL_REST runs its callback deterministically, and checking the pill's own
+    // computed clearance, not scrollTop, reads what the guard itself decided rather than any scroll position
+    // another mechanism might also have moved.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    scroller.dispatchEvent(new Event("scrollend"));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(clearOf()).toBeCloseTo(before, 0);
+  });
+
+  it("corrects at the exact far edge of the reserve, where >= must still catch it", async () => {
+    // The real DOM's own subpixel layout cannot promise landing a scroll on the exact pixel of a boundary;
+    // clearJump reads only the pill's top and the newest message's bottom, so stubbing those two, and nothing
+    // else, lands exactly on it deterministically: clear === -room.offsetHeight precisely, the one value `>=`
+    // and `>` disagree on.
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    const room = scroller.querySelector<HTMLElement>("[data-ouro-message-list-jump-room]")!;
+    const last = () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
+    const pillElement = pill.element() as HTMLElement;
+    const newest = last();
+    pillElement.getBoundingClientRect = () => ({ top: 1000 }) as DOMRect;
+    newest.getBoundingClientRect = () => ({ bottom: 1000 + room.offsetHeight }) as DOMRect;
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    scroller.dispatchEvent(new Event("scrollend"));
+    await vi.advanceTimersByTimeAsync(100);
+    vi.useRealTimers();
+    delete (pillElement as { getBoundingClientRect?: unknown }).getBoundingClientRect;
+    delete (newest as { getBoundingClientRect?: unknown }).getBoundingClientRect;
+    expect(room.dataset.ouroMessageListJumpClears).toBe("true");
+    // Asserted alongside ouroMessageListJumpClears, not on its own: a run that passed the guard always sets
+    // this to "ran" first, so only this value, not merely some truthy string, tells apart a mutant that
+    // empties or renames it from real source.
+    expect(scroller.dataset.ouroMessageListJumpGuard).toBe("ran");
+  });
+
+  it("leaves the pill alone at clear exactly 0, where < must not fire", async () => {
+    // At clear === 0 the correction (scrollTop -= 0) is a no-op either way, so only the guard's own decision,
+    // not scrollTop or the pill's rendered position, tells `<` and `<=` apart at the one value they disagree on.
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    const room = scroller.querySelector<HTMLElement>("[data-ouro-message-list-jump-room]")!;
+    const last = () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
+    const pillElement = pill.element() as HTMLElement;
+    const newest = last();
+    pillElement.getBoundingClientRect = () => ({ top: 1000 }) as DOMRect;
+    newest.getBoundingClientRect = () => ({ bottom: 1000 }) as DOMRect;
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    scroller.dispatchEvent(new Event("scrollend"));
+    await vi.advanceTimersByTimeAsync(100);
+    vi.useRealTimers();
+    delete (pillElement as { getBoundingClientRect?: unknown }).getBoundingClientRect;
+    delete (newest as { getBoundingClientRect?: unknown }).getBoundingClientRect;
+    expect(room.dataset.ouroMessageListJumpClears).toBe("false");
+  });
+
+  it("still bails off the ref alone when pinned flips true in the very tick the correction's timer fires", async () => {
+    // Reaching the very end sets the pinned ref true synchronously, in onScroll (message-list.tsx); React's own
+    // commit for the setShowJump(false) that follows is scheduled for its own, later turn. Dispatching "scroll"
+    // and "scrollend" and firing scrollend's own real setTimeout (WHEEL_REST) right here, with no await between
+    // any of these three lines to let that later turn come, still finds the room and the button mounted: the
+    // guard, reached in that exact window, has only the pinned ref to bail on, not room or the button.
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    const room = () => scroller.querySelector("[data-ouro-message-list-jump-room]");
+    expect(room()).not.toBeNull();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    scroller.scrollTop = scroller.scrollHeight;
+    scroller.dispatchEvent(new Event("scroll"));
+    scroller.dispatchEvent(new Event("scrollend"));
+    vi.advanceTimersByTime(100);
+    // Caught the window intended: the commit that drops the room had not yet landed when the guard ran, so it
+    // bailed off the ref alone, same as it would have had room already dropped too.
+    expect(room()).not.toBeNull();
+    expect(scroller.dataset.ouroMessageListJumpGuard).toBe("bailed");
+    vi.useRealTimers();
+    await settle(scroller);
+  });
+
+  it("reserves no room the first time the reader scrolls away, before any message has arrived", async () => {
+    // A mount that starts with room already reserved would show it the moment the reader first
+    // leaves the bottom, with nothing yet waiting to overlap the pill.
+    const { scroller } = await render(<Chat items={history(19)} />);
+    await wheel(scroller, -400);
+    const pill = page.getByRole("button", { name: "Jump to latest" });
+    await expect.element(pill).toBeVisible();
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).toBeNull();
+    // The settle that follows, with nothing reserved to clear against, must not read a reserve's height off
+    // nothing: dispatched directly, rather than left to the browser's own timing, so the wait below reliably
+    // spans the rest this settle schedules.
+    const errors: unknown[] = [];
+    const report = (event: ErrorEvent) => errors.push(event.error);
+    window.addEventListener("error", report);
+    scroller.dispatchEvent(new Event("scrollend"));
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    window.removeEventListener("error", report);
+    expect(errors).toEqual([]);
+    await expect.element(pill).toBeVisible();
+  });
+
+  it("keeps the reserved room while still scrolled away, and drops it once back at the bottom with nothing new since", async () => {
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await settle(scroller);
+    const room = () => scroller.querySelector("[data-ouro-message-list-jump-room]");
+    expect(room()).not.toBeNull();
+    // Scrolling further while still away from the bottom must not drop the room the arrival earned.
+    await wheel(scroller, -100);
+    expect(room()).not.toBeNull();
+    // Reaching the very bottom pays off the room the arrival owed.
+    await act(async () => void (scroller.scrollTop = scroller.scrollHeight));
+    await settle(scroller);
+    expect(room()).toBeNull();
+    // Scrolling away again, with nothing new since, reserves no room: the earlier arrival is settled.
+    await wheel(scroller, -400);
+    expect(room()).toBeNull();
+  });
+
+  it("reserves no room for a message that arrives while still pinned to the end, seen there in real time", async () => {
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await settle(scroller);
+    // Still pinned to the bottom: the arrival is read as it happens, nothing to clear later.
+    await rerender(<Chat items={[...items, { id: 19, role: "assistant", text: "A new reply." }]} />);
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    // Scrolling away now, with no further arrival since, must not find room reserved for the one already seen.
+    await wheel(scroller, -400);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).toBeNull();
+  });
+
+  it("reserves room when a still-streaming reply is replaced by a new key with the same text", async () => {
+    // Still pinned while it first streams in: the key swap below is the only thing this test means to
+    // measure, not the first append's own (already-covered) room reservation.
+    const items = history(19);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await settle(scroller);
+    await rerender(<Chat items={[...items, { id: "a", role: "assistant", text: "Two", streaming: true }]} />);
+    await settle(scroller);
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).toBeNull();
+    // Scrolled away now, the still-streaming reply is replaced under a new key, with the same text it already
+    // had: still waiting to be read, it owes room whether or not its text happened to change meanwhile.
+    await wheel(scroller, -400);
+    await rerender(<Chat items={[...items, { id: "b", role: "assistant", text: "Two", streaming: true }]} />);
+    await settle(scroller);
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).not.toBeNull();
   });
 
   it("shows older messages loading over the top of the list, moving no message as it starts or ends", async () => {

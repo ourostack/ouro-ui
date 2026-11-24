@@ -325,9 +325,16 @@ describe("home page", () => {
     // The site is Ouro UI; the bar names HX and AX side by side, and the kit row under the hero names its four parts, each
     // a link to where it lives: HX and AX among them, not the whole of it.
     await expect.element(page.getByRole("banner").getByRole("link", { name: "Ouro UI", exact: true })).toBeVisible();
-    expect(SITE_SECTIONS.map((section) => [section.label, section.href]).slice(4, 6)).toEqual([
-      ["Ouro HX", "/docs/"],
+    // The bar is organised by part, with Proof, the docs and the source after them (AGENTS.md, Names).
+    expect(SITE_SECTIONS.slice(1).map((section) => [section.label, section.href])).toEqual([
+      ["Ouro HX", "/hx/"],
       ["Ouro AX", "/ax/"],
+      ["Actions", "/actions/"],
+      ["Composed UI", "/composed-ui/"],
+      ["X-ray", "/xray/"],
+      ["Proof", "/proof/"],
+      ["Docs", "/docs/"],
+      ["GitHub", "https://github.com/ourostack/ouro-ui"],
     ]);
     // Under the hero, why it's safe to stop thinking: five reasons, the first counting the components per platform from
     // their sources, and the parts named by who they serve, HX and AX among them.
@@ -1420,8 +1427,8 @@ describe("the header's current section on a docs page", () => {
     expect(headerPath("/docs/button/")).toBe("/docs/");
     expect(headerPath("/docs/ax/")).toBe("/ax/");
     expect(headerPath("/docs/ax-cli/")).toBe("/ax/");
-    expect(headerPath("/docs/installing/")).toBe("/docs/installing/");
-    expect(headerPath("/docs/switching-from-shadcn/")).toBe("/docs/installing/");
+    expect(headerPath("/docs/installing/")).toBe("/docs/");
+    expect(headerPath("/docs/switching-from-shadcn/")).toBe("/docs/");
     expect(headerPath("")).toBe("");
   });
 });

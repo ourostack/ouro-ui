@@ -34,14 +34,22 @@ test("guardComment carries a marker guardMarker and alreadyFiled both read, so a
   assert.ok(!alreadyFiled([comment], "2", "2"), "a different run is not the same marker");
 });
 
+test("guardComment names the triggering actor when given one, and says so plainly when it is not", () => {
+  const named = guardComment({ runId: "1", attempt: "2", runUrl: "https://github.com/o/r/actions/runs/1", actor: "arimendelow" });
+  assert.ok(named.includes("rerun by arimendelow"));
+  const unnamed = guardComment({ runId: "1", attempt: "2", runUrl: "https://github.com/o/r/actions/runs/1" });
+  assert.ok(unnamed.includes("rerun by someone (actor unknown)"));
+});
+
 test("verdict passes attempt 1 outright, passes an attempt with a filed cause, and otherwise gives the comment to file, once", () => {
   const runId = "9";
   const runUrl = "https://github.com/o/r/actions/runs/9";
   assert.deepEqual(verdict({ runId, attempt: "1", runUrl, bodies: [] }), { status: "first-attempt" });
   assert.deepEqual(verdict({ runId, attempt: "2", runUrl, bodies: ["**Signature:** run 9, a known flake."] }), { status: "caused" });
-  const first = verdict({ runId, attempt: "2", runUrl, bodies: [] });
+  const first = verdict({ runId, attempt: "2", runUrl, actor: "arimendelow", bodies: [] });
   assert.equal(first.status, "uncaused");
   assert.ok(first.comment.includes(runUrl));
+  assert.ok(first.comment.includes("rerun by arimendelow"));
   // Already filed (by an earlier run of this same job, for this run and attempt): nothing left to comment.
   const already = verdict({ runId, attempt: "2", runUrl, bodies: [first.comment] });
   assert.deepEqual(already, { status: "uncaused", comment: null });

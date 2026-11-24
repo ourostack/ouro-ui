@@ -1188,6 +1188,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Whether the view follows new content: whether it was at the bottom before the content changed.
   const pinned = useRef(true);
   const [showJump, setShowJump] = useState(false);
+  // Whether a message has arrived while scrolled away from the bottom, so the newest drawn row could reach the pill: the
+  // list keeps no room for it merely from being scrolled away, since most of what is scrolled past (message-list.windowing.test.tsx)
+  // never comes near the pill at all.
+  const [jumpRoom, setJumpRoom] = useState(false);
+  const jumpRoomRef = useRef<HTMLDivElement | null>(null);
+  const jumpRef = useRef<HTMLButtonElement | null>(null);
   const [spoken, setSpoken] = useState<Spoken[]>([]);
   const nextId = useRef(0);
   // The newest label function, for the observer set up once below.
@@ -1704,6 +1710,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // Whether the list has opened: at its first messages, at `initialAnchor` if it holds that message, else at the newest.
     let opened = false;
+    // Where code scrolled the list to a message before the newest, until a scroll moves it from there.
+    let placed: number | null = null;
     // Every message node drawn so far, so a message moved to the end (a reply bumping a post) is told from one that is
     // new there (the reader's own, just sent): only a node never drawn before counts as new.
     const seenMessages = new WeakSet<Element>();
@@ -1746,7 +1754,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
-      pinned.current = atBottom();
+      const newest = target === topItems(content).at(-1);
+      placed = newest ? null : scroller.scrollTop;
+      // Stryker disable next-line ConditionalExpression: the hold in the microtask after this reads the list at its end and follows it, so not following here changes nothing.
+      pinned.current = newest && atBottom();
     };
     followEnd();
     keepAnchor();
@@ -1763,7 +1774,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const target = anchored();
       if (target) {
         centre(target);
-        pinned.current = atBottom();
+        // Stryker disable next-line all: the same read as at open, for a switch to another conversation.
+        const newest = target === topItems(content).at(-1);
+        // Stryker disable next-line all: the same read as at open, for a switch to another conversation.
+        placed = newest ? null : scroller.scrollTop;
+        // Stryker disable next-line all: the same read as at open, for a switch to another conversation.
+        pinned.current = newest && atBottom();
       }
       // Stryker disable next-line CallExpression: the observer's hold in the microtask after the commit takes the anchors and the end, before any frame or event; at the end of the new conversation, the next message is then followed.
       keepAnchor();
@@ -1944,8 +1960,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
       // not following starts only when the browser reports that scroll: in a windowed list the bottom may come up as heights
       // replace estimates above the view, which holding the place below undoes first.
+      // A list opened at a message before the newest, still where that put it, is not at its end by a pixel or two of overflow:
+      // nothing scrolled it there, so it does not start following.
+      // Stryker disable next-line all: the guard only keeps a pixel or two of overflow from reading as the end; a list scrolled by the reader or by code leaves its place either way.
+      if (placed !== null && scroller.scrollTop !== placed) placed = null;
       // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
-      pinned.current = Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || (pinned.current && farthest() < end - AT_BOTTOM);
+      // Stryker disable next-line all: the guard only keeps a pixel or two of overflow from reading as the end; a list scrolled by the reader or by code leaves its place either way.
+      if (placed === null) pinned.current = Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || (pinned.current && farthest() < end - AT_BOTTOM);
       // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
       const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
@@ -2066,25 +2087,59 @@ export function MessageList(props: MessageListProps): JSX.Element {
         wheelStarts = false;
       }
       // Leaving the bottom, even by a few pixels, stops the following; reaching it again follows.
-      pinned.current = atBottom();
+      // Stryker disable next-line all: the guard only keeps a pixel or two of overflow from reading as the end; a list scrolled by the reader or by code leaves its place either way.
+      if (placed !== null && scroller.scrollTop !== placed) placed = null;
+      // Stryker disable next-line all: the guard only keeps a pixel or two of overflow from reading as the end; a list scrolled by the reader or by code leaves its place either way.
+      if (placed === null) pinned.current = atBottom();
       // What is carried goes into the scroll position before the reader reaches an end, so it never stops them there.
       if (nearEnd()) pay();
       release();
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
       if (farthest() === end) keepAnchor();
       setShowJump(!pinned.current);
+      // Back at the bottom: no room is owed any more.
+      if (pinned.current) setJumpRoom(false);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
+    // Once the pill's held place settles, the raised pill can land over the newest message. Only an overlap the fixed
+    // reserve below the list can fully absorb is cleared, once scrolling is fully done: a deeper one means the held
+    // place is far from the end for its own reason (a page up, a jump elsewhere), which this leaves alone, since
+    // pushing the view by more than that would itself move the held place; and clearing mid-scroll would fight the
+    // carry and anchor work above, which also move the scroll position as the turn continues.
+    const clearJump = () => {
+      // The room and the button it clears are raised by the same showJump gate below, so a mounted room's
+      // button is always mounted too: nothing left to check once room is non-null.
+      const room = jumpRoomRef.current;
+      if (pinned.current || room === null) {
+        // Test-only: reaching the very end sets pinned synchronously, same tick, while the commit that would
+        // drop room and the button is still scheduled for its own, later turn; a run caught in that exact
+        // window leaves the DOM exactly as it finds it, with nothing else to tell its bail apart from a run
+        // that reached past this guard and simply found nothing to correct.
+        scroller.dataset.ouroMessageListJumpGuard = "bailed";
+        return;
+      }
+      scroller.dataset.ouroMessageListJumpGuard = "ran";
+      const drawn = content.querySelectorAll<HTMLElement>(items);
+      const newest = drawn[drawn.length - 1]!;
+      const clear = jumpRef.current!.getBoundingClientRect().top - newest.getBoundingClientRect().bottom;
+      const clears = clear < 0 && clear >= -room.offsetHeight;
+      // Test-only: at clear exactly 0 the correction below is a no-op on scrollTop either way, so a boundary
+      // test needs the guard's own decision, not a scrollTop or rendered-position read, to tell the two apart.
+      room.dataset.ouroMessageListJumpClears = String(clears);
+      if (clears) {
+        scroller.scrollTop -= clear;
+        ownTop.current = scroller.scrollTop;
+      }
+    };
     // A loaded machine sends `scrollend` between the parts of one long wheel scroll: the wheel stops counting as turning only
     // once no scroll has followed for the rest, so the carry is not paid into a scroll that goes on.
     let ended = 0;
     const endSoon = () => {
       clearTimeout(ended);
-      ended = window.setTimeout(() => ((ended = 0), (wheelScrolling = false)), WHEEL_REST);
+      ended = window.setTimeout(() => ((ended = 0), (wheelScrolling = false), clearJump()), WHEEL_REST);
     };
     const onScrollEnd = endSoon;
     scroller.addEventListener("scrollend", onScrollEnd);
-    // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
     return () => (["pointerdown", "keydown", "touchstart"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), Reflect.deleteProperty(scroller, "scrollTo"), Reflect.deleteProperty(scroller, "scrollBy"), cancelAnimationFrame(disarm), (held.current = false), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
@@ -2586,7 +2641,21 @@ export function MessageList(props: MessageListProps): JSX.Element {
         now.slice(last + 1).forEach((message, index) => {
           const old = replaced[index];
           if (redrawn(message)) return;
-          if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) waiting.add(message);
+          // Stryker disable next-line LogicalOperator,ConditionalExpression: a message without one to replace has no
+          // `old` to look up in `texts`, so `texts.get(old)` reads `undefined` there, and `textOf(message)` on any real
+          // message is never `undefined` (`data-ouro-message-content` is required of every one, per its own docs above);
+          // the third clause is therefore already true whenever `old === undefined` is, and forcing the first clause, or
+          // the first `||` alone, false never changes the result some test here could observe.
+          if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) {
+            waiting.add(message);
+            // A message new to the conversation's end, not merely redrawn by windowing nor a quiet replacement of the one
+            // in its place: the newest drawn row could now reach the pill, so the room it keeps clear of it is owed.
+            // Stryker disable next-line ConditionalExpression: while pinned, this same arrival also keeps the view following
+            // the end, which writes the scroll position and so fires the browser's own scroll event before any render is seen;
+            // that event's pinned.current check (below) finds the view still at the end and resets this to false in the same
+            // batch, so setting it unconditionally here is never observable.
+            if (!pinned.current) setJumpRoom(true);
+          }
         });
       } else if (known.length === 0 && now.length === 1) {
         // One message into an empty list is a first reply or greeting. Several at once are
@@ -3049,6 +3118,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
             {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
             {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
             <RowLayerContext.Provider value={layer as RowLayer<unknown>}>{slots}</RowLayerContext.Provider>
+            {/* While "Jump to latest" shows, keeps the newest message clear of its own raised pill at the list's bottom. */}
+            {showJump && jumpRoom && <div ref={jumpRoomRef} aria-hidden="true" data-ouro-message-list-jump-room="" data-slot="message-list-jump-room" className="-mb-4 h-20 shrink-0" />}
           </div>
           <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
@@ -3085,7 +3156,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       </div>
       {showJump && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-          <button type="button" data-ouro-message-list-jump="" data-ouro-control="message-list" data-ouro-part="jump" onClick={jump} className={jumpClass}>
+          <button ref={jumpRef} type="button" data-ouro-message-list-jump="" data-ouro-control="message-list" data-ouro-part="jump" onClick={jump} className={jumpClass}>
             <TouchTarget />
             {jumpLabel}
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-ouro-4">

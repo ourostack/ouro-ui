@@ -5,7 +5,7 @@
 The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix. A claim is `must` only when an evaluation showed agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard; every other claim is `should`.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-claims#v1.3.507
+npx shadcn@latest add ourostack/ouro-ui/ax-claims#v1.3.509
 ```
 
 It installs `lib/ouro/ax/ax-claims.ts`. Its tests are `ax-claims-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -72,7 +72,7 @@ const CLAIM_SET: ClaimSet
 The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix. A claim is `must` only when an evaluation showed agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard; every other claim is `should`.
 
 ```ts
-const CLAIM_SET_VERSION: "1.8.0"
+const CLAIM_SET_VERSION: "1.9.0"
 ```
 
 ### `ClaimEvidence`
@@ -160,6 +160,7 @@ Must claims first. `node scripts/ouro/ax/xray.ts claims` prints their rules and 
 | `http.reads-stay-reads` | must | hazard |
 | `http.refusals-change-nothing` | must | hazard |
 | `mcp.effect-annotated` | must | hazard |
+| `mcp.no-stream-promise` | must | hazard |
 | `mcp.inventory` | must | hazard |
 | `ui.twin-exists` | must | hazard |
 | `ui.twin-effect-matches` | must | hazard |

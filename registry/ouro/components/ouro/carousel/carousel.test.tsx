@@ -524,6 +524,55 @@ describe("Carousel driven by the app", () => {
   });
 });
 
+describe("Carousel's outside-jump event", () => {
+  /** The jump Lightbox's Home and End dispatch, further than a button steps. */
+  const goto = (viewport: HTMLElement, detail: { index: number; left: number; behavior: ScrollBehavior }) =>
+    viewport.dispatchEvent(new CustomEvent("ouro-carousel-goto", { detail }));
+
+  it("heading-tracks a jump dispatched on the viewport like a button press: reports the target at once, scrolls there and settles on it", async () => {
+    const onIndexChange = vi.fn();
+    const onTargetChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" onIndexChange={onIndexChange} onTargetChange={onTargetChange}>
+        {photos()}
+      </Carousel>,
+    );
+    const scrollTo = vi.spyOn(screen.viewport, "scrollTo");
+    const left = screen.slides[3]!.offsetLeft - screen.slides[0]!.offsetLeft;
+    goto(screen.viewport, { index: 3, left, behavior: "instant" });
+    expect(onTargetChange).toHaveBeenLastCalledWith(3);
+    expect(scrollTo).toHaveBeenCalledWith({ left, behavior: "instant" });
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[3]]);
+  });
+
+  it("still scrolls and settles when the app does not ask to be told the target", async () => {
+    const onIndexChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" onIndexChange={onIndexChange}>
+        {photos()}
+      </Carousel>,
+    );
+    const scrollTo = vi.spyOn(screen.viewport, "scrollTo");
+    const left = screen.slides[2]!.offsetLeft - screen.slides[0]!.offsetLeft;
+    goto(screen.viewport, { index: 2, left, behavior: "instant" });
+    expect(scrollTo).toHaveBeenCalledWith({ left, behavior: "instant" });
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[2]]);
+  });
+
+  it("stops listening for the jump once unmounted", async () => {
+    const onTargetChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" onTargetChange={onTargetChange}>
+        {photos()}
+      </Carousel>,
+    );
+    const viewport = screen.viewport;
+    await act(async () => roots.at(-1)!.unmount());
+    goto(viewport, { index: 1, left: 100, behavior: "instant" });
+    expect(onTargetChange).not.toHaveBeenCalled();
+  });
+});
+
 describe("Carousel inside a scaled element", () => {
   it("starts on defaultIndex when it mounts under a transform, as a Lightbox viewer does while it opens", async () => {
     const { viewport, slides } = await render(

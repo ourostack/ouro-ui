@@ -23,30 +23,47 @@ export interface MenuSection {
   pages?: readonly MenuPage[];
 }
 
-/** The sections, in the bar's order. The Apple pages come from their own list, so a new one shows here too. */
+/**
+ * The sections, in the bar's order: Ouro UI by part (AGENTS.md, Names), then Proof, the docs and the source. Each part's
+ * platforms are pages under it, so the header is organised one way. The Apple pages come from their own list, so a new
+ * one shows here too.
+ */
 export const SITE_SECTIONS: readonly MenuSection[] = [
-  { label: "Home", href: "/", hint: "Peek through the porthole" },
-  { label: "The Nautilus", href: "/nautilus/", hint: "Build a submarine, then sail her" },
+  { label: "Home", href: "/", hint: "Peek through the porthole", pages: [{ label: "The Nautilus", href: "/nautilus/" }] },
   {
-    label: "For Apple",
-    href: "/apple/",
-    hint: "Springs, haptics and Siri, in Swift",
-    pages: APPLE_PAGES.slice(1).map((page) => ({ label: page.label, href: page.path })),
+    label: "Ouro HX",
+    href: "/hx/",
+    hint: "Components for people's screens: web, Apple, Windows, Android",
+    pages: [
+      { label: "For Apple", links: APPLE_PAGES.map((page) => ({ label: page.path === "/apple/" ? "Ouro UI for Apple" : page.label, href: page.path })) },
+      { label: "Ouro UI for Windows", href: "/windows/" },
+      { label: "Ouro UI for Android", href: "/android/" },
+    ],
+  },
+  { label: "Ouro AX", href: "/ax/", hint: "Doors for agents: CLI, MCP, App Intents and more" },
+  { label: "Actions", href: "/actions/", hint: "One declaration, a button and a tool, with consent" },
+  { label: "Composed UI", href: "/composed-ui/", hint: "Cards your agent sends, drawn natively" },
+  { label: "X-ray", href: "/xray/", hint: "See inside screens and doors", pages: [{ label: "Hackamore", href: "/hackamore/" }] },
+  {
+    label: "Proof",
+    href: "/proof/",
+    hint: "The benchmark, model reviews, adoption, Ouro UI at a company",
+    pages: [
+      { label: "Adoption", href: "/adoption/" },
+      { label: "Ouro Current", href: "/current/" },
+    ],
   },
   {
-    label: "Guides",
-    href: "/docs/installing/",
-    hint: "Install it, switch to it, keep it fresh",
+    label: "Docs",
+    href: "/docs/",
+    hint: "Ouro HX for web's components, and the guides",
     pages: [
+      { label: "Installing", href: "/docs/installing/" },
       { label: "Switching from shadcn", href: "/docs/switching-from-shadcn/" },
       { label: "Updating components", href: "/docs/updating/" },
     ],
   },
-  // Ouro UI's two halves, side by side: HX's components, then AX. HX keeps the place Components had, after Guides, so on a
-  // phone its long folded list of components sits far down the menu, which opens scrolled to the page you are on.
-  { label: "Ouro HX", href: "/docs/", hint: "Levers, dials and portholes" },
-  { label: "Ouro AX", href: "/ax/", hint: "A morning with an agent" },
-  { label: "Ouro UI on GitHub", href: GITHUB, hint: "The blueprints, out in the open" },
+  { label: "GitHub", href: GITHUB, hint: "The blueprints, out in the open" },
 ];
 
 /** A guide's name wherever the site lists it: a guide that shares a section's name ("Ouro AX") says it is the guide, so no two links are named alike. */

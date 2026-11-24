@@ -25,6 +25,8 @@ Follow ourostack's shared [PR merge rule](https://github.com/ourostack/.github/b
 
 **Claim an issue before you build it.** Follow ourostack's shared [claim rule](https://github.com/ourostack/.github/blob/main/agents/claim-before-building.md): look for an existing claim first, then run `gh ouro-pr claim <n>` (with `OURO_SESSION` set to your session's name) before you open a branch, and coordinate with the claimant instead of building beside them. `gh ouro-pr` refuses a pull request for an issue another session holds; a claim with no activity lapses on its own, and `--take-over "<reason>"` overrides a live one with the reason posted on the issue.[^a-claim] A pull request opened only to read a CI result is a probe: name its branch `probe/…` or pass `--probe`, and it is labelled `probe` and is not merged.[^a-probe]
 
+**Red-main fixes.** Before opening a red-main fix, look for an open pull request with the `red-main-fix` label on the same failure, and comment there instead of opening another. Never add a waiver or a known-finding entry for a new failure in a red-main fix: ask the coordinator and open an issue first. Name the branch after the session or lane that opens it, so its owner can be found.
+
 ## Where things live
 
 - **[ourostack/ouro-ui-core](https://github.com/ourostack/ouro-ui-core):** the tokens, the decision records and the Ouro AX for Apple claims, with the design language, the Ouro AX standard and the site to follow.

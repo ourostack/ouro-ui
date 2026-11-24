@@ -140,7 +140,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::tag must be a release tag such as v1.3.56, not '$TAG'."; exit 1; }
-          gh release view "$TAG" --json tagName >/dev/null || { echo "::error::$TAG is not a published release."; exit 1; }
+          # Tells a release that genuinely does not exist apart from a GitHub API hiccup, retrying the second kind
+          # (ourostack/ouro-ui#2469: v1.3.505 was published all along).
+          node scripts/docs-pin-release-check.mjs "$TAG"
           # An older tag, dispatched late, must not point the docs back at a release that has been replaced.
           latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name) || { echo "::error::Could not read the newest release."; exit 1; }
           if [ "$TAG" != "$latest" ]; then

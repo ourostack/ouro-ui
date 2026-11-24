@@ -1600,7 +1600,7 @@ test("a push to main whose tree already passed runs only install-github", () => 
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
   const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, designRuns, laneRuns].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof", "yield", "rerun-guard"].includes(id)).sort());
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof", "yield"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[plan, browser, coverage, browser-fallback\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
@@ -1617,7 +1617,7 @@ test("a pull request's run reports tree-proof, named for its tree, only when its
   assert.equal(block.match(/^ {4}name: (.+)$/m)?.[1], `${PREFIX}\${{ needs.plan.outputs.tree }}`);
   // It waits on what ci-budget waits on but the jobs that run only off a pull request and fresh-main, which tests a newer main.
   const needsOf = (id) => jobs[id].match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
-  assert.deepEqual(needsOf("tree-proof").sort(), needsOf("ci-budget").filter((id) => !["fresh-main", "install-github", "install-latest", "rerun-guard"].includes(id)).sort());
+  assert.deepEqual(needsOf("tree-proof").sort(), needsOf("ci-budget").filter((id) => !["fresh-main", "install-github", "install-latest"].includes(id)).sort());
   const expression = block.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)[1];
   // Every need is checked by name: a job's if: counts the jobs above its needs in needs.*.result too, so a skipped
   // fallback shard upstream would make !contains(needs.*.result, 'skipped') false on every run.
@@ -1722,8 +1722,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs beside ci once the coverage job and the shards it reads passed or were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser.result) && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser-fallback.result) }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    // rerun-guard is no required check: it runs only on main's own push, and only on a rerun (scripts/rerun-guard.mjs), report-only (contributing/ci.md).
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof", "rerun-guard"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -2599,11 +2598,9 @@ test("a pull request calls only the read-only lane: ci.yml's job grants contents
   for (const [, called] of workflow("ci.yml").matchAll(/uses: \.\/\.github\/workflows\/([\w.-]+)$/gm)) {
     assert.doesNotMatch(workflow(called), /^\s*[\w-]+: write$/m, `${called} asks for write access`);
   }
-  // Only rerun-guard writes issues, and only on main's own push, never on a pull request: it comments on
-  // #2469 when a push's rerun has no cause on record (scripts/rerun-guard.mjs).
-  assert.equal(workflow("ci.yml").match(/issues: write/g)?.length, 1);
-  assert.match(ci["rerun-guard"], /^ {4}permissions:\n {6}contents: read\n {6}issues: write/m);
-  assert.match(ci["rerun-guard"], /^ {4}if: \$\{\{ !cancelled\(\) && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && github\.run_attempt > 1 \}\}$/m);
+  // ci.yml itself writes no issues: rerun-guard.yml, a separate workflow_run workflow, is the only caller
+  // that comments on #2469 when a push's rerun has no cause on record (scripts/rerun-guard.mjs).
+  assert.equal(workflow("ci.yml").match(/issues: write/g)?.length ?? 0, 0);
 });
 
 test("the screen-reader lane's report upload is tried twice and never decides the lane's verdict (#2254)", () => {
@@ -3337,7 +3334,7 @@ test("Docs pin points main's docs at the newest release through one pull request
   assert.match(pin, /\n {6}BRANCH: docs\/point-at-release\n/);
   assert.deepEqual(
     stepScript(pin, "Point the docs at the release").split("\n").filter((line) => /^(node|pnpm) /.test(line)),
-    ['node scripts/latest-release.mjs set "$TAG"', "pnpm run docs"],
+    ['node scripts/docs-pin-release-check.mjs "$TAG"', 'node scripts/latest-release.mjs set "$TAG"', "pnpm run docs"],
   );
   const push = stepScript(pin, "Commit the docs and push their branch");
   assert.match(push, /git push -q --force origin "\$BRANCH"/);
@@ -3525,7 +3522,8 @@ test("Docs pin changes nothing for a tag that is not the newest release, and say
   const newer = runStep(`gh() { case "$*" in "api repos/"*"/releases/latest"*) echo v1.3.57 ;; esac; }\n${script}`, env);
   assert.equal(newer.status, 0, newer.calls);
   assert.equal(newer.output.result, "stale");
-  assert.doesNotMatch(newer.calls, /CALL (node|pnpm)/);
+  assert.match(newer.calls, /CALL node scripts\/docs-pin-release-check\.mjs v1\.3\.56/, "still checks the tag is published before comparing it with the newest release");
+  assert.doesNotMatch(newer.calls, /CALL node scripts\/latest-release\.mjs set|CALL pnpm/);
   const latest = `gh() { case "$*" in "api repos/"*"/releases/latest"*) echo v1.3.56 ;; esac; }\n`;
   const current = runStep(`${latest}git() { :; }\n${script}`, env);
   assert.equal(current.output.result, "current");
@@ -3779,6 +3777,26 @@ test("the browser shards hold each test to half its timeout: vitest.config.ts ad
   assert.match(report, /if: \$\{\{ github\.event\.workflow_run\.event != 'pull_request' \}\}/);
   assert.match(report, /permissions:\n\s+contents: read\n\s+actions: read[^\n]*\n\s+issues: write/);
   assert.match(report, /scripts\/scheduled-failure\.sh "\$RUN" "Headroom breaches on main"/);
-  // ci.yml itself writes issues only from rerun-guard (checked on its own, above).
-  assert.equal(workflow("ci.yml").match(/issues: write/g)?.length, 1);
+  // ci.yml itself writes no issues: rerun-guard.yml is the only caller of issues: write (checked on its own, above).
+  assert.equal(workflow("ci.yml").match(/issues: write/g)?.length ?? 0, 0);
+});
+
+test("rerun-guard.yml starts on CI going in_progress (requested never fires for a rerun), not needing plan or the run to finish, and comments only on main's own rerun", () => {
+  const guard = workflow("rerun-guard.yml");
+  // requested does not fire on a rerun (GitHub's events-that-trigger-workflows doc, workflow_run section);
+  // in_progress is the type that still starts independently of the triggering run finishing or being
+  // cancelled (ourostack/ouro-ui#3210's run 45339486025, cancelled before the in-run job's plan dependency ran).
+  assert.match(guard, /workflows: \[CI\]\n\s+types: \[in_progress\]/);
+  assert.match(guard, /^permissions:\n {2}contents: read\n {2}issues: write/m);
+  assert.match(
+    guard,
+    /^ {4}if: \$\{\{ github\.event\.workflow_run\.event == 'push' && github\.event\.workflow_run\.head_branch == 'main' && github\.event\.workflow_run\.run_attempt > 1 \}\}$/m,
+  );
+  // No checkout of untrusted code: the script is fetched from the default branch and run, never built from the triggering ref.
+  assert.doesNotMatch(guard, /actions\/checkout/);
+  assert.match(guard, /curl[^\n]*raw\.githubusercontent\.com\/\$\{\{ github\.repository \}\}\/main\/scripts\/rerun-guard\.mjs/);
+  assert.match(guard, /RUN_ID: \$\{\{ github\.event\.workflow_run\.id \}\}/);
+  assert.match(guard, /RUN_ATTEMPT: \$\{\{ github\.event\.workflow_run\.run_attempt \}\}/);
+  assert.match(guard, /RUN_URL: \$\{\{ github\.event\.workflow_run\.html_url \}\}/);
+  assert.match(guard, /RUN_ACTOR: \$\{\{ github\.event\.workflow_run\.triggering_actor\.login \}\}/);
 });

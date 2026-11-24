@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type ReactNode, type SVGProps } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type ReactNode, type SVGProps } from "react";
 import { AgentPresence, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -52,6 +52,9 @@ interface Person {
 }
 
 const ME = "Priya Okafor";
+// The self view's height plus its margins: the band under the tiles has to be this tall to hold it.
+const SELF_ROOM = 124;
+
 const everyone: Person[] = [
   { name: "Mara Quill", hue: 200 },
   { name: "Theo Brandt", hue: 30, muted: true },
@@ -156,10 +159,16 @@ function CallDemo(): JSX.Element {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  // Whether the band between the tiles and the captions can hold the self view.
+  const [bandRoom, setBandRoom] = useState(false);
   const moved = useRef(false);
   const step = useRef(0);
 
   const visible = everyone.slice(0, others);
+  // A pinned tile leads the grid, so pinning changes the picture even when nobody is sharing.
+  const ordered = visible
+    .map((person, index) => ({ person, index }))
+    .sort((a, b) => Number(b.person.name === pinned) - Number(a.person.name === pinned));
   const inCall = stage === "call";
   const level = useFakeLevel(stage === "lobby" && !still);
 
@@ -187,6 +196,18 @@ function CallDemo(): JSX.Element {
     }
     moved.current = false;
   }, [stage]);
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    const bottom = bottomRef.current;
+    if (!grid || !bottom) return;
+    const measure = () => setBandRoom(bottom.getBoundingClientRect().top - grid.getBoundingClientRect().bottom >= SELF_ROOM);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    observer.observe(bottom);
+    return () => observer.disconnect();
+  }, [stage, others, sharing, captionsOn]);
 
   // The ring follows a made-up speaker detection that moves between the people who are not muted.
   useEffect(() => {
@@ -379,7 +400,7 @@ function CallDemo(): JSX.Element {
                 <Camera hue={90} />
               </MediaTile>
             ) : null}
-            {visible.map((person, index) => (
+            {ordered.map(({ person, index }) => (
               <MediaTile
                 key={person.name}
                 name={person.name}
@@ -405,7 +426,7 @@ function CallDemo(): JSX.Element {
             {bar}
           </div>
         </div>
-        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} collapsed={selfHidden} onCollapsedChange={setSelfHidden} keepOut={[gridRef, bottomRef]}>
+        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} collapsed={selfHidden} onCollapsedChange={setSelfHidden} keepOut={!bandRoom && chosenHidden === false ? [bottomRef] : [bottomRef, gridRef]}>
           {selfPicture}
         </SnapPiP>
         <Popover title="React" open={reactionsOpen} onOpenChange={setReactionsOpen} anchor={bottomRef}>
@@ -480,7 +501,8 @@ function CallDemo(): JSX.Element {
   );
 }
 
-const shortCall = `import { MediaTile } from "@/components/ouro/media-tile/media-tile";
+const shortCall = `import { useRef } from "react";
+import { MediaTile } from "@/components/ouro/media-tile/media-tile";
 import { LiveCaptions } from "@/components/ouro/live-captions/live-captions";
 import { Toolbar } from "@/components/ouro/toolbar/toolbar";
 import { SnapPiP } from "@/components/ouro/snap-pip/snap-pip";

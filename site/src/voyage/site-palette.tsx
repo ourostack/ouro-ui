@@ -15,11 +15,13 @@ import { openXray } from "./xray-store";
 /** Words a section is also found by, which never show. */
 const KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   "/": ["start", "porthole"],
-  "/nautilus/": ["story", "chapters", "ship"],
-  "/ax/": ["agents", "agent experience", "cli", "x-ray"],
-  "/apple/": ["swift", "swiftui", "iphone", "mac", "siri", "app intents"],
-  "/docs/installing/": ["install", "installing", "guide"],
-  "/docs/": ["catalog", "overview"],
+  "/hx/": ["components", "swiftui", "winui", "compose", "apple", "windows", "android", "coverage"],
+  "/ax/": ["agents", "agent experience", "cli", "mcp"],
+  "/actions/": ["consent", "tools", "buttons"],
+  "/composed-ui/": ["cards", "mcp apps", "a2ui"],
+  "/xray/": ["inspector", "ouro check", "feel", "reins"],
+  "/proof/": ["benchmark", "model reviews", "adoption"],
+  "/docs/": ["catalog", "overview", "install", "guides"],
 };
 
 const go = (url: string) => () => window.location.assign(url);
