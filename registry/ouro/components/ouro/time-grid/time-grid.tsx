@@ -1013,7 +1013,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               className="group/day @container/day min-w-0 border-0 border-s border-solid border-border"
               style={markOf(day)?.style}
             >
-              <span className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2 py-1.5 @max-[4.5rem]/day:flex-col @max-[4.5rem]/day:gap-0.5 @max-[4.5rem]/day:px-0.5">
+              <span className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2 py-1.5 @max-[5.5rem]/day:flex-col @max-[5.5rem]/day:gap-0.5 @max-[5.5rem]/day:px-0.5">
               <span className="inline-flex size-ouro-7 shrink-0 items-center justify-center rounded-full text-base leading-none font-semibold tabular-nums group-data-today/day:bg-primary group-data-today/day:text-primary-foreground forced-colors:group-data-today/day:border-2 forced-colors:group-data-today/day:border-solid">
                 {
                   // Stryker disable next-line ConditionalExpression: in the locales tested the day comes first; the search is for one where it does not
@@ -1022,7 +1022,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               </span>
               <span className={`truncate text-xs ${markedMutedClass} group-data-today/day:font-medium group-data-today/day:text-foreground`}>{formats.weekdayShort.format(utcDate(day))}</span>
               </span>
-              {markOf(day) ? <span data-ouro-time-grid-mark="" data-slot="time-grid-mark-label" className={`block truncate px-2 pb-1 text-xs ${markedMutedClass} @max-[4.5rem]/day:px-0.5`}>{markOf(day)!.label}</span> : null}
+              {markOf(day) ? <span data-ouro-time-grid-mark="" data-slot="time-grid-mark-label" className={`block truncate px-2 pb-1 text-xs ${markedMutedClass} @max-[5.5rem]/day:px-0.5`}>{markOf(day)!.label}</span> : null}
             </div>
           ))}
           {renderDaySummary ? (
