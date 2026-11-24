@@ -43,6 +43,7 @@ Type: `SegmentedControlProps`.
 | `defaultValue` | `string` | the first enabled item | The segment pressed first, when the component keeps its own state. |
 | `disabled` | `boolean` |  | Disables every segment. |
 | `fullWidth` | `boolean` |  | Stretches the control to the width of its container, with the segments sharing it equally. |
+| `glass` | `boolean` |  | Draws the control as a Liquid Glass capsule for a window toolbar, in the theme's glass behind blur, with a glass thumb. The checked segment shows its label and count while the others show their `icon`, so give the segments an `icon`. It turns solid under reduced transparency or more contrast. |
 | `hideLabel` | `boolean` |  | Hides the label visually; it still names the control for screen readers. Set it on a view switcher whose segments say what it is. |
 | `items` (required) | `readonly SegmentedControlItem[]` |  | The segments, in order. Keep to two to five. |
 | `label` (required) | `string` |  | Names the choice ("View"). Shown above the control unless `hideLabel` is set; screen readers always hear it. |
@@ -79,6 +80,10 @@ interface SegmentedControlItem {
   value: string;
   /** The segment's text. Keep it to one short word; every segment gets the width of the longest. */
   label: string;
+  /** An icon before the label. With `glass`, an unchecked segment shows only this, and the label stays for screen readers. */
+  icon?: ReactNode | undefined;
+  /** A count shown in a small pill inside the segment, after the label (unread messages, matches). Shown with the label. */
+  count?: number | undefined;
   /** Shows the segment but keeps it from being pressed. */
   disabled?: boolean | undefined;
   /**

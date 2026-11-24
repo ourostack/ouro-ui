@@ -1011,6 +1011,8 @@ export function Lightbox(props: LightboxProps): JSX.Element {
         // A scroll took the finger.
         tapFrom.current = null;
       }}
+      data-ouro-allow={mosaic ? "near-miss" : undefined}
+      data-ouro-allow-why={mosaic ? "A chat mosaic is one picture cut into tiles with a hairline between them, so the tiles sit close by design." : undefined}
       className={mosaic ? mosaicThumbnailClass : thumbnailClass}
       onClick={() => {
         setStart(position);
@@ -1021,7 +1023,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       {/* With reduced motion an animated image's thumbnail shows its still frame: chosen by the browser under the device's setting, always under OuroProvider's motion="reduced", never under "full". */}
       <picture className="contents">
         {image.still !== undefined && motion !== "full" && <source media={motion === "reduced" ? "all" : "(prefers-reduced-motion: reduce)"} srcSet={image.still} />}
-        <img src={image.thumbnail ?? image.src} alt={image.alt} decoding="async" className={mosaic ? mosaicImageClass : thumbnailImageClass} />
+        <img src={image.thumbnail ?? image.src} alt={image.alt} decoding="async" data-ouro-allow={mosaic ? "near-miss" : undefined} data-ouro-allow-why={mosaic ? "A chat mosaic is one picture cut into tiles with a hairline between them, so the tiles sit close by design." : undefined} className={mosaic ? mosaicImageClass : thumbnailImageClass} />
       </picture>
       {more > 0 && (
         <>
