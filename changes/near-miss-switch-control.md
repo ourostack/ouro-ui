@@ -1,0 +1,1 @@
+- Fix: Ouro check's `near-miss` rule no longer flags a surface sitting a few pixels inside the edge of a button or a switch, checkbox, radio or slider role, since a control's own parts (Switch's track and thumb, a custom checkbox's box and mark) are drawn as one piece.
