@@ -615,6 +615,13 @@ export const knownFindings: KnownFinding[] = [
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
+    story: "TimeGrid/Locales",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "An all-day event sits 6px inside the glass day header's bottom edge, under the 8px minimum gap: the all-day row wants 8px of padding. Shows only in the locales whose all-day row has an event at this width.",
+  },
+  {
     story: "TimeGrid/NowAdornment",
     rule: "near-miss",
     issue: 3286,
