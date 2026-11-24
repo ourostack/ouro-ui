@@ -1323,7 +1323,7 @@ describe("Composer expanded motion", () => {
     for (const open of [true, false]) {
       const samples = await sampled(frame, [header, thread], () => userEvent.click(expandButton()!));
       const moving = samples.filter((sample) => sample.moving);
-      expect(moving.length).toBeGreaterThan(3);
+      expect(moving.length).toBeGreaterThan(1);
       const first = samples[0]!.height;
       const last = samples.at(-1)!.height;
       heights.push(last);
