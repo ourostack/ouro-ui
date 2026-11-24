@@ -214,16 +214,16 @@ test("on a docs page the menu holds every component, with a search for any docs 
   await search.fill("segmented");
   await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Toggle", exact: true })).toHaveCount(0);
-  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"], ["github", "Ouro UI on GitHub"], ["overview", "Ouro HX"], ["ouro ax guide", "Ouro AX guide"]] as const) {
+  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"], ["github", "GitHub"], ["overview", "Docs"], ["ouro ax guide", "Ouro AX guide"]] as const) {
     await search.fill(query);
     await expect(sheet(page).getByRole("link", { name, exact: true })).toBeVisible();
   }
   // A link off the site keeps its own address, and its address is not a name to find it by.
   await search.fill("github");
-  await expect(sheet(page).getByRole("link", { name: "Ouro UI on GitHub", exact: true })).toHaveAttribute("href", "https://github.com/ourostack/ouro-ui");
-  await expect(sheet(page).getByRole("link", { name: "Ouro UI on GitHub", exact: true })).toContainText("↗");
+  await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toHaveAttribute("href", "https://github.com/ourostack/ouro-ui");
+  await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toContainText("↗");
   await search.fill("ourostack");
-  await expect(sheet(page).getByRole("link", { name: "Ouro UI on GitHub", exact: true })).toHaveCount(0);
+  await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toHaveCount(0);
   // The guide and the section it shares a name with are told apart, as in the menu.
   await search.fill("ouro ax");
   await expect(sheet(page).getByRole("link", { name: "Ouro AX", exact: true })).toHaveCount(1);
@@ -320,7 +320,7 @@ test("on a phone the menu's Search, away from the docs, opens the bar's search p
   // real clock: focus stays in the field until something moves it; no timer does.
   await expect(field).toBeFocused();
   // It finds what the menu lists, and every component and guide.
-  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Guides"], ["ouro ax guide", "Ouro AX guide"], ["overview", "Ouro HX"]] as const) {
+  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Installing"], ["ouro ax guide", "Ouro AX guide"], ["overview", "Docs"]] as const) {
     await field.fill(query);
     await expect(page.getByRole("option", { name: new RegExp(`^${name}\\b`) }).first()).toBeVisible();
   }
@@ -379,8 +379,8 @@ test("on a wide screen the theme picker leaves the page as it is: a click on a l
   await page.goto("docs/button/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await openPicker(page);
-  await page.getByRole("banner").getByRole("link", { name: "The Nautilus", exact: true }).click();
-  await expect(page).toHaveURL(/\/nautilus\/$/);
+  await page.getByRole("banner").getByRole("link", { name: "Proof", exact: true }).click();
+  await expect(page).toHaveURL(/\/proof\/$/);
 });
 
 test("on a phone the menu's close button closes it", async ({ page }) => {
@@ -583,26 +583,26 @@ test("on a wide screen the bar keeps its links, and the docs sidebar and the App
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.getByRole("navigation", { name: "Docs" })).toBeVisible();
   // The bar marks the section you are in; the sidebar alone marks the page, so a screen reader hears one current page.
-  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).toHaveAttribute("aria-current", "true");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Docs", exact: true })).toHaveAttribute("aria-current", "true");
   await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
-  // A helper's page is under Ouro HX too.
+  // A helper's page is under Docs too.
   await page.goto("docs/use-timer/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).toHaveAttribute("aria-current", "true");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Docs", exact: true })).toHaveAttribute("aria-current", "true");
   // An Ouro AX docs page is under Ouro AX, though its address is under the docs.
   await page.goto("docs/ax-terminal/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.getByRole("banner").getByRole("link", { name: "Ouro AX", exact: true })).toHaveAttribute("aria-current", "true");
-  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).not.toHaveAttribute("aria-current");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Docs", exact: true })).not.toHaveAttribute("aria-current");
   // A section's own page, where its row marks the page, is the section in the bar too.
   await page.goto("apple/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await expect(page.getByRole("banner").getByRole("link", { name: "For Apple", exact: true })).toHaveAttribute("aria-current", "true");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).toHaveAttribute("aria-current", "true");
   await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
   // With no other navigation, a section's own page is the page.
-  await page.goto("nautilus/");
+  await page.goto("proof/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await expect(page.getByRole("banner").getByRole("link", { name: "The Nautilus", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Proof", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
 for (const path of ["./", "docs/button/"]) {
