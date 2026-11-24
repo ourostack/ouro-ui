@@ -105,6 +105,21 @@ export function anchorFor(
   return best;
 }
 
+/**
+ * Whether `corner`'s place, as `anchorFor` finds it, stays off the keep-outs.
+ * @internal
+ */
+export function clearsKeepOut(
+  corner: SnapPiPCorner,
+  stage: { width: number; height: number },
+  pip: { width: number; height: number },
+  inset: number,
+  keepOut: readonly SnapPiPRect[],
+): boolean {
+  const at = anchorFor(corner, stage, pip, inset, keepOut);
+  return !keepOut.some((rect) => overlaps(at.x, at.y, pip.width, pip.height, rect));
+}
+
 /** The arrow keys that move the picture with Option. */
 export type ArrowKey = "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown";
 

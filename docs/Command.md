@@ -64,6 +64,8 @@ The props the modes share. Type: `CommandProps`.
 | `loadingLabel` | `string` | `"Searching…"` | What shows, and is announced, while `loading`. |
 | `onQueryChange` | `((query: string, context: { signal: AbortSignal }) => void)` |  | For results from a server: called with the search text on every change, and with the current text (`""` at each opening) whenever the palette opens or swaps between dialog and sheet. The palette then stops filtering `items` itself and shows them as they are, so keep the last results in `items` until new ones arrive. `signal` aborts when a newer query replaces this one or the palette closes: pass it to `fetch`, or drop the response when `signal.aborted`, so a slow earlier response never overwrites a newer one. The app owns the request, and must set `loading` back to false when the request fails or its signal aborts, or "Searching…" stays up. |
 | `placeholder` | `string` | `${searchLabel}…` when `searchLabel` is given, else "Type a command or search…" | The search input's placeholder. |
+| `recents` | `readonly CommandRecent[]` |  | A recents layout: one row of chips under the search while it is empty, for the few places a person goes back to. Left and Right walk the chips, Down in the search enters the row, and Up or Escape leaves it for the search (Escape does not close the palette from a chip). While the search is empty and focus is in it, the list leaves its commands unhighlighted. |
+| `recentsLabel` | `string` | `"Recent"` | The recents row's name for screen readers. |
 | `resultsLabel` | `((count: number) => string)` | `` (count) => count === 1 ? "1 result" : `${count} results` `` | What screen readers hear, politely and once, when the results for what was typed have settled (not while `loading`, and not for an empty search, whose list is the palette's own). |
 | `searchLabel` | `string` | `"Search commands"` | The search input's label for screen readers. |
 | `title` (required) | `string` |  | Names the palette for screen readers; it is not shown. It is always required. |
@@ -238,5 +240,20 @@ interface CommandItem {
 
   /** Not a prop. A command runs `onSelect`: `{ label: "New recipe", onSelect: create }`. (A `MenuItem` is the one that takes `onClick`.) */
   onClick?: { 'Use onSelect: { label: "New recipe", onSelect: create }': never };
+}
+```
+
+### `CommandRecent`
+
+One chip in a Command palette's `recents` row.
+
+```ts
+interface CommandRecent {
+  /** The chip's text, which screen readers hear. */
+  label: string;
+  /** A small picture before the label. */
+  icon?: ReactNode;
+  /** Runs when the chip is pressed. The palette closes first. */
+  onSelect: () => void;
 }
 ```

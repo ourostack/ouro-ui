@@ -18,6 +18,7 @@ import {
 import { flushSync } from "react-dom";
 import {
   anchorFor,
+  clearsKeepOut,
   corners,
   cornerToward,
   DECELERATION,
@@ -102,7 +103,8 @@ export interface SnapPiPProps {
    * behind the same ref, such as a captions band, counts as soon as it comes or goes. A corner
    * that would overlap one moves just clear of it, toward the middle. An app with a tile grid passes
    * the grid as a keep-out, or a move to a corner lands on a face: the picture does not look for faces. When they change, the
-   * picture follows its corner with the spring.
+   * picture follows its corner with the spring. When its corner has nowhere left that clears them and
+   * `onCollapsedChange` is given, it hides itself instead of sitting on them.
    * @claim "A corner that would overlap one" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > keeps its corners clear of keep-outs, rectangles or elements, and follows them with the spring when they change)
    * @claim "A ref is read again after" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > goes back to its corner when a keep-out element behind the same ref goes away, and clears it when it comes back)
    */
@@ -329,10 +331,16 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const stageRef = useRef(stage);
   // The latest props and measurements, for the callbacks that outlive a render.
   // Stryker disable next-line ObjectLiteral: the layout effect below fills it before anything reads it.
-  const latest = useRef({ inset, keepOut, reduced, cornerLabels });
+  const latest = useRef({ inset, keepOut, reduced, cornerLabels, collapse: undefined as (() => void) | undefined });
   useLayoutEffect(() => {
     stageRef.current = stage;
-    latest.current = { inset, keepOut, reduced, cornerLabels };
+    latest.current = {
+      inset,
+      keepOut,
+      reduced,
+      cornerLabels,
+      collapse: onCollapsedChange !== undefined && !collapsed ? () => setCollapsed(true) : undefined,
+    };
   });
 
   const place = useCallback(
@@ -423,9 +431,18 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   );
 
   /** Puts it back in its corner's place after a change around it: with the spring, or at once (`jump`). */
+  // Stryker disable next-line BooleanLiteral: the collapsed effect sets it before any reflow reads it, so its first value never shows.
+  const held = useRef(false);
   const reflow = useCallback(
     (jump: boolean) => {
+      if (!jump) held.current = false;
       if (!stageRef.current || pressed.current) return;
+      const pip = element.current!;
+      const size = { width: pip.offsetWidth, height: pip.offsetHeight };
+      // No place in its corner clears what is in the way: a picture the person can hide gets out of it.
+      if (!clearsKeepOut(target.current, stageRef.current, size, latest.current.inset, keepRects())) {
+        if (!held.current && latest.current.collapse) return latest.current.collapse();
+      }
       const { x, y } = anchor(target.current);
       // Already there, or on its way there.
       const goal = springs.current ? springs.current.to : at.current;
@@ -433,7 +450,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       go(target.current, { jump });
     },
     // Stryker disable next-line ArrayDeclaration: anchor and go keep their identity for the component's life, so any constant list keeps reflow the same.
-    [anchor, go],
+    [anchor, go, keepRects],
   );
 
   const observer = useRef<ResizeObserver | undefined>(undefined);
@@ -496,7 +513,12 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   [reflow, rewatch]);
 
   // A new size, shape or container size: it stays in its corner, at once.
-  useLayoutEffect(() => reflow(true), [stage, size, aspectRatio, collapsed, reflow]);
+  // Opening it again by hand is the person's call, so it stays until a keep-out changes.
+  useLayoutEffect(() => {
+    held.current = !collapsed;
+    reflow(true);
+  }, [collapsed, reflow]);
+  useLayoutEffect(() => reflow(true), [stage, size, aspectRatio, reflow]);
   // New keep-out rectangles or a new inset: it follows its corner's new place with the spring.
   const keepKey = JSON.stringify((keepOut ?? []).map((item) => ("current" in item ? null : item)));
   useLayoutEffect(() => reflow(false), [keepKey, inset, reflow]);
