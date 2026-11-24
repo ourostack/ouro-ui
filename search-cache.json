@@ -1,8 +1,8 @@
 {
   "spoonjoy/spoonjoy-v2": {
     "components/ouro/": {
-      "commit": "ae55c372601c66512308903836b3767b1ee30667",
-      "at": "2026-11-24T09:21:01.897Z",
+      "commit": "435ff06a7db08fa2ac200c168f399c7d11c53713",
+      "at": "2026-11-24T10:18:20.059Z",
       "total": 611,
       "paths": [
         "app/components/ouro/inspector/inspector.stories.tsx",
@@ -10,7 +10,6 @@
         "vitest.ouro.config.ts",
         "vitest.stories-scope.config.ts",
         "AGENTS.md",
-        "vitest.config.ts",
         "docs/building-with-ouro-hx.md",
         ".oxlintrc.json",
         "app/components/ouro/kbd/kbd.tsx",
@@ -105,6 +104,26 @@
         "app/components/ouro/number-field/number-field.tsx",
         "app/components/ouro/select/select.stories.tsx",
         "app/components/ouro/spinner/spinner.tsx"
+      ]
+    },
+    "\"ouro-ui-core\"": {
+      "commit": "435ff06a7db08fa2ac200c168f399c7d11c53713",
+      "at": "2026-11-24T10:18:33.012Z",
+      "total": 13,
+      "paths": [
+        "README.md",
+        "tools/ouro-actions/README.md",
+        "scripts/sync-sj-tokens.mjs",
+        "actions/spoonjoy.actions.mts",
+        "app/styles/sj-tokens.css",
+        "app/styles/tailwind.css",
+        "claims-urls.json",
+        "tools/ouro-actions/actions.claims.json",
+        "test/styles/theme-css.ts",
+        "test/styles/sj-token-parity.test.ts",
+        "test/scripts/sync-sj-tokens.test.ts",
+        "test/components/recipe/CoverPlaceholder.test.tsx",
+        "test/lib/mcp/declared-actions.server.test.ts"
       ]
     }
   },
@@ -344,11 +363,22 @@
     }
   },
   "ourostack/ouroboros": {
-    "components/ouro/": {
-      "commit": "eba776da3c5fdf38d6818e28e73435221ba0a26d",
-      "at": "2026-11-24T09:32:45.267Z",
-      "total": 0,
-      "paths": []
+    "defineCommand": {
+      "commit": "7c62e3fb66f8d8f44b9fe40dc6d7cfdbc0bc7392",
+      "at": "2026-11-24T10:31:06.322Z",
+      "total": 10,
+      "paths": [
+        "src/eval/interviews/guest/ax/ax-command.ts",
+        "lib/ouro-ui/registry/ouro/ax/ax-command.ts",
+        "lib/ouro-ui/registry/ouro/ax/xray.kit.mts",
+        "lib/ouro-ui/registry/ouro/ax/flows.kit.mts",
+        "lib/ouro-ui/registry/ouro/ax/example-cli.ts",
+        "src/eval/interviews/guest/arms.ts",
+        "lib/ouro-ui/registry/ouro/ax/lint.ts",
+        "lib/ouro-ui/registry/ouro/ax/flows.ts",
+        "tools/ouro-actions/ouro-actions.mts",
+        "lib/ouro-ui/registry/ouro/ax/xray.ts"
+      ]
     }
   }
 }
