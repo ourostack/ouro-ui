@@ -229,6 +229,17 @@ describe("Command recents", () => {
     await expect.poll(cut).toEqual([false, false, true, true]);
     expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
     expect(Math.abs(chips()[2]!.getBoundingClientRect().width - chips()[3]!.getBoundingClientRect().width)).toBeLessThan(2);
+    const style = getComputedStyle(row);
+    const used = chips().reduce((sum, chip) => sum + chip.offsetWidth, 0) + parseFloat(style.columnGap) * 3 + parseFloat(style.paddingInlineStart) + parseFloat(style.paddingInlineEnd);
+    expect(used).toBeGreaterThan(row.clientWidth - 3);
+
+    const total = () => chips().reduce((sum, chip) => sum + chip.offsetWidth, 0);
+    const wide = total();
+    row.style.maxWidth = "260px";
+    await expect.poll(total).toBeLessThan(wide);
+    expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
+    row.style.maxWidth = "";
+    await expect.poll(total).toBe(wide);
   });
 
   it("leaves chips whose names all fit at their own width", async () => {

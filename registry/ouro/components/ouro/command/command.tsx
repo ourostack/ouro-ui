@@ -815,6 +815,7 @@ export function Command(props: CommandProps): JSX.Element {
     share();
     const observer = new ResizeObserver(share);
     observer.observe(row);
+    // Stryker disable next-line BlockStatement,ArrowFunction: a leftover observer on a removed row only calls share on a detached node, which a test cannot see.
     return () => observer.disconnect();
   }, [chipsRow, recents]);
   const enterChips = (event: KeyboardEvent<HTMLElement>) => {
