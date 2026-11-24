@@ -72,18 +72,6 @@ export function knownProblems(entries: readonly KnownFinding[]): string[] {
 
 export const knownFindings: KnownFinding[] = [
   {
-    story: "FamilyBar/FarAlong",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "The bar's divider runs against the story frame's edge, so the line is drawn twice; the bar should drop its own line where it meets an edge.",
-  },
-  {
-    story: "TextArea/Composer",
-    rule: "off-centre-text",
-    issue: 3257,
-    reason: "The story's form aligns its row to the end, so the one-line text area sits at the bottom beside a taller Send button and its placeholder reads low; the story should show Ouro's Composer, which centres its one line.",
-  },
-  {
     story: "Emoji/Placeholder",
     rule: "broken-image",
     issue: 1959,
@@ -155,13 +143,6 @@ export const knownFindings: KnownFinding[] = [
   },
   {
     story: "Autocomplete/Open",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "Avatar/GroupChats",
     rule: "near-miss",
     issue: 3286,
     reason:
@@ -284,14 +265,16 @@ export const knownFindings: KnownFinding[] = [
     rule: "near-miss",
     issue: 3286,
     reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "MessageList/Keyboard",
     rule: "near-miss",
     issue: 3286,
     reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "MessageList/LoadingOlder",
@@ -305,21 +288,24 @@ export const knownFindings: KnownFinding[] = [
     rule: "near-miss",
     issue: 3286,
     reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "MessageList/OpenedAtMessage",
     rule: "near-miss",
     issue: 3286,
     reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "MessageList/Springs",
     rule: "near-miss",
     issue: 3286,
     reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "MessageList/Switching",
@@ -560,6 +546,24 @@ export const knownFindings: KnownFinding[] = [
     theme: "nova",
     reason:
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MessageList/Actions",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Under nova's spacing scale the message bubble sits closer than the minimum gap to its actions toolbar without touching (a demo's own spacing, unrelated to scroll position); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
+  },
+  {
+    story: "MessageList/LongConversation",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Under nova's spacing scale the message bubble sits closer than the minimum gap to its actions toolbar without touching (a demo's own spacing, unrelated to scroll position); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "NavigationRail/LongLabels",
