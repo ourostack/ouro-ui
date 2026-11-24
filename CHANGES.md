@@ -1,0 +1,5 @@
+# Changes in this release
+
+- Fix: Ouro check's dropped-frames rule no longer misreads a longer frame gap when another check run (another tab, or a concurrent whole/shard run) is measuring real frame timing at the same moment; the measuring window is now serialized.
+- Changed: a glass `Button` with `size="sm"` takes the height of a macOS Tahoe window toolbar, a circle for an icon, and `<ButtonGroup glass="sm">` is a capsule of that height; glass without `sm` is unchanged.
+- Fixed: [Inspector's own tests wait out a transition WebKit still lists as "finished" for a moment after it ends, as the test kit's shared `settled()` already did](registry/ouro/components/ouro/inspector/inspector.test.tsx "verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > does not measure contrast while a transition is still listed as finished, as WebKit lists one for a moment after it ends (#3361))"), instead of a private, weaker check that only watched for "running"; that private check could resolve a frame before WebKit's paint caught up, so a contrast measurement read a label's text falsely low (#3361).
