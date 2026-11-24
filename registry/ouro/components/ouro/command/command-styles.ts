@@ -16,6 +16,7 @@ export {
   commandMarkClass,
   commandRecentClass,
   commandRecentsClass,
+  fairShare,
   matchesQuery,
   oneEditApart,
   queryMatch,
@@ -294,3 +295,17 @@ const commandRecentsClass = "box-border flex shrink-0 gap-2 overflow-x-auto over
 /** One recent chip: a quiet pill that shows focus and press. @internal */
 const commandRecentClass =
   "press relative box-border inline-flex min-h-ouro-8 shrink-0 cursor-default items-center gap-1.5 rounded-ouro-4xl border-0 bg-secondary px-3 text-sm leading-5 text-secondary-foreground outline-none data-highlighted:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+
+// The widest a chip may be so that chips share a row fairly: each is as wide as its name, up to an equal share of
+// what the shorter ones leave. Infinity when every name fits.
+/** @internal */
+function fairShare(natural: readonly number[], room: number): number {
+  let left = room;
+  const sorted = [...natural].sort((a, b) => a - b);
+  for (const [index, width] of sorted.entries()) {
+    const share = left / (sorted.length - index);
+    if (width > share) return share;
+    left -= width;
+  }
+  return Infinity;
+}

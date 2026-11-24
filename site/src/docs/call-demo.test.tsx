@@ -236,7 +236,9 @@ describe("the call window page", () => {
     await renderPage("/docs/call-demo/");
     await page.getByRole("button", { name: "React" }).click();
     await page.getByRole("button", { name: "Applause" }).click();
-    await expect.element(page.getByRole("button", { name: /Applause/ })).toBeVisible();
+    // The stage's ReactionBar has no onReact, so it is read-only (a <span>, not a button); scope
+    // the search to the stage's own reaction group rather than matching any button named "Applause".
+    await expect.poll(() => document.querySelector("[data-site-call-reaction] [role=group]")?.textContent).toContain("Applause");
     expect(document.querySelector("[data-site-call-reaction]")?.textContent).toContain("👏");
   });
 
