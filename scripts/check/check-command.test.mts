@@ -126,7 +126,7 @@ describe("Ouro check's command", () => {
     const failing = await run([folder, ...fast], { cwd, env: { GITHUB_STEP_SUMMARY: stepSummary, BROWSER_EXECUTABLE: browser } });
     assert.equal(failing.code, 3, failing.err);
     assert.match(failing.out, /✗ 390×844 {3}light command \/overlap\.html: \d+/);
-    assert.match(failing.out, /\n\d+ finding\(s\), \d+ gated, 0 fixed since --before\. Report: ouro-check\/report\.json$/);
+    assert.match(failing.out, /\n\d+ finding\(s\), \d+ gated, 0 fixed since --before\. Report: ouro-check\/report\.json$/, "with findings gated, the bar waits");
     assert.match(readFileSync(stepSummary, "utf8"), /^### Ouro check: 2 pages at 1 size, light/);
     const unwaived = await run(["merge", "ouro-check", "--out", "unwaived"], { cwd });
     assert.equal(unwaived.code, 3, unwaived.err);
@@ -141,7 +141,7 @@ describe("Ouro check's command", () => {
     writeFileSync(join(cwd, "ouro-check.json"), JSON.stringify({ waive: { "overlap.html": { "*": "a fixture" } } }));
     const waived = await run([folder, ...fast, "--out", "second"], { cwd });
     assert.equal(waived.code, 0, waived.out);
-    assert.match(waived.out, /0 gated/);
+    assert.match(waived.out, /0 gated, .*\nNothing gated is left: that's the floor, not the bar\. Before a person sees it, pass the beauty gate \(https:\/\/ui\.ouroboros\.bot\/docs\/design-craft\/#the-beauty-gate\)\.$/);
     const before = await run([folder, ...fast, "--out", "third", "--before", "second/report.json"], { cwd });
     assert.equal(before.code, 0, before.err);
     const merged = await run(["merge", "second", "third", "--out", "merged"], { cwd });

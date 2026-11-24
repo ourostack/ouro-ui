@@ -38,7 +38,7 @@ import { APP_SETUP, groupOrder } from "./catalog-groups.mts";
 import { componentsDir, pascal, readComponents } from "./components.mts";
 import { trackedFiles, uncommitted } from "./generated-files.mjs";
 import { spawnSync } from "node:child_process";
-import { summary } from "./docs-summary.mts";
+import { pageTitle, summary } from "./docs-summary.mts";
 import { axDocs } from "./ax-docs.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -717,7 +717,7 @@ const guidePages = (existsSync(guidesDir) ? readdirSync(guidesDir) : [])
     const text = readFileSync(join(guidesDir, file), "utf8");
     const title = /^# (.+)\n\n(.+)\n/.exec(text);
     if (!title) throw new Error(`docs/guides/${file} must start with "# Title", a blank line and a one-paragraph summary.`);
-    return { name: file.slice(0, -3), title: title[1]!, kind: "guide" as const, group: "Guides", markdown: `docs/guides/${file}`, summary: summary(text.replace(/^# .*$/m, "")) };
+    return { name: file.slice(0, -3), title: pageTitle(title[1]!), kind: "guide" as const, group: "Guides", markdown: `docs/guides/${file}`, summary: summary(text.replace(/^# .*$/m, "")) };
   });
 // The Platforms section (docs/platforms/, written by hand): README.md is its index at docs/platforms,
 // and each other file is one platform's page, or the contributor guide, at docs/platforms/<file>.
@@ -734,7 +734,7 @@ const platformPages = (existsSync(platformsDir) ? readdirSync(platformsDir) : []
     const title = /^# (.+)\n\n(.+)\n/.exec(text);
     if (!title) throw new Error(`docs/platforms/${file} must start with "# Title", a blank line and a one-paragraph summary.`);
     const name = file === "README.md" ? "platforms" : `platforms/${file.slice(0, -3)}`;
-    return { name, title: title[1]!, kind: "platform" as const, group: "Platforms", markdown: `docs/platforms/${file}`, summary: summary(text.replace(/^# .*$/m, "")) };
+    return { name, title: pageTitle(title[1]!), kind: "platform" as const, group: "Platforms", markdown: `docs/platforms/${file}`, summary: summary(text.replace(/^# .*$/m, "")) };
   });
 // Ouro AX's page per ax item (docs/ax/, scripts/ax-docs.mts), published at docs/<item> as a component's page is.
 const axOutputs = axDocs(root, latestRelease(root));

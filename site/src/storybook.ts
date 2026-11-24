@@ -352,8 +352,12 @@ export const CARDS: Record<string, Card> = {
   "/apple/start/": { file: "apple-start.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Get started" },
   "/hx/": { file: "hx.jpg", scene: "ouro-hx", kicker: "Ouro HX", title: "Components for people's screens", size: 44 },
   "/windows/": { file: "windows.jpg", scene: "ouro-ui-windows", kicker: "Ouro UI for Windows", title: "Same manners, now in WinUI.", size: 44 },
+  "/windows/hx/": { file: "windows-hx.jpg", scene: "ouro-ui-windows", kicker: "Ouro UI for Windows", title: "Ouro HX for Windows" },
+  "/windows/ax/": { file: "windows-ax.jpg", scene: "ouro-ui-windows", kicker: "Ouro UI for Windows", title: "Ouro AX for Windows" },
   "/windows/start/": { file: "windows-start.jpg", scene: "ouro-ui-windows", kicker: "Ouro UI for Windows", title: "Get started" },
   "/android/": { file: "android.jpg", scene: "ouro-ui-android", kicker: "Ouro UI for Android", title: "Same manners, now in Compose.", size: 44 },
+  "/android/hx/": { file: "android-hx.jpg", scene: "ouro-ui-android", kicker: "Ouro UI for Android", title: "Ouro HX for Android" },
+  "/android/ax/": { file: "android-ax.jpg", scene: "ouro-ui-android", kicker: "Ouro UI for Android", title: "Ouro AX for Android" },
   "/android/start/": { file: "android-start.jpg", scene: "ouro-ui-android", kicker: "Ouro UI for Android", title: "Get started" },
   "/docs/": {
     file: "docs.jpg",

@@ -1,0 +1,84 @@
+{
+  "id": "households--claude-sonnet-5.5--1",
+  "scenario": "households",
+  "repo": "spoonjoy",
+  "commit": "3cf59ccd8461d761db31b26754fae34a6e02303b",
+  "model": "claude-sonnet-5.5",
+  "rep": 1,
+  "exit": 0,
+  "seconds": 29,
+  "prompt": "Agents can't do anything with households yet: Spoonjoy's actions and MCP tools have nothing for them. Add the agent side. The households service already has createHousehold, listHouseholds, getHousehold, renameHousehold, createInvite, emailInvite, previewInvite, acceptInvite, revokeInvite, changeMemberRole, removeFromHousehold and leave (app/domains/households-and-identity). Plan the actions: their ids, inputs, outputs, consent, and the descriptions agents read.\n\nReply with your answer in this chat; don't change any files.",
+  "events": [
+    {
+      "message": "I'll look at the existing action declarations and the households service first."
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd app/domains/households-and-identity && ls -R . | head -50; ls ../../../actions; sed -n 1,80p ../../../actions/shopping.mts",
+        "description": "Inspect households domain and action files"
+      }
+    },
+    {
+      "tool": "grep",
+      "arguments": {
+        "pattern": "export (async )?function (createHousehold|listHouseholds|getHousehold|renameHousehold|createInvite|emailInvite|previewInvite|acceptInvite|revokeInvite|changeMemberRole|removeFromHousehold|leave)\\b",
+        "paths": "app/domains/households-and-identity",
+        "output_mode": "content",
+        "-n": true,
+        "-A": 12
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd app/domains/households-and-identity && sed -n 100,128p application/households.server.ts; sed -n 140,165p application/households.server.ts; cat model/invite.ts | head -60; grep -n \"role\\|Role\" model/household.ts | head -20; cd ../../..; sed -n 1,60p actions/access.mts; grep -n \"consent\" tools/ouro-actions/ouro-actions.mts | head",
+        "description": "Read invite model, roles, access actions, consent kinds"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd .; sed -n 150,200p tools/ouro-actions/ouro-actions.mts; grep -n \"personOnly\\|consequential\" actions/*.mts | head -20; sed -n 1,40p app/domains/households-and-identity/model/household.ts | sed -n 18,34p; grep -n \"HouseholdView\\|HouseholdSummary\" -A8 app/domains/households-and-identity/application/household-store.ts | head -40",
+        "description": "Read consent classes, person-only usage, view types"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd .; sed -n 25,50p actions/spoonjoy.actions.mts; sed -n 95,125p actions/access.mts; sed -n 120,150p tools/ouro-actions/ouro-actions.mts",
+        "description": "See person-only and consequential examples and consent docs"
+      }
+    },
+    {
+      "message": "Here is the plan. I read `actions/*.mts`, the Ouro action model and `households.server.ts`, and changed nothing.\n\n## Conventions this follows\n- A new file, `actions/households.mts`, is spread into `spoonjoy.actions.mts`.\n- The ids are snake_case, and every operation in `app/lib/spoonjoy-api.server.ts` spreads `declaredOperation(\"<id>\")`.\n- Consent classes are `read`, `write`, `consequential` and `person-only`. I used `consequential` for anything that affects other people or hands out access.\n- Existing actions use `output: {}`, so I follow that.\n- Run `pnpm actions:generate` and commit `actions/generated/`.\n- No `ownerEmail` field on the signed-in path. Existing actions take it only as `protocolOnly`, for local servers.\n\n## Actions\n\n| id | consent | inputs | returns | notes |\n|---|---|---|---|---|\n| `list_households` | read | none | `{id, name, role, memberCount}[]` | |\n| `get_household` | read | `householdId` | name, `me`, members (username, role, joinedAt), invites | Invites are listed only to owners, as the service already does. Not-a-member returns the same \"not found\" as a missing household. |\n| `create_household` | write | `name` (max 80), optional `idempotencyKey` | `{id, name}` | It only creates a household the caller owns. |\n| `rename_household` | write, idempotent | `householdId`, `name` | `{id, name}` | Owner only. |\n| `create_household_invite` | consequential | `householdId`, optional `role` (`member` or `viewer`, default member), `uses` (1–50, default 1), `days` (1–30, default 14) | invite metadata and `token` | The token is a bearer credential. It is shown once, and the agent must hand it only to the person. |\n| `email_household_invite` | consequential | the same as above, plus a required `email` | `{to}` | It sends real mail to a third party. If mail fails, the invite is revoked and the result says `unavailable`. |\n| `preview_household_invite` | read | `token` | `{householdName, role, status}` | A bad token returns a \"doesn't work\" refusal. |\n| `accept_household_invite` | **person-only** | `token` | `{householdId, joined}` | See below. |\n| `revoke_household_invite` | write, destructive, idempotent | `householdId`, `inviteId` | none | Owner only. It only reduces access. |\n| `change_household_member_role` | consequential | `householdId`, `memberId`, `role` (`owner`, `member` or `viewer`) | none | Promoting someone to owner is the sensitive case. The model refuses changing your own role or leaving no owner. |\n| `remove_household_member` | consequential, idempotent | `householdId`, `memberId` | none | Affects another person. |\n| `leave_household` | consequential, idempotent | `householdId` | none | The last person out deletes the household. |\n\n**Why `accept_household_invite` is person-only.** Joining lets every member see the person's household-visible recipes through `householdChefIdsFor`. Only the person should decide that. The wording would be:\n- `reason`: \"Joining a household shares the person's kitchen with its members, so only they can choose to.\"\n- `how`: \"by opening the invite link and tapping Join\".\n\nAn agent can still call `preview_household_invite` first and tell the person what they'd be joining.\n\n## Agent descriptions\nEach `agent:` string is one line and states three things: who may do it, what it can't do, and where ids come from.\n- Examples: \"Owner only\", \"ids come from `list_households` / `get_household`\", \"never invite as owner; promote after they join\".\n- The `description` is the person's one sentence, in plain words.\n- Field descriptions say where each id comes from, as in `set_shopping_list_item_checked`.\n\n## Plumbing\n- **Operations:** add them in `spoonjoy-api.server.ts`. Each builds the household store from the signed-in user, uses `now = new Date()`, and passes `joinUrl` for `email_household_invite`. Map `Validated` failures to errors as follows:\n  - `forbidden` becomes 403.\n  - `unavailable` becomes 503.\n  - Other failures become 400.\n- **Declared-actions test:** `declared-actions.server.test.ts` requires every MCP tool to be declared. Add focused tests for the permission and refusal paths.\n- **Flag:** this is unfinished, so ship it behind `app/domains/platform/flags/flags/households-agents.ts` (off in production), and delete that file as the last step.\n- **Docs:** update `docs/api.md` and `docs/claude-connector.md`.\n\n## Open decision\n`start_agent_connection` grants only kitchen and shopping scopes, \"never account access\". Household membership and invites are closer to account-level, so I recommend a new `households` scope. It would be opt-in and not part of the defaults. Without it, a kitchen-scoped agent could create invite tokens. Tell me if you'd rather reuse the kitchen scope."
+    }
+  ],
+  "answer": "Here is the plan. I read `actions/*.mts`, the Ouro action model and `households.server.ts`, and changed nothing.\n\n## Conventions this follows\n- A new file, `actions/households.mts`, is spread into `spoonjoy.actions.mts`.\n- The ids are snake_case, and every operation in `app/lib/spoonjoy-api.server.ts` spreads `declaredOperation(\"<id>\")`.\n- Consent classes are `read`, `write`, `consequential` and `person-only`. I used `consequential` for anything that affects other people or hands out access.\n- Existing actions use `output: {}`, so I follow that.\n- Run `pnpm actions:generate` and commit `actions/generated/`.\n- No `ownerEmail` field on the signed-in path. Existing actions take it only as `protocolOnly`, for local servers.\n\n## Actions\n\n| id | consent | inputs | returns | notes |\n|---|---|---|---|---|\n| `list_households` | read | none | `{id, name, role, memberCount}[]` | |\n| `get_household` | read | `householdId` | name, `me`, members (username, role, joinedAt), invites | Invites are listed only to owners, as the service already does. Not-a-member returns the same \"not found\" as a missing household. |\n| `create_household` | write | `name` (max 80), optional `idempotencyKey` | `{id, name}` | It only creates a household the caller owns. |\n| `rename_household` | write, idempotent | `householdId`, `name` | `{id, name}` | Owner only. |\n| `create_household_invite` | consequential | `householdId`, optional `role` (`member` or `viewer`, default member), `uses` (1–50, default 1), `days` (1–30, default 14) | invite metadata and `token` | The token is a bearer credential. It is shown once, and the agent must hand it only to the person. |\n| `email_household_invite` | consequential | the same as above, plus a required `email` | `{to}` | It sends real mail to a third party. If mail fails, the invite is revoked and the result says `unavailable`. |\n| `preview_household_invite` | read | `token` | `{householdName, role, status}` | A bad token returns a \"doesn't work\" refusal. |\n| `accept_household_invite` | **person-only** | `token` | `{householdId, joined}` | See below. |\n| `revoke_household_invite` | write, destructive, idempotent | `householdId`, `inviteId` | none | Owner only. It only reduces access. |\n| `change_household_member_role` | consequential | `householdId`, `memberId`, `role` (`owner`, `member` or `viewer`) | none | Promoting someone to owner is the sensitive case. The model refuses changing your own role or leaving no owner. |\n| `remove_household_member` | consequential, idempotent | `householdId`, `memberId` | none | Affects another person. |\n| `leave_household` | consequential, idempotent | `householdId` | none | The last person out deletes the household. |\n\n**Why `accept_household_invite` is person-only.** Joining lets every member see the person's household-visible recipes through `householdChefIdsFor`. Only the person should decide that. The wording would be:\n- `reason`: \"Joining a household shares the person's kitchen with its members, so only they can choose to.\"\n- `how`: \"by opening the invite link and tapping Join\".\n\nAn agent can still call `preview_household_invite` first and tell the person what they'd be joining.\n\n## Agent descriptions\nEach `agent:` string is one line and states three things: who may do it, what it can't do, and where ids come from.\n- Examples: \"Owner only\", \"ids come from `list_households` / `get_household`\", \"never invite as owner; promote after they join\".\n- The `description` is the person's one sentence, in plain words.\n- Field descriptions say where each id comes from, as in `set_shopping_list_item_checked`.\n\n## Plumbing\n- **Operations:** add them in `spoonjoy-api.server.ts`. Each builds the household store from the signed-in user, uses `now = new Date()`, and passes `joinUrl` for `email_household_invite`. Map `Validated` failures to errors as follows:\n  - `forbidden` becomes 403.\n  - `unavailable` becomes 503.\n  - Other failures become 400.\n- **Declared-actions test:** `declared-actions.server.test.ts` requires every MCP tool to be declared. Add focused tests for the permission and refusal paths.\n- **Flag:** this is unfinished, so ship it behind `app/domains/platform/flags/flags/households-agents.ts` (off in production), and delete that file as the last step.\n- **Docs:** update `docs/api.md` and `docs/claude-connector.md`.\n\n## Open decision\n`start_agent_connection` grants only kitchen and shopping scopes, \"never account access\". Household membership and invites are closer to account-level, so I recommend a new `households` scope. It would be opt-in and not part of the defaults. Without it, a kitchen-scoped agent could create invite tokens. Tell me if you'd rather reuse the kitchen scope.",
+  "verdict": {
+    "criteria": [
+      {
+        "id": "jobs",
+        "met": false,
+        "evidence": "The plan is organized around the service's functions. Its table lists one action per service function (list_households, get_household, create_household, rename_household, create_household_invite, email_household_invite, preview_household_invite, accept_household_invite, ...), and it never names the jobs agents are asked to do."
+      },
+      {
+        "id": "restraint",
+        "met": false,
+        "evidence": "It plans 12 actions for 12 service functions, a one-to-one mirror. Creating an invite and emailing it stay separate ('create_household_invite' and 'email_household_invite'). No action is left out with a reason; accept is kept as person-only rather than dropped."
+      },
+      {
+        "id": "craft",
+        "met": false,
+        "evidence": "Some parts fit: 'output: {}' follows existing actions, and the consent choices have reasons ('consequential for anything that affects other people'). But failures don't say what to do next. They are only mapped to codes ('forbidden becomes 403', 'Other failures become 400'). The one bit of next-step guidance is the person-only 'how' text. Several actions also return 'none'."
+      },
+      {
+        "id": "proof",
+        "met": false,
+        "evidence": "Its only proof is tests: 'declared-actions.server.test.ts requires every MCP tool to be declared. Add focused tests for the permission and refusal paths.' It never plans to have fresh agents do a household job through the actions."
+      }
+    ],
+    "summary": "The answer mirrors the service one action per function and is proven only by unit and declaration tests, so it meets none of the criteria.",
+    "pass": false
+  }
+}

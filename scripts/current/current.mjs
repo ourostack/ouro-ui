@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
+import { AGENTS_PATH, agentsBar } from "./agents.mjs";
 import { lowerBaseline } from "./baseline.mjs";
 import { regenerate } from "./generate.mjs";
 import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, appleRequirement, asBytes, findPins, hxSquircleBehind, hxStylesheetBehind, isBehind, isCandidate, ourostackPackages, takes } from "./pins.mjs";
@@ -470,6 +471,12 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   notes.splice(0, notes.length, ...new Set(notes));
   // Every updater held back (a set that moves together or not at all): there is nothing to propose, and the notes say why.
   if (Object.keys(files).length === 0) return { ...result, state: "skipped", reason: notes.join(" "), pr: null };
+  // Ouro UI's bar for the agents working here rides along in AGENTS.md, between markers (agents.mjs).
+  if (!isIgnored(rules, AGENTS_PATH)) {
+    const agents = await agentsBar(read);
+    Object.assign(files, agents.files);
+    notes.push(...agents.notes);
+  }
   if (review) notes.push(`Auto-merge is off: this repository asks \`${info.owner.login}/${review}\` to review the update.`);
   if (dryRun) {
     // A live check runs when the update is written, not here: a dry run reads only what the write would read.

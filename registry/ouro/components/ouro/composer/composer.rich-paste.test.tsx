@@ -70,16 +70,20 @@ describe("Composer rich paste", () => {
 
   it("keeps ⌘K from reaching the browser", async () => {
     const editor = await render(rich({ defaultValue: "words" }));
-    vi.spyOn(window, "prompt").mockReturnValue(null);
     await selectAll(editor);
     const event = new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true, cancelable: true });
     await act(async () => void editor.dispatchEvent(event));
     expect(event.defaultPrevented).toBe(true);
   });
 
-  it("asks for an address with its own words, and takes a link off a selection that holds one among other text", async () => {
+  const linkForm = () => document.querySelector<HTMLFormElement>("[data-ouro-composer-link]");
+  const addressField = () => linkForm()!.querySelector<HTMLInputElement>("input")!;
+  // Disabled, the button also holds its hidden disabledReason text, so the match only starts with the label.
+  const addButton = () => [...linkForm()!.querySelectorAll("button")].find((button) => button.textContent?.startsWith("Add link"))!;
+
+  it("takes a link off a selection that holds one, and makes a selected address a link to itself, asking nothing", async () => {
     const seen: string[] = [];
-    const prompt = vi.spyOn(window, "prompt").mockReturnValue(null);
+    const prompt = vi.spyOn(window, "prompt");
     const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
     editor.focus();
     await paste(editor, { "text/html": 'a <a href="https://x.test/">b</a> c' });
@@ -87,10 +91,59 @@ describe("Composer rich paste", () => {
     await selectAll(editor);
     await key(editor, { key: "k", metaKey: true });
     await expect.poll(() => seen.at(-1)).toBe("a b c");
-    expect(prompt).not.toHaveBeenCalled();
+    // Typing over the selection, not pasting, puts the address in as plain text: a paste here would link
+    // the still-selected "a b c" to the pasted address instead (ourostack/ouro-ui#3538's other paste test).
+    await userEvent.keyboard("https://y.test/");
+    await expect.poll(() => seen.at(-1)).toBe("https://y.test/");
     await selectAll(editor);
     await key(editor, { key: "k", metaKey: true });
-    expect(prompt).toHaveBeenCalledWith("Link address");
+    await expect.poll(() => seen.at(-1)).toBe("[https://y.test/](https://y.test/)");
+    expect(linkForm()).toBeNull();
+    expect(prompt).not.toHaveBeenCalled();
+  });
+
+  it("asks for an address in its own popover, never the browser's prompt, and links the words it was asked over", async () => {
+    const seen: string[] = [];
+    const prompt = vi.spyOn(window, "prompt");
+    const editor = await render(rich({ defaultValue: "read this", onValueChange: (value: string) => void seen.push(value) }));
+    await selectAll(editor);
+    await key(editor, { key: "k", ctrlKey: true });
+    await expect.poll(linkForm).not.toBeNull();
+    expect(prompt).not.toHaveBeenCalled();
+    await expect.poll(() => document.activeElement).toBe(addressField());
+    expect(addButton().getAttribute("aria-disabled")).toBe("true");
+    await userEvent.type(addressField(), "https://z.test/");
+    await expect.poll(() => addButton().getAttribute("aria-disabled")).toBeNull();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => seen.at(-1)).toBe("[read this](https://z.test/)");
+    await expect.poll(linkForm).toBeNull();
+    expect(document.activeElement).toBe(editor);
+  });
+
+  it("adds nothing for words that aren't an address, and Escape leaves the words as they were, back in the box", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ defaultValue: "read this", onValueChange: (value: string) => void seen.push(value) }));
+    await selectAll(editor);
+    await key(editor, { key: "k", metaKey: true });
+    await expect.poll(linkForm).not.toBeNull();
+    await userEvent.type(addressField(), "not an address");
+    await act(async () => void linkForm()!.requestSubmit());
+    expect(linkForm()).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(linkForm).toBeNull();
+    expect(seen).toEqual([]);
+    expect(document.activeElement).toBe(editor);
+  });
+
+  it("asks nothing with the caret alone, or in a read-only box", async () => {
+    const editor = await render(rich({ defaultValue: "read this" }));
+    editor.focus();
+    await key(editor, { key: "k", metaKey: true });
+    expect(linkForm()).toBeNull();
+    const fixed = await render(rich({ defaultValue: "read this", readOnly: true }));
+    await selectAll(fixed);
+    await key(fixed, { key: "k", metaKey: true });
+    expect(linkForm()).toBeNull();
   });
 
   it.each(["script", "style", "noscript", "iframe", "object", "noembed", "noframes", "title", "svg"])("drops <%s> with its text", async (tag) => {
@@ -272,7 +325,7 @@ describe("Composer rich paste", () => {
 
   it("⌘K links a selected address to itself, takes a link off, and asks for the address otherwise", async () => {
     const seen: string[] = [];
-    const prompt = vi.spyOn(window, "prompt").mockReturnValue("https://y.test/");
+    const prompt = vi.spyOn(window, "prompt");
     const editor = await render(rich({ defaultValue: "https://x.test/", onValueChange: (value: string) => void seen.push(value) }));
     await selectAll(editor);
     await key(editor, { key: "k", metaKey: true });
@@ -285,29 +338,34 @@ describe("Composer rich paste", () => {
     const words = await render(rich({ defaultValue: "words", onValueChange: (value: string) => void seen.push(value) }));
     await selectAll(words);
     await key(words, { key: "k", metaKey: true });
-    expect(prompt).toHaveBeenCalledTimes(1);
+    await expect.poll(linkForm).not.toBeNull();
+    expect(prompt).not.toHaveBeenCalled();
+    await userEvent.type(addressField(), "https://y.test/");
+    await userEvent.keyboard("{Enter}");
     await expect.poll(() => seen.at(-1)).toBe("[words](https://y.test/)");
   });
 
   it("leaves the text alone when ⌘K has no selection, no answer or an unsafe one, and in a read-only box", async () => {
-    const seen: string[] = [];
-    const prompt = vi.spyOn(window, "prompt").mockReturnValue("javascript:alert(1)");
-    const editor = await render(rich({ defaultValue: "words", onValueChange: (value: string) => void seen.push(value) }));
+    const editor = await render(rich({ defaultValue: "words" }));
     editor.focus();
     await key(editor, { key: "k", metaKey: true });
-    expect(prompt).not.toHaveBeenCalled();
+    expect(linkForm()).toBeNull();
     await selectAll(editor);
-    await key(editor, { key: "k", metaKey: true });
-    expect(prompt).toHaveBeenCalledTimes(1);
-    prompt.mockReturnValue(null);
-    await key(editor, { key: "k", metaKey: true });
+    // Shift or Alt held with the mod key is not the shortcut, so it opens no popover.
     await key(editor, { key: "k", metaKey: true, shiftKey: true });
     await key(editor, { key: "k", metaKey: true, altKey: true });
-    expect(prompt).toHaveBeenCalledTimes(2);
+    expect(linkForm()).toBeNull();
+    await key(editor, { key: "k", metaKey: true });
+    await expect.poll(linkForm).not.toBeNull();
+    await userEvent.type(addressField(), "javascript:alert(1)");
+    await act(async () => void linkForm()!.requestSubmit());
+    expect(linkForm()).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(linkForm).toBeNull();
     expect(editor.querySelector("a")).toBeNull();
     const locked = await render(rich({ defaultValue: "words", readOnly: true }));
     await selectAll(locked);
     await key(locked, { key: "k", metaKey: true });
-    expect(prompt).toHaveBeenCalledTimes(2);
+    expect(linkForm()).toBeNull();
   });
 });

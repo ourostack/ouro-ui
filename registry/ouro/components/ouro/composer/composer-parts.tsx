@@ -16,6 +16,9 @@ import { emojiToken, splitEmojiText, toneOf } from "@/registry/ouro/components/o
 import type { EmojiTextPart } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { describeHighlights, highlightTone, highlightsKey, moveHighlights, normalizeHighlights } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
+import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { attachRef } from "@/registry/ouro/lib/ouro/refs";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 
@@ -389,17 +392,19 @@ function $nodesFromHtml(html: string): LexicalNode[][] {
   return lines;
 }
 
-// ⌘K: takes a link off a selection that holds one, makes a selected web address a link to itself, and otherwise asks for the address.
-function toggleLinkOfSelection(): void {
+// ⌘K: takes a link off a selection that holds one, makes a selected web address a link to itself, and otherwise gives back
+// the selection, for the editor to ask for the address in its own popover.
+function toggleLinkOfSelection(): RangeSelection | null {
   const selection = $getSelection();
-  if (!$isRangeSelection(selection) || selection.isCollapsed()) return;
+  if (!$isRangeSelection(selection) || selection.isCollapsed()) return null;
   if (selection.getNodes().some((node) => $isLinkNode(node) || $isLinkNode(node.getParent()))) {
     $toggleLink(null);
-    return;
+    return null;
   }
-  // Stryker disable next-line StringLiteral: a cancelled prompt read as any other text is no address, so safeHref rejects both alike; the question itself is checked.
-  const href = safeHref(selection.getTextContent()) ?? safeHref(window.prompt("Link address") ?? "");
-  if (href) $toggleLink(href);
+  const href = safeHref(selection.getTextContent());
+  if (!href) return selection.clone();
+  $toggleLink(href);
+  return null;
 }
 
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
@@ -630,6 +635,23 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     if (track.moved) marksChange.current?.(track.ranges);
   }, [track]);
   const frameRef = useRef<HTMLDivElement | null>(null);
+  // ⌘K over words that aren't an address asks for one in the editor's own popover: the selection it links, and the address typed.
+  const [linking, setLinking] = useState<{ selection: RangeSelection; address: string } | null>(null);
+  const linkHref = linking ? safeHref(linking.address) : undefined;
+  // Back to the words with the caret where it was, the link added or not.
+  const endLinking = (href: string | undefined) => {
+    const selection = linking!.selection;
+    setLinking(null);
+    editorRef.current!.update(() => {
+      // Stryker disable next-line CallExpression: a test's popover never moves the real document selection away from the editor, so skipping the restore reads the same selection either way; a person who tabbed to the popover's own field would lose their place without it.
+      $setSelection(selection.clone());
+      if (href) $toggleLink(href);
+    },
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: discrete only forces this update's DOM reconciliation to flush before the function returns; a test that reads the result afterwards, as every one here does, cannot tell a flushed render from a microtask-later one apart.
+    { discrete: true });
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral,CallExpression: jsdom and Chromium's headless layout have nothing to scroll to keep in place and nowhere else for focus to land, so a test cannot tell this call, preventScroll or its absence apart; a long composer keeps the page where it was and the caret's affordance in view with it.
+    rootRef.current!.focus({ preventScroll: true });
+  };
   // Stryker disable next-line ArrayDeclaration: the first measure replaces whatever the boxes start as, before a test or a person reads the layer (the effect that measures runs as the box mounts).
   const [boxes, setBoxes] = useState<MarkBox[]>([]);
   const rangesKey = highlightsKey(ranges);
@@ -941,7 +963,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           if (mod && event.shiftKey && !event.altKey && event.key.toLowerCase() === "v") plainPaste.current = true;
           if (mod && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "k" && !readOnly) {
             event.preventDefault();
-            editorRef.current!.update(() => toggleLinkOfSelection());
+            let ask: RangeSelection | null = null;
+            // Stryker disable next-line ObjectLiteral,BooleanLiteral: the updater runs synchronously either way, so `ask` holds its answer by the next line regardless; discrete only changes when the resulting render flushes, which a test polling for the popover afterwards cannot tell apart.
+            editorRef.current!.update(() => void (ask = toggleLinkOfSelection()), { discrete: true });
+            if (ask) setLinking({ selection: ask, address: "" });
           }
           onKeyDown(event);
           if (event.defaultPrevented) event.stopPropagation();
@@ -964,6 +989,24 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         <span aria-hidden="true" data-slot="composer-rich-placeholder" data-ouro-composer-placeholder="" className="pointer-events-none col-start-1 row-start-1 min-w-0 py-(--ouro-text-area-py) text-base leading-6 text-muted-foreground [--ouro-text-area-py:calc(var(--spacing)*3)] sm:pointer-fine:text-sm sm:pointer-fine:leading-5">
           {placeholder}
         </span>
+      )}
+      {linking && (
+        <Popover title="Add a link" open onOpenChange={(open) => open || endLinking(undefined)} anchor={frameRef} side="top" align="start">
+          <form
+            data-slot="composer-link-form"
+            data-ouro-composer-link=""
+            className="flex items-end gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (linkHref) endLinking(linkHref);
+            }}
+          >
+            <TextField label="Link address" type="url" value={linking.address} onValueChange={(address: string) => setLinking({ ...linking, address })} autoFocus className="min-w-0 flex-1" />
+            <Button type="submit" disabledReason={linkHref ? undefined : "Type a web address first"}>
+              Add link
+            </Button>
+          </form>
+        </Popover>
       )}
     </div>
   );
