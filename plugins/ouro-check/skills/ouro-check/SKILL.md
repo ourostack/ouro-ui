@@ -68,7 +68,7 @@ Put the before and after in the pull request as the proof. A finding you keep on
 
 A clean report is the floor, not proof that a screen is good: what measurement can decide isn't broken. Whether people understand the screen and finish its task, such as whether they know a form saved or what an action will remove, shows only when you watch them do it, so before you call a screen good, watch a few people do its task.[^floor]
 
-Before a person sees a screen, a mock or a capture of either, pass the beauty gate in [Design craft](https://ui.ouroboros.bot/docs/design-craft/#the-beauty-gate): put the captures beside their references at the same size, look at them yourself, then ask independent critics who didn't make it, and fix until they approve.
+Ask of every element whether the people who made the Mac and the iPhone would ship it, and take out what hasn't earned its place ([the bar](https://ui.ouroboros.bot/docs/design-craft/#the-bar)). Before a person sees a screen, a mock or a capture of either, pass the beauty gate in [Design craft](https://ui.ouroboros.bot/docs/design-craft/#the-beauty-gate): put the captures beside their references at the same size, look at them yourself, then ask independent critics who didn't make it, and fix until they approve.
 
 It decides what measurement can decide. Whether a picture is the right picture, whether the words are the right words, and whether a flow makes sense still need a person or a judge. Line length is checked only against a measure you declare. Jank is measured in headless Chromium at one size and theme; [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures a component in the engine an app ships in.
 
