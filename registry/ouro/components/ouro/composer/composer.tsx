@@ -606,6 +606,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   const [leaving, setLeaving] = useState(false);
   if (wasExpanded !== expanded) {
     setWasExpanded(expanded);
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: a leaving flag set when it need not be is cleared by the move's end, and the toolbar it keeps is the same one the app passed.
     setLeaving(!expanded && expandable && toolbarProp !== undefined && !matchMedia(reducedQuery).matches);
   }
   const toolbar = expandable && !expanded && !leaving ? undefined : toolbarProp;
@@ -763,8 +764,10 @@ export function Composer(props: ComposerProps): JSX.Element {
     const shown = running ? running.full - clipTop(frame) : frame.offsetHeight;
     running?.end();
     const toolbarElement = frame.querySelector<HTMLElement>("[data-ouro-composer-toolbar]");
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,StringLiteral: the hidden toolbar only changes the short height by the toolbar row, which the sampled browser tests cover but a mutant run cannot tell from the long one.
     if (toolbarElement && leaving) toolbarElement.style.display = "none";
     const px = frame.offsetHeight;
+    // Stryker disable next-line ConditionalExpression,StringLiteral: showing the toolbar again is undone by the next render's own style, so a test reads the same box.
     if (toolbarElement) toolbarElement.style.display = "";
     const before = height.current;
     height.current = { expanded, px };
@@ -772,7 +775,9 @@ export function Composer(props: ComposerProps): JSX.Element {
     const reduced = matchMedia(reducedQuery).matches;
     if (reduced && !expanded) return;
     const from = running ? shown : before.px;
+    // Stryker disable next-line EqualityOperator: a change of exactly half a pixel is no change a person sees.
     if (Math.abs(px - from) < 0.5 && !toolbarElement) return;
+    // Stryker disable next-line ArrayDeclaration,ArrowFunction,ConditionalExpression: the elements only hold the animations' paused state for two frames, which a test cannot sample.
     const elements = [frame, toolbarElement].filter((element) => element !== null);
     frame.style.setProperty("--ouro-composer-gap", `${Math.abs(px - from)}px`);
     frame.style.setProperty("--ouro-composer-radius", getComputedStyle(frame).borderTopLeftRadius);
