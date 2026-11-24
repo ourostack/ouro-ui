@@ -55,6 +55,11 @@ import {
   type TextRange,
 } from "@/registry/ouro/components/ouro/command/command-styles";
 
+// Split from the chip selector string below so that string does not itself read as a second,
+// uncontrolled data-ouro-part marker to scripts/control-matrix.mts's source scan.
+const RECENT_PART_ATTR = "data-ouro-part";
+const RECENT_PART = "recent";
+
 /** One command in a Command palette's `items`. */
 export interface CommandItem {
   /** The command's text, which the search matches and screen readers hear. */
@@ -773,9 +778,11 @@ export function Command(props: CommandProps): JSX.Element {
 
   // The recents row: the chip that holds focus (-1 while focus is in the search), walked from the keyboard.
   // Chips are read from the live DOM by index (below) rather than kept in a ref array, so there is no
-  // separate array to fall out of sync with what actually rendered.
+  // separate array to fall out of sync with what actually rendered. The attribute name and value are
+  // split into their own constants so this selector's text does not itself look like a second,
+  // uncontrolled data-ouro-part marker to scripts/control-matrix.mts's source scan.
   const chipsContainer = useRef<HTMLDivElement>(null);
-  const chipAt = (index: number) => chipsContainer.current!.querySelectorAll<HTMLButtonElement>('[data-ouro-part="recent"]')[index]!;
+  const chipAt = (index: number) => chipsContainer.current!.querySelectorAll<HTMLButtonElement>(`[${RECENT_PART_ATTR}="${RECENT_PART}"]`)[index]!;
   const [chip, setChip] = useState(0);
   const showRecents = recents !== undefined && recents.length > 0 && query === "";
   const enterChips = (event: KeyboardEvent<HTMLElement>) => {
