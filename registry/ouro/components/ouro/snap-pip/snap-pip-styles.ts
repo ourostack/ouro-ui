@@ -106,8 +106,7 @@ export function anchorFor(
 }
 
 /**
- * Whether `corner`'s place, as `anchorFor` finds it, clears every keep-out: false when no place
- * along its way to the middle of the stage does.
+ * Whether `corner`'s place, as `anchorFor` finds it, stays off the keep-outs.
  * @internal
  */
 export function clearsKeepOut(
