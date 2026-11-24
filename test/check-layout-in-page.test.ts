@@ -193,9 +193,10 @@ describe("findLayoutIssues: near-miss", () => {
   it("reads the minimum from the page's --ouro-gap-min, and the option's value where the page has none", () => {
     render(`${box("a", 10, 10, 60, 30)}${box("b", 80, 10, 60, 30)}`);
     expect(found()).toEqual([]);
+    document.documentElement.style.setProperty("--ouro-gap-min", "initial");
     expect(of("near-miss", { gapMin: 12 }).map((issue) => issue.detail)).toEqual(["10px apart: more than 0 and under the 12px minimum gap, so neither touching nor clearly apart"]);
-    document.documentElement.style.setProperty("--ouro-gap-min", "0.75rem");
     try {
+      document.documentElement.style.setProperty("--ouro-gap-min", "0.75rem");
       expect(found()).toEqual([["div#a and div#b", "10px"]]);
       document.documentElement.style.setProperty("--ouro-gap-min", "4px");
       expect(found()).toEqual([]);
