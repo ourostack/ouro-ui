@@ -1376,6 +1376,9 @@ describe("Composer expanded motion", () => {
     expect(moves).toHaveLength(2);
     expect(moves[1]!.from).toBeLessThan(moves[0]!.to - 1);
     expect(moves[1]!.from).toBeGreaterThan(moves[0]!.from - 2);
+    // The first move's own frames are over by now, and leave the second move running.
+    for (let i = 0; i < 6; i++) await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(frameOf(root).getAttribute("data-ouro-moving")).toBe("shrink");
     await moves[1]!.playing;
   });
 
