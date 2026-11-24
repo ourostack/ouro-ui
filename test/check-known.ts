@@ -78,6 +78,12 @@ export const knownFindings: KnownFinding[] = [
     reason: "The bar's divider runs against the story frame's edge, so the line is drawn twice; the bar should drop its own line where it meets an edge.",
   },
   {
+    story: "TextArea/Composer",
+    rule: "off-centre-text",
+    issue: 3257,
+    reason: "The story's form aligns its row to the end, so the one-line text area sits at the bottom beside a taller Send button and its placeholder reads low; the story should show Ouro's Composer, which centres its one line.",
+  },
+  {
     story: "Emoji/Placeholder",
     rule: "broken-image",
     issue: 1959,

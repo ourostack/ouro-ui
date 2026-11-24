@@ -591,6 +591,13 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       // Words on more than one line, or a line box trimmed to its cap height already, which this reading can't place, are
       // left alone.
       if (rects.some((r) => Math.abs(r.top - rects[0]!.top) > 2) || (trimmed && trimmed !== "none")) continue;
+      // An icon above or below the words, as a rail's item draws them, makes a stack whose middle isn't the words'.
+      const line = rects[0]!;
+      const stacked = [...el.querySelectorAll("svg, img, canvas, video")].some((icon) => {
+        const r = icon.getBoundingClientRect();
+        return r.width > 1 && r.height > 1 && (r.bottom <= line.top + 1 || r.top >= line.bottom - 1);
+      });
+      if (stacked) continue;
       context.font = `${ts.fontStyle} ${ts.fontWeight} ${ts.fontSize} ${ts.fontFamily}`;
       baseline = rects[0]!.top + context.measureText(first.textContent!).fontBoundingBoxAscent * scale;
     }
