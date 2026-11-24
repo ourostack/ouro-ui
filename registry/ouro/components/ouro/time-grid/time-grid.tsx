@@ -370,7 +370,7 @@ const utcDate = (day: string) => new Date(`${day}T00:00:00Z`);
 // Node's ICU spaces a range with thin (U+2009) and narrow (U+202F) spaces where browsers put plain ones.
 const plainSpaces = (text: string) => text.replace(/[\u2009\u202f]/g, " ");
 const between = (low: number, value: number, high: number) => Math.min(high, Math.max(low, value));
-/** The grid's hairlines: a full-strength one at each hour and a half-strength one at each half hour, as borders so forced colours keep them. */
+/** Hour and half-hour hairlines, drawn as borders. */
 const hourLines = Array.from({ length: 48 }, (_, index) => ({ at: index * 30, half: index % 2 === 1 }));
 const hourLineClass = "absolute inset-x-0 border-0 border-t border-solid border-border";
 const halfHourLineClass = "absolute inset-x-0 border-0 border-t border-solid border-[color-mix(in_oklab,var(--border)_50%,transparent)]";

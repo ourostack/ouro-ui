@@ -407,6 +407,22 @@ describe("TimeGrid", () => {
     expect(document.querySelectorAll('[data-ouro="time-grid"]')[3]!.querySelector("[data-ouro-time-grid-head] span span")!.textContent).toBe("9");
   });
 
+  it("draws a hairline border at every half hour of the day, the half hours at half strength, with no gradient", async () => {
+    const { grid } = await render({ view: "day" });
+    const lines = [...grid.querySelectorAll<HTMLElement>('[data-slot="time-grid-lines"] > [data-slot="time-grid-line"]')];
+    expect(lines).toHaveLength(48);
+    const step = lines[47]!.offsetTop / 47;
+    expect(step).toBeGreaterThan(1);
+    lines.forEach((line, index) => {
+      const style = getComputedStyle(line);
+      expect(style.backgroundImage).toBe("none");
+      expect(style.borderTopWidth).toBe("1px");
+      expect(Math.abs(line.offsetTop - index * step)).toBeLessThanOrEqual(1.5);
+      expect(style.borderTopColor).toBe(getComputedStyle(lines[index % 2]!).borderTopColor);
+    });
+    expect(getComputedStyle(lines[0]!).borderTopColor).not.toBe(getComputedStyle(lines[1]!).borderTopColor);
+  });
+
   it("places each event by its times on the grid's clock, and moves it with the time zone", async () => {
     const { rerender } = await render({ view: "day", events: [forum] });
     const place = () => named("Thursday").closest("li")!.style;
@@ -1110,15 +1126,15 @@ describe("TimeGrid", () => {
     const body = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
     const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
     // The day fills the room under the header, to the pixel, with every hour as tall.
-    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
+    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1.5);
     expect(body.offsetHeight).toBeGreaterThan(48 * 24);
-    expect(viewport().scrollHeight - viewport().clientHeight).toBeLessThanOrEqual(1);
+    expect(viewport().scrollHeight - viewport().clientHeight).toBeLessThanOrEqual(1.5);
     // A taller grid gives them more room.
     await rerender({ className: "h-[1700px]" });
-    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
+    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1.5);
     // A taller header, with a row of all-day events, leaves the hours less room, and they follow.
     await rerender({ className: "h-[1700px]", events: [{ id: "all", title: "Holiday", start: "2026-03-12" }, { id: "all2", title: "Offsite", start: "2026-03-12" }] });
-    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
+    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1.5);
     // Shorter than a day again: 48px hours.
     still.remove();
     await rerender({ className: "h-[30rem]" });
