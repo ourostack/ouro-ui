@@ -614,6 +614,8 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-measure-interaction`,
 `lib-navigation-key`,
 `lib-open-mode`,
+`lib-ouro-build-source`,
+`lib-ouro-build-source-info`,
 `lib-ouro-provider`,
 `lib-page-direction`,
 `lib-page-scroll-hold`,
