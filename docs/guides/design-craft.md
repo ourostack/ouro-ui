@@ -9,6 +9,7 @@ Ask of every little thing a person or an agent meets, from a pixel or a control 
 - **Make restraint the first cut.** Let each element earn its place: ask what breaks if it goes, and if nothing does, take it out.
 - **Ask a reference product for reasons and jobs, never for items to copy** ([steal, don't copy](#steal-dont-copy)).
 - **Build the basics people use every day, and build them well.** Keep restraint for what no job needs: never cut a job people do.
+- **Let every line of a doc earn its place too.** Write only what is true now, and leave out history such as "was X, now Y", "no longer", "superseded" or a dated quote kept to show what changed: git keeps it, and the next agent to read the doc takes it for the present.
 - **Give agents the same care, with the agent as the person.** Ask the same lenses of a door agents use, such as a command line, an HTTP API or an MCP server:
 
 | Lens | Asks of a door |
