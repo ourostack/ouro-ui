@@ -100,7 +100,8 @@ export interface SnapPiPProps {
    * SnapPiP, measured whenever they or the container resize. A ref is read again after each render
    * and whenever the container's content changes, so an element the app shows or takes away
    * behind the same ref, such as a captions band, counts as soon as it comes or goes. A corner
-   * that would overlap one moves just clear of it, toward the middle. When they change, the
+   * that would overlap one moves just clear of it, toward the middle. An app with a tile grid passes
+   * the grid as a keep-out, or a move to a corner lands on a face: the picture does not look for faces. When they change, the
    * picture follows its corner with the spring.
    * @claim "A corner that would overlap one" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > keeps its corners clear of keep-outs, rectangles or elements, and follows them with the spring when they change)
    * @claim "A ref is read again after" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > goes back to its corner when a keep-out element behind the same ref goes away, and clears it when it comes back)

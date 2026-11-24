@@ -1,0 +1,1 @@
+- New: BuildChip, a compact title-bar chip that names the build a window runs and opens a picker of the official build and the builds serving now, with a skew line and fix when it trails the official build.

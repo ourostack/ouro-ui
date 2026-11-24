@@ -2,7 +2,7 @@
 
 # FamilyBar
 
-The slim strip above a site's own header that links every site of a family, the same links in the same order on each, with the site being shown marked `aria-current="true"`, in the text colour, underlined in the primary colour as Navbar marks the current page. A labelled `<nav>` of plain links: the server HTML is the whole bar, so a page that never hydrates shows it as is. On a narrow screen the row scrolls inside itself, never the page, and fades at the side that hides more links, so a name cut at the edge reads as more to come. In browsers that support it the fade and the current site's link in view need no script. Once hydrated, the row fades in any browser and brings the current site's link into view when it is out of view. Links render through `OuroProvider`'s `linkComponent`, so a link to the site's own path stays in its router.
+The slim strip above a site's own header that links every site of a family, the same links in the same order on each, with the site being shown marked `aria-current="true"`, in the text colour, underlined in the primary colour as Navbar marks the current page. A labelled `<nav>` of plain links: the server HTML is the whole bar, so a page that never hydrates shows it as is. On a narrow screen the row scrolls inside itself, never the page. In browsers that support it the current site's link in view needs no script. Once hydrated, the row brings the current site's link into view in any browser when it is out of view. Links render through `OuroProvider`'s `linkComponent`, so a link to the site's own path stays in its router.
 
 ```tsx
 import { FamilyBar } from "@/registry/ouro/components/ouro/family-bar/family-bar";

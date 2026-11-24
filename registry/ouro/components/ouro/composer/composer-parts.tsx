@@ -897,7 +897,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   }));
 
   return (
-    <div ref={frameRef} data-slot={slot} className={cn("relative grid", className)}>
+    // The server, and the first client render, draw the plain textarea Composer falls back to until this editor's module
+    // loads, so a page with no JavaScript still gets a working box; this mount replacing it once the module is ready is
+    // that fallback's whole point, never a surprise swap (ourostack/ouro-ui#3308).
+    <div ref={frameRef} data-slot={slot} className={cn("relative grid", className)} data-ouro-allow="first-paint-swap" data-ouro-allow-why="Composer's rich editor loads after the plain textarea the server and first client render draw, by design (ourostack/ouro-ui#3308)">
       {name !== undefined && <input type="hidden" name={name} value={value} disabled={disabled} />}
       <div
         ref={(element) => {

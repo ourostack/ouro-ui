@@ -1,0 +1,1 @@
+- Fixed: Carousel no longer announces the wrong slide when a second press follows close behind an earlier one, before the first press's stability check has fired.

@@ -58,14 +58,14 @@ const sites: FamilyLink[] = [
   { id: "source", label: "Source", href: "https://github.com/example" },
 ];
 
-/** Whether the link is in the row and clear of its scroll padding, as wide as its fade, at each side that scrolls. */
-function clearOfFade(row: HTMLElement, link: HTMLElement): boolean {
+/** Whether the link is in the row and clear of its scroll padding, at each side that scrolls. */
+function clearOfEdge(row: HTMLElement, link: HTMLElement): boolean {
   const box = row.getBoundingClientRect();
   const at = link.getBoundingClientRect();
   const end = row.scrollWidth - row.clientWidth - Math.abs(row.scrollLeft) <= 1;
   const start = Math.abs(row.scrollLeft) <= 1;
   const [left, right] = getComputedStyle(row).direction === "rtl" ? [end, start] : [start, end];
-  return at.left >= box.left + (left ? 0 : 32) - 1 && at.right <= box.right - (right ? 0 : 32) + 1;
+  return at.left >= box.left + (left ? 0 : 8) - 1 && at.right <= box.right - (right ? 0 : 8) + 1;
 }
 
 describe("FamilyBar", () => {
@@ -146,13 +146,11 @@ describe("FamilyBar", () => {
     expect(nav.firstElementChild).toBe(row);
   });
 
-  it("scrolls the row inside itself on a narrow screen, never the page, and fades the side that hides more", async () => {
+  it("scrolls the row inside itself on a narrow screen, never the page", async () => {
     await page.viewport(320, 640);
     const { row } = await render(<FamilyBar links={sites} />);
     expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
-    await expect.poll(() => row.hasAttribute("data-ouro-scroll-fade")).toBe(true);
-    await expect.poll(() => getComputedStyle(row).maskImage).toContain("gradient");
   });
 
   it("keeps a thin scroll bar on the row for a mouse, whose wheel scrolls up and down", async () => {
@@ -163,7 +161,7 @@ describe("FamilyBar", () => {
     expect(getComputedStyle(row).scrollSnapType).toBe("none");
   });
 
-  it("brings each link the keyboard focuses clear of the row's fade, outline and all", async () => {
+  it("brings each link the keyboard focuses clear of the row's edge, outline and all", async () => {
     await page.viewport(320, 640);
     const { host, row } = await render(<FamilyBar links={sites} />);
     const before = document.createElement("button");
@@ -173,8 +171,7 @@ describe("FamilyBar", () => {
     const clear = (link: Element) => {
       const box = row.getBoundingClientRect();
       const at = link.getBoundingClientRect();
-      const fade = (side: "left" | "right") => Math.min(parseFloat(row.style.getPropertyValue(`--ouro-scroll-fade-${side}`) || "0"), 32);
-      return at.left - box.left >= fade("left") - 1 && box.right - at.right >= fade("right") - 1;
+      return at.left >= box.left - 1 && at.right <= box.right + 1;
     };
     for (const site of sites) {
       await pressTab();
@@ -191,7 +188,7 @@ describe("FamilyBar", () => {
     }
   });
 
-  it("leaves the row still when a click focuses a link in the fade, so the link never moves under the pointer", async () => {
+  it("leaves the row still when a click focuses a link at the row's edge, so the link never moves under the pointer", async () => {
     await page.viewport(320, 640);
     const { host, row, link } = await render(<FamilyBar links={sites} />);
     host.addEventListener("click", (event) => event.preventDefault());
@@ -212,9 +209,9 @@ describe("FamilyBar", () => {
     await page.viewport(320, 640);
     const { row, root, link } = await render(<FamilyBar links={sites} current="community" />);
     expect(row.scrollLeft).toBeGreaterThan(0);
-    expect(clearOfFade(row, link("Community"))).toBe(true);
+    expect(clearOfEdge(row, link("Community"))).toBe(true);
     await act(async () => root.render(<FamilyBar links={sites} current="source" />));
-    expect(clearOfFade(row, link("Source"))).toBe(true);
+    expect(clearOfEdge(row, link("Source"))).toBe(true);
   });
 
   it("leaves the row where it starts when the current site's link is already in view, with or without script", async () => {
@@ -248,57 +245,6 @@ describe("FamilyBar", () => {
     expect(at.right).toBeLessThanOrEqual(box.right + 1);
   });
 
-  it("fades the side of the row that hides more in the server HTML alone, with no script, and nothing in a row that fits", async () => {
-    await page.viewport(320, 640);
-    const serverRow = (dir?: "rtl") => {
-      const host = document.createElement("div");
-      if (dir) host.dir = dir;
-      document.body.append(host);
-      mounted.push(host);
-      host.innerHTML = renderToString(<FamilyBar links={sites} />);
-      return host.querySelector<HTMLElement>("[data-ouro-family-row]")!;
-    };
-    const row = serverRow();
-    // The hint is in the HTML, as classes; no script marks the row.
-    expect(row.className).toContain(":[animation-timeline:scroll(self_inline)]");
-    expect(row.hasAttribute("data-ouro-scroll-fade")).toBe(false);
-    expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
-    // Firefox has no scroll-driven animations yet: there the row fades once it hydrates.
-    if (!CSS.supports("animation-timeline", "scroll()")) return;
-    await expect.poll(() => getComputedStyle(row).maskImage).toContain("gradient");
-    // Which ramps show: the left one once its layer is no longer pushed off the box, the right one once its layer is
-    // the box's width.
-    const ramps = (box: HTMLElement) => {
-      const style = getComputedStyle(box);
-      if (style.maskImage === "none") return { left: false, right: false };
-      return { left: !style.maskPosition.trim().startsWith("-"), right: style.maskSize.split(",")[1]!.trim().startsWith("100%") };
-    };
-    await expect.poll(() => ramps(row)).toEqual({ left: false, right: true });
-    row.scrollLeft = (row.scrollWidth - row.clientWidth) / 2;
-    await expect.poll(() => ramps(row)).toEqual({ left: true, right: true });
-    row.scrollLeft = row.scrollWidth;
-    await expect.poll(() => ramps(row)).toEqual({ left: true, right: false });
-    const rtl = serverRow("rtl");
-    await expect.poll(() => ramps(rtl)).toEqual({ left: true, right: false });
-    await page.viewport(1280, 800);
-    // A row that fits from the start. (One that widens to fit after it scrolled: family-bar.touch.test.tsx.)
-    await expect.poll(() => ramps(serverRow())).toEqual({ left: false, right: false });
-  });
-
-  it("draws no scroll-driven fade under reduced motion, where the script's fade shows once the page hydrates", async () => {
-    await page.viewport(320, 640);
-    await commands.emulateMedia({ reducedMotion: "reduce" });
-    try {
-      const host = document.createElement("div");
-      document.body.append(host);
-      mounted.push(host);
-      host.innerHTML = renderToString(<FamilyBar links={sites} />);
-      expect(host.querySelector("[data-ouro-family-row]")!.getAnimations()).toEqual([]);
-    } finally {
-      await commands.emulateMedia({ reducedMotion: "no-preference" });
-    }
-  });
-
   it("keeps no scroll bar on a row that fits", async () => {
     const { row } = await render(<FamilyBar links={sites} />);
     expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
@@ -313,10 +259,10 @@ describe("FamilyBar", () => {
     try {
       const { row, root, link } = await render(<FamilyBar links={sites} current="community" />);
       expect(row.scrollLeft).toBeGreaterThan(0);
-      expect(clearOfFade(row, link("Community"))).toBe(true);
+      expect(clearOfEdge(row, link("Community"))).toBe(true);
       row.scrollLeft = 0;
       await act(async () => root.render(<FamilyBar links={sites} current="source" />));
-      expect(clearOfFade(row, link("Source"))).toBe(true);
+      expect(clearOfEdge(row, link("Source"))).toBe(true);
     } finally {
       style.remove();
     }
@@ -326,14 +272,13 @@ describe("FamilyBar", () => {
     await page.viewport(320, 640);
     const { row, link } = await render(<FamilyBar links={sites} current="community" />, "rtl");
     expect(row.scrollLeft).toBeLessThan(0);
-    expect(clearOfFade(row, link("Community"))).toBe(true);
+    expect(clearOfEdge(row, link("Community"))).toBe(true);
   });
 
   it("leaves a row that fits, or has no current site, where it starts", async () => {
     const fits = await render(<FamilyBar links={sites} current="source" />);
     expect(fits.row.scrollWidth).toBeLessThanOrEqual(fits.row.clientWidth);
     expect(fits.row.scrollLeft).toBe(0);
-    expect(fits.row.hasAttribute("data-ouro-scroll-fade")).toBe(false);
     await page.viewport(320, 640);
     const none = await render(<FamilyBar links={sites} />);
     expect(none.row.scrollLeft).toBe(0);

@@ -16,7 +16,7 @@
 // unconfirmed leaf path. A kind reached neither way is an `unwalked` gap at its line in the type.
 import { createRequire } from "node:module";
 import { join, relative, resolve } from "node:path";
-import ts from "typescript";
+import * as ts from "../../ts71.mts";
 import type { Door, Gap, WalkerOptions, WalkResult } from "../types.mts";
 import { applyCards, loadCards, Raises, serverErrorsCheck } from "./cli-cards.mts";
 import { type Comparison, expand, inside, nextWords, type Scope, Sources } from "./ts-argv.mts";
@@ -59,7 +59,7 @@ export function readKinds(sources: Sources, file: string, name: string): { kinds
   };
   /** Whether the members hold a `kind` of string literals; false when there's none, or it isn't literals. */
   const members = (path: string, list: ts.NodeArray<ts.TypeElement>): boolean => {
-    const kind = list.find((m): m is ts.PropertySignature => ts.isPropertySignature(m) && ts.isIdentifier(m.name) && m.name.text === "kind");
+    const kind = list.find((m): m is ts.PropertySignatureDeclaration => ts.isPropertySignature(m) && ts.isIdentifier(m.name) && m.name.text === "kind");
     return !!kind?.type && literals(path, kind.type);
   };
   const seen = new Set<ts.Node>();
@@ -67,7 +67,7 @@ export function readKinds(sources: Sources, file: string, name: string): { kinds
     if (seen.has(decl)) return true;
     seen.add(decl);
     if (ts.isTypeAliasDeclaration(decl)) return visit(path, decl.type);
-    const heritage = (decl.heritageClauses ?? []).flatMap((h) => h.types).map((h) => (ts.isIdentifier(h.expression) ? sources.imported(path, h.expression.text, declIn) : null));
+    const heritage = (decl.heritageClauses ?? []).flatMap((h) => h.types).map((h) => { const name = (h as ts.ExpressionWithTypeArguments).expression ?? (h as ts.TypeReferenceNode).typeName; return ts.isIdentifier(name) ? sources.imported(path, name.text, declIn) : null; });
     return members(path, decl.members) || heritage.some((found) => !!found && declared(found.file, found.found));
   };
   const visit = (path: string, node: ts.TypeNode): boolean => {

@@ -462,6 +462,10 @@ const SLOT = "data-ouro-message-list-slot";
  * @claim "draws its hairline by a rule with no sibling combinator" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws the hairline between posts in a list with no :has() or sibling rule over its slots, which WebKit restyles for)
  */
 const POST_AFTER = "data-ouro-message-list-after-post";
+/** Marks a slot whose next slot holds a continued message, so the bubble here joins it without a sibling selector. */
+const RUN_NEXT = "data-ouro-message-list-run-next";
+/** Sets a slot's run mark from the slot after it, as it is now. */
+const markRunNext = (slot?: Element | null) => void slot?.toggleAttribute(RUN_NEXT, slot.nextElementSibling?.firstElementChild?.hasAttribute("data-continued") === true);
 /** Sets a slot's mark from the child of the slot before it, as it is now. */
 const markPostAfter = (slot?: Element | null) => void slot?.toggleAttribute(POST_AFTER, slot.previousElementSibling?.firstElementChild?.getAttribute("data-variant") === "post");
 
@@ -2479,6 +2483,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // attributes, siblings and children forces no layout.
     for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) {
       markPostAfter(slot);
+      markRunNext(slot);
       // Stryker disable next-line CallExpression: the window counts the children again just after this, and the observer that follows marks each message by those counts, so the marks end the same without this.
       counts.current.set(slot.getAttribute(SLOT)!, topItems(slot).length);
     }
@@ -3033,7 +3038,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const observer = new MutationObserver((records) => {
       // A message that changes its variant without the list rendering re-renders its children, which the child list shows, so
       // no attribute is watched. The mark that moves is the next slot's, the only one that reads this slot.
-      for (const { target } of records) markPostAfter((target as Element).closest(`[${SLOT}]`)?.nextElementSibling);
+      for (const { target } of records) {
+        const slot = (target as Element).closest(`[${SLOT}]`);
+        markPostAfter(slot?.nextElementSibling);
+        markRunNext(slot?.previousElementSibling);
+      }
       // Stryker disable next-line ConditionalExpression,MethodExpression,BooleanLiteral: after only the bar moved, syncing finds and marks the same messages again; skipping it only spares the work.
       if (!records.every(barOnly)) sync(records.some(touchesItems));
     });
@@ -3089,7 +3098,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           <div
             ref={contentRef}
             data-ouro-message-list-content=""
-            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-3"
+            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-[calc(1rem-var(--ouro-message-run-gap,var(--ouro-size-1)))]"
             style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
           >
             {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}

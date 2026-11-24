@@ -72,6 +72,92 @@ export function knownProblems(entries: readonly KnownFinding[]): string[] {
 
 export const knownFindings: KnownFinding[] = [
   {
+    story: "FamilyBar/FarAlong",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "The bar's divider runs against the story frame's edge, so the line is drawn twice; the bar should drop its own line where it meets an edge.",
+  },
+  {
+    story: "TimeGrid/Day",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do. Under nova's dark scheme the column's line is too faint against the page to count as drawn, so the finding shows in light only.",
+    theme: "nova",
+    sometimes: true,
+  },
+  {
+    story: "TimeGrid/Links",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do. Under nova's dark scheme the column's line is too faint against the page to count as drawn, so the finding shows in light only.",
+    theme: "nova",
+    sometimes: true,
+  },
+  {
+    story: "TimeGrid/Locales",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do. Under nova's dark scheme the column's line is too faint against the page to count as drawn, so the finding shows in light only.",
+    theme: "nova",
+    sometimes: true,
+  },
+  {
+    story: "TimeGrid/NowAdornment",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do. Under nova's dark scheme the column's line is too faint against the page to count as drawn, so the finding shows in light only.",
+    theme: "nova",
+    sometimes: true,
+  },
+  {
+    story: "ThreadLayout/Default",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "The rail's border-s runs against the story frame's own edge, so the line between thread and frame is drawn twice; ThreadRail should drop its border where it meets an edge.",
+  },
+  {
+    story: "ThreadLayout/Narrow",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "The rail's border-s runs against the story frame's own edge, so the line between thread and frame is drawn twice; ThreadRail should drop its border where it meets an edge.",
+  },
+  {
+    story: "ThreadRail/Playground",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "The Composer's frame sits flush against the rail's border-s, so the rail's divider is drawn twice down the composer's side; the composer wants room inside the rail.",
+  },
+  {
+    story: "TimeGrid/BackgroundEvents",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+  },
+  {
+    story: "TimeGrid/BackgroundEventsDay",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+  },
+  {
+    story: "TimeGrid/Playground",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+  },
+  {
+    story: "TimeGrid/Statuses",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "Two events side by side touch, so the line between them is drawn twice; events want a small gap between them, as a calendar's do.",
+  },
+  {
+    story: "TimeGrid/WorkWeek",
+    rule: "doubled-line",
+    issue: 3257,
+    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
+  },
+  {
     story: "Emoji/Placeholder",
     rule: "broken-image",
     issue: 1959,
@@ -126,5 +212,772 @@ export const knownFindings: KnownFinding[] = [
     theme: "nova",
     reason:
       "At 2560px, past the root type step, an event's Japanese time range (11時00分～12時00分) has no break point, so it sits on its own line below the event's title; the copy and its locale are the story's.",
+  },
+  {
+    story: "AgentHandoff/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "AgentHandoff/Playground",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "AppWindow/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "AppWindow/Playground",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Autocomplete/Open",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Avatar/GroupChats",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ColorField/Controlled",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ColorField/Playground",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ColorField/States",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Combobox/Modes",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Combobox/People",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Combobox/States",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Composer/EmojiTokens",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Composer/Expanded",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Composer/Quoting",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Composer/WithTools",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationFind/WithMessageList",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Emoji/InMessages",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Inspector/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Inspector/Playground",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Lightbox/ChatMosaic",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Lightbox/MosaicWithMore",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MediaTile/ReducedMotion",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Message/Chat",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Message/ChatRaised",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Message/FlatChannel",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Message/NotSent",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Message/WithAttachments",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MessageList/Actions",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MessageList/Keyboard",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MessageList/LoadingOlder",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MessageList/LongConversation",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MessageList/OpenedAtMessage",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MessageList/Springs",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MessageList/Switching",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Patterns/Settings",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Porthole/Action",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Porthole/Live",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Porthole/Narrow",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Porthole/NewsWithAction",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Porthole/Open",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Porthole/States",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ReactionBar/Disabled",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ReactionBar/ImageCatalogue",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ReactionBar/InMessage",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ReactionBar/OptimisticPress",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ReactionBar/Playground",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ReactionBar/ReadOnly",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ReactionBar/WithPicker",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "RouteProgress/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Row/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Stack/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Switch/Playground",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Switch/Settings",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Switch/States",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "SyncStatus/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "TabBar/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "TabBar/Playground",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ThreadLayout/Default",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ThreadLayout/Narrow",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "TimeGrid/BackgroundEvents",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "TimeGrid/BackgroundEventsDay",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "TimeGrid/Day",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "TimeGrid/NowAdornment",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "TimeGrid/Playground",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "TimeGrid/WithToolbar",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "TimeGrid/WorkWeek",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Toaster/KeepClear",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ToggleGroup/Modes",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ToggleGroup/Pills",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ToggleGroup/ScrollingPills",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Toolbar/AutoHide",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Toolbar/Floating",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "AgentPresence/OneAgent",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "AgentPresence/TwoAgents",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "AgentPresence/Unread",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Attachment/OpensInApp",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Badge/Filters",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Badge/StatusDots",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Badge/Tones",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Button/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationFind/NoMatches",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationList/Drafts",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationList/Selectable",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "NavigationRail/IconsOnly",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "SnapPip/ControlledCorner",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "AgentPresence/Compact",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Attachment/Files",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Attachment/Kinds",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Attachment/Removable",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Badge/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationFind/LongConversation",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationList/Compact",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationList/Filtered",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationList/Playground",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationList/RowMenu",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationList/Sections",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Heading/RecipeCard",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MediaTile/GridOfFour",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "NavigationRail/LongLabels",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "NavigationRail/Overflow",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "NavigationRail/Playground",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "NavigationRail/Views",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ScrollArea/InContext",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "TextArea/Composer",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
 ];

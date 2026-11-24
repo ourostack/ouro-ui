@@ -359,7 +359,7 @@ describe("home page", () => {
     // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what is its own;
     // MCP Apps and A2UI come after, under "Works with", as formats of Ouro's tree.
     const opening = readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "");
-    expect(opening.startsWith("# Ouro UI\n\n**Delightful interfaces, by agents, for everyone.**[^for-everyone] Ouro UI is a complete kit for agents to build interfaces for people and for other agents. An agent composes an interface as data that Ouro draws natively")).toBe(true);
+    expect(opening.startsWith("# Ouro UI\n\n**Delightful interfaces, by agents, for everyone.**[^for-everyone] A kit for agents to build interfaces people enjoy and other agents can use, on the web, Apple, Windows and Android.")).toBe(true);
     // The composed tree leads beside the one action (core's 2026-11-17 record): it is the first point, before the formats.
     expect(opening).toContain("**Composed UI.**");
     expect(opening.indexOf("**Composed UI.**")).toBeLessThan(opening.indexOf("**One action declaration.**"));
@@ -380,7 +380,7 @@ describe("home page", () => {
     for (const link of ["https://ui.ouroboros.bot/docs/agent-interfaces/", "https://ui.ouroboros.bot/docs/model-reviews/", "docs/platforms/android.md"]) {
       expect(opening.indexOf(link)).toBeLessThan(opening.indexOf("## Ouro HX"));
     }
-    expect(llms.startsWith("# Ouro HX\n")).toBe(true);
+    expect(llms.startsWith("# Ouro UI\n\n> A kit for agents to build interfaces people enjoy and other agents can use, on the web, Apple, Windows and Android.")).toBe(true);
     for (const term of ["design system's tokens and theme", "`ouro-theme`", "A2UI messages", "MCP Apps view"]) {
       expect(llms).toContain(term);
     }
@@ -1374,7 +1374,7 @@ describe.each([
       const violations = await scan();
       // A scrollable region with no tab stop: what each ScrollArea viewport looked like when the scan ended (#1620).
       const viewports = violations.some((violation) => violation.rule === "scrollable-region-focusable")
-        ? [...document.querySelectorAll<HTMLElement>("[data-scroll-viewport]")].map((viewport) => `\nviewport: tabindex ${viewport.tabIndex}, scroll ${viewport.scrollHeight}×${viewport.scrollWidth} in ${viewport.clientHeight}×${viewport.clientWidth}, ${viewport.hasAttribute("data-ouro-scroll-fade-y") ? "marked" : "unmarked"}, fonts ${document.fonts.status}`).join("")
+        ? [...document.querySelectorAll<HTMLElement>("[data-scroll-viewport]")].map((viewport) => `\nviewport: tabindex ${viewport.tabIndex}, scroll ${viewport.scrollHeight}×${viewport.scrollWidth} in ${viewport.clientHeight}×${viewport.clientWidth}, fonts ${document.fonts.status}`).join("")
         : "";
       expect(violations, describeViolations(violations) + viewports).toEqual([]);
     }, pageScanTimeout);
