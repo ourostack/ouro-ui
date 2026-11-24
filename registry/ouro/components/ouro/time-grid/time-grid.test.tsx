@@ -20,6 +20,7 @@ import {
 } from "@/registry/ouro/components/ouro/time-grid/time-grid-styles";
 import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 // Runs in Chromium and WebKit. The grid's clock reads New York, where March 12, 2026 is a
@@ -882,6 +883,17 @@ describe("TimeGrid", () => {
       expect(named(grid)).toBe("Thursday, March 12, 10:30 AM");
     });
 
+    it("leaves the slots with Tab and Shift+Tab, never holding focus, and is one stop ahead of the events", async () => {
+      const { grid, focus } = await open();
+      await pressTab();
+      expect(document.activeElement).not.toBe(focus);
+      expect(grid.querySelectorAll('[role="grid"][tabindex="0"]')).toHaveLength(1);
+      expect(focus.getAttribute("aria-activedescendant")).toBeNull();
+      await pressTab({ shift: true });
+      expect(document.activeElement).toBe(focus);
+      expect(focus.getAttribute("tabindex")).toBe("0");
+    });
+
     it("moves a slot with Up and Down, an hour with Page Up and Page Down, and to the day's ends with Home and End", async () => {
       const { grid } = await open();
       await userEvent.keyboard("{ArrowDown}");
@@ -896,6 +908,16 @@ describe("TimeGrid", () => {
       expect(named(grid)).toBe("Thursday, March 12, 12:00 AM");
       await userEvent.keyboard("{End}");
       expect(named(grid)).toBe("Thursday, March 12, 11:30 PM");
+    });
+
+    it("keeps Home, End, Page Up and Page Down the same in right-to-left", async () => {
+      const { grid } = await open({}, (node) => <div dir="rtl">{node}</div>);
+      await userEvent.keyboard("{Home}");
+      expect(named(grid)).toBe("Thursday, March 12, 12:00 AM");
+      await userEvent.keyboard("{End}");
+      expect(named(grid)).toBe("Thursday, March 12, 11:30 PM");
+      await userEvent.keyboard("{PageUp}");
+      expect(named(grid)).toBe("Thursday, March 12, 10:30 PM");
     });
 
     it("moves a day with Left and Right, mirrored in right-to-left, and stops at the edges", async () => {
