@@ -1,9 +1,23 @@
 import { execFileSync } from "node:child_process";
-import type { Plugin } from "vite";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { buildSourceInfo, type OuroBuildSourceInfo } from "./ouro-build-source-info.ts";
 
 export { ouroBuildSource };
 export type { OuroBuildSourceOptions };
+
+/**
+ * The slice of Vite's `Plugin` and `ViteDevServer` this file reads, named here instead of
+ * imported from `vite`, so the registry generator skips pinning `vite` as a runtime dependency.
+ * An app's own `vite.config.ts` carries `vite`'s real, wider types, which satisfy this narrower
+ * shape.
+ */
+interface DevServerPlugin {
+  name: string;
+  configureServer(server: {
+    watcher: { on(event: "change", listener: (file: string) => void): void };
+    middlewares: { use(handler: (req: IncomingMessage, res: ServerResponse, next: () => void) => void): void };
+  }): void;
+}
 
 /** Options {@link ouroBuildSource} takes. */
 interface OuroBuildSourceOptions {
@@ -54,7 +68,7 @@ function readGit(cwd: string, official: string) {
  * });
  * @group App setup
  */
-function ouroBuildSource(options: OuroBuildSourceOptions): Plugin {
+function ouroBuildSource(options: OuroBuildSourceOptions): DevServerPlugin {
   const cwd = options.cwd ?? process.cwd();
   const official = options.official ?? "main";
   let cached: OuroBuildSourceInfo | undefined;
