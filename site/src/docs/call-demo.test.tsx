@@ -239,6 +239,21 @@ describe("the call window page", () => {
     expect(document.querySelector("[data-site-call-reaction]")?.textContent).toContain("👏");
   });
 
+  it("keeps the people strip tall enough to read while a screen is shared, whatever the call size", async () => {
+    await page.viewport(1100, 800);
+    await renderPage("/docs/call-demo/");
+    await document.fonts.ready;
+    await page.getByRole("button", { name: "Share screen" }).click();
+    const seen: string[] = [];
+    for (const count of ["1", "2", "3", "4", "5", "6"]) {
+      await page.getByRole("radio", { name: count }).click();
+      await expect.poll(() => document.querySelectorAll('[data-site-call-demo] [data-ouro="media-tile"]').length).toBe(Number(count) + 1);
+      const tiles = [...document.querySelectorAll<HTMLElement>('[data-site-call-demo] [data-ouro="media-tile"]')];
+      seen.push(Math.min(...tiles.slice(1).map((tile) => tile.getBoundingClientRect().height)));
+    }
+    expect(Math.min(...seen)).toBeGreaterThanOrEqual(80);
+  });
+
   it("says which parts of the demo are scripted", async () => {
     await renderPage("/docs/call-demo/");
     expect(document.body.textContent).toMatch(/own script/);
