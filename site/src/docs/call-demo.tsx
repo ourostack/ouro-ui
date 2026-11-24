@@ -427,11 +427,7 @@ function CallDemo(): JSX.Element {
         onPointerEnter={() => setStill(true)}
         onPointerLeave={() => setStill(false)}
         onFocusCapture={() => setStill(true)}
-        onBlurCapture={() => setStill(false)}
-        style={inCall && others > 4 ? { height: "46rem" } : undefined}
-        aria-label="Call"
-        role="group"
-        className="h-160 overflow-hidden rounded-lg border border-border outline-none">
+        onBlurCapture={() => setStill(false)} aria-label="Call" role="group" className="h-160 overflow-hidden rounded-lg border border-border outline-none">
         {body}
       </div>
       <div className="min-w-0 max-w-sm">
