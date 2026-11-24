@@ -1365,6 +1365,20 @@ describe("Composer expanded motion", () => {
     await moves[1]!.playing;
   });
 
+  it("starts the move back from the height the clip had left to clear when it is turned round mid-way", async () => {
+    const { host, root } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const moves: ComposerMove[] = [];
+    host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
+    await userEvent.click(expandButton()!);
+    expect(moves).toHaveLength(1);
+    expect(frameOf(root).getAttribute("data-ouro-moving")).toBe("grow");
+    await userEvent.click(expandButton()!);
+    expect(moves).toHaveLength(2);
+    expect(moves[1]!.from).toBeLessThan(moves[0]!.to - 1);
+    expect(moves[1]!.from).toBeGreaterThan(moves[0]!.from - 2);
+    await moves[1]!.playing;
+  });
+
   it("clips and fades the box in over a moment, and only fades the toolbar in with reduced motion", async () => {
     const { root } = await render(<Composer label="Reply" defaultExpanded={false} toolbar={<span>Tools</span>} onSend={() => {}} />);
     const toolbar = () => root.querySelector<HTMLElement>('[data-ouro-part="toolbar"]')!;
