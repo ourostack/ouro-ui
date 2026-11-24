@@ -927,7 +927,7 @@ export function Command(props: CommandProps): JSX.Element {
             )}
           </CommandList>
         </div>
-        <KeepHighlight heldRef={held} query={query} />
+        <KeepHighlight heldRef={held} query={query} idle={showRecents} />
         <ResultCount query={query} loading={loading} label={resultsLabel} />
       </div>
     </Autocomplete.Root>
@@ -1042,15 +1042,17 @@ const valueOf = (item: CommandItem) => item.value ?? item.label;
 function KeepHighlight({
   heldRef,
   query,
+  idle,
 }: {
   heldRef: { current: { value: string; query: string } };
   query: string;
+  idle: boolean;
 }): JSX.Element {
   // A mark of its own in the palette, since a dialog and a sheet may both be mounted while one replaces the other.
   const mark = useRef<HTMLSpanElement | null>(null);
   useLayoutEffect(() => {
     const want = heldRef.current;
-    if (want.query !== query) return;
+    if (idle || want.query !== query) return;
     const rows = [...mark.current!.closest('[data-ouro="command"]')!.querySelectorAll<HTMLElement>("[data-ouro-command-value]")];
     const row = rows.find((candidate) => candidate.getAttribute("data-ouro-command-value") === want.value) ?? rows[0];
     if (!row) return;
