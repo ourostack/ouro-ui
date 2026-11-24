@@ -424,13 +424,13 @@ function CallDemo(): JSX.Element {
         </div>
         <div ref={bottomRef} className="grid gap-2 p-2">
           {captionsOn ? (
-            <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={2} />
+            <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={narrow ? 2 : 1} />
           ) : null}
           <div className="flex min-w-0 justify-center">
             {bar}
           </div>
         </div>
-        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} collapsed={selfHidden} onCollapsedChange={setSelfHidden} keepOut={!bandRoom && chosenHidden === false ? [bottomRef] : [bottomRef, gridRef]}>
+        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} collapsed={selfHidden} onCollapsedChange={setSelfHidden} collapseLabels={{ hide: "Hide your camera", show: "Show your camera" }} keepOut={!bandRoom && chosenHidden === false ? [bottomRef] : [bottomRef, gridRef]}>
           {selfPicture}
         </SnapPiP>
         <Popover title="React" open={reactionsOpen} onOpenChange={setReactionsOpen} anchor={bottomRef}>
