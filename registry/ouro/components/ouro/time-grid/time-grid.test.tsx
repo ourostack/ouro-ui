@@ -541,6 +541,33 @@ describe("TimeGrid", () => {
     expect(items[2]!.style.getPropertyValue("--ouro-time-grid-cover")).toBe("");
   });
 
+  // The columns between an event and the nearest later-column event that overlaps it in time, or null when none does.
+  async function coverSteps(spans: Array<[string, string, string]>) {
+    const events = spans.map(([title, from, to]) => ({ id: title, title, start: at(12, from), end: at(12, to) }));
+    const { items } = await placedBoxes(events, "240px");
+    return items.map((item) => {
+      const cover = item.style.getPropertyValue("--ouro-time-grid-cover");
+      return cover === "" ? null : Number(/\* (\d+) - 0\.875rem/.exec(cover)![1]);
+    });
+  }
+
+  it("covers an event only by a later column that overlaps it, and by the nearest such column", async () => {
+    // Columns: a 0, b 1, c 2, d 0, e 1. d is overlapped by c and then e, and e is the nearer column; e only touches c.
+    expect(
+      await coverSteps([["Aa", "09:00", "10:30"], ["Bb", "09:00", "10:00"], ["Cc", "09:30", "11:30"], ["Dd", "10:30", "12:00"], ["Ee", "11:30", "14:00"]]),
+    ).toEqual([1, 1, null, 1, null]);
+  });
+
+  it("does not cover an event by a later column that starts after it ends", async () => {
+    // Columns: p 0, r 1, q 1, y 2. y starts after r ends.
+    expect(await coverSteps([["Pp", "09:00", "12:00"], ["Rr", "09:00", "10:00"], ["Qq", "10:00", "12:00"], ["Yy", "10:30", "11:00"]])).toEqual([1, null, 1, null]);
+  });
+
+  it("does not cover an event by a later column that ends before it starts", async () => {
+    // Columns: p 0, r 1, q 1, y 2. y ends before q starts.
+    expect(await coverSteps([["Pp", "09:00", "12:00"], ["Rr", "09:00", "10:00"], ["Qq", "10:00", "12:00"], ["Yy", "09:30", "10:00"]])).toEqual([1, 1, null, null]);
+  });
+
   it("names each event by the words it shows first, its title and its time, then its day, its status and its description", async () => {
     await render({
       events: [
