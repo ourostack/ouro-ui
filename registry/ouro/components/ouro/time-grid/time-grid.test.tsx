@@ -442,8 +442,27 @@ describe("TimeGrid", () => {
 
   it("shares a day's width between overlapping events", async () => {
     await render({ view: "day", events: [forum, focus] });
-    expect([forum, focus].map((event) => titled(event.title).closest("li")!.style.insetInlineStart)).toEqual(["0%", "50%"]);
-    expect([forum, focus].map((event) => titled(event.title).closest("li")!.style.width)).toEqual(["50%", "50%"]);
+    const [first, second] = [forum, focus].map((event) => titled(event.title).closest("li")!.getBoundingClientRect());
+    expect(second.left - first.left).toBeCloseTo(first.width, 0);
+    expect(second.width).toBeCloseTo(first.width, 0);
+  });
+
+  it("steps overlapping events over one another in a day too narrow to split, so each keeps a readable width", async () => {
+    const third = { id: "third", title: "Third", start: at(12, "10:15"), end: at(12, "11:15") };
+    await render({ view: "day", events: [forum, focus, third] }, (grid) => <div style={{ width: "240px" }}>{grid}</div>);
+    const widths = () => [forum, focus, third].map((event) => titled(event.title).closest("li")!.getBoundingClientRect().width);
+    let last: number[] = [];
+    await expect
+      .poll(() => {
+        const stable = widths().every((width, index) => width === last[index]);
+        last = widths();
+        return stable;
+      })
+      .toBe(true);
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    for (const width of widths()) expect(width).toBeGreaterThanOrEqual(4.5 * rem - 1);
+    const day = titled(forum.title).closest("ul")!.getBoundingClientRect();
+    for (const event of [forum, focus, third]) expect(titled(event.title).closest("li")!.getBoundingClientRect().right).toBeLessThanOrEqual(day.right + 1);
   });
 
   it("names each event by the words it shows first, its title and its time, then its day, its status and its description", async () => {
