@@ -935,9 +935,12 @@ describe("MessageList", () => {
     const opened = await nextFrame(scroller);
     const top = () => document.getElementById("row-0")!.getBoundingClientRect().top;
     const placed = top();
+    const log: string[] = [];
+    const desc = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    Object.defineProperty(scroller, "scrollTop", { get: () => desc.get!.call(scroller), set: (v: number) => { log.push(`${v} ${new Error().stack!.split("\n").slice(2, 6).join(" | ")}`); desc.set!.call(scroller, v); } });
     await rerender(<Rows height={overflow - 1} last={101} />);
     await settle(scroller);
-    expect(scroller.scrollTop).toBe(opened);
+    expect(scroller.scrollTop, log.join(" ## ")).toBe(opened);
     expect(top()).toBe(placed);
   });
 
