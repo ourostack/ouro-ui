@@ -12,6 +12,10 @@
     --part-corner: calc(var(--radius) * 1.4);
     padding-bottom: calc(var(--spacing) * 4);
   }
+  /* The scene's line stays at 20px on a wide screen: the pages' own type already uses it, and a size more breaks Ouro check's type scale. */
+  .part .story-world-line {
+    font-size: 1.25rem;
+  }
   /* Room under the hero before the first band's rule. */
   .part-hero {
     padding-bottom: calc(var(--spacing) * 12);
