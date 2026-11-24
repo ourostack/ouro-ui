@@ -782,7 +782,7 @@ describe("Avatar shapes and icons", () => {
   it("clips a square's picture to its corners", async () => {
     const { avatar } = await render(<Avatar name="Design reviews" shape="square" src={photo} />);
     await expect.poll(() => avatar.querySelector("img")).not.toBeNull();
-    expect(getComputedStyle(avatar.querySelector("img")!).borderTopLeftRadius).toBe(getComputedStyle(avatar).borderTopLeftRadius);
+    expect(getComputedStyle(avatar.querySelector("img")!).borderTopLeftRadius).toBe(getComputedStyle(surface(avatar)).borderTopLeftRadius);
   });
 
   it("shows an icon instead of initials, keeping the name for screen readers", async () => {
