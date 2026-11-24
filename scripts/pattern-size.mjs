@@ -46,9 +46,12 @@ const prefix = "ourostack/ouro-ui/";
 // message, so nothing there reached the bundle, and no cheaper cut was found for this small, genuinely new code. Measured
 // by CI over main at 902939ded (main's run 45293648025, Size ceilings): 86,430 bytes of JavaScript (CSS stays under its
 // own ceiling, so only JavaScript moves).
+// list-detail-page's CSS ceiling raised 2026-11-24 (#3490): Badge's count look (a fixed-size red pill with its own
+// figure style and an optional overlay position) is new CSS in every page that renders a Badge. Measured by CI over this
+// pull request's tree (scripts 3/3): 10,405 bytes of CSS.
 export const CEILINGS = {
   "dashboard-page": { js: 86_430 + 1024, css: 10_598 + 512 },
-  "list-detail-page": { js: 85_796 + 1024, css: 9_731 + 512 },
+  "list-detail-page": { js: 85_796 + 1024, css: 10_405 + 512 },
   "settings-page": { js: 105_063 + 1024, css: 13_737 + 512 },
 };
 

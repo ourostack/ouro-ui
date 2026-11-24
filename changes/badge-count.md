@@ -1,0 +1,1 @@
+- New: `<Badge count>` draws a toolbar count, a small round pill in the theme's `--ouro-count` red with white tabular figures centred on their cap height, and `overlay` places it at the corner of an icon button by `--ouro-count-x` and `--ouro-count-y`.
