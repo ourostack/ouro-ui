@@ -46,13 +46,19 @@ const prefix = "ourostack/ouro-ui/";
 // message, so nothing there reached the bundle, and no cheaper cut was found for this small, genuinely new code. Measured
 // by CI over main at 902939ded (main's run 45293648025, Size ceilings): 86,430 bytes of JavaScript (CSS stays under its
 // own ceiling, so only JavaScript moves).
-// list-detail-page's and settings-page's ceilings raised 2026-11-24 (SegmentedControl's glass look, after Button's and
-// ButtonGroup's): the glass classes and the item's icon and count parts are new in every page that renders one. Measured
-// by CI over the pull request's head in JavaScript and CSS: 87,068 and 10,885; 105,784 and 14,633.
+// list-detail-page's CSS ceiling raised 2026-11-24 (#3490): Badge's count look (a fixed-size red pill with its own
+// figure style and an optional overlay position) is new CSS in every page that renders a Badge. Measured by CI over this
+// pull request's tree (scripts 3/3): 10,405 bytes of CSS.
+// Every ceiling raised again 2026-11-24 (SegmentedControl's glass look, after Button's and ButtonGroup's): the glass
+// classes and the item's icon and count parts are new in every page that renders a SegmentedControl directly, and are
+// also now reachable from every page through ColorSchemeToggle, which already depends on SegmentedControl for its own
+// look. Measured over a clean install of this pull request's tree against the same main (cfdf0347b) with no ceiling
+// change of its own: dashboard-page 86,508 and 11,202; list-detail-page 86,872 and 10,877; settings-page 105,464 and
+// 14,581.
 export const CEILINGS = {
-  "dashboard-page": { js: 86_430 + 1024, css: 10_598 + 512 },
-  "list-detail-page": { js: 87_068 + 1024, css: 10_885 + 512 },
-  "settings-page": { js: 105_784 + 1024, css: 14_633 + 512 },
+  "dashboard-page": { js: 86_508 + 1024, css: 11_202 + 512 },
+  "list-detail-page": { js: 86_872 + 1024, css: 10_877 + 512 },
+  "settings-page": { js: 105_464 + 1024, css: 14_581 + 512 },
 };
 
 /**
