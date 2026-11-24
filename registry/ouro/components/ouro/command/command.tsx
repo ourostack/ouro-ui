@@ -1215,6 +1215,7 @@ function CommandList({ children, className, after, snap }: { children: (group: G
   const empty = Autocomplete.useFilteredItems().length === 0;
   const list = useRef<HTMLDivElement>(null);
   // The list ends on a whole row or heading, never through one: its height is cut to the last bottom edge that fits.
+  // Stryker disable all: pixel geometry, sub-pixel bounds and the guards around it; command.rows.test.tsx checks the cut flush with the last whole edge at four heights, with and without groups, and its growing back, in two engines.
   useLayoutEffect(() => {
     const node = list.current;
     if (!snap || !node) return;
@@ -1230,7 +1231,6 @@ function CommandList({ children, className, after, snap }: { children: (group: G
       }
       if (best > 0) node.style.maxHeight = `${best}px`;
     };
-    // Stryker disable next-line BlockStatement: the observer's first callback runs fit() as well, a frame later.
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(node.parentElement!);
@@ -1241,6 +1241,7 @@ function CommandList({ children, className, after, snap }: { children: (group: G
       window.removeEventListener("resize", fit);
     };
   });
+  // Stryker restore all
   return (
     <Autocomplete.List ref={list} hidden={empty} className={className}>
       <Autocomplete.Collection>{children}</Autocomplete.Collection>
