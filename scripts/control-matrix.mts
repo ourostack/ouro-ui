@@ -12,7 +12,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import * as ts from "./ts71.mts";
 import { componentsDir, MANIFEST, pascal, readComponents, readMotion } from "./components.mts";
 import { treeFiles } from "./tree.mjs";
 import { trackedFiles } from "./generated-files.mjs";
@@ -89,7 +89,8 @@ function objectLiteral(node: ts.Expression | undefined): ts.ObjectLiteralExpress
 
 /** `parameters.mode` of a meta or story object, when it is a string literal. */
 function modeOf(node: ts.Expression | undefined, where: string): string | undefined {
-  const parameters = objectLiteral(property(objectLiteral(node) ?? ts.factory.createObjectLiteralExpression(), "parameters"));
+  const holder = objectLiteral(node);
+  const parameters = objectLiteral(holder && property(holder, "parameters"));
   const mode = parameters && property(parameters, "mode");
   if (mode === undefined) return undefined;
   if (!ts.isStringLiteral(mode)) throw new Error(`${where}: parameters.mode must be a string literal`);
@@ -110,7 +111,7 @@ export function readStoryModes(root: string = repoRoot): Map<string, StoryMode[]
     .sort();
   for (const file of files) {
     const stem = file.replace(/^.*\/([\w-]+)\.stories\.tsx$/, "$1");
-    const source = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const source = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptKind.TSX);
     const declarations = new Map<string, ts.Expression | undefined>();
     let metaMode: string | undefined;
     const exported: string[] = [];

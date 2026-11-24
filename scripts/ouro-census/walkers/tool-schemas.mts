@@ -34,10 +34,10 @@
 // gives `mutates`, a resolver gives `mutates: "depends on arguments"`, and none gives nothing, so a `read` card needs a
 // profile that says `mutates: "none"`. A card's error codes count as raised when they're literals outside cards in the
 // door's file or a `handlers` file (the dispatcher).
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
-import ts from "typescript";
+import * as ts from "../../ts71.mts";
 import type { Door, DoorCard, Gap, WalkerOptions, WalkResult } from "../types.mts";
 import { literalsOutsideCards } from "./literals.mts";
 
@@ -196,7 +196,7 @@ function sourceRootOf(expr: ts.Expression, seen = new Set<ts.Node>()): string | 
 
 /** Whether a function can be imported from its file: exported where it's declared, or by an `export { name }`. */
 function isExported(fn: Fn, sf: ts.SourceFile, name: string): boolean {
-  const exportedHere = (n: ts.Node | undefined): boolean => !!n && ts.canHaveModifiers(n) && !!ts.getModifiers(n)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  const exportedHere = (n: ts.Node | undefined): boolean => !!n && !!ts.getModifiers(n)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
   if (exportedHere(fn) || exportedHere(fn.parent?.parent?.parent)) return true;
   return sf.statements.some((st) => ts.isExportDeclaration(st) && !st.moduleSpecifier && !!st.exportClause && ts.isNamedExports(st.exportClause)
     && st.exportClause.elements.some((e) => (e.propertyName ?? e.name).text === name));
@@ -395,7 +395,7 @@ export async function walkToolSchemas(opts: WalkerOptions): Promise<WalkResult> 
   const parse = (path: string): ts.SourceFile => {
     let sf = files.get(path);
     if (!sf) {
-      sf = ts.createSourceFile(path, ts.sys.readFile(path) ?? "", ts.ScriptTarget.Latest, true);
+      sf = ts.createSourceFile(path, existsSync(path) ? readFileSync(path, "utf8") : "");
       files.set(path, sf);
     }
     return sf;

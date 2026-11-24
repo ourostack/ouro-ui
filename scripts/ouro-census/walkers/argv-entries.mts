@@ -7,7 +7,7 @@
 // its subcommands. Those are read from the syntax tree only: nothing here is run.
 import { readdirSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import ts from "typescript";
+import * as ts from "../../ts71.mts";
 import type { Door, WalkerOptions, WalkResult } from "../types.mts";
 import { applyCards, loadCards, Raises } from "./cli-cards.mts";
 import { nextWords, Sources } from "./ts-argv.mts";

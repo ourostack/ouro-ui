@@ -10,7 +10,7 @@
 // argv array or word to a function the source set can resolve (same file, or a relative import) are followed.
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import ts from "typescript";
+import * as ts from "../../ts71.mts";
 
 export type Fn = ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
 type Binding = { arr: number } | { word: number | null };
@@ -59,7 +59,7 @@ export class Sources {
   file(path: string): ts.SourceFile {
     let sf = this.files.get(path);
     if (!sf) {
-      sf = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+      sf = ts.createSourceFile(path, readFileSync(path, "utf8"), );
       this.files.set(path, sf);
     }
     return sf;

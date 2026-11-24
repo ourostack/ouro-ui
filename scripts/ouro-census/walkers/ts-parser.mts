@@ -16,7 +16,7 @@
 // unconfirmed leaf path. A kind reached neither way is an `unwalked` gap at its line in the type.
 import { createRequire } from "node:module";
 import { join, relative, resolve } from "node:path";
-import ts from "typescript";
+import * as ts from "../../ts71.mts";
 import type { Door, Gap, WalkerOptions, WalkResult } from "../types.mts";
 import { applyCards, loadCards, Raises, serverErrorsCheck } from "./cli-cards.mts";
 import { type Comparison, expand, inside, nextWords, type Scope, Sources } from "./ts-argv.mts";
