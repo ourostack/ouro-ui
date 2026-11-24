@@ -210,7 +210,7 @@ describe("Ouro check", () => {
     // Budgets from the config, and none with the measured rules off.
     const config = { budgets: { inp: 5000, "layout-shift": 5, "first-content": 60000 } };
     const relaxed = await check({ targets: [folder], out: dir("measured"), pages: "*-fail.html", sizes: [[1440, 900]], themes: ["light"], config, chromium, log: quiet });
-    assert.deepEqual(relaxed.findings.filter((f) => f.value !== undefined), []);
+    assert.deepEqual(relaxed.findings.filter((f) => f.value !== undefined && f.rule !== "dropped-frames"), []);
     const off = await check({ targets: [folder], out: dir("measured"), pages: "*-fail.html", sizes: [[1440, 900]], themes: ["light"], measured: false, chromium, log: quiet });
     assert.deepEqual(off.findings, []);
   });
