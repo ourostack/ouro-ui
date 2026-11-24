@@ -1136,11 +1136,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                     role="list"
                     aria-label={`${formats.fullDay.format(utcDate(day))}, ${backgroundLabel}`}
                     data-ouro-time-grid-background=""
-                    className={cn(
-                      "pointer-events-none absolute inset-y-0 start-0 m-0 box-border w-(--ouro-time-grid-lane) list-none p-0",
-                      // A day's wide lane keeps apart from the person's own with a dashed edge.
-                      labelBackground && "border-0 border-e border-dashed border-border",
-                    )}
+                    className="pointer-events-none absolute inset-y-0 start-0 m-0 box-border w-(--ouro-time-grid-lane) list-none p-0"
                   >
                     {placedItems(behind[index]!.filter((placed) => !stackOf.has(placed.key)))}
                     {stacks[index]!.map(stackItem)}
