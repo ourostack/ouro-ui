@@ -30,7 +30,7 @@ interface Painted {
 interface Measures {
   shift: number;
   shiftNode: Node | null;
-  /** The shifts of that burst, one line each: when, how much, what moved and from where to where. */
+  /** The shifts of that burst as text lines: the time, the value, the element and its boxes. */
   shiftLog: string[];
   paint: number;
   paintNode: Element | null;

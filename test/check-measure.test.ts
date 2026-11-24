@@ -45,6 +45,14 @@ describe("listenForMeasures", () => {
     await expect.poll(() => m.shift).toBeGreaterThan(0);
   });
 
+  it("records the shifts of the worst burst with their time, value, element and boxes", () => {
+    const m = measures();
+    const el = Object.assign(document.createElement("div"), { id: "hero", className: "media" });
+    const rect = (y: number, height: number) => ({ x: 120, y, width: 1200, height } as DOMRectReadOnly);
+    m.add({ value: 0.3, startTime: 812.4, hadRecentInput: false, sources: [{ node: el, previousRect: rect(242, 480), currentRect: rect(402, 480) }] });
+    expect(m.shiftLog).toEqual(["812 ms after navigation: 0.300, div#hero.media 120,242 1200x480 -> 120,402 1200x480"]);
+  });
+
   it("scores the largest burst of shifts no input caused, and keeps the element that moved most", () => {
     const m = measures();
     const [a, b, c] = ["a", "b", "c"].map((id) => Object.assign(document.createElement("div"), { id }));
@@ -157,14 +165,6 @@ describe("listenForMeasures", () => {
 });
 
 describe("findLoadingIssues", () => {
-  it("names each shift of the worst burst in a layout-shift finding: when, how much, what moved and where", () => {
-    const m = measures();
-    const el = Object.assign(document.createElement("div"), { id: "hero", className: "media" });
-    const rect = (y: number, height: number) => ({ x: 120, y, width: 1200, height } as DOMRectReadOnly);
-    m.add({ value: 0.3, startTime: 812.4, hadRecentInput: false, sources: [{ node: el, previousRect: rect(242, 480), currentRect: rect(402, 480) }] });
-    expect(m.shiftLog).toEqual(["812 ms after navigation: 0.300, div#hero.media 120,242 1200x480 -> 120,402 1200x480"]);
-  });
-
   it("finds a page that shifted or drew its content over budget, marked on what moved and what drew, with each number and budget", async () => {
     render('<div id="moved" class="card">Moved</div><p id="late">Late words</p>');
     // A text node, as a shift's source can be: named by its element.
