@@ -1028,7 +1028,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               role="list"
               aria-label={allDayLabel}
               className="m-0 grid list-none auto-rows-[1.375rem] gap-y-0.5 p-0 py-1"
-              style={{ gridColumn: "2 / -1", gridTemplateColumns: `repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))`, minHeight: `${lanes * 1.5 + 0.5}rem` }}
+              style={{ gridColumn: "2 / -1", gridTemplateColumns: `repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))`, minHeight: `${lanes * 1.5 + 0.75}rem` }}
             >
               {allDay.map((span) => (
                 <li key={span.key} className="min-w-0 px-0.5" style={{ gridColumn: `${span.first + 1} / ${span.last + 2}`, gridRow: span.lane + 1 }}>
