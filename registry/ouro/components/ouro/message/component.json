@@ -31,7 +31,10 @@
           "parts": {
             "bar": {"properties": ["opacity"], "reduced": ["opacity"]}
           },
-          "tests": ["registry/ouro/components/ouro/message/message-list.bar-fade.test.tsx::MessageList bar fade > fades the bar out over the fast duration when the pointer leaves, then unmounts it, with reduced motion %s"]
+          "tests": [
+            "registry/ouro/components/ouro/message/message-list.bar-fade.test.tsx::MessageList bar fade > fades the bar out over the fast duration when the pointer leaves, then unmounts it, with reduced motion false",
+            "registry/ouro/components/ouro/message/message-list.bar-fade.test.tsx::MessageList bar fade > fades the bar out over the fast duration when the pointer leaves, then unmounts it, with reduced motion true"
+          ]
         }
       }
     }

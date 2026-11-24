@@ -66,7 +66,13 @@ describe("MessageList bar fade", () => {
     await expect.poll(() => getComputedStyle(bar()!).opacity).toBe("1");
   });
 
-  it.each([false, true])("fades the bar out over the fast duration when the pointer leaves, then unmounts it, with reduced motion %s", async (reduced) => {
+  it("never marks the bar as ending while the pointer still hovers it", async () => {
+    await render();
+    await shown("m0");
+    expect(bar()!.hasAttribute("data-ending-style")).toBe(false);
+  });
+
+  async function fadesOutThenUnmounts(reduced: boolean) {
     await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
     slowFade();
     await render();
@@ -78,7 +84,11 @@ describe("MessageList bar fade", () => {
     await expectMotion(leaving, { stem: "message", state: "data-ending-style", properties: { opacity: fast() }, reduced });
     await expect.poll(() => bar()).toBeNull();
     expect(document.querySelector("[data-ouro-message-bar-slot]")?.parentNode ?? null).toBeNull();
-  });
+  }
+
+  // Two explicit tests, not it.each: motion coverage's recorded test names must match these titles literally, which an it.each "%s" template cannot do.
+  it("fades the bar out over the fast duration when the pointer leaves, then unmounts it, with reduced motion false", () => fadesOutThenUnmounts(false));
+  it("fades the bar out over the fast duration when the pointer leaves, then unmounts it, with reduced motion true", () => fadesOutThenUnmounts(true));
 
   it("keeps the same bar, unfaded, when the pointer comes back during the exit", async () => {
     slowFade();
