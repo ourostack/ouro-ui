@@ -3,7 +3,7 @@ import { page, userEvent } from "vitest/browser";
 import platforms from "../../../scripts/parity-data/platforms.json";
 import { cleanupPage, renderPage } from "../../test/render";
 import { coverage, readCoverage } from "../hx/coverage";
-import { PLATFORM_PATHS } from "../paths";
+import { ANDROID_PAGES, PLATFORM_PATHS, WINDOWS_PAGES } from "../paths";
 import { redirects, routes } from "../routes";
 import kits from "./kits.json";
 
@@ -14,8 +14,12 @@ afterEach(async () => {
 const TITLES = {
   "/hx/": /^Ouro HX, for people's\s+screens\.$/,
   "/windows/": "Same manners, now in WinUI.",
+  "/windows/hx/": "Ouro's controls, made of WinUI.",
+  "/windows/ax/": "Two doors, one declaration.",
   "/windows/start/": "Add it with dotnet.",
   "/android/": "Same manners, now in Compose.",
+  "/android/hx/": "Ouro's components, made of Compose.",
+  "/android/ax/": "AppFunctions, from the same declaration.",
   "/android/start/": "Add it in Gradle.",
 } as const;
 
@@ -29,11 +33,25 @@ describe("platform pages", () => {
 
   it.each([
     ["/windows/", "Ouro UI for Windows"],
+    ["/windows/hx/", "Ouro UI for Windows"],
+    ["/windows/ax/", "Ouro UI for Windows"],
     ["/android/", "Ouro UI for Android"],
+    ["/android/hx/", "Ouro UI for Android"],
+    ["/android/ax/", "Ouro UI for Android"],
   ] as const)("marks %s in its own section menu", async (path, label) => {
     await renderPage(path);
     const menu = page.getByRole("navigation", { name: label, includeHidden: true });
     expect(menu.element().querySelector('[aria-current="page"]')?.getAttribute("href")).toMatch(new RegExp(`${path}$`));
+  });
+
+  it.each([
+    ["windows", WINDOWS_PAGES],
+    ["android", ANDROID_PAGES],
+  ] as const)("%s's menu lists Overview, Ouro HX, Ouro AX and Get started, and the HX and AX routes carry those names", (platform, pages) => {
+    expect(pages.map((entry) => entry.path)).toEqual([`/${platform}/`, `/${platform}/hx/`, `/${platform}/ax/`, `/${platform}/start/`]);
+    const name = platform === "windows" ? "Windows" : "Android";
+    expect(routes.find((route) => route.path === `/${platform}/hx/`)?.title).toBe(`Ouro HX for ${name}`);
+    expect(routes.find((route) => route.path === `/${platform}/ax/`)?.title).toBe(`Ouro AX for ${name}`);
   });
 
   it("every component the Windows page counts is a control in the parity matrix", () => {
