@@ -225,9 +225,8 @@ describe("Command recents", () => {
     const labelOf = (chip: HTMLElement) => chip.querySelector<HTMLElement>("[data-slot='command-recent-label']")!;
     await show(labels);
     const row = document.querySelector<HTMLElement>("[data-ouro-command-recents]")!;
-    await expect.poll(() => chips()[2]!.getBoundingClientRect().width).toBeLessThan(row.clientWidth);
-    const cut = chips().map((chip) => labelOf(chip).scrollWidth > labelOf(chip).clientWidth + 1);
-    expect(cut).toEqual([false, false, true, true]);
+    const cut = () => chips().map((chip) => labelOf(chip).scrollWidth > labelOf(chip).clientWidth + 1);
+    await expect.poll(cut).toEqual([false, false, true, true]);
     expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
     expect(Math.abs(chips()[2]!.getBoundingClientRect().width - chips()[3]!.getBoundingClientRect().width)).toBeLessThan(2);
   });

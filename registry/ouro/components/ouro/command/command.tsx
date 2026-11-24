@@ -808,7 +808,7 @@ export function Command(props: CommandProps): JSX.Element {
       for (const node of nodes) node.style.maxWidth = "";
       const style = getComputedStyle(row);
       const room = row.clientWidth - parseFloat(style.paddingInlineStart) - parseFloat(style.paddingInlineEnd) - parseFloat(style.columnGap) * (nodes.length - 1);
-      const cap = fairShare(nodes.map((node) => node.getBoundingClientRect().width), room);
+      const cap = fairShare(nodes.map((node) => node.offsetWidth), room);
       for (const node of nodes) node.style.maxWidth = Number.isFinite(cap) ? `${Math.floor(cap)}px` : "";
     };
     share();
