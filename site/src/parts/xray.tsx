@@ -10,12 +10,12 @@ import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { href } from "../paths";
 import { setXray, useXray } from "../voyage/xray-store";
 import { Output, PartBand, PartNext } from "./shell";
-import badReport from "./evidence/ax-xray-bad-cli.txt?raw";
-import goodReport from "./evidence/ax-xray-tasks.txt?raw";
+import badReport from "@/docs/guides/evidence/part-pages/ax-xray-bad-cli.txt?raw";
+import goodReport from "@/docs/guides/evidence/part-pages/ax-xray-tasks.txt?raw";
 
 /*
  * /xray/: see inside. HX X-ray is the site's own Inspector, turned on over this page; AX X-ray is two real reports,
- * written by registry/ouro/ax/xray.ts against two of its own fixtures (./evidence/), read here as the tool wrote them.
+ * written by registry/ouro/ax/xray.ts against two of its own fixtures (docs/guides/evidence/part-pages/), read here as the tool wrote them.
  */
 
 type Verdict = "holds" | "fails" | "skipped";
@@ -151,10 +151,10 @@ const KIT = [
   {
     name: "Hackamore",
     body: claim("Reins for apps that never had any: it drives any Mac app through its accessibility tree, and refuses what isn't on the screen.", {
-      source: [{ evidence: "site/src/parts/evidence/hackamore-README.txt" }, { evidence: "site/src/parts/evidence/hackamore-refusal.txt" }],
+      source: [{ evidence: "docs/guides/evidence/part-pages/hackamore-README.txt" }, { evidence: "docs/guides/evidence/part-pages/hackamore-refusal.txt" }],
       verify: [
-        { fileLine: "site/src/parts/evidence/hackamore-README.txt", pattern: "hackamore steers apps that were never built for it" },
-        { fileLine: "site/src/parts/evidence/hackamore-refusal.txt", pattern: "click isn't available on screen" },
+        { fileLine: "docs/guides/evidence/part-pages/hackamore-README.txt", pattern: "hackamore steers apps that were never built for it" },
+        { fileLine: "docs/guides/evidence/part-pages/hackamore-refusal.txt", pattern: "click isn't available on screen" },
       ],
     }),
     link: { label: "Hackamore", to: "/hackamore/" },
@@ -232,10 +232,10 @@ export default function XrayPage(): JSX.Element {
               verify: [{ fileLine: "docs/guides/ax-conformance.md", pattern: "\\*\\*A CLI\\*\\* \\(`--cli" }, { fileLine: "docs/guides/ax-conformance.md", pattern: "\\*\\*An MCP server\\*\\* \\(`--mcp" }],
             })}{" "}
             {claim("Here it is on two of its own test tools: one built without the kit, which holds 2 of its 12 must claims, and the guide's tasks tool, which conforms.", {
-              source: [{ evidence: "site/src/parts/evidence/ax-xray-bad-cli.txt" }, { evidence: "site/src/parts/evidence/ax-xray-tasks.txt" }],
+              source: [{ evidence: "docs/guides/evidence/part-pages/ax-xray-bad-cli.txt" }, { evidence: "docs/guides/evidence/part-pages/ax-xray-tasks.txt" }],
               verify: [
-                { fileLine: "site/src/parts/evidence/ax-xray-bad-cli.txt", pattern: "\\(must: 2 of 12\\)" },
-                { fileLine: "site/src/parts/evidence/ax-xray-tasks.txt", pattern: "^\\*\\*Conforms: every applicable must claim holds" },
+                { fileLine: "docs/guides/evidence/part-pages/ax-xray-bad-cli.txt", pattern: "\\(must: 2 of 12\\)" },
+                { fileLine: "docs/guides/evidence/part-pages/ax-xray-tasks.txt", pattern: "^\\*\\*Conforms: every applicable must claim holds" },
               ],
             })}{" "}
             Below is the report as the tool wrote it. <Link href={href("/ax/")}>Meet Ouro AX</Link>.

@@ -123,11 +123,11 @@ export const routes: Route[] = [
     path: "/hackamore/",
     title: "Hackamore · Ouro UI",
     description: claim("Reins for apps that never had any. Drive any Mac app through its accessibility tree; ask for something that isn't there and it says no, with the fix, before touching the app.", {
-      source: [{ evidence: "site/src/parts/evidence/hackamore-README.txt" }, { evidence: "site/src/parts/evidence/hackamore-refusal.txt" }],
+      source: [{ evidence: "docs/guides/evidence/part-pages/hackamore-README.txt" }, { evidence: "docs/guides/evidence/part-pages/hackamore-refusal.txt" }],
       verify: [
-        { fileLine: "site/src/parts/evidence/hackamore-README.txt", pattern: "hackamore steers apps that were never built for it" },
-        { fileLine: "site/src/parts/evidence/hackamore-README.txt", pattern: "Asking for something that isn't there is refused before anything moves, with the fix\\." },
-        { fileLine: "site/src/parts/evidence/hackamore-refusal.txt", pattern: "\"code\": \"action-unavailable\"" },
+        { fileLine: "docs/guides/evidence/part-pages/hackamore-README.txt", pattern: "hackamore steers apps that were never built for it" },
+        { fileLine: "docs/guides/evidence/part-pages/hackamore-README.txt", pattern: "Asking for something that isn't there is refused before anything moves, with the fix\\." },
+        { fileLine: "docs/guides/evidence/part-pages/hackamore-refusal.txt", pattern: "\"code\": \"action-unavailable\"" },
       ],
     }),
   },

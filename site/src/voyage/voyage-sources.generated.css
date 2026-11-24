@@ -112,9 +112,6 @@
 @source not "../nautilus/art/manifest.json";
 @source not "../nautilus/art/nautilus-sketch.svg";
 @source not "../pages/docs.tsx";
-@source not "../parts/evidence/core-actions-guide.txt";
-@source not "../parts/evidence/core-shopping.commands.json";
-@source not "../parts/evidence/hackamore-README.txt";
 @source not "../render-html.ts";
 @source not "../routes.ts";
 @source not "../themes/fonts.json";

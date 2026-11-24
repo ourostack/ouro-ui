@@ -8,15 +8,15 @@ import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock } from "../components/code";
 import { href } from "../paths";
 import { Output, PartBand, PartNext } from "./shell";
-import declarations from "./evidence/core-shopping.actions.mts.txt?raw";
-import webTs from "./evidence/core-shopping.web.ts.txt?raw";
-import swift from "./evidence/core-shopping.OuroActions.swift.txt?raw";
-import mcp from "./evidence/core-shopping.mcp.json";
+import declarations from "@/docs/guides/evidence/part-pages/core-shopping.actions.mts.txt?raw";
+import webTs from "@/docs/guides/evidence/part-pages/core-shopping.web.ts.txt?raw";
+import swift from "@/docs/guides/evidence/part-pages/core-shopping.OuroActions.swift.txt?raw";
+import mcp from "@/docs/guides/evidence/part-pages/core-shopping.mcp.json";
 
 /*
  * /actions/: declare an action once; people get a button, agents get a tool, and the consent class decides who may
  * start it. Everything the agent's side shows is core's own fixture and what core generated from it, copied into
- * ./evidence/ from ourostack/ouro-ui-core at CORE: the declarations, mcp.json, web.ts and OuroActions.swift.
+ * docs/guides/evidence/part-pages/ from ourostack/ouro-ui-core at CORE: the declarations, mcp.json, web.ts and OuroActions.swift.
  */
 
 const CORE = "8ffe74b1e8a0e60325866403f7316b2c900845be";
@@ -160,32 +160,32 @@ const KINDS: Array<{ kind: Kind; name: string; body: string }> = [
   {
     kind: "read",
     name: "Read",
-    body: claim("Changes nothing.", { source: { evidence: "site/src/parts/evidence/core-actions-guide.txt" }, verify: { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "^- \\*\\*read\\*\\* changes nothing\\.$" } }),
+    body: claim("Changes nothing.", { source: { evidence: "docs/guides/evidence/part-pages/core-actions-guide.txt" }, verify: { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "^- \\*\\*read\\*\\* changes nothing\\.$" } }),
   },
   {
     kind: "write",
     name: "Write",
     body: claim("Changes only the person's own things: their list, their recipes.", {
-      source: { evidence: "site/src/parts/evidence/core-actions-guide.txt" },
-      verify: { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "^- \\*\\*write\\*\\* changes only the person's own things \\(their list, their recipes\\)\\.$" },
+      source: { evidence: "docs/guides/evidence/part-pages/core-actions-guide.txt" },
+      verify: { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "^- \\*\\*write\\*\\* changes only the person's own things \\(their list, their recipes\\)\\.$" },
     }),
   },
   {
     kind: "consequential",
     name: "Asks first",
     body: claim("Reaches other people or can't be undone: sharing, publishing, deleting someone's access. The agent prepares it, and the person says yes.", {
-      source: { evidence: "site/src/parts/evidence/core-actions-guide.txt" },
-      verify: { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "^- \\*\\*consequential\\*\\* reaches other people or can't be undone \\(sharing, publishing, deleting someone's access\\)\\. Agents prepare it; the person says yes" },
+      source: { evidence: "docs/guides/evidence/part-pages/core-actions-guide.txt" },
+      verify: { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "^- \\*\\*consequential\\*\\* reaches other people or can't be undone \\(sharing, publishing, deleting someone's access\\)\\. Agents prepare it; the person says yes" },
     }),
   },
   {
     kind: "person-only",
     name: "Person only",
     body: claim("Only the person may start it: paying, ordering, turning on their microphone. No agent door offers it, and each one answers with a refusal that says how the person does it.", {
-      source: { evidence: "site/src/parts/evidence/core-actions-guide.txt" },
+      source: { evidence: "docs/guides/evidence/part-pages/core-actions-guide.txt" },
       verify: [
-        { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "^- \\*\\*person-only\\*\\* is what only the person may start \\(paying, ordering, turning on their microphone\\)" },
-        { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "No agent door offers it; each answers with the typed refusal" },
+        { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "^- \\*\\*person-only\\*\\* is what only the person may start \\(paying, ordering, turning on their microphone\\)" },
+        { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "No agent door offers it; each answers with the typed refusal" },
       ],
     }),
   },
@@ -213,8 +213,8 @@ export default function ActionsPage(): JSX.Element {
               <p>People press it, agents call it, and paying, sending and deleting wait for the person's yes.</p>
               <p className="part-fine">
                 {claim("This shop is core's own example, with an action for each kind of consent.", {
-                  source: { evidence: "site/src/parts/evidence/core-shopping.actions.mts.txt" },
-                  verify: { fileLine: "site/src/parts/evidence/core-shopping.actions.mts.txt", pattern: "one action per consent class" },
+                  source: { evidence: "docs/guides/evidence/part-pages/core-shopping.actions.mts.txt" },
+                  verify: { fileLine: "docs/guides/evidence/part-pages/core-shopping.actions.mts.txt", pattern: "one action per consent class" },
                 })}{" "}
                 Pick a kind, press the button as the person, then try the agent's door.
               </p>
@@ -239,10 +239,10 @@ export default function ActionsPage(): JSX.Element {
         lede={
           <p>
             {claim("Each action names its kind of consent once, in its declaration, and the CLI, MCP, WebMCP and the App Intent all follow it.", {
-              source: { evidence: "site/src/parts/evidence/core-actions-guide.txt" },
+              source: { evidence: "docs/guides/evidence/part-pages/core-actions-guide.txt" },
               verify: [
-                { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "consent: \"write\",\\s+// read \\| write \\| consequential \\| person-only" },
-                { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "the CLI needs `--why` and previews with `--dry-run`, MCP marks it destructive, WebMCP consequential, and the App Intent asks its question" },
+                { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "consent: \"write\",\\s+// read \\| write \\| consequential \\| person-only" },
+                { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "the CLI needs `--why` and previews with `--dry-run`, MCP marks it destructive, WebMCP consequential, and the App Intent asks its question" },
               ],
             })}
           </p>
@@ -267,8 +267,8 @@ export default function ActionsPage(): JSX.Element {
         lede={
           <p>
             {claim("core's generator writes its CLI command, MCP and WebMCP tools, web control props, App Intent, SwiftUI button and Reins action into a folder you commit.", {
-              source: { evidence: "site/src/parts/evidence/core-actions-guide.txt" },
-              verify: { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "writes its CLI command, MCP and WebMCP tools, web control props and component AX entry, App Intent, SwiftUI `Button\\(intent:\\)` and Reins action into a folder you commit" },
+              source: { evidence: "docs/guides/evidence/part-pages/core-actions-guide.txt" },
+              verify: { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "writes its CLI command, MCP and WebMCP tools, web control props and component AX entry, App Intent, SwiftUI `Button\\(intent:\\)` and Reins action into a folder you commit" },
             })}{" "}
             Here is sharing a list, which asks the person first, as core's example writes it.
           </p>
@@ -301,15 +301,15 @@ export default function ActionsPage(): JSX.Element {
           <>
             <p>
               {claim("An action's id is its MCP tool's name, so moving a tool onto a declaration keeps the name agents already call, and openInput keeps its exact input schema.", {
-                source: { evidence: "site/src/parts/evidence/core-actions-guide.txt" },
+                source: { evidence: "docs/guides/evidence/part-pages/core-actions-guide.txt" },
                 verify: [
-                  { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "it is the MCP tool name, so keep your existing tool names" },
-                  { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "`openInput: true` on an action keeps an existing MCP tool's input schema exactly" },
+                  { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "it is the MCP tool name, so keep your existing tool names" },
+                  { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "`openInput: true` on an action keeps an existing MCP tool's input schema exactly" },
                 ],
               })}{" "}
               {claim("compare-mcp checks your running server against the declarations while you move it, tool by tool.", {
-                source: { evidence: "site/src/parts/evidence/core-actions-guide.txt" },
-                verify: { fileLine: "site/src/parts/evidence/core-actions-guide.txt", pattern: "while you move a server tool by tool" },
+                source: { evidence: "docs/guides/evidence/part-pages/core-actions-guide.txt" },
+                verify: { fileLine: "docs/guides/evidence/part-pages/core-actions-guide.txt", pattern: "while you move a server tool by tool" },
               })}
             </p>
             <p>

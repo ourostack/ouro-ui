@@ -3,7 +3,7 @@ import { page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
 import { redirects, routes } from "../routes";
 import { setXray, watchXray } from "../voyage/xray-store";
-import mcp from "./evidence/core-shopping.mcp.json";
+import mcp from "@/docs/guides/evidence/part-pages/core-shopping.mcp.json";
 
 const PAGES = [
   { path: "/actions/", title: "Write an action once." },
