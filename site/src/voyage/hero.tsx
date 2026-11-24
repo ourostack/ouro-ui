@@ -10,7 +10,7 @@ import { HydrateInTurn } from "../hydrate";
 import { Container } from "./layout";
 import { StoryWorld } from "../components/story-world";
 import { Stage } from "./stage/stage";
-import { WhyIsland } from "./chapters/island";
+import { Why } from "./why";
 import { ThemeDots } from "./theme-dots";
 
 /** A line never breaks inside a hyphenated word ("X-ray", "person-only"): each sits in a no-wrap span. */
@@ -125,7 +125,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
         }
         media={<StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES} className="site-voyage-scene" />}
       />
-      <WhyIsland />
+      <Why />
       <section aria-label="Try the porthole" className="site-console">
         <Container className="site-console-grid">
           <div className="site-console-copy" data-site-try="">
