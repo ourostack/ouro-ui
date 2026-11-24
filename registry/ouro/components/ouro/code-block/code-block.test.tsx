@@ -220,7 +220,7 @@ describe("CodeBlock", () => {
         <CodeBlock code={long} language="ts" />
       </div>,
     );
-    await expect.poll(() => pre.scrollWidth > pre.clientWidth).toBe(true);
+    await expect.poll(() => pre.hasAttribute("tabindex")).toBe(true);
     expect(getComputedStyle(pre).maskImage).toBe("none");
     expect(getComputedStyle(block).outlineStyle).toBe("none");
     await pressTab();
