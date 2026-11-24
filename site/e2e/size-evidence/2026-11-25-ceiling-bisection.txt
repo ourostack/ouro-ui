@@ -1,0 +1,5 @@
+Bisection: which commit pushed docs-shell CSS over its 26624 gzip-byte ceiling, run 2026-11-25
+Raw checkout of each commit, rm -rf site/dist && pnpm site:build, then node scripts/size-budget.mjs site/dist
+
+7a11ca404 (#3431 merged, parent of #3541): FAIL docs-shell CSS 26808 of 26624 gzip bytes
+dc684b347 (#3541 merged): FAIL docs-shell CSS 27059 of 26624 gzip bytes
