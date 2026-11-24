@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";

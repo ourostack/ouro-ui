@@ -40,7 +40,7 @@ const LONGHANDS: Record<string, number> = {
  *
  * It is the one way Ouro UI draws squircles where the engine lacks `corner-shape`: it needs no code in the page.
  */
-function squircleCorners(): { postcssPlugin: string; OnceExit: (root: any) => void } {
+function squircleCorners(): { postcssPlugin: string; OnceExit: (root: never) => void } {
   return {
     postcssPlugin: "ouro-squircle-corners",
     OnceExit(root: Node) {
