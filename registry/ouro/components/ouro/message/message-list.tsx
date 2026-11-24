@@ -2068,7 +2068,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
         wheelStarts = false;
       }
       // Leaving the bottom, even by a few pixels, stops the following; reaching it again follows.
-      pinned.current = atBottom();
+      // A scroll the list itself wrote (to a message before the newest) leaves the following as it was: it reports the same pixels.
+      if (scroller.scrollTop !== ownTop.current) pinned.current = atBottom();
       // What is carried goes into the scroll position before the reader reaches an end, so it never stops them there.
       if (nearEnd()) pay();
       release();
