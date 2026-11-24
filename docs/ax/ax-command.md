@@ -34,6 +34,7 @@ interface ArgSpec {
   missing?: string;
   values?: readonly string[];
   default?: string;
+  cliOnly?: boolean;
 }
 ```
 
@@ -113,6 +114,7 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   examples?: readonly string[];
   output?: string;
   hidden?: boolean;
+  streams?: boolean;
   protocol?: boolean;
   summarizes?: boolean;
   loose?: boolean;
