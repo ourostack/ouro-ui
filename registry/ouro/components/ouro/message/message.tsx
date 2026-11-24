@@ -46,7 +46,7 @@ export type MessageActionsPlacement = "corner" | "beside";
 
 /**
  * How a `chat` message's bubble, or a `reply` drawn as one, looks: `filled`, the user's own in the
- * primary color and others' on the muted surface, round with a small corner toward the sender; or
+ * primary color and others' on the muted surface, round with equal corners; or
  * `raised`, others' on a raised card and the user's own in a tint of the primary color.
  */
 export type MessageBubble = "filled" | "raised";
@@ -113,7 +113,7 @@ export interface MessageOwnProps {
    * the start too.
    * @default "default"
    *
-   * @claim "`chat` suits people writing to each" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with a smaller corner toward its sender)
+   * @claim "`chat` suits people writing to each" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with equal corners)
    * @claim "each bubble at most 85% of" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message rows > keeps a bubble to 85% of its row and 36rem, however wide the window)
    * @claim "`post` is a post in a" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > is unboxed, with the name and time over the subject and text, and the footer and thread under them)
    * @claim "a hairline from the text's start" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > draws a hairline from the text's start to the end between two posts, and none above the first)
@@ -126,8 +126,11 @@ export interface MessageOwnProps {
    * own message filled with `--ouro-bubble-user` and text in `--ouro-bubble-user-foreground`
    * when the theme sets them, else as a primary button is (`--ouro-action`, else the primary color); others'
    * filled with `--ouro-bubble-other` and text in `--ouro-bubble-other-foreground` when the theme sets them, else
-   * the muted surface, each round with a smaller corner toward its sender, with an edge that
-   * forced colors draw. Inside the user's own bubble, the theme's colors follow the fill, so a
+   * the muted surface, each round with equal corners, with an edge that
+   * forced colors draw. In a run of `continued` messages from one sender, the corners where neighboring bubbles meet
+   * are slightly less round (`--ouro-message-joined-radius`, `--radius-ouro-xl` unless set), on the side the bubbles sit (the end
+   * for the user's own, the start for others', mirrored in right-to-left), and `MessageList` keeps
+   * `--ouro-message-run-gap` (`--ouro-size-1` unless set) between them. Inside the user's own bubble, the theme's colors follow the fill, so a
    * link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link, a mention or muted text
    * follows the bubble's own text color instead of the page's, so it keeps 4.5:1 there too. `raised` is a workplace chat's: others' messages on a raised card with
    * a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a
@@ -136,7 +139,7 @@ export interface MessageOwnProps {
    * without one stays unboxed, and `default` and `post` ignore it.
    * @default "filled" on a `chat` message; unboxed on a `reply`
    *
-   * @claim "`filled`, the default, is a messaging" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with a smaller corner toward its sender)
+   * @claim "`filled`, the default, is a messaging" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with equal corners)
    * @claim "others' filled with `--ouro-bubble-other`" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills others' bubble from --ouro-bubble-other and its text from --ouro-bubble-other-foreground before the muted surface)
    * @claim "on others', a link, a mention or muted text" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > keeps a link in the primary color at 4.5:1 or more on others' muted bubble)
    * @claim "follows the bubble's own text color" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > mixes a link, a success mark and muted text toward --ouro-bubble-other-foreground, not the page's own foreground, once it is set)
@@ -239,8 +242,27 @@ export interface MessageOwnProps {
    * full size.
    */
   attachments?: ReactNode;
-  /** Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. */
+  /**
+   * Under the message: its reactions (`<ReactionBar>`) and "Edited". For whether it was
+   * delivered or seen, use `statusMark` instead: a row here reads as a line of its own under
+   * every message, rather than a mark that belongs to the bubble.
+   */
   footer?: ReactNode;
+  /**
+   * A small mark seated against the user's own bubble, at its bottom end corner: for example
+   * whether the message was delivered or seen. It
+   * sits inside the bubble's own box, in room the bubble reserves for it, rather than overlapping
+   * the message's own text or adding a row of its own alongside `header` or `footer`. For example
+   * `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on a
+   * user's own bubble: a `default` message, a `chat` message, or a `reply` given its own
+   * `bubble`. An `assistant` or `system` message, and a `post` or unbubbled `reply`, have no
+   * bubble corner to seat it against, so it does not draw there.
+   *
+   * @claim "sits inside the bubble's own box, in room the bubble reserves for it" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message statusMark > sits inside the bubble's own box, against its bottom end corner, in room the bubble reserves for it)
+   * @claim "It draws only on a user's own bubble" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message statusMark > draws on role="user" only, not on assistant or a bubbleless post)
+   * @claim "have no bubble corner to seat it against, so it does not draw there" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message statusMark > draws on role="user" only, not on assistant or a bubbleless post)
+   */
+  statusMark?: ReactNode | undefined;
   /** Under a post, or a message in a channel without threads: its thread, as a `<ThreadSummary>`. */
   thread?: ReactNode;
   /**
@@ -439,8 +461,8 @@ const variants = ["default", "chat", "post", "reply"] as const;
 const placements = ["corner", "beside"] as const;
 
 const bubbles = {
-  user: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] rounded-ee-ouro-md bg-primary px-3.5 py-2 text-primary-foreground",
-  assistant: "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] rounded-es-ouro-md bg-muted px-3.5 py-2 text-foreground",
+  user: "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] group-data-continued/message:rounded-se-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-ee-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-ee-(--ouro-jr) bg-primary px-3.5 pt-2 pb-2 text-primary-foreground",
+  assistant: "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] group-data-continued/message:rounded-ss-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-es-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-es-(--ouro-jr) bg-muted px-3.5 py-2 text-foreground",
   system: "bg-transparent text-center text-muted-foreground",
 } as const;
 
@@ -499,12 +521,12 @@ const mutedInk = {
 const layouts = {
   filled: {
     // A transparent border, which forced colours draw, so a bubble that is only a fill keeps its edge there.
-    user: `rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] rounded-ee-ouro-md border border-solid border-transparent px-3 py-2 ${filledInk}`,
+    user: `rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-se-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-ee-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-ee-(--ouro-jr) border border-solid border-transparent px-3 pt-2 pb-2 ${filledInk}`,
     assistant:
-      "rounded-ouro-2xl [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] rounded-es-ouro-md border border-solid border-transparent bg-(--ouro-bubble-other-fill) px-3 py-2 text-(--ouro-bubble-other-ink)",
+      "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-ss-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-es-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-es-(--ouro-jr) border border-solid border-transparent bg-(--ouro-bubble-other-fill) px-3 py-2 text-(--ouro-bubble-other-ink)",
   },
   raised: {
-    user: "rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
+    user: "rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 pt-2 pb-2 text-foreground",
     assistant: `rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] px-3 py-2 ${raised}`,
   },
 } as const;
@@ -618,6 +640,7 @@ export function Message(props: MessageProps): JSX.Element {
     quote,
     attachments,
     footer,
+    statusMark,
     thread,
     actions,
     actionsPlacement,
@@ -691,6 +714,11 @@ export function Message(props: MessageProps): JSX.Element {
           ],
           variant === "post" && continuedProp && ["a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
           variant !== "post" && subject !== undefined && ["subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
+          statusMark !== undefined &&
+            (role !== "user" || (variant !== "default" && !bubbled)) && [
+              'statusMark shows only on role="user" with a bubble, where it has a corner to seat against: variant="default", or variant="chat" or a bubbled reply',
+              '<Message role="user" statusMark={<Text size="xs" tone="secondary">Seen</Text>}>',
+            ],
           presence !== undefined &&
             isValidElement(avatar) && [
               "presence does not reach an Avatar element passed as avatar; give that Avatar the presence",
@@ -907,12 +935,18 @@ export function Message(props: MessageProps): JSX.Element {
 
   if (variant === "default" || role === "system") {
     const continued = continuedProp && role !== "system";
+    const marked = role === "user" && statusMark !== undefined && statusMark !== null && statusMark !== false;
     const bubble = (
       // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator,StringLiteral: on a fine pointer the article is text-sm already; the touch tests hold the system note's smaller text.
-      <div data-ouro-message-content="" className={cn("max-w-full leading-relaxed [overflow-wrap:anywhere]", bubbles[role], role === "system" && "text-sm")}>
+      <div data-ouro-message-content="" className={cn("relative max-w-full leading-relaxed [overflow-wrap:anywhere]", bubbles[role], marked && "pb-6", role === "system" && "text-sm")}>
         {contextLine}
         {quoted}
         {body}
+        {marked && (
+          <div data-slot="message-status-mark" data-ouro-message-status-mark="" className="absolute end-1 bottom-1 text-xs leading-none">
+            {statusMark}
+          </div>
+        )}
       </div>
     );
     return (
@@ -1023,8 +1057,9 @@ export function Message(props: MessageProps): JSX.Element {
   // A message of pictures or files alone draws no empty bubble above them.
   const worded = !empty || streaming || quote !== undefined || titled || hasContext;
   // Hidden rather than left out when empty: MessageList reads every message's text from it.
+  const marked = end && statusMark !== undefined && statusMark !== null && statusMark !== false;
   const contentBox = (
-    <div data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
+    <div data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("relative box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface, marked && "pb-6")}>
       {contextLine}
       {titled && (
         <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
@@ -1033,6 +1068,11 @@ export function Message(props: MessageProps): JSX.Element {
       )}
       {quoted}
       {body}
+      {marked && (
+        <div data-slot="message-status-mark" data-ouro-message-status-mark="" className="absolute end-1 bottom-1 text-xs leading-none">
+          {statusMark}
+        </div>
+      )}
     </div>
   );
   return (

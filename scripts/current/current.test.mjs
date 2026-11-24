@@ -20,6 +20,8 @@ const RELEASES = {
   web: { repo: "ourostack/ouro-ui", name: "Ouro UI", tag: "v1.3.187", sha: "c".repeat(40), url: "https://example.test/web" },
   core: { repo: "ourostack/ouro-ui-core", name: "Ouro UI core", tag: "v0.15.0", sha: "d".repeat(40), url: "https://example.test/core" },
   apple: { repo: "ourostack/ouro-ui-apple", name: "Ouro UI for Apple", tag: "v0.9.0", sha: "e".repeat(40), url: "https://example.test/apple" },
+  windows: { repo: "ourostack/ouro-ui-windows", name: "Ouro UI for Windows", tag: "v0.12.0", sha: "a".repeat(40), url: "https://example.test/windows" },
+  android: { repo: "ourostack/ouro-ui-android", name: "Ouro UI for Android", tag: "v0.12.0", sha: "b".repeat(40), url: "https://example.test/android" },
 };
 
 
@@ -40,6 +42,14 @@ test("pins are found by file name in every format Ouro UI is taken in", () => {
   assert.deepEqual(found("project.yml", "packages:\n  OuroUIApple:\n    url: https://github.com/ourostack/ouro-ui-apple\n    minorVersion: 0.8.0\n"), [["xcodegen", "apple", "0.8.0"]]);
   assert.deepEqual(found("App.xcodeproj/project.pbxproj", 'repositoryURL = "https://github.com/ourostack/ouro-ui-apple";\n\t\t\trequirement = {\n\t\t\t\tkind = upToNextMinorVersion;\n\t\t\t\tminimumVersion = 0.5.1;\n\t\t\t};'), [["xcodeproj", "apple", "0.5.1"]]);
   assert.deepEqual(found(".github/workflows/site-checks.yml", "env:\n  OURO_UI_TAG: v1.3.99\n"), [["workflow-tag", "web", "v1.3.99"]]);
+  assert.deepEqual(found("App/App.csproj", '<PackageReference Include="Ouro.UI.Windows" Version="0.11.0" />'), [["nuget", "windows", "0.11.0"]]);
+  assert.deepEqual(found("Directory.Packages.props", '<PackageVersion Include="Ouro.Actions" Version="0.11.0" />'), [["nuget", "windows", "0.11.0"]]);
+  assert.deepEqual(found("App/App.csproj", '<PackageReference Include="Ouro.UI.Windows" Version="0.*" /><PackageReference Include="Other" Version="1.0.0" />'), []);
+  assert.deepEqual(found("app/build.gradle.kts", 'implementation("bot.ouro.ui:ouro-hx:0.11.0")'), [["gradle", "android", "0.11.0"]]);
+  assert.deepEqual(found("gradle/libs.versions.toml", '[versions]\nouro = "0.11.0"\n\n[libraries]\nouro-hx = { module = "bot.ouro.ui:ouro-hx", version.ref = "ouro" }\n'), [["gradle", "android", "0.11.0"]]);
+  assert.deepEqual(found("app/build.gradle", "implementation 'androidx.core:core-ktx:1.13.0'"), []);
+  assert.equal(isCandidate("App/obj/App.csproj"), false);
+  assert.equal(isCandidate("app/build/generated/x.gradle"), false);
   assert.deepEqual(found("upstream-sources.lock.json", JSON.stringify({ sources: [{ id: "ax", repository: "ourostack/ouro-ui", commit: "4e44b67613dc", files: [] }, { id: "other", repository: "someone/else", commit: "f", files: [] }] })), [["vendor-lock", "web", "commit 4e44b67"]]);
   assert.deepEqual(found("tools/ouro-actions/dist-manifest.json", JSON.stringify({ coreTag: "v0.16.0", files: { "dist/actions/ouro-actions.mts": "x" } })), [["core-manifest", "core", "v0.16.0"]]);
   assert.deepEqual(found("site/dist-manifest.json", JSON.stringify({ version: 1, files: {} })), []);
@@ -1509,6 +1519,90 @@ test("a dry run reports a repository that fails and goes on to the next, then ex
   assert.deepEqual(out.repos.map((item) => [item.repo, item.state]), [["o/broken", "failed"], ["o/r", "would-update"]]);
   assert.match(out.repos[0].error, /not in the release/);
   assert.match(lines[0], /"state": "failed"/);
+});
+
+test("NuGet and Gradle pins of Ouro UI for Windows and Android move to the release in every form they are written, and nothing else moves", async () => {
+  const run = async (kind, file, text, follows) => {
+    let out = text;
+    for (const pin of findPins(file, text)) out = (await UPDATERS[kind](pin, out, RELEASES[follows], {})).files[file];
+    return out;
+  };
+  const csproj = [
+    '<PackageReference Include="Ouro.UI.Windows" Version="0.11.0" />',
+    '<PackageReference Version="0.11.0" Include="Ouro.Actions" />',
+    '<PackageReference Include="Microsoft.WindowsAppSDK" Version="0.11.0" />',
+    '<PackageReference Include="Ouro.UI.Windows.Gallery">\n  <Version>0.10.0</Version>\n</PackageReference>',
+    '<PackageReference Update="Ouro.UI.Windows" VersionOverride="0.9.0" />',
+    '<PackageReference Include="Ouro.UI.Windows" Version="[0.11.0]" />',
+  ].join("\n");
+  assert.equal(
+    await run("nuget", "App/App.csproj", csproj, "windows"),
+    [
+      '<PackageReference Include="Ouro.UI.Windows" Version="0.12.0" />',
+      '<PackageReference Version="0.12.0" Include="Ouro.Actions" />',
+      '<PackageReference Include="Microsoft.WindowsAppSDK" Version="0.11.0" />',
+      '<PackageReference Include="Ouro.UI.Windows.Gallery">\n  <Version>0.12.0</Version>\n</PackageReference>',
+      '<PackageReference Update="Ouro.UI.Windows" VersionOverride="0.12.0" />',
+      '<PackageReference Include="Ouro.UI.Windows" Version="[0.11.0]" />',
+    ].join("\n"),
+  );
+  const kts = 'implementation("bot.ouro.ui:ouro-hx:0.11.0")\nimplementation(group = "bot.ouro.ui", name = "ouro-actions", version = "0.11.0")\nimplementation("androidx.core:core-ktx:0.11.0")';
+  assert.equal(await run("gradle", "app/build.gradle.kts", kts, "android"), kts.replace("ouro-hx:0.11.0", "ouro-hx:0.12.0").replace('version = "0.11.0"', 'version = "0.12.0"'));
+  const groovy = "implementation 'bot.ouro.ui:ouro-hx:0.11.0'\nimplementation group: 'bot.ouro.ui', name: 'ouro-actions', version: '0.11.0'";
+  assert.equal(await run("gradle", "app/build.gradle", groovy, "android"), groovy.replaceAll("0.11.0", "0.12.0"));
+  // A catalog's version.ref moves only when every library that refers to it is an Ouro one.
+  const toml = [
+    "[versions]",
+    'ouro = "0.11.0"',
+    'shared = "0.11.0"',
+    "",
+    "[libraries]",
+    'ouro-hx = { module = "bot.ouro.ui:ouro-hx", version.ref = "ouro" }',
+    'ouro-actions = { group = "bot.ouro.ui", name = "ouro-actions", version = { ref = "ouro" } }',
+    'gallery = { module = "bot.ouro.ui:gallery", version.ref = "shared" }',
+    'other = { module = "a.b:c", version.ref = "shared" }',
+    'pinned = { module = "bot.ouro.ui:ouro-hx", version = "0.10.0" }',
+    "",
+  ].join("\n");
+  assert.equal(await run("gradle", "gradle/libs.versions.toml", toml, "android"), toml.replace('ouro = "0.11.0"', 'ouro = "0.12.0"').replace('version = "0.10.0"', 'version = "0.12.0"'));
+  // A version in a variable moves where the file defines it, unless another package reads it too.
+  const property = '<PropertyGroup><Hx>0.11.0</Hx><Shared>0.11.0</Shared><Version>0.11.0</Version></PropertyGroup>\n<PackageReference Include="Ouro.UI.Windows" Version="$(Hx)" />\n<PackageReference Include="Ouro.Actions" Version="$(Shared)" />\n<PackageReference Include="Other" Version="$(Shared)" />';
+  assert.equal(await run("nuget", "App/App.csproj", property, "windows"), property.replace("<Hx>0.11.0", "<Hx>0.12.0"));
+  const buildProps = "<Project><PropertyGroup><OuroUIVersion>0.11.0</OuroUIVersion><Version>0.11.0</Version></PropertyGroup></Project>";
+  assert.equal(await run("nuget", "Directory.Build.props", buildProps, "windows"), buildProps.replace("<OuroUIVersion>0.11.0", "<OuroUIVersion>0.12.0"));
+  const variable = 'val hx = "0.11.0"\nval shared = "0.11.0"\nimplementation("bot.ouro.ui:ouro-hx:$hx")\nimplementation("bot.ouro.ui:ouro-actions:${shared}")\nimplementation("a.b:c:$shared")';
+  assert.equal(await run("gradle", "app/build.gradle.kts", variable, "android"), variable.replace('hx = "0.11.0"', 'hx = "0.12.0"'));
+  const ext = "ext {\n  ouroVersion = '0.11.0'\n}\nimplementation \"bot.ouro.ui:ouro-hx:$ouroVersion\"";
+  assert.equal(await run("gradle", "build.gradle", ext, "android"), ext.replace("0.11.0", "0.12.0"));
+  const properties = "org.gradle.jvmargs=-Xmx2g\nouroUiVersion=0.11.0\nkotlinVersion=0.11.0\n";
+  assert.equal(await run("gradle", "gradle.properties", properties, "android"), properties.replace("ouroUiVersion=0.11.0", "ouroUiVersion=0.12.0"));
+});
+
+test("a NuGet or Gradle update opens one pull request, and names a lock file holding the old package's hashes instead of writing it", async () => {
+  const csproj = '<Project Sdk="Microsoft.NET.Sdk">\n  <ItemGroup>\n    <PackageReference Include="Ouro.UI.Windows" Version="0.11.0" />\n  </ItemGroup>\n</Project>\n';
+  const lock = '{ "dependencies": { "net8.0-windows10.0.19041": { "Ouro.UI.Windows": { "type": "Direct", "requested": "[0.11.0, )", "resolved": "0.11.0" } } } }';
+  const windows = fakeRepo({ "src/App/App.csproj": csproj, "src/App/packages.lock.json": lock });
+  const kept = await keepRepo(windows.gh, "o/r", RELEASES, {});
+  assert.equal(kept.state, "pr");
+  assert.equal(kept.pr.title, "Update to Ouro UI for Windows v0.12.0");
+  assert.equal(windows.fileAt(BRANCH, "src/App/App.csproj"), csproj.replace("0.11.0", "0.12.0"));
+  assert.equal(windows.fileAt(BRANCH, "src/App/packages.lock.json"), lock, "a lock file is never written");
+  assert.equal(windows.fileAt("main", "src/App/App.csproj"), csproj, "the default branch is never written");
+  assert.match(windows.pulls[0].body, /Leaves `src\/App\/packages\.lock\.json` as it is/);
+  const central = fakeRepo({ "Directory.Packages.props": '<PackageVersion Include="Ouro.UI.Windows" Version="0.11.0" />\n', "src/App/App.csproj": '<PackageReference Include="Ouro.UI.Windows" />\n', "src/App/packages.lock.json": lock });
+  await keepRepo(central.gh, "o/r", RELEASES, {});
+  assert.match(central.pulls[0].body, /Leaves `src\/App\/packages\.lock\.json` as it is/, "a central version names the lock files of the projects under it");
+  assert.deepEqual(lintMarkdown(windows.pulls[0].body, { file: "pull request body" }), []);
+
+  const kts = 'dependencies {\n    implementation("bot.ouro.ui:ouro-hx:0.11.0")\n    implementation("bot.ouro.ui:ouro-actions:0.11.0")\n}\n';
+  const android = fakeRepo({ "app/build.gradle.kts": kts, "settings.gradle.kts": 'rootProject.name = "app"\n' });
+  const first = await keepRepo(android.gh, "o/r", RELEASES, {});
+  assert.equal(first.pr.title, "Update to Ouro UI for Android v0.12.0");
+  assert.equal(android.fileAt(BRANCH, "app/build.gradle.kts"), kts.replaceAll("0.11.0", "0.12.0"));
+  assert.equal(android.pulls.length, 1);
+  const again = await keepRepo(android.gh, "o/r", { ...RELEASES, android: { ...RELEASES.android, tag: "v0.13.0" } }, {});
+  assert.equal(again.pr.number, first.pr.number, "a newer release updates the same pull request");
+  assert.equal(android.fileAt(BRANCH, "app/build.gradle.kts"), kts.replaceAll("0.11.0", "0.13.0"));
 });
 
 test("the title names each release a pull request moves to", () => {

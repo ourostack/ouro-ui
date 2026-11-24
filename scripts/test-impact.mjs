@@ -22,7 +22,7 @@ import { spawn as spawnChild, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import * as ts from "./ts71.mts";
 import { classify } from "./ci-paths.mjs";
 import { treeFiles } from "./tree.mjs";
 
@@ -111,7 +111,7 @@ function importGraph(root, folders) {
       .map((file) => ({ path: join(base, file), dev: devFile.test(file) }));
     for (const file of demos.get(folder) ?? []) files.push({ path: join(root, file), dev: true });
     for (const { path, dev } of files) {
-      for (const { fileName } of ts.preProcessFile(readFileSync(path, "utf8"), true, true).importedFiles) {
+      for (const fileName of ts.importedFiles(path, readFileSync(path, "utf8"))) {
         const target = fileName.startsWith("@/") ? join(root, fileName.slice(2)) : fileName.startsWith(".") ? resolve(dirname(path), fileName) : null;
         if (!target) continue;
         const inside = relative(join(root, componentsDir), target).split(/[\\/]/);
@@ -290,7 +290,7 @@ const libDir = "registry/ouro/lib/ouro/";
 
 /** The modules `path` loads at run time: every import and re-export but those of types alone. */
 function runtimeImports(path, root) {
-  const source = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest);
+  const source = ts.createSourceFile(path, readFileSync(path, "utf8"));
   const specifiers = [];
   for (const statement of source.statements) {
     if (ts.isImportDeclaration(statement)) {

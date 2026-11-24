@@ -77,7 +77,15 @@ export function bumpText(text, from, to, { mixed = false, typescript = false, wo
     .map((line, index) => {
       const label = /^\[\^([\w-]+)\]:/.exec(line)?.[1];
       if (kept.has(index) || since.test(line) || (label !== undefined && labels.has(label))) return line.replace(check, `$1${to}`);
-      return mixed && !word.test(line) ? line : bumpLine(line, from, to, link);
+      if (mixed && !word.test(line)) return line;
+      // A mixed table row can name more than one kit on the same line (parity.md's Kit row holds every kit's cell): bump
+      // only the cell that names this kit, so another kit's cell at the same version is not swept up by the line-wide
+      // replace. A row that names only this kit (the Platforms README's one-row-per-kit table) still moves the whole line,
+      // since its version cell doesn't repeat the kit's own word.
+      if (mixed && line.includes("|") && Object.values(KITS).filter((kit) => kit.word.test(line)).length > 1) {
+        return line.split("|").map((cell) => (word.test(cell) ? bumpLine(cell, from, to, link) : cell)).join("|");
+      }
+      return bumpLine(line, from, to, link);
     })
     .join("\n");
 }

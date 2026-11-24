@@ -14,3 +14,9 @@ declare module "virtual:site-proof" {
   /** The component the hero's install command adds, at the latest release. */
   export const install: { item: string; release: string; count: number };
 }
+
+/** A file's text under its own module id, so the page that reads it shares no chunk with the docs that render it (proof/). */
+declare module "*?raw&proof" {
+  const text: string;
+  export default text;
+}

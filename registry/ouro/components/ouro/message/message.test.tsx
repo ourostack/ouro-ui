@@ -534,6 +534,12 @@ describe("Message development messages", () => {
         <Message variant="chat" role="user" name="Priya Okafor" actionsPlacement="beside" actions={actionsFor([])}>
           Hi
         </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" statusMark={<span>Seen</span>}>
+          Hi
+        </Message>
+        <Message role="user" name="Ana" statusMark={<span>Sent</span>}>
+          Default layout
+        </Message>
         <Message role="assistant" name="Ouro">
           Hi
         </Message>
@@ -564,6 +570,18 @@ describe("Message development messages", () => {
     ["onRetry", { onRetry: () => {} }, "onRetry is not a prop; a message that did not send is failed", '<Message role="user" failed={{ onRetry: retry }}>'],
     ["a continued post", { variant: "post", continued: true }, "a post is never continued: every post shows its author", '<Message variant="reply" continued>'],
     ["a subject off a post", { variant: "chat", subject: "Hi" }, "subject shows only on a post", '<Message variant="post" subject="Launch plan">'],
+    [
+      'a statusMark off role="user"',
+      { statusMark: <span>Seen</span> },
+      'statusMark shows only on role="user" with a bubble, where it has a corner to seat against: variant="default", or variant="chat" or a bubbled reply',
+      '<Message role="user" statusMark={<Text size="xs" tone="secondary">Seen</Text>}>',
+    ],
+    [
+      "a statusMark on a post",
+      { role: "user", variant: "post", statusMark: <span>Seen</span> },
+      'statusMark shows only on role="user" with a bubble, where it has a corner to seat against: variant="default", or variant="chat" or a bubbled reply',
+      '<Message role="user" statusMark={<Text size="xs" tone="secondary">Seen</Text>}>',
+    ],
     ["an unknown actions placement", { variant: "reply", actionsPlacement: "below" }, 'actionsPlacement="below" is not a placement; use "corner" or "beside"', '<Message variant="chat" actionsPlacement="beside">'],
     [
       "a presence beside an Avatar element",
@@ -592,6 +610,45 @@ describe("Message development messages", () => {
       </Message>,
     );
     expect(message.querySelector("[data-ouro-message-subject]")).toBeNull();
+  });
+
+  it("shows no statusMark off role=\"user\" or without a bubble", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Ouro" statusMark={<span>Seen</span>}>
+          Hi
+        </Message>
+        <Message variant="post" role="user" name="Ana" statusMark={<span>Seen</span>}>
+          Hi
+        </Message>
+        <Message role="assistant" name="Ouro" statusMark={<span>Seen</span>}>
+          Default layout
+        </Message>
+      </>,
+    );
+    const [assistant, post, defaultAssistant] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(assistant!.querySelector("[data-ouro-message-status-mark]")).toBeNull();
+    expect(post!.querySelector("[data-ouro-message-status-mark]")).toBeNull();
+    expect(defaultAssistant!.querySelector("[data-ouro-message-status-mark]")).toBeNull();
+  });
+
+  it.each([
+    ["null", null],
+    ["false", false as const],
+  ])("shows no statusMark that is %s, in the default layout or a bubble", async (_label, mark) => {
+    const { host } = await render(
+      <>
+        <Message role="user" name="Ana" statusMark={mark}>
+          Default layout
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" statusMark={mark}>
+          Hi
+        </Message>
+      </>,
+    );
+    const [defaultLayout, chat] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(defaultLayout!.querySelector("[data-ouro-message-status-mark]")).toBeNull();
+    expect(chat!.querySelector("[data-ouro-message-status-mark]")).toBeNull();
   });
 
   it("renders an unknown role as an assistant message", async () => {
@@ -837,7 +894,7 @@ describe("Message chat", () => {
     expect(message.getBoundingClientRect().width).toBeLessThanOrEqual(600);
   });
 
-  it("fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with a smaller corner toward its sender", async () => {
+  it("fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with equal corners", async () => {
     const { host } = await render(
       <>
         <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM">
@@ -859,11 +916,12 @@ describe("Message chat", () => {
     expect(own.backgroundColor).toBe(probeColor(host, "var(--primary)"));
     expect(own.color).toBe(probeColor(host, "var(--primary-foreground)"));
     expect(bubbleOf(mine!).getBoundingClientRect().right).toBeGreaterThan(hostBox.right - 2);
-    // Round, with the corner at the bottom toward the sender smaller: the end for the user's own, the start for others'.
+    // A lone bubble has four equal corners, with no sharper tail.
     const radius = (style: CSSStyleDeclaration, corner: string) => Number.parseFloat(style.getPropertyValue(`border-${corner}-radius`));
     expect(radius(own, "top-left")).toBeGreaterThanOrEqual(16);
-    expect(radius(own, "bottom-right")).toBeLessThan(radius(own, "bottom-left"));
-    expect(radius(theirs, "bottom-left")).toBeLessThan(radius(theirs, "bottom-right"));
+    for (const style of [own, theirs]) {
+      for (const corner of ["top-right", "bottom-right", "bottom-left"]) expect(radius(style, corner)).toBe(radius(style, "top-left"));
+    }
   });
 
   it("keeps the primary color readable inside the user's filled bubble: a link or mention in it takes the bubble's text color", async () => {
@@ -1270,6 +1328,65 @@ describe("Message chat", () => {
     expect(other!.querySelector("[data-ouro-message-footer]")).toBeNull();
     expect(other!.querySelector("[data-ouro-message-thread]")).toBeNull();
   });
+});
+
+describe("Message statusMark", () => {
+  it('draws on role="user" only, not on assistant or a bubbleless post', async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="user" name="Priya Okafor" statusMark={<span>Seen</span>}>
+          Here
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" statusMark={<span>Seen</span>}>
+          Not mine
+        </Message>
+        <Message role="user" name="Ana" statusMark={<span>Sent</span>}>
+          Default layout
+        </Message>
+        <Message variant="post" role="user" name="Ana" statusMark={<span>Sent</span>}>
+          Post
+        </Message>
+      </>,
+    );
+    const [mine, other, defaultLayout, post] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(mine!.querySelector("[data-ouro-message-status-mark]")!.textContent).toBe("Seen");
+    expect(other!.querySelector("[data-ouro-message-status-mark]")).toBeNull();
+    expect(defaultLayout!.querySelector("[data-ouro-message-status-mark]")!.textContent).toBe("Sent");
+    expect(post!.querySelector("[data-ouro-message-status-mark]")).toBeNull();
+  });
+
+  it("sits inside the bubble's own box, against its bottom end corner, in room the bubble reserves for it", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="user" name="Priya Okafor" footer={<span>Footer</span>}>
+          Here
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor" statusMark={<span>Seen</span>} footer={<span>Footer</span>}>
+          Here
+        </Message>
+      </>,
+    );
+    const [without, withMark] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const mark = withMark!.querySelector<HTMLElement>("[data-ouro-message-status-mark]")!;
+    const bubbleBox = bubbleOf(withMark!).getBoundingClientRect();
+    const markBox = mark.getBoundingClientRect();
+    // Inside the bubble's own box, seated at its bottom end corner.
+    expect(bubbleOf(withMark!).contains(mark)).toBe(true);
+    expect(markBox.bottom).toBeLessThanOrEqual(bubbleBox.bottom + 1);
+    expect(bubbleBox.bottom - markBox.bottom).toBeLessThanOrEqual(8);
+    expect(markBox.right).toBeLessThanOrEqual(bubbleBox.right + 1);
+    expect(bubbleBox.right - markBox.right).toBeLessThanOrEqual(8);
+    // The bubble reserves the room itself, taller than one without a mark, instead of the mark adding a row of
+    // its own: its footer keeps the same gap below the bubble either way.
+    const bubbleA = bubbleOf(without!).getBoundingClientRect();
+    const footerA = without!.querySelector<HTMLElement>("[data-ouro-message-footer]")!.getBoundingClientRect();
+    const footerB = withMark!.querySelector<HTMLElement>("[data-ouro-message-footer]")!.getBoundingClientRect();
+    expect(bubbleBox.height).toBeGreaterThan(bubbleA.height);
+    expect(Math.abs(footerB.top - bubbleBox.bottom - (footerA.top - bubbleA.bottom))).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("Message chat", () => {
 
   it("adds time, continued runs, a footer and a thread to the default layout too", async () => {
     const { host } = await render(

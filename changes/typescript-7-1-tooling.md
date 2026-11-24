@@ -1,0 +1,1 @@
+- Changed: Ouro UI's own build tooling now parses with [the TypeScript 7.1 API](package.json "verify:fileLine(package.json, /typescript7.: .npm:typescript@7\.1\.0-beta/)"); the shipped `lib-claims` and `ouro-source-rules` items keep their TypeScript floor.

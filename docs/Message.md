@@ -37,7 +37,7 @@ The props the modes share. Type: `MessageProps`.
 | `actionsPlacement` | `"corner" \| "beside"` | `"beside"` on a `reply`, "corner" on a `chat` | Where the action bar sits on a `chat` or `reply` message. `beside` puts it just past the bubble's end, level with its top, so it covers neither the name nor the message and stays with the bubble however wide the row; where the row has no room left, it ends at the row's edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble. `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is over its top end, and the default layout's over its bubble's corner. |
 | `attachments` | `ReactNode` |  | Files and pictures sent with the message, shown under it: `<Attachment>` elements, and pictures as `<Lightbox layout="mosaic">`, which keeps them to a chat's size and opens them full size. |
 | `avatar` | `string \| false \| ReactElement` |  | The author's picture URL. Without it the avatar shows initials; `false` shows no avatar. For the author's presence, pass `presence`. Pass an `Avatar` element instead for a square avatar or a color of your own: `avatar={<Avatar name="Ana" src={url} alt="" size="sm" />}` (`alt=""`, since the name is written beside it). In `chat`, the user's own messages show no avatar. |
-| `bubble` | `"filled" \| "raised"` | `"filled"` on a `chat` message; unboxed on a `reply` | How a `chat` message's bubble looks. `filled`, the default, is a messaging app's: the user's own message filled with `--ouro-bubble-user` and text in `--ouro-bubble-user-foreground` when the theme sets them, else as a primary button is (`--ouro-action`, else the primary color); others' filled with `--ouro-bubble-other` and text in `--ouro-bubble-other-foreground` when the theme sets them, else the muted surface, each round with a smaller corner toward its sender, with an edge that forced colors draw. Inside the user's own bubble, the theme's colors follow the fill, so a link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link, a mention or muted text follows the bubble's own text color instead of the page's, so it keeps 4.5:1 there too. `raised` is a workplace chat's: others' messages on a raised card with a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a `bubble` is laid out as a chat's message, for a thread that reads as a chat: the user's own at the end, others' at the start under their name, each in a bubble of that look. A `reply` without one stays unboxed, and `default` and `post` ignore it. |
+| `bubble` | `"filled" \| "raised"` | `"filled"` on a `chat` message; unboxed on a `reply` | How a `chat` message's bubble looks. `filled`, the default, is a messaging app's: the user's own message filled with `--ouro-bubble-user` and text in `--ouro-bubble-user-foreground` when the theme sets them, else as a primary button is (`--ouro-action`, else the primary color); others' filled with `--ouro-bubble-other` and text in `--ouro-bubble-other-foreground` when the theme sets them, else the muted surface, each round with equal corners, with an edge that forced colors draw. In a run of `continued` messages from one sender, the corners where neighboring bubbles meet are slightly less round (`--ouro-message-joined-radius`, `--radius-ouro-xl` unless set), on the side the bubbles sit (the end for the user's own, the start for others', mirrored in right-to-left), and `MessageList` keeps `--ouro-message-run-gap` (`--ouro-size-1` unless set) between them. Inside the user's own bubble, the theme's colors follow the fill, so a link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link, a mention or muted text follows the bubble's own text color instead of the page's, so it keeps 4.5:1 there too. `raised` is a workplace chat's: others' messages on a raised card with a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a `bubble` is laid out as a chat's message, for a thread that reads as a chat: the user's own at the end, others' at the start under their name, each in a bubble of that look. A `reply` without one stays unboxed, and `default` and `post` ignore it. |
 | `children` | `ReactNode` |  | The message: text, or rich content such as a list or a code block. |
 | `className` | `string` |  | Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. |
 | `context` | `ReactNode` |  | A short line above the message, before its quote and its text, saying where the message stands, such as "Replied in thread" over the message it replied to. Screen readers hear it first in the message's content, before the quote. Nothing shows when it is undefined, null, false or empty. For example: `<Message role="user" name="Ana" context="Replied in thread" quote={{ author: "Fen", excerpt: "Ship it?" }}>Yes</Message>`. |
@@ -46,7 +46,7 @@ The props the modes share. Type: `MessageProps`.
 | `deleteLabel` | `string` | `"Delete"` | The name of a `failed` message's delete button, for other languages. |
 | `failed` | `MessageFailed \| false` |  | The message did not send, and what the person can do about it: `{ onRetry, onDelete }`. A calm marker under it says "Not sent" beside Retry and Delete buttons, and stays until the app clears `failed`, so a failed send never goes quiet. Screen readers hear the marker as the message's description. It appears at once, with no motion. To put the text back in a `Composer` instead, set the Composer's `value` to it and delete the message. |
 | `failedLabel` | `string` | `"Not sent"` | What the marker under a `failed` message says, for other languages. |
-| `footer` | `ReactNode` |  | Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
+| `footer` | `ReactNode` |  | Under the message: its reactions (`<ReactionBar>`) and "Edited". For whether it was delivered or seen, use `statusMark` instead: a row here reads as a line of its own under every message, rather than a mark that belongs to the bubble. |
 | `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label and its `shortcut` at its end. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads as soon as a bar with a menu is on the page, so the first press opens it without a wait. In a `MessageList`, the list has one menu for all its messages: the bar's menu button, a right-click on the message (except on a field, a link, a picture or selected text, which keep the browser's menu) and Shift+F10 or the context-menu key on it all open it, named by `actionsMenuLabel`, and closing it puts focus back on the message. |
 | `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
 | `name` (required) | `string \| null` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's place on its line, the avatar shimmers in its own shape, and screen readers hear `nameLoadingLabel`. Nothing moves when the name arrives. |
@@ -63,6 +63,7 @@ The props the modes share. Type: `MessageProps`.
 | `retryLabel` | `string` | `"Retry"` | The name of a `failed` message's retry button, for other languages. |
 | `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ana joined"), centered and quiet. |
 | `sentLabel` | `string` | `"Sent"` | What screen readers hear once a `pending` message is confirmed, for other languages. The sender hears Sent when the send is confirmed, or the failed label when it fails, and these words are not the message's own. |
+| `statusMark` | `ReactNode` |  | A small mark seated against the user's own bubble, at its bottom end corner: for example whether the message was delivered or seen. It sits inside the bubble's own box, in room the bubble reserves for it, rather than overlapping the message's own text or adding a row of its own alongside `header` or `footer`. For example `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on a user's own bubble: a `default` message, a `chat` message, or a `reply` given its own `bubble`. An `assistant` or `system` message, and a `post` or unbubbled `reply`, have no bubble corner to seat it against, so it does not draw there. |
 | `streaming` | `boolean` |  | The reply is still being written. The message is `aria-busy`, an empty one shows a typing indicator, and `MessageList` announces it once, when streaming ends. |
 | `streamingLabel` | `string` | `"Writing"` | What screen readers hear for the typing indicator, for other languages. |
 | `subject` | `ReactNode` |  | A post's subject, in semibold above its text. `post` only. |
@@ -285,7 +286,7 @@ type MessageActionsPlacement = "corner" | "beside";
 
 ### `MessageBubble`
 
-How a `chat` message's bubble, or a `reply` drawn as one, looks: `filled`, the user's own in the primary color and others' on the muted surface, round with a small corner toward the sender; or `raised`, others' on a raised card and the user's own in a tint of the primary color.
+How a `chat` message's bubble, or a `reply` drawn as one, looks: `filled`, the user's own in the primary color and others' on the muted surface, round with equal corners; or `raised`, others' on a raised card and the user's own in a tint of the primary color.
 
 ```ts
 type MessageBubble = "filled" | "raised";
@@ -351,8 +352,11 @@ interface MessageOwnProps {
    * own message filled with `--ouro-bubble-user` and text in `--ouro-bubble-user-foreground`
    * when the theme sets them, else as a primary button is (`--ouro-action`, else the primary color); others'
    * filled with `--ouro-bubble-other` and text in `--ouro-bubble-other-foreground` when the theme sets them, else
-   * the muted surface, each round with a smaller corner toward its sender, with an edge that
-   * forced colors draw. Inside the user's own bubble, the theme's colors follow the fill, so a
+   * the muted surface, each round with equal corners, with an edge that
+   * forced colors draw. In a run of `continued` messages from one sender, the corners where neighboring bubbles meet
+   * are slightly less round (`--ouro-message-joined-radius`, `--radius-ouro-xl` unless set), on the side the bubbles sit (the end
+   * for the user's own, the start for others', mirrored in right-to-left), and `MessageList` keeps
+   * `--ouro-message-run-gap` (`--ouro-size-1` unless set) between them. Inside the user's own bubble, the theme's colors follow the fill, so a
    * link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link, a mention or muted text
    * follows the bubble's own text color instead of the page's, so it keeps 4.5:1 there too. `raised` is a workplace chat's: others' messages on a raised card with
    * a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a
@@ -432,8 +436,23 @@ interface MessageOwnProps {
    * full size.
    */
   attachments?: ReactNode;
-  /** Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. */
+  /**
+   * Under the message: its reactions (`<ReactionBar>`) and "Edited". For whether it was
+   * delivered or seen, use `statusMark` instead: a row here reads as a line of its own under
+   * every message, rather than a mark that belongs to the bubble.
+   */
   footer?: ReactNode;
+  /**
+   * A small mark seated against the user's own bubble, at its bottom end corner: for example
+   * whether the message was delivered or seen. It
+   * sits inside the bubble's own box, in room the bubble reserves for it, rather than overlapping
+   * the message's own text or adding a row of its own alongside `header` or `footer`. For example
+   * `statusMark={<Text size="xs" tone="secondary">Seen 9:41 AM</Text>}`. It draws only on a
+   * user's own bubble: a `default` message, a `chat` message, or a `reply` given its own
+   * `bubble`. An `assistant` or `system` message, and a `post` or unbubbled `reply`, have no
+   * bubble corner to seat it against, so it does not draw there.
+   */
+  statusMark?: ReactNode | undefined;
   /** Under a post, or a message in a channel without threads: its thread, as a `<ThreadSummary>`. */
   thread?: ReactNode;
   /**

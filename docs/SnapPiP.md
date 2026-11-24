@@ -25,11 +25,11 @@ It follows the pointer from the first pixel and lifts while dragged. On release 
 
 The corners sit `inset` in from the edges and keep clear of `keepOut`. It keeps its corner, not its position: when the keep-outs change it follows its corner with the spring, and while the container resizes it stays in its corner without one, placed in the same frame as the resize. While it springs it carries `data-ouro-settling`.
 
-It is focusable: Option and an arrow key move it to the next corner that way, with the same spring, and the new corner is announced politely once it settles, never during the move; a key toward the side it is already on says the corner again. Its name, corner and `hint` are what screen readers read. The hint also shows beside it, toward the middle of the stage and never over it, when it gets keyboard focus or the pointer rests on it, and stays while the pointer is on either. Escape, a move or a press puts it away until focus and the pointer have both left. Double-click it, or press Option-Return, to toggle small and large.
+It is focusable: Option and an arrow key move it to the next corner that way, with the same spring, and the new corner is announced politely once it settles, never during the move; a key toward the side it is already on says the corner again. Its name, corner and `hint` are what screen readers read. The hint also shows beside it, toward the middle of the stage and never over it, when it gets keyboard focus or the pointer rests on it, and stays while the pointer is on either. Escape, a move or a press puts it away until focus and the pointer have both left. Double-click it, or press Option-Return, to toggle small and large. Pass `onCollapsedChange` and it carries a Hide button, and Escape hides it too, so a person can clear a face it covers; the picture then shrinks to a small Show button, and its content stays mounted.
 
 With reduced motion it jumps straight to its corner: no spring, no lift and no rubberband.
 
-Its agent side, `snapPipAx` in `snap-pip-styles.ts`, declares no reads and one action, `move`, which only the person takes: where their own picture sits is theirs. Hiding the picture is the app's, from its own menu, so the app declares that `hide` action, not SnapPiP.
+Its agent side, `snapPipAx` in `snap-pip-styles.ts`, declares no reads and one action, `move`, which only the person takes: where their own picture sits is theirs. Whether to offer hiding it to an agent is the app's, so the app declares a `hide` action, not SnapPiP.
 
 ## Use instead when
 
@@ -44,15 +44,19 @@ Type: `SnapPiPProps`.
 | `aspectRatio` | `number` | `1.6` | Width over height, such as a camera's: 1.6 (16:10), or 0.5625 (9:16) for a phone held upright. |
 | `children` | `ReactNode` |  | The app's content, such as a `<video>` with `className="size-full object-cover"`, which the app renders itself. |
 | `className` | `string` |  | Layout only. Appearance classes warn in development; style what you put inside it instead. |
+| `collapsed` | `boolean` |  | Whether the picture is collapsed to a small chip that only shows a button to bring it back, controlled, so a person can clear a face it covers. Pass `onCollapsedChange` too: it shows the Hide button on the picture, and Escape collapses it. The app's content stays mounted. |
+| `collapseLabels` | `{ hide: string; show: string }` | { hide: "Hide", show: "Show" } followed by the label, such as "Hide Your camera" | The names of the Hide and Show buttons, read as they are. Translate them with the rest of your interface. |
 | `corner` | `"top-left" \| "top-right" \| "bottom-left" \| "bottom-right"` |  | The corner it rests in, controlled. Pass `onCornerChange` too, or a throw comes back to this corner. |
 | `cornerLabels` | `SnapPiPCornerLabels` | { "top-left": "Top left", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-right": "Bottom right" } | The words for each corner, read after its name and announced when it settles in a new one. |
+| `defaultCollapsed` | `boolean` |  | Whether it starts collapsed, uncontrolled. |
 | `defaultCorner` | `"top-left" \| "top-right" \| "bottom-left" \| "bottom-right"` | `"bottom-right"` | The corner it starts in, uncontrolled. |
 | `defaultSize` | `"small" \| "large"` | `"small"` | The size it starts at, uncontrolled. |
 | `hint` | `string` | `"Option-arrow keys to move it"` | How to move it from the keyboard, read after its name and corner, and shown beside it as a tooltip. Translate it with the rest of your interface. |
 | `id` | `string` |  | The picture's id. |
 | `inset` | `number` | `16` | How far the corners sit in from the container's edges, and from a keep-out, in px. |
-| `keepOut` | `readonly SnapPiPKeepOut[]` |  | What the corners keep clear of: rectangles in the container (`{ x, y, width, height }`, px from its top-left corner), or refs to elements, such as a toolbar's band, a captions band or another SnapPiP, measured whenever they or the container resize. A ref is read again after each render and whenever the container's content changes, so an element the app shows or takes away behind the same ref, such as a captions band, counts as soon as it comes or goes. A corner that would overlap one moves just clear of it, toward the middle. When they change, the picture follows its corner with the spring. |
+| `keepOut` | `readonly SnapPiPKeepOut[]` |  | What the corners keep clear of: rectangles in the container (`{ x, y, width, height }`, px from its top-left corner), or refs to elements, such as a toolbar's band, a captions band or another SnapPiP, measured whenever they or the container resize. A ref is read again after each render and whenever the container's content changes, so an element the app shows or takes away behind the same ref, such as a captions band, counts as soon as it comes or goes. A corner that would overlap one moves just clear of it, toward the middle. An app with a tile grid passes the grid as a keep-out, or a move to a corner lands on a face: the picture does not look for faces. When they change, the picture follows its corner with the spring. |
 | `label` (required) | `string` |  | What the picture is: "Your camera". It names it for screen readers, before its corner and the hint. |
+| `onCollapsedChange` | `((collapsed: boolean) => void)` |  | Called with the new state when the person presses the Hide or Show button, or Escape. |
 | `onCornerChange` | `((corner: SnapPiPCorner) => void)` |  | Called with the new corner when the person throws or moves it there, so the app can remember it. |
 | `onSizeChange` | `((size: SnapPiPSize) => void)` |  | Called with the new size when the person double-clicks it or presses Option-Return on it. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |

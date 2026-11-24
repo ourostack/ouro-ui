@@ -888,6 +888,7 @@
     "registry/ouro/e2e/ouro/avatar.spec.ts": 13293,
     "registry/ouro/e2e/ouro/badge.spec.ts": 9282,
     "registry/ouro/e2e/ouro/breadcrumb.spec.ts": 7410,
+    "registry/ouro/e2e/ouro/build-chip.spec.ts": 7000,
     "registry/ouro/e2e/ouro/button-group.spec.ts": 3117,
     "registry/ouro/e2e/ouro/button.spec.ts": 7229,
     "registry/ouro/e2e/ouro/calendar.spec.ts": 8724,

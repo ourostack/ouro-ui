@@ -242,6 +242,8 @@ export function Carousel(props: CarouselProps): JSX.Element {
   // The settled index, and the slide a button press is heading to before the scroll settles.
   const settled = useRef(startIndex);
   const heading = useRef<number | undefined>(undefined);
+  // Restarts the stability wait below for a newly retargeted heading, set once that effect runs.
+  const restartWait = useRef<() => void>(undefined);
   const rootRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const previousRef = useRef<HTMLButtonElement>(null);
@@ -334,6 +336,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
       stopWaiting();
       if (!touching) timer = setTimeout(check, 150);
     };
+    restartWait.current = wait;
     // scrollend fires the moment the browser decides a scroll stopped, so it is trusted only
     // when the position it reports is where the latest press is heading: still mid-way there
     // means this scrollend belongs to a scroll it interrupted, so it is treated as a pause
@@ -365,6 +368,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
     } else viewport.addEventListener("scrollend", onScrollEnd);
     return () => {
       stopWaiting();
+      restartWait.current = undefined;
       viewport.removeEventListener("scroll", wait);
       viewport.removeEventListener("touchstart", onTouchStart);
       viewport.removeEventListener("touchend", onTouchEnd);
@@ -395,6 +399,11 @@ export function Carousel(props: CarouselProps): JSX.Element {
     heading.current = controlled;
     latest.current.onTargetChange?.(controlled);
     scrollToSlide(controlled, reduced ? "instant" : "smooth");
+    // A press already heading elsewhere left a stale schedule for that target: restart it, so
+    // the stability window judges this one, not a reading left over from before the retarget.
+    // Stryker disable next-line OptionalChaining: equivalent; the settling effect's mount-time
+    // assignment (deps []) always runs first and is never cleared before this effect can.
+    restartWait.current?.();
     // Only when the app's index changes: a new motion setting moves nothing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controlled]);
@@ -411,6 +420,11 @@ export function Carousel(props: CarouselProps): JSX.Element {
     heading.current = target;
     latest.current.onTargetChange?.(target);
     scrollToSlide(target, reduced ? "instant" : "smooth");
+    // A press while an earlier one is still being confirmed left a schedule that targets it:
+    // restart it, so the stability window judges this later press, not a stale schedule.
+    // Stryker disable next-line OptionalChaining: equivalent; the settling effect's mount-time
+    // assignment (deps []) always runs first and is never cleared before go() can be called.
+    restartWait.current?.();
   };
 
   return (

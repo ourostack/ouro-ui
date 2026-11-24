@@ -363,6 +363,24 @@ describe("the stage's controls", () => {
     expect(document.querySelectorAll('[data-ouro="toast"]')).toHaveLength(0);
   });
 
+  it("keeps the crew's line plain, its aria-live in a separate region that never gains visible text", async () => {
+    // The porthole's own paragraph carries no aria-live: a live region's content change makes
+    // WebKit rebuild its accessibility tree before the next paint, and that landed in the very
+    // frame the switch to still water is measured in (ourostack/ouro-ui#728). The spoken words
+    // live in a sr-only sibling instead, deferred a frame later.
+    await renderPage("/");
+    const line = document.querySelector("[data-stage-crew]")!;
+    expect(line.hasAttribute("aria-live")).toBe(false);
+    const words = line.querySelector(".stage-crew-words")!;
+    expect(words.hasAttribute("aria-live")).toBe(false);
+    const region = line.querySelector("[aria-live]")!;
+    expect(region).not.toBeNull();
+    expect(region.textContent).toBe("");
+    await userEvent.click(page.getByRole("radio", { name: "Full" }));
+    await expect.poll(lastLog).toContain(LOG.speed.full.text);
+    await expect.poll(() => region.textContent).toContain(LOG.speed.full.text);
+  });
+
   it("keeps the newest five lines in the log, the newest also under the porthole", async () => {
     await renderPage("/");
     const fold = page.getByRole("button", { name: /^Ship's log \(/ });

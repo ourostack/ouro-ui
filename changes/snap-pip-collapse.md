@@ -1,0 +1,1 @@
+- New: SnapPiP can be hidden to a small Show button: pass `onCollapsedChange` and it carries a Hide button and answers Escape, so a person can clear a face it covers.

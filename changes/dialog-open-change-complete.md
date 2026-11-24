@@ -1,0 +1,1 @@
+- New: [Dialog takes `onOpenChangeComplete`](registry/ouro/components/ouro/dialog/dialog.test.tsx "verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::onOpenChangeComplete > tells once an open and a close have finished, centered and as a sheet)"), called once an open or a close has finished, so an app that keeps a dialog mounted can unmount it after its exit.

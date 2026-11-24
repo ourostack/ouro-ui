@@ -17,7 +17,7 @@ Some specs pass a step through a fallback or only log it, and the lane's advisor
 
 ## Per component
 
-Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 20 of 116 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
+Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 20 of 117 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
 
 | Component | Stories | Conformance declarations | Screen-reader spec (VoiceOver and NVDA) |
 | --- | --- | --- | --- |
@@ -34,6 +34,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [avatar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/avatar) | 8 | 0 | none yet |
 | [badge](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/badge) | 5 | 0 | none yet |
 | [breadcrumb](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/breadcrumb) | 3 | 0 | none yet |
+| [build-chip](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/build-chip) | 4 | 0 | none yet |
 | [button](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/button) | 8 | 0 | [button.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/button.sr.spec.ts): 1 test on `actions-button--loading` |
 | [button-group](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/button-group) | 2 | 0 | none yet |
 | [calendar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/calendar) | 8 | 0 | none yet |
@@ -115,7 +116,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [skeleton](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/skeleton) | 9 | 0 | none yet |
 | [skip-link](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/skip-link) | 2 | 0 | none yet |
 | [slider](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/slider) | 3 | 0 | none yet |
-| [snap-pip](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/snap-pip) | 6 | 0 | none yet |
+| [snap-pip](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/snap-pip) | 7 | 0 | none yet |
 | [spinner](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/spinner) | 2 | 0 | none yet |
 | [stack](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/stack) | 4 | 0 | none yet |
 | [swipe-actions](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/swipe-actions) | 2 | 0 | none yet |

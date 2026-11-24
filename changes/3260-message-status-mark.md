@@ -1,0 +1,1 @@
+- New: Message gained a `statusMark` prop that seats a small mark (such as "Seen" or a delivered checkmark) inside the user's own bubble, against its bottom end corner, in room the bubble reserves for it rather than a row of its own; it draws only on `role="user"` with a bubble.

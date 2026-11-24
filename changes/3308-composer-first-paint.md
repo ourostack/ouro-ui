@@ -1,0 +1,1 @@
+- Fix: Composer's rich editor opts out of ouro-check's first-paint-swap rule, since it intentionally replaces the server's plain textarea once its editor module loads.
