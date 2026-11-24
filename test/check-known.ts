@@ -639,14 +639,16 @@ export const knownFindings: KnownFinding[] = [
     rule: "near-miss",
     issue: 3286,
     reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "ThreadLayout/Narrow",
     rule: "near-miss",
     issue: 3286,
     reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "TimeGrid/BackgroundEvents",
