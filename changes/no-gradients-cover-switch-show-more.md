@@ -1,0 +1,1 @@
+- Changed: Cover fills with one solid colour from `--ouro-cover-from` and stops reading `--ouro-cover-to`, Switch's track is one tint, and a folded ShowMore ends on a hard edge instead of a fade.

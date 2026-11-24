@@ -2,7 +2,7 @@
 
 # Cover
 
-A thing's cover: its picture, or, without one, the first letter of its title in the theme's heading font on a wash from the muted color toward the primary. Use it beside a recipe, a book or an album in a list row, on a card, or at full width as a page's hero. A theme sets the wash with `--ouro-cover-from` and `--ouro-cover-to`, and the letter's color with `--ouro-cover-ink`.
+A thing's cover: its picture, or, without one, the first letter of its title in the theme's heading font on a solid tint of the muted color toward the primary. Use it beside a recipe, a book or an album in a list row, on a card, or at full width as a page's hero. A theme sets the fill with `--ouro-cover-from`, and the letter's color with `--ouro-cover-ink`.
 
 ```tsx
 import { Cover } from "@/registry/ouro/components/ouro/cover/cover";

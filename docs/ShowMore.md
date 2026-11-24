@@ -2,7 +2,7 @@
 
 # ShowMore
 
-"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, folds content of any kind (a long post with pictures) to a height under a fade, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The button names what it folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`). Folded text and content are folded by CSS in the first commit and in server HTML, and the button comes after the browser has laid them out: ShowMore does not guess whether they are longer than the fold. One ResizeObserver reads the layout and adds the button to what overflows. The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
+"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, folds content of any kind (a long post with pictures) to a height on a hard edge, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The button names what it folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`). Folded text and content are folded by CSS in the first commit and in server HTML, and the button comes after the browser has laid them out: ShowMore does not guess whether they are longer than the fold. One ResizeObserver reads the layout and adds the button to what overflows. The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
 
 ```tsx
 import { ShowMore } from "@/registry/ouro/components/ouro/collapsible/show-more";
@@ -40,7 +40,7 @@ The props the modes share. Type: `ShowMoreProps`.
 
 ### Height: `ShowMoreHeightProps`
 
-Long content of any kind folded to `maxHeight` pixels under a fade, with "Show more" and "Show less".
+Long content of any kind folded to `maxHeight` pixels on a hard edge, with "Show more" and "Show less".
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |

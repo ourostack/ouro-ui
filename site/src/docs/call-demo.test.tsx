@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { routes } from "../routes";
@@ -95,6 +95,23 @@ describe("the call window page", () => {
     await expect.poll(() => root.scrollWidth <= root.clientWidth).toBe(true);
     host.style.width = "";
     host.style.overflow = "";
+  });
+
+  it("keeps the self view clear of every tile, in each corner it can take", async () => {
+    await renderPage("/docs/call-demo/");
+    const pip = document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
+    const overlaps = () => {
+      const a = pip.getBoundingClientRect();
+      return [...document.querySelectorAll<HTMLElement>('[data-site-call-demo] [data-ouro="media-tile"]')].filter((tile) => {
+        const b = tile.getBoundingClientRect();
+        return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      }).length;
+    };
+    await page.getByRole("radio", { name: "6" }).click();
+    await expect.poll(overlaps).toBe(0);
+    pip.focus();
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    await expect.poll(overlaps).toBe(0);
   });
 
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
