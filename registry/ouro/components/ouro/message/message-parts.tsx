@@ -199,6 +199,7 @@ export function MessageActionBar({
       data-ouro-row-layer={layered && beside === undefined ? "" : undefined}
       data-ouro-part="bar"
       data-menu-open={menuOpen ? "" : undefined}
+      // Stryker disable next-line StringLiteral: the stylesheet reads the attribute's presence, never its value.
       data-ending-style={ending ? "" : undefined}
       onKeyDown={keyDown}
       onFocus={focus}
@@ -336,6 +337,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   // The menu that opened, with Menu's code, which comes before it opens.
   const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
   // The bar has finished fading out and is out of the page; its element stays, as it always has, for the next message.
+  // Stryker disable next-line BooleanLiteral: before the first showing nothing is shown or ending, and that showing clears parked in its own render, so either start reads alike.
   const [parked, setParked] = useState(false);
   const [opened, setOpened] = useState<{ M: MenuModule; row: HTMLElement; data: MessageBarData; anchor: MenuAnchor; open: boolean } | null>(null);
   // A virtual element for where the menu opens: the bar goes as it opens, so a box measured now.
@@ -392,6 +394,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     if (bar !== null && slot !== null && !entered.has(bar)) {
       entered.add(bar);
       // Styled transparent once, then cleared, so the opacity runs as a transition.
+      // Stryker disable next-line StringLiteral: the stylesheet reads the attribute's presence, never its value.
       bar.setAttribute("data-starting-style", "");
       void getComputedStyle(bar).opacity;
       bar.removeAttribute("data-starting-style");

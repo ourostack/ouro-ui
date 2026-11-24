@@ -88,10 +88,16 @@ describe("MessageList bar fade", () => {
     const before = bar()!;
     await userEvent.unhover(document.body);
     expect(before.hasAttribute("data-ending-style")).toBe(true);
+    const restyled: string[] = [];
+    const watch = new MutationObserver((records) => restyled.push(...records.map((record) => record.attributeName!)));
+    watch.observe(before, { attributes: true, attributeFilter: ["data-starting-style"] });
     await hover("m0");
     expect(bar()).toBe(before);
     expect(before.hasAttribute("data-ending-style")).toBe(false);
     await expect.poll(() => before.getAnimations().length).toBe(0);
+    watch.disconnect();
+    // The exit that ended with the return does not send the bar back through its entrance.
+    expect(restyled).toEqual([]);
     expect(bar()).toBe(before);
     expect(getComputedStyle(before).opacity).toBe("1");
   });
