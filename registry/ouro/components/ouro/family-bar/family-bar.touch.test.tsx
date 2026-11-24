@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { FamilyBar, type FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-footer";
