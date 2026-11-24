@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { AX_ACTION_ATTRIBUTE, expectAxRendered } from "@/registry/ouro/ax/component";
 import { SnapPiP, type SnapPiPCorner, type SnapPiPProps } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
-import { anchorFor, cornerToward, HINT_DELAY, nearestCorner, snapPipAx, widthFor } from "@/registry/ouro/components/ouro/snap-pip/snap-pip-styles";
+import { anchorFor, clearsKeepOut, cornerToward, HINT_DELAY, nearestCorner, snapPipAx, widthFor } from "@/registry/ouro/components/ouro/snap-pip/snap-pip-styles";
 import { rubberband } from "@/registry/ouro/lib/ouro/spring";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
@@ -1095,6 +1095,84 @@ describe("SnapPiP", () => {
     await fire("pointerup", x + 10, y + 300, 150);
     rest();
     expect(at()).toEqual([LEFT, 380 - 16 - 100]);
+  });
+
+  it("says whether a corner's place clears the keep-outs", () => {
+    const stageBox = { width: 380, height: 480 };
+    const small = { width: 160, height: 100 };
+    expect(clearsKeepOut("bottom-right", stageBox, small, 16, [{ x: 0, y: 400, width: 380, height: 80 }])).toBe(true);
+    expect(clearsKeepOut("bottom-right", stageBox, small, 16, [{ x: 0, y: 60, width: 380, height: 420 }])).toBe(false);
+  });
+
+  it("hides itself when a keep-out leaves no corner clear", async () => {
+    const onCollapsedChange = vi.fn();
+    await render(self({ onCollapsedChange }));
+    await rest();
+    expect(onCollapsedChange).not.toHaveBeenCalled();
+    await render(self({ onCollapsedChange, keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));
+    expect(onCollapsedChange).toHaveBeenCalledWith(true);
+    // Opened again by hand while the keep-out still covers it: it stays open.
+    onCollapsedChange.mockClear();
+    const covered = [{ x: 0, y: 60, width: 380, height: 420 }];
+    await render(self({ onCollapsedChange, collapsed: true, keepOut: covered }));
+    await render(self({ onCollapsedChange, collapsed: false, keepOut: covered }));
+    await rest();
+    expect(onCollapsedChange).not.toHaveBeenCalled();
+    // A new shape for the picture still leaves it open, until a keep-out changes.
+    await render(self({ onCollapsedChange, collapsed: false, aspectRatio: 9 / 16, keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));
+    await rest();
+    expect(onCollapsedChange).not.toHaveBeenCalled();
+  });
+
+  it("stays open once opened by hand when the first size reports arrive after it", async () => {
+    const Real = ResizeObserver;
+    const held: { callback: ResizeObserverCallback; observer: ResizeObserver }[] = [];
+    // A loaded page delivers the first reports late: hold them back until the test lets them in.
+    vi.stubGlobal(
+      "ResizeObserver",
+      class extends Real {
+        constructor(callback: ResizeObserverCallback) {
+          super(() => undefined);
+          held.push({ callback, observer: this });
+        }
+      },
+    );
+    try {
+      const onCollapsedChange = vi.fn();
+      const covered = [{ x: 0, y: 60, width: 380, height: 420 }];
+      await render(self({ onCollapsedChange }));
+      await render(self({ onCollapsedChange, collapsed: true, keepOut: covered }));
+      await render(self({ onCollapsedChange, collapsed: false, keepOut: covered }));
+      onCollapsedChange.mockClear();
+      const report = (height: number) =>
+        act(async () => held.forEach(({ callback, observer }) => callback([{ target: stage, contentRect: { width: 380, height } } as unknown as ResizeObserverEntry], observer)));
+      await report(480);
+      await rest();
+      expect(onCollapsedChange).not.toHaveBeenCalled();
+      // The same size again is no change either, but a new size is one, and a covered picture hides again.
+      await report(480);
+      await rest();
+      expect(onCollapsedChange).not.toHaveBeenCalled();
+      await report(470);
+      await expect.poll(() => onCollapsedChange).toHaveBeenCalledWith(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("hides itself at once when it first shows with a keep-out over every corner", async () => {
+    const onCollapsedChange = vi.fn();
+    await render(self({ onCollapsedChange, keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));
+    await rest();
+    expect(onCollapsedChange).toHaveBeenCalledWith(true);
+  });
+
+  it("keeps its corner when no corner is clear and it cannot be hidden", async () => {
+    await render(self());
+    await rest();
+    await render(self({ keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));
+    await rest();
+    expectAt(RIGHT, BOTTOM);
   });
 
   it("finds each corner's place clear of every keep-out, toward the middle, or keeps the corner when nothing clears", () => {
