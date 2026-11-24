@@ -6,6 +6,7 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock } from "../components/code";
 import { href } from "../paths";
+import { StoryOpener } from "../components/story-world";
 import { Output, PartBand, PartNext } from "./shell";
 import refusal from "@/docs/guides/evidence/part-pages/hackamore-refusal.txt?raw";
 
@@ -132,6 +133,7 @@ const RULES = [
 export default function HackamorePage(): JSX.Element {
   return (
     <div id="hackamore" className="part">
+      <StoryOpener scene="hackamore" line="A rope and no bit: the robot leads, and the horse still goes where it is asked." short={false} />
       <div className="part-hero">
         <Hero
           layout="split"

@@ -9,6 +9,7 @@ import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { href } from "../paths";
 import { setXray, useXray } from "../voyage/xray-store";
+import { StoryOpener } from "../components/story-world";
 import { Output, PartBand, PartNext } from "./shell";
 import badReport from "@/docs/guides/evidence/part-pages/ax-xray-bad-cli.txt?raw";
 import goodReport from "@/docs/guides/evidence/part-pages/ax-xray-tasks.txt?raw";
@@ -165,6 +166,7 @@ const KIT = [
 export default function XrayPage(): JSX.Element {
   return (
     <div id="xray" className="part">
+      <StoryOpener scene="xray" line="The lens shows every cog inside the cabinet, and the robot is checking each one." short={false} />
       <div className="part-hero">
         <Hero
           layout="split"

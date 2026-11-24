@@ -28,7 +28,11 @@ export type SceneName =
   | "nautilus-porthole-free"
   | "nautilus-organ"
   | "nautilus-organ-playing"
-  | "nautilus-organ-asleep";
+  | "nautilus-organ-asleep"
+  | "actions"
+  | "composed-ui"
+  | "xray"
+  | "hackamore";
 
 export interface Scene {
   /** What the picture shows, for a screen reader: the friends in it and what they are up to. */
@@ -278,6 +282,38 @@ export const SCENES: Record<SceneName, Scene> = {
       phoneHeight: 512,
       alt: "The captain plays the Nautilus's great organ softly at night: its glowing brass pipes are the brightest light in the dim saloon, the small lilac robot pumps the bellows, Ouro listens from the organ's top, and at the great oval window the giant squid rests against the glass with its eye closed, fast asleep.",
     },
+  },
+  actions: {
+    alt: "At a market stall in warm light, a faceless glass person in a mitten reaches over a brass bell on the counter, a small saffron robot behind the counter waits with its hand ready, and Ouro, a smiling emerald snake curled into an O, rests on a crate of apples.",
+    sky: ["#cba487","#c99e7d","#c59a7a","#c09679","#c79a7b"],
+    height: 576,
+    phoneHeight: 384,
+    band: 50,
+    night: { phoneHeight: 384 },
+  },
+  "composed-ui": {
+    alt: "In an easel studio, a faceless glass person holds a mug and watches while a small lilac robot slides a blank glass card into the easel's slot, a tray of star, circle and blob glass pieces beside them, and Ouro, a smiling emerald snake curled into an O, rests on top of the easel.",
+    sky: ["#eed0a6","#f0c798","#a87443","#a17959","#784b2c"],
+    height: 576,
+    phoneHeight: 512,
+    band: 50,
+    night: { phoneHeight: 512 },
+  },
+  xray: {
+    alt: "In an apothecary, a faceless glass person holds a brass lens up to a tall cabinet of small drawers and sees emerald cogs inside, a small sea-blue robot peeks round the side of the cabinet, and Ouro, a smiling emerald snake curled into an O, rests on top.",
+    sky: ["#e9cb8d","#e5ca9b","#d6b189","#cba884","#be9b78"],
+    height: 576,
+    phoneHeight: 384,
+    band: 50,
+    night: { phoneHeight: 384 },
+  },
+  hackamore: {
+    alt: "In a pear orchard in blossom, a small pink robot leads a carved carousel horse on a wheeled platform by a rope hackamore, with no bit, while Ouro, a smiling emerald snake curled into an O, sits in the saddle.",
+    sky: ["#dfb970","#f5ddb0","#f3dcc2","#e1cbb3","#957a41"],
+    height: 576,
+    phoneHeight: 512,
+    band: 50,
+    night: { phoneHeight: 512 },
   },
 };
 
