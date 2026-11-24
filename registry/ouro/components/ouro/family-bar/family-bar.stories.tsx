@@ -93,6 +93,9 @@ export const FarAlong: Story = {
   render: (args) => (
     <Surface>
       <FamilyBar {...args} />
+      <div style={{ padding: 24 }}>
+        <Text>The community site's page sits below the family's bar.</Text>
+      </div>
     </Surface>
   ),
 };
