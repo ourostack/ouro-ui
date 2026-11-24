@@ -22,38 +22,34 @@ export const FOR_EVERYONE = claim("by agents, for everyone.", {
 });
 
 /**
- * The voyage hero's words. What Ouro UI is, from first principles (Ari, 2026-11-17: "ouro ui is a complete kit for agents
- * to build delightful interfaces for both humans and other agents", and "6 word story would be nice"): an agent builds
- * with it, and what it builds is for everyone who uses it, people and other agents. The title is that story in six words,
- * set as one flowing headline whose second half answers the first. HX and AX are named in the kit row under the hero,
- * not in its opening.
+ * The voyage hero's words. The north star leads (Ari, 2026-11-23: "About to build any kind of interface at all? Pick Ouro
+ * UI and never think about it again."): the title is the six-word story (Ari, 2026-11-17: "ouro ui is a complete kit for
+ * agents to build delightful interfaces for both humans and other agents", and "6 word story would be nice"), set as one
+ * flowing headline whose second half answers the first, and the lede asks the reader's question and answers it. The
+ * platform row under the lede links each platform's own page. Copy: the launch copy deck, section 3.2.
  */
 export const VOYAGE_HERO = {
-  eyebrow: "A complete kit for agents",
+  eyebrow: "Open source, for coding agents",
   title: ["Delightful interfaces,", FOR_EVERYONE],
-  /**
-   * What a person choosing it gets, in their terms: their agent builds with it, and what the agent builds serves people,
-   * serves other agents, and asks the person before an agent acts. One lede at every width, short enough for a phone.
-   */
-  subline: claim(
-    "Your agent builds with Ouro UI: screens people enjoy, tools other agents can call, and a person's say before an agent does anything consequential.",
-    {
-      source: [{ test: "test/theme-tokens.test.tsx::theme fixtures > puts a fixture's values in place of the Ouro look, and its @theme inline fonts too" }, { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" }, { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" }],
-      verify: [{ testExists: "test/theme-tokens.test.tsx::theme fixtures > puts a fixture's values in place of the Ouro look, and its @theme inline fonts too" }, { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" }, { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" }],
-    },
-  ),
-  /** Under the lede: where to check how agents and models judge it, and the platform gap, said plainly. */
-  links: {
-    benchmark: { label: "Agent benchmark", href: "/docs/agent-interfaces/" },
-    reviews: { label: "Model reviews", href: "/docs/model-reviews/" },
-    platforms: {
-      label: claim("Android: emulators only", {
-        source: { file: "docs/platforms/README.md" },
-        verify: [{ fileLine: "docs/platforms/README.md", pattern: "checked on emulators because nobody here owns an Android device" }],
-      }),
-      href: "/docs/platforms/",
-    },
-  },
+  /** The reader's question, the answer, and why it's safe to stop thinking: one lede at every width, short enough for a phone. */
+  subline: [
+    "About to build an interface, for people or for agents, on any platform? Pick Ouro UI and never think about it again.",
+    claim("Your agent builds with it and checks its own work, and paying, sending and deleting stay with the person.", {
+      source: [{ test: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups" }, { file: "scripts/ouro-actions/ouro-actions.mts" }, { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45" }],
+      verify: [
+        { testExists: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups" },
+        { fileLine: "scripts/ouro-actions/ouro-actions.mts", pattern: "CONSENTS = Object\\.freeze\\(\\[\"read\", \"write\", \"consequential\", \"person-only\"\\]" },
+        { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45" },
+      ],
+    }),
+  ].join(" "),
+  /** The platform row: each platform's own page. */
+  platforms: [
+    { label: "Web", href: "/docs/" },
+    { label: "Apple", href: "/apple/" },
+    { label: "Windows", href: "/docs/platforms/windows/" },
+    { label: "Android", href: "/docs/platforms/android/" },
+  ],
 } as const;
 
 /**
@@ -66,7 +62,7 @@ export const HANDOFF = {
   label: "Hand it to your agent",
   prompt: "Build this app's interface with Ouro UI. Read https://ui.ouroboros.bot/llms.txt first and follow it.",
   caption: "Paste it into your coding agent's chat.",
-  commands: { text: "See the install commands.", href: "#install" },
+  commands: { text: "Install it yourself", href: "#install" },
   blocked: "The browser blocked copying. Select the line and copy it yourself.",
 } as const;
 
@@ -108,61 +104,6 @@ export const SHADCN_BADGE = claim("Works with shadcn/ui", {
 
 export const SHADCN_LINE =
   "Installs with the shadcn CLI, uses shadcn's theme tokens, and sits alongside the shadcn/ui components you already have.";
-
-/**
- * What is in the kit, as one row under the hero (hero.tsx): what an agent builds with Ouro UI, each part named for who it
- * serves and linked to where it lives. Ouro HX and Ouro AX are two of its parts, not the whole of it.
- */
-export const KIT = {
-  title: "What's in the kit",
-  items: [
-    {
-      key: "hx",
-      name: "Ouro HX",
-      title: "Screens people enjoy",
-      line: claim("Components for the web with focus, touch and motion done for you, and native kits growing on Apple, Windows and Android.", {
-        source: [{ file: "docs/platforms/README.md" }, { test: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" }, { file: "registry/ouro/lib/ouro/touch-target.tsx" }],
-        verify: [
-          { fileLine: "docs/platforms/README.md", pattern: "is a WinUI kit, at the release the table below names" },
-          { fileLine: "docs/platforms/README.md", pattern: "is a Compose kit, at the release the table below names" },
-          { testExists: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" },
-          { fileLine: "registry/ouro/lib/ouro/touch-target.tsx", pattern: "pointer-coarse" },
-        ],
-      }),
-      href: "/docs/",
-    },
-    {
-      key: "ax",
-      name: "Ouro AX",
-      title: "Tools agents can call",
-      line: claim("Declare an action once, and its command line, MCP and WebMCP tools and App Intent follow.", {
-        source: { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
-        verify: { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
-      }),
-      href: "/ax/",
-    },
-    {
-      key: "cards",
-      name: "MCP Apps and A2UI",
-      title: "Cards agents compose",
-      line: claim("When an agent composes a card for a person, Ouro HX draws it and asks before anything consequential.", {
-        source: [{ test: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card" }, { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" }],
-        verify: [{ testExists: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card" }, { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" }],
-      }),
-      href: "/docs/ouro-mcp-app/",
-    },
-    {
-      key: "proof",
-      name: "X-ray and Ouro check",
-      title: "Proof you can run",
-      line: claim("X-ray tries the tools agents call, and Ouro check looks over the screens a person sees.", {
-        source: [{ test: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" }, { file: "registry/ouro/check/check.ts" }],
-        verify: [{ testExists: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" }, { fileLine: "registry/ouro/check/check.ts", pattern: "." }],
-      }),
-      href: "/docs/guardrails/",
-    },
-  ],
-} as const;
 
 /** Beside the porthole (hero.tsx): what it is and what to do with it. */
 export const TRY = {

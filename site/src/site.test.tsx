@@ -28,8 +28,9 @@ import { headerPath } from "./components/docs-header";
 import { componentGroups, docsSections, filterHint, rankedComponents } from "./components/docs-sections";
 import { bare, otherNames } from "./components/other-names";
 import { guessedAddresses, href, redirects, routes } from "./routes";
-import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, KIT, VOYAGE_HERO, WORKS_WITH } from "./copy";
-import { TWO_SHIPS } from "./voyage/copy";
+import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO, WORKS_WITH } from "./copy";
+import { BENCHMARK, EVIDENCE, FLYWHEEL, TWO_SHIPS, WHY } from "./voyage/copy";
+import { benchmark, counts } from "virtual:site-proof";
 import { SITE_SECTIONS } from "./voyage/site-menu";
 import { agentExamples } from "./agents/examples";
 import { SCENES } from "./storybook";
@@ -326,15 +327,15 @@ describe("home page", () => {
       ["Ouro HX", "/docs/"],
       ["Ouro AX", "/ax/"],
     ]);
-    const kit = document.querySelector("[data-site-kit]")!;
-    expect(kit.querySelector("h2")!.textContent).toBe("What's in the kit");
-    expect([...kit.querySelectorAll("li")].map((item) => [item.querySelector("p")!.textContent, item.querySelector("h3")!.textContent, item.querySelector("a")!.getAttribute("href")])).toEqual([
-      ["Ouro HX", "Screens people enjoy", "/docs/"],
-      ["Ouro AX", "Tools agents can call", "/ax/"],
-      ["MCP Apps and A2UI", "Cards agents compose", "/docs/ouro-mcp-app/"],
-      ["X-ray and Ouro check", "Proof you can run", "/docs/guardrails/"],
-    ]);
-    expect([...kit.querySelectorAll(".site-kit-line")].map((line) => line.textContent)).toEqual(KIT.items.map((item) => item.line));
+    // Under the hero, why it's safe to stop thinking: five reasons, the first counting the components per platform from
+    // their sources, and the parts named by who they serve, HX and AX among them.
+    const why = document.querySelector("[data-site-why]")!;
+    expect(why.querySelector("h2")!.textContent).toBe(WHY.title);
+    expect([...why.querySelectorAll("[data-site-why-item]")].map((item) => [item.getAttribute("data-site-why-item"), item.querySelector("h3")!.textContent])).toEqual(
+      Object.entries(WHY.reasons).map(([key, reason]) => [key, reason.title]),
+    );
+    expect(why.querySelector("[data-site-counts]")!.textContent).toContain(`${counts.web} on the web, ${counts.apple} on Apple, ${counts.windows} on Windows, ${counts.android} on Android`);
+    expect(why.textContent).toContain("Ouro HX for the screens people use, Ouro AX for the doors agents use.");
     await expect.element(page.getByRole("heading", { level: 2, name: AX_SECTION.title })).toBeVisible();
     await expect.element(page.getByText(AX_SECTION.intro, { exact: true })).toBeVisible();
     expect(page.getByRole("link", { name: "Be the agent" }).element().getAttribute("href")).toBe("/ax/#be-the-agent");
@@ -343,16 +344,17 @@ describe("home page", () => {
     for (const text of [document.body.innerText, readme, llms]) {
       expect(text).not.toMatch(/still being defined|coming soon/i);
     }
-    expect(document.body.innerText).toContain("Ouro UI: Ouro HX for people, Ouro AX for agents.");
-    // The hero says what a person choosing it gets, consent built in included, in one lede at every width, and links the
-    // benchmark, the model reviews and the platform gap.
+    expect(document.body.innerText).toContain("Ouro UI: delightful interfaces, by agents, for everyone. Part of Ouro.");
+    // The hero asks the reader's question and answers it, consent included, in one lede at every width, and links each
+    // platform's own page.
     expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).toContain(VOYAGE_HERO.subline);
     // No line of it breaks inside a hyphenated word: "X-ray" once wrapped as "X-" / "ray".
     expect([...document.querySelectorAll("[data-site-whole-word]")].map((word) => word.textContent)).toEqual(VOYAGE_HERO.subline.match(/\S+-\S+/g) ?? []);
     expect([...document.querySelectorAll("[data-site-hero-links] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-      ["Agent benchmark", "/docs/agent-interfaces/"],
-      ["Model reviews", "/docs/model-reviews/"],
-      ["Android: emulators only", "/docs/platforms/"],
+      ["Web", "/docs/"],
+      ["Apple", "/apple/"],
+      ["Windows", "/docs/platforms/windows/"],
+      ["Android", "/docs/platforms/android/"],
     ]);
     // The home page's title leads with the parent, Ouro UI, before what it is for.
     expect(routes[0]!.title).toMatch(/^Ouro UI: /);
@@ -388,6 +390,23 @@ describe("home page", () => {
       expect(text).not.toMatch(/under construction/i);
       expect(text).toContain("Ouro UI");
     }
+  });
+
+  it("tells the flywheel, then the benchmark from its own page's numbers, then the evidence strip, before the showcases", async () => {
+    await renderPage("/");
+    const order = ["[data-site-why]", "[data-site-flywheel]", "[data-site-benchmark]", "[data-site-evidence]", "#ships"].map((selector) => document.querySelector(selector)!);
+    order.slice(1).forEach((after, index) => expect(order[index]!.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy());
+    expect(document.querySelector("[data-site-flywheel] h2")!.textContent).toBe(FLYWHEEL.title);
+    const section = document.querySelector("[data-site-benchmark]")!;
+    const table = section.querySelector("table")!;
+    expect([...table.querySelectorAll("tbody tr")].map((row) => [...row.querySelectorAll("th, td")].map((cell) => cell.textContent))).toEqual(
+      benchmark.rows.map((row) => [BENCHMARK.ways[row.way], `${row.done}%`, row.steps, row.tokens, row.paid]),
+    );
+    const paid = (way: string) => benchmark.rows.find((row) => row.way === way)!.paid;
+    expect(section.querySelector("[data-site-errand]")!.textContent).toContain(`paid anyway, ${paid("browser")}.`);
+    expect(section.querySelector("[data-site-errand]")!.textContent).toContain(`Through Ouro’s actions: ${paid("actions")}.`);
+    expect(page.getByRole("link", { name: `${BENCHMARK.method} (${benchmark.trials} checked trials)` }).element().getAttribute("href")).toBe("/docs/agent-interfaces/");
+    expect([...document.querySelectorAll("[data-site-evidence] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual(EVIDENCE.map((item) => [item.text, item.href]));
   });
 
   it("says in the README's at-a-glance list what Ouro UI is, in the words a search for it uses, without calling it a shadcn registry", () => {

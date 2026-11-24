@@ -26,6 +26,7 @@ import { closeSync, mkdtempSync, openSync, readFileSync, rmSync, statSync } from
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { currentHomeFacts } from "./home-facts.mts";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const reader = (root: string) => (path: string) => readFileSync(join(root, path), "utf8");
@@ -232,7 +233,8 @@ export function currentInstall(root = repo): Install {
 const id = "virtual:site-proof";
 
 /**
- * Serves `virtual:site-proof`, the proof computed from the repository (`root`) when the site builds. It is computed in
+ * Serves `virtual:site-proof`, the proof computed from the repository (`root`) when the site builds, with the home page's
+ * benchmark and components per platform (home-facts.mts). It is computed in
  * `buildStart`, when Vite starts, and not in `load`: the work is synchronous, with up to 52 s of waits for the release
  * tag's fetch, and Vite's module runner gives a module 60 s from its request (ourostack/ouro-ui#2469), a request that
  * also waits behind everything else the loaded runner is doing. `load` serves what `buildStart` computed, or the error.
@@ -242,7 +244,8 @@ export function proofPlugin(root = repo): { name: string; buildStart: () => void
   const compute = () => {
     if (!computed) {
       try {
-        computed = { text: `export default ${JSON.stringify(currentProof(root))};\nexport const install = ${JSON.stringify(currentInstall(root))};` };
+        const facts = currentHomeFacts(root);
+        computed = { text: `export default ${JSON.stringify(currentProof(root))};\nexport const install = ${JSON.stringify(currentInstall(root))};\nexport const benchmark = ${JSON.stringify(facts.benchmark)};\nexport const counts = ${JSON.stringify(facts.counts)};` };
       } catch (error) {
         computed = { error };
       }

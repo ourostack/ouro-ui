@@ -11,6 +11,7 @@ import { ActionsIsland, AdoptionIsland, AndroidHomeIsland, AndroidStartIsland, A
 import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
+import { Benchmark, Evidence, Flywheel } from "../voyage/home-sections";
 import { VoyageHero } from "../voyage/hero";
 import { VoyageFooter } from "../voyage/layout";
 import { StoryOpening } from "../voyage/nautilus";
@@ -171,6 +172,9 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
           ) : (
             <main id="main">
               <VoyageHero onXray={openXray} />
+              <Flywheel />
+              <Benchmark />
+              <Evidence />
               <TwoShips />
               <RepaintIsland />
               <HomeReferenceIsland />

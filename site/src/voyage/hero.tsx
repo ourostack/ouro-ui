@@ -3,8 +3,9 @@ import proof from "virtual:site-proof";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
-import { KIT, TRY, VOYAGE_HERO } from "../copy";
+import { TRY, VOYAGE_HERO } from "../copy";
 import { HandOff } from "./handoff";
+import { Why } from "./home-sections";
 import { href } from "../paths";
 import { HydrateInTurn } from "../hydrate";
 import { Container } from "./layout";
@@ -71,35 +72,6 @@ function Proof(): JSX.Element {
 }
 
 /**
- * What is in the kit, in one row under the hero: four parts, each named for who it serves, with a hairline above each
- * (no cards). Four across on a wide screen, two on a tablet, one under another on a phone.
- */
-function Kit(): JSX.Element {
-  return (
-    <section aria-labelledby="site-kit-title" className="site-kit" data-site-kit="">
-      <Container>
-        <h2 id="site-kit-title" className="site-kit-title">
-          {KIT.title}
-        </h2>
-        <ul className="site-kit-list">
-          {KIT.items.map((item) => (
-            <li key={item.key} className="site-kit-item" data-site-kit-item={item.key}>
-              <p className="site-kit-name">{item.name}</p>
-              <h3 className="site-kit-heading">
-                <Link href={href(item.href)} tone="secondary" inline>
-                  {item.title}
-                </Link>
-              </h3>
-              <p className="site-kit-line">{item.line}</p>
-            </li>
-          ))}
-        </ul>
-      </Container>
-    </section>
-  );
-}
-
-/**
  * The first viewport. On a wide screen the story and the hand-off share one row, the story beside the things to do, and
  * the meadow runs the full width under them, so it is on the first screen too. Below that the meadow comes straight after
  * the lede, before the look and the hand-off (voyage.css).
@@ -124,13 +96,20 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
         description={
           <>
             <p>{keepHyphenatedWordsWhole(VOYAGE_HERO.subline)}</p>
-            <p className="site-hero-links" data-site-hero-links="">
-              {[VOYAGE_HERO.links.benchmark, VOYAGE_HERO.links.reviews, VOYAGE_HERO.links.platforms].map((link) => (
-                <Link key={link.href} href={href(link.href)} tone="secondary" inline>
-                  {link.label}
-                </Link>
+            <nav aria-label="Platforms" className="site-hero-links" data-site-hero-links="">
+              {VOYAGE_HERO.platforms.map((platform, index) => (
+                <span key={platform.href}>
+                  {index > 0 ? (
+                    <span aria-hidden="true" className="site-hero-dot">
+                      ·
+                    </span>
+                  ) : null}
+                  <Link href={href(platform.href)} tone="secondary" inline>
+                    {platform.label}
+                  </Link>
+                </span>
               ))}
-            </p>
+            </nav>
           </>
         }
         mediaWidth={1536}
@@ -146,7 +125,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
         }
         media={<StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES} className="site-voyage-scene" />}
       />
-      <Kit />
+      <Why />
       <section aria-label="Try the porthole" className="site-console">
         <Container className="site-console-grid">
           <div className="site-console-copy" data-site-try="">
