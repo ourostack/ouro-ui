@@ -1,0 +1,6 @@
+# Changes in this release
+
+- Fixed: [Carousel no longer reports a press settled, and Lightbox no longer drops its pending position, just because a scroll has been stable and still short of its target for ~300ms](registry/ouro/components/ouro/lightbox/lightbox.test.tsx "verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > keeps a chosen position pending as long as its scroll has not actually arrived, however long that takes)"), so a slow or interrupted scroll keeps showing the position as pending rather than a wrong, too-early guess (ourostack/ouro-ui#3377).
+- Changed: [Ouro check's layout-shift finding adds the shifts of a burst](test/check-measure.test.ts "verify:testExists(test/check-measure.test.ts::listenForMeasures > records the shifts of a burst with their time, value, element and boxes)"), with the time since navigation, the element that moved and its box before and after, so a shift that happens once names its own cause.
+- Changed: TimeGrid's day header is the grid's own surface at rest and turns to glass with an edge once hours scroll under it.
+- Fixed: ToggleGroup's items sit at Ouro check's near-miss minimum gap apart, not under it, in both its wrap and scroll overflow rows.
