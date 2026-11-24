@@ -2,7 +2,7 @@
 
 # BuildChip
 
-A compact, neutral chip for the title bar, like Xcode's scheme and activity area: it names the build the window runs ("Official 1.2.3", or "branch · sha" with "+ edits" for local changes not yet in any build), and opens a picker of the official build plus the builds serving now so a person is always one choice from the official build. A `skew` line reads how far behind the current build is and offers its fix, in the same neutral tone as the rest of the chip — never a warning, since running another build is routine, not an error.
+A compact, neutral chip for the title bar, like Xcode's scheme and activity area: it names the build the window runs ("Official 1.2.3", or "branch · sha" with "+ edits" for local changes not yet in any build), and opens a picker of the official build plus the builds serving now so a person can switch to the official build from the trigger. A `skew` line reads how far behind the current build is and offers its fix, in the same neutral tone as the rest of the chip, since running another build is routine, not an error.
 
 ```tsx
 import { BuildChip } from "@/registry/ouro/components/ouro/build-chip/build-chip";
@@ -29,13 +29,13 @@ Type: `BuildChipProps`.
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `builds` (required) | `readonly BuildChipBuild[]` | Every build the picker offers, official first: the official one and the builds serving now. |
+| `builds` (required) | `readonly BuildChipBuild[]` | The picker's builds, official first: the official one and the builds serving now. |
 | `className` | `string` | Layout only: margins, placement (`ms-auto`). Appearance classes warn in development. |
 | `current` (required) | `string` | The id, from `builds`, of the build this window is running. |
 | `labels` | `BuildChipLabels` | The words, for another language. |
 | `onSelect` | `((id: string) => void)` | Called with a build's id when a person chooses it from the picker. |
 | `ref` | `Ref<HTMLDivElement>` | Reaches the root. |
-| `skew` | `BuildChipSkew` | How far behind the official build `current` is, with its fix. Omit when there is none. |
+| `skew` | `BuildChipSkew` | How far behind the official build `current` is, with its fix. Omit it when `current` is the official build. |
 
 ## Don't use
 
@@ -87,7 +87,7 @@ How far the running build trails the official one, for `BuildChip`'s `skew` prop
 
 ```ts
 interface BuildChipSkew {
-  /** What's out of step: "2 commits behind main". Shown above the fix, never in a warning tone. */
+  /** What's out of step: "2 commits behind main". Shown above the fix, in the chip's neutral tone. */
   message: string;
   /** The fix's label: "Update". */
   fixLabel: string;
