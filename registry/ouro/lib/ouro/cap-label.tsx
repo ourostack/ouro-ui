@@ -30,7 +30,11 @@ const capLabelClippedClass = "[text-box:trim-both_cap_alphabetic] py-[0.3em] -my
  * @internal
  */
 function capLabel(children: ReactNode): ReactNode {
-  return Children.map(children, (child) =>
+  const mapped = Children.map(children, (child) =>
     typeof child === "string" || typeof child === "number" ? <span data-slot="cap-label-text" className={capLabelClass}>{child}</span> : child,
   );
+  // Children.map always returns an array, even for the common case of one child; React renders a multi-element
+  // array as an implicit Fragment fiber, which a render-weight budget (Message's, for one) counts as a component.
+  // Unwrapping the single-child case keeps that weight exactly what passing the child straight through costs.
+  return Array.isArray(mapped) && mapped.length === 1 ? mapped[0] : mapped;
 }

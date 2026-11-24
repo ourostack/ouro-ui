@@ -120,6 +120,13 @@ export const knownFindings: KnownFinding[] = [
     reason: "The label that is longer than two lines is cut with an ellipsis on purpose, so its hidden lines end on a piece of a word; the story shows exactly that.",
   },
   {
+    story: "TimeGrid/BackgroundEvents",
+    rule: "off-centre-text",
+    issue: 3549,
+    reason:
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; the background events' plain <button> text reads up to ~1.7px off its cap height and doesn't use capLabel, unlike Ouro's own Button, so it falls outside the new tolerance until its layout is reworked to take the trim.",
+  },
+  {
     story: "TimeGrid/Locales",
     rule: "lone-word",
     issue: 1955,
