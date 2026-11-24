@@ -69,4 +69,9 @@ describe("Badge count", () => {
     const page = await mount(<Badge>3</Badge>);
     expect(page.querySelector<HTMLElement>('[data-ouro="badge"]')!.getBoundingClientRect().height).toBeGreaterThan(14);
   });
+
+  it("ignores overlay without count", async () => {
+    const page = await mount(<Badge overlay>3</Badge>);
+    expect(getComputedStyle(page.querySelector<HTMLElement>('[data-ouro="badge"]')!).position).not.toBe("absolute");
+  });
 });
