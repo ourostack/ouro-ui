@@ -1,1 +1,1 @@
-- Fixed: SnapPiP hides itself, when the app lets it, once a keep-out comes to cover its corner and no place in that corner clears it.
+- Fixed: SnapPiP hides itself, when the app lets it, once a keep-out comes to cover its corner and the corner has nowhere clear.
