@@ -175,7 +175,7 @@ describe("Command recents", () => {
     await userEvent.hover(rows()[0]!);
     await expect.poll(marked).toEqual([rows()[0]]);
     await userEvent.hover(chips()[0]!);
-    await expect.poll(marked).toEqual([rows()[0], chips()[0]]);
+    await expect.poll(marked).toEqual([chips()[0]]);
     expect(getComputedStyle(rows()[0]!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(chips()[0]!).backgroundColor).not.toBe(getComputedStyle(chips()[1]!).backgroundColor);
     await userEvent.keyboard("{ArrowRight}");
