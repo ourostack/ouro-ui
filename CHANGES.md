@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: A chat mosaic marks its tiles as deliberately close, so Ouro check reads the hairline between them as design rather than a near miss.
