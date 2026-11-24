@@ -30,6 +30,7 @@ describe("reopener", () => {
 
   it("names the opener it never finds again", async () => {
     const host = await renderStory(() => <div />);
-    await expect(reopener("control-suite-reopener-spec", host, "Gone for good", {})).rejects.toThrow('"Gone for good" is no longer there to open');
-  }, 15_000);
+    // short poll: an opener that is never there proves the same true negative in far less than the real-world wait.
+    await expect(reopener("control-suite-reopener-spec", host, "Gone for good", {}, { timeout: 500, interval: 20 })).rejects.toThrow('"Gone for good" is no longer there to open');
+  });
 });

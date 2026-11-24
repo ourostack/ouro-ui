@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { page } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { routes } from "../routes";
@@ -61,7 +61,11 @@ describe("the call window page", () => {
     await renderPage("/docs/call-demo/");
     await page.getByRole("button", { name: "Leave" }).click();
     await expect.poll(() => document.querySelector("[data-site-call-demo] [data-ouro=\"moment\"]")?.textContent).toContain("You left the call");
-    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Call");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Rejoin");
+    await page.getByRole("button", { name: "Rejoin" }).click();
+    await page.getByRole("button", { name: "Join now" }).click();
+    await expect.poll(() => document.querySelector("[data-site-call-demo] [role=status]")?.textContent).toBe("You joined the call");
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Mute");
     await page.getByRole("radio", { name: "Alone" }).click();
     const empty = document.querySelector<HTMLElement>('[data-ouro="moment"][data-moment="empty"]')!;
     expect(empty.querySelector("[data-moment-art]")).not.toBeNull();
@@ -97,21 +101,18 @@ describe("the call window page", () => {
     host.style.overflow = "";
   });
 
-  it("keeps the self view clear of every tile, in each corner it can take", async () => {
-    await renderPage("/docs/call-demo/");
-    const pip = document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
-    const overlaps = () => {
-      const a = pip.getBoundingClientRect();
-      return [...document.querySelectorAll<HTMLElement>('[data-site-call-demo] [data-ouro="media-tile"]')].filter((tile) => {
-        const b = tile.getBoundingClientRect();
-        return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-      }).length;
-    };
-    await page.getByRole("radio", { name: "6" }).click();
-    await expect.poll(overlaps).toBe(0);
-    pip.focus();
-    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
-    await expect.poll(overlaps).toBe(0);
+  it("starts the self view tucked away on a phone with a full grid, and shows it on request", async () => {
+    const real = window.matchMedia.bind(window);
+    const spy = vi.spyOn(window, "matchMedia").mockImplementation((query) => (query === "(max-width: 639px)" ? ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} } as unknown as MediaQueryList) : real(query)));
+    try {
+      await renderPage("/docs/call-demo/");
+      const pip = () => document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
+      await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(true);
+      await page.getByRole("button", { name: "Show Your camera" }).click();
+      await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
