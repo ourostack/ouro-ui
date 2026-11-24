@@ -57,3 +57,4 @@ jobs:
         env:
           OURO_REUSE_APP: "1"
           OURO_SHARD: "6/6"
+          OURO_SYSTEM_PACKAGES: image
