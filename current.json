@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-24T13:35:15.639Z",
+  "generatedAt": "2026-11-24T13:58:16.993Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -341,7 +341,7 @@
     },
     {
       "repo": "ourostack/ouroboros",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "tools/ouro-actions/dist-manifest.json",
@@ -353,15 +353,12 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 920a4df",
+          "current": "commit e2a60c3",
           "latest": "v1.3.513",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1857,
-        "url": "https://github.com/ourostack/ouroboros/pull/1857"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouroboros-website",
