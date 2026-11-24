@@ -53,7 +53,7 @@ export const guessedAddresses: Array<{ from: string; to: string; note?: string }
 ];
 
 /** Old and guessed addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
-export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, { from: "/benchmark/", to: "/proof/" }, ...guessedAddresses];
+export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, { from: "/benchmark/", to: "/proof/" }, { from: "/web/", to: "/hx/#web" }, ...guessedAddresses];
 
 // The words a person or an agent searches with: what it is (React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits), who it is for (agents building A2UI and MCP Apps interfaces) and how it installs.
 const DESCRIPTION = claim("Accessible React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits, for agents building A2UI and MCP Apps. Installs with the shadcn CLI.", {
@@ -88,6 +88,12 @@ export const routes: Route[] = [
   { path: "/apple/ax/", title: "Ouro AX for Apple", description: "The App Intents X-ray reads a built app from outside and checks it against Apple's side of the Ouro AX standard. Browse the real reports from Spoonjoy and Ouro MD, before and after." },
   { path: "/apple/reins/", title: "Ouro Reins · Ouro UI for Apple", description: "Agents drive an app's screens as state and actions with ls and do: headless, in milliseconds, with the network blocked. Drive a pretend kitchen in your browser and race the simulator." },
   { path: "/apple/start/", title: "Get started · Ouro UI for Apple", description: "Add one Swift package, set a theme, animate with the shared spring, play a named haptic, and X-ray your App Intents in CI." },
+  // Ouro HX on every platform, and the Windows and Android pages (paths.ts lists them; each page's hero says the same).
+  { path: "/hx/", title: "Ouro HX · Ouro UI", description: "Components for people's screens, built by your agent: focus, touch targets, motion, contrast and screen readers handled, in React, SwiftUI, WinUI and Compose." },
+  { path: "/windows/", title: "Ouro UI for Windows", description: "Ouro HX in WinUI, and App Actions and MCP for agents, from the same declaration, checked through UI Automation and NVDA in CI." },
+  { path: "/windows/start/", title: "Get started · Ouro UI for Windows", description: "Add ourostack's NuGet feed and Ouro.UI.Windows, generate your actions' doors, and give your first OuroButton an action." },
+  { path: "/android/", title: "Ouro UI for Android", description: "Ouro HX in Jetpack Compose, and AppFunctions for agents, from the same declaration, checked on an Android emulator in CI." },
+  { path: "/android/start/", title: "Get started · Ouro UI for Android", description: "Add ourostack's Maven repository and bot.ouro.ui:ouro-hx, theme your first screen, and give agents your actions as AppFunctions." },
   { path: "/adoption/", title: "Adoption · Ouro UI", description: "Who uses Ouro UI, and who gives back to it: our maintained products, measured from GitHub and CI hourly, furthest from confirmed first." },
   { path: "/current/", title: "Ouro Current · Ouro UI", description: "Our own Dependabot for Ouro UI: install the GitHub App, and Ouro UI releases arrive as one pull request with auto-merge on." },
   // Proof's lede (copy deck v7, 3.3; proof/copy.ts says the same on the page).
