@@ -5,7 +5,7 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium, webkit } from "playwright";
 import { BUDGETS, check, knownKey, merge, RULES, type Finding, type Gate, type Report } from "../../registry/ouro/check/run.ts";
 import { fragmentFocusScript } from "../../registry/ouro/lib/ouro/fragment-focus-script.ts";
 
@@ -39,7 +39,7 @@ describe("Ouro check", () => {
     // The wrap rules read where a font broke a page's lines, and the system font the other fixtures' words are set in breaks
     // them differently on a Mac and on CI's Linux: each wrap rule is held to its own pages, set in monospace.
     const wrap = new Set(["lone-word", "tall-heading", "one-word-line", "narrow-heading"]);
-    for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready" && r !== "https" && r !== "dark-art")) {
+    for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready" && r !== "https" && r !== "dark-art" && r !== "squircle-missing")) {
       assert.ok(result.findings.some((f) => f.page === `/${rule}-fail.html` && f.rule === rule), `${rule} fires on its fail page`);
       const pass = result.findings.filter((f) => f.page === `/${rule}-pass.html` && (f.rule === rule || !wrap.has(f.rule)));
       assert.deepEqual(pass, [], `nothing fires on the ${rule} pass page`);
@@ -53,10 +53,10 @@ describe("Ouro check", () => {
     assert.match(swap.taker.first, /^<(button|a)\b/);
     assert.match(swap.taker.rest, /^<(button|a)\b/);
     assert.ok(swap.gone.rest === null || /^<(button|a)\b/.test(swap.gone.rest));
-    assert.equal(result.shots.length, 100 * 2);
+    assert.equal(result.shots.length, 102 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 100);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 100 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.equal(report.pages.length, 102);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 102 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -73,6 +73,14 @@ describe("Ouro check", () => {
     assert.deepEqual(result.findings.filter((f) => f.page === "/veiled.html" && f.rule === "overlap"), []);
   });
 
+  test("squircle-missing fires in WebKit without corner-shape, on its fail page only, and never in Chromium, which draws it", async () => {
+    const options = { targets: [fixtures], pages: "squircle-missing-*.html", sizes: two, themes: ["light"] as string[], log: quiet };
+    const seen = await check({ ...options, out: dir("wkwebview"), engine: "wkwebview", chromium: webkit });
+    assert.deepEqual([...new Set(seen.findings.filter((f) => f.rule === "squircle-missing").map((f) => f.page))], ["/squircle-missing-fail.html"]);
+    const native = await check({ ...options, out: dir("native"), chromium });
+    assert.deepEqual(native.findings.filter((f) => f.rule === "squircle-missing"), []);
+  });
+
   test("a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again", async () => {
     const sizes: [number, number][] = [[320, 640], [390, 844], [1440, 900]];
     const options = { targets: [fixtures], pages: "*-fail.html", sizes, themes: ["light", "dark"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet };
@@ -87,7 +95,7 @@ describe("Ouro check", () => {
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
     assert.deepEqual(spots(merged.findings), spots(whole.findings));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 50);
+    assert.equal(merged.pages.length, 51);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });

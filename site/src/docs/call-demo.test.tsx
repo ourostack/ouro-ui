@@ -67,6 +67,36 @@ describe("the call window page", () => {
     expect(empty.querySelector("[data-moment-art]")).not.toBeNull();
   });
 
+  it("replaces a stale status when you leave, so the bar never reads 'You are muted' on a left call", async () => {
+    await renderPage("/docs/call-demo/");
+    await page.getByRole("button", { name: "Mute" }).click();
+    await expect.poll(() => document.querySelector("[data-site-call-demo] [role=status]")?.textContent).toBe("You are muted");
+    await page.getByRole("button", { name: "Leave" }).click();
+    await expect.poll(() => document.querySelector("[data-site-call-demo] [role=status]")?.textContent).toBe("You left the call");
+  });
+
+  it("starts a rejoined call clean: no raised hand left over, and the join is announced", async () => {
+    await renderPage("/docs/call-demo/");
+    await page.getByRole("button", { name: "Raise hand" }).click();
+    await page.getByRole("button", { name: "Leave" }).click();
+    await page.getByRole("button", { name: "Rejoin" }).click();
+    await page.getByRole("button", { name: "Join now" }).click();
+    await expect.poll(() => document.querySelector("[data-site-call-demo] [role=status]")?.textContent).toBe("You joined the call");
+    await expect.element(page.getByRole("button", { name: "Raise hand" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("keeps its switchers inside a narrow column with six others in the call", async () => {
+    await renderPage("/docs/call-demo/");
+    const root = document.querySelector<HTMLElement>("[data-site-call-demo]")!;
+    const host = root.parentElement!;
+    host.style.width = "320px";
+    host.style.overflow = "visible";
+    await page.getByRole("radio", { name: "6" }).click();
+    await expect.poll(() => root.scrollWidth <= root.clientWidth).toBe(true);
+    host.style.width = "";
+    host.style.overflow = "";
+  });
+
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
     setScheme(scheme);
     await renderPage("/docs/call-demo/");
