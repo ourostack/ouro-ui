@@ -115,7 +115,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [skeleton](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/skeleton) | 9 | 0 | none yet |
 | [skip-link](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/skip-link) | 2 | 0 | none yet |
 | [slider](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/slider) | 3 | 0 | none yet |
-| [snap-pip](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/snap-pip) | 6 | 0 | none yet |
+| [snap-pip](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/snap-pip) | 7 | 0 | none yet |
 | [spinner](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/spinner) | 2 | 0 | none yet |
 | [stack](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/stack) | 4 | 0 | none yet |
 | [swipe-actions](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/swipe-actions) | 2 | 0 | none yet |
