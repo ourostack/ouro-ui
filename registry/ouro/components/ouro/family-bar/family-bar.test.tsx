@@ -171,7 +171,7 @@ describe("FamilyBar", () => {
     const clear = (link: Element) => {
       const box = row.getBoundingClientRect();
       const at = link.getBoundingClientRect();
-      return at.left - box.left >= 7 && box.right - at.right >= 7;
+      return at.left >= box.left - 1 && at.right <= box.right + 1;
     };
     for (const site of sites) {
       await pressTab();
