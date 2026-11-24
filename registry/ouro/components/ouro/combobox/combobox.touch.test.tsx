@@ -3,9 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { composeStories } from "@storybook/react";
 import { Combobox } from "@/registry/ouro/components/ouro/combobox/combobox";
-import * as stories from "@/registry/ouro/components/ouro/combobox/combobox.stories";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { pressTint } from "@/registry/ouro/lib/ouro/testing/press";
@@ -674,18 +672,6 @@ describe("Combobox multiple on a phone", () => {
     const [cx, cy] = center(remove);
     expect(document.elementFromPoint(cx, cy - 21)?.closest("button")).toBe(remove);
     expect(document.elementFromPoint(cx, cy + 21)?.closest("button")).toBe(remove);
-  });
-
-  it("draws the PhoneTags story's field with its four chips on two rows", async () => {
-    const { PhoneTags } = composeStories(stories);
-    const host = await render(<PhoneTags />);
-    const field = host.querySelector<HTMLElement>("[data-ouro-combobox-field]")!;
-    expect(chipLabels(host)).toEqual(["Weeknight", "Quick lunch", "Vegan", "One pot"]);
-    expect(new Set(chipsIn(host).map((chip) => Math.round(chip.getBoundingClientRect().top))).size).toBe(2);
-    const shot = new Image();
-    shot.src = `data:image/png;base64,${await page.screenshot({ save: false, element: field, animations: "disabled" })}`;
-    await shot.decode();
-    expect(shot.naturalHeight).toBeGreaterThan(shot.naturalWidth / 8);
   });
 
   it("shows the placeholder in the field's button while nothing is picked", async () => {

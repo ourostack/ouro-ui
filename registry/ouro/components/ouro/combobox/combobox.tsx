@@ -1073,7 +1073,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
             // Beside the button, over it, not in it: a button can't hold the chips' remove buttons.
             // A tap on a chip's label goes through to the button, which opens the sheet.
             // Not a toolbar, as Base UI makes it: Tab, not the arrow keys, moves between the remove buttons.
-            <BaseCombobox.Chips data-ouro-combobox-chips="" className={sheetChipsClass} render={(chips) => <div {...chips} role={undefined} />}>
+            <BaseCombobox.Chips data-slot="combobox-chips" data-ouro-combobox-chips="" className={sheetChipsClass} render={(chips) => <div {...chips} role={undefined} />}>
               <BaseCombobox.Value>{(picked: Option[]) => picked.map(renderChip)}</BaseCombobox.Value>
             </BaseCombobox.Chips>
           )}
