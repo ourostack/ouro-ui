@@ -581,6 +581,7 @@ export function Button(props: ButtonProps): JSX.Element {
     children.type !== Fragment &&
     !(children.type === "img" && children.props.width !== children.props.height) &&
     Boolean(named["aria-label"] || named["aria-labelledby"]);
+  // Stryker disable next-line ConditionalExpression: the glass height variable is read only by the glass look, so setting it on another variant's small size changes nothing.
   const classes = cn(base, iconChildClass, sizes[size], iconOnly && iconOnlyClass, looks[variant][tone], variant === "glass" && size === "sm" && "[--ouro-glass-h:calc(var(--spacing)*9)]", fullWidth && "w-full", className);
 
   // The touch target comes first and the label is its own stacking context, so the label paints above
