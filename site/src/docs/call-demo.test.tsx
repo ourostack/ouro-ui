@@ -135,6 +135,11 @@ describe("the call window page", () => {
     }
   });
 
+  it("says which parts of the demo are scripted", async () => {
+    await renderPage("/docs/call-demo/");
+    expect(document.body.textContent).toMatch(/own script/);
+  });
+
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
     setScheme(scheme);
     await renderPage("/docs/call-demo/");
