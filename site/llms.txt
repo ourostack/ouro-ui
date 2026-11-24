@@ -11,6 +11,19 @@
 
 Evidence (10 models, scored on app state): through Ouro's actions agents finished 98% of jobs and paid without the person 0 of 32 times; driving the browser, 83% and 30 of 30.[^open-benchmark] Method and every run, with where every number comes from:[^open-runs] https://ui.ouroboros.bot/docs/agent-interfaces/
 
+## Common needs
+
+The full item list, under Items below, is long. These are the items for needs apps often have; read one's page at https://ui.ouroboros.bot/docs/<item>.md.
+
+- Dark mode: `color-scheme-toggle`, with `ColorSchemeProvider` from `@/lib/ouro/color-scheme` around the app (https://ui.ouroboros.bot/docs/color-scheme-provider.md); for a plain on/off, a `switch` with `useColorScheme()` (https://ui.ouroboros.bot/docs/use-color-scheme.md).
+- A form that validates: `form` with `text-field`, `select`, `switch`, `checkbox`; errors from your own `onSubmit` or from a server action.
+- Asking before a destructive action: `confirm-dialog`. Other dialogs: `dialog`; a panel from the edge: `sheet`; editing in a panel that saves and closes: `edit-sheet`.
+- Saying something happened: `toaster`. A message on the page: `alert`. Nothing here yet: `moment`. Loading: `skeleton`, `spinner`.
+- Getting around: `navbar`, `sidebar`, `tabs`, `menu`, `command` (a command palette).
+- Data: `table`, `combobox`, `date-picker`.
+- A design system's tokens and theme: ouro-base adds the `--ouro-*` tokens once per app, and ouro-theme is an optional shadcn theme (https://ui.ouroboros.bot/docs/installing.md).
+- Interfaces an agent sends: Ouro's own tree, which can travel as A2UI messages or in an MCP Apps view; see https://ui.ouroboros.bot/docs/composed-ui.md.
+
 ## Ouro HX for web
 
 Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them. Copy-in source distributed as a shadcn/ui registry on GitHub (ourostack/ouro-ui). It is not an npm package: the shadcn CLI copies the components you add into your app.
@@ -34,19 +47,6 @@ Ouro HX for web is this repository's part of Ouro UI: the components for the scr
 Check what you build first: build your app, run node scripts/ouro/check/check.ts <built folder> (from the ouro-check item: npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.501) and fix what it reports. It installs under scripts/ouro/, outside your TypeScript project, so tsc -b skips it. It imports the Ouro AX kit as #ouro-ax/<file>: npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*" adds that once (src/lib is your lib folder). It opens your pages at screen sizes from a phone to a wide desktop, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, narrow text (prose a max-width holds well short of its column), and long lines only where you declare a measure.[^check] Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in ouro-check.json only where your design or the request sets it, and don't cap text width just to quiet the check. A clean report is the floor: what measurement can decide isn't broken. It doesn't show that people understand the screen; before you call a screen good, watch a few people do its task.[^floor] Guide: https://ui.ouroboros.bot/docs/guardrails.md
 
 Before a person sees a screen, a mock or a capture of either, pass the beauty gate: put it beside its references, ask independent critics, and fix until they approve (https://ui.ouroboros.bot/docs/design-craft.md).
-
-## Common needs
-
-The full item list, under Items below, is long. These are the items for needs apps often have; read one's page at https://ui.ouroboros.bot/docs/<item>.md.
-
-- Dark mode: `color-scheme-toggle`, with `ColorSchemeProvider` from `@/lib/ouro/color-scheme` around the app (https://ui.ouroboros.bot/docs/color-scheme-provider.md); for a plain on/off, a `switch` with `useColorScheme()` (https://ui.ouroboros.bot/docs/use-color-scheme.md).
-- A form that validates: `form` with `text-field`, `select`, `switch`, `checkbox`; errors from your own `onSubmit` or from a server action.
-- Asking before a destructive action: `confirm-dialog`. Other dialogs: `dialog`; a panel from the edge: `sheet`; editing in a panel that saves and closes: `edit-sheet`.
-- Saying something happened: `toaster`. A message on the page: `alert`. Nothing here yet: `moment`. Loading: `skeleton`, `spinner`.
-- Getting around: `navbar`, `sidebar`, `tabs`, `menu`, `command` (a command palette).
-- Data: `table`, `combobox`, `date-picker`.
-- A design system's tokens and theme: ouro-base adds the `--ouro-*` tokens once per app, and ouro-theme is an optional shadcn theme (https://ui.ouroboros.bot/docs/installing.md).
-- Interfaces an agent sends: Ouro's own tree, which can travel as A2UI messages or in an MCP Apps view; see https://ui.ouroboros.bot/docs/composed-ui.md.
 
 ## Install
 
