@@ -87,10 +87,14 @@ const labelClass = {
     "line-clamp-2 w-full text-center text-[0.625rem] leading-[0.875rem] font-medium text-balance hyphens-auto [overflow-wrap:anywhere] group-data-selected/navigation-rail:font-semibold",
 } as const;
 
-/** The count on the icon's top end corner. */
+/**
+ * The count on the icon's top end corner. Centred with flex, on the glyphs' own box, not a
+ * line-height: a line-height centres on half the font's em square, which puts a font's cap height
+ * off from the pill's middle by whatever the font leaves above its cap, different font to font.
+ */
 const countClass =
-  "absolute -end-ouro-2_5 -top-ouro-1_5 box-border h-ouro-4 min-w-ouro-4 rounded-full bg-destructive px-1 text-center text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums " +
-  "forced-colors:border forced-colors:border-solid forced-colors:leading-[0.875rem]";
+  "absolute -end-ouro-2_5 -top-ouro-1_5 box-border flex h-ouro-4 min-w-ouro-4 items-center justify-center rounded-full bg-destructive px-1 text-center text-[0.625rem] leading-none font-semibold text-destructive-foreground tabular-nums " +
+  "forced-colors:border forced-colors:border-solid";
 
 /**
  * The count in words after the label, ", 5 new", for screen readers only: inline text of zero size in
