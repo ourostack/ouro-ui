@@ -1,0 +1,1 @@
+- Fixed: TimeGrid keeps its day-long events a step in from the header and column edges.
