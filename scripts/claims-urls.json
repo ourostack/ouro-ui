@@ -39,6 +39,10 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://capacitorjs.com/docs/guides/live-reload": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
   "https://carbondesignsystem.com/patterns/status-indicator-pattern/": {
     "status": 200,
     "checked": "2026-11-06"
@@ -1099,6 +1103,10 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://vite.dev/config/server-options.html#server-hmr": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
   "https://vite.dev/guide/env-and-mode": {
     "status": 200,
     "checked": "2026-11-06"
@@ -1127,6 +1135,10 @@
     "status": 200,
     "checked": "2026-11-04"
   },
+  "https://www.electronjs.org/docs/latest/tutorial/security": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
   "https://www.gutenberg.org/ebooks/164": {
     "status": 200,
     "checked": "2026-11-06"
@@ -1150,6 +1162,10 @@
   "https://www.unicode.org/reports/tr51/#Diversity": {
     "status": 200,
     "checked": "2026-11-06"
+  },
+  "https://www.w3.org/TR/CSP3/#directive-script-src": {
+    "status": 200,
+    "checked": "2026-11-24"
   },
   "https://www.w3.org/TR/CSS2/visufx.html#overflow": {
     "status": 200,
