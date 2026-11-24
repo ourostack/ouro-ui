@@ -42,5 +42,9 @@
   {
     "rule": "popup-first-frame",
     "summary": "A popup drawn, on a frame after it opens, somewhere other than where it settles, as one measured against the viewport and drawn inside a layer further down the page is; the fix is to place it where it settles from its first frame (position: fixed)."
+  },
+  {
+    "rule": "squircle-missing",
+    "summary": "In an engine without corner-shape (an app's WKWebView), a drawn surface rounded under half its size by a plain circular radius, neither clipped to a squircle nor drawn by the polyfill; the fix is to register the polyfill (registerSquirclePolyfill) or clip the surface to a squircle (data-ouro-squircle). Run it with --engine wkwebview."
   }
 ]

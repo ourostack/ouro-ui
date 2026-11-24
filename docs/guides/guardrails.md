@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.499 ourostack/ouro-ui/ouro-source-rules#v1.3.499
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.500 ourostack/ouro-ui/ouro-source-rules#v1.3.500
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -233,6 +233,7 @@ The check also holds pages to design rules that measurement can decide, after Re
 | `shadow-scale` | More than 5 different shadows on a page.[^check-design] |
 | `grey-on-colour` | Grey text on a coloured background, which reads washed out: use a shade of the background's own hue.[^check-design] |
 | `heading-hierarchy` | A heading drawn larger than the heading of higher rank it sits under, each at the largest size its text is drawn at.[^check-design] |
+| `squircle-missing` | In an engine without `corner-shape` (an app's WKWebView; run `--engine wkwebview`), a drawn surface rounded under half its size by a plain circular radius, neither clipped to a squircle nor drawn by the polyfill.[^check-design] |
 | `https` | For a site on the web, once a run: `http://` that doesn't answer with a 301 or 308 to `https://`, an `https://` with no `Strict-Transport-Security` of a year or more, or a bare name's `www.` twin (or a `www.` site's bare name) that moves anywhere but to `https://` or doesn't answer over HTTPS.[^check-https] Local addresses are left out.[^check-https] |
 
 `blurry-image` covers videos too: a video drawn larger than its frames at the screen's density.[^check-video]
@@ -360,7 +361,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.499
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.500
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -444,7 +445,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.499
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.500
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -454,7 +455,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.499
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.500
         with:
           merge: "true"
 ```
@@ -474,7 +475,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.499
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.500
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -534,7 +535,7 @@ Fix the findings that fail first, so a session is spent on the task and not on a
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.499
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.500
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -653,7 +654,7 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^wrappers]: test:scripts/kits/source-rules.test.mjs::the ratchet against real changes > counts every hop of a wrapper chain, and terminates on a cycle; test:scripts/kits/source-rules.test.mjs::call sites > counts each use of an app component that hand-rolls a control, and re-exported third-party controls verify:testExists(scripts/kits/source-rules.test.mjs::the ratchet against real changes > counts every hop of a wrapper chain, and terminates on a cycle) verify:testExists(scripts/kits/source-rules.test.mjs::call sites > counts each use of an app component that hand-rolls a control, and re-exported third-party controls)
 [^fingerprints]: test:scripts/kits/source-rules.test.mjs::fingerprints > do not change when lines move, and report the new line; test:scripts/kits/source-rules.test.mjs::fingerprints > record only the stable props, in a fixed order, literal or as written verify:testExists(scripts/kits/source-rules.test.mjs::fingerprints > do not change when lines move, and report the new line) verify:testExists(scripts/kits/source-rules.test.mjs::fingerprints > record only the stable props, in a fixed order, literal or as written)
 [^check-jank]: test:scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why; test:scripts/check/check-rules.test.mts::Ouro check's design rules > judges jank only on a step's full runs: a covered target that returns is waited for, and one that never returns skips the step verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why) verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > judges jank only on a step's full runs: a covered target that returns is waited for, and one that never returns skips the step) verify:fileLine(registry/ouro/check/run.ts, /^const MAX_FORCED = 50;$/) verify:fileLine(registry/ouro/check/run.ts, /^const MAX_STEP_SHIFT = 0.01;$/) verify:fileLine(registry/ouro/check/run.ts, /^const WALK_EACH = 3;$/) verify:fileLine(registry/ouro/check/run.ts, /^const WALK_RUNS = 3;$/) verify:fileLine(registry/ouro/check/run.ts, /^const WALK_WAIT_MS = 2000;$/)
-[^check-design]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups; test:scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why; test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > counts a row's own padding as room above its heading, so a heading on a padded row is judged by where its text sits verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > counts a row's own padding as room above its heading, so a heading on a padded row is judged by where its text sits)
+[^check-design]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups; test:scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why; test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > counts a row's own padding as room above its heading, so a heading on a padded row is judged by where its text sits; test:scripts/check/check.test.mts::Ouro check > squircle-missing fires in WebKit without corner-shape, on its fail page only, and never in Chromium, which draws it verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > counts a row's own padding as room above its heading, so a heading on a padded row is judged by where its text sits) verify:testExists(scripts/check/check.test.mts::Ouro check > squircle-missing fires in WebKit without corner-shape, on its fail page only, and never in Chromium, which draws it) verify:testExists(scripts/check/check.test.mts::Ouro check > squircle-missing fires in WebKit without corner-shape, on its fail page only, and never in Chromium, which draws it)
 [^check-drawn]: test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > measures a box by the part of it that is drawn: cut by a clipping ancestor, or nothing at all once scrolled out; test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > lets an absolutely positioned box escape a clip below its positioned ancestor, and a fixed one escape every clip verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > measures a box by the part of it that is drawn: cut by a clipping ancestor, or nothing at all once scrolled out) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > lets an absolutely positioned box escape a clip below its positioned ancestor, and a fixed one escape every clip)
 [^check-repaint]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/run.ts, /contextFor\(width, height, theme, "no-preference"\)/)
 [^check-giant-emoji]: test:scripts/check/check-rules.test.mts::Ouro check's design rules > giant-text counts no emoji: a picker's grid drawn large on a 4K display is no running text (#2363) verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > giant-text counts no emoji: a picker's grid drawn large on a 4K display is no running text (#2363))
