@@ -1,8 +1,10 @@
 "use client";
 
-import { Fragment, useCallback, type HTMLAttributes, type JSX, type ReactNode, type Ref, type RefCallback } from "react";
+import { Fragment, useCallback, useRef, type HTMLAttributes, type JSX, type ReactNode, type Ref, type RefCallback } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { scrollFadeClass, useScrollFade } from "@/registry/ouro/lib/ouro/scroll-fade";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { CopyButton } from "@/registry/ouro/components/ouro/copy-button/copy-button";
 import { Emoji, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
@@ -150,7 +152,7 @@ function AnsiCode({ code, catalogue }: { code: string; catalogue: EmojiCatalogue
 /**
  * Code or a command on a muted surface in the theme's monospace font, with a caption
  * and a button that copies it. The code shows exactly as given and scrolls sideways
- * rather than wrapping (unless `wrap`), scrolling sideways where a long line goes on, and
+ * rather than wrapping (unless `wrap`), fading out at the side where a long line goes on, and
  * the block becomes a tab stop while it overflows, so a keyboard can scroll it. Copying says
  * "Copied" to screen readers.
  *
@@ -166,7 +168,7 @@ function AnsiCode({ code, catalogue }: { code: string; catalogue: EmojiCatalogue
  * @see https://ui.ouroboros.bot/docs/code-block
  *
  * @claim "on the server too" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock terminal output > renders the styled output to a string, with no escape codes in it)
- * @claim "scrolling sideways where a long line goes on" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > scrolls sideways where a long line goes on, with its focus ring on the block)
+ * @claim "fading out at the side where a long line goes on" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > fades out at the side where a long line goes on, with its focus ring outside the fade)
  * @example
  * <CodeBlock language="bash" code="npx shadcn@latest add button" />
  * <CodeBlock title="vite.config.ts" code={config} className="max-h-80" />
@@ -209,13 +211,15 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const scrollable = useScrollableCode();
+  const fadeRef = useRef<HTMLPreElement>(null);
+  useScrollFade(fadeRef);
+  const scrollable = useMergedRef(useScrollableCode(), fadeRef);
   const ansi = language === "ansi";
   const caption = title ?? language;
   const bar = caption != null || copy;
   // The focus ring is the figure's outline, not an element over the code: axe reads an element over
   // a line of text as hiding its background, so it could not judge the text's contrast and measured each
-  // line from a screenshot.
+  // line from a screenshot. The code's mask would also hide an outline on the code itself.
   // The caption and the copy button share the bar above the code as siblings in the grid: a
   // <figcaption> names the figure, so the button stays out of it.
   return (
@@ -254,7 +258,7 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
         />
       ) : null}
       {bar ? (
-        // The hairline sits beside the code, under its transparent top border, so it spans the figure from border to border (#530).
+        // The code's fade would fade a hairline drawn on the code, so it sits beside the code, under its transparent top border (#530).
         <span aria-hidden="true" data-slot="rule" className="pointer-events-none col-span-2 col-start-1 row-start-2 h-px self-start border-0 border-t border-solid border-border" />
       ) : null}
       <div data-slot="code-clip" className={cn("col-span-2 col-start-1 grid min-h-0 min-w-0 overflow-hidden", bar ? "row-start-2" : "row-start-1")}>
@@ -264,6 +268,7 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
           data-ouro-part="code"
           className={cn(
             "m-0 min-h-0 min-w-0 overflow-auto p-4 font-mono text-sm leading-6 outline-none",
+            scrollFadeClass,
             bar ? "rounded-b-[calc(var(--radius-ouro-lg)-1px)] border-0 border-t border-solid border-transparent" : "rounded-[calc(var(--radius-ouro-lg)-1px)]",
             wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre",
           )}

@@ -986,8 +986,13 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       }
       onKeyDown={onKeyDown}
     >
-      <ScrollArea label={label} className="min-h-0 flex-1">
-        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-border bg-background/80 backdrop-blur-md [@media(prefers-reduced-transparency:reduce)]:bg-background [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none contrast-more:bg-background contrast-more:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
+      {/* The day header sticks to the top of the scroller, so ScrollArea's top fade would fade the header itself, not hours
+          hidden above it: only the bottom fades. */}
+      <ScrollArea
+        label={label}
+        className="min-h-0 flex-1 [&>[data-ouro-part=viewport][data-ouro-scroll-fade-y]]:[mask-image:linear-gradient(to_bottom,#000_calc(100%-min(var(--scroll-area-overflow-y-end),2rem)),transparent)]" // fade-ok: fades the hours below, not a picture
+      >
+        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-border bg-background" style={{ gridTemplateColumns: columns }}>
           <div aria-hidden="true" />
           {days.map((day, index) => (
             <div
@@ -1005,7 +1010,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                   formats.dayNumber.formatToParts(utcDate(day)).find((part) => part.type === "day")!.value
                 }
               </span>
-              <span className={`truncate text-xs ${markedMutedClass} group-data-today/day:font-medium group-data-today/day:text-foreground`}>{formats.weekdayShort.format(utcDate(day))}</span>
+              <span className={`truncate text-xs ${markOf(day) ? markedMutedClass : "text-muted-foreground"} group-data-today/day:font-medium group-data-today/day:text-foreground`}>{formats.weekdayShort.format(utcDate(day))}</span>
               </span>
               {markOf(day) ? <span data-ouro-time-grid-mark="" data-slot="time-grid-mark-label" className={`block truncate px-2 pb-1 text-xs ${markedMutedClass} @max-[4.5rem]/day:px-0.5`}>{markOf(day)!.label}</span> : null}
             </div>

@@ -935,12 +935,12 @@ describe("TimeGrid", () => {
     await near(0);
   });
 
-  it("draws its day header as glass over the hours scrolled beneath it, with no mask on the scroller", async () => {
+  it("never fades its day header: scrolled down, only the bottom edge fades", async () => {
     await render();
     await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(true);
-    expect(getComputedStyle(viewport()).maskImage).toBe("none");
-    const head = viewport().querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    expect(getComputedStyle(head).backdropFilter).toContain("blur");
+    const mask = getComputedStyle(viewport()).maskImage;
+    expect(mask).toMatch(/^linear-gradient\(rgb\(0, 0, 0\) /);
+    expect(mask).toMatch(/rgba\(0, 0, 0, 0\)\)$/);
     expect(warnings()).toEqual([]);
   });
 

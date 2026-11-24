@@ -214,14 +214,17 @@ describe("CodeBlock", () => {
     expect(pre.hasAttribute("tabindex")).toBe(false);
   });
 
-  it("scrolls sideways where a long line goes on, with its focus ring on the block", async () => {
+  it("fades out at the side where a long line goes on, with its focus ring outside the fade", async () => {
     const { block, pre } = await render(
       <div style={{ width: 320 }}>
         <CodeBlock code={long} language="ts" />
       </div>,
     );
-    await expect.poll(() => pre.hasAttribute("tabindex")).toBe(true);
-    expect(getComputedStyle(pre).maskImage).toBe("none");
+    await expect.poll(() => pre.hasAttribute("data-ouro-scroll-fade")).toBe(true);
+    expect(getComputedStyle(pre).maskImage).toContain("linear-gradient");
+    expect(pre.style.getPropertyValue("--ouro-scroll-fade-left")).toBe("0px");
+    // The ring is the block's own outline, outside the box the fade masks.
+    expect(getComputedStyle(block).maskImage).toBe("none");
     expect(getComputedStyle(block).outlineStyle).toBe("none");
     await pressTab();
     await pressTab();
@@ -229,25 +232,26 @@ describe("CodeBlock", () => {
     expect(getComputedStyle(pre).outlineStyle).toBe("none");
     expect(getComputedStyle(block).outlineStyle).toBe("solid");
     expect(getComputedStyle(block).outlineWidth).toBe("2px");
-    // WebKit under Playwright scrolls a focused box with no arrow key, so it scrolls by script there.
+    // WebKit under Playwright scrolls a focused box with no arrow key, masked or not, so it scrolls by script there.
     if (server.browser === "chromium") await userEvent.keyboard("{ArrowRight}");
     else pre.scrollLeft = 40;
-    await expect.poll(() => pre.scrollLeft).toBeGreaterThan(0);
-    // Short code and wrapped code fit.
+    await expect.poll(() => pre.style.getPropertyValue("--ouro-scroll-fade-left")).not.toBe("0px");
+    // Short code and wrapped code don't fade.
     for (const node of [<CodeBlock key="short" code="short" />, <CodeBlock key="wrap" code={long} wrap />]) {
       const { pre: plain } = await render(<div style={{ width: 320 }}>{node}</div>);
       await act(async () => new Promise(requestAnimationFrame));
-      expect(plain.scrollWidth).toBeLessThanOrEqual(plain.clientWidth);
+      expect(plain.hasAttribute("data-ouro-scroll-fade")).toBe(false);
+      expect(getComputedStyle(plain).maskImage).toBe("none");
     }
   });
 
-  it("draws the hairline under its bar from border to border, when a line overflows", async () => {
+  it("draws the hairline under its bar from border to border, outside the fade, when a line overflows", async () => {
     const { block, pre } = await render(
       <div style={{ width: 320 }}>
         <CodeBlock code={long} language="ts" />
       </div>,
     );
-    await expect.poll(() => pre.scrollWidth > pre.clientWidth).toBe(true);
+    await expect.poll(() => pre.hasAttribute("data-ouro-scroll-fade")).toBe(true);
     const rule = block.querySelector<HTMLElement>('[data-slot="rule"]')!;
     expect(pre.contains(rule)).toBe(false);
     expect(getComputedStyle(rule).maskImage).toBe("none");
@@ -276,7 +280,7 @@ describe("CodeBlock", () => {
         ))}
       </div>,
     );
-    await expect.poll(() => [...host.querySelectorAll("pre")].filter((pre) => pre.scrollWidth > pre.clientWidth).length).toBe(35);
+    await expect.poll(() => host.querySelectorAll("[data-ouro-scroll-fade]").length).toBe(35);
     const screenshot = vi.spyOn(page, "screenshot");
     try {
       const started = performance.now();

@@ -860,7 +860,7 @@ describe("Message context", () => {
 });
 
 describe("Message chat", () => {
-  it("shows that a wide table or a long line of code in a bubble scrolls sideways", async () => {
+  it("shows that a wide table or a long line of code in a bubble scrolls sideways, with a fade where it goes on", async () => {
     const columns = ["Task", "Owner", "Status", "Due", "Notes"];
     const { message } = await render(
       <Message variant="chat" role="assistant" name="Mara Quill">
@@ -887,8 +887,10 @@ describe("Message chat", () => {
     const viewport = message.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const code = message.querySelector<HTMLElement>('[data-ouro-part="code"]')!;
     for (const box of [viewport, code]) {
-      await expect.poll(() => box.scrollWidth > box.clientWidth).toBe(true);
-      expect(getComputedStyle(box).maskImage).toBe("none");
+      await expect.poll(() => box.hasAttribute("data-ouro-scroll-fade")).toBe(true);
+      expect(box.scrollWidth).toBeGreaterThan(box.clientWidth);
+      expect(getComputedStyle(box).maskImage).toContain("linear-gradient");
+      expect(box.style.getPropertyValue("--ouro-scroll-fade-left")).toBe("0px");
     }
     // The bubble stays inside the list's width, rather than growing to the table's.
     expect(message.getBoundingClientRect().width).toBeLessThanOrEqual(600);

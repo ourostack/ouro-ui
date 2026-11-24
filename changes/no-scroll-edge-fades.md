@@ -1,1 +1,0 @@
-- Changed: FamilyBar, CodeBlock, Chart, ToggleGroup, Tabs and ScrollArea no longer fade where a row or region scrolls on, `lib-scroll-fade` and its `ouro-scroll-fade-*` keyframes are gone, and TimeGrid's sticky day header is a blurred glass bar over the hours that scroll beneath it, solid under `prefers-reduced-transparency` and `prefers-contrast: more`.
