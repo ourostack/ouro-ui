@@ -120,6 +120,18 @@ describe("transition rules", () => {
     expect(findTransitionFaults(result)).toEqual([]);
   });
 
+  it("falls back to a boundary progress once a plain animation's own time is clamped at its end", async () => {
+    // No fill holds this animation's end state, so once its clamped currentTime reaches its own endTime its computed
+    // progress goes unresolved (null); stepTrace must fall back to reading the boundary from currentTime itself. Both
+    // keyframes are the same value so reverting out of the active phase there makes no visible difference to judge.
+    const press = () => void document.getElementById("t-fallback")!.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 40 });
+    const { result, faults } = await trace('<div id="t-fallback"></div>', press);
+    const key = Object.keys(result.progress).find((k) => k.endsWith(":fade"));
+    expect(key).toBeDefined();
+    expect(result.progress[key!]!.at(-1)).toBe(1);
+    expect(faults).toEqual([]);
+  });
+
   it("reports an outer element's fault once, leaves a bare trace's ids alone, and reads a frame missing an id as absent", () => {
     const reading = (x: number): TransitionTrace["frames"][number] => ({ a: [x, 0, x + 40, 40, 0, 1, 0], b: [x, 0, x + 40, 40, 0, 1, 0] });
     const frames = [reading(0), ...[0, 100, 200].map(reading)];
