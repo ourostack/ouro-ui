@@ -1113,13 +1113,22 @@ describe("SnapPiP", () => {
     expect(onCollapsedChange).toHaveBeenCalledWith(true);
     // Opened again by hand while the keep-out still covers it: it stays open.
     onCollapsedChange.mockClear();
-    await render(self({ onCollapsedChange, collapsed: false, keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));
+    const covered = [{ x: 0, y: 60, width: 380, height: 420 }];
+    await render(self({ onCollapsedChange, collapsed: true, keepOut: covered }));
+    await render(self({ onCollapsedChange, collapsed: false, keepOut: covered }));
     await rest();
     expect(onCollapsedChange).not.toHaveBeenCalled();
     // A new shape for the picture still leaves it open, until a keep-out changes.
     await render(self({ onCollapsedChange, collapsed: false, aspectRatio: 9 / 16, keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));
     await rest();
     expect(onCollapsedChange).not.toHaveBeenCalled();
+  });
+
+  it("hides itself at once when it first shows with a keep-out over every corner", async () => {
+    const onCollapsedChange = vi.fn();
+    await render(self({ onCollapsedChange, keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));
+    await rest();
+    expect(onCollapsedChange).toHaveBeenCalledWith(true);
   });
 
   it("keeps its corner when no corner is clear and it cannot be hidden", async () => {
