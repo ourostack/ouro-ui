@@ -20,6 +20,12 @@ import type { PageIssue } from "./size-check.ts";
 //                      count across, and nor does a list's region (messages, rows, options): it holds as many as
 //                      there are, so it overflows by however much they add up to. The page itself counts too, down (across, it is
 //                      sideways-scroll's)
+//   near-miss          two separate surfaces, or a surface and the edge of the surface it sits in, that are neither
+//                      touching nor `gapMin` apart: a gap of more than 0 and under the minimum gap token
+//                      (--ouro-gap-min, read from the page; `gapMin` px where it has none). A surface is a block or inline-block box of at
+//                      least 16x16 with a fill unlike what is behind it, a frame (a border on every side, an outline
+//                      or a ring) or a picture. Two surfaces are a near miss when they don't overlap, aren't nested
+//                      and face each other across that gap along at least half of the shorter one's facing side
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
 // do. `element` names the element by its words, the same at every size; `detail` has this size's numbers.
@@ -28,9 +34,10 @@ interface LayoutOptions {
   cutPx?: number;
   minScroll?: number;
   maxScroll?: number;
+  gapMin?: number;
 }
 
-function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8 }: LayoutOptions = {}): PageIssue[] {
+function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gapMinFallback = 8 }: LayoutOptions = {}): PageIssue[] {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (...els: Element[]) => {
@@ -152,6 +159,65 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8 }: LayoutOpt
     const by = [down >= minScroll && down <= maxScroll && !(page && /hidden|clip/.test(s.overflowY)) ? `${down}px down` : "", across >= Math.max(2, minScroll) && across <= maxScroll ? `${across}px across` : ""].filter(Boolean);
     if (!by.length) continue;
     issues.push({ ref: ref(page ? document.body : el), rule: "stray-scrollbar", element: page ? "the page" : describe(el), detail: `scrolls by ${by.join(" and ")}` });
+  }
+
+  // Separate surfaces are touching or a minimum gap apart.
+  const probe = document.createElement("div");
+  probe.style.cssText = `position:absolute;visibility:hidden;width:var(--ouro-gap-min, ${gapMinFallback}px)`;
+  document.body.append(probe);
+  const gapMin = probe.getBoundingClientRect().width;
+  probe.remove();
+  const touchPx = 0.5;
+  const clear = (c: string) => c === "rgba(0, 0, 0, 0)" || /\/ 0\)$/.test(c);
+  const behind = (el: Element) => {
+    for (let n = el.parentElement; n; n = n.parentElement) if (!clear(getComputedStyle(n).backgroundColor)) return getComputedStyle(n).backgroundColor;
+    return "";
+  };
+  const isSurface = (el: Element) => {
+    if (el.matches("img, video, canvas, picture")) return true;
+    const s = getComputedStyle(el);
+    const filled = !clear(s.backgroundColor) && s.backgroundColor !== behind(el);
+    const framed = [s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth].every((w, i) => parseFloat(w) > 0 && !clear([s.borderTopColor, s.borderRightColor, s.borderBottomColor, s.borderLeftColor][i]!));
+    const outlined = s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0 && !clear(s.outlineColor);
+    const ringed = /0px 0px 0px [1-9]/.test(s.boxShadow.replace(/[^,]*inset[^,]*/g, ""));
+    return filled || framed || outlined || ringed;
+  };
+  const surfaces = [...document.body.querySelectorAll("*")].filter((el) => {
+    if (el instanceof SVGElement || getComputedStyle(el).display === "inline" || optedOut(el, "near-miss") || !drawn(el)) return false;
+    const r = el.getBoundingClientRect();
+    return r.width >= 16 && r.height >= 16 && isSurface(el);
+  });
+  const rects = new Map(surfaces.map((el) => [el, el.getBoundingClientRect()]));
+  const axes = [
+    { start: "left", end: "right", sideStart: "top", sideEnd: "bottom" },
+    { start: "top", end: "bottom", sideStart: "left", sideEnd: "right" },
+  ] as const;
+  const apart = (a: DOMRect, b: DOMRect) => {
+    for (const { start, end, sideStart, sideEnd } of axes) {
+      const gap = Math.max(a[start] - b[end], b[start] - a[end]);
+      const along = Math.min(a[sideEnd], b[sideEnd]) - Math.max(a[sideStart], b[sideStart]);
+      if (gap > touchPx && gap < gapMin && along >= Math.min(a[sideEnd] - a[sideStart], b[sideEnd] - b[sideStart]) / 2) return gap;
+    }
+    return 0;
+  };
+  const near: { a: Element; b: Element; gap: number }[] = [];
+  surfaces.forEach((a, i) => {
+    for (const b of surfaces.slice(i + 1)) {
+      const gap = a.contains(b) || b.contains(a) ? 0 : apart(rects.get(a)!, rects.get(b)!);
+      if (gap) near.push({ a, b, gap });
+    }
+    const container = surfaces.filter((c) => c !== a && c.contains(a)).pop();
+    if (!container) return;
+    const r = rects.get(a)!;
+    const c = rects.get(container)!;
+    const inner = [r.left - c.left - container.clientLeft, r.top - c.top - container.clientTop, c.right - r.right - (c.width - container.clientLeft - container.clientWidth), c.bottom - r.bottom - (c.height - container.clientTop - container.clientHeight)];
+    const gap = Math.min(...inner.filter((d) => d > touchPx && d < gapMin));
+    if (gap < Infinity) near.push({ a: container, b: a, gap });
+  });
+  // The outermost of each nest of near misses: two cards a hair apart are one finding, not one for each part of them.
+  const within = (inner: Element, outer: Element) => outer.contains(inner);
+  for (const { a, b, gap } of near.filter((n) => !near.some((o) => o !== n && ((within(n.a, o.a) && within(n.b, o.b)) || (within(n.a, o.b) && within(n.b, o.a)))))) {
+    issues.push({ ref: ref(a, b), rule: "near-miss", element: `${describe(a)} and ${describe(b)}`, detail: `${Math.round(gap * 10) / 10}px apart: more than 0 and under the ${Math.round(gapMin * 10) / 10}px minimum gap, so neither touching nor clearly apart` });
   }
   return issues;
 }

@@ -207,6 +207,11 @@
   --ouro-duration-draw: 240ms; /* a stroke drawn along its path: the checkbox tick, a checklist strike */
   --ouro-duration-slow: 300ms; /* dialogs, backdrops */
   --ouro-duration-sheet: 500ms; /* sheets only */
+  /* A dialog's enter and exit, popup and backdrop (also Command and Lightbox): an app sets these on :root. */
+  --ouro-dialog-duration: var(--ouro-duration-slow);
+  --ouro-dialog-ease: var(--ouro-ease-out);
+  --ouro-dialog-exit-duration: var(--ouro-duration-base);
+  --ouro-dialog-exit-ease: var(--ouro-dialog-ease);
   --ouro-press-scale: 0.97;
   /* The dimming layer behind sheets and dialogs, at full opacity when open. */
   --ouro-backdrop-color: #18181b;
@@ -387,7 +392,16 @@
 @supports (clip-path: shape(from 0 0, close)) {
   [data-ouro-surface],
   [data-ouro-avatar-surface] {
-    --ouro-sq-path: var(--ouro-sq-capsule-path, shape(from 0 calc(var(--ouro-sq-r)*1), curve to calc(var(--ouro-sq-r)*.1591) calc(var(--ouro-sq-r)*.1591) with 0 calc(var(--ouro-sq-r)*.613) / calc(var(--ouro-sq-r)*-.0092) calc(var(--ouro-sq-r)*.3274), curve to calc(var(--ouro-sq-r)*1) 0 with calc(var(--ouro-sq-r)*.3274) calc(var(--ouro-sq-r)*-.0092) / calc(var(--ouro-sq-r)*.613) 0, line to calc(100% - var(--ouro-sq-r)*1) 0, curve to calc(100% - var(--ouro-sq-r)*.1591) calc(var(--ouro-sq-r)*.1591) with calc(100% - var(--ouro-sq-r)*.613) 0 / calc(100% - var(--ouro-sq-r)*.3274) calc(var(--ouro-sq-r)*-.0092), curve to 100% calc(var(--ouro-sq-r)*1) with calc(100% + var(--ouro-sq-r)*.0092) calc(var(--ouro-sq-r)*.3274) / 100% calc(var(--ouro-sq-r)*.613), line to 100% calc(100% - var(--ouro-sq-r)*1), curve to calc(100% - var(--ouro-sq-r)*.1591) calc(100% - var(--ouro-sq-r)*.1591) with 100% calc(100% - var(--ouro-sq-r)*.613) / calc(100% + var(--ouro-sq-r)*.0092) calc(100% - var(--ouro-sq-r)*.3274), curve to calc(100% - var(--ouro-sq-r)*1) 100% with calc(100% - var(--ouro-sq-r)*.3274) calc(100% + var(--ouro-sq-r)*.0092) / calc(100% - var(--ouro-sq-r)*.613) 100%, line to calc(var(--ouro-sq-r)*1) 100%, curve to calc(var(--ouro-sq-r)*.1591) calc(100% - var(--ouro-sq-r)*.1591) with calc(var(--ouro-sq-r)*.613) 100% / calc(var(--ouro-sq-r)*.3274) calc(100% + var(--ouro-sq-r)*.0092), curve to 0 calc(100% - var(--ouro-sq-r)*1) with calc(var(--ouro-sq-r)*-.0092) calc(100% - var(--ouro-sq-r)*.3274) / 0 calc(100% - var(--ouro-sq-r)*.613), close));
+    --ouro-sq-cmds: from 0 calc(var(--ouro-sq-r)*1), curve to calc(var(--ouro-sq-r)*.1591) calc(var(--ouro-sq-r)*.1591) with 0 calc(var(--ouro-sq-r)*.613) / calc(var(--ouro-sq-r)*-.0092) calc(var(--ouro-sq-r)*.3274), curve to calc(var(--ouro-sq-r)*1) 0 with calc(var(--ouro-sq-r)*.3274) calc(var(--ouro-sq-r)*-.0092) / calc(var(--ouro-sq-r)*.613) 0, line to calc(100% - var(--ouro-sq-r)*1) 0, curve to calc(100% - var(--ouro-sq-r)*.1591) calc(var(--ouro-sq-r)*.1591) with calc(100% - var(--ouro-sq-r)*.613) 0 / calc(100% - var(--ouro-sq-r)*.3274) calc(var(--ouro-sq-r)*-.0092), curve to 100% calc(var(--ouro-sq-r)*1) with calc(100% + var(--ouro-sq-r)*.0092) calc(var(--ouro-sq-r)*.3274) / 100% calc(var(--ouro-sq-r)*.613), line to 100% calc(100% - var(--ouro-sq-r)*1), curve to calc(100% - var(--ouro-sq-r)*.1591) calc(100% - var(--ouro-sq-r)*.1591) with 100% calc(100% - var(--ouro-sq-r)*.613) / calc(100% + var(--ouro-sq-r)*.0092) calc(100% - var(--ouro-sq-r)*.3274), curve to calc(100% - var(--ouro-sq-r)*1) 100% with calc(100% - var(--ouro-sq-r)*.3274) calc(100% + var(--ouro-sq-r)*.0092) / calc(100% - var(--ouro-sq-r)*.613) 100%, line to calc(var(--ouro-sq-r)*1) 100%, curve to calc(var(--ouro-sq-r)*.1591) calc(100% - var(--ouro-sq-r)*.1591) with calc(var(--ouro-sq-r)*.613) 100% / calc(var(--ouro-sq-r)*.3274) calc(100% + var(--ouro-sq-r)*.0092), curve to 0 calc(100% - var(--ouro-sq-r)*1) with calc(var(--ouro-sq-r)*-.0092) calc(100% - var(--ouro-sq-r)*.3274) / 0 calc(100% - var(--ouro-sq-r)*.613), close;
+    --ouro-sq-path: var(--ouro-sq-capsule-path, shape(var(--ouro-sq-cmds)));
+  }
+/* An avatar's presence notch: a circle round the dot, a second subpath of the surface's own clip path, so the picture behind the avatar shows through the gap. It exists only while a dot is drawn (data-ouro-bite). */
+  [data-ouro-avatar-surface][data-ouro-bite] {
+    --ouro-bite-x: calc(100% - var(--ouro-bite-c));
+    clip-path: shape(evenodd var(--ouro-sq-cmds), move to calc(var(--ouro-bite-x) + var(--ouro-bite-r)) calc(100% - var(--ouro-bite-c)), arc to calc(var(--ouro-bite-x) - var(--ouro-bite-r)) calc(100% - var(--ouro-bite-c)) of var(--ouro-bite-r), arc to calc(var(--ouro-bite-x) + var(--ouro-bite-r)) calc(100% - var(--ouro-bite-c)) of var(--ouro-bite-r), close);
+  }
+  [dir="rtl"] [data-ouro-avatar-surface][data-ouro-bite] {
+    --ouro-bite-x: calc(0% + var(--ouro-bite-c));
   }
 }
 
@@ -507,43 +521,6 @@
   }
 }
 
-/*
- * The scroll fade with no script (scrollFadeStaticClass): a box's scroll timeline draws a ramp at each side, from the
- * gradients the class sets in --ouro-scroll-fade-ramps, and slides the left one in, by mask-position, and the right one
- * in, by mask-size, each over the 2rem the box scrolls toward that side. A box with nothing to scroll has no mask.
- */
-@keyframes ouro-scroll-fade-left {
-  from {
-    animation-timing-function: linear;
-    mask-image: var(--ouro-scroll-fade-ramps); /* fade-ok: fades a scrolling row of text or controls, not a picture */
-    mask-repeat: no-repeat;
-    mask-composite: intersect;
-    mask-position:
-      -2rem 0,
-      0 0;
-  }
-  to {
-    mask-image: var(--ouro-scroll-fade-ramps); /* fade-ok: fades a scrolling row of text or controls, not a picture */
-    mask-repeat: no-repeat;
-    mask-composite: intersect;
-    mask-position:
-      0 0,
-      0 0;
-  }
-}
-@keyframes ouro-scroll-fade-right {
-  from {
-    animation-timing-function: linear;
-    mask-size:
-      calc(100% + 2rem) 100%,
-      calc(100% + 2rem) 100%;
-  }
-  to {
-    mask-size:
-      calc(100% + 2rem) 100%,
-      100% 100%;
-  }
-}
 /* A hero's media rises a little as it arrives; reduced motion only fades it. */
 @keyframes ouro-hero-rise {
   from {
@@ -566,5 +543,31 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+/* A state nobody has designed yet: data-ouro-veil covers its element with a plain, solid "Not designed yet" layer, so no
+   one mistakes it for the design. Ouro check skips what is inside it. The value, when set, is added as the reason. */
+@layer base {
+  [data-ouro-veil] {
+    position: relative;
+  }
+  [data-ouro-veil]::after {
+    content: "Not designed yet";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    text-align: center;
+    font: 600 0.875rem/1.4 system-ui, sans-serif;
+    color: CanvasText;
+    background: Canvas;
+    border: 2px dashed currentColor;
+    pointer-events: auto;
+  }
+  [data-ouro-veil]:not([data-ouro-veil=""])::after {
+    content: "Not designed yet: " attr(data-ouro-veil);
   }
 }

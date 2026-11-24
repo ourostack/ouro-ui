@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@886e49b076b6fad1cc8276f469f5cbb3fc4c9852:brand/",
+  "origin": "ourostack/.github@fd11ad74441b689d17362c99596ec5531716456e:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -2418,6 +2418,270 @@
     {
       "file": "stage/sardine-72.webp",
       "sha256": "ef8c5475f985b7de4d8d18d8703e82cbee68d0d06434a897c683bc52bacadba5"
+    },
+    {
+      "file": "headers/ouro-ui-windows-dark.webp",
+      "sha256": "dd0fc7ccfc660fd1d3c44e6107f3436caae0dc10994a9991cb2fd668cf90c76f"
+    },
+    {
+      "file": "headers/ouro-ui-windows.webp",
+      "sha256": "216418b352e230d07154bad605e7e373d9db9dfdeaab8980b3612f62d0ded5ca"
+    },
+    {
+      "file": "og/ouro-ui-windows.jpg",
+      "sha256": "05a31adc991b7c5c183cb9ae1b458684debe620aaf7071a181011af0ade76d04"
+    },
+    {
+      "file": "phone/ouro-ui-windows-1152.avif",
+      "sha256": "0da0e78b1a72603bd680aa24496a5c0bd854c1d0093fa606eea8a5db429c890e"
+    },
+    {
+      "file": "phone/ouro-ui-windows-1152.webp",
+      "sha256": "ca24ce2caa1b31c07902cbee00a9a0251bd7362cdbc39d9c310ee0ffb7e98e92"
+    },
+    {
+      "file": "phone/ouro-ui-windows-1536.avif",
+      "sha256": "1bb85ac7c7dddb99cc2fb9c608e0a29390c12513251e838c3774d6f761d324e1"
+    },
+    {
+      "file": "phone/ouro-ui-windows-1536.webp",
+      "sha256": "d8a85fb024b65a8c0fa25a8f126e23100bc47f4edf2b136376d2d7e4cb0c9250"
+    },
+    {
+      "file": "phone/ouro-ui-windows-384.avif",
+      "sha256": "3673b16ffd7d05e9c539677679305223d586c4a5a2710e5433e95a5697ced348"
+    },
+    {
+      "file": "phone/ouro-ui-windows-384.webp",
+      "sha256": "07fc29ff312e75181e99ebc7667964c708024ea01999ebb134259cf865e35a70"
+    },
+    {
+      "file": "phone/ouro-ui-windows-768.avif",
+      "sha256": "324c3d98dc99f06d0be9fa6d1d3f6d3f2d2ed0c0e1e4f275abc07a432bd3b62b"
+    },
+    {
+      "file": "phone/ouro-ui-windows-768.webp",
+      "sha256": "132357c13a1e671e513670e2c5bb29f4568c62ce46499eb0ad1b417b93423e3c"
+    },
+    {
+      "file": "phone/ouro-ui-windows-dark-1152.avif",
+      "sha256": "56272ee082aec6e5ee11ffce7b00a44a11a07512c3f15a7df8193d410e7ab8db"
+    },
+    {
+      "file": "phone/ouro-ui-windows-dark-1152.webp",
+      "sha256": "397323f4dc48288c5a7a85dabd4aa3e53cc4fbf5bf274203e1281eb3eb5882cc"
+    },
+    {
+      "file": "phone/ouro-ui-windows-dark-1536.avif",
+      "sha256": "338c2b0eb732ef72f71445fa028fe10944012a95b9bb901fedc59b2f78026a1f"
+    },
+    {
+      "file": "phone/ouro-ui-windows-dark-1536.webp",
+      "sha256": "ba889e8fab16782595e90d26cc5157ca306e8f64f6dce6e3a05d20823420b806"
+    },
+    {
+      "file": "phone/ouro-ui-windows-dark-384.avif",
+      "sha256": "104ce1d36279a8d0bd3b592233a5e8b163ab87fd8419ffb1cb0c03356c87884d"
+    },
+    {
+      "file": "phone/ouro-ui-windows-dark-384.webp",
+      "sha256": "21e35fce4c60b67780d753bdf05050071accce8f40a187d8f7ac9940e6f37d38"
+    },
+    {
+      "file": "phone/ouro-ui-windows-dark-768.avif",
+      "sha256": "c5072d8917ee3d9e4823e27ad64baa228852aea9db3521bb5b4c98018daa0e82"
+    },
+    {
+      "file": "phone/ouro-ui-windows-dark-768.webp",
+      "sha256": "4d50d53fff3e519f0ff3cf54a37912bcf7e289f70f61d4eb5f20890fca49689d"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-1536.avif",
+      "sha256": "4ae535dc91120559e499c8095c2faa9be18149d9e1d16e6e8e465521333ad6d5"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-3072.avif",
+      "sha256": "aca2cd0948ce16e50c494208dcf000c43aa93f5c1d4a34540bb7708dfd0f1bce"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-3072.webp",
+      "sha256": "e9ad36c8a39e3a790c7196cb8aa5313c37896060b550bcc186f1f3c43cd2a749"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-640.avif",
+      "sha256": "46af303e6b181be136c4f8d15e4310cfaca383f4aaabab7c5a9097d3829bfaac"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-640.webp",
+      "sha256": "196886a29c31d1d96b0202c30a9f639819ab45d7faefa8beef4ae31e20908c72"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-960.avif",
+      "sha256": "71f42fcf19540ea3ede2a671372f096640a5fc8dd339be07d11d954566857b5e"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-960.webp",
+      "sha256": "d452da9acf253ca25a0a94a4f6daceb09a7c80da0898e54232e2104a05bdf45b"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-dark-1536.avif",
+      "sha256": "c14c400f06049615670af595975501f85a264f2a484f696fe7732e8c05339bea"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-dark-3072.avif",
+      "sha256": "3c571c84453082c85d409b6ab1053b7b4f19f0969ba74c3c5459789679c4c87b"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-dark-3072.webp",
+      "sha256": "13f9ff67642fe7f9e754330a675884f58a5a405088f6fcb697bb11c004ab7a1b"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-dark-640.avif",
+      "sha256": "c7725ce06b3c51d738ee380309be63646568c5a7784eb39c7f27d2636566df78"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-dark-640.webp",
+      "sha256": "7bad6de47591536148e632c0fb8e1c03f760ae90114f2f8137a012155bba4104"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-dark-960.avif",
+      "sha256": "861f35b2b942a0c8b559f3ff392c6b1724994097e766f783fffc58a21bad5a2a"
+    },
+    {
+      "file": "scenes/ouro-ui-windows-dark-960.webp",
+      "sha256": "866376dedaf9accc37f9b1b89fad865985cf29c5ba4259a7eef3bc6dc8ceb15c"
+    },
+    {
+      "file": "headers/ouro-ui-android-dark.webp",
+      "sha256": "fb96fdb38fa86c447037ec6c838d4ff72c1dc76ca80218f5ea666a1482e2d9ad"
+    },
+    {
+      "file": "headers/ouro-ui-android.webp",
+      "sha256": "b50b226af76f11fa3e5fb29f3e48424a96390914630ae2cb37ef8467faf3e988"
+    },
+    {
+      "file": "og/ouro-ui-android.jpg",
+      "sha256": "51e48183840f408bb4989ee092de9c1be5ec57a1c4c8b609309c5dd22dea00a4"
+    },
+    {
+      "file": "phone/ouro-ui-android-1152.avif",
+      "sha256": "fbe3086aef443262248eba592a38f2339c39c8bbeb6884d91d306b5b10f3073e"
+    },
+    {
+      "file": "phone/ouro-ui-android-1152.webp",
+      "sha256": "db176fc66f803f2f63f353e203f7d3fe84cf6d88d4088536a7536bfb5fe03c09"
+    },
+    {
+      "file": "phone/ouro-ui-android-1536.avif",
+      "sha256": "87d2e28d78ce4f410da71d3d73009d72294476668b31277d37427a0bc492dd37"
+    },
+    {
+      "file": "phone/ouro-ui-android-1536.webp",
+      "sha256": "d365af4fedce8d58f16f79b860dce656d2e94085616a0a84c930776fefe1cb0a"
+    },
+    {
+      "file": "phone/ouro-ui-android-384.avif",
+      "sha256": "1a937717360afdcbf1dcac871149995da0708306cad185e02fef0a1281bc5563"
+    },
+    {
+      "file": "phone/ouro-ui-android-384.webp",
+      "sha256": "63b76740321720d9d026d5c64de1af393d87cac6300ecbed551dad63352c4023"
+    },
+    {
+      "file": "phone/ouro-ui-android-768.avif",
+      "sha256": "77e827d8bb10388bd5059cc1394fd5ef9e038f802792f5bfcac419031cc26dfe"
+    },
+    {
+      "file": "phone/ouro-ui-android-768.webp",
+      "sha256": "f075d857ac0f369a88e84fa2e8b3f6884274e6565315b9434c8e1399a1f9a64c"
+    },
+    {
+      "file": "phone/ouro-ui-android-dark-1152.avif",
+      "sha256": "ed554cab39e3ffd2764036d1adf510a4c42b3f22c9762d2c18187526bca0414a"
+    },
+    {
+      "file": "phone/ouro-ui-android-dark-1152.webp",
+      "sha256": "2acca37b65c06fa434fe9254d49effe3da831c7ab434467be0b7704eeacaed88"
+    },
+    {
+      "file": "phone/ouro-ui-android-dark-1536.avif",
+      "sha256": "e24ec9365023ceda340301d59cb69e6588387c0ce62afc9465ac4dc4fc7ab7fa"
+    },
+    {
+      "file": "phone/ouro-ui-android-dark-1536.webp",
+      "sha256": "8cfe2ca88ec9b95e1ffc96af833f6fc40040ebda43bfe3b85a5b649ad6a9a745"
+    },
+    {
+      "file": "phone/ouro-ui-android-dark-384.avif",
+      "sha256": "2c04ed58a352de8744ae2cdf627168e307619c297bd943ece55f5eaa358e4d07"
+    },
+    {
+      "file": "phone/ouro-ui-android-dark-384.webp",
+      "sha256": "f397a536c4841d237777203d8122e1e502d2d340d0df1ece153a4d9f9061ccbb"
+    },
+    {
+      "file": "phone/ouro-ui-android-dark-768.avif",
+      "sha256": "27482d83887653fbf6406534c70aed4c1b1c840d8d7baedbb1ed42cb2800355d"
+    },
+    {
+      "file": "phone/ouro-ui-android-dark-768.webp",
+      "sha256": "57703992cef7d65c7e7c0cc4d07777d1c7f29a42d47272556fea88a1623bce41"
+    },
+    {
+      "file": "scenes/ouro-ui-android-1536.avif",
+      "sha256": "c916213c0c995203d77e2d845ad760a0865270fd0a54d4ecca602bf14b2b3593"
+    },
+    {
+      "file": "scenes/ouro-ui-android-3072.avif",
+      "sha256": "f5cdc895f48839d2a28d63382d97bd378415ef09b2ff7b99c1c148082a1238d8"
+    },
+    {
+      "file": "scenes/ouro-ui-android-3072.webp",
+      "sha256": "99b3d9a55bcb57143f85c782c4e831c65b82d026dc09de5f255a248cbb1f8e8f"
+    },
+    {
+      "file": "scenes/ouro-ui-android-640.avif",
+      "sha256": "c63e367050e1aec342d655bb1351f36c0d36a71dae16275c447b6e421c957a02"
+    },
+    {
+      "file": "scenes/ouro-ui-android-640.webp",
+      "sha256": "1108b3f5643d46e675c204c03f73728d9a67d796b0110b48446d047980b82188"
+    },
+    {
+      "file": "scenes/ouro-ui-android-960.avif",
+      "sha256": "77c87f52d96c61efa2a3b8276c8f459c9cf2e0f1d1849df1ee6e6758ac89417a"
+    },
+    {
+      "file": "scenes/ouro-ui-android-960.webp",
+      "sha256": "2cb1d0326f68532652ac4fc6148192f7b7cc02bbbad99243aad1ab55fff1701f"
+    },
+    {
+      "file": "scenes/ouro-ui-android-dark-1536.avif",
+      "sha256": "47486b861c4be2efb52c2a34ef51ba5a5f34a8de46abbcbda1127347b637b1f1"
+    },
+    {
+      "file": "scenes/ouro-ui-android-dark-3072.avif",
+      "sha256": "2ce79ee0b8ec8cdd596733849b8258004d65ec997fa744cf6e02c6edffe6745a"
+    },
+    {
+      "file": "scenes/ouro-ui-android-dark-3072.webp",
+      "sha256": "61077caeffa1c5a3126be9a5dfd094d8602c0869b722d7ab097efc647455d293"
+    },
+    {
+      "file": "scenes/ouro-ui-android-dark-640.avif",
+      "sha256": "bc82971a8a08af433092acc07c5cab338c2dde69fc2d66cd0a60b85174abf3dc"
+    },
+    {
+      "file": "scenes/ouro-ui-android-dark-640.webp",
+      "sha256": "b29cfd208637c4986e2797599b4282ce3adce68ab73482351d6d9103b426a23c"
+    },
+    {
+      "file": "scenes/ouro-ui-android-dark-960.avif",
+      "sha256": "98fc0415965b4350c72107ad4cd653a1efdc45cfff6cc67b0067b83bf9fc6c0e"
+    },
+    {
+      "file": "scenes/ouro-ui-android-dark-960.webp",
+      "sha256": "b9624f641a3aa382b83ece581c7eaf731d575ebc3a383291baa57d95610d403d"
     }
   ]
 }

@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import type { Browser, BrowserType, Page, Request } from "playwright";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
-import { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
+import { ALIASES, behindModal, boxOf, veiled, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { AUTO_PRESS, findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
 import { findPopupJumps, watchPopups } from "./popup-check.ts";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, type MotionReading } from "./motion-check.ts";
@@ -275,6 +275,7 @@ const LABELS: Record<string, string> = {
   "disabled-no-reason": "disabled, no reason",
   decision: "decision no longer holds",
   "pointer-not-control": "pointer on no control",
+  "near-miss": "surfaces nearly touching",
   "linked-card-dead-zone": "card link dead zone",
   "reveal-reflow": "reveal moves the page",
   "blank-pane": "blank screen",
@@ -329,6 +330,7 @@ const HINTS: Record<string, string> = {
   decision: "restore what the decision names, or, if the person decided otherwise, change the decision in ouro-check.json to say so",
   "disabled-no-reason": "say why beside it and tie the words to it with aria-describedby, or give it a title",
   "pointer-not-control": "make it a Button or a Link if pressing it does something, or take cursor: pointer off it",
+  "near-miss": "make them touch, or leave at least the minimum gap (--ouro-gap-min, 0.5rem; in Tailwind, gap-ouro-2) between them and between a surface and the edge it sits in",
   "linked-card-dead-zone": "use Ouro's Card, Item or Table, which open from a click anywhere on them; or keep the card's parts unpositioned so the link's layer covers the whole card; or open the link from any click on the card's root and mark the root data-follows-link",
   "reveal-reflow": "lay the revealed part over the card (absolute, or Card's revealDescription=\"rise\") or keep its room at rest, so revealing it changes no box",
   "blank-pane": "show what is coming while it comes: a named progress state (Spinner or Progress with a label, or words such as \"Getting your messages…\"), or the way to get it",
@@ -971,7 +973,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       shown.push(...(await page.evaluate(findFirstRunIssues, config.firstRun ?? {})));
       // Last, as it scrolls the window to each linked card to hit-test it, and puts the scroll back.
       shown.push(...(await page.evaluate(findDeadZones)));
-      const behind = new Set(await page.evaluate(behindModal, [...new Set(shown.map((issue) => issue.ref))]));
+      const shownRefs = [...new Set(shown.map((issue) => issue.ref))];
+      const behind = new Set([...(await page.evaluate(behindModal, shownRefs)), ...(await page.evaluate(veiled, shownRefs))]);
       issues.push(...shown.filter((issue) => !behind.has(issue.ref)));
       // dark-art: light runs before dark at each size, so the dark run compares with the light run's hero art.
       const art = await page.evaluate(readHeroArt, {});
@@ -980,7 +983,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       else if (theme === "dark" && art?.darkPage && lightArt.get(artKey)?.src === art.src)
         issues.push({ ref: art.ref, rule: "dark-art", element: art.element, detail: `the dark theme shows the light theme's picture, ${art.src.split("/").pop()}` });
       const corners = await page.evaluate(readCorners, await cornerShots(page, height));
-      const cornersBehind = new Set(await page.evaluate(behindModal, [...new Set(corners.map((issue) => issue.ref))]));
+      const cornerRefs = [...new Set(corners.map((issue) => issue.ref))];
+      const cornersBehind = new Set([...(await page.evaluate(behindModal, cornerRefs)), ...(await page.evaluate(veiled, cornerRefs))]);
       issues.push(...corners.filter((issue) => !cornersBehind.has(issue.ref)));
       issues.push(...runtime());
       if (inpAt === `${width}x${height} ${theme}`) {

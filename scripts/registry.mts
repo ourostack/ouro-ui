@@ -413,17 +413,19 @@ function fileKinds(paths: string[]): string {
     paths.some((path) => path.endsWith(".test-d.ts")) && "type tests",
     paths.some((path) => path.endsWith(".stories.tsx")) && "stories",
     paths.some((path) => path.endsWith(".spec.ts")) && "Playwright spec",
+    // A Node-only lib file (outside ax/) tests through node --test, like Ouro AX's own files.
+    paths.some((path) => path.endsWith(".test.mts")) && "node:test tests",
   ].filter((kind): kind is string => Boolean(kind));
   return kinds.length === 1 ? kinds[0]! : `${kinds.slice(0, -1).join(", ")} and ${kinds.at(-1)}`;
 }
 
-const devFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
+const devFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$|\.test\.mts$/;
 
 /** The item that ships a lib/ouro file: lib-<stem>, or lib-<stem>-tests for the helper's tests. */
 function libItem(file: string): string {
   // The claims checker is a Node script that ships with claim(), the helper it checks.
   if (file === "claims-check.mjs") return "lib-claims";
-  const stem = file.replace(/(\.touch)?\.test\.tsx?$|\.d\.ts$|\.tsx?$/, "");
+  const stem = file.replace(/(\.touch)?\.test\.tsx?$|\.d\.ts$|\.tsx?$|\.test\.mts$/, "");
   return devFile.test(file) ? `lib-${stem}-tests` : `lib-${stem}`;
 }
 
@@ -630,6 +632,9 @@ export function buildRegistry(root: string): Registry {
   const all = listFiles(root);
   const owner = new Map(all.map((file) => [file, itemForFile(file)]));
   const shipped = (name: string) => all.filter((file) => owner.get(file) === name && !file.endsWith(".css"));
+  // A lib-tests item outside ax/ whose only files are .test.mts runs through node --test, like
+  // Ouro AX: it names neither ouro-testing nor Vitest, Playwright or Storybook.
+  const nodeTestOnly = (name: string) => shipped(name).every((file) => file.endsWith(".test.mts"));
 
   const items: RegistryItem[] = [];
   // One item per helper in lib/ouro, and one for its tests when it has any.
@@ -699,7 +704,10 @@ export function buildRegistry(root: string): Registry {
       ...entry,
       kind: "tests" as const,
       // Says what the item ships, by the kinds of file it has (ouro-lib-tests has only tests).
-      description: `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, ${claim("and the tests of everything it installs", { source: { test: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" }, verify: { testExists: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" } })}. Add it beside ${entry.of}: add ${entry.of} ${entry.name}. ${toolingNote}`,
+      // A node:test-only item (like Ouro AX's own -tests items) names no browser tooling.
+      description: nodeTestOnly(entry.name)
+        ? `Optional: the node:test tests for ${entry.of}; run them with node --test ${shipped(entry.name).map((file) => file.split("/").at(-1)).join(" ")}.`
+        : `Optional: the ${fileKinds(shipped(entry.name))} for ${entry.of}, ${claim("and the tests of everything it installs", { source: { test: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" }, verify: { testExists: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" } })}. Add it beside ${entry.of}: add ${entry.of} ${entry.name}. ${toolingNote}`,
       docs: entry.name.startsWith("lib-")
         ? undefined
         : `${entry.of}${claim("'s tests, stories and specs are installed beside it, with the tests of everything it installs.", { source: { test: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" }, verify: { testExists: "scripts/registry.test.mjs::a -tests item installs the tests of every item it installs: link-tests brings text-tests" } })} The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
@@ -781,7 +789,9 @@ export function buildRegistry(root: string): Registry {
     const runtime = new Set<string>();
     const dev = new Set<string>();
     // No item depends on ouro-base or ouro-theme (see the header): an app adds ouro-base once.
-    const registryDeps = new Set<string>(entry.kind === "tests" ? [entry.of, "ouro-testing"] : entry.kind === "ax-tests" ? [entry.of] : (aggregates[entry.name] ?? []));
+    const registryDeps = new Set<string>(
+      entry.kind === "tests" ? (nodeTestOnly(entry.name) ? [entry.of] : [entry.of, "ouro-testing"]) : entry.kind === "ax-tests" ? [entry.of] : (aggregates[entry.name] ?? []),
+    );
     for (const path of paths) {
       // Ouro Feel's built probe, built here when no run has written it yet.
       const source = path === FEEL_PROBE && !existsSync(join(root, path)) ? feelProbeScript(root) : readFileSync(join(root, path), "utf8");
@@ -791,6 +801,9 @@ export function buildRegistry(root: string): Registry {
       // env.d.ts declares process.env.NODE_ENV for apps without @types/node; nothing imports it.
       // An ax file runs in Node, whose types declare process.env.
       if (!isDev && entry.name !== "lib-env" && entry.kind !== "ax" && /\bprocess\.env\b/.test(source)) registryDeps.add("lib-env");
+      // ouro-build-source-node.d.ts declares the two Node calls ouro-build-source.ts makes
+      // (execFileSync, process.cwd()) for apps without @types/node; nothing imports it either.
+      if (entry.name === "lib-ouro-build-source") registryDeps.add("lib-ouro-build-source-node");
       // OuroProvider is the one helper only the app imports. It comes with what it serves: a
       // component that renders links reads the app's router link from it, and it groups
       // tooltips. Any other app adds it by name (the README's Next.js steps do).

@@ -6,8 +6,8 @@ import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { AxHero } from "../ax/hero";
 import { Popups, PopupsProvider } from "../components/popups";
 import { HydrateInTurn } from "../hydrate";
-import { APPLE_PATHS, href, normalizePath } from "../paths";
-import { AdoptionIsland, AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, CurrentIsland, HomeReferenceIsland, ProofIsland, RepaintIsland } from "../voyage/chapters/island";
+import { APPLE_PATHS, href, normalizePath, PLATFORM_PATHS, type PlatformPath } from "../paths";
+import { AdoptionIsland, AndroidHomeIsland, AndroidStartIsland, AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, CurrentIsland, HomeReferenceIsland, HxIsland, ProofIsland, RepaintIsland, WindowsHomeIsland, WindowsStartIsland } from "../voyage/chapters/island";
 import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
@@ -32,6 +32,18 @@ const APPLE_ISLANDS: Record<(typeof APPLE_PATHS)[number], () => JSX.Element> = {
   "/apple/start/": AppleStartIsland,
 };
 const isApple = (page: string): page is (typeof APPLE_PATHS)[number] => page in APPLE_ISLANDS;
+
+/** The platform pages' bodies (hx/ and platforms/), each an island of its own. */
+const PLATFORM_ISLANDS: Record<PlatformPath, () => JSX.Element> = {
+  "/hx/": HxIsland,
+  "/windows/": WindowsHomeIsland,
+  "/windows/start/": WindowsStartIsland,
+  "/android/": AndroidHomeIsland,
+  "/android/start/": AndroidStartIsland,
+};
+const isPlatform = (page: string): page is PlatformPath => (PLATFORM_PATHS as readonly string[]).includes(page);
+/** The header's current section for a platform page: Ouro HX, or the platform's own overview. */
+const platformSection = (page: PlatformPath) => (page === "/hx/" ? "/hx/" : page.startsWith("/windows/") ? "/windows/" : "/android/");
 
 /** HX Inspector's code loads only once someone turns X-ray on, so the page's first JavaScript carries none of it. */
 const Inspector = lazy(() => import("@/registry/ouro/components/ouro/inspector/inspector").then((module) => ({ default: module.Inspector })));
@@ -74,6 +86,11 @@ function ApplePage({ page }: { page: (typeof APPLE_PATHS)[number] }): JSX.Elemen
   return <Island />;
 }
 
+function PlatformPage({ page }: { page: PlatformPath }): JSX.Element {
+  const Island = PLATFORM_ISLANDS[page];
+  return <Island />;
+}
+
 export default function VoyagePage({ path }: { path: string }): JSX.Element {
   const page = normalizePath(path);
   const nautilus = page === "/nautilus/";
@@ -87,11 +104,20 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
         {/* Each boundary hydrates as its own task, so no single task blocks a tap for long. */}
         <div className="voyage min-h-dvh bg-background text-foreground">
           <Suspense>
-            <VoyageHeader path={page === "/nautilus/" || page === "/ax/" ? page : isApple(page) ? "/apple/" : "/"} page={page} pageNav={isApple(page)} />
+            <VoyageHeader
+              path={page === "/nautilus/" || page === "/ax/" ? page : isApple(page) ? "/apple/" : isPlatform(page) ? platformSection(page) : "/"}
+              page={page}
+              pageNav={isApple(page) || (isPlatform(page) && page !== "/hx/")}
+            />
           </Suspense>
           {isApple(page) ? (
             <main id="main">
               <ApplePage page={page} />
+              <Popups />
+            </main>
+          ) : isPlatform(page) ? (
+            <main id="main">
+              <PlatformPage page={page} />
               <Popups />
             </main>
           ) : page === "/adoption/" ? (

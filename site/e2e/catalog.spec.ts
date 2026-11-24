@@ -156,8 +156,14 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * near-identical copies into two shared strings measured 8 bytes worse after gzip (294,151 against 294,143 before
  * the fold): gzip already finds the repeat within the file, and the fold's two new identifiers cost more than the
  * repeat did, so #3278 left no cheaper cut.
+ * The voyage's set again at 295,904 bytes and the docs' at 197,793, as CI measured them on #3351 (run 45318695844) for
+ * the platform pages (/hx/, /windows/, /android/ and their start pages). Built locally against main at 4bca81ce1 the
+ * voyage grew 1,814 bytes and the docs 643: the voyage page's island table and paths are 443 of them, and the rest is
+ * the bundler moving its runtime helpers into a shared chunk of their own (430 bytes) once five islands joined, which
+ * lengthens each of some 40 shared chunks' import lines by about 20 bytes. The two new scenes' night alts were dropped
+ * (the day alts name no time of day) and the routes' descriptions shortened before this was set.
  */
-const MEASURED = { voyage: 294_386, docs: 196_591 } as const;
+const MEASURED = { voyage: 295_904, docs: 197_793 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached

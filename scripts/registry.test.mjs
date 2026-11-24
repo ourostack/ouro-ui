@@ -61,10 +61,10 @@ test("--check fails when registry.json is stale, and names the fix", () => {
 /** The components, in registry order, from each folder's component.json. */
 const components = readComponents(root).map((entry) => entry.name);
 /** The helper items, one per file in lib/ouro, and the helpers that have tests. */
-const libFiles = readdirSync(join(root, "registry/ouro/lib/ouro")).filter((file) => /\.tsx?$/.test(file));
-const libs = libFiles.filter((file) => !/\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`).sort();
+const libFiles = readdirSync(join(root, "registry/ouro/lib/ouro")).filter((file) => /\.tsx?$|\.test\.mts$/.test(file));
+const libs = libFiles.filter((file) => !/\.test\.tsx?$|\.test\.mts$/.test(file)).map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`).sort();
 const axRuntime = ["ax-bundle", "ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-doctor", "ax-effects", "ax-example", "ax-exit-codes", "ax-flows", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-precise-copy", "ax-probe", "ax-problem", "ax-redact", "ax-surfaces", "ax-terminal", "ax-voice", "ax-wait", "ax-work-event", "ax-xray"];
-const libTests = [...new Set(libFiles.filter((file) => /\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/(\.touch)?\.test\.tsx?$/, "")}-tests`))].sort();
+const libTests = [...new Set(libFiles.filter((file) => /\.test\.tsx?$|\.test\.mts$/.test(file)).map((file) => `lib-${file.replace(/(\.touch)?\.test\.tsx?$|\.test\.mts$/, "")}-tests`))].sort();
 /** The components this repository had when the manifests replaced the script's list: their order never changes. */
 const firstComponents = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];
 
@@ -143,7 +143,7 @@ test("the registry is named ouro and lists every item", () => {
 });
 
 const runtimeItems = ["ouro-base", "ouro-plain", "ouro-theme", "ouro-lib", ...libs, ...components];
-const testFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
+const testFile = /\.(test|touch\.test)\.tsx?$|\.test\.mts$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
 
 test("runtime items ship no tests, stories, specs or test tooling, and never pull in the test kit", () => {
   for (const name of runtimeItems) {
@@ -192,7 +192,12 @@ test("each component has an opt-in -tests item with its tests, type tests, stori
     assert.equal(tests.type, "registry:item");
     assert.match(tests.description, /^Optional: /);
     assert.ok(tests.registryDependencies.includes(repo(name)), `${name}-tests installs ${name}`);
-    assert.ok(tests.registryDependencies.includes(repo("ouro-testing")), `${name}-tests installs ouro-testing`);
+    const nodeTestOnly = tests.files.every((file) => file.path.endsWith(".test.mts"));
+    assert.equal(
+      tests.registryDependencies.includes(repo("ouro-testing")),
+      !nodeTestOnly,
+      `${name}-tests installs ouro-testing only when it ships Vitest or Playwright files, not plain node:test files`,
+    );
     assert.ok(tests.files.length > 0);
     for (const file of tests.files) assert.match(file.path, testFile, `${name}-tests ships ${file.path}`);
   }
