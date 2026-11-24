@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -280,8 +281,13 @@ export interface TimeGridOwnProps {
   markedDays?: Readonly<Record<string, TimeGridMark>> | undefined;
   /**
    * Called when someone presses an empty part of a day, with the slot under the pointer, for a
-   * new event there. A mouse shows the slot before the press. Slots answer a pointer only, so
-   * give keyboards a New event button of your own as well.
+   * new event there. A mouse shows the slot before the press.
+   *
+   * With it, the grid adds one Tab stop for the keyboard's slots, ahead of the events, which stay
+   * their own Tab stop moved with the arrow keys. In the slots the arrow keys move one slot up or
+   * down and one day left or right (mirrored in right-to-left), Home and End go to the day's first
+   * and last slot, Page Up and Page Down move an hour, and Enter or Space calls `onSlotSelect`.
+   * A screen reader reads the slot, such as "Tuesday, 10:30 AM", as focus moves.
    */
   onSlotSelect?: ((slot: TimeGridSlot) => void) | undefined;
   /**
@@ -296,6 +302,8 @@ export interface TimeGridOwnProps {
    * @claim "The all-day row's name" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > writes day names, hours and times in the locale)
    */
   allDayLabel?: string | undefined;
+  /** The keyboard's slots' name, heard when focus enters them. Translate it with your app. @default "Time slots" */
+  slotsLabel?: string | undefined;
   /**
    * The words screen readers hear for each status, after the event's title. Translate them with
    * your app.
@@ -440,6 +448,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     onSlotSelect,
     slotMinutes: slotProp = 30,
     allDayLabel = "All day",
+    slotsLabel = "Time slots",
     statusLabels,
     nowAdornment,
     className,
@@ -769,6 +778,41 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   };
 
   const [hover, setHover] = useState<{ day: number; minutes: number } | null>(null);
+  // The keyboard's slot is virtual: the grid below owns focus and names this slot through aria-activedescendant.
+  const [cursor, setCursor] = useState<{ day: number; minutes: number } | null>(null);
+  const cursorId = useId();
+  const cursorRef = useRef<HTMLSpanElement | null>(null);
+  useLayoutEffect(() => {
+    cursorRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [cursor]);
+  const cursorStart = () => {
+    const from = nowAt && todayIndex >= 0 ? nowAt.minutes : workingHours.start * 60;
+    return { day: Math.max(todayIndex, 0), minutes: between(0, Math.floor(from / slotMinutes) * slotMinutes, dayLength - slotMinutes) };
+  };
+  const onSlotKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!onSlotSelect || !cursor || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      const day = days[cursor.day]!;
+      onSlotSelect({ start: formats.clock.instant(day, cursor.minutes), end: formats.clock.instant(day, cursor.minutes + slotMinutes) });
+      return;
+    }
+    const sideways = getComputedStyle(event.currentTarget).direction === "rtl" ? -1 : 1;
+    const moves: Record<string, { day: number; minutes: number }> = {
+      ArrowUp: { day: cursor.day, minutes: cursor.minutes - slotMinutes },
+      ArrowDown: { day: cursor.day, minutes: cursor.minutes + slotMinutes },
+      ArrowLeft: { day: cursor.day - sideways, minutes: cursor.minutes },
+      ArrowRight: { day: cursor.day + sideways, minutes: cursor.minutes },
+      Home: { day: cursor.day, minutes: 0 },
+      End: { day: cursor.day, minutes: dayLength - slotMinutes },
+      PageUp: { day: cursor.day, minutes: cursor.minutes - 60 },
+      PageDown: { day: cursor.day, minutes: cursor.minutes + 60 },
+    };
+    const move = moves[event.key];
+    if (!move) return;
+    event.preventDefault();
+    setCursor({ day: between(0, move.day, days.length - 1), minutes: between(0, move.minutes, dayLength - slotMinutes) });
+  };
   const slotAt = (event: MouseEvent<HTMLElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     const minutes = Math.floor((((event.clientY - box.top) / box.height) * dayLength) / slotMinutes) * slotMinutes;
@@ -1062,6 +1106,32 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           )}
         </div>
         <div data-ouro-time-grid-body="" className="relative grid" style={{ gridTemplateColumns: columns, height: minutesTall(dayLength) }}>
+          {onSlotSelect && days.length > 0 ? (
+            <div
+              role="grid"
+              tabIndex={0}
+              aria-label={slotsLabel}
+              aria-activedescendant={cursor ? cursorId : undefined}
+              data-ouro-control="time-grid"
+              data-ouro-part="slots"
+              className="pointer-events-none absolute inset-0 outline-none"
+              onFocus={() => setCursor((now) => now ?? cursorStart())}
+              onBlur={() => setCursor(null)}
+              onKeyDown={onSlotKeyDown}
+            >
+              <div role="row">
+                {cursor ? (
+                  <div role="gridcell" id={cursorId} className="sr-only">
+                    {`${formats.fullDay.format(utcDate(days[cursor.day]!))}, ${formats.time.format(formats.clock.instant(days[cursor.day]!, cursor.minutes))}`}
+                  </div>
+                ) : (
+                  <div role="gridcell" className="sr-only">
+                    {slotsLabel}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
           <div aria-hidden="true" className="relative">
             {hourLabels.map((hour) => (
               <span key={hour} className="absolute end-2 -translate-y-1/2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums" style={{ top: minutesTall(hour * 60) }}>
@@ -1111,6 +1181,18 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                       onSlotSelect({ start: formats.clock.instant(day, minutes), end: formats.clock.instant(day, minutes + slotMinutes) });
                     }}
                   >
+                    {cursor?.day === index ? (
+                      <span
+                        ref={cursorRef}
+                        aria-hidden="true"
+                        data-ouro-time-grid-slot=""
+                        data-ouro-time-grid-cursor=""
+                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border-2 border-solid border-primary bg-primary/10 px-1.5 text-[11px] leading-4 text-foreground forced-colors:border-[Highlight]"
+                        style={{ top: minutesTall(cursor.minutes), height: minutesTall(slotMinutes) }}
+                      >
+                        {formats.time.format(formats.clock.instant(day, cursor.minutes))}
+                      </span>
+                    ) : null}
                     {hover?.day === index && !coveredAt(index, hover.minutes) ? (
                       <span
                         data-ouro-time-grid-slot=""
