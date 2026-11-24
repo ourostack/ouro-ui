@@ -283,6 +283,22 @@ describe("the call window page", () => {
     await expect.poll(() => names()[0]).not.toBe(before[0]);
   });
 
+  it("lets the tiles take the height the self view is not using, with no one sharing", async () => {
+    await page.viewport(1100, 800);
+    await renderPage("/docs/call-demo/");
+    await document.fonts.ready;
+    const scroller = document.querySelector<HTMLElement>('[data-site-call-demo] .overflow-auto')!;
+    const grid = scroller.querySelector<HTMLElement>(".grid")!;
+    const bottom = document.querySelector<HTMLElement>('[data-site-call-demo] [role="toolbar"]')!.parentElement!.closest<HTMLElement>("div.grid")!;
+    const gap = () => bottom.getBoundingClientRect().top - grid.getBoundingClientRect().bottom;
+    await page.getByRole("radio", { name: "4" }).click();
+    await expect.poll(() => scroller.querySelectorAll('[data-ouro="media-tile"]').length).toBe(4);
+    await expect.poll(() => gap()).toBeGreaterThanOrEqual(124);
+    await page.getByRole("button", { name: "Hide Your camera" }).click();
+    await expect.poll(() => gap()).toBeLessThan(24);
+    expect(scroller.scrollHeight - scroller.clientHeight).toBeLessThanOrEqual(0);
+  });
+
   it("says which parts of the demo are scripted", async () => {
     await renderPage("/docs/call-demo/");
     expect(document.body.textContent).toMatch(/own script/);
