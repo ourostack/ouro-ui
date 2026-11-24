@@ -150,9 +150,12 @@ function CallDemo(): JSX.Element {
     return () => window.clearTimeout(timer);
   }, [stage, go]);
 
-  // Hand focus to the new view when the app, not the person's own switch, changes it: the control that was pressed is gone.
+  // Hand focus to a control in the new view when the app, not the person's own switch, changes it: the control that was pressed is gone, and a bare group would say nothing useful.
   useEffect(() => {
-    if (moved.current) stageRef.current?.focus();
+    if (moved.current) {
+      const scope = stage === "call" ? bottomRef.current : stageRef.current;
+      (scope?.querySelector<HTMLElement>("button:not([disabled])") ?? stageRef.current)?.focus();
+    }
     moved.current = false;
   }, [stage]);
 
