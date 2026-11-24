@@ -74,7 +74,7 @@ describe("ReactionBar", () => {
     await expect.element(page.getByRole("button", { name: "Laugh, 1" })).toHaveAttribute("aria-pressed", "false");
     expect(bar!.querySelectorAll('[data-ouro-part="reaction"]')).toHaveLength(2);
     // The emoji shows but is not read: screen readers hear the label.
-    expect(bar!.querySelector('[aria-hidden="true"]:not([data-ouro-touch-target]):not([data-ouro-surface])')!.textContent).toBe("👍");
+    expect(bar!.querySelector('[aria-hidden="true"]:not([data-ouro-touch-target])')!.textContent).toBe("👍");
   });
 
   it("tints the person's own reaction", async () => {

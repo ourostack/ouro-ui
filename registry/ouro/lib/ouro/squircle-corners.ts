@@ -38,12 +38,13 @@ const LONGHANDS: Record<string, number> = {
  * @example
  * // vite.config.ts: css: { postcss: { plugins: [squircleCorners()] } }
  *
- * Use it instead of `registerSquirclePolyfill()` when the app builds its CSS: it needs no code in the page.
+ * It is the one way Ouro UI draws squircles where the engine lacks `corner-shape`: it needs no code in the page.
  */
-function squircleCorners(): { postcssPlugin: string; OnceExit: (root: Node) => void } {
+function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): void } {
   return {
     postcssPlugin: "ouro-squircle-corners",
-    OnceExit(root) {
+    OnceExit(input: unknown) {
+      const root = input as Node;
       const selectors = new Set<string>();
       root.walkRules((rule) => {
         if (skipped(rule)) return;
@@ -74,6 +75,7 @@ function squircleCorners(): { postcssPlugin: string; OnceExit: (root: Node) => v
       };
       root.append(layer);
       for (const k of KEYS) root.prepend({ name: "property", params: `--sq-${k}`, nodes: [{ prop: "syntax", value: '"<length-percentage>"' }, { prop: "inherits", value: "false" }, { prop: "initial-value", value: "0px" }] });
+      root.prepend({ name: "property", params: "--sq-notch", nodes: [{ prop: "syntax", value: '"*"' }, { prop: "inherits", value: "false" }] });
       root.prepend({ name: "layer", params: "squircle-corners" });
     },
   };
@@ -126,7 +128,8 @@ function isRound(value: string, rule: Node): boolean {
 }
 
 // One path: a rectangle far outside, minus the box, plus the squircle. Under the nonzero rule the slivers a plain circular corner
-// leaves are the only part cut, so a shadow, an outline and overflow outside the corners survive.
+// leaves are the only part cut, so a shadow, an outline and overflow outside the corners survive. --sq-notch is one more subpath an
+// element may set (a circle wound like the box cuts a hole, as an avatar's presence dot does); unset, it is an empty one.
 function clipPath(): string {
   const n = (x: number, k: string) => `calc(var(--sq-${k}) * ${Number(x.toFixed(4))})`;
   const curves = KEYS.map((k, i) => {
@@ -142,6 +145,6 @@ function clipPath(): string {
     "move to 0 0", "vline to 100%", "hline to 100%", "vline to 0", "close",
     "move to 0 var(--sq-tl)", curves[0], "hline by calc(100% - var(--sq-tl) - var(--sq-tr))", curves[1],
     "vline by calc(100% - var(--sq-tr) - var(--sq-br))", curves[2], "hline by calc(var(--sq-br) + var(--sq-bl) - 100%)", curves[3],
-    "vline by calc(var(--sq-bl) + var(--sq-tl) - 100%)", "close)",
+    "vline by calc(var(--sq-bl) + var(--sq-tl) - 100%)", "close", "var(--sq-notch, move to 0 0, close))",
   ].join(", ");
 }

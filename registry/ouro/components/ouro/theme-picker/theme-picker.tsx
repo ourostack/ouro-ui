@@ -81,14 +81,12 @@ export interface ThemePickerProps extends ThemePresetOptions {
 // these hold the page's values all the way down.
 const pageTokens =
   "[--ouro-tp-paper:var(--background)] [--ouro-tp-ink:var(--foreground)] [--ouro-tp-muted:var(--muted-foreground)] " +
-  "[--ouro-tp-ring:var(--ring)] [--ouro-tp-edge:var(--border)] [--ouro-tp-r:var(--radius-ouro-md)] " +
-  "[--ouro-tp-sq:calc(var(--radius)*var(--ouro-radius-scale,1)*0.8)]";
+  "[--ouro-tp-ring:var(--ring)] [--ouro-tp-edge:var(--border)] [--ouro-tp-r:var(--radius-ouro-md)]";
 
-// A wordmark's tile: its paper, a page hairline and a squircle corner. Where corner-shape is missing, the surface slot
-// paints the paper and the hairline through a squircle clip path (ouro-base.css).
+// A wordmark's tile: its paper, a page hairline and a squircle corner.
 const tileClass =
   "relative isolate box-border inline-flex items-center rounded-(--ouro-tp-r) border border-solid whitespace-nowrap " +
-  "bg-(--ouro-bg) border-(--ouro-bd) [--ouro-bg:var(--background)] [--ouro-bd:var(--ouro-tp-edge)] [--ouro-sq-w:1px] [--ouro-sq-r:var(--ouro-tp-sq)] " +
+  "bg-(--ouro-bg) border-(--ouro-bd) [--ouro-bg:var(--background)] [--ouro-bd:var(--ouro-tp-edge)] " +
   "text-(--foreground)";
 
 const tileSizes = {
@@ -106,17 +104,14 @@ const nameClass =
 // One flat square of the look's primary, a squircle too, sitting on the baseline after the name.
 const squareClass =
   "relative ms-[0.16em] inline-block size-[0.3em] shrink-0 translate-y-[0.2em] rounded-[0.08em] " +
-  "bg-(--ouro-bg) [--ouro-bg:var(--primary)] [--ouro-sq-r:0.08em]";
+  "bg-(--ouro-bg) [--ouro-bg:var(--primary)]";
 
 /** A look's wordmark: its name in its heading face and ink, on its paper, ending in a square of its primary. */
 function Wordmark({ preset, size }: { preset: ThemePreset; size: keyof typeof tileSizes }): JSX.Element {
   return (
-    <span aria-hidden="true" data-slot="theme-picker-wordmark" data-theme={preset.theme ?? preset.name} data-preset={preset.name} data-ouro-squircle="" className={cn(tileClass, tileSizes[size])}>
-      <span data-ouro-surface="" style={{ zIndex: -1 }} />
+    <span aria-hidden="true" data-slot="theme-picker-wordmark" data-theme={preset.theme ?? preset.name} data-preset={preset.name} className={cn(tileClass, tileSizes[size])}>
       <span data-slot="theme-picker-name" className={nameClass}>{preset.label}</span>
-      <span data-slot="theme-picker-square" data-ouro-squircle="" className={squareClass}>
-        <span data-ouro-surface="" style={{ zIndex: -1 }} />
-      </span>
+      <span data-slot="theme-picker-square" className={squareClass} />
     </span>
   );
 }

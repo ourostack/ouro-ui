@@ -1,1 +1,0 @@
-- Squircle fallback: without `corner-shape` (Safari, WKWebView), the [radius steps shrink](registry/ouro/theme/ouro-base.css "verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-corner-fallback: 0\.7;/)") to a circular radius that tracks the squircle corner, set in CSS alone.

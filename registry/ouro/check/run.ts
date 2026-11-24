@@ -318,7 +318,7 @@ const HINTS: Record<string, string> = {
   "shadow-scale": "pick shadows from a few elevations",
   "grey-on-colour": "use a shade of the background's own hue, or white at reduced opacity",
   "heading-hierarchy": "size headings by rank: a heading under another is smaller",
-  "squircle-missing": "register the polyfill (registerSquirclePolyfill) or clip the surface to a squircle (data-ouro-squircle); run with --engine wkwebview to see it",
+  "squircle-missing": "add squircleCorners() to your build's PostCSS plugins, or clip the surface to a squircle with clip-path; run with --engine webkit to see it",
   jank: "batch layout reads before writes, animate transform and opacity, and keep hover from moving content",
   repaint: "animate transform or opacity, outside SVG, or let the animation end",
   jump: "ease the whole move on one easing and duration: a box's edge moves a share of its travel each frame, never half of it at once",

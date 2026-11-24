@@ -50,7 +50,8 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
   }
   for (const name of ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe"]) assert.ok(css.includes(`@keyframes ${name} {`), name);
   assert.ok(css.includes("Tailwind utilities left out: rounded-full, rounded-ouro-control, rounded-ouro-control-md, rounded-ouro-inner, rounded-ouro-check, press."));
-  assert.deepEqual(split.supports.slice(0, 1), ["@supports not (corner-shape: squircle) {\n  :root {\n    --ouro-corner-fallback: 0.7;\n  }\n}"]);
+  assert.equal(split.supports.length, 1);
+  assert.match(split.supports[0], /^@supports \(corner-shape: squircle\) and \(clip-path: shape\(from 0 0, close\)\) \{\n {2}\[data-ouro-bite\] \{/);
   assert.ok(css.includes(split.supports[0]));
   assert.throws(() => baseCss(":root { --a: 1; }"), /no @theme inline block/);
   assert.throws(() => baseCss("@theme inline { --a: 1; }\n.dark { --a: 2; }"), /no :root block/);

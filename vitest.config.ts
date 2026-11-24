@@ -10,6 +10,7 @@ import { WarmStories } from "./test/warm-stories.ts";
 import { HeadroomReporter } from "./scripts/headroom-reporter.mts";
 import { StallReporter } from "./scripts/stall-reporter.mts";
 import { proofPlugin } from "./site/scripts/proof.mts";
+import { squircleCorners } from "./registry/ouro/lib/ouro/squircle-corners.ts";
 import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
 import { ouroTestProjects } from "./registry/ouro/lib/ouro/testing/vitest.ts";
 import { conformanceCommands } from "./test/conformance/commands.ts";
@@ -52,6 +53,7 @@ writeMatrices();
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  css: { postcss: { plugins: [squircleCorners()] } },
   resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
   // Pre-bundle Base UI entry points up front. A dependency Vite discovers mid-run
   // triggers a re-optimization and reload, which can load React twice for one file.
@@ -121,10 +123,10 @@ export default defineConfig({
       include: ["registry/**/*.{ts,tsx}", "registry/ouro/census/census-collect.mjs"],
       // Ouro AX (registry/ouro/ax/) runs in Node: its node:test tests and their coverage run in scripts/ax.test.mjs. So
       // do the Node sides of Ouro check (the first-run harness too), in scripts/check.test.mjs (its in-page side is covered here), and Ouro images, in
-      // scripts/images.test.mjs. Files vendored from core are core's to cover (scripts/vendored.mjs), and the squircle engine is ourostack/hyperellipse's, covered by its CI in Chromium, WebKit and Firefox.
+      // scripts/images.test.mjs. Files vendored from core are core's to cover (scripts/vendored.mjs).
       // ouroBuildSource() needs node:child_process, so it runs in no browser project either: its coverage is its own
       // node --test gate instead, scripts/ouro-build-source.test.mjs.
-      exclude: ["registry/ouro/lib/ouro/a2ui-core.ts", "registry/ouro/lib/ouro/squircle/**", "registry/ouro/lib/ouro/squircle-corners.ts", "registry/ouro/lib/ouro/ouro-build-source.ts", "**/*.stories.tsx", "registry/ouro/lib/ouro/testing/**", "registry/ouro/e2e/**", "registry/ouro/ax/**", "registry/ouro/check/check.ts", "registry/ouro/check/run.ts", "registry/ouro/check/watch.ts", "registry/ouro/check/check-register.ts", "registry/ouro/check/ax-hooks.ts", "registry/ouro/check/serve.ts", "registry/ouro/check/fades.ts", "registry/ouro/check/base-check.ts", "registry/ouro/check/first-run.ts", "registry/ouro/check/first-run-{judges,eyes,machine,network,session,detours,system,windows,sso,sso-serve}.ts", "registry/ouro/images/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
+      exclude: ["registry/ouro/lib/ouro/a2ui-core.ts", "registry/ouro/lib/ouro/squircle-corners.ts", "registry/ouro/lib/ouro/ouro-build-source.ts", "**/*.stories.tsx", "registry/ouro/lib/ouro/testing/**", "registry/ouro/e2e/**", "registry/ouro/ax/**", "registry/ouro/check/check.ts", "registry/ouro/check/run.ts", "registry/ouro/check/watch.ts", "registry/ouro/check/check-register.ts", "registry/ouro/check/ax-hooks.ts", "registry/ouro/check/serve.ts", "registry/ouro/check/fades.ts", "registry/ouro/check/base-check.ts", "registry/ouro/check/first-run.ts", "registry/ouro/check/first-run-{judges,eyes,machine,network,session,detours,system,windows,sso,sso-serve}.ts", "registry/ouro/images/**", "**/*.test.{ts,tsx}", "**/*.test-d.ts", "**/*.d.ts"],
       // A shard writes its share as coverage/coverage-final.json; CI merges the shards' shares and
       // holds them to the same 100% (scripts/coverage-merge.mjs).
       reporter: shard ? ["json"] : ["text", "lcov"],
@@ -166,24 +168,6 @@ export default defineConfig({
           },
         },
       },
-      // The squircle fallback (registry/ouro/lib/ouro/squircle/) in the engines that need it: Firefox, and
-      // Chromium and WebKit with native corner-shape hidden, as Safari and WKWebView on macOS 26 report it.
-      ...(
-        [
-          ["squircle-firefox", "firefox", false],
-          ["squircle-webkit-fallback", "webkit", true],
-          ["squircle-chromium-fallback", "chromium", true],
-        ] as const
-      ).map(([name, browser, hideNative]) => ({
-        extends: true as const,
-        test: {
-          name,
-          expect: { poll: { timeout: 10_000 } },
-          setupFiles: [...(hideNative ? ["./test/hide-native-corner-shape.ts"] : []), css, "./registry/ouro/lib/ouro/testing/setup.ts"],
-          include: ["registry/ouro/lib/ouro/squircle/**/*.test.ts", "registry/ouro/lib/ouro/squircle-polyfill.test.ts", "registry/ouro/theme/round-parts.test.tsx"],
-          browser: { enabled: true, headless: true, provider: playwright(), instances: [{ browser }], commands },
-        },
-      })),
       ...(themes
         ? [
             {
