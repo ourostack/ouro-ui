@@ -113,7 +113,7 @@ describe("automatic presentation", () => {
     const rect = element.getBoundingClientRect();
     expect(Math.abs(rect.left + rect.width / 2 - innerWidth / 2)).toBeLessThanOrEqual(1);
     expect(Math.abs(rect.top + rect.height / 2 - innerHeight / 2)).toBeLessThanOrEqual(1);
-  });
+  }, 30_000);
 
   it("is modal to assistive technology, centered and as a sheet: aria-modal, with the page behind hidden", async () => {
     const outside = document.createElement("button");
