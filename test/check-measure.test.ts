@@ -45,7 +45,7 @@ describe("listenForMeasures", () => {
     await expect.poll(() => m.shift).toBeGreaterThan(0);
   });
 
-  it("records the shifts of the worst burst with their time, value, element and boxes", () => {
+  it("records the shifts of a burst with their time, value, element and boxes", () => {
     const m = measures();
     const el = Object.assign(document.createElement("div"), { id: "hero", className: "media" });
     const rect = (y: number, height: number) => ({ x: 120, y, width: 1200, height } as DOMRectReadOnly);
