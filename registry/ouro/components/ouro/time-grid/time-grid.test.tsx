@@ -1126,15 +1126,15 @@ describe("TimeGrid", () => {
     const body = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
     const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
     // The day fills the room under the header, to the pixel, with every hour as tall.
-    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1.5);
+    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
     expect(body.offsetHeight).toBeGreaterThan(48 * 24);
-    expect(viewport().scrollHeight - viewport().clientHeight).toBeLessThanOrEqual(1.5);
+    expect(viewport().scrollHeight - viewport().clientHeight).toBeLessThanOrEqual(1);
     // A taller grid gives them more room.
     await rerender({ className: "h-[1700px]" });
-    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1.5);
+    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
     // A taller header, with a row of all-day events, leaves the hours less room, and they follow.
     await rerender({ className: "h-[1700px]", events: [{ id: "all", title: "Holiday", start: "2026-03-12" }, { id: "all2", title: "Offsite", start: "2026-03-12" }] });
-    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1.5);
+    await expect.poll(() => Math.abs(head.offsetHeight + body.offsetHeight - viewport().clientHeight)).toBeLessThanOrEqual(1);
     // Shorter than a day again: 48px hours.
     still.remove();
     await rerender({ className: "h-[30rem]" });
