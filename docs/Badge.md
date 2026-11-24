@@ -30,8 +30,10 @@ The props the modes share. Type: `BadgeProps`.
 | `children` (required) | `ReactNode` |  | The label: a short word, or a count. |
 | `className` | `string` |  | Layout only: margins, grid placement (`ms-2`). Appearance classes warn in development; use `tone` and `variant`. |
 | `dot` | `boolean` | `false` | A status dot before the label, in the tone's colour: `<Badge tone="success" dot>Published</Badge>`. The dot is decorative; the label names the status. |
+| `count` | `boolean` | `false` | Draws the badge as a count over a toolbar icon: a small round pill in the notification red with white figures, aligned and tabular, whose numeral is centred on its cap height. It ignores `tone` and `variant`, and grows with the number it holds. Pass a number or a short string such as `9+`, and name what it counts in the control's own label. |
 | `icon` | `BadgeIcon` |  | Icon before the label. Pass the component, not an element: `icon={CheckIcon}`. |
 | `onClick` | `MouseEventHandler<HTMLElement>` |  | Runs when the badge is pressed. Without `href` it makes the badge a `<button>` (pass `aria-pressed` too when it toggles a filter); with `href` it runs before the link navigates. |
+| `overlay` | `boolean` | `false` | With `count`, places the pill at the top end corner of its nearest positioned ancestor (the icon button), at a fixed offset set by `--ouro-count-x` and `--ouro-count-y`, so it works under a notch cut into the glyph. |
 | `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"secondary"` | Color role from the theme, named after its token. `secondary` is a quiet neutral label; use `success`, `warning` and `destructive` for status. shadcn's `variant="destructive"` is `tone="destructive"`. |
 | `variant` | `"solid" \| "soft" \| "outline"` | `"solid"` | Visual weight: `solid` fills the badge with the tone, `soft` tints it, `outline` draws only the border. shadcn's `default` is `tone="primary"`, its `secondary` and `destructive` are tones, and `ghost` is `soft`. |
 
