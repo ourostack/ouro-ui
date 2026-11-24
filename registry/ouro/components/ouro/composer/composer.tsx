@@ -436,7 +436,7 @@ function RemoveIcon(): JSX.Element {
 const reducedQuery = "(prefers-reduced-motion: reduce)";
 
 // The visible height a running move has left to clear: the frame's clip-path inset from the top, in px.
-const clipTop = (frame: HTMLElement) => Number(/inset\(([\d.]+)px/.exec(getComputedStyle(frame).clipPath)?.[1] ?? 0);
+const clipTop = (frame: HTMLElement) => Number(/inset\(([\d.]+)px/.exec(getComputedStyle(frame).clipPath)?.[1] ?? /* istanbul ignore next @preserve -- a move is only read while its clip runs, so the inset is always there; 0 only guards a clip the browser reports as none */ 0);
 
 /** Arrows: out to expand, in to collapse. */
 function ExpandIcon({ expanded }: { expanded: boolean }): JSX.Element {
