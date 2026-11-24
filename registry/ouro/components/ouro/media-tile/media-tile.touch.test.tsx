@@ -40,4 +40,15 @@ describe("MediaTile on a touch screen", () => {
     const hit = document.elementFromPoint(target.left + 1, target.top + 1);
     expect(pin.contains(hit)).toBe(true);
   });
+
+  it("reaches the Pin toggle from a touch 20px away from its centre in every direction", async () => {
+    const host = await render(<MediaTile name="Mara Lind" onPinnedChange={() => {}} />);
+    const pin = host.querySelector<HTMLElement>('[data-ax-action="pin"]')!;
+    const box = pin.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    for (const [dx, dy] of [[20, 0], [-20, 0], [0, 20], [0, -20]]) {
+      expect(pin.contains(document.elementFromPoint(x + dx, y + dy)), `${dx},${dy}`).toBe(true);
+    }
+  });
 });
