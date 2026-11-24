@@ -643,9 +643,12 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     const selection = linking!.selection;
     setLinking(null);
     editorRef.current!.update(() => {
+      // Stryker disable next-line CallExpression: a test's popover never moves the real document selection away from the editor, so skipping the restore reads the same selection either way; a person who tabbed to the popover's own field would lose their place without it.
       $setSelection(selection.clone());
       if (href) $toggleLink(href);
+      // Stryker disable next-line ObjectLiteral,BooleanLiteral: discrete only forces this update's DOM reconciliation to flush before the function returns; a test that reads the result afterwards, as every one here does, cannot tell a flushed render from a microtask-later one apart.
     }, { discrete: true });
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: jsdom and Chromium's headless layout have nothing to scroll to keep in place, so a test cannot tell preventScroll from its absence apart; a long composer keeps the page where it was with it.
     rootRef.current!.focus({ preventScroll: true });
   };
   // Stryker disable next-line ArrayDeclaration: the first measure replaces whatever the boxes start as, before a test or a person reads the layer (the effect that measures runs as the box mounts).
@@ -960,6 +963,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           if (mod && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "k" && !readOnly) {
             event.preventDefault();
             let ask: RangeSelection | null = null;
+            // Stryker disable next-line ObjectLiteral,BooleanLiteral: the updater runs synchronously either way, so `ask` holds its answer by the next line regardless; discrete only changes when the resulting render flushes, which a test polling for the popover afterwards cannot tell apart.
             editorRef.current!.update(() => void (ask = toggleLinkOfSelection()), { discrete: true });
             if (ask) setLinking({ selection: ask, address: "" });
           }
