@@ -7,11 +7,10 @@ import { AxHero } from "../ax/hero";
 import { Popups, PopupsProvider } from "../components/popups";
 import { HydrateInTurn } from "../hydrate";
 import { APPLE_PATHS, href, normalizePath, PART_PATHS, PLATFORM_PATHS, type PlatformPath } from "../paths";
-import { ActionsIsland, AdoptionIsland, AndroidHomeIsland, AndroidStartIsland, AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, ComposedUiIsland, CurrentIsland, HackamoreIsland, HomeReferenceIsland, HxIsland, ProofIsland, RepaintIsland, WindowsHomeIsland, WindowsStartIsland, XrayIsland } from "../voyage/chapters/island";
+import { ActionsIsland, AdoptionIsland, AndroidHomeIsland, AndroidStartIsland, AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, ComposedUiIsland, CurrentIsland, HackamoreIsland, HomeReferenceIsland, HxIsland, ProofIsland, RepaintIsland, StoryIsland, WindowsHomeIsland, WindowsStartIsland, XrayIsland } from "../voyage/chapters/island";
 import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
-import { Benchmark, Evidence, Flywheel } from "../voyage/home-sections";
 import { VoyageHero } from "../voyage/hero";
 import { VoyageFooter } from "../voyage/layout";
 import { StoryOpening } from "../voyage/nautilus";
@@ -172,9 +171,7 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
           ) : (
             <main id="main">
               <VoyageHero onXray={openXray} />
-              <Flywheel />
-              <Benchmark />
-              <Evidence />
+              <StoryIsland />
               <TwoShips />
               <RepaintIsland />
               <HomeReferenceIsland />

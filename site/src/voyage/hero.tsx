@@ -5,12 +5,12 @@ import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { TRY, VOYAGE_HERO } from "../copy";
 import { HandOff } from "./handoff";
-import { Why } from "./home-sections";
 import { href } from "../paths";
 import { HydrateInTurn } from "../hydrate";
 import { Container } from "./layout";
 import { StoryWorld } from "../components/story-world";
 import { Stage } from "./stage/stage";
+import { WhyIsland } from "./chapters/island";
 import { ThemeDots } from "./theme-dots";
 
 /** A line never breaks inside a hyphenated word ("X-ray", "person-only"): each sits in a no-wrap span. */
@@ -96,7 +96,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
         description={
           <>
             <p>{keepHyphenatedWordsWhole(VOYAGE_HERO.subline)}</p>
-            <nav aria-label="Platforms" className="site-hero-links" data-site-hero-links="">
+            <p className="site-hero-links" data-site-hero-links="">
               {VOYAGE_HERO.platforms.map((platform, index) => (
                 <span key={platform.href}>
                   {index > 0 ? (
@@ -109,7 +109,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
                   </Link>
                 </span>
               ))}
-            </nav>
+            </p>
           </>
         }
         mediaWidth={1536}
@@ -125,7 +125,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
         }
         media={<StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES} className="site-voyage-scene" />}
       />
-      <Why />
+      <WhyIsland />
       <section aria-label="Try the porthole" className="site-console">
         <Container className="site-console-grid">
           <div className="site-console-copy" data-site-try="">

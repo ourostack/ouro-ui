@@ -146,4 +146,5 @@
 @source not "../voyage/nautilus.tsx";
 @source not "../voyage/repaint.tsx";
 @source not "../voyage/stage";
+@source not "../voyage/story-copy.ts";
 @source not "../voyage/use-stable.ts";

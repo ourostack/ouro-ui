@@ -42,6 +42,21 @@ export const VOYAGE_HERO = {
         { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45" },
       ],
     }),
+    claim("Every improvement to the kit, to a screen or a check, reaches your app as one pull request, merged when you say, and it never overwrites a file you changed: it names that file in the pull request instead.", {
+      source: [
+        { test: "scripts/current/current.test.mjs::NuGet and Gradle pins of Ouro UI for Windows and Android move to the release in every form they are written, and nothing else moves" },
+        { test: "scripts/current/current.test.mjs::a NuGet or Gradle update opens one pull request, and names a lock file holding the old package's hashes instead of writing it" },
+        { test: "scripts/current/current.test.mjs::Ouro HX takes the new tag's source as the CLI would write it, adds files its items gained, and leaves an edited file alone" },
+        { file: "site/src/current/current.tsx" },
+      ],
+      verify: [
+        { testExists: "scripts/current/current.test.mjs::NuGet and Gradle pins of Ouro UI for Windows and Android move to the release in every form they are written, and nothing else moves" },
+        { testExists: "scripts/current/current.test.mjs::a NuGet or Gradle update opens one pull request, and names a lock file holding the old package's hashes instead of writing it" },
+        { testExists: "scripts/current/current.test.mjs::Ouro HX takes the new tag's source as the CLI would write it, adds files its items gained, and leaves an edited file alone" },
+        { fileLine: "site/src/current/current.tsx", pattern: "It never writes to your default branch and never merges anything itself\\." },
+        { fileLine: "site/src/current/current.tsx", pattern: "When a new Ouro UI release lands, for the web, Apple, Windows or Android, or for Ouro UI core, that repository gets one pull request" },
+      ],
+    }),
   ].join(" "),
   /** The platform row: each platform's own page. */
   platforms: [

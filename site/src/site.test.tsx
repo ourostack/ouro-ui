@@ -29,8 +29,9 @@ import { componentGroups, docsSections, filterHint, rankedComponents } from "./c
 import { bare, otherNames } from "./components/other-names";
 import { guessedAddresses, href, redirects, routes } from "./routes";
 import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO, WORKS_WITH } from "./copy";
-import { BENCHMARK, EVIDENCE, FLYWHEEL, TWO_SHIPS, WHY } from "./voyage/copy";
-import { benchmark, counts } from "virtual:site-proof";
+import { TWO_SHIPS } from "./voyage/copy";
+import { BENCHMARK, EVIDENCE, FLYWHEEL, WHY } from "./voyage/story-copy";
+import { benchmark, counts } from "virtual:site-home-facts";
 import { SITE_SECTIONS } from "./voyage/site-menu";
 import { agentExamples } from "./agents/examples";
 import { SCENES } from "./storybook";

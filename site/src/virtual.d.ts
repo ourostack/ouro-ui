@@ -13,6 +13,10 @@ declare module "virtual:site-proof" {
   export default proof;
   /** The component the hero's install command adds, at the latest release. */
   export const install: { item: string; release: string; count: number };
+}
+
+/** The home page's story numbers, computed when the site builds (site/scripts/home-facts.mts, served by proof.mts). */
+declare module "virtual:site-home-facts" {
   /** The benchmark's summary, from docs/guides/agent-interfaces.md (site/scripts/home-facts.mts). */
   export const benchmark: {
     trials: number;

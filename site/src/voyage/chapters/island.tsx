@@ -173,6 +173,12 @@ export const AxExhibitIsland = island("ax-exhibit", () => import("../../ax/exhib
 /** The home page's agents and install sections, as an island in the same way (home-reference.tsx). */
 export const HomeReferenceIsland = island("reference", () => import("../home-reference"));
 
+/** The home page's "Why you can stop thinking about it", under the hero, as an island in the same way (home-sections.tsx). */
+export const WhyIsland = island("why", () => import("../home-sections").then((module) => ({ default: module.Why })));
+
+/** The home page's flywheel, benchmark and evidence strip, as an island in the same way (home-sections.tsx). */
+export const StoryIsland = island("story", () => import("../home-sections"));
+
 /** The home page's themes section, as an island in the same way (repaint.tsx): its Checklist and Dialog load as it nears the screen. */
 export const RepaintIsland = island("themes", () => import("../repaint").then((module) => ({ default: module.Repaint })));
 

@@ -1,15 +1,16 @@
 import type { JSX } from "react";
-import { benchmark, counts } from "virtual:site-proof";
+import { benchmark, counts } from "virtual:site-home-facts";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
-import { BENCHMARK, EVIDENCE, FLYWHEEL, WHY } from "./copy";
+import { BENCHMARK, EVIDENCE, FLYWHEEL, WHY } from "./story-copy";
 import { href } from "../paths";
 import { Container } from "./layout";
 
 /*
  * The home page's story under the hero (launch copy deck, section 3.2): why you can stop thinking about it, how the kit
  * gets better, the benchmark and the evidence strip. Open sections under a hairline each, no cards. Every number comes
- * from its source when the site builds (virtual:site-proof, site/scripts/home-facts.mts).
+ * from its source when the site builds (virtual:site-proof, site/scripts/home-facts.mts). Two islands (chapters/island.tsx):
+ * WhyIsland under the hero, and StoryIsland, this module's default, after the porthole.
  */
 
 const WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
@@ -20,7 +21,7 @@ const spelled = (n: number) => WORDS[n] ?? String(n);
 export function Why(): JSX.Element {
   const { native, people, yes, check, beside } = WHY.reasons;
   return (
-    <section aria-labelledby="site-why-title" className="site-why" data-site-why="">
+    <section id="why" aria-labelledby="site-why-title" className="site-why" data-site-why="">
       <Container>
         <p className="site-eyebrow">{WHY.eyebrow}</p>
         <h2 id="site-why-title" className="site-h2 mt-4">
@@ -155,5 +156,16 @@ export function Evidence(): JSX.Element {
         </ul>
       </Container>
     </section>
+  );
+}
+
+/** The flywheel, the benchmark and the evidence strip, as one island (StoryIsland). */
+export default function Story(): JSX.Element {
+  return (
+    <div id="story">
+      <Flywheel />
+      <Benchmark />
+      <Evidence />
+    </div>
   );
 }
