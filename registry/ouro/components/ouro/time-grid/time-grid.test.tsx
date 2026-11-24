@@ -483,7 +483,7 @@ describe("TimeGrid", () => {
   });
 
   it("says an away event is out of office in its name, and draws it in the away colour whatever its tone", async () => {
-    const { rerender } = await render({ view: "day", events: [{ id: "o", title: "Offsite", start: at(12, "15:00"), end: at(12, "16:00"), status: "away", tone: "success" }] });
+    await render({ view: "day", events: [{ id: "o", title: "Offsite", start: at(12, "15:00"), end: at(12, "16:00"), status: "away", tone: "success" }, { id: "p", title: "Planning", start: at(12, "17:00"), end: at(12, "18:00"), tone: "success" }] });
     expect(plain(titled("Offsite").getAttribute("aria-label"))).toBe("Offsite, 3:00 – 4:00 PM, Thursday, out of office");
     expect(titled("Offsite").dataset.status).toBe("away");
     const probe = document.createElement("div");
@@ -492,9 +492,7 @@ describe("TimeGrid", () => {
     const away = getComputedStyle(probe).borderTopColor;
     probe.remove();
     expect(getComputedStyle(titled("Offsite")).borderInlineStartColor).toBe(away);
-    const away2 = getComputedStyle(titled("Offsite")).backgroundColor;
-    await rerender({ view: "day", events: [{ id: "o", title: "Offsite", start: at(12, "15:00"), end: at(12, "16:00"), tone: "success" }] });
-    expect(getComputedStyle(titled("Offsite")).backgroundColor).not.toBe(away2);
+    expect(getComputedStyle(titled("Offsite")).backgroundColor).not.toBe(getComputedStyle(titled("Planning")).backgroundColor);
     expect(warnings()).toEqual([]);
   });
 
