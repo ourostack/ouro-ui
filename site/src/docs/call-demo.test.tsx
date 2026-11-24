@@ -101,6 +101,12 @@ describe("the call window page", () => {
     host.style.overflow = "";
   });
 
+  it("shows a short assembly under the demo", async () => {
+    await renderPage("/docs/call-demo/");
+    const code = document.querySelector("[data-site-call-demo-page] pre, main pre");
+    expect(code?.textContent).toMatch(/<SnapPiP[\s\S]*keepOut/);
+  });
+
   it("keeps the self view clear of every tile, in each corner it can take", async () => {
     // The grid's columns follow the viewport's width, so the test sets the one it measures at, whatever a file before it left.
     await page.viewport(1280, 800);

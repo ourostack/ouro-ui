@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { AgentPresence, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { LevelMeter } from "@/registry/ouro/components/ouro/level-meter/level-meter";
 import { LiveCaptions, type LiveCaptionLine } from "@/registry/ouro/components/ouro/live-captions/live-captions";
 import { MediaTile } from "@/registry/ouro/components/ouro/media-tile/media-tile";
@@ -13,6 +14,7 @@ import { SnapPiP, type SnapPiPCorner } from "@/registry/ouro/components/ouro/sna
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { Timer } from "@/registry/ouro/components/ouro/timer/timer";
 import { Toolbar, type ToolbarEntry } from "@/registry/ouro/components/ouro/toolbar/toolbar";
+import { CodeBlock } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
 import { TrayArt } from "./tray-art";
 
@@ -441,6 +443,15 @@ function CallDemo(): JSX.Element {
   );
 }
 
+const shortCall = `<MediaTile name="Maya" speaking={speaking} muted={muted} cameraOn={cameraOn}>
+  <video ref={videoRef} />
+</MediaTile>
+<LiveCaptions label="Captions" hideLabel lines={lines} />
+<Toolbar label="Call controls" items={controls} />
+<SnapPiP label="Your camera" keepOut={[controlsRef]}>
+  <video ref={selfRef} />
+</SnapPiP>`;
+
 /** The docs/call-demo/ page: the demo behind its own lazy chunk, lead text and shell included. */
 export default function CallDemoPage(): JSX.Element {
   return (
@@ -451,6 +462,10 @@ export default function CallDemoPage(): JSX.Element {
         and microphone level are the demo's own script; an app supplies the real ones. Try the keyboard, a narrow window and dark mode.
       </Text>
       <CallDemo />
+      <Heading level={2} className="mt-12 mb-4">
+        A short assembly
+      </Heading>
+      <CodeBlock label="Call window" code={shortCall} copy />
     </DocsShell>
   );
 }
