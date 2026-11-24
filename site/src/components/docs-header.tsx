@@ -191,11 +191,12 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
       ) : (
         <SiteMenu
           page={current}
-          // Both docs sections list their pages, as the sidebar does on a wide screen, each list folded under its name.
           more={{
-            Guides: (
+            // Docs holds the components and the guides, as the sidebar does on a wide screen, each list folded under its name.
+            Docs: (
               <Folds
                 groups={[
+                  ...componentGroups("", true),
                   { label: "More guides", links: guides.filter((link) => !isAxPart(link)).map((link) => ({ ...link, label: guideLabel(link.label) })) },
                   { label: "Skill comparisons", links: comparisons },
                   { label: "Platforms", links: platforms },
@@ -203,7 +204,6 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
                 current={current}
               />
             ),
-            "Ouro HX": <Folds groups={componentGroups("", true)} current={current} />,
             // Ouro AX's parts sit under Ouro AX, the section the header marks on their pages.
             "Ouro AX": <Folds groups={[{ label: "Ouro AX, part by part", links: guides.filter(isAxPart) }]} current={current} />,
           }}
