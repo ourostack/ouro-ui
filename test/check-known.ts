@@ -824,4 +824,12 @@ export const knownFindings: KnownFinding[] = [
     reason:
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
+  {
+    story: "ThemePicker/InPopover",
+    rule: "off-centre-text",
+    issue: 3257,
+    theme: "nova",
+    reason:
+      "The trigger button shows the chosen look's wordmark, whose own font-size-adjust and leading-none tuning sit a couple of pixels off the Button's usual middle once ouro-base's 2560px root step (125%) scales every length; the trigger should centre the wordmark on its own cap height instead of the Button's default centring.",
+  },
 ];
