@@ -31,7 +31,7 @@ jobs:
   # the measured ratio on Linux WebKit. Not for merge: remove before the real fix ships.
   probe-nova-install:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     container:
       image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001
@@ -50,4 +50,6 @@ jobs:
           cache: ""
       - run: pnpm i --frozen-lockfile
       - run: scripts/install-test.sh shadcn "$OURO_APP" "${{ github.sha }}"
-      - run: cd "$OURO_APP" && npx vitest run --project ouro-webkit src/components/ouro/inspector/inspector.test.tsx -t "diag:"
+      # Shard 6/6 is the one #3361 keeps failing in: run the real shard, not just this file, so
+      # whatever else that shard's workers run alongside Inspector (if that's the trigger) runs too.
+      - run: OURO_REUSE_APP=1 OURO_SHARD=6/6 scripts/install-test.sh shadcn "$OURO_APP" "${{ github.sha }}"
