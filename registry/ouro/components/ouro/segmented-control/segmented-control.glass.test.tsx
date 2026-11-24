@@ -37,6 +37,17 @@ async function mount(glass = true) {
 }
 
 describe("SegmentedControl glass", () => {
+  it("keeps the label of a segment that has no icon, selected or not", async () => {
+    host = document.createElement("div");
+    document.body.append(host);
+    root = createRoot(host);
+    await act(async () =>
+      root!.render(<SegmentedControl label="View" hideLabel glass defaultValue="a" items={[{ value: "a", label: "A" }, { value: "b", label: "B" }]} />),
+    );
+    const labels = [...host.querySelectorAll<HTMLElement>('[data-slot="segmented-control-label"]')];
+    expect(labels.map((l) => l.classList.contains("sr-only"))).toEqual([false, false]);
+  });
+
   it("marks the group with an empty data-glass, and fills its container with fullWidth", async () => {
     const { group } = await mount();
     expect(group.getAttribute("data-glass")).toBe("");
