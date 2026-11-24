@@ -1,0 +1,1 @@
+- Fixed: ToggleGroup's items sit at Ouro check's near-miss minimum gap apart, not under it, in both its wrap and scroll overflow rows.
