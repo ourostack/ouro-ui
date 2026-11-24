@@ -57,6 +57,41 @@ describe("the calendar page", () => {
     await expect.poll(eventTitles).toBe(before);
   });
 
+  it("opens an event's details with focus inside them, not on Delete", async () => {
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: /Sprint planning/ }).first().click();
+    const details = page.getByRole("dialog", { name: /Sprint planning/ });
+    await expect.element(details).toBeInTheDocument();
+    await expect.poll(() => (document.activeElement as HTMLElement | null)?.textContent).not.toBe("Delete");
+    await expect.poll(() => document.activeElement?.closest("[role=dialog]") !== null).toBe(true);
+  });
+
+  it("moves focus into the edit dialog after Edit, and back to the event after Cancel", async () => {
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: /Sprint planning/ }).first().click();
+    page.getByRole("button", { name: "Edit" }).element().focus();
+    await userEvent.keyboard("{Enter}");
+    const dialog = page.getByRole("dialog", { name: "Edit event" });
+    await expect.element(dialog).toBeInTheDocument();
+    await expect.poll(() => document.activeElement?.closest("[role=dialog]")?.getAttribute("aria-labelledby")).toBe(dialog.element().getAttribute("aria-labelledby"));
+    await userEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+    await expect.element(dialog).not.toBeInTheDocument();
+  });
+
+  it("puts focus back in the grid after Delete, so the keyboard does not start over", async () => {
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: /Sprint planning/ }).first().click();
+    page.getByRole("button", { name: "Delete" }).element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
+  });
+
+  it("marks Go to date as opening a dialog", async () => {
+    await renderPage("/docs/calendar-demo/");
+    expect(page.getByRole("button", { name: "Go to date" }).element().getAttribute("aria-haspopup")).toBe("dialog");
+  });
+
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
     setScheme(scheme);
     await renderPage("/docs/calendar-demo/");

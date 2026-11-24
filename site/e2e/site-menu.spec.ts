@@ -10,6 +10,10 @@ import { heightsUntilStill, quietFrames } from "./frames";
 
 const PHONE = { width: 390, height: 844 };
 
+// A label a site owns can hold characters a regex treats specially (family.json's "GitHub (ourostack)"), so a check
+// built from it escapes them first; otherwise the parentheses read as a capture group instead of literal text.
+const escapeForRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /**
  * Every kind of page, with the navigation landmarks it shows on a phone besides the header's (hidden) one: the page's
  * own, then the family footer's ("All sites") and the site's. The family bar ("Sites") is hidden on a phone, where the
@@ -148,7 +152,7 @@ for (const { path, navs } of PAGES) {
     // the others marked as leaving the site.
     await expect(sheet(page).getByRole("heading", { name: "Ouro family", exact: true })).toHaveCount(1);
     await expect(sheet(page).getByRole("list", { name: "Ouro family", exact: true }).getByRole("link")).toHaveText(
-      family.links.map((site) => new RegExp(`^${site.label}${site.id === "ouro-ui" ? "" : "↗"}`)),
+      family.links.map((site) => new RegExp(`^${escapeForRegExp(site.label)}${site.id === "ouro-ui" ? "" : "↗"}`)),
     );
     await expect(sheet(page).locator('[aria-current="true"]')).toHaveAttribute("href", family.links.find((site) => site.id === "ouro-ui")!.href);
     // Nothing sticks out of the window sideways.
