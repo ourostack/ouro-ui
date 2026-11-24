@@ -1,0 +1,1 @@
+- New: `<SegmentedControl glass>` draws the control as a 40px Liquid Glass capsule for a window toolbar, where only the checked segment shows its label and count; each item takes an `icon` and a `count`, shown in a 14px pill inside the segment.
