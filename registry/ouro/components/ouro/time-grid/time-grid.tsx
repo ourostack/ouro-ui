@@ -930,6 +930,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         <li
           key={placed.key}
           className="pointer-events-auto absolute"
+          data-ouro-allow="near-miss"
+          data-ouro-allow-why="An event sits where its time puts it, so events that start and end together touch."
           style={{
             top: minutesTall(placed.top),
             height: `calc(${minutesTall(placed.bottom - placed.top)} - 1px)`,
@@ -1007,7 +1009,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       )}
       style={
         {
-          ...(renderDaySummary ? {} : { "--ouro-time-grid-head": `${3.75 + lanes * 1.5}rem` }),
+          ...(renderDaySummary ? {} : { "--ouro-time-grid-head": `${4.25 + lanes * 1.5}rem` }),
           "--ouro-time-grid-lane": labelBackground ? "max(7rem, 40%)" : "0.75rem",
           ...style,
         } as CSSProperties
@@ -1026,7 +1028,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               className="group/day @container/day min-w-0 border-0 border-s border-solid border-border"
               style={markOf(day)?.style}
             >
-              <span className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2 py-1.5 @max-[4.5rem]/day:flex-col @max-[4.5rem]/day:gap-0.5 @max-[4.5rem]/day:px-0.5">
+              <span className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2 py-1.5 @max-[5.5rem]/day:flex-col @max-[5.5rem]/day:gap-0.5 @max-[5.5rem]/day:px-0.5">
               <span className="inline-flex size-ouro-7 shrink-0 items-center justify-center rounded-full text-base leading-none font-semibold tabular-nums group-data-today/day:bg-primary group-data-today/day:text-primary-foreground forced-colors:group-data-today/day:border-2 forced-colors:group-data-today/day:border-solid">
                 {
                   // Stryker disable next-line ConditionalExpression: in the locales tested the day comes first; the search is for one where it does not
@@ -1035,7 +1037,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               </span>
               <span className={`truncate text-xs ${markedMutedClass} group-data-today/day:font-medium group-data-today/day:text-foreground`}>{formats.weekdayShort.format(utcDate(day))}</span>
               </span>
-              {markOf(day) ? <span data-ouro-time-grid-mark="" data-slot="time-grid-mark-label" className={`block truncate px-2 pb-1 text-xs ${markedMutedClass} @max-[4.5rem]/day:px-0.5`}>{markOf(day)!.label}</span> : null}
+              {markOf(day) ? <span data-ouro-time-grid-mark="" data-slot="time-grid-mark-label" className={`block truncate px-2 pb-1 text-xs ${markedMutedClass} @max-[5.5rem]/day:px-0.5`}>{markOf(day)!.label}</span> : null}
             </div>
           ))}
           {renderDaySummary ? (
@@ -1055,11 +1057,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             <ul
               role="list"
               aria-label={allDayLabel}
-              className="m-0 grid list-none auto-rows-[1.375rem] gap-y-0.5 p-0 py-1"
-              style={{ gridColumn: "2 / -1", gridTemplateColumns: `repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))`, minHeight: `${lanes * 1.5 + 0.75}rem` }}
+              className="m-0 grid list-none auto-rows-[1.375rem] gap-y-0.5 p-0 py-2"
+              style={{ gridColumn: "2 / -1", gridTemplateColumns: `repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))`, minHeight: `${lanes * 1.5 + 1.25}rem` }}
             >
               {allDay.map((span) => (
-                <li key={span.key} className="min-w-0 px-0.5" style={{ gridColumn: `${span.first + 1} / ${span.last + 2}`, gridRow: span.lane + 1 }}>
+                <li key={span.key} className="min-w-0 px-2" style={{ gridColumn: `${span.first + 1} / ${span.last + 2}`, gridRow: span.lane + 1 }}>
                   {renderEvent(pieces.find((piece) => piece.key === span.key)!)}
                 </li>
               ))}

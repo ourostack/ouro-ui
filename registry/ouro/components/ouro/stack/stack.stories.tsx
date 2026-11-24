@@ -7,8 +7,8 @@ import { Text } from "@/registry/ouro/components/ouro/text/text";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
-function Box({ children }: { children: ReactNode }) {
-  return <div style={{ padding: "8px 12px", borderRadius: 8, background: "var(--secondary)", color: "var(--secondary-foreground)" }}>{children}</div>;
+function Box({ children, tight }: { children: ReactNode; tight?: boolean }) {
+  return <div data-ouro-allow={tight ? "near-miss" : undefined} data-ouro-allow-why={tight ? "The story shows the smallest gap step on purpose." : undefined} style={{ padding: "8px 12px", borderRadius: 8, background: "var(--secondary)", color: "var(--secondary-foreground)" }}>{children}</div>;
 }
 
 const meta = {
@@ -51,8 +51,8 @@ export const InContext: Story = {
         <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))" }}>
           {(["xs", "sm", "md", "lg"] as const).map((gap) => (
             <Stack key={gap} gap={gap}>
-              <Box>gap {gap}</Box>
-              <Box>Braise</Box>
+              <Box tight={gap === "xs"}>gap {gap}</Box>
+              <Box tight={gap === "xs"}>Braise</Box>
             </Stack>
           ))}
         </div>

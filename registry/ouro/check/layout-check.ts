@@ -33,7 +33,9 @@ import type { PageIssue } from "./size-check.ts";
 //                      both sides: the field's own padding insets it, it isn't placed beside anything.
 //                      A surface's inner edge is never judged against the surface it sits in when that surface is, or
 //                      sits inside, a button or a switch, checkbox, radio or slider role: a control's own parts
-//                      (Switch's track and thumb, a custom checkbox's box and mark) are drawn as one piece
+//                      (Switch's track and thumb, a custom checkbox's box and mark) are drawn as one piece. Nor is it
+//                      judged on an axis a scrolling ancestor between it and that surface scrolls: where it sits down
+//                      that axis is wherever it's scrolled to, not a design gap
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
 // do. `element` names the element by its words, the same at every size; `detail` has this size's numbers.
@@ -221,6 +223,18 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     return Boolean(group) && group === b.closest(groups);
   };
   const near: { a: Element; b: Element; gap: number }[] = [];
+  // A surface's position against a scrolling ancestor is wherever it's scrolled to, not a design gap.
+  const scrolls = (el: Element, axis: "x" | "y") => (axis === "x" ? /auto|scroll/.test(getComputedStyle(el).overflowX) && el.scrollWidth > el.clientWidth : /auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight);
+  // container is always an ancestor of a (the caller only calls this with a container that contains a), so the walk
+  // always reaches it and returns from inside the loop: no trailing fallback return is reachable.
+  const scrollsBetween = (a: Element, container: Element, axis: "x" | "y") => {
+    let n = a.parentElement!;
+    for (;;) {
+      if (scrolls(n, axis)) return true;
+      if (n === container) return false;
+      n = n.parentElement!;
+    }
+  };
   surfaces.forEach((a, i) => {
     for (const b of surfaces.slice(i + 1)) {
       const gap = a.contains(b) || b.contains(a) || sameGroup(a, b) ? 0 : apart(rects.get(a)!, rects.get(b)!);
@@ -230,7 +244,14 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     if (!container || isControlPiece(container) || sameGroup(a, container)) return;
     const r = rects.get(a)!;
     const c = rects.get(container)!;
-    const inner = [r.left - c.left - container.clientLeft, r.top - c.top - container.clientTop, c.right - r.right - (c.width - container.clientLeft - container.clientWidth), c.bottom - r.bottom - (c.height - container.clientTop - container.clientHeight)];
+    const scrollX = scrollsBetween(a, container, "x");
+    const scrollY = scrollsBetween(a, container, "y");
+    const inner = [
+      scrollX ? Infinity : r.left - c.left - container.clientLeft,
+      scrollY ? Infinity : r.top - c.top - container.clientTop,
+      scrollX ? Infinity : c.right - r.right - (c.width - container.clientLeft - container.clientWidth),
+      scrollY ? Infinity : c.bottom - r.bottom - (c.height - container.clientTop - container.clientHeight),
+    ];
     // Centred across a control's frame too small to give it the minimum gap on both sides: the frame's padding insets it.
     const inControl = container.matches(controls) || Boolean(container.querySelector(controls));
     const insetBy = (lo: number, hi: number) => inControl && Math.abs(lo - hi) <= 1 && lo + hi < 2 * gapMin;

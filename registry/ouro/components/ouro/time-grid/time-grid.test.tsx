@@ -653,8 +653,8 @@ describe("TimeGrid", () => {
     ]);
     expect(plain(titled("Team offsite").getAttribute("aria-label"))).toBe("Team offsite, Tuesday, March 10 – Wednesday, March 11, All day");
     expect(plain(titled("Office closed").getAttribute("aria-label"))).toBe("Office closed, Friday, All day");
-    expect((row as HTMLElement).style.minHeight).toBe("3.75rem");
-    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("6.75rem");
+    expect((row as HTMLElement).style.minHeight).toBe("4.25rem");
+    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("7.25rem");
   });
 
   it("leaves out an all-day event that falls only on the weekend of a work week, and lists no empty day", async () => {
@@ -1128,6 +1128,15 @@ describe("TimeGrid", () => {
     // The observer's first callback follows the frame's animation callbacks, so wait out two frames.
     for (let frame = 0; frame < 2; frame++) await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     expect(scroller.scrollTop / hour).toBeCloseTo(12, 1);
+  });
+
+  it("stacks a day's number over its weekday name before the name is cut, in a seven-day grid 580px wide", async () => {
+    const { grid } = await render({ view: "week" }, (inner) => <div style={{ width: "580px" }}>{inner}</div>);
+    const heads = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked], [data-ouro-time-grid-head] > .group\\/day")];
+    expect(heads.length).toBe(7);
+    await expect
+      .poll(() => heads.every((head) => [...head.querySelectorAll<HTMLElement>("span.truncate")].every((name) => name.scrollWidth <= name.clientWidth)))
+      .toBe(true);
   });
 
   it("tints a marked day's column from its header to its last hour, and says why in words", async () => {
@@ -1874,7 +1883,7 @@ describe("TimeGrid background events", () => {
     await rerender({ view: "work-week", events: [forum] });
     expect(grid.querySelector("[data-ouro-time-grid-summary]")).toBeNull();
     expect(tall - head.offsetHeight).toBeGreaterThanOrEqual(40);
-    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("5.25rem");
+    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("5.75rem");
   });
 });
 
