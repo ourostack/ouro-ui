@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@2405cee72864bec0f66a2c9d1199b297b23e2cfa:brand/",
+  "origin": "ourostack/.github@108675e318b7c14471e55394ba4305774de71792:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -2745,35 +2745,35 @@
     },
     {
       "file": "phone/actions-384.webp",
-      "sha256": "7cc3d3755dae9792bedcd0ad135aac7ffa04e9463cb8b26d32768b96bb08611f"
+      "sha256": "6a5c890e15f19cd74ba0f6e9406d2d25a7d30f47c4a89734480cc7e460ae2aa3"
     },
     {
       "file": "phone/actions-384.avif",
-      "sha256": "60eb6c8a1963eec1f0b7b0c0eebf64c8cde8254f0ab36592209d4a392a80c6ae"
+      "sha256": "b7fab67e47ba486af8ac9eb766cfd96b3e695de20fe21d9f835f38b3186c33ca"
     },
     {
       "file": "phone/actions-768.webp",
-      "sha256": "0e9cef0237050118ea7aa2b4cef23d2b4fabffed7981b54f9262657c5e1d476d"
+      "sha256": "44ca9f815336c09dc5975a4aaeb23404d0aebe619f43caafb0b63bf65fd8ad9e"
     },
     {
       "file": "phone/actions-768.avif",
-      "sha256": "c31a8a656a1901d544ad297c6465688de00c7bc70bd7ff124219e661ac652b5a"
+      "sha256": "27b1620f12bf34c00f35cc09ab35025c8011e2a736213b213496c320eef97196"
     },
     {
       "file": "phone/actions-1152.webp",
-      "sha256": "5b2516961c77c01ddb16b16e40a0dcd741c11d28bb7c17b576c686964091f244"
+      "sha256": "cebffa20f7b1c0b25ba3c420a741099a4c6ad6919e378fe3ad4be4d21f627190"
     },
     {
       "file": "phone/actions-1152.avif",
-      "sha256": "4aec13a716bd6b7fcf4eab0a225c4912d23163c91fe18515746af541fabdd11d"
+      "sha256": "b801b1431930b172a76abbd5ae42daf0d3f48a793ada743618b24a0d7ef7db24"
     },
     {
       "file": "phone/actions-1536.webp",
-      "sha256": "64d2675ba8d4875dad08c35cb107e8af00d3a858572e534a5a86127e600ac91d"
+      "sha256": "7bff2b76c12c4d8cdaf10c652088c15ceb6625022371818a904c49bf473c1a93"
     },
     {
       "file": "phone/actions-1536.avif",
-      "sha256": "28947ab1f51ddd81567ae8ba3130ddfc380ed154540e6b53371ae563823936b9"
+      "sha256": "b990558bb4b40dca3dd9dda82c3a88e5dccfdb03876bf184594dcf65f3409c20"
     },
     {
       "file": "scenes/composed-ui-640.webp",
@@ -2865,35 +2865,35 @@
     },
     {
       "file": "phone/hackamore-384.webp",
-      "sha256": "c491096e5d96a171f120719f4bd9be8929ecd3ffaf1c6e34edb262b308fe6335"
+      "sha256": "2ffffafb3324b5fdf3b4780d96ae57420c4ec91d4e5d45532f2c81ee5124dc0d"
     },
     {
       "file": "phone/hackamore-384.avif",
-      "sha256": "0d1fa6f0a271e248b15b96a6e9ec5d88070632f9e5ddb21a628ba0c788867249"
+      "sha256": "952f4bbfcec1ba23fcd8224f210fbefb23d3922ec1995461f7884e91878c0875"
     },
     {
       "file": "phone/hackamore-768.webp",
-      "sha256": "79a7dfdce5aa43cf9a00ea9ed86ff0232b5613d0d486299d006c246ad29b1e31"
+      "sha256": "56160774d5590c038b561b68e3bd254c0d94f99b516e7d13b1c08161f62f5dd8"
     },
     {
       "file": "phone/hackamore-768.avif",
-      "sha256": "75a7a2a0246dd26fdf0fe30bb6e0450e2e4dce7bc6fbdb2acbc956b6892cd78d"
+      "sha256": "f5e4f54633d3b0c5295aca8ef4b8bbfc56207625f570af13d02647668f76943f"
     },
     {
       "file": "phone/hackamore-1152.webp",
-      "sha256": "5dc67d30fdcab5deba2fb868282cce7a8e464ecfc34677954756719f6b07b2ff"
+      "sha256": "bbc8d8a8f256ae95e6c89ec4bb2534e78897c1ea78be13fbd8898f52f9f9f33a"
     },
     {
       "file": "phone/hackamore-1152.avif",
-      "sha256": "22366109157998d34b6a57e533b0c8e56a12be8db02ebbf59f2ba8002ef5a2e5"
+      "sha256": "147f274153550a4799efe4eae42bc79c3990d17ff103ad4f16f9ca83af30fa71"
     },
     {
       "file": "phone/hackamore-1536.webp",
-      "sha256": "9ae7a052caea9e559e04b1f723d7a322b15f2444034df643855bff37999c215d"
+      "sha256": "cf6fcf0c56fab9ab64f67861188b7d65be2ffaa8a2e0190c77565596b06b7120"
     },
     {
       "file": "phone/hackamore-1536.avif",
-      "sha256": "18a20cdfbee972c3e60293977f1330bdaf44a97585ce019143414021baa70692"
+      "sha256": "4eb9a8d708842ea5cc3e55fac48fd907bf31cf35e37f739a3c811790da21d721"
     },
     {
       "file": "scenes/xray-640.webp",
@@ -2925,35 +2925,35 @@
     },
     {
       "file": "phone/xray-384.webp",
-      "sha256": "fa0be70a3caae38a9c2bf86c63e8ef9eb5d6b4f5a3e072438b76c8c95b3309c3"
+      "sha256": "1b4d450a93cb455d398c62670713f27a3fca2b2f9deef809eb5f167bd073c1b5"
     },
     {
       "file": "phone/xray-384.avif",
-      "sha256": "2b1c0d9763d4eef39ca662a41546758d2ff8623a18b9b70ba269cb2aa86c4f0b"
+      "sha256": "48e5eea7d01d9e5e647168a0e4da800348889b0642b1ad2ac961bbd91641c617"
     },
     {
       "file": "phone/xray-768.webp",
-      "sha256": "103783480203c5f877e70cfbb26588ef4ebc2c875ac419a87a4d21779ff4ce8c"
+      "sha256": "c9736dcfd93fe578e755ce15f3941d2506017b89d8de739c1d28c05d5084ffb4"
     },
     {
       "file": "phone/xray-768.avif",
-      "sha256": "658d2a73675daf23727791b51106ef2ed3822e56af385b114a3ecf2f2b1283aa"
+      "sha256": "9c21719457be2bee170ebb3c3a7d0f8c931546d0d1a1bcd2f24e04273aee7cad"
     },
     {
       "file": "phone/xray-1152.webp",
-      "sha256": "94667efc9ff3912c17bfe7ac1dfa468b4c199ec16c06dd3443635efd2f33bc88"
+      "sha256": "cf022b11e4a16f3b853f5bf8d01fb00bb23dcaa5e2aed6ae7b167d9642d56b75"
     },
     {
       "file": "phone/xray-1152.avif",
-      "sha256": "c1a819bdceaa08bc58122f240940babec69989ab7362fb580aa6b8e66dc8ff01"
+      "sha256": "c7bb689a980bff4301ae6e1b58dd4f80fd483dcda8ae50ac6836a9990e937200"
     },
     {
       "file": "phone/xray-1536.webp",
-      "sha256": "738f1c18f3118a3663ed3a9b0d5443f10f11ac73bbb14f62e706da7728116dcd"
+      "sha256": "576267bb4b1ab75bbc685f7bcc9bf13a72cdfadbb2b85c3df5780035949b6199"
     },
     {
       "file": "phone/xray-1536.avif",
-      "sha256": "066f7489deb4df4816a5d2ca1f416c6e46574252a5af1c3a700a5f9416440975"
+      "sha256": "729d754d073cdddbbbae66f560d444c079e43ebfb7019591207ae0248cf2a77e"
     },
     {
       "file": "scenes/actions-dark-640.webp",
@@ -2985,35 +2985,35 @@
     },
     {
       "file": "phone/actions-dark-384.webp",
-      "sha256": "9e9a6dfdac688b00a7cf27c5243cfbd99ceb38efc6a8869b69e21aea28b54f98"
+      "sha256": "5b26c2b2b0f8c2724186748ff1091402f1654773eb2901da0b77b0b8ed988d73"
     },
     {
       "file": "phone/actions-dark-384.avif",
-      "sha256": "632bd14cc5f049038c0ed82552dc2544d3e8a15f363b7ee6543b2a767bf4a555"
+      "sha256": "06cce0012c6881821f3ded8057b5388135d9a6769cf23894d35b62a0fc3d527b"
     },
     {
       "file": "phone/actions-dark-768.webp",
-      "sha256": "200c651effb9ab63321cb7e19b8d50cc1d82226b9e3dc9dd4376487f76f81f55"
+      "sha256": "341d91bd7dc010184f3d85d9e589d5a1f66b845341c447ba7461748cfc41c136"
     },
     {
       "file": "phone/actions-dark-768.avif",
-      "sha256": "c68a586d0f03bf8f2182c23160e4d9f4cca18665eb83db0898afb25abd1c2b22"
+      "sha256": "73fdf013b64bc8493ee2b331e617e9ae0e094a565a81727a0a6072d981c2771e"
     },
     {
       "file": "phone/actions-dark-1152.webp",
-      "sha256": "ffa9b24dba0ffdd7f232ebab753ec21d11f2f9ecd5179f0e36d3dcb67ec25195"
+      "sha256": "2e286059640be6236261cb192b9f23f30015e238e9960ae8a24b79d2d4c62461"
     },
     {
       "file": "phone/actions-dark-1152.avif",
-      "sha256": "c6d9f9f07b97c108677946129f635e3a6bd0f043f1d3f5bbd04614c4bf8037db"
+      "sha256": "5c428c383a1d9bbb46462a656b68f98f7df4f7e798f8d526ab97c5c5e331c2ec"
     },
     {
       "file": "phone/actions-dark-1536.webp",
-      "sha256": "56bdf8ac0a46bd514486e70105b5a2fa82ca014591b8f02831507d1a82858375"
+      "sha256": "01564d6bc3b03fe0cef7633dd0bddf7fb33285540287305b1564aebab57f859e"
     },
     {
       "file": "phone/actions-dark-1536.avif",
-      "sha256": "e1d10276b1ff66de3dbada1525564425b6767c430d76481527f52acb42d78c50"
+      "sha256": "561e4f53c79dba15fec5875dfadfae3151e8893dae014ed205f8e825c1371f17"
     },
     {
       "file": "scenes/composed-ui-dark-640.webp",
@@ -3105,35 +3105,35 @@
     },
     {
       "file": "phone/hackamore-dark-384.webp",
-      "sha256": "cc1914760fa6ca881800171d97077410daef5010a5fb211ea01372448f812c3a"
+      "sha256": "f37f47055436b522178192af6e3d65272801dda9c0e89b0f3dabe319c0415b72"
     },
     {
       "file": "phone/hackamore-dark-384.avif",
-      "sha256": "f4a526258451fba764f9454ccfddb706bfe3fbd9f605697b567f9acf5efe80d7"
+      "sha256": "26063022118fafcb28a7bdd99d67c858f6c114537f9215c7890fcfdf22c1c7fa"
     },
     {
       "file": "phone/hackamore-dark-768.webp",
-      "sha256": "a1882a858ea43e2b9a0e5006f43f20b8a195bf1c70937e6725a5afdde2c64c4a"
+      "sha256": "a63e597aadd682be3a51ed71fcfbca14fda05efb54e47a062b14008fc5c6d6b7"
     },
     {
       "file": "phone/hackamore-dark-768.avif",
-      "sha256": "f9626db1a38cc4666a19d5a38018ed94059b9f28f6b6fcea3ea4e12045b94436"
+      "sha256": "bc2396fb329eca341be53c0805603b77769e30a854a5a2db973438dafbb156bb"
     },
     {
       "file": "phone/hackamore-dark-1152.webp",
-      "sha256": "e0583ade7448c9bfcd0b94393342504cbd8b3ae52ae1ed18d6003e27849d1c21"
+      "sha256": "f5f2dad5aa5baf9199f61f26fdff5bb5597604ad2a043c09a96aa10cadb66fae"
     },
     {
       "file": "phone/hackamore-dark-1152.avif",
-      "sha256": "e56aff9648409d3e494bd699d78509d0185861e56b72dd9b71ba8d68fe01ebf4"
+      "sha256": "caa8ef9a7e1f2794717375dd8a9500aa9c7c69e00b0761061544569cb3a4d876"
     },
     {
       "file": "phone/hackamore-dark-1536.webp",
-      "sha256": "0750242f9eb3a10b32e0889f348790363ff490e77c4e418e4b970ed609426bb7"
+      "sha256": "7529e9b3b57aefd98fb24bf656e6d90fb677af9138909dd3149ee8ea0c2a6d46"
     },
     {
       "file": "phone/hackamore-dark-1536.avif",
-      "sha256": "db9b009e8c2e39f9fdcbd643fa415b511a8f4d8138acd6e1ea4aa740cf286af0"
+      "sha256": "1ac711ef5f2e6d02254904c2640e3243e4440139fe6f353720f75e2ed1307675"
     },
     {
       "file": "scenes/xray-dark-640.webp",
@@ -3165,35 +3165,35 @@
     },
     {
       "file": "phone/xray-dark-384.webp",
-      "sha256": "a45ad4d127971417c2f6a0d00a82fdded450b13be37cb87342006b1c5bb9e1b3"
+      "sha256": "de3ab196e249d9204e3874df76e9408d0249610271a75c7d3c06fb9a36c5a347"
     },
     {
       "file": "phone/xray-dark-384.avif",
-      "sha256": "0f780f79ff420984dd5a06ebbe4d5fe25e1e70290a87cc4cd536a0aea71a03ad"
+      "sha256": "217c15e9de56752b23c40eff0ba6c89d311c99a26f20c7791af67198daf8e247"
     },
     {
       "file": "phone/xray-dark-768.webp",
-      "sha256": "44e848de9b953e138377dcefe76852f431bf455a9a60a53759da8d8d8bc10913"
+      "sha256": "e064e7c2f9bda74c0fe3a6b66b70df5a713b3813738305fb9453f94fa28013c8"
     },
     {
       "file": "phone/xray-dark-768.avif",
-      "sha256": "cf51d28ac7d818631c685753b1f228eeb2fa8e25e550a90205848812517f3b3d"
+      "sha256": "c7275073003fb6d0aaaf91e65262a7461d69b1823b6fbd4b37c1a3de516ef31a"
     },
     {
       "file": "phone/xray-dark-1152.webp",
-      "sha256": "212ce4641e2c1d0968e55633eed847e7f87f668f73724591aeaf367bd0846c59"
+      "sha256": "f3aabf90c7d9167440ee0d21d98cc3764660b0d8ce8a47570adba855e6699b28"
     },
     {
       "file": "phone/xray-dark-1152.avif",
-      "sha256": "118dc707b0cdbab09b9bc203bc6a42754d83dcc079638434abdbb63cf3f6d6dd"
+      "sha256": "32c80d104411b6758ce5d75da560e446350e7fa16b4bf0f4ccd312e680be7fc8"
     },
     {
       "file": "phone/xray-dark-1536.webp",
-      "sha256": "67698171201fa92b1300ed748e964b9b054c508b68835b384a35f5acd1659564"
+      "sha256": "d6e9c7984666ff1a5e778e4ca124fabb90abd542546226bbc21b5e231ef7e968"
     },
     {
       "file": "phone/xray-dark-1536.avif",
-      "sha256": "641361a1b7efd52abff47999565c6aa4551d187624b580c20977105f7bbec8b9"
+      "sha256": "c2ac9277822f39edacede6e83f76197594a888df30364b7d5c7f08a9ae31fa7f"
     }
   ]
 }
