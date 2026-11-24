@@ -23,6 +23,24 @@ const emulatedMedia = new WeakMap<object, MediaState>();
 
 const currentMedia = (page: object): MediaState => emulatedMedia.get(page) ?? DEFAULT_MEDIA;
 
+/** The top-level page's real viewport size, in CSS pixels. */
+export interface ViewportSize {
+  width: number;
+  height: number;
+}
+
+/** Vitest's own fallback when a project sets no `browser.viewport` (`ouro-touch` sets 390x844). */
+const VITEST_DEFAULT_VIEWPORT: ViewportSize = { width: 414, height: 896 };
+
+/** The value this kit last set for a page's real viewport; a page not yet resized has its project's configured default. */
+const resizedViewport = new WeakMap<object, ViewportSize>();
+
+function projectDefaultViewport(ctx: Parameters<BrowserCommand<[]>>[0]): ViewportSize {
+  return ctx.project.config.browser?.viewport ?? VITEST_DEFAULT_VIEWPORT;
+}
+
+const currentViewport = (ctx: Parameters<BrowserCommand<[]>>[0]): ViewportSize => resizedViewport.get(ctx.page) ?? projectDefaultViewport(ctx);
+
 export interface DragOptions {
   /** Viewport coordinates of the pointer-down point. */
   from: [number, number];
@@ -79,6 +97,35 @@ export const restoreMedia: BrowserCommand<[MediaState]> = async (ctx, state) => 
 /** Puts the browser's defaults back, for the start of a test file. */
 export const resetMedia: BrowserCommand<[]> = async (ctx) => {
   await restoreMedia(ctx, DEFAULT_MEDIA);
+};
+
+/**
+ * Sets the top-level page's real viewport size (Playwright's `setViewportSize`), independent of
+ * `vitest/browser`'s own `page.viewport()` client channel. A direct set like this (a custom
+ * command, a CDP call, anything that does not go through that channel) leaves no trace for
+ * `vitest/browser`'s own per-file reset to see, so it carries over into the next file in the
+ * same browser session unless this kit's own `resetViewport` puts it back.
+ */
+export const setViewport: BrowserCommand<[ViewportSize]> = async (ctx, size) => {
+  await ctx.page.setViewportSize(size);
+  resizedViewport.set(ctx.page, size);
+};
+
+/**
+ * The page's real viewport size, read directly from Playwright. A test or setup reads it before
+ * a change, to put it back with `restoreViewport`.
+ */
+export const viewportState: BrowserCommand<[]> = async (ctx) => ({ ...currentViewport(ctx) });
+
+/** Puts back a viewport size `viewportState` read, only if the page's real size has since changed. */
+export const restoreViewport: BrowserCommand<[ViewportSize]> = async (ctx, size) => {
+  const current = currentViewport(ctx);
+  if (current.width !== size.width || current.height !== size.height) await setViewport(ctx, size);
+};
+
+/** Puts the project's configured viewport size back, for the start of a test file. */
+export const resetViewport: BrowserCommand<[]> = async (ctx) => {
+  await restoreViewport(ctx, projectDefaultViewport(ctx));
 };
 
 async function applyMedia(ctx: Parameters<BrowserCommand<[]>>[0], options: EmulateMediaOptions): Promise<void> {
@@ -1594,6 +1641,10 @@ export const commands = {
   mediaState,
   restoreMedia,
   resetMedia,
+  setViewport,
+  viewportState,
+  restoreViewport,
+  resetViewport,
   doubleTap,
   drag,
   flick,
@@ -1614,6 +1665,10 @@ declare module "vitest/browser" {
     mediaState: () => Promise<MediaState>;
     restoreMedia: (state: MediaState) => Promise<void>;
     resetMedia: () => Promise<void>;
+    setViewport: (size: ViewportSize) => Promise<void>;
+    viewportState: () => Promise<ViewportSize>;
+    restoreViewport: (size: ViewportSize) => Promise<void>;
+    resetViewport: () => Promise<void>;
     parkPointer: () => Promise<void>;
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;
