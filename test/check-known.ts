@@ -106,6 +106,14 @@ export const knownFindings: KnownFinding[] = [
     sometimes: true,
   },
   {
+    story: "Message/Thread",
+    rule: "overlap",
+    issue: 3337,
+    reason:
+      "The same hover-bar overlap as Message/Chat, sighted on this story (added after #2177, neither hovered nor focused) on some CI runs (#3337, #1957).",
+    sometimes: true,
+  },
+  {
     story: "NavigationRail/LongLabels",
     rule: "lone-word",
     issue: 1955,
