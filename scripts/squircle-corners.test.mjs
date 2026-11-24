@@ -10,7 +10,8 @@ test("squircle corners: a rounded rule gets a sibling that records its radii and
   assert.match(out, /^@layer squircle-corners;@property --sq-notch/);
   assert.match(out, /\.card\{--sq-tl:12px;--sq-tr:12px;--sq-br:12px;--sq-bl:12px;border-radius:calc\(12px \* 0\.543\)/);
   assert.match(out, /@layer squircle-corners\{@supports \(corner-shape: squircle\)\{\.card\{corner-shape:squircle\}\}/);
-  assert.match(out, /clip-path:shape\(nonzero from -9999px -9999px.*move to 0 var\(--sq-tl\), curve by/);
+  assert.match(out, /--sq-clip:shape\(nonzero from -9999px -9999px.*move to 0 var\(--sq-tl\), curve by/);
+  assert.match(out, /close, var\(--sq-notch, move to 0 0, close\)\);clip-path:var\(--sq-clip\)\}/);
 });
 
 test("squircle corners: pills, circles, half a set height and corner-shape: round stay round, and a mixed rule squares only its squircle corners", async () => {
