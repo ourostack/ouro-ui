@@ -38,13 +38,12 @@ const familyBarClass =
 
 /**
  * The FamilyBar's row of links, which scrolls inside itself when it does not fit; a swipe comes to rest with a whole
- * link at its start, past the fade. Without a brand before it, the row starts a link's padding before the bar's padding,
+ * link at its start, past the row's edge. Without a brand before it, the row starts a link's padding before the bar's padding,
  * so the first link's text starts at the padding's edge. A mouse and the keyboard scroll it exactly, without snapping. A finger swipes it, so on a coarse
  * pointer its scroll bar is hidden; a mouse wheel scrolls up and down, so on a fine pointer a thin, quiet scroll bar
- * stays to drag. Its scroll padding is as wide as the fade, and a link the keyboard focuses is brought clear of it,
- * outline and all.
+ * stays to drag. A link the keyboard focuses is brought clear of the row's edge, outline and all.
  *
- * @claim "Its scroll padding is as wide as the fade, and a link the keyboard focuses is brought clear of it, outline and all." registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > brings each link the keyboard focuses clear of the row's fade, outline and all)
+ * @claim "A link the keyboard focuses is brought clear of the row's edge, outline and all." registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > brings each link the keyboard focuses clear of the row's edge, outline and all)
  *
  * @internal
  */
