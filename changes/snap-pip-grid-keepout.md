@@ -1,1 +1,1 @@
-- Docs: SnapPiP says an app with a tile grid passes the grid as `keepOut`, so a corner move never lands on a face.
+- Docs: SnapPiP says an app with a tile grid passes the grid as `keepOut`, so a corner move lands clear of the faces.
