@@ -79,12 +79,12 @@ A Combobox that picks several items, shown as chips in the input.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `allowCustomValue` | `false` |  | Also take typed text as chips: see `ComboboxTokensProps`. |
-| `defaultValue` | `string[]` |  | The items picked at first, when the field keeps its own. |
+| `defaultValue` | `string[]` |  | The chips at first, when the field keeps its own. |
 | `inputValue` | `string` |  | The input's text, when you control it with `onInputChange`. Set it to `""` in `onValueChange` to clear the input after a pick. |
 | `multiple` (required) | `true` |  | Pick several items, shown as chips; the value is an array. |
-| `onValueChange` | `((value: string[]) => void)` |  | Called with the picked items' values. |
-| `removeLabel` | `((label: string) => string)` | `` (label) => `Remove ${label}` `` | The name of a chip's remove button, from the item's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
-| `value` | `string[]` |  | The picked items' values, when you control them. |
+| `onValueChange` | `((value: string[]) => void)` |  | Called with the chips' values: picked items' values, and typed text with `allowCustomValue`. |
+| `removeLabel` | `((label: string) => string)` | `` (label) => `Remove ${label}` `` | The name of a chip's remove button, from the chip's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
+| `value` | `string[]` |  | The chips' values, when you control them. |
 
 Not in this mode (a type error):
 
@@ -117,11 +117,11 @@ A token input: picks several items as chips, and makes typed text a chip too, as
 | `allowCustomValue` (required) | `true` |  | Typed text becomes a chip too, on Enter or at a comma. |
 | `customValueLabel` | `((text: string) => string)` | `` (text) => `Use “${text}”` `` | The sheet's row (on a phone) that adds what was typed as a chip, from the text. Translate it with your app. |
 | `defaultValue` | `string[]` |  | The chips at first, when the field keeps its own. |
-| `inputValue` | `string` |  | The input's text, when you control it with `onInputChange`. Combobox reports `""` through `onInputChange` once the text becomes a chip. |
+| `inputValue` | `string` |  | The input's text, when you control it with `onInputChange`. Set it to `""` in `onValueChange` to clear the input after a pick. |
 | `multiple` (required) | `true` |  | Pick several items, shown as chips; the value is an array. |
-| `onValueChange` | `((value: string[]) => void)` |  | Called with the chips' values: a picked item's `value`, or the typed text. |
+| `onValueChange` | `((value: string[]) => void)` |  | Called with the chips' values: picked items' values, and typed text with `allowCustomValue`. |
 | `removeLabel` | `((label: string) => string)` | `` (label) => `Remove ${label}` `` | The name of a chip's remove button, from the chip's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
-| `value` | `string[]` |  | The chips' values, when you control them: items' values and typed text. |
+| `value` | `string[]` |  | The chips' values, when you control them. |
 
 ## Don't use
 

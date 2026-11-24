@@ -227,17 +227,15 @@ export type ComboboxSingleProps = ComboboxBaseProps & {
   customValueLabel?: never;
 };
 
-/** A Combobox that picks several items, shown as chips in the input. */
-export type ComboboxMultipleProps = ComboboxBaseProps & {
+/** What both ways of picking several items take: chips, an array value and the input's text. */
+interface ComboboxChipsProps {
   /** Pick several items, shown as chips; the value is an array. */
   multiple: true;
-  /** Also take typed text as chips: see {@link ComboboxTokensProps}. */
-  allowCustomValue?: false | undefined;
-  /** The picked items' values, when you control them. */
+  /** The chips' values, when you control them. */
   value?: string[] | undefined;
-  /** The items picked at first, when the field keeps its own. */
+  /** The chips at first, when the field keeps its own. */
   defaultValue?: string[] | undefined;
-  /** Called with the picked items' values. */
+  /** Called with the chips' values: picked items' values, and typed text with `allowCustomValue`. */
   onValueChange?: ((value: string[]) => void) | undefined;
   /**
    * The input's text, when you control it with `onInputChange`. Set it to `""` in
@@ -246,11 +244,17 @@ export type ComboboxMultipleProps = ComboboxBaseProps & {
    */
   inputValue?: string | undefined;
   /**
-   * The name of a chip's remove button, from the item's label, as visually hidden text and not
+   * The name of a chip's remove button, from the chip's label, as visually hidden text and not
    * an `aria-label`. Translate it with your app.
    * @default (label) => `Remove ${label}`
    */
   removeLabel?: ((label: string) => string) | undefined;
+}
+
+/** A Combobox that picks several items, shown as chips in the input. */
+export type ComboboxMultipleProps = ComboboxBaseProps & ComboboxChipsProps & {
+  /** Also take typed text as chips: see {@link ComboboxTokensProps}. */
+  allowCustomValue?: false | undefined;
   /** Only with `allowCustomValue`. */
   customValueLabel?: never;
 };
@@ -268,28 +272,9 @@ export type ComboboxMultipleProps = ComboboxBaseProps & {
  * @claim "a comma also makes a chip" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox multiple allowCustomValue > makes a chip at each comma, and a pasted list becomes a chip per entry)
  * @claim "Text that matches an item ignoring case picks that" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox multiple allowCustomValue > picks the item that typed text matches ignoring case, so no duplicate chip appears)
  */
-export type ComboboxTokensProps = ComboboxBaseProps & {
-  /** Pick several items, shown as chips; the value is an array. */
-  multiple: true;
+export type ComboboxTokensProps = ComboboxBaseProps & ComboboxChipsProps & {
   /** Typed text becomes a chip too, on Enter or at a comma. */
   allowCustomValue: true;
-  /** The chips' values, when you control them: items' values and typed text. */
-  value?: string[] | undefined;
-  /** The chips at first, when the field keeps its own. */
-  defaultValue?: string[] | undefined;
-  /** Called with the chips' values: a picked item's `value`, or the typed text. */
-  onValueChange?: ((value: string[]) => void) | undefined;
-  /**
-   * The input's text, when you control it with `onInputChange`. Combobox reports `""` through
-   * `onInputChange` once the text becomes a chip.
-   */
-  inputValue?: string | undefined;
-  /**
-   * The name of a chip's remove button, from the chip's label, as visually hidden text and not
-   * an `aria-label`. Translate it with your app.
-   * @default (label) => `Remove ${label}`
-   */
-  removeLabel?: ((label: string) => string) | undefined;
   /**
    * The sheet's row (on a phone) that adds what was typed as a chip, from the text. Translate it
    * with your app.
