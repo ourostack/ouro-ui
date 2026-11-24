@@ -66,17 +66,23 @@ const popoverPopup = () => document.querySelector<HTMLElement>('[data-ouro="popo
 const trigger = () => document.querySelector<HTMLElement>('[data-ouro="button"]')!;
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
+/**
+ * Whether the popup's entrance has finished: out of its starting style, with every current
+ * animation in a terminal playState. A browser can report "finished" a tick before it drops
+ * that animation from getAnimations(); under load that bookkeeping step can lag far more than
+ * the animation itself took, so the terminal playState is the signal to trust, not the list.
+ */
+function entranceDone(element: HTMLElement | null) {
+  return Boolean(
+    element &&
+      !element.hasAttribute("data-starting-style") &&
+      element.getAnimations().every((animation) => animation.playState === "finished" || animation.playState === "idle"),
+  );
+}
+
 /** Waits until the open popup has finished its entrance. */
 async function settled() {
-  await expect
-    .poll(
-      () => {
-        const element = popup();
-        return Boolean(element && !element.hasAttribute("data-starting-style") && element.getAnimations().length === 0);
-      },
-      { interval: 50 },
-    )
-    .toBe(true);
+  await expect.poll(() => entranceDone(popup()), { interval: 50 }).toBe(true);
 }
 
 async function openUncontrolled(props: Partial<PopoverProps> = {}) {
@@ -731,6 +737,17 @@ describe("Popover motion", () => {
     expect(getComputedStyle(element).transform).toBe("none");
     expect(getComputedStyle(element).opacity).toBe("0");
     element.removeAttribute("data-ending-style");
+  });
+
+  it("treats an entrance animation whose playState is finished as done, even if the browser has not yet dropped it from getAnimations()", async () => {
+    const element = await openUncontrolled();
+    // A browser can report an animation's playState as "finished" a tick before it
+    // actually drops that animation from the element's getAnimations() list; under
+    // CI load, that bookkeeping step can lag far more than the animation itself took
+    // (#3103). A stuck-but-finished entry must not block the entrance from reading
+    // as done.
+    vi.spyOn(element, "getAnimations").mockReturnValue([{ playState: "finished" } as Animation]);
+    expect(entranceDone(element)).toBe(true);
   });
 });
 
