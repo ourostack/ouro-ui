@@ -259,8 +259,11 @@ const rowClass =
   "gap-3 aria-[current=true]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] aria-[current=true]:text-accent-foreground " +
   "forced-colors:aria-[current=true]:forced-color-adjust-none forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText]";
 // The open row keeps its highlight under the pointer and while pressed: the plain rows' muted
-// hover would make it look closed. These replace controlClass's hover and press colours.
-const currentClass = "pointer-fine:group-hover/row:bg-[color:var(--ouro-row-selected-hover,color-mix(in_oklab,var(--accent)_86%,var(--foreground)))] active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))] pointer-fine:hover:active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))]";
+// hover would make it look closed, and their hover ring would make it look raised off the list
+// as if it were not the open row (#3477). These replace controlClass's hover and press colours
+// and drop its hover shadow, so the open row is marked by its selected fill alone.
+const currentClass =
+  "pointer-fine:group-hover/row:bg-[color:var(--ouro-row-selected-hover,color-mix(in_oklab,var(--accent)_86%,var(--foreground)))] pointer-fine:group-hover/row:[box-shadow:none] active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))] pointer-fine:hover:active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))]";
 const headerClass = "gap-1.5 py-1.5 text-sm";
 const listClass = "m-0 flex list-none flex-col gap-0.5 p-0";
 
