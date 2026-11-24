@@ -13,8 +13,8 @@
   "windows": {
     "name": "Ouro UI for Windows",
     "repository": "https://github.com/ourostack/ouro-ui-windows",
-    "release": "0.12.0",
-    "releaseUrl": "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.0",
+    "release": "0.12.1",
+    "releaseUrl": "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.1",
     "readme": "https://github.com/ourostack/ouro-ui-windows/blob/65dc6dce47d3e7e8f77164f63e617b9ee3e1b773/README.md",
     "components": [
       "Button",
@@ -47,7 +47,7 @@
     "feedLine": "dotnet nuget add source https://nuget.pkg.github.com/ourostack/index.json --name ourostack --username <your GitHub login> --password <token> --store-password-in-clear-text",
     "packageLine": "dotnet add package Ouro.UI.Windows --source ourostack",
     "generateLine": "node vendor/core/ouro-actions-windows.mts generate my.actions.mts Generated",
-    "attestLine": "gh attestation verify Ouro.UI.Windows.0.12.0.nupkg --repo ourostack/ouro-ui-windows",
+    "attestLine": "gh attestation verify Ouro.UI.Windows.0.12.1.nupkg --repo ourostack/ouro-ui-windows",
     "generated": [
       "OuroActions.g.cs",
       "app-actions.json",

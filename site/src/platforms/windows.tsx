@@ -42,9 +42,9 @@ export default function WindowsHome(): JSX.Element {
               They're WinUI controls, so they sit in your own XAML beside anything you write yourself.
             </p>
             <p className="apple-fine">
-              {claim("Release 0.12.0, from ourostack's NuGet feed.", {
-                source: { spec: "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.0" },
-                verify: { equals: "site/src/platforms/kits.json#windows.release", is: "0.12.0" },
+              {claim("Release 0.12.1, from ourostack's NuGet feed.", {
+                source: { spec: "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.1" },
+                verify: { equals: "site/src/platforms/kits.json#windows.release", is: "0.12.1" },
               })}
             </p>
           </div>
@@ -123,10 +123,10 @@ export default function WindowsHome(): JSX.Element {
       <Container className="apple-soon">
         <p className="site-eyebrow">Where it stands</p>
         <p className="apple-soon-line">
-          {claim("Ouro UI for Windows 0.12.0 has 26 components, both agent doors and agent cards drawn natively.", {
+          {claim("Ouro UI for Windows 0.12.1 has 26 components, both agent doors and agent cards drawn natively.", {
             source: { spec: "https://github.com/ourostack/ouro-ui-windows/blob/65dc6dce47d3e7e8f77164f63e617b9ee3e1b773/README.md" },
             verify: [
-              { equals: "site/src/platforms/kits.json#windows.release", is: "0.12.0" },
+              { equals: "site/src/platforms/kits.json#windows.release", is: "0.12.1" },
               { count: "site/src/platforms/kits.json#windows.components", is: 26 },
             ],
           })}{" "}

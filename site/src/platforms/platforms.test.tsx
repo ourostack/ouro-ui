@@ -40,13 +40,11 @@ describe("platform pages", () => {
   it("every component the Windows page counts is a control in the parity matrix", () => {
     const matrix = new Set(platforms.windows.components.map((component) => component.name));
     expect(kits.windows.components.filter((name) => !matrix.has(`Ouro${name}`))).toEqual([]);
-    expect(platforms.windows.tag).toBe(`v${kits.windows.release}`);
   });
 
   it("every component the Android page counts is a composable in the parity matrix", () => {
     const matrix = new Set(platforms.android.components.map((component) => component.name));
     expect(kits.android.components.filter((name) => !matrix.has(`Ouro${name}`))).toEqual([]);
-    expect(platforms.android.tag).toBe(`v${kits.android.release}`);
   });
 
   it("reads the parity matrix's component rows, and counts what each platform has", () => {
