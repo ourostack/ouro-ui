@@ -273,10 +273,12 @@ function fitFrom(thumbnail: Element, popup: HTMLElement, shape?: { width?: numbe
   const scale = Math.min(1, Math.max(0.05, rect.width / drawn));
   const box = popup.getBoundingClientRect();
   const centre = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
-  const image = { x: centre.x, y: box.top + barHeight + room.height / 2 };
+  // The image sits centred on the popup's own horizontal centre, so only its vertical offset
+  // (the bar's height, pushing the room down) ever differs from centre; x needs no such term.
+  const imageY = box.top + barHeight + room.height / 2;
   return {
     scale,
-    x: rect.left + rect.width / 2 - centre.x - scale * (image.x - centre.x),
-    y: rect.top + rect.height / 2 - centre.y - scale * (image.y - centre.y),
+    x: rect.left + rect.width / 2 - centre.x,
+    y: rect.top + rect.height / 2 - centre.y - scale * (imageY - centre.y),
   };
 }
