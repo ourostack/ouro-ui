@@ -21,9 +21,9 @@ export interface ButtonGroupProps {
   /**
    * Draws the group as one Liquid Glass capsule: the theme's glass behind blur, a rim, a soft shadow, and a
    * hairline divider between the buttons, which sit flat inside it. Use it for a window toolbar's back and forward.
-   * Solid under reduced transparency or more contrast. Put `variant="plain"` buttons in it.
+   * Solid under reduced transparency or more contrast. Put `variant="plain"` buttons in it. `glass="sm"` makes it as tall as a `size="sm"` glass Button.
    */
-  glass?: boolean | undefined;
+  glass?: boolean | "sm" | undefined;
   /** Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development. */
   className?: string | undefined;
   /** The group element (`role="group"`). */
@@ -80,7 +80,7 @@ const groupClass =
 
 // The capsule is the group's; its buttons give up their own surface, rim and shadow and take the capsule's ends.
 const glassClass =
-  "h-[calc(var(--spacing)*10)] rounded-full [corner-shape:superellipse(1.05)] border border-(--ouro-glass-rim) " +
+  "h-(--ouro-glass-h,calc(var(--spacing)*10)) rounded-full [corner-shape:superellipse(1.05)] border border-(--ouro-glass-rim) " +
   "bg-[color-mix(in_oklab,var(--ouro-glass)_var(--ouro-glass-tint),transparent)] shadow-(--shadow-sm) backdrop-blur-xl " +
   "[&>[data-variant]]:[--ouro-bg:transparent] [&>[data-variant]]:[--ouro-bd:transparent] [&>[data-variant]]:shadow-none " +
   "[&>[data-variant]]:backdrop-blur-none [&>[data-variant]]:[--ouro-button-h:calc(var(--spacing)*9.5)] " +
@@ -149,7 +149,7 @@ export function ButtonGroup(props: ButtonGroupProps): JSX.Element {
       role="group"
       aria-label={label}
       data-ouro="button-group"
-      className={cn(groupClass, glass && glassClass, fullWidth && "flex w-full [&>*]:flex-1 [&>*]:basis-0", className)}
+      className={cn(groupClass, glass && glassClass, glass === "sm" && "[--ouro-glass-h:calc(var(--spacing)*9)]", fullWidth && "flex w-full [&>*]:flex-1 [&>*]:basis-0", className)}
     >
       {children}
     </div>

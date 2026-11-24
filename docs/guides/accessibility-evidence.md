@@ -32,7 +32,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [auth-layout](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/auth-layout) | 2 | 0 | none yet |
 | [autocomplete](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/autocomplete) | 3 | 0 | none yet |
 | [avatar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/avatar) | 8 | 0 | none yet |
-| [badge](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/badge) | 5 | 0 | none yet |
+| [badge](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/badge) | 6 | 0 | none yet |
 | [breadcrumb](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/breadcrumb) | 3 | 0 | none yet |
 | [build-chip](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/build-chip) | 4 | 0 | none yet |
 | [button](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/button) | 9 | 0 | [button.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/button.sr.spec.ts): 1 test on `actions-button--loading` |
@@ -50,7 +50,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [collapsible](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/collapsible) | 6 | 0 | none yet |
 | [color-field](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/color-field) | 3 | 0 | none yet |
 | [color-scheme-toggle](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/color-scheme-toggle) | 3 | 0 | [color-scheme-toggle.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/color-scheme-toggle.sr.spec.ts): 1 test on `actions-colorschemetoggle--segmented` |
-| [combobox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/combobox) | 7 | 0 | none yet |
+| [combobox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/combobox) | 8 | 0 | none yet |
 | [command](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/command) | 8 | 0 | [command.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/command.sr.spec.ts): 1 test on `menus-command--playground` |
 | [composed-surface](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/composed-surface) | 2 | 0 | none yet |
 | [composer](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/composer) | 13 | 0 | [composer.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/composer.sr.spec.ts): 1 test on `chat-composer--basic` |

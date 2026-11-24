@@ -84,6 +84,22 @@
     "summary": "A text, or a box over 100 square pixels, that goes from invisible to visible, or back, in one frame inside a transition; the fix is to fade or grow it on the transition that moves its box."
   },
   {
+    "rule": "overshoot",
+    "summary": "A box whose edge passes where it ends by more than 2 pixels in a transition, as a max-width that animates to a cap does; the fix is to animate transform."
+  },
+  {
+    "rule": "off-curve",
+    "summary": "A box with a two-keyframe transition whose edge strays more than 2 pixels from its own easing curve, as one a script or observer resizes every frame does; the fix is to let the transition move it."
+  },
+  {
+    "rule": "opacity-step",
+    "summary": "A box or text whose opacity changes more than 0.1 beyond its own easing in one frame of a transition; the fix is to fade it over the whole transition."
+  },
+  {
+    "rule": "label-clip",
+    "summary": "Text cut off by its own clipping box mid-transition that fits at the end; the fix is to size the box to the text or reveal both together."
+  },
+  {
     "rule": "dropped-frames",
     "summary": "A press after which one frame took over 50 ms (the jank rule's budget is 250 ms); the fix is to keep the handler to a few milliseconds."
   },
