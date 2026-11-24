@@ -1457,7 +1457,7 @@ describe("Composer expanded motion", () => {
       for (const reduced of [false, true]) {
         await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
         // A synchronous click, so a slow browser cannot let the animations end before they are read.
-        expandButton()!.click();
+        await act(async () => expandButton()!.click());
         if (reduced) {
           expect(getComputedStyle(frameOf(root)).clipPath).toBe("none");
           await Promise.all([
