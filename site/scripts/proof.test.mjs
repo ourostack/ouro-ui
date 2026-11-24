@@ -138,7 +138,7 @@ test("a release commit's site build takes the install line from its own registry
   writeFileSync(join(dir, "registry.json"), own);
   // Another tag still comes from git, and one that origin lacks fails.
   // One that origin lacks fails after its tries, naming what git said first and last.
-  assert.throws(() => registryAt("v9.9.8", dir, 0), /git fetch of v9\.9\.8 failed 4 times, 0 ms apart, each within 10000 ms\. First: .*refs\/tags\/v9\.9\.8.*\. Last: .*refs\/tags\/v9\.9\.8/s);
+  assert.throws(() => registryAt("v9.9.8", dir, 0), /git fetch of v9\.9\.8 failed 3 times, 0 ms apart, each within 16000 ms\. First: .*refs\/tags\/v9\.9\.8.*\. Last: .*refs\/tags\/v9\.9\.8/s);
 });
 
 test("a tag another process fetched while this one's fetch lost the shallow lock is read, not fetched again", () => {
@@ -196,6 +196,45 @@ exec "${realGit}" "$@"
   }
   assert.ok(Date.now() - started < 10_000, `took ${Date.now() - started} ms`);
   assert.equal(readFileSync(calls, "utf8"), "x\nx\n");
+});
+
+test("a fetch slower than the old 10 s bound but inside the new default of 16 s still brings the tag in, as v1.3.506's would have (#3375)", () => {
+  const dir = releaseCheckout("9.9.9");
+  // A stand-in git whose fetch takes 1.2 s, scaled from the real runner's fetch of v1.3.506 that kept missing the old
+  // 10 s bound by seconds, not milliseconds: 1,000 ms stands for the old bound, 1,600 ms for the new one, and this
+  // fetch's 1.2 s falls between them, so it fails at the old scaled bound and succeeds at the new one.
+  const bin = scratchDir("ouro-proof-git-");
+  const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+  writeFileSync(join(bin, "git"), `#!/bin/sh
+for arg in "$@"; do
+  if [ "$arg" = fetch ]; then sleep 1.2; exec "${realGit}" tag v9.9.2; fi
+done
+exec "${realGit}" "$@"
+`, { mode: 0o755 });
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  try {
+    assert.throws(() => registryAt("v9.9.2", dir, 0, 1, 1_000), /git fetch of v9\.9\.2 failed 1 times/);
+    assert.equal(registryAt("v9.9.2", dir, 0, 1, 1_600), readFileSync(join(dir, "registry.json"), "utf8"));
+  } finally {
+    process.env.PATH = path;
+  }
+});
+
+test("the default tries, fetchTimeout and retryAfter still end inside Vite's 60 s module budget", () => {
+  // 3 tries of 16 s plus 2 waits of 2 s is 52 s, 8 s short of the 60 s ourostack/ouro-ui#2469 gives this module; a
+  // change to any of the three defaults must keep recomputing this true, so the test reads them from a real failure
+  // rather than repeating the numbers by hand.
+  const dir = releaseCheckout("9.9.9");
+  let message;
+  try {
+    registryAt("v9.9.1", dir, undefined, undefined, undefined);
+    assert.fail("expected registryAt to throw");
+  } catch (error) {
+    message = error.message;
+  }
+  const [, tries, retryAfter, fetchTimeout] = /failed (\d+) times, (\d+) ms apart, each within (\d+) ms/.exec(message).map(Number);
+  assert.ok(tries * fetchTimeout + (tries - 1) * retryAfter < 60_000, `${tries} tries of ${fetchTimeout} ms and ${tries - 1} waits of ${retryAfter} ms do not end inside 60 s`);
 });
 
 test("a shallow.lock left by a fetch its time limit ended is cleared before the next try, not hit by every one (#1781)", () => {

@@ -516,7 +516,7 @@ describe("TimeGrid", () => {
     ]);
     expect(plain(titled("Team offsite").getAttribute("aria-label"))).toBe("Team offsite, Tuesday, March 10 – Wednesday, March 11, All day");
     expect(plain(titled("Office closed").getAttribute("aria-label"))).toBe("Office closed, Friday, All day");
-    expect((row as HTMLElement).style.minHeight).toBe("3.5rem");
+    expect((row as HTMLElement).style.minHeight).toBe("3.75rem");
     expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("6.75rem");
   });
 
