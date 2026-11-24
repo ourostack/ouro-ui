@@ -211,6 +211,26 @@ describe("the call window page", () => {
     }
   });
 
+  it("sizes the captions to their lines, without a tall empty slab above short ones", async () => {
+    await page.viewport(1280, 800);
+    await renderPage("/docs/call-demo/");
+    await document.fonts.ready;
+    const captions = document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="live-captions"]')!;
+    expect(captions.getBoundingClientRect().height).toBeLessThan(88);
+  });
+
+  it("fits the tile grid in its area on a wide screen, with no scrollbar of its own", async () => {
+    await page.viewport(1440, 900);
+    await renderPage("/docs/call-demo/");
+    await document.fonts.ready;
+    const scroller = document.querySelector<HTMLElement>('[data-site-call-demo] .overflow-auto')!;
+    for (const count of ["1", "2", "3", "4", "5", "6"]) {
+      await page.getByRole("radio", { name: count }).click();
+      await expect.poll(() => scroller.querySelectorAll('[data-ouro="media-tile"]').length).toBe(Number(count));
+      expect(scroller.scrollHeight - scroller.clientHeight, `${count} people`).toBeLessThanOrEqual(0);
+    }
+  });
+
   it("says which parts of the demo are scripted", async () => {
     await renderPage("/docs/call-demo/");
     expect(document.body.textContent).toMatch(/own script/);
