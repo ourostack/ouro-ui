@@ -334,11 +334,16 @@ const layerClass =
  */
 export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLElement | null>; layer: RowLayer<MessageBarData> }): JSX.Element {
   // The menu that opened, with Menu's code, which comes before it opens.
+  const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
+  // The bar has finished fading out and is out of the page; its element stays, as it always has, for the next message.
+  const [parked, setParked] = useState(false);
   const [opened, setOpened] = useState<{ M: MenuModule; row: HTMLElement; data: MessageBarData; anchor: MenuAnchor; open: boolean } | null>(null);
   // A virtual element for where the menu opens: the bar goes as it opens, so a box measured now.
   const show = (row: HTMLElement, data: MessageBarData, anchor: MenuAnchor) => {
     const open = (Loaded: MenuModule) => {
       hover.hold(true);
+      // The bar goes as the menu opens, with no fade: focus is leaving it for the menu and comes back to the message.
+      setParked(true);
       setOpened({ M: Loaded, row, data, anchor, open: true });
     };
     // Loaded already (the bar's first showing loads it), it opens within this event, before the next frame.
@@ -366,9 +371,6 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
       ? /* istanbul ignore next @preserve -- server only */ null
       : barHost(),
   );
-  const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
-  // The bar has finished fading out and is out of the page; its element stays, as it always has, for the next message.
-  const [parked, setParked] = useState(false);
   // Stryker disable next-line ConditionalExpression,LogicalOperator: the slot is found only through the row's data, and the data only through the row, so a slot holds the other two.
   const on = hover.row !== null && data !== undefined && slot !== null ? { row: hover.row, data } : null;
   // Each message gives the layer a new data object on every render, so new data comes with a move to another message too.
