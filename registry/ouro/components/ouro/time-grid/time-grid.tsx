@@ -51,6 +51,7 @@ import {
   stacksOf,
   statusClass,
   statuses,
+  timedBarClass,
   timedClass,
   toInstant,
   toneBarClass,
@@ -848,7 +849,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         eventClass,
         eventHitClass,
         bar ? backgroundBarClass : [toneBarClass[tone], background ? backgroundFillClass : status === "busy" ? toneFillClass[tone] : plainFillClass, statusClass[status]],
-        placed ? timedClass : allDayClass,
+        placed ? (bar ? timedBarClass : timedClass) : allDayClass,
         // Under the person's own events, so a background event's touch target never covers them.
         background && "z-[9]",
       ),
@@ -906,7 +907,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       return (
         <li
           key={placed.key}
-          className="pointer-events-auto absolute pe-px"
+          className="pointer-events-auto absolute"
           style={{
             top: minutesTall(placed.top),
             height: `calc(${minutesTall(placed.bottom - placed.top)} - 1px)`,
@@ -930,7 +931,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const ends = members.map((piece) => toInstant(piece.event.end!)!.getTime());
     const element = () => rootRef.current!.querySelector<HTMLElement>(`[data-ouro-event-key="${CSS.escape(key)}"]`)!;
     return (
-      <li key={key} className="pointer-events-auto absolute inset-x-0 pe-px" style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)` }}>
+      <li
+        key={key}
+        className="pointer-events-auto absolute inset-x-0"
+        style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)` }}
+      >
         <Menu
           side="right"
           trigger={

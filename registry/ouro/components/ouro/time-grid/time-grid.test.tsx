@@ -1406,8 +1406,8 @@ describe("TimeGrid background events", () => {
     expect(["All hands", "Budget review"].map((title) => spokenAs(title).closest("li")!.style.width)).toEqual(["50%", "50%"]);
     const column = (element: Element) => element.closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect().left;
     // Standup's day has no background event, so it keeps the day's full width.
-    expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(1);
-    expect(titled("Architecture forum").getBoundingClientRect().left - column(titled("Architecture forum"))).toBe(13);
+    expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(9);
+    expect(titled("Architecture forum").getBoundingClientRect().left - column(titled("Architecture forum"))).toBe(21);
     // In a week each is a slim bar in its tone, on no fill of its own.
     const swatch = (title: string) => getComputedStyle(spokenAs(title).querySelector("[data-ouro-time-grid-bar]")!).backgroundColor;
     expect(swatch("All hands")).not.toBe(swatch("Budget review"));
@@ -1418,7 +1418,7 @@ describe("TimeGrid background events", () => {
     expect(plain(spokenAs("All hands").getAttribute("aria-label"))).toBe("All hands, 10:00 – 11:00 AM, Thursday, In the crowd, 412 people");
     await rerender({ events: [forum, standup], backgroundEvents: [] });
     expect(lanes()).toEqual([]);
-    expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(1);
+    expect(titled("Standup").getBoundingClientRect().left - column(titled("Standup"))).toBe(9);
   });
 
   it.each(["ltr", "rtl"] as const)("leaves room for the background lane only where a background event shares an event's time (%s)", async (direction) => {
@@ -1439,7 +1439,7 @@ describe("TimeGrid background events", () => {
       return direction === "ltr" ? box.left - body.left : body.right - box.right;
     };
     expect(inset("During")).toBeGreaterThanOrEqual(lane * 0.4);
-    expect(inset("After")).toBeLessThanOrEqual(2);
+    expect(inset("After")).toBeLessThanOrEqual(10);
     expect(titled("After").getBoundingClientRect().width).toBeGreaterThan(lane * 0.9);
   });
 
@@ -1449,8 +1449,8 @@ describe("TimeGrid background events", () => {
     await render({ view: "day", events: [ev("Before", "08:00", "10:00"), ev("Touching", "11:00", "11:45"), ev("First", "13:00", "14:00"), ev("Second", "13:30", "14:30")], backgroundEvents: [busy] });
     const body = titled("Before").closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect();
     const inset = (title: string) => titled(title).getBoundingClientRect().left - body.left;
-    expect([inset("Before"), inset("Touching")]).toEqual([1, 1]);
-    expect(inset("First")).toBe(1);
+    expect([inset("Before"), inset("Touching")]).toEqual([9, 9]);
+    expect(inset("First")).toBe(9);
   });
 
   it("shares the lane across a stack that overlaps a background event through one event", async () => {
@@ -1459,12 +1459,12 @@ describe("TimeGrid background events", () => {
     const { grid } = await render({ view: "day", events: [ev("First", "10:30", "11:30"), ev("Second", "11:15", "12:15")], backgroundEvents: [busy] });
     const body = titled("First").closest("[data-ouro-time-grid-body] > div")!.getBoundingClientRect();
     const lane = grid.ownerDocument.querySelector<HTMLElement>("[data-ouro-time-grid-background]")!.offsetWidth;
-    const free = body.width - 1 - lane;
+    const half = (body.width - lane) / 2;
     const box = (title: string) => titled(title).getBoundingClientRect();
     // The stack overlaps the background event through its first event only, yet both leave the lane free and share what is left.
-    expect(box("First").left - body.left).toBeCloseTo(lane + 1, 0);
-    expect(Math.abs(box("Second").left - body.left - (lane + 1 + free / 2))).toBeLessThan(2.5);
-    expect(Math.abs(box("Second").width - (free / 2 - 1))).toBeLessThan(2.5);
+    expect(box("First").left - body.left).toBeCloseTo(lane + 9, 0);
+    expect(Math.abs(box("Second").left - body.left - (lane + half + 9))).toBeLessThan(2.5);
+    expect(Math.abs(box("Second").width - (half - 16))).toBeLessThan(2.5);
   });
 
   it("names a week's thin bars in a tooltip, and labels them in a day", async () => {
