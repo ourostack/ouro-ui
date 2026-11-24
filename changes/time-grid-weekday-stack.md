@@ -1,0 +1,1 @@
+- Fixed: TimeGrid stacks a day's number over its weekday name in a narrower column, so a seven-day grid about 580px wide no longer cuts "Wed" short.

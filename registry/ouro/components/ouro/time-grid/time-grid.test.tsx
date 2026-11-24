@@ -1035,6 +1035,15 @@ describe("TimeGrid", () => {
     expect(scroller.scrollTop / hour).toBeCloseTo(12, 1);
   });
 
+  it("stacks a day's number over its weekday name before the name is cut, in a seven-day grid 580px wide", async () => {
+    const { grid } = await render({ view: "week" }, (inner) => <div style={{ width: "580px" }}>{inner}</div>);
+    const heads = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked], [data-ouro-time-grid-head] > .group\\/day")];
+    expect(heads.length).toBe(7);
+    await expect
+      .poll(() => heads.every((head) => [...head.querySelectorAll<HTMLElement>("span.truncate")].every((name) => name.scrollWidth <= name.clientWidth)))
+      .toBe(true);
+  });
+
   it("tints a marked day's column from its header to its last hour, and says why in words", async () => {
     const { host, grid } = await render({ events: [{ id: "away", title: "Flight", start: at(12, "10:00"), end: at(12, "11:00") }], renderDaySummary: () => "2 events", markedDays: { "2026-03-12": { label: "Out of office" }, "2026-03-13": { label: "Holiday", tone: "success" } } });
     const heads = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked]")];

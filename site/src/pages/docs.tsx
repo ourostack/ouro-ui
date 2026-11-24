@@ -461,6 +461,9 @@ export function DocsIndex(): JSX.Element {
           <Door to="/docs/call-demo/" title="A call window">
             The call components composed into one window you can try.
           </Door>
+          <Door to="/docs/calendar-demo/" title="A calendar">
+            TimeGrid, Calendar, Dialog, Popover and Toast composed into one screen you can try.
+          </Door>
           <Door to="/docs/updating/" title="Updating components">
             Review upstream changes, then overwrite and reapply your edits.
           </Door>
@@ -557,6 +560,8 @@ const chatDemoModules = import.meta.glob<{ default: () => JSX.Element }>("../doc
 const ChatDemoPage = lazy(Object.values(chatDemoModules)[0]!);
 const callDemoModules = import.meta.glob<{ default: () => JSX.Element }>("../docs/call-demo.tsx");
 const CallDemoPage = lazy(Object.values(callDemoModules)[0]!);
+const calendarDemoModules = import.meta.glob<{ default: () => JSX.Element }>("../docs/calendar-demo.tsx");
+const CalendarDemoPage = lazy(Object.values(calendarDemoModules)[0]!);
 
 export function Updating(): JSX.Element {
   return (
@@ -664,7 +669,7 @@ export async function prepare(path: string): Promise<void> {
 /** Whether the docs module has no page for a path, so it shows Not found. */
 function lost(path: string): boolean {
   const route = routeFor(path)?.path;
-  return route !== "/docs/" && route !== "/docs/demo/" && route !== "/docs/switching-from-shadcn/" && route !== "/docs/updating/" && route !== "/docs/chat-demo/" && route !== "/docs/call-demo/" && !docFor(path);
+  return route !== "/docs/" && route !== "/docs/demo/" && route !== "/docs/switching-from-shadcn/" && route !== "/docs/updating/" && route !== "/docs/chat-demo/" && route !== "/docs/call-demo/" && route !== "/docs/calendar-demo/" && !docFor(path);
 }
 
 /** The docs module's page for a path: the index, a guide, a component's page, or Not found. */
@@ -676,6 +681,7 @@ export default function DocsRoute({ path }: { path: string }): JSX.Element {
   if (route === "/docs/updating/") return <Updating />;
   if (route === "/docs/chat-demo/") return <Suspense fallback={null}><ChatDemoPage /></Suspense>;
   if (route === "/docs/call-demo/") return <Suspense fallback={null}><CallDemoPage /></Suspense>;
+  if (route === "/docs/calendar-demo/") return <Suspense fallback={null}><CalendarDemoPage /></Suspense>;
   if (lost(path)) return <NotFound />;
   const doc = docFor(path)!;
   return "item" in doc ? <DocsComponent item={doc.item} /> : <DocsPageView page={doc.page} />;
