@@ -122,8 +122,10 @@
 @source not "../entry-server.tsx";
 @source not "../generated";
 @source not "../head.ts";
+@source not "../hx";
 @source not "../nautilus";
 @source not "../pages/voyage.tsx";
+@source not "../platforms";
 @source not "../proof";
 @source not "../render-html.ts";
 @source not "../themes/fonts.json";

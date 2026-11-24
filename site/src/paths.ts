@@ -21,14 +21,28 @@ export const APPLE_PAGES = [
 
 export type ApplePath = (typeof APPLE_PAGES)[number]["path"];
 
+/** Ouro UI for Windows' pages and Ouro UI for Android's, each with its own menu (platforms/shell.tsx). */
+export const WINDOWS_PAGES = [
+  { path: "/windows/", label: "Overview", short: "Overview" },
+  { path: "/windows/start/", label: "Get started", short: "Get started" },
+] as const;
+export const ANDROID_PAGES = [
+  { path: "/android/", label: "Overview", short: "Overview" },
+  { path: "/android/start/", label: "Get started", short: "Get started" },
+] as const;
+
+/** The platform pages beside Apple's: Ouro HX across every platform, and the Windows and Android deep dives. */
+export const PLATFORM_PATHS = ["/hx/", "/windows/", "/windows/start/", "/android/", "/android/start/"] as const satisfies ReadonlyArray<"/hx/" | (typeof WINDOWS_PAGES)[number]["path"] | (typeof ANDROID_PAGES)[number]["path"]>;
+export type PlatformPath = (typeof PLATFORM_PATHS)[number];
+
 /**
  * The page module that renders a path: each has its own JavaScript closure (app.tsx). The voyage
  * module renders the home page and the Nautilus's page.
  */
 export type PageKind = "voyage" | "docs";
 
-/** The paths the voyage module renders: the home page, the Nautilus's, Ouro AX's, the Ouro UI for Apple pages, the adoption ledger, Ouro Current and Proof. */
-export const VOYAGE_PATHS = ["/", "/nautilus/", "/ax/", ...APPLE_PATHS, "/adoption/", "/current/", "/proof/"] as const;
+/** The paths the voyage module renders: the home page, the Nautilus's, Ouro AX's, the Ouro UI for Apple pages, the platform pages, the adoption ledger, Ouro Current and Proof. */
+export const VOYAGE_PATHS = ["/", "/nautilus/", "/ax/", ...APPLE_PATHS, ...PLATFORM_PATHS, "/adoption/", "/current/", "/proof/"] as const;
 
 /** A site path with a trailing slash and no `index.html`. */
 export function normalizePath(path: string): string {
