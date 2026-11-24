@@ -1456,11 +1456,28 @@ describe("MessageList", () => {
     await settle(scroller);
     const pill = page.getByRole("button", { name: "Jump to latest" });
     await expect.element(pill).toBeVisible();
+    const room = scroller.querySelector<HTMLElement>("[data-ouro-message-list-jump-room]")!;
     const last = () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
     const clearOf = () => (pill.element() as HTMLElement).getBoundingClientRect().top - last().getBoundingClientRect().bottom;
-    // Land clear of the newest message by a healthy margin, the same way the overlap above is landed, so nothing
-    // here overlaps to begin with.
-    await act(async () => void (scroller.scrollTop += 50 - clearOf()));
+    // Land a quarter of the reserve's own height clear of the newest message: comfortably inside what a scroll
+    // this far down can clear at all (the reserve run out from under the pill before clear reaches the reserve's
+    // own full height, ourostack/ouro-ui#3512), so this margin stays well short of the real scroll range's own
+    // end, not merely of the newest message. A margin close to that end lands within onScroll's own AT_BOTTOM
+    // tolerance of the true farthest scroll position by only a sub-pixel amount a browser's own text layout
+    // decides, which a browser that happens to round the other way turns into "at the very end" on its own,
+    // with nothing for this test's own write to decide; onScroll then hides the pill outright (pinned, not
+    // merely a few px of drift), well before this test ever reaches clearJump below, which is what made 50px
+    // close enough to that end to land there under WebKit (and would eventually under Chromium too, on text
+    // metrics that happened to round the other way).
+    await act(async () => void (scroller.scrollTop += room.offsetHeight / 4 - clearOf()));
+    // The raw write above schedules the browser's own, real "scroll" event regardless of whether this test
+    // dispatches one: settling here lets that genuine event (and whatever onScroll bookkeeping it runs) land
+    // and finish before the baseline below is read, rather than leaving it free to fire asynchronously, at a
+    // moment the browser engine alone decides, inside the fake-timer window further down. With the margin
+    // above now well clear of onScroll's own AT_BOTTOM tolerance, letting that event land changes nothing it
+    // decides, so settling here only removes an unresolved event from the window below, never substitutes a
+    // wait for one that would still be free to land late enough to flip what this test reads.
+    await settle(scroller);
     expect(clearOf()).toBeGreaterThan(0);
     const before = clearOf();
     // clearJump's own guard runs off scrollend alone (onScrollEnd === endSoon, message-list.tsx); dispatching a
@@ -1471,7 +1488,8 @@ describe("MessageList", () => {
     // further "scroll" to re-run that bookkeeping, isolates clearJump: faking just setTimeout/clearTimeout and
     // advancing straight past WHEEL_REST runs its callback deterministically, and checking the pill's own
     // computed clearance, not scrollTop, reads what the guard itself decided rather than any scroll position
-    // another mechanism might also have moved.
+    // another mechanism might also have moved. The settle above already let any real scroll event this test's
+    // own write schedules land first, so none is left pending to surface here.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     scroller.dispatchEvent(new Event("scrollend"));
     await vi.advanceTimersByTimeAsync(100);

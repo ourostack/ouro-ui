@@ -2464,12 +2464,12 @@ jobs:
       - *pnpm-install-stalled
       - *pnpm-install-retry
       # Never fails: it takes the nearest report on main within 20 commits of the base, and with none the sizes are judged by their ceilings, and the step says why.
-      - name: The base commit's page JavaScript sizes
+      - name: The base commit's page JavaScript and CSS sizes
         if: env.SIZE_GATE == 'pull'
         timeout-minutes: 2
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/size-gate.mjs base closure
+        run: node scripts/size-gate.mjs base closure page-css shell-css
       - name: End-to-end specs
         run: |
           if [ "$FULL" = true ]; then
@@ -2489,13 +2489,27 @@ jobs:
       # The shard that ran site/e2e/catalog.spec.ts wrote its sizes: they are the base of the next change on this tree.
       # Playwright's image runs as another user than the checkout's owner, so git is told the folder is safe.
       - id: size-tree
-        if: ${{ !cancelled() && hashFiles('.tmp/size/closure.json') != '' }}
+        if: ${{ !cancelled() && hashFiles('.tmp/size/closure.json', '.tmp/size/page-css.json', '.tmp/size/shell-css.json') != '' }}
         run: echo "tree=$(git -c safe.directory="$PWD" rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
       - if: ${{ !cancelled() && steps.size-tree.outputs.tree != '' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: size-closure-${{ steps.size-tree.outputs.tree }}
           path: .tmp/size/closure.json
+          include-hidden-files: true
+          retention-days: 30
+      - if: ${{ !cancelled() && steps.size-tree.outputs.tree != '' && hashFiles('.tmp/size/page-css.json') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: size-page-css-${{ steps.size-tree.outputs.tree }}
+          path: .tmp/size/page-css.json
+          include-hidden-files: true
+          retention-days: 30
+      - if: ${{ !cancelled() && steps.size-tree.outputs.tree != '' && hashFiles('.tmp/size/shell-css.json') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: size-shell-css-${{ steps.size-tree.outputs.tree }}
+          path: .tmp/size/shell-css.json
           include-hidden-files: true
           retention-days: 30
       - if: failure()
@@ -3799,6 +3813,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      actions: read # the base CSS size reports, size-gate.mjs base, so size-budget.mjs judges this pull request's own CSS growth
     steps:
       # Its checkout needs every commit of the pull request's head, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -3856,7 +3871,15 @@ jobs:
           cache: pnpm
       - *node-stalled
       - *node-retry
+      # Never fails: size-budget.mjs then judges its own CSS only against a growth budget over this report, as size-gate.mjs does everywhere else; with none, the ceiling alone decides.
+      - name: The base commit's page CSS sizes
+        timeout-minutes: 2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/size-gate.mjs base page-css shell-css
       - name: Fetch main, merge it, check, and read main again
+        env:
+          SIZE_GATE: pull
         run: >-
           node scripts/fresh-main.mjs --branch "${{ github.base_ref }}" --
           pnpm i --frozen-lockfile --
