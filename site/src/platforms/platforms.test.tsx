@@ -73,7 +73,7 @@ describe("platform pages", () => {
   it("control: the web's buttons say which one was pressed", async () => {
     await renderPage("/hx/");
     await userEvent.click(page.getByRole("button", { name: "Destructive" }));
-    await expect.element(page.getByText("Destructive pressed.", { exact: false })).toBeInTheDocument();
+    await expect.poll(() => document.querySelector(".hx-four-said")?.textContent).toMatch(/^Destructive pressed\./);
   });
 
   it("sends /web/ to Ouro HX's web tab", () => {
