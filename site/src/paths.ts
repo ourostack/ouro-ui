@@ -24,15 +24,19 @@ export type ApplePath = (typeof APPLE_PAGES)[number]["path"];
 /** Ouro UI for Windows' pages and Ouro UI for Android's, each with its own menu (platforms/shell.tsx). */
 export const WINDOWS_PAGES = [
   { path: "/windows/", label: "Overview", short: "Overview" },
+  { path: "/windows/hx/", label: "Ouro HX for Windows", short: "HX" },
+  { path: "/windows/ax/", label: "Ouro AX for Windows", short: "AX" },
   { path: "/windows/start/", label: "Get started", short: "Get started" },
 ] as const;
 export const ANDROID_PAGES = [
   { path: "/android/", label: "Overview", short: "Overview" },
+  { path: "/android/hx/", label: "Ouro HX for Android", short: "HX" },
+  { path: "/android/ax/", label: "Ouro AX for Android", short: "AX" },
   { path: "/android/start/", label: "Get started", short: "Get started" },
 ] as const;
 
 /** The platform pages beside Apple's: Ouro HX across every platform, and the Windows and Android deep dives. */
-export const PLATFORM_PATHS = ["/hx/", "/windows/", "/windows/start/", "/android/", "/android/start/"] as const satisfies ReadonlyArray<"/hx/" | (typeof WINDOWS_PAGES)[number]["path"] | (typeof ANDROID_PAGES)[number]["path"]>;
+export const PLATFORM_PATHS = ["/hx/", "/windows/", "/windows/hx/", "/windows/ax/", "/windows/start/", "/android/", "/android/hx/", "/android/ax/", "/android/start/"] as const satisfies ReadonlyArray<"/hx/" | (typeof WINDOWS_PAGES)[number]["path"] | (typeof ANDROID_PAGES)[number]["path"]>;
 export type PlatformPath = (typeof PLATFORM_PATHS)[number];
 
 /**
