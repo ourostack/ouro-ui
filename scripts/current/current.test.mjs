@@ -2303,3 +2303,83 @@ test("an update to an app with no oxlint baseline writes none", async () => {
   assert.equal(bare.fileAt(BRANCH, "oxlint.baseline.json"), undefined);
   assert.doesNotMatch(bare.pulls[0].body, /oxlint/);
 });
+
+/**
+ * An app with Ouro HX's button installed from an old tag, and a release whose registry ships `lib-squircle-corners`,
+ * the PostCSS plugin that alone draws squircles in WebKit since #3426 (#3488).
+ */
+function squircleFixture({ tag = "v1.3.117", build = {} } = {}) {
+  const button = (v) => `import { cn } from "@/registry/ouro/lib/ouro/cn";\nexport const Button = "${v}";\n`;
+  const plugin = "export { squircleCorners };\nfunction squircleCorners() {\n  return { postcssPlugin: \"ouro-squircle-corners\", OnceExit() {} };\n}\n";
+  const buttonItem = { name: "button", type: "registry:ui", files: [{ path: "registry/ouro/components/ouro/button/button.tsx", target: "@components/ouro/button/button.tsx" }] };
+  const squircleItem = { name: "lib-squircle-corners", type: "registry:lib", files: [{ path: "registry/ouro/lib/ouro/squircle-corners.ts", target: "@lib/ouro/squircle-corners.ts" }] };
+  const at = (version) =>
+    version === "v1.3.117"
+      ? new Map(Object.entries({ "registry.json": JSON.stringify({ items: [buttonItem] }), "registry/ouro/components/ouro/button/button.tsx": button("v1") }).map(([k, v]) => [k, Buffer.from(v)]))
+      : new Map(Object.entries({ "registry.json": JSON.stringify({ items: [buttonItem, squircleItem] }), "registry/ouro/components/ouro/button/button.tsx": button("v2"), "registry/ouro/lib/ouro/squircle-corners.ts": plugin }).map(([k, v]) => [k, Buffer.from(v)]));
+  const v = tag === "v1.3.117" ? "v1" : "v2";
+  const files = {
+    "components.json": JSON.stringify({ aliases: { components: "~/components", lib: "~/lib" } }),
+    "app/components/ouro/button/button.tsx": button(v).replace("@/registry/ouro/lib/", "~/lib/"),
+    ".github/ouro-hx-installed.json": JSON.stringify({ tag, tagCommit: "old", files: { "app/components/ouro/button/button.tsx": sha256(button(v)) } }),
+    ...build,
+  };
+  return { files, plugin, tarball: async (follows, version) => at(version) };
+}
+
+const VITE_CONFIG = 'import { defineConfig } from "vite";\n\nexport default defineConfig({\n  plugins: [],\n});\n';
+
+test("an Ouro HX update to a release that draws squircles only through squircleCorners() installs the plugin and wires it into the app's Vite config (#3488)", async () => {
+  const app = squircleFixture({ build: { "vite.config.ts": VITE_CONFIG } });
+  const consumer = new Map(Object.entries(app.files).map(([k, v]) => [k, Buffer.from(v)]));
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const update = await UPDATERS["hx-installed"](pin, app.files[pin.file], RELEASES.web, { tarball: app.tarball, consumerFiles: async () => consumer });
+  assert.equal(update.files["app/lib/ouro/squircle-corners.ts"]?.toString(), app.plugin, "the plugin lands where the app's lib alias resolves");
+  assert.equal(JSON.parse(update.files[pin.file]).files["app/lib/ouro/squircle-corners.ts"], sha256(app.plugin), "and the install record holds it");
+  assert.equal(String(update.files["vite.config.ts"]), 'import { defineConfig } from "vite";\nimport { squircleCorners } from "./app/lib/ouro/squircle-corners";\n\nexport default defineConfig({\n  css: { postcss: { plugins: [squircleCorners()] } },\n  plugins: [],\n});\n');
+  assert.ok(update.notes.some((note) => note.includes("`vite.config.ts`") && note.includes("squircleCorners()")));
+});
+
+test("an Ouro HX update to a squircleCorners() release is held back whole when the app's PostCSS plugins are in a postcss.config file, and says what to add (#3488)", async () => {
+  const app = squircleFixture({ build: { "vite.config.ts": VITE_CONFIG, "postcss.config.js": 'export default { plugins: { "@tailwindcss/postcss": {} } };\n' } });
+  const repo = fakeRepo({ ...app.files, ".github/ouro-current.json": "{}" });
+  const kept = await keepRepo(repo.gh, "o/r", RELEASES, { tarball: app.tarball });
+  assert.equal(kept.state, "skipped");
+  assert.match(kept.reason, /`postcss\.config\.js`/);
+  assert.match(kept.reason, /squircleCorners\(\)/);
+  assert.equal(repo.pulls.length, 0, "no pull request leaves Safari with round corners");
+});
+
+test("an install record already on a squircleCorners() release whose build lacks the plugin gets a pull request that adds it, and is current once it merges (#3488)", async () => {
+  const app = squircleFixture({ tag: RELEASES.web.tag, build: { "vite.config.ts": VITE_CONFIG } });
+  const repo = fakeRepo({ ...app.files, ".github/ouro-current.json": "{}" });
+  const kept = await keepRepo(repo.gh, "o/r", RELEASES, { tarball: app.tarball });
+  assert.equal(kept.state, "pr");
+  assert.equal(kept.pr.title, `Draw squircles in WebKit with ${"Ouro UI"} ${RELEASES.web.tag}`);
+  assert.match(repo.fileAt(BRANCH, "vite.config.ts"), /plugins: \[squircleCorners\(\)\]/);
+  assert.equal(repo.fileAt(BRANCH, "app/lib/ouro/squircle-corners.ts"), app.plugin);
+  repo.setMain({ "vite.config.ts": repo.fileAt(BRANCH, "vite.config.ts"), "app/lib/ouro/squircle-corners.ts": app.plugin, ".github/ouro-hx-installed.json": repo.fileAt(BRANCH, ".github/ouro-hx-installed.json") });
+  assert.equal((await keepRepo(repo.gh, "o/r", RELEASES, { tarball: app.tarball })).state, "current");
+});
+
+test("an app that wired squircleCorners() its own way, or installs no component, is not held back or changed for it (#3488)", async () => {
+  const own = squircleFixture({ tag: RELEASES.web.tag, build: { "postcss.config.mjs": 'import { squircleCorners } from "./app/lib/ouro/squircle-corners.ts";\nexport default { plugins: [squircleCorners()] };\n', "app/lib/ouro/squircle-corners.ts": "mine" } });
+  assert.equal((await keepRepo(fakeRepo({ ...own.files, ".github/ouro-current.json": "{}" }).gh, "o/r", RELEASES, { tarball: own.tarball })).state, "current");
+  const tools = squircleFixture({ build: { "vite.config.ts": VITE_CONFIG } });
+  const check = { name: "ouro-check", type: "registry:lib", files: [{ path: "registry/ouro/check/run.ts", target: "~/scripts/ouro/check/run.ts" }] };
+  const tarball = async (follows, version) => {
+    const files = await tools.tarball(follows, version);
+    const registry = JSON.parse(files.get("registry.json").toString());
+    registry.items.push(check);
+    files.set("registry.json", Buffer.from(JSON.stringify(registry)));
+    files.set("registry/ouro/check/run.ts", Buffer.from(`run ${version}`));
+    return files;
+  };
+  const consumer = new Map([["components.json", Buffer.from(tools.files["components.json"])], ["scripts/ouro/check/run.ts", Buffer.from("run v1.3.117")], ["vite.config.ts", Buffer.from(VITE_CONFIG)]]);
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const record = JSON.stringify({ tag: "v1.3.117", tagCommit: "old", files: { "scripts/ouro/check/run.ts": sha256("run v1.3.117") } });
+  const update = await UPDATERS["hx-installed"](pin, record, RELEASES.web, { tarball, consumerFiles: async () => consumer });
+  assert.equal(String(update.files["scripts/ouro/check/run.ts"]), `run ${RELEASES.web.tag}`);
+  assert.equal(update.files["vite.config.ts"], undefined, "an app with no Ouro surface draws no corners");
+  assert.ok(!Object.keys(update.files).some((path) => path.includes("squircle")));
+});

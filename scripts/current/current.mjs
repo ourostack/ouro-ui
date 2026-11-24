@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
 import { lowerBaseline } from "./baseline.mjs";
 import { regenerate } from "./generate.mjs";
-import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, appleRequirement, asBytes, findPins, hxStylesheetBehind, isBehind, isCandidate, ourostackPackages, takes } from "./pins.mjs";
+import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, appleRequirement, asBytes, findPins, hxSquircleBehind, hxStylesheetBehind, isBehind, isCandidate, ourostackPackages, takes } from "./pins.mjs";
 import { CONFIG as CHECK_CONFIG, bringsCheck, checkConfigs, checkRulesSection, seedKnown } from "./known.mjs";
 import { gateLive, liveFor, runLiveCheck } from "./live.mjs";
 import { RULES_PATH, applyRules, isIgnored, reviewTeam } from "./rules.mjs";
@@ -391,9 +391,12 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   // An install record already on the release whose stylesheet lacks what the release's theme items add (an update that
   // moved the components alone, before Ouro Current wrote stylesheets: #1843) is behind too, for its stylesheet.
   for (const pin of pins) {
-    if (pin.kind === "hx-installed" && !isBehind(pin, releases.web) && (await hxStylesheetBehind(pin, texts[pin.file], releases.web, ctx))) pin.stylesheet = true;
+    if (pin.kind !== "hx-installed" || isBehind(pin, releases.web)) continue;
+    if (await hxStylesheetBehind(pin, texts[pin.file], releases.web, ctx)) pin.stylesheet = true;
+    // Its build lacks the squircleCorners() plugin the release draws squircles in WebKit with (#3488).
+    else if (await hxSquircleBehind(pin, texts[pin.file], releases.web, ctx)) pin.squircles = true;
   }
-  let behind = pins.filter((pin) => pin.stylesheet || isBehind(pin, releases[pin.follows]));
+  let behind = pins.filter((pin) => pin.stylesheet || pin.squircles || isBehind(pin, releases[pin.follows]));
   // An app that also builds an ourostack package which takes ouro-ui-apple itself (Ouro MD and its app shell) resolves
   // only when both take the same version. Ouro UI for Apple waits until each such package, at the revision the app
   // resolves, takes the new release: moving the app alone left ouro-md#194 unable to resolve its packages.
@@ -416,15 +419,22 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   // repository lists every rule its release brings (`brought`), vendored Ouro check or not; the others only those it vendors.
   const checkRules = [];
   const brought = { rules: [], notes: [] };
+  const heldPins = new Set();
   for (const pin of behind) {
     const text = typeof files[pin.file] === "string" ? files[pin.file] : texts[pin.file];
     const update = await UPDATERS[pin.kind](pin, text, releases[pin.follows], ctx);
+    // An updater that holds its pin back whole (an Ouro HX release the app's build cannot draw yet: #3488) moves nothing,
+    // and its note says why.
+    if (update.held) heldPins.add(pin);
     Object.assign(files, update.files);
     notes.push(...update.notes);
     checkRules.push(...(update.checkRules ?? []));
     brought.rules.push(...(update.newRules?.rules ?? []));
     brought.notes.push(...(update.newRules?.notes ?? []));
   }
+  // Every pin held back: nothing to propose, not even what the repository's rules ask of a change.
+  if (heldPins.size === behind.length) return { ...result, state: "skipped", reason: [...new Set(notes)].join(" "), pr: null };
+  behind = behind.filter((pin) => !heldPins.has(pin));
   // A new ouro-actions generator generates the projections again, as the repository runs generate (ouro-ui-core#123).
   const generated = await regenerate(files, ctx);
   Object.assign(files, generated.files);
@@ -442,7 +452,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   if (held.length) notes.push(workflowNote(held));
   if (behind.every((pin) => inWorkflows(pin.file))) return { ...result, state: "skipped", reason: workflowNote(held), pr: null };
   const shown = behind.filter((pin) => !inWorkflows(pin.file));
-  const name = shown.every((pin) => pin.stylesheet) ? `Update the stylesheet to ${NAMES.web} ${releases.web.tag}` : title(shown, releases);
+  const name = shown.every((pin) => pin.squircles) ? `Draw squircles in WebKit with ${NAMES.web} ${releases.web.tag}` : shown.every((pin) => pin.stylesheet || pin.squircles) ? `Update the stylesheet to ${NAMES.web} ${releases.web.tag}` : title(shown, releases);
   const latestRelease = async () => {
     try {
       return (await gh.get(`repos/${repo}/releases/latest`)).tag_name ?? null;
