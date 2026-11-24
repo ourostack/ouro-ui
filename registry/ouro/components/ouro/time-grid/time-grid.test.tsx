@@ -483,10 +483,18 @@ describe("TimeGrid", () => {
   });
 
   it("says an away event is out of office in its name, and draws it in the away colour whatever its tone", async () => {
-    await render({ view: "day", events: [{ id: "o", title: "Offsite", start: at(12, "15:00"), end: at(12, "16:00"), status: "away", tone: "success" }] });
+    const { rerender } = await render({ view: "day", events: [{ id: "o", title: "Offsite", start: at(12, "15:00"), end: at(12, "16:00"), status: "away", tone: "success" }] });
     expect(plain(titled("Offsite").getAttribute("aria-label"))).toBe("Offsite, 3:00 – 4:00 PM, Thursday, out of office");
     expect(titled("Offsite").dataset.status).toBe("away");
-    expect(getComputedStyle(titled("Offsite")).borderInlineStartColor).not.toBe(getComputedStyle(document.documentElement).getPropertyValue("--success"));
+    const probe = document.createElement("div");
+    probe.style.borderTop = "3px solid var(--ouro-away)";
+    document.body.append(probe);
+    const away = getComputedStyle(probe).borderTopColor;
+    probe.remove();
+    expect(getComputedStyle(titled("Offsite")).borderInlineStartColor).toBe(away);
+    const away2 = getComputedStyle(titled("Offsite")).backgroundColor;
+    await rerender({ view: "day", events: [{ id: "o", title: "Offsite", start: at(12, "15:00"), end: at(12, "16:00"), tone: "success" }] });
+    expect(getComputedStyle(titled("Offsite")).backgroundColor).not.toBe(away2);
     expect(warnings()).toEqual([]);
   });
 
@@ -1033,9 +1041,9 @@ describe("TimeGrid", () => {
     // Its parts carry their names (docs/guides/part-names.md).
     for (const part of ["time-grid-mark-label", "time-grid-mark", "time-grid-mark-name"]) expect(grid.querySelectorAll(`[data-slot="${part}"]`)).toHaveLength(2);
     // Each tone tints in its own colour.
-    const all = await render({ view: "week", markedDays: { "2026-03-09": { label: "a" }, "2026-03-10": { label: "b", tone: "secondary" }, "2026-03-11": { label: "c", tone: "success" }, "2026-03-12": { label: "d", tone: "warning" }, "2026-03-13": { label: "e", tone: "destructive" } } });
+    const all = await render({ view: "week", markedDays: { "2026-03-09": { label: "a" }, "2026-03-10": { label: "b", tone: "secondary" }, "2026-03-11": { label: "c", tone: "success" }, "2026-03-12": { label: "d", tone: "warning" }, "2026-03-13": { label: "e", tone: "destructive" }, "2026-03-14": { label: "f", tone: "away" } } });
     const tints = [...all.grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")].map((column) => getComputedStyle(column).backgroundColor);
-    expect(new Set(tints).size).toBe(5);
+    expect(new Set(tints).size).toBe(6);
     expect(tints).not.toContain(clear);
     // An unmarked day keeps the page's own colour.
     expect(grid.querySelectorAll("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked]")).toHaveLength(2);
@@ -1442,6 +1450,15 @@ describe("TimeGrid background events", () => {
     const swatch = (title: string) => getComputedStyle(spokenAs(title).querySelector("[data-ouro-time-grid-bar]")!).backgroundColor;
     expect(swatch("All hands")).not.toBe(swatch("Budget review"));
     expect(getComputedStyle(spokenAs("All hands")).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    // An away background event's bar is the away colour, whatever its tone.
+    await rerender({ events: [forum, standup], backgroundEvents: [{ ...hands, status: "away" }, review] });
+    const probe = document.createElement("div");
+    probe.style.borderTop = "3px solid var(--ouro-away)";
+    document.body.append(probe);
+    const away = getComputedStyle(probe).borderTopColor;
+    probe.remove();
+    expect(getComputedStyle(spokenAs("All hands").querySelector("[data-ouro-time-grid-bar]")!).borderTopColor).toBe(away);
+    await rerender({ events: [forum, standup], backgroundEvents: [hands, review] });
     // The lane's name follows backgroundLabel; with no background events there is no lane.
     await rerender({ events: [forum, standup], backgroundEvents: [hands], backgroundLabel: "In the crowd" });
     expect(lanes().map((lane) => lane.getAttribute("aria-label"))).toEqual(["Thursday, March 12, In the crowd"]);
