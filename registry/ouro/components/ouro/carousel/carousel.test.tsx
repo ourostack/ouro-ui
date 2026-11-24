@@ -402,6 +402,27 @@ describe("Carousel navigation", () => {
     record.stop();
   });
 
+  it("keeps a target pending through repeated pauses, however long its scroll takes to even begin", async () => {
+    const onIndexChange = vi.fn();
+    const onTargetChange = vi.fn();
+    const screen = await render(
+      <Carousel label="Recipe photos" onIndexChange={onIndexChange} onTargetChange={onTargetChange}>
+        {photos(3)}
+      </Carousel>,
+    );
+    // Hold the scroll the press asks for: the viewport never moves, so every pause's check()
+    // keeps finding the same mismatch between the heading and the viewport's own position.
+    screen.viewport.scrollTo = (() => {}) as typeof screen.viewport.scrollTo;
+    await userEvent.click(screen.button("Next slide"));
+    expect(onTargetChange.mock.calls).toEqual([[1]]);
+    // Long past several of check()'s 150ms pauses: a mismatch that never changes must not read
+    // as a competing scroll that finished elsewhere when nothing else moved the viewport (see
+    // carousel.tsx's check(), which only drops a stale heading in fallback mode).
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(onIndexChange).not.toHaveBeenCalled();
+    expect(onTargetChange).toHaveBeenLastCalledWith(1);
+  });
+
   it("follows the reading direction in a right-to-left page", async () => {
     const onIndexChange = vi.fn();
     const screen = await render(
