@@ -1,0 +1,1 @@
+- Fixed: SnapPiP announces when its picture is put away and brought back, as the Hide and Show buttons and an automatic hide change it.
