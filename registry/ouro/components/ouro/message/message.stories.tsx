@@ -264,6 +264,7 @@ export const ChatLeaving: Story = {
     }
     // pointerleave does not bubble, so it goes to each element the list may listen on.
     for (let up: HTMLElement | null = row; up !== null && up !== canvasElement.parentElement; up = up.parentElement) up.dispatchEvent(new PointerEvent("pointerleave", { pointerType: "mouse" }));
+    while (row.querySelector('[data-ouro-part="bar"]') !== null) await frame();
   },
 };
 
