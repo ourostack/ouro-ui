@@ -110,7 +110,8 @@ describe("Progress", () => {
     expect(bar.hasAttribute("data-indeterminate")).toBe(true);
     expect(getComputedStyle(indicator).animationName).toBe("ouro-progress");
     await commands.emulateMedia({ reducedMotion: "reduce" });
-    expect(getComputedStyle(indicator).animationName).toBe("ouro-pulse");
+    // WebKit hasn't always applied the emulated media by the next statement (#3518): poll instead of reading once.
+    await expect.poll(() => getComputedStyle(indicator).animationName).toBe("ouro-pulse");
     expect(indicator.getBoundingClientRect().width).toBe(indicator.parentElement!.getBoundingClientRect().width);
   });
 
@@ -153,7 +154,8 @@ describe("Progress", () => {
     expect(getComputedStyle(indicator).transitionProperty).toBe("translate");
     expect(getComputedStyle(indicator).transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
     await commands.emulateMedia({ reducedMotion: "reduce" });
-    expect(getComputedStyle(indicator).transitionProperty).toBe("none");
+    // WebKit hasn't always applied the emulated media by the next statement (#3518): poll instead of reading once.
+    await expect.poll(() => getComputedStyle(indicator).transitionProperty).toBe("none");
   });
 
   it("fills with the tone's color, primary by default, on a quiet track", async () => {
