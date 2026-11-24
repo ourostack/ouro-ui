@@ -18,7 +18,7 @@ const spelled = (n: number) => WORDS[n] ?? String(n);
 /** "Learn it once. Every app gets it.": the flywheel, with one real turn of it. */
 export function Flywheel(): JSX.Element {
   return (
-    <section aria-labelledby="site-flywheel-title" className="site-band" data-site-flywheel="">
+    <section aria-labelledby="site-flywheel-title" className="border-t border-border/70 py-20 lg:py-28" data-site-flywheel="">
       <Container>
         <p className="site-eyebrow">{FLYWHEEL.eyebrow}</p>
         <h2 id="site-flywheel-title" className="site-h2 mt-4">
@@ -48,7 +48,7 @@ export function Benchmark(): JSX.Element {
   const row = (way: Row["way"]) => benchmark.rows.find((entry) => entry.way === way)!;
   const [actions, browser, plain] = [row("actions"), row("browser"), row("plain")];
   return (
-    <section aria-labelledby="site-benchmark-title" className="site-band" data-site-benchmark="">
+    <section aria-labelledby="site-benchmark-title" className="border-t border-border/70 py-20 lg:py-28" data-site-benchmark="">
       <Container>
         <p className="site-eyebrow">{BENCHMARK.eyebrow}</p>
         <h2 id="site-benchmark-title" className="site-h2 mt-4">
@@ -66,8 +66,8 @@ export function Benchmark(): JSX.Element {
         </p>
         <ul className="site-benchmark-list" aria-label={BENCHMARK.caption} data-site-benchmark-list="">
           {benchmark.rows.map((entry) => (
-            <li key={entry.way} data-way={entry.way}>
-              <span className="site-benchmark-way">{BENCHMARK.ways[entry.way]}</span>
+            <li key={entry.way} data-way={entry.way} className="grid items-start gap-x-8 gap-y-2 border-t border-border/70 pt-4 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+              <span className="site-benchmark-way font-semibold">{BENCHMARK.ways[entry.way]}</span>
               <dl className="site-benchmark-stats">
                 {(
                   [
@@ -99,7 +99,7 @@ export function Benchmark(): JSX.Element {
 /** The evidence strip: four facts in a row, each a link to where it's checked. */
 export function Evidence(): JSX.Element {
   return (
-    <section aria-label="Evidence" className="site-evidence" data-site-evidence="">
+    <section aria-label="Evidence" className="border-y border-border/70 py-6" data-site-evidence="">
       <Container>
         <ul className="site-evidence-list">
           {EVIDENCE.map((item) => (

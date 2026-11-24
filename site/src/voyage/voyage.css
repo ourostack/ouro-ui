@@ -245,17 +245,10 @@
     height: 1rem;
     color: var(--primary);
   }
-  .site-hero-links .site-hero-dot {
-    margin-inline-end: 1rem;
-    color: var(--muted-foreground);
-  }
   /*
    * "Why you can stop thinking about it" (home-sections.tsx, Why): five reasons under a hairline each, no cards. Three
    * across from 64rem, two from 40rem, one under another on a phone. Its headings and lines share the kit row's styles.
    */
-  .site-why {
-    padding-block: 3.5rem 1.5rem;
-  }
   .site-why-list {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -277,21 +270,8 @@
     }
   }
   @media (min-width: 64rem) {
-    .site-why {
-      padding-block: 5rem 2rem;
-    }
     .site-why-list {
       grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-  /* The flywheel and the benchmark (home-sections.tsx): open sections under a hairline. */
-  .site-band {
-    padding-block: 5rem;
-    border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-  }
-  @media (min-width: 64rem) {
-    .site-band {
-      padding-block: 7rem;
     }
   }
   /* The benchmark's ways in: one row each under a hairline, the way in above its four numbers on a phone and beside them from 48rem. */
@@ -302,17 +282,8 @@
     padding: 0;
     list-style: none;
   }
-  .site-benchmark-list li {
-    display: grid;
-    gap: 0.5rem 2rem;
-    padding-top: 1rem;
-    border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
-  }
   .site-benchmark-list li[data-way="actions"] .site-benchmark-way {
     color: var(--primary);
-  }
-  .site-benchmark-way {
-    font-weight: 600;
   }
   .site-benchmark-stats {
     display: grid;
@@ -329,19 +300,11 @@
     font-variant-numeric: tabular-nums;
   }
   @media (min-width: 48rem) {
-    .site-benchmark-list li {
-      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-      align-items: start;
-    }
     .site-benchmark-stats {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
   /* The evidence strip: four facts in a row, a dot between them, wrapping on a phone. */
-  .site-evidence {
-    padding-block: 1.5rem;
-    border-block: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-  }
   .site-evidence-list {
     display: flex;
     flex-wrap: wrap;

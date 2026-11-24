@@ -100,7 +100,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
               {VOYAGE_HERO.platforms.map((platform, index) => (
                 <span key={platform.href}>
                   {index > 0 ? (
-                    <span aria-hidden="true" className="site-hero-dot">
+                    <span aria-hidden="true" className="me-4 text-muted-foreground">
                       ·
                     </span>
                   ) : null}

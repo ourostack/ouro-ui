@@ -15,7 +15,7 @@ import { Container } from "./layout";
 export function Why(): JSX.Element {
   const { native, people, yes, check, beside } = WHY.reasons;
   return (
-    <section id="why" aria-labelledby="site-why-title" className="site-why" data-site-why="">
+    <section id="why" aria-labelledby="site-why-title" className="pt-10 pb-6 lg:pt-14 lg:pb-10" data-site-why="">
       <Container>
         <p className="site-eyebrow">{WHY.eyebrow}</p>
         <h2 id="site-why-title" className="site-h2 mt-4">
