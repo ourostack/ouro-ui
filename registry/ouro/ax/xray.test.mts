@@ -332,6 +332,14 @@ test("an MCP tool whose description promises a stream fails: this transport answ
   assert.match(tail.note, /answers one reply, never a stream/);
 });
 
+test("an MCP tool that only names a stream as a thing, such as a channel's streaming capability, is no stream promise", async () => {
+  const streaming = await xray(base({ mcp: fixture("mcp-server.mjs"), env: { MCP_MODE: "stream" } }));
+  assert.deepEqual(
+    streaming.results.filter((r) => r.claim === "mcp.no-stream-promise").map((r) => [r.surface, r.verdict]),
+    [["tail", "fail"], ["feed", "fail"], ["watch", "fail"], ["caps", "pass"], ["pick", "pass"], ["count", "pass"]],
+  );
+});
+
 test("the reports: Markdown and HTML list every claim and surface", async () => {
   const report = await xray(base({ mcp: fixture("mcp-server.mjs") }));
   const md = renderMarkdown(report);

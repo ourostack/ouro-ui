@@ -1,0 +1,1 @@
+- Fixed: ax-xray's `mcp.no-stream-promise` no longer fails a tool whose description names a stream as a thing, such as a channel's streaming capability; it fails only a promise that the tool itself streams.

@@ -3,8 +3,9 @@
 // that is missing its required argument instead of refusing it. $MCP_MODE picks a broken variant: "noinit" refuses to
 // initialize, "notools" lists no tools array, "loose" has tools without a description or schema, runs unknown tools,
 // and writes a line that is not JSON-RPC first, "modern" speaks only MCP 2026-07-28: it answers server/discover and
-// requests that carry the version in _meta, and refuses initialize, "stream" lists one tool whose description
-// promises a stream this transport (one reply per call) can never give.
+// requests that carry the version in _meta, and refuses initialize, "stream" lists three tools whose descriptions
+// promise a stream this transport (one reply per call) can never give, and three that only name a stream as a thing
+// (friends' channel_caps lists streaming among a channel's capabilities, friends#286).
 import readline from "node:readline";
 
 const mode = process.env.MCP_MODE ?? "";
@@ -16,7 +17,14 @@ const TOOLS =
         { name: "nameless", description: "No schema." },
       ]
     : mode === "stream"
-      ? [{ name: "tail", description: "Streams new log lines as they happen.", inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } }]
+      ? [
+          ["tail", "Streams new log lines as they happen."],
+          ["feed", "Returns a stream of events from the room."],
+          ["watch", "Watch the build and report on it continuously."],
+          ["caps", "Return the capabilities of a channel (integrations, markdown, streaming, rich cards, max length)."],
+          ["pick", "Pick which stream to read: the events or the live transcript."],
+          ["count", "Count a channel's streams and their viewers."],
+        ].map(([name, description]) => ({ name, description, inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } }))
       : [
           { name: "look", description: "Read a room's messages.", inputSchema: { type: "object", properties: { room: { type: "string" } }, required: ["room"] }, annotations: { readOnlyHint: true } },
           { name: "poke", description: "Poke someone.", inputSchema: { type: "object", properties: { who: { type: "string" } }, required: ["who"] } },
