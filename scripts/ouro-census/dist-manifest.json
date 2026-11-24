@@ -1,7 +1,7 @@
 {
   "tool": "ouro-census",
   "version": "0.1.0",
-  "checker": "813bc0722e49b5b9287f5162ebb4ef5fc76084d3958e5497ed54c26b7cc53478",
+  "checker": "597c52b2ab9032687be32e8f77292b06e0926817c1fa65c0921018a5c07494bb",
   "files": {
     "base.mts": "b5ef17d10c1540c3e7007ad252e7bd23131efadcad9ba3380f6afc683845b0c0",
     "baseline.mts": "7481dec0829dd4edf7b7ee61bbb168b5786f5d7fc2baf58ba9614a45a18178ab",
@@ -12,14 +12,14 @@
     "guard.mjs": "dc1f6da80c7168e042f90c3ca5333337351b7177ac476d679f34e818e0b16f0c",
     "report.mts": "8ea2498edd3ff10363ed90a32feee6c58bc0796acb0475da0afad2246e6641f4",
     "types.mts": "c22b27587188f529e2cba4313ea705889f78be04e7199dab60e6ea7666b78daa",
-    "walkers/argv-entries.mts": "d73195babaff3036cc4f5d59b227560f6a92d2f4fd54b772b85a060bb8ebdae6",
+    "walkers/argv-entries.mts": "fadb31b47c6b4e2a9fb66372e08f7f9deb5db5f57fd4e893d2b793a0dcbf61d2",
     "walkers/cli-cards.mts": "0bc8b21d7da196a09cf302ebeda14f6ef3631b4e7a396e70cf21ac7f61ec533c",
-    "walkers/declared-tools.mts": "979604f93bf798479de2a1cb808393c4345f392c9608453a034794abaf30b128",
-    "walkers/literals.mts": "023ecc7251b016043f6d85948dd363ed7cfb4ab024a3998d24617018870ebd43",
-    "walkers/mcp-schemas.mts": "4ea014694750d9c0e80a85bfcdf2442ce5524904cc9874532720793263f4c991",
+    "walkers/declared-tools.mts": "31ca38302a15a23bec5c850ff67bf18e7001ddb7bc9d25c140a9de64f728614d",
+    "walkers/literals.mts": "373cb6a701a78a97411fe1ca8e2882034ff8a5ad493c3853d1e4af3256e032af",
+    "walkers/mcp-schemas.mts": "ab1e20a4f266e1b8bb5cb5cc934d25d08b63d37693b1cde0a2adfce128ad1b89",
     "walkers/registry.mts": "4fec511eecec992e8cd37f7c1772d6085f69b36ec547f8aebfd8e6ce44c79d6c",
-    "walkers/tool-schemas.mts": "6b740973d8256ece45f93b2db55dc2163cdd1c4e625f3e914dc4d0edf7b69c2b",
-    "walkers/ts-argv.mts": "b427cee6802aa2f5d76afdb1511ab24fc62d6b86bdb264aff5495d74ba36915c",
-    "walkers/ts-parser.mts": "0ce06b5c80a9179f6b6f178ef23bf55be0f4906bdfaa1ce8396ddb2bbd827820"
+    "walkers/tool-schemas.mts": "cc6a3e5667a82acee1e99af8e6491480c9cc68ef4dcc45970185e4241a62a437",
+    "walkers/ts-argv.mts": "4afb22df9a224c45aaf9af921cb6ae8c53d7142c9ba6b6979d8d8a62ecb387da",
+    "walkers/ts-parser.mts": "97df4820c8287d397fc1c3cd16773caaf1909b1516690b18a03a21166385b386"
   }
 }
