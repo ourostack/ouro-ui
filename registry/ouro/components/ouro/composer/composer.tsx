@@ -600,7 +600,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   // The frame, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
   const frameRef = useRef<HTMLDivElement | null>(null);
   const height = useRef<{ expanded: boolean; px: number } | null>(null);
-  const move = useRef<{ end: () => void } | null>(null);
+  const move = useRef<{ end: () => void; full: number } | null>(null);
   // A collapse keeps the toolbar on screen while it fades out; the render that collapses sets this.
   const [wasExpanded, setWasExpanded] = useState(expanded);
   const [leaving, setLeaving] = useState(false);
@@ -759,7 +759,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     const running = move.current;
     // A render that leaves the box expanded or collapsed as it was lets the move run on.
     if (running && height.current?.expanded === expanded) return;
-    const shown = frame.offsetHeight - (running ? clipTop(frame) : 0);
+    const shown = running ? running.full - clipTop(frame) : frame.offsetHeight;
     running?.end();
     const toolbarElement = frame.querySelector<HTMLElement>("[data-ouro-composer-toolbar]");
     if (toolbarElement && leaving) toolbarElement.style.display = "none";
@@ -795,7 +795,7 @@ export function Composer(props: ComposerProps): JSX.Element {
       setLeaving(false);
       finish();
     };
-    move.current = { end };
+    move.current = { end, full: expanded ? px : Math.max(from, px) };
     // The animations wait two frames, so the commit's own work does not eat their first ones.
     frames = requestAnimationFrame(() => {
       frames = requestAnimationFrame(() => {
