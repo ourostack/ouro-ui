@@ -26,6 +26,8 @@ export function runtimeSource(path) {
   if (vendored.includes(path)) return false;
   // The squircle engine is ourostack/hyperellipse's, mutated and tested there.
   if (path.startsWith("registry/ouro/lib/ouro/squircle/")) return false;
+  // The build-time plugin runs in Node, so its tests are node:test (scripts/squircle-corners.test.mjs).
+  if (path === `${libDir}squircle-corners.ts`) return false;
   if (path.startsWith(componentsDir)) return true;
   return path.startsWith(libDir) && !path.startsWith(`${libDir}testing/`);
 }
