@@ -231,6 +231,14 @@ describe("the call window page", () => {
     }
   });
 
+  it("shows a chosen reaction on the stage, not only in the status line", async () => {
+    await renderPage("/docs/call-demo/");
+    await page.getByRole("button", { name: "React" }).click();
+    await page.getByRole("button", { name: "Applause" }).click();
+    await expect.element(page.getByRole("button", { name: /Applause/ })).toBeVisible();
+    expect(document.querySelector("[data-site-call-reaction]")?.textContent).toContain("👏");
+  });
+
   it("says which parts of the demo are scripted", async () => {
     await renderPage("/docs/call-demo/");
     expect(document.body.textContent).toMatch(/own script/);

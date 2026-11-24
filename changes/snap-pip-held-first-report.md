@@ -1,0 +1,1 @@
+- Fixed: SnapPiP stays open when a person opens it over a keep-out and the first size reports arrive afterwards.
