@@ -131,10 +131,11 @@ for (const mockup of ["a", "b", "c", "d", "e"]) {
     await record(page, mockup, size, "closed");
     const openers = await page.evaluate(() =>
       [...document.querySelectorAll('button[aria-expanded], button[aria-haspopup="dialog"]')]
-        .filter((el) => el.checkVisibility() && !el.closest(".lab-dock, .lab-tree") && !/search/i.test(el.getAttribute("aria-label") ?? el.textContent))
+        .filter((el) => el.checkVisibility() && !el.closest('.lab-dock, .lab-tree, nav[aria-label="Site"]') && !/search/i.test(el.getAttribute("aria-label") ?? el.textContent))
         .map((el) => (el.getAttribute("aria-label") ?? el.textContent).trim()),
     );
     for (const name of openers) {
+      try {
       await load();
       await page.getByRole("button", { name, exact: true }).first().click();
       await page.waitForTimeout(600);
@@ -154,6 +155,9 @@ for (const mockup of ["a", "b", "c", "d", "e"]) {
           await xray.first().scrollIntoViewIfNeeded();
           await record(page, mockup, size, `${name} x-ray`);
         }
+      }
+      } catch (error) {
+        failures.push(`${prefix}-${mockup}-${size}-${slug(name)}: the check could not open it (${String(error).split("\n")[0]})`);
       }
     }
     await context.close();
