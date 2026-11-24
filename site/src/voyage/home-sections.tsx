@@ -64,11 +64,11 @@ export function Benchmark(): JSX.Element {
         <p className="mt-4 mb-0 max-w-(--measure-lede-wide) text-muted-foreground">
           Ouro&rsquo;s actions got {actions.done}% of jobs done, {BENCHMARK.rest}
         </p>
-        <ul className="site-benchmark-list" aria-label={BENCHMARK.caption} data-site-benchmark-list="">
+        <ul className="m-0 mt-8 grid list-none gap-4 p-0" aria-label={BENCHMARK.caption} data-site-benchmark-list="">
           {benchmark.rows.map((entry) => (
             <li key={entry.way} data-way={entry.way} className="grid items-start gap-x-8 gap-y-2 border-t border-border/70 pt-4 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-              <span className="site-benchmark-way font-semibold">{BENCHMARK.ways[entry.way]}</span>
-              <dl className="site-benchmark-stats">
+              <span className={entry.way === "actions" ? "site-benchmark-way font-semibold text-primary" : "site-benchmark-way font-semibold"}>{BENCHMARK.ways[entry.way]}</span>
+              <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-2 md:grid-cols-4">
                 {(
                   [
                     [BENCHMARK.columns.done, `${entry.done}%`],
@@ -78,8 +78,8 @@ export function Benchmark(): JSX.Element {
                   ] as const
                 ).map(([label, value]) => (
                   <div key={label}>
-                    <dt>{label}</dt>
-                    <dd>{value}</dd>
+                    <dt className="text-sm text-muted-foreground">{label}</dt>
+                    <dd className="m-0 tabular-nums">{value}</dd>
                   </div>
                 ))}
               </dl>
@@ -101,9 +101,14 @@ export function Evidence(): JSX.Element {
   return (
     <section aria-label="Evidence" className="border-y border-border/70 py-6" data-site-evidence="">
       <Container>
-        <ul className="site-evidence-list">
-          {EVIDENCE.map((item) => (
+        <ul className="m-0 flex list-none flex-wrap gap-x-6 gap-y-2 p-0 text-sm">
+          {EVIDENCE.map((item, index) => (
             <li key={item.href}>
+              {index > 0 ? (
+                <span aria-hidden="true" className="me-6 text-muted-foreground">
+                  ·
+                </span>
+              ) : null}
               <Link href={item.href.startsWith("/") ? href(item.href) : item.href} tone="secondary" inline>
                 {item.text}
               </Link>

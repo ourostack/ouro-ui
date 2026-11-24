@@ -23,8 +23,8 @@ export function Why(): JSX.Element {
         </h2>
         <p className="site-lede mt-5 mb-0 max-w-(--measure-lede-wide)">{WHY.body}</p>
         <p className="mt-4 mb-0 max-w-(--measure-lede-wide) text-sm text-muted-foreground">{WHY.credit}</p>
-        <ol className="site-why-list" aria-label="Five reasons">
-          <li className="site-why-item" data-site-why-item="native">
+        <ol className="m-0 mt-10 grid list-none gap-x-8 gap-y-6 p-0 sm:grid-cols-2 lg:grid-cols-3" aria-label="Five reasons">
+          <li className="grid content-start gap-1.5 border-t border-border/70 pt-4" data-site-why-item="native">
             <h3 className="site-kit-heading">{native.title}</h3>
             <p className="site-kit-line" data-site-counts="">
               {native.lead} {counts.web} on the web, {counts.apple} on Apple, {counts.windows} on Windows, {counts.android} on Android, and{" "}
@@ -34,19 +34,19 @@ export function Why(): JSX.Element {
               .
             </p>
           </li>
-          <li className="site-why-item" data-site-why-item="people">
+          <li className="grid content-start gap-1.5 border-t border-border/70 pt-4" data-site-why-item="people">
             <h3 className="site-kit-heading">{people.title}</h3>
             <p className="site-kit-line">{people.line}</p>
           </li>
-          <li className="site-why-item" data-site-why-item="yes">
+          <li className="grid content-start gap-1.5 border-t border-border/70 pt-4" data-site-why-item="yes">
             <h3 className="site-kit-heading">{yes.title}</h3>
             <p className="site-kit-line">{yes.line}</p>
           </li>
-          <li className="site-why-item" data-site-why-item="check">
+          <li className="grid content-start gap-1.5 border-t border-border/70 pt-4" data-site-why-item="check">
             <h3 className="site-kit-heading">{check.title}</h3>
             <p className="site-kit-line">{check.line}</p>
           </li>
-          <li className="site-why-item" data-site-why-item="beside">
+          <li className="grid content-start gap-1.5 border-t border-border/70 pt-4" data-site-why-item="beside">
             <h3 className="site-kit-heading">{beside.title}</h3>
             <p className="site-kit-line">
               {beside.line}{" "}
