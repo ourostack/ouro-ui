@@ -315,7 +315,6 @@
   from {
     clip-path: inset(var(--ouro-composer-gap) 0 0 0 round var(--ouro-composer-radius));
   }
-
   to {
     clip-path: inset(0 0 0 0 round var(--ouro-composer-radius));
   }
@@ -325,7 +324,6 @@
   from {
     clip-path: inset(0 0 0 0 round var(--ouro-composer-radius));
   }
-
   to {
     clip-path: inset(var(--ouro-composer-gap) 0 0 0 round var(--ouro-composer-radius));
   }
