@@ -97,6 +97,7 @@ const islandSheets: Record<string, string[]> = {
   "/apple/start/": ["src/apple/start.tsx"],
   "/adoption/": ["src/adoption/adoption.tsx"],
   "/current/": ["src/current/current.tsx"],
+  "/proof/": ["src/proof/proof.tsx"],
 };
 
 function islandAssets(path: string): string[] {

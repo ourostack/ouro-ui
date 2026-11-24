@@ -3307,6 +3307,12 @@ jobs:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
           OURO_REUSE_APP: "1"
+          # This step has no timeout-minutes of its own, so install-test.sh reads the job's own
+          # timeout-minutes above and scales its stall reporter's and globalTimeout's thresholds down
+          # to what is actually left of it, rather than the whole 30 minutes again, so a stall that
+          # starts late in the step still fails with the test's name before the job's own hard timeout
+          # does (install (ouro, nova, 3/3), run 45307477177, cut off with nothing named).
+          OURO_CI_JOB_BUDGET_MS: "1800000"
         run: |
           if [ "$FULL" != true ]; then export OURO_COMPONENTS="$COMPONENTS"; fi
           scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
