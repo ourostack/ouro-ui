@@ -45,6 +45,7 @@ The props the modes share. Type: `LightboxProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `closeLabel` | `string` | `"Close"` | The close button's accessible name. |
+| `fit` | `boolean` |  | The viewer shows the picture alone: centred and fitted with a margin, over the scrim, without a panel behind it. A press anywhere but on the image, its caption or a button dismisses it. It zooms from the thumbnail by scaling from the thumbnail's size rather than from 0.9, and its caption and buttons are quiet. Use it where the picture is all that should show, as in a chat's photos. With `fullScreen` too, `fit` wins. |
 | `fullScreen` | `boolean` |  | The viewer covers the whole screen at every width, with no frame around it, rather than sitting in a dialog with the page around it. Use it where pictures are the point, as in a chat's photos. Below an app's `--ouro-inset-top` bar it starts under the bar, as a dialog does. |
 | `fit` | `boolean` |  | The viewer shows the picture alone: centred and fitted with a margin, over the scrim, without a panel behind it. A press anywhere but on the image, its caption or a button dismisses it. It zooms from the thumbnail by scaling from the thumbnail's size rather than from 0.9, and its caption and buttons are quiet. Use it where the picture is all that should show, as in a chat's photos. With `fullScreen` too, `fit` wins. |
 | `images` (required) | `readonly LightboxImage[]` |  | The images, in order. The viewer steps through them, and the thumbnails show them in a grid. |
