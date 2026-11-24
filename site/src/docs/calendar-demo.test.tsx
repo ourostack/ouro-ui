@@ -41,6 +41,8 @@ describe("the calendar page", () => {
       await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
       await page.getByRole("radio", { name: "Loading" }).click();
       await expect.poll(() => document.querySelector("[data-site-calendar-demo] [aria-busy=true]")).not.toBeNull();
+      await expect.element(page.getByText("Loading your week")).toBeInTheDocument();
+      expect(document.querySelector("[data-site-calendar-demo] [data-ouro='moment'][data-kind='loading'], [data-site-calendar-demo] [data-ouro='moment']")).not.toBeNull();
     } finally {
       vi.useRealTimers();
     }
@@ -54,6 +56,22 @@ describe("the calendar page", () => {
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
     await expect.element(page.getByRole("radio", { name: /Work week/ })).toBeChecked();
+  });
+
+  it("leaves room under the grid on a phone for the Undo toast", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    const root = document.querySelector<HTMLElement>("[data-site-calendar-demo]")!;
+    await expect.poll(() => getComputedStyle(root).paddingBottom).toBe("96px");
+  });
+
+  it("puts the date heading on its own row above the controls on a phone", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    const heading = document.querySelector<HTMLElement>("[data-site-calendar-demo] h2")!;
+    const jump = [...document.querySelectorAll<HTMLElement>("[data-site-calendar-demo] button")].find((b) => b.textContent === "Go to date")!;
+    await expect.poll(() => heading.getBoundingClientRect().bottom <= jump.getBoundingClientRect().top).toBe(true);
+    expect(Math.round(heading.getBoundingClientRect().width)).toBeGreaterThan(300);
   });
 
   it("deletes an event from its details and brings it back with Undo", async () => {

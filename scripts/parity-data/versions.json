@@ -13,8 +13,8 @@
     "treeCoreTag": "v1.8.0"
   },
   "android": {
-    "tag": "v0.12.0",
-    "commit": "f27522bb0dc12193f1051e1a31f3b94e7efa16fc",
+    "tag": "v0.12.1",
+    "commit": "284491d755f35bd1b07643df619b86fffd341094",
     "coreTag": "v1.8.0",
     "treeCoreTag": "v1.8.0"
   }

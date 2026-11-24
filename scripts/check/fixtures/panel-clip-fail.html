@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel clip: fails</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:40rem;margin:0 auto}nav{background:#fff;border:1px solid #c9d3df;border-radius:12px;padding:16px}nav a{color:#0b57d0} nav{margin-top:16px;width:14rem}nav div{height:24px;overflow:hidden}</style>
+<main><h1>Panel clip</h1><p>A panel, opened from a button, whose description is cut to one line by a box that hides its overflow.</p>
+<button id="open" type="button" aria-expanded="false" aria-controls="panel">Guides</button>
+<nav id="panel" data-ouro-panel aria-label="Guides" hidden><a href="#a">Guides</a><div>How to install the kit, theme it and check it</div></nav></main>
+<script>
+const open = document.getElementById("open");
+const panel = document.getElementById("panel");
+open.addEventListener("click", () => { panel.hidden = false; open.setAttribute("aria-expanded", "true"); });
+document.addEventListener("keydown", (event) => { if (event.key === "Escape") { panel.hidden = true; open.setAttribute("aria-expanded", "false"); } });
+</script>

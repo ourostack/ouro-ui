@@ -357,6 +357,7 @@ test("the reports: Markdown and HTML list every claim and surface", async () => 
   assert.equal(summarize([], { target: { commit: null }, safety: { ok: true, checks: [] }, inventory: { given: true, surfaces: [] }, effects: [] }).summary.score, null);
   const one = summarize([{ claim: "cli.help-parses", surface: "help", verdict: "fail", note: "x" }, { claim: "cli.wait-on-refs", surface: "watch", verdict: "skip", note: "y" }], { target: { commit: null }, safety: { ok: false, checks: [] }, inventory: { given: false, surfaces: [] }, effects: [] });
   assert.match(renderText(one), /Does not conform yet: 1 must claim not holding; no inventory given; 1 must claim skipped\./);
+  assert.doesNotMatch(renderText(one), /the AX gate/, "the bar is pointed at only once the door conforms");
   const two = summarize([{ claim: "cli.help-parses", surface: "help", verdict: "skip", note: "x" }, { claim: "cli.wait-on-refs", surface: "watch", verdict: "skip", note: "y" }], { target: { commit: null }, safety: { ok: true, checks: [] }, inventory: { given: true, surfaces: ["cli"] }, effects: [] });
   assert.match(renderText(two), /Does not conform yet: 2 must claims skipped\./);
   const elsewhere = summarize([{ claim: "http.json", surface: "GET /x", verdict: "pass", note: "" }], { target: { commit: null }, safety: { ok: true, checks: [] }, inventory: { given: true, surfaces: ["cli"] }, effects: [] });
@@ -595,7 +596,7 @@ test("a mock check that answers text, a key path through a value that is not an 
   writeFileSync(inventory, JSON.stringify({ cli: ["rooms", "note", "post", "watch"] }));
   const good = io();
   assert.equal(await main(["--cli", fixture("notes.mts"), "--name", "notes", "--home", home, "--mock", `${mockUrl}/ mock=true`, "--inventory", inventory, "--conformance", "--state", "state", "--env", `NOTES_STATE=${join(scratch, "notes-main.json")}`], good.io), 0);
-  assert.match(good.o.out, /Conforms: every applicable must claim holds/);
+  assert.match(good.o.out, /Conforms: every applicable must claim holds.*\nConforming is the floor, not the bar: .*design-craft\/#the-ax-gate\)\.\n/);
 });
 
 test("refsOf collects each list item's ref once; audienceWho reads an outcome's audience", () => {

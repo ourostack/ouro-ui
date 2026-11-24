@@ -26,7 +26,7 @@ export interface KnownFinding {
 }
 
 /** The rules whose findings depend on how the text wraps. A host's fonts break lines differently, so these are judged only on Linux, where CI's baseline comes from. */
-export const textWrapRules: readonly string[] = ["lone-word", "overlap", "narrow-heading", "clipped-text"];
+export const textWrapRules: readonly string[] = ["lone-word", "overlap", "narrow-heading", "clipped-text", "wrapped-short-line"];
 
 /** Whether a rule is judged on this host: every rule is, except the text-wrap rules off Linux, which neither count as a finding nor as a stale entry there. */
 export function judgedOn(rule: string, platform: string): boolean {

@@ -6,6 +6,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { lintMarkdown, lintPlain } from "../../registry/ouro/lib/ouro/claims-check.mjs";
+import { AGENTS_PATH, BAR, withBar } from "./agents.mjs";
 import { BRANCH, body, createSources, keepCurrent, keepRepo, main, publicView, title } from "./current.mjs";
 import { checkRulesSection } from "./known.mjs";
 import { appJwt, createGitHub, retryable } from "./github.mjs";
@@ -2382,4 +2383,34 @@ test("an app that wired squircleCorners() its own way, or installs no component,
   assert.equal(String(update.files["scripts/ouro/check/run.ts"]), `run ${RELEASES.web.tag}`);
   assert.equal(update.files["vite.config.ts"], undefined, "an app with no Ouro surface draws no corners");
   assert.ok(!Object.keys(update.files).some((path) => path.includes("squircle")));
+});
+
+const POINTER = "**[Interfaces follow Ouro UI](https://github.com/ourostack/.github/blob/main/agents/interfaces-follow-ouro-ui.md).** Build screens from Ouro HX.\nKeep it current.";
+const AGENTS = `# Agents\n\nShip small.\n\n${POINTER}\n\n## Tests\n\nRun them.\n`;
+const block = (text) => `<!-- ouro-ui:bar -->\n${text}\n<!-- /ouro-ui:bar -->`;
+
+test("AGENTS.md gets the bar beside its pointer to Interfaces follow Ouro UI, or at the end, and a stale block is replaced in place", () => {
+  assert.equal(withBar(AGENTS), `# Agents\n\nShip small.\n\n${POINTER}\n\n${block(BAR)}\n\n## Tests\n\nRun them.\n`);
+  assert.equal(withBar(withBar(AGENTS)), null, "a block already in step changes nothing");
+  assert.equal(withBar(`# Agents\n\n${block("old words")}\n\nRun them.\n`), `# Agents\n\n${block(BAR)}\n\nRun them.\n`, "only the block's text changes, where it is");
+  assert.equal(withBar("# Agents\n\nRun them.\n\n"), `# Agents\n\nRun them.\n\n${block(BAR)}\n`);
+  assert.deepEqual(lintMarkdown(BAR, { file: "AGENTS.md" }), [], "a repository that runs the claims check on AGENTS.md accepts the block");
+});
+
+test("an update brings the bar into AGENTS.md and moves its byte budget by the block alone, unless the repository ignores AGENTS.md", async () => {
+  const budget = 5000;
+  const repo = fakeRepo({ "Package.swift": SWIFT, [AGENTS_PATH]: AGENTS, ".github/agents-md-budget.json": `${JSON.stringify({ [AGENTS_PATH]: budget }, null, 2)}\n` });
+  assert.equal((await keepRepo(repo.gh, "o/r", RELEASES, {})).state, "pr");
+  const written = repo.fileAt(BRANCH, AGENTS_PATH);
+  assert.equal(written, withBar(AGENTS));
+  assert.deepEqual(JSON.parse(repo.fileAt(BRANCH, ".github/agents-md-budget.json")), { [AGENTS_PATH]: budget + Buffer.byteLength(written) - Buffer.byteLength(AGENTS) });
+  assert.match(repo.pulls[0].body, /Brings Ouro UI's bar for people and agents into `AGENTS\.md`, between `ouro-ui:bar` markers/);
+  assert.deepEqual(lintMarkdown(repo.pulls[0].body, { file: "pull request body" }), []);
+
+  const ignoring = fakeRepo({ "Package.swift": SWIFT, [AGENTS_PATH]: AGENTS, ".github/ouro-current.json": JSON.stringify({ ignore: [AGENTS_PATH] }) });
+  await keepRepo(ignoring.gh, "o/r", RELEASES, {});
+  assert.equal(ignoring.fileAt(BRANCH, AGENTS_PATH), AGENTS);
+  const without = fakeRepo({ "Package.swift": SWIFT });
+  await keepRepo(without.gh, "o/r", RELEASES, {});
+  assert.equal(without.fileAt(BRANCH, AGENTS_PATH), undefined, "a repository with no AGENTS.md gets none");
 });
