@@ -1,0 +1,1 @@
+- Message: put 8px between a bubble and the attachments, footer or thread under it, and between a run's bubbles (`--ouro-message-run-gap` now defaults to `--ouro-size-2`).

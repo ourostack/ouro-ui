@@ -3112,7 +3112,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           <div
             ref={contentRef}
             data-ouro-message-list-content=""
-            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-[calc(1rem-var(--ouro-message-run-gap,var(--ouro-size-1)))]"
+            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-[calc(1rem-var(--ouro-message-run-gap,var(--ouro-size-2)))]"
             style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
           >
             {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}

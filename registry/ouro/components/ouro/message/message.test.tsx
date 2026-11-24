@@ -1475,7 +1475,7 @@ describe("Message rows", () => {
     expect(bubbleOf(theirs!).getBoundingClientRect().left).toBeCloseTo(chip(theirs!, "f1").left, 0);
   });
 
-  it("keeps 4px between a message and its footer", async () => {
+  it("keeps 8px between a message and its footer", async () => {
     const { host } = await render(
       <>
         <Message variant="chat" role="assistant" name="Mara Quill" footer={chips("f")}>
@@ -1488,18 +1488,18 @@ describe("Message rows", () => {
     );
     for (const message of host.querySelectorAll<HTMLElement>('[data-ouro="message"]')) {
       const footer = message.querySelector("[data-ouro-message-footer]")!;
-      expect(footer.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(4, 0);
+      expect(footer.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
     }
   });
 
-  it("keeps 4px between a message and its thread in the default layout, and lifts the avatar 2px off the row's foot", async () => {
+  it("keeps 8px between a message and its thread in the default layout, and lifts the avatar 2px off the row's foot", async () => {
     const { message } = await render(
       <Message role="assistant" name="Ouro" thread={chips("t")}>
         Hi
       </Message>,
     );
     const thread = message.querySelector("[data-ouro-message-thread]")!;
-    expect(thread.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(4, 0);
+    expect(thread.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
     const avatar = message.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
     expect(message.getBoundingClientRect().bottom - avatar.getBoundingClientRect().bottom).toBeCloseTo(2, 0);
   });
