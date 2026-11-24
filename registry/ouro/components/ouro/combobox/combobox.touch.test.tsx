@@ -514,6 +514,20 @@ describe("Combobox on a phone", () => {
     await expect.poll(() => panel.querySelector('[role="option"]')?.textContent).toBe("„Thai“ verwenden");
   });
 
+  it("offers the sheet's row for typed text only, even when its label does not repeat the text", async () => {
+    const onValueChange = vi.fn();
+    await render(<Combobox label="Tags" multiple allowCustomValue items={["Weeknight", "Vegan"]} onValueChange={onValueChange} customValueLabel={() => "Add as a new tag"} />);
+    await commands.tap(TRIGGER);
+    const panel = await opened();
+    const rows = () => [...panel.querySelectorAll('[role="option"]')].map((option) => option.textContent);
+    await expect.poll(rows).toEqual(["Weeknight", "Vegan"]);
+    await commands.tap('[data-ouro="sheet"] input[role="combobox"]');
+    await userEvent.type(panel.querySelector("input")!, "Picnic");
+    await expect.poll(rows).toEqual(["Add as a new tag"]);
+    await commands.tap('[role="option"]:nth-child(1)');
+    expect(onValueChange).toHaveBeenLastCalledWith(["Picnic"]);
+  });
+
   it("adds typed text as a chip from the sheet's row with multiple and allowCustomValue", async () => {
     const onValueChange = vi.fn();
     const host = await render(

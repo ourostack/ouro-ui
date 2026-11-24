@@ -389,8 +389,8 @@ const markDismiss = dismissMarker("combobox", "dismiss");
 const markPopupDismiss = dismissMarker("combobox", "popup-dismiss");
 
 const toOption = (item: ComboboxItem): Option => (typeof item === "string" ? { value: item, label: item } : item);
-/** Text as a token input compares it: trimmed, inner runs of space as one, and in lower case. */
-const normalized = (text: string) => text.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+/** Text as a token input compares it: trimmed, inner runs of space as one, and in upper case, where "ß" is "SS". */
+const normalized = (text: string) => text.trim().replace(/\s+/g, " ").toLocaleUpperCase();
 
 /**
  * Icons drawn in the text color at 16px, like the other Ouro icons.
@@ -829,13 +829,16 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         : toSelected(picked as string);
   // A token input keeps its own chips unless the app controls them, so typed text can join them.
   const [ownTokens, setOwnTokens] = useState(() => (defaultValue as string[] | undefined) ?? []);
-  const picked = tokens ? ((value as string[] | undefined) ?? ownTokens) : [];
+  // The chips: read only by a token input, the one mode whose value is the app's array or its own.
+  const picked = (value as string[] | undefined) ?? ownTokens;
   const typed = text.trim();
   // With allowCustomValue, typed text that is not an item gets a row of its own, first: on a
   // token input, only in the sheet, and only for text no item or chip already holds.
-  const offerTyped = tokens
-    ? sheet && typed !== "" && ![...options, ...picked.map(toSelected)].some((option) => normalized(option.label) === normalized(typed))
-    : custom && typed !== "" && !options.some((option) => option.label === typed);
+  const offerTyped =
+    typed !== "" &&
+    (tokens
+      ? sheet && ![...options, ...picked.map(toSelected)].some((option) => normalized(option.label) === normalized(typed))
+      : custom && !options.some((option) => option.label === typed));
   const listed = offerTyped ? [{ value: typed, label: customValueLabel(typed), custom: true }, ...options] : options;
   const shown = (option: Option) => (option.custom ? option.value : option.label);
 
@@ -843,36 +846,41 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const resetInputRef = useRef<HTMLInputElement>(null);
   const setInputRef = useMergedRef(inputRef, resetInputRef);
-  const report = onValueChange as ((value: string | string[] | null) => void) | undefined;
+  // Combobox always passes its own handler, which calls the app's.
+  const report = onValueChange as (value: string | string[] | null) => void;
   // The item highlighted in the list, so Enter knows whether to pick it or keep the typed text.
   const [highlighted, setHighlighted] = useState(false);
 
   /**
-   * Sets a token input's chips: typed text becomes the item it names ignoring case, or itself,
-   * trimmed, and a chip already there is not added twice.
+   * Sets a token input's chips, leaving out a chip whose label is already there ignoring case.
    * @claim "Sets a token input's chips" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox multiple allowCustomValue > picks the item that typed text matches ignoring case, so no duplicate chip appears)
    */
   const setTokens = (next: string[]) => {
     const values: string[] = [];
-    for (const entry of next) {
-      let chip = entry;
-      if (!known.has(entry)) {
-        chip = entry.trim().replace(/\s+/g, " ");
-        const item = options.find((option) => normalized(option.label) === normalized(chip));
-        if (item?.disabled) continue;
-        if (item) chip = item.value;
-      }
-      if (chip !== "" && !values.some((kept) => normalized(toSelected(kept).label) === normalized(toSelected(chip).label))) values.push(chip);
+    for (const chip of next) {
+      if (!values.some((kept) => normalized(toSelected(kept).label) === normalized(toSelected(chip).label))) values.push(chip);
     }
     if (values.length === picked.length && values.every((chip, index) => chip === picked[index])) return;
-    if (value === undefined) setOwnTokens(values);
-    report?.(values);
+    // Kept even when the app controls the chips, where `value` wins over it.
+    setOwnTokens(values);
+    report(values);
   };
-  /** Makes typed text chips, one per comma-separated entry; false when there is nothing to add. */
+  /**
+   * Makes typed text chips, one per comma-separated entry: an entry becomes the item whose label it
+   * matches ignoring case, nothing when that item is disabled, or else itself with its spaces tidied.
+   * False when there is nothing to add.
+   */
   const addTyped = (entered: string) => {
     const entries = entered.split(",").filter((entry) => entry.trim() !== "");
     if (readOnly || entries.length === 0) return false;
-    setTokens([...picked, ...entries]);
+    const chips: string[] = [];
+    for (const entry of entries) {
+      const text = entry.trim().replace(/\s+/g, " ");
+      const item = options.find((option) => normalized(option.label) === normalized(text));
+      if (item?.disabled) continue;
+      chips.push(item ? item.value : text);
+    }
+    setTokens([...picked, ...chips]);
     return true;
   };
   const setTyped = (next: string) => {
@@ -899,8 +907,9 @@ function ComboboxControl(props: ControlProps): JSX.Element {
           const pasted = event.clipboardData.getData("text/plain");
           if (!pasted.includes(",")) return;
           event.preventDefault();
+          // A text input always has a selection, so neither end is null.
           const input = event.currentTarget;
-          if (addTyped(input.value.slice(0, input.selectionStart ?? 0) + pasted + input.value.slice(input.selectionEnd ?? 0))) setTyped("");
+          if (addTyped(input.value.slice(0, input.selectionStart!) + pasted + input.value.slice(input.selectionEnd!))) setTyped("");
         },
       }
     : { onKeyDown: onInputKeyDown };
@@ -956,7 +965,8 @@ function ComboboxControl(props: ControlProps): JSX.Element {
       filter={onInputChange ? null : tokens ? (option: Option, query: string) => option.custom || normalized(option.label).includes(normalized(query)) : undefined}
       onInputValueChange={(next, details) => {
         // On a token input a comma ends a chip: what comes before it becomes chips.
-        const comma = tokens && details.reason === "input-change" ? next.lastIndexOf(",") : -1;
+        const comma = tokens ? next.lastIndexOf(",") : -1;
+        // Stryker disable next-line EqualityOperator: a comma first leaves no text before it, which addTyped turns down, the same as no comma.
         if (comma >= 0 && addTyped(next.slice(0, comma))) {
           setTyped(next.slice(comma + 1).trimStart());
           return;
@@ -965,6 +975,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         if (details.reason !== "item-press") onInputChange?.(next);
       }}
       onItemHighlighted={(option: Option | undefined) => setHighlighted(option !== undefined)}
+      // Stryker disable next-line ConditionalExpression: the other modes' uncontrolled input shows the same text that onInputValueChange keeps in step.
       inputValue={tokens ? (inputValue ?? text) : inputValue}
       autoHighlight={autoHighlight}
       readOnly={readOnly}
@@ -979,7 +990,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
       {...(tokens ? { value: toBase(picked) } : value !== undefined ? { value: toBase(value) } : { defaultValue: toBase(defaultValue) })}
       onValueChange={(next: Option | Option[] | null) => {
         if (tokens) setTokens((next as Option[]).map((option) => option.value));
-        else report?.(Array.isArray(next) ? next.map((option) => option.value) : (next?.value ?? (custom ? "" : null)));
+        else report(Array.isArray(next) ? next.map((option) => option.value) : (next?.value ?? (custom ? "" : null)));
       }}
       {...(sheet
         ? {
