@@ -7,9 +7,11 @@
 //
 // Each run gets a new worktree at its repository's origin/main, a new COPILOT_HOME (no hooks, plugins or memory), the
 // stored Copilot sign-in rather than any token in the environment, and read-only tools. The out folder gets one folder
-// per run (prompt, transcript, answer, verdict), then results.json and results.md.
+// per run (prompt, transcript, answer, verdict), then results.json and results.md. --publish <folder> writes the
+// evidence to commit: the tables, and each run's prompt, calls, answer and verdict, except for a --private repository's
+// runs, whose code is not public: those keep only their scenario, model and verdict per criterion.
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -26,7 +28,10 @@ const { values } = parseArgs({
     reps: { type: "string", default: "2" },
     only: { type: "string" },
     concurrency: { type: "string", default: "5" },
+    // Read the runs already in --out and judge any without a verdict, instead of running agents again.
     "judge-only": { type: "boolean", default: false },
+    publish: { type: "string" },
+    private: { type: "string", default: "" },
   },
 });
 if (!values.phase || !values.out) {
@@ -52,16 +57,12 @@ const cleanEnv = (home) => {
 
 function copilot(args, { cwd, home, timeoutMs }) {
   return new Promise((done) => {
-    const child = spawn("copilot", args, { cwd, env: cleanEnv(home), stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn("copilot", args, { cwd, env: cleanEnv(home), stdio: ["ignore", "pipe", "pipe"], timeout: timeoutMs });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => (stdout += chunk));
     child.stderr.on("data", (chunk) => (stderr += chunk));
-    const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      done({ code, stdout, stderr });
-    });
+    child.on("close", (code) => done({ code, stdout, stderr }));
   });
 }
 
@@ -132,6 +133,7 @@ function judgePrompt(scenario, answer) {
 
 async function judge(record, scenario) {
   const dir = join(out, record.id);
+  if (existsSync(join(dir, "verdict.json"))) return JSON.parse(readFileSync(join(dir, "verdict.json"), "utf8"));
   const answer = readFileSync(join(dir, "answer.md"), "utf8");
   if (!answer) return { criteria: [], pass: false, summary: "No answer: the run ended without one." };
   mkdirSync(join(dir, "judge-home"), { recursive: true });
@@ -201,3 +203,18 @@ const table = [
 ].join("\n");
 writeFileSync(join(out, "results.md"), table);
 console.log(table);
+
+if (values.publish) {
+  const hidden = new Set(values.private.split(",").filter(Boolean));
+  const dest = resolve(values.publish);
+  mkdirSync(join(dest, "runs"), { recursive: true });
+  writeFileSync(join(dest, "results.txt"), table);
+  const shown = rows.map((row) => (hidden.has(records.find((r) => r.id === row.id).repo) ? { ...row, commit: undefined } : row));
+  writeFileSync(join(dest, "results.json"), `${JSON.stringify({ phase: values.phase, judge: values.judge, models, rows: shown }, null, 2)}\n`);
+  records.forEach((record, i) => {
+    if (hidden.has(record.repo)) return;
+    const answer = readFileSync(join(out, record.id, "answer.md"), "utf8");
+    const text = JSON.stringify({ ...record, answer, verdict: verdicts[i] }, null, 2).replaceAll(join(out, record.id, "repo"), ".");
+    writeFileSync(join(dest, "runs", `${record.id}.json`), `${text}\n`);
+  });
+}

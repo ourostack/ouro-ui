@@ -6,6 +6,8 @@ Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. O
 - **The kit** builds an interface that meets the standard from one definition per command.
 - **The X-ray** (`ax-xray`) checks any interface against the claims from outside, whether the kit built it or not ([the X-ray](ax-conformance.md)).
 
+Hold a door to [the bar](design-craft.md#the-bar) a screen meets, with the agent as the person, and pass [the AX gate](design-craft.md#the-ax-gate) before agents rely on it: the claims are its floor, and fresh agents doing real jobs are its proof. Whoever owns a door iterates it live with fresh agents in the person's seat, and adds what they learn here as claims with their evaluations.
+
 Already have an app and no Ouro HX? [Add Ouro AX to it](ax-standalone.md): a pair of actions, wired to your buttons and served over MCP.
 
 ## Install
