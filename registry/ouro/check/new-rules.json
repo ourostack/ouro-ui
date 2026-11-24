@@ -84,11 +84,47 @@
     "summary": "A text, or a box over 100 square pixels, that goes from invisible to visible, or back, in one frame inside a transition; the fix is to fade or grow it on the transition that moves its box."
   },
   {
+    "rule": "overshoot",
+    "summary": "A box whose edge passes where it ends by more than 2 pixels in a transition, as a max-width that animates to a cap does; the fix is to animate transform."
+  },
+  {
+    "rule": "off-curve",
+    "summary": "A box with a two-keyframe transition whose edge strays more than 2 pixels from its own easing curve, as one a script or observer resizes every frame does; the fix is to let the transition move it."
+  },
+  {
+    "rule": "opacity-step",
+    "summary": "A box or text whose opacity changes more than 0.1 beyond its own easing in one frame of a transition; the fix is to fade it over the whole transition."
+  },
+  {
+    "rule": "label-clip",
+    "summary": "Text cut off by its own clipping box mid-transition that fits at the end; the fix is to size the box to the text or reveal both together."
+  },
+  {
     "rule": "dropped-frames",
     "summary": "A press after which one frame took over 50 ms (the jank rule's budget is 250 ms); the fix is to keep the handler to a few milliseconds."
   },
   {
     "rule": "off-centre-text",
     "summary": "One line of words in a control (a button, a field's value or placeholder, an editor, or a bare text area inside its frame) whose cap height sits off the control's middle, as a composer's placeholder pushed low by a bottom-aligned row does."
+  },
+  {
+    "rule": "empty-panel",
+    "summary": "An open panel that isn't modal (a menu, a popover, or a data-ouro-panel) 120px or taller where under 60% of its inside has text, a control or a picture within 24px, as a wide panel with its links in one narrow column is."
+  },
+  {
+    "rule": "wrapped-short-line",
+    "summary": "In an open panel, words of 60 characters or fewer that wrap on a screen 1024px wide or wider (24 below it), as a one-line description in a narrow column does."
+  },
+  {
+    "rule": "boxed-blurb",
+    "summary": "In an open panel, a rounded box with a fill or a border on every side that holds words and nothing to press: a decorative card in a menu."
+  },
+  {
+    "rule": "panel-off-screen",
+    "summary": "An open panel whose bottom passes the bottom of the screen with nothing to scroll it into view; the fix is to cap its height and let its inside scroll."
+  },
+  {
+    "rule": "panel-clip",
+    "summary": "In a panel a press opens, words cut off by the box around them that hides its overflow; an ellipsis, a line clamp and a folded box pass."
   }
 ]

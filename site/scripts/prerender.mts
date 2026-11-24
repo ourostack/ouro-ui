@@ -97,8 +97,12 @@ const islandSheets: Record<string, string[]> = {
   "/apple/start/": ["src/apple/start.tsx"],
   "/hx/": ["src/hx/hx.tsx"],
   "/windows/": ["src/platforms/windows.tsx"],
+  "/windows/hx/": ["src/platforms/windows-hx.tsx"],
+  "/windows/ax/": ["src/platforms/windows-ax.tsx"],
   "/windows/start/": ["src/platforms/windows-start.tsx"],
   "/android/": ["src/platforms/android.tsx"],
+  "/android/hx/": ["src/platforms/android-hx.tsx"],
+  "/android/ax/": ["src/platforms/android-ax.tsx"],
   "/android/start/": ["src/platforms/android-start.tsx"],
   "/adoption/": ["src/adoption/adoption.tsx"],
   "/current/": ["src/current/current.tsx"],
@@ -123,7 +127,7 @@ function islandAssets(path: string): string[] {
  * The docs pages that show any component, so link the whole Tailwind build: the components index (its previews draw as
  * they near the screen) the live demo page (its ?name= picks any demo) and the chat app page (it composes the chat components). Every other docs page links the shared shell.
  */
-const WHOLE_BUILD = new Set(["/docs/", "/docs/demo/", "/docs/chat-demo/", "/docs/call-demo/"]);
+const WHOLE_BUILD = new Set(["/docs/", "/docs/demo/", "/docs/chat-demo/", "/docs/call-demo/", "/docs/calendar-demo/"]);
 const demoDir = join(repo, "site/src/docs/demos");
 const demoNames = new Set(readdirSync(demoDir).flatMap((file) => (file.endsWith(".demo.tsx") ? [file.slice(0, -".demo.tsx".length)] : [])));
 

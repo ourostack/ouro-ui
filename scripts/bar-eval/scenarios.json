@@ -1,0 +1,56 @@
+{
+  "$comment": "The bar evaluation's scenarios for spoonjoy/spoonjoy-v2, with their pass/fail criteria, written before any run was read. Each prompt is a request a person would make, with no word about the bar. A run passes when the judge finds every criterion met. The first adopter's scenarios, one of them the counter-scenario, are kept with that product, since its code is not public; its runs are scored here by the same rule.",
+  "suffix": "Reply with your answer in this chat; don't change any files.",
+  "scenarios": [
+    {
+      "id": "cook-settings",
+      "repo": "spoonjoy",
+      "counter": false,
+      "prompt": "Cooks have asked for settings in cook mode. A popular cooking app's cook mode has these settings: Keep screen on; Text size (S, M, L, XL); Voice control (next step, repeat, start timer); Hands-free gestures (wave to go to the next step); Read steps aloud; Timer sound (5 choices) and timer volume; Vibrate when a timer ends; Auto-advance to the next step when its timer ends; Show ingredients with each step; Show step photos; Units (metric, US, imperial); Temperature (C or F); Language; Theme in cook mode (light, dark, high contrast); Landscape layout (one or two columns).\n\nPlan cook mode settings for Spoonjoy's web app: what you'd build, and how it looks and works. Look at the code to see what cook mode does today.",
+      "judgeContext": "Spoonjoy is a recipe web app built on Ouro HX. Its cook mode already keeps the screen awake while cooking, has step timers, and has a unit system for ingredients. Text size, theme and language follow the device and browser.",
+      "criteria": [
+        {
+          "id": "restraint",
+          "text": "It does not plan the reference's list. It keeps few settings, each tied to something cooks need at the stove, cuts the rest with a reason, and where a right default or the device's own setting does the job, it relies on that instead of adding a setting."
+        },
+        {
+          "id": "jobs",
+          "text": "It starts from what cooks need while cooking, not from the reference app's features."
+        },
+        {
+          "id": "builds",
+          "text": "It still ships something for the cooks' real asks rather than nothing, designed to the standard of the rest of cook mode, from Ouro HX components and cook mode's existing patterns."
+        },
+        {
+          "id": "proof",
+          "text": "It plans to judge the result as a person sees it (looking at it at real sizes, a design review against the screen's references, or cooks trying it), not only that tests pass."
+        }
+      ]
+    },
+    {
+      "id": "households",
+      "repo": "spoonjoy",
+      "counter": false,
+      "prompt": "Agents can't do anything with households yet: Spoonjoy's actions and MCP tools have nothing for them. Add the agent side. The households service already has createHousehold, listHouseholds, getHousehold, renameHousehold, createInvite, emailInvite, previewInvite, acceptInvite, revokeInvite, changeMemberRole, removeFromHousehold and leave (app/domains/households-and-identity). Plan the actions: their ids, inputs, outputs, consent, and the descriptions agents read.",
+      "judgeContext": "Spoonjoy declares each action once with ouro-actions (actions/*.mts): an id, a consent (read, write, consequential: the person confirms first, or person-only), a label, a description for people, an agent description, inputs and outputs, and each becomes an MCP tool. A household is people who cook together, with roles owner, member and viewer.",
+      "criteria": [
+        {
+          "id": "jobs",
+          "text": "It starts from the jobs agents are asked to do with households (such as who is in mine, invite someone, change what someone can do, remove someone, leave), not from the service's function list."
+        },
+        {
+          "id": "restraint",
+          "text": "It does not mirror the service one action per function. Each action it plans earns its place against a job: it merges what is one job (such as creating an invite and emailing it) and leaves out what no agent job needs, with a reason."
+        },
+        {
+          "id": "craft",
+          "text": "Inputs and outputs are minimal and consistent with Spoonjoy's other actions, the consent fits who sees the effect, and failures say what happened and what to do next."
+        },
+        {
+          "id": "proof",
+          "text": "It plans to prove the actions with fresh agents doing a household job through them, not only with unit tests or a conformance check."
+        }
+      ]
+    }
+  ]
+}

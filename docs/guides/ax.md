@@ -6,13 +6,15 @@ Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. O
 - **The kit** builds an interface that meets the standard from one definition per command.
 - **The X-ray** (`ax-xray`) checks any interface against the claims from outside, whether the kit built it or not ([the X-ray](ax-conformance.md)).
 
+Hold a door to [the bar](design-craft.md#the-bar) a screen meets, with the agent as the person, and pass [the AX gate](design-craft.md#the-ax-gate) before agents rely on it: the claims are its floor, and fresh agents doing real jobs are its proof. Whoever owns a door iterates it live with fresh agents in the person's seat, and adds what they learn here as claims with their evaluations.
+
 Already have an app and no Ouro HX? [Add Ouro AX to it](ax-standalone.md): a pair of actions, wired to your buttons and served over MCP.
 
 ## Install
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.522         # the kit and the X-ray
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.522   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.530         # the kit and the X-ray
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.530   # with their node:test tests
 ```
 
 The shadcn CLI copies the shared files into `lib/ouro/ax/` under your lib alias. The X-ray, the flow runner, the surfaces check and their tests go to `scripts/ouro/ax/`, outside your TypeScript project, so `tsc -b` never reads their Node imports.[^ax-outside] Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and the shared files as `#ouro-ax/<file>`, which package.json names once: `npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"`, with `src/lib` as your lib folder. Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps]

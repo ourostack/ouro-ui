@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Empty panel: passes</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:40rem;margin:0 auto}nav{background:#fff;border:1px solid #c9d3df;border-radius:12px;padding:16px}nav a{color:#0b57d0} nav{margin-top:16px}nav ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(6rem,1fr));gap:8px}</style>
+<main><h1>Empty panel</h1><p>A panel, opened from a button, sized to the links it holds.</p>
+<button id="open" type="button" aria-expanded="false" aria-controls="panel">Sections</button>
+<nav id="panel" data-ouro-panel aria-label="Sections" hidden><ul><li><a href="#a">Actions</a></li><li><a href="#b">Forms</a></li><li><a href="#c">Lists</a></li></ul></nav></main>
+<script>
+const open = document.getElementById("open");
+const panel = document.getElementById("panel");
+open.addEventListener("click", () => { panel.hidden = false; open.setAttribute("aria-expanded", "true"); });
+document.addEventListener("keydown", (event) => { if (event.key === "Escape") { panel.hidden = true; open.setAttribute("aria-expanded", "false"); } });
+</script>

@@ -15,7 +15,7 @@
 export const scoped = [
   { pattern: /^scripts\/[^/]+\.test\.mjs$/, tiers: [], components: false, reason: "a Node script test (pnpm test:scripts)" },
   {
-    pattern: /^scripts\/(ci-budget|ci-fail-fast|ci-proof|ci-yield|docs-pin-release-check|fresh-main|main-green|required-checks|required-producers|cache-prune|patch-guard|quarantine|rerun-guard|size-budget|release-commit|release-note|release-wait|run-script-tests|script-tests)\.(mjs|sh)$|^scripts\/(required-ci|dispatch-required|scheduled-failure|sr-infra-issue|pages-clear|retry)\.sh$/,
+    pattern: /^scripts\/(ceiling-ratchet|ci-budget|ci-fail-fast|ci-proof|ci-yield|docs-pin-release-check|fresh-main|main-green|required-checks|required-producers|cache-prune|patch-guard|quarantine|rerun-guard|size-budget|release-commit|release-note|release-wait|run-script-tests|script-tests)\.(mjs|sh)$|^scripts\/(required-ci|dispatch-required|scheduled-failure|sr-infra-issue|pages-clear|retry)\.sh$/,
     tiers: [],
     components: false,
     reason: "a CI or release helper that only the workflows and the Node script tests run",
@@ -26,6 +26,7 @@ export const scoped = [
     components: false,
     reason: "Ouro Current, which only the install test's current variant and the Node script tests run (install-check.mjs takes its stylesheet module); no browser shard, design shard or heavy job loads it",
   },
+  { pattern: /^scripts\/bar-eval\//, tiers: [], components: false, reason: "the bar evaluation, run by hand, which no workflow or test runs" },
   { pattern: /^scripts\/scroller-probe\.mjs$/, tiers: [], components: false, reason: "a probe run by hand for #2891, which no workflow or test runs" },
   { pattern: /^scripts\/chromium-floor-smoke\.mjs$/, tiers: [], components: false, reason: "the Chromium floor smoke test, which only the report-only chromium-floor-smoke.yml workflow runs" },
   { pattern: /^scripts\/ouro-census\//, tiers: [], components: false, reason: "the Ouro AX census, which only its Node script test (scripts/ouro-census.test.mjs) runs" },

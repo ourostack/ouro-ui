@@ -200,6 +200,10 @@ export const ProofIsland = island("proof", () => import("../../proof/proof"));
 // The platform pages beside Apple's: Ouro HX on every platform, and Windows' and Android's own.
 export const HxIsland = island("hx", () => import("../../hx/hx"));
 export const WindowsHomeIsland = island("windows-home", () => import("../../platforms/windows"));
+export const WindowsHxIsland = island("windows-hx", () => import("../../platforms/windows-hx"));
+export const WindowsAxIsland = island("windows-ax", () => import("../../platforms/windows-ax"));
 export const WindowsStartIsland = island("windows-start", () => import("../../platforms/windows-start"));
 export const AndroidHomeIsland = island("android-home", () => import("../../platforms/android"));
+export const AndroidHxIsland = island("android-hx", () => import("../../platforms/android-hx"));
+export const AndroidAxIsland = island("android-ax", () => import("../../platforms/android-ax"));
 export const AndroidStartIsland = island("android-start", () => import("../../platforms/android-start"));

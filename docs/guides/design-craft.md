@@ -1,10 +1,25 @@
 # Design craft
 
-How to judge whether a screen is good, not just unbroken, and the beauty gate a screen, mock or capture passes before a person sees it. [Ouro check](guardrails.md#the-screen-check) finds what measurement can decide and is the floor; this guide covers what is left: whether the screen is beautiful, clear and right for the platform it runs on.
+How to judge whether a screen, or a door agents use, is good and not just unbroken: the bar both share, the beauty gate a screen, mock or capture passes before a person sees it, and the AX gate a door passes before agents rely on it. [Ouro check](guardrails.md#the-screen-check) and the [AX X-ray](ax-conformance.md) find what measurement can decide and are the floor; this guide covers what is left: whether the thing is beautiful, clear and right for the platform it runs on.
 
 ## The bar
 
-Ask whether the people who made the Mac and the iPhone would ship it: Jony Ive for craft and restraint, Tony Fadell for the whole journey, Craig Federighi for software that behaves as a person expects. If they wouldn't, it isn't ready. "Not ugly" is not the bar, and neither is "better than what we had".
+Ask of every little thing a person or an agent meets, from a pixel or a control to a command, a flag or a line of output, whether the people who made the Mac and the iPhone would ship it. Jony Ive for craft and restraint, Tony Fadell for the whole journey, Craig Federighi for software that behaves as you expect. If they wouldn't, it isn't ready. "Not ugly" is not the bar, and neither is "better than what we had".
+
+- **Make restraint the first cut.** Let each element earn its place: ask what breaks if it goes, and if nothing does, take it out.
+- **Ask a reference product for reasons and jobs, never for items to copy** ([steal, don't copy](#steal-dont-copy)).
+- **Build the basics people use every day, and build them well.** Keep restraint for what no job needs: never cut a job people do.
+- **Let every line of a doc earn its place too.** Write only what is true now, and leave out history such as "was X, now Y", "no longer", "superseded" or a dated quote kept to show what changed: git keeps it, and the next agent to read the doc takes it for the present.
+- **Give agents the same care, with the agent as the person.** Ask the same lenses of a door agents use, such as a command line, an HTTP API or an MCP server:
+
+| Lens | Asks of a door |
+| --- | --- |
+| Ive: craft | Does every command, flag and line of output earn its place? Is there one way to do each thing? |
+| Fadell: the journey | Can a fresh agent with only `--help` do a real job right the first time? Does a failure say what happened and give the next command? |
+| Federighi: the platform | Does it behave as agents expect of a command line, HTTP or MCP, with [Ouro AX's claims](ax-standard.md) holding as the floor? |
+| Clippy: getting out of the way | Does the job take few calls and few tokens? Could anyone miss an effect? |
+
+Use the same proof on both sides: fresh users doing real tasks, judged independently, never a score. Pass the [beauty gate](#the-beauty-gate) for a screen and the [AX gate](#the-ax-gate) for a door.
 
 ## Judge a screen
 
@@ -29,7 +44,7 @@ Work through these in order. Ask each as a question of the screen in front of yo
 
 ## Failures to catch
 
-These came from a review of a chat app's shell mocks that the person rejected. Treat them as a sample of what the bar catches, not a complete list.
+These came from work the person rejected: a chat app's shell mocks, and a scope that copied a reference product's menus. Treat them as a sample of what the bar catches, not a complete list.
 
 | Failure | What it looks like | Do instead |
 | --- | --- | --- |
@@ -44,6 +59,7 @@ These came from a review of a chat app's shell mocks that the person rejected. T
 | Text sitting low | A composer's placeholder a few pixels under its field's middle, because the field aligns its row to the bottom. | Centre it on its cap height. |
 | A cheap fade | A gradient band or a mask that fades content out under a bar. | Put the bar's glass over the content, or nothing. |
 | Hand-drawn where native is better | A drawn title bar and fake glass on a Mac. | Use the system's toolbar, sidebar and materials. |
+| A reference's items as the scope | A plan that builds a reference product's menus item by item, because the reference has them. | List the jobs people do with those menus, give each job one way in, for people and for agents, and leave the rest out. |
 | A screen stitched from parts | A shell stitched from one product's rail, another's tabs and a third's composer. | Steal, don't copy: see below. |
 | A mock shown before it is beautiful | A capture sent as soon as it renders. | Pass the beauty gate first. |
 
@@ -60,11 +76,14 @@ When you work on a screen with someone, let them watch it change rather than sen
 
 How an Ouro app runs the loop: start the app on made-up data with hot reload and one URL parameter per state, and the person watches it there. Start a second dev server and run Ouro check in watch mode against it, headless, so it prints only the findings that appeared or went away on each save. Record each decision the person makes as a `decisions` entry in `ouro-check.json`, which runs in that same loop, and mark states not yet designed with the veil so Ouro check skips them.
 
+Give a door agents use the same loop, with fresh agents in the person's seat: whoever owns the thing gives a fresh agent a real task, reads the transcript, makes one small change and runs it again. Add what that teaches to Ouro AX as a claim with its evaluation ([how a claim enters `must`](ax-standard.md#how-a-claim-enters-must)), so every door gets it.
+
 ## Steal, don't copy
 
-Desk's [evidence discipline](https://github.com/ourostack/desk/blob/main/plugins/desk/skills/evidence-discipline/SKILL.md) holds the general rule: work out why prior art works for the people who use it, and make that reason yours. For a screen:
+Desk's [evidence discipline](https://github.com/ourostack/desk/blob/main/plugins/desk/skills/evidence-discipline/SKILL.md) holds the general rule: work out why prior art works for the people who use it, and make that reason yours. For a screen or a door:
 
 - Write one line per reference: what it does that works, and why it works for its people ("faces only on the chats that are live, so the list is calm").
+- List the jobs people do with a reference's menus, settings or commands, not its items. Give each job one way in, for people and for agents, and leave the rest out.
 - Take the reason, not the pixels. Rebuild it from Ouro's components and the platform's own controls, in your product's layout.
 - Don't assemble a screen from parts of several references. Make a screen one idea: if references pull different ways, choose one.
 - Name what you took from each reference, and why, where the person reviews the work.
@@ -100,6 +119,20 @@ Give each critic this brief, with the angle brackets filled in:
 > 4. List each finding with the capture, a crop with the spot ringed, what's wrong, the fix (the component or file), and its weight: blocks, should fix, or nit.
 >
 > End with one paragraph: "would approve", or "would not approve, because…" with the blockers.
+
+## The AX gate
+
+Pass every step before agents rely on a door, or on a change to one: a command, a flag, a route, a tool, or what one prints. Use the door's mock and made-up data throughout. Whoever owns the thing owns its door, and iterates it as live as its screen.
+
+1. **Floor.** Run the [AX X-ray](ax-conformance.md) on the door and fix every `must` claim that fails. Don't ask a critic or an agent run to find what a claim can decide: make it a claim.
+2. **Pick real jobs.** Write three to five requests a person would hand an agent through this door, in their words, with one whose obvious first try fails.
+3. **Seat fresh agents.** Give each job to a fresh agent session with only the door: no guide, no source and no hint, permission to run only the door, and at least two models ([the method](ax-eval.md#the-method)).
+4. **Read the transcripts yourself first.** Find each hesitation, guess, retry, help call and wasted token, and fix what you would catch.
+5. **Ask independent critics.** Start a fresh agent for each lens in [the bar](#the-bar), none of which made the door, with the beauty gate's brief: the jobs and the transcripts take the place of the references and the captures.
+6. **Fix, then seat fresh agents and fresh critics.** Make one small change at a time and run again. Stop when every job is done right the first time and the critics approve with nothing left at "blocks" or "should fix": that is a pass.
+7. **Show it with its proof:** the jobs, the calls each agent made, and the critics' verdicts. Add what the door taught you to Ouro AX as a claim with its evaluation, so every door gets it.
+
+If the gate hasn't passed after three rounds, stop tuning words: the door's shape is wrong. Go back to the jobs.
 
 ## Prior art
 

@@ -168,6 +168,16 @@ describe("Lightbox mosaic", () => {
     }
   });
 
+  it("marks its thumbnail's hairline as a deliberate near-miss, on the button and its picture, with why", async () => {
+    const { host } = await render(mosaic(offsite.slice(0, 2)));
+    for (const element of [thumbnails(host)[0]!, thumbnails(host)[0]!.querySelector("img")!]) {
+      expect(element.getAttribute("data-ouro-allow")).toBe("near-miss");
+      expect(element.getAttribute("data-ouro-allow-why")).toBe(
+        "A chat mosaic is one picture cut into tiles with a hairline between them, so the tiles sit close by design.",
+      );
+    }
+  });
+
   it("shows four of more pictures, the last saying how many more follow, to sight and to screen readers", async () => {
     const { host } = await render(mosaic(offsite));
     const buttons = thumbnails(host);
