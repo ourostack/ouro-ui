@@ -2,7 +2,7 @@
 
 # FamilyBar
 
-The slim strip above a site's own header that links every site of a family, the same links in the same order on each, with the site being shown marked `aria-current="true"`, in the text colour, underlined in the primary colour as Navbar marks the current page. A labelled `<nav>` of plain links: the server HTML is the whole bar, so a page that never hydrates shows it as is. On a narrow screen the row scrolls inside itself, never the page. In browsers that support it the current site's link in view needs no script. Once hydrated, the row brings the current site's link into view in any browser when it is out of view. Links render through `OuroProvider`'s `linkComponent`, so a link to the site's own path stays in its router.
+The slim strip above a site's own header that links every site of a family, the same links in the same order on each, after a small heading that says what it is ("Ouro family"). The site being shown is marked `aria-current="true"`, semibold in the text colour. The strip has no surface and no line of its own: put it on the surface of the site's bar below it, and let that bar draw the one line under both. A labelled `<nav>` of plain links: the server HTML is the whole strip, so a page that never hydrates shows it as is. On a phone it is the same strip, one row that scrolls sideways inside itself, never the page, and fades at its end edge while more is cut off there; every link is a 44px target on a coarse pointer without growing the strip. In browsers that support it the current site's link in view needs no script. Once hydrated, the row brings the current site's link into view in any browser when it is out of view. Links render through `OuroProvider`'s `linkComponent`, so a link to the site's own path stays in its router.
 
 ```tsx
 import { FamilyBar } from "@/registry/ouro/components/ouro/family-bar/family-bar";
@@ -12,7 +12,7 @@ import { FamilyBar } from "@/registry/ouro/components/ouro/family-bar/family-bar
 
 ```tsx
 <FamilyBar
-  label="Sites"
+  heading="Lantern family"
   links={[
     { id: "home", label: "Lantern", href: "https://example.com/" },
     { id: "docs", label: "Docs", href: "https://docs.example.com/" },
@@ -34,8 +34,9 @@ Type: `FamilyBarProps`.
 | --- | --- | --- | --- |
 | `brand` | `ReactNode` |  | The family's mark or name, before the links. It stays in place while the links scroll. |
 | `className` | `string` |  | Layout only: position (`sticky top-0`), grid placement. Appearance classes warn in development. |
-| `current` | `string` |  | The `id` of the site being shown. Its link gets `aria-current="true"`, the text colour and a primary underline, so the mark is not colour alone. |
-| `label` | `string` | `"Sites"` | Names the navigation for screen readers. It is not shown. |
+| `current` | `string` |  | The `id` of the site being shown. Its link gets `aria-current="true"` and is semibold in the text colour, so the mark is not colour alone. |
+| `heading` | `string \| null` | `"Ouro family"` | The small heading before the links, which says what the strip is. Screen readers hear it as the navigation's name, `label`, and not again as text. `null` leaves it out. |
+| `label` | `string` | heading, or "Sites" when heading is null | Names the navigation for screen readers. It is not shown. |
 | `links` (required) | `readonly FamilyLink[]` |  | The family's sites, in order. Give every site the same list in the same order, so the bar reads the same on each. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 
@@ -43,9 +44,10 @@ Type: `FamilyBarProps`.
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
-- `children`: Not rendered. The bar is `links` and `brand`.
+- `children`: Not rendered. The bar is `links`, `heading` and `brand`.
 - `currentPath`: Not a prop. FamilyBar marks a site by its id, not by a path: `<FamilyBar current="docs">`.
 - `items`: Not a prop. FamilyBar takes `links`: `<FamilyBar links={[{ id: "docs", label: "Docs", href: "/" }]} />`.
+- `title`: Not a prop. The visible heading is `heading`: `<FamilyBar heading="Lantern family">`.
 
 ## `className` is for layout only
 

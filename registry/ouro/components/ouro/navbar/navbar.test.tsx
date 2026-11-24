@@ -84,7 +84,7 @@ describe("Navbar current-page marks", () => {
   });
 
   for (const direction of ["ltr", "rtl"] as const) {
-    it(`underlines the current page in its ${direction} bar, as FamilyBar marks the current site`, async () => {
+    it(`underlines the current page in its ${direction} bar`, async () => {
       document.documentElement.dir = direction;
       await render(<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }, { label: "Cookbooks", href: "/cookbooks" }]} currentPath="/recipes" />);
       assertMark();

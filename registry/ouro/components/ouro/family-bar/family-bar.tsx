@@ -1,11 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useRef, type FocusEvent, type JSX, type ReactNode, type Ref } from "react";
+import { useLayoutEffect, useRef, useState, type FocusEvent, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { familyBarClass, familyLinkClass, familyScrollerClass, familyWarnings } from "@/registry/ouro/components/ouro/family-bar/family-bar-styles";
+import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
+import { familyBarClass, familyBarLinkClass, familyHeadingClass, familyScrollerClass, familyWarnings } from "@/registry/ouro/components/ouro/family-bar/family-bar-styles";
 
 // Scrolls `row` the least that brings `link` clear of the row's scroll padding; a link
 // already clear stays put. Physical offsets, which hold in a right-to-left row too.
@@ -30,12 +31,14 @@ export interface FamilyLink {
 export interface FamilyBarProps {
   /** The family's sites, in order. Give every site the same list in the same order, so the bar reads the same on each. */
   links: readonly FamilyLink[];
-  /**
-   * The `id` of the site being shown. Its link gets `aria-current="true"`, the text colour and a primary underline, so the mark
-   * is not colour alone.
-   */
+  /** The `id` of the site being shown. Its link gets `aria-current="true"` and is semibold in the text colour, so the mark is not colour alone. */
   current?: string | undefined;
-  /** Names the navigation for screen readers. It is not shown. @default "Sites" */
+  /**
+   * The small heading before the links, which says what the strip is. Screen readers hear it as the navigation's name, `label`,
+   * and not again as text. `null` leaves it out. @default "Ouro family"
+   */
+  heading?: string | null | undefined;
+  /** Names the navigation for screen readers. It is not shown. @default heading, or "Sites" when heading is null */
   label?: string | undefined;
   /** The family's mark or name, before the links. It stays in place while the links scroll. */
   brand?: ReactNode;
@@ -47,32 +50,40 @@ export interface FamilyBarProps {
   items?: { 'Use <FamilyBar links={[{ id: "docs", label: "Docs", href: "/" }]} />': never };
   /** Not a prop. FamilyBar marks a site by its id, not by a path: `<FamilyBar current="docs">`. */
   currentPath?: { 'Use <FamilyBar current="docs">, the id of the site shown': never };
-  /** Not rendered. The bar is `links` and `brand`. */
+  /** Not rendered. The bar is `links`, `heading` and `brand`. */
   children?: { "Use links={[{ id, label, href }]} and brand={...}": never };
+  /** Not a prop. The visible heading is `heading`: `<FamilyBar heading="Lantern family">`. */
+  title?: { 'Use <FamilyBar heading="Lantern family">': never };
 }
 
 const example = '<FamilyBar links={[{ id: "docs", label: "Docs", href: "/" }]} />';
 
 /**
  * The slim strip above a site's own header that links every site of a family, the same links in the same order on each,
- * with the site being shown marked `aria-current="true"`, in the text colour, underlined in the primary colour as Navbar marks the current page. A labelled `<nav>` of
- * plain links: the server HTML is the whole bar, so a page that never hydrates shows it as is. On a narrow screen the
- * row scrolls inside itself, never the page. In browsers that support it the current site's link in view needs no script.
- * Once hydrated, the row brings the current site's link into view in any browser when it is out of view. Links render through `OuroProvider`'s `linkComponent`, so a link to the site's own path stays in its
- * router.
+ * after a small heading that says what it is ("Ouro family"). The site being shown is marked `aria-current="true"`,
+ * semibold in the text colour. The strip has no surface and no line of its own: put it on the surface of the site's bar
+ * below it, and let that bar draw the one line under both. A labelled `<nav>` of plain links: the server HTML is the whole
+ * strip, so a page that never hydrates shows it as is. On a phone it is the same strip, one row that scrolls sideways
+ * inside itself, never the page, and fades at its end edge while more is cut off there; every link is a 44px target on a
+ * coarse pointer without growing the strip. In browsers that support it the current site's link in view needs no script.
+ * Once hydrated, the row brings the current site's link into view in any browser when it is out of view. Links render
+ * through `OuroProvider`'s `linkComponent`, so a link to the site's own path stays in its router.
  *
  * Use `Navbar` instead for a site's own pages, under the FamilyBar, and `FamilyFooter` for the same links at the foot of
  * the page.
  *
  * @group Navigation
  * @see https://ui.ouroboros.bot/docs/family-bar
- * @claim "links every site of a family" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > renders a labelled nav of the family's links in order, at regular weight, the current site marked with aria-current, the text colour and a bar under it)
- * @claim "the server HTML is the whole bar" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > renders the whole bar in the server HTML)
+ * @claim "links every site of a family" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > renders a labelled nav of the family's links in order, small and muted, the current site marked with aria-current, semibold and in the text colour)
+ * @claim "The strip has no surface and no line of its own" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > is a slim strip with no surface or line of its own, 32px on a phone and 28px from 640px)
+ * @claim "the server HTML is the whole strip" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > renders the whole bar in the server HTML)
+ * @claim "fades at its end edge while more is cut off there" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > fades the row's end edge only while more of it is cut off there, in either direction)
+ * @claim "every link is a 44px target on a coarse pointer without growing the strip" registry/ouro/components/ouro/family-bar/family-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.touch.test.tsx::FamilyBar and FamilyFooter on a phone > give every link a 44px target, a two-letter name too, also in landscape, and the page never scrolls sideways)
  * @claim "In browsers that support it the current site's link in view needs no script" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > starts the row with the current site's link in view from the server HTML alone, where the browser supports scroll-initial-target) verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > leaves the row where it starts when the current site's link is already in view, with or without script)
  *
  * @example
  * <FamilyBar
- *   label="Sites"
+ *   heading="Lantern family"
  *   links={[
  *     { id: "home", label: "Lantern", href: "https://example.com/" },
  *     { id: "docs", label: "Docs", href: "https://docs.example.com/" },
@@ -85,7 +96,8 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
   const {
     links,
     current,
-    label = "Sites",
+    heading = "Ouro family",
+    label = heading ?? "Sites",
     brand,
     className,
     ref,
@@ -93,6 +105,7 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
     items,
     currentPath,
     children,
+    title,
   } = props;
   useAppearanceClassNameCheck(
     "FamilyBar",
@@ -110,11 +123,27 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
           items !== undefined && ["items is not a prop", example],
           currentPath !== undefined && ["currentPath is not a prop; current takes the id of the site being shown", '<FamilyBar current="docs">'],
           children !== undefined && ["children are not rendered", example],
+          title !== undefined && ["title is not a prop; the visible heading is heading", '<FamilyBar heading="Lantern family">'],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
   const scroller = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+  // Whether more of the row is cut off at its end, which fades there. scrollLeft runs negative in a right-to-left row.
+  useLayoutEffect(() => {
+    const row = scroller.current!;
+    const measure = () => setMore(row.scrollWidth - row.clientWidth - Math.abs(row.scrollLeft) > 1);
+    measure();
+    row.addEventListener("scroll", measure, { passive: true });
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    observer.observe(row.lastElementChild!);
+    return () => {
+      row.removeEventListener("scroll", measure);
+      observer.disconnect();
+    };
+  }, []);
   // Before paint, so the row never shows the current site's link out of view first; a link already in view, and a row
   // that fits, stay where they are.
   useLayoutEffect(() => {
@@ -137,13 +166,16 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
           {brand}
         </div>
       )}
-      <div ref={scroller} data-ouro-family-row="" className={familyScrollerClass}>
+      <div ref={scroller} data-ouro-family-row="" data-more={more ? "" : undefined} className={familyScrollerClass}>
+        {heading !== null && (
+          // The nav's name says it already; read twice, it would be noise.
+          <span aria-hidden="true" data-ouro-family-heading="" className={familyHeadingClass}>
+            {heading}
+          </span>
+        )}
         {/* Room after the last link: the row's scroll width rounds the list's down, which would clip the last link and
             its outline by a fraction of a pixel when the row is scrolled to its end. */}
-        <ul
-          onFocus={clearOfEdge}
-          className="m-0 flex w-max list-none items-center gap-0.5 p-0 pe-1"
-        >
+        <ul onFocus={clearOfEdge} className="m-0 flex w-max list-none items-stretch gap-2 p-0 pe-1">
           {links.map((link, index) => (
             <li key={index} className="relative flex snap-start">
               <RouterLink
@@ -151,8 +183,9 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
                 aria-current={link.id === current ? "true" : undefined}
                 data-ouro-control="family-bar"
                 data-ouro-part="link"
-                className={familyLinkClass}
+                className={familyBarLinkClass}
               >
+                <TouchTarget />
                 {link.label}
               </RouterLink>
               {link.id === current && (

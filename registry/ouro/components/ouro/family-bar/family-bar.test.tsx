@@ -69,69 +69,96 @@ function clearOfEdge(row: HTMLElement, link: HTMLElement): boolean {
 }
 
 describe("FamilyBar", () => {
-  it("renders a labelled nav of the family's links in order, at regular weight, the current site marked with aria-current, the text colour and a bar under it", async () => {
+  it("renders a labelled nav of the family's links in order, small and muted, the current site marked with aria-current, semibold and in the text colour", async () => {
     const { nav, link } = await render(<FamilyBar links={sites} current="docs" />);
     expect(nav.tagName).toBe("NAV");
-    expect(nav.getAttribute("aria-label")).toBe("Sites");
     expect([...nav.querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")])).toEqual(sites.map((site) => [site.label, site.href]));
     expect([...nav.querySelectorAll("[aria-current]")]).toEqual([link("Docs")]);
     expect(link("Docs").getAttribute("aria-current")).toBe("true");
-    expect(getComputedStyle(link("Docs")).fontWeight).toBe("400");
+    expect(getComputedStyle(link("Guides")).fontSize).toBe("12px");
+    expect(getComputedStyle(link("Docs")).fontWeight).toBe("600");
     expect(getComputedStyle(link("Guides")).fontWeight).toBe("400");
     expect(getComputedStyle(link("Docs")).color).toBe(getComputedStyle(nav).color);
     expect(getComputedStyle(link("Guides")).color).not.toBe(getComputedStyle(nav).color);
-    // The bar under it is the current page's underline in Navbar too: one mark across Ouro's navigation.
-    const mark = getComputedStyle(link("Docs"));
-    expect(mark.textDecorationLine).toBe("underline");
-    expect(mark.textDecorationThickness).toBe("2px");
-    expect(mark.textDecorationColor).not.toBe(mark.color);
-    expect(getComputedStyle(link("Guides")).textDecorationLine).toBe("none");
+    expect(getComputedStyle(link("Docs")).textDecorationLine).toBe("none");
   });
 
-  it("keeps the current site's bar under forced colours, which drop colour", async () => {
+  it("shows a small heading before the links, which names the nav for screen readers and is not read again", async () => {
+    const { nav, row, root } = await render(<FamilyBar links={sites} />);
+    const heading = () => nav.querySelector<HTMLElement>("[data-ouro-family-heading]");
+    expect(heading()!.textContent).toBe("Ouro family");
+    expect(getComputedStyle(heading()!).textTransform).toBe("uppercase");
+    expect(heading()!.getAttribute("aria-hidden")).toBe("true");
+    expect(nav.getAttribute("aria-label")).toBe("Ouro family");
+    expect(row.firstElementChild).toBe(heading());
+    await act(async () => root.render(<FamilyBar links={sites} heading="Lantern family" />));
+    expect(heading()!.textContent).toBe("Lantern family");
+    expect(nav.getAttribute("aria-label")).toBe("Lantern family");
+    await act(async () => root.render(<FamilyBar links={sites} heading="Lantern family" label="Lantern sites" />));
+    expect(nav.getAttribute("aria-label")).toBe("Lantern sites");
+    await act(async () => root.render(<FamilyBar links={sites} heading={null} />));
+    expect(heading()).toBeNull();
+    expect(nav.getAttribute("aria-label")).toBe("Sites");
+  });
+
+  it("is a slim strip with no surface or line of its own, 32px on a phone and 28px from 640px", async () => {
+    const { nav } = await render(<FamilyBar links={sites} current="docs" />);
+    const style = getComputedStyle(nav);
+    expect(nav.getBoundingClientRect().height).toBe(28);
+    expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    for (const side of ["Top", "Right", "Bottom", "Left"] as const) expect(style[`border${side}Width`]).toBe("0px");
+    expect(style.boxShadow).toBe("none");
+    await page.viewport(390, 844);
+    await expect.poll(() => nav.getBoundingClientRect().height).toBe(32);
+  });
+
+  it("keeps the current site's weight under forced colours, which drop colour", async () => {
     const { link } = await render(<FamilyBar links={sites} current="docs" />);
     await commands.emulateMedia({ forcedColors: "active" });
     try {
-      expect(getComputedStyle(link("Docs")).textDecorationLine).toBe("underline");
-      expect(getComputedStyle(link("Docs")).textDecorationThickness).toBe("2px");
+      expect(getComputedStyle(link("Docs")).fontWeight).toBe("600");
+      expect(getComputedStyle(link("Guides")).fontWeight).toBe("400");
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
     }
   });
 
-  it("starts its first link's text where the FamilyFooter's does, at the padding's edge, with the same padding, or after its brand", async () => {
-    const textStart = (a: Element) => {
+  it("starts its heading's text, or its first link's, where the FamilyFooter's first link's does, at the padding's edge, or after its brand", async () => {
+    const textStart = (element: Element) => {
       const range = document.createRange();
-      range.selectNodeContents(a);
+      range.selectNodeContents(element);
       return Math.round(range.getBoundingClientRect().left);
     };
-    const first = (host: HTMLElement, root: string) => host.querySelector(`[data-ouro="${root}"] a`)!;
+    const footerLink = (host: HTMLElement) => host.querySelector('[data-ouro="family-footer"] a')!;
+    const heading = (host: HTMLElement) => host.querySelector("[data-ouro-family-heading]")!;
     const padded = await render(
       <>
         <FamilyBar links={sites} className="px-6" />
         <FamilyFooter links={sites} className="px-6" />
       </>,
     );
-    expect(textStart(first(padded.host, "family-bar"))).toBe(textStart(first(padded.host, "family-footer")));
-    expect(textStart(first(padded.host, "family-bar")) - Math.round(padded.nav.getBoundingClientRect().left)).toBe(24);
-    // With no className, the bar and the footer keep the same padding too.
+    expect(textStart(heading(padded.host))).toBe(textStart(footerLink(padded.host)));
+    expect(textStart(heading(padded.host)) - Math.round(padded.nav.getBoundingClientRect().left)).toBe(24);
+    // With no className, and with no heading, the strip and the footer keep the same padding too.
     const plain = await render(
       <>
-        <FamilyBar links={sites} />
+        <FamilyBar links={sites} heading={null} />
         <FamilyFooter links={sites} />
       </>,
     );
-    expect(textStart(first(plain.host, "family-bar"))).toBe(textStart(first(plain.host, "family-footer")));
-    expect(textStart(first(plain.host, "family-bar")) - Math.round(plain.nav.getBoundingClientRect().left)).toBe(16);
-    // After a brand, the row keeps its gap: the first link's box starts clear of the brand.
+    const first = plain.host.querySelector('[data-ouro="family-bar"] a')!;
+    expect(textStart(first)).toBe(textStart(footerLink(plain.host)));
+    expect(textStart(first) - Math.round(plain.nav.getBoundingClientRect().left)).toBe(16);
+    // After a brand, the row keeps its gap: the heading starts clear of the brand.
     const branded = await render(<FamilyBar links={sites} brand={<span data-testid="brand">Lantern</span>} />);
-    expect(first(branded.host, "family-bar").getBoundingClientRect().left).toBeGreaterThanOrEqual(page.getByTestId("brand").element().getBoundingClientRect().right);
+    expect(heading(branded.host).getBoundingClientRect().left).toBeGreaterThanOrEqual(page.getByTestId("brand").element().getBoundingClientRect().right);
   });
 
   it("renders the whole bar in the server HTML", () => {
     const html = renderToString(<FamilyBar links={sites} current="blog" brand={<span>Lantern</span>} />);
-    expect(html).toContain('aria-label="Sites"');
-    expect(html).toMatch(/aria-current="true"[^>]*>Blog</);
+    expect(html).toContain('aria-label="Ouro family"');
+    expect(html).toContain(">Ouro family</span>");
+    expect(html).toMatch(/aria-current="true"[^>]*>(?:<span[^>]*><\/span>)?Blog</);
     for (const site of sites) expect(html).toContain(`href="${site.href}"`);
     expect(html).toContain("<span>Lantern</span>");
   });
@@ -153,12 +180,32 @@ describe("FamilyBar", () => {
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
   });
 
-  it("keeps a thin scroll bar on the row for a mouse, whose wheel scrolls up and down", async () => {
+  it("draws no scroll bar on the row for a mouse either, and does not snap it", async () => {
     await page.viewport(320, 640);
     const { row } = await render(<FamilyBar links={sites} />);
     expect(matchMedia("(pointer: fine)").matches).toBe(true);
-    expect(getComputedStyle(row).scrollbarWidth).toBe("thin");
+    expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
+    expect(getComputedStyle(row).scrollbarWidth).toBe("none");
+    expect(row.offsetHeight - row.clientHeight).toBe(0);
     expect(getComputedStyle(row).scrollSnapType).toBe("none");
+  });
+
+  it("fades the row's end edge only while more of it is cut off there, in either direction", async () => {
+    await page.viewport(320, 640);
+    for (const dir of [undefined, "rtl"] as const) {
+      const { row } = await render(<FamilyBar links={sites} />, dir);
+      const mask = () => getComputedStyle(row).maskImage;
+      await expect.poll(mask).toContain(dir === "rtl" ? "to left" : "to right");
+      expect(mask()).toContain("linear-gradient");
+      row.scrollLeft = (dir === "rtl" ? -1 : 1) * (row.scrollWidth - row.clientWidth);
+      await expect.poll(mask).toBe("none");
+      row.scrollLeft = 0;
+      await expect.poll(mask).not.toBe("none");
+    }
+    await page.viewport(1024, 768);
+    const fits = await render(<FamilyBar links={sites} />);
+    expect(fits.row.scrollWidth).toBeLessThanOrEqual(fits.row.clientWidth);
+    await expect.poll(() => getComputedStyle(fits.row).maskImage).toBe("none");
   });
 
   it("brings each link the keyboard focuses clear of the row's edge, outline and all", async () => {
@@ -317,7 +364,7 @@ describe("FamilyBar", () => {
   });
 
   it("says when current matches no link or two links share an id, and names the props agents guess", async () => {
-    const guessed = { links: [...sites, sites[1]!], current: "nope", className: "bg-red-500", items: sites, currentPath: "/docs", children: "Docs" } as unknown as FamilyBarProps;
+    const guessed = { links: [...sites, sites[1]!], current: "nope", className: "bg-red-500", items: sites, currentPath: "/docs", children: "Docs", title: "Lantern family" } as unknown as FamilyBarProps;
     await render(<FamilyBar {...guessed} />);
     await render(<FamilyBar links={[]} current="docs" />);
     const messages = warn.mock.calls.map((call: unknown[]) => String(call[0]));
@@ -329,10 +376,11 @@ describe("FamilyBar", () => {
         '[ouro-ui] FamilyBar: items is not a prop. Fix: <FamilyBar links={[{ id: "docs", label: "Docs", href: "/" }]} />.',
         '[ouro-ui] FamilyBar: currentPath is not a prop; current takes the id of the site being shown. Fix: <FamilyBar current="docs">.',
         '[ouro-ui] FamilyBar: children are not rendered. Fix: <FamilyBar links={[{ id: "docs", label: "Docs", href: "/" }]} />.',
+        '[ouro-ui] FamilyBar: title is not a prop; the visible heading is heading. Fix: <FamilyBar heading="Lantern family">.',
         '[ouro-ui] FamilyBar: current "docs" matches no link\'s id. Fix: <FamilyBar current="home">.',
       ]),
     );
-    expect(messages).toHaveLength(7);
+    expect(messages).toHaveLength(8);
   });
 
   it("says nothing for a family with each id once and current one of them, or none", async () => {
