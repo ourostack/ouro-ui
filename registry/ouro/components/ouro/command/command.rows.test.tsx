@@ -48,6 +48,15 @@ describe("Command rows", () => {
     await expect.poll(() => parseFloat(box.style.maxHeight)).toBeGreaterThan(short);
   });
 
+  it("leaves the list to overflow, uncut, when the window is too short for even one whole row", async () => {
+    await page.viewport(1280, 50);
+    await show(12, false);
+    const box = listbox();
+    await expect.poll(() => box.scrollHeight > box.clientHeight).toBe(true);
+    await expect.poll(() => edges().some((edge) => edge.getBoundingClientRect().height > box.clientHeight)).toBe(true);
+    expect(box.style.maxHeight).toBe("");
+  });
+
   it("ends the list on a whole row or heading at rest, never through one, at any height and with or without groups", async () => {
     for (const height of [520, 600, 700, 800]) {
       for (const grouped of [false, true]) {
