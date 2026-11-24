@@ -144,6 +144,7 @@ describe("Lightbox fit", () => {
     roots.push(root);
     const show = (index?: number) =>
       act(async () => root.render(<Lightbox label="Photos" images={images} open onOpenChange={() => {}} fullScreen fit {...(index === undefined ? {} : { index })} />));
+    await act(async () => root.render(<Lightbox label="Photos" images={images} open={false} onOpenChange={() => {}} fit />));
     opener.focus();
     await show();
     await settled();
