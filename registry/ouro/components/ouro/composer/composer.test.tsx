@@ -1372,6 +1372,7 @@ describe("Composer expanded motion", () => {
     await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(1);
     expect(frameOf(root).getAttribute("data-ouro-moving")).toBe("grow");
+    await expect.poll(() => frameOf(root).getAnimations().some((animation) => animation.playState === "running")).toBe(true);
     await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(2);
     expect(moves[1]!.from).toBeLessThan(moves[0]!.to - 1);
@@ -1383,10 +1384,11 @@ describe("Composer expanded motion", () => {
   });
 
   it("keeps the long layout's height for a collapse that is turned round at once", async () => {
-    const { host } = await render(<Composer label="Reply" defaultExpanded onSend={() => {}} />);
+    const { host, root } = await render(<Composer label="Reply" defaultExpanded onSend={() => {}} />);
     const moves: ComposerMove[] = [];
     host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
     await act(async () => expandButton()!.click());
+    await expect.poll(() => frameOf(root).getAnimations().some((animation) => animation.playState === "running")).toBe(true);
     await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(2);
     expect(moves[1]!.from).toBeGreaterThan(moves[0]!.to + 1);
