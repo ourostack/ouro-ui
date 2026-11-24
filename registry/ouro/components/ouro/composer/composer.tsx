@@ -49,7 +49,7 @@ export interface ComposerMove {
   from: number;
   /** The height it ends at, in pixels. */
   to: number;
-  /** Settles when the move has ended or another render has cut it short. */
+  /** Settles when the move has ended or the box has expanded or collapsed again and cut it short. */
   playing: Promise<void>;
 }
 
@@ -753,11 +753,12 @@ export function Composer(props: ComposerProps): JSX.Element {
   // After every render, once TextArea has fitted the box: a render that expands or collapses it
   // gives the frame its new height at once and clips it from the old one, the clip running to
   // nothing (a collapse reads its short height in a layout pass of its own first, then keeps the
-  // toolbar and the old height while the clip closes). Nothing lays out while it runs. Any other
-  // render ends a move at once.
+  // toolbar and the old height while the clip closes). Nothing lays out while it runs.
   useLayoutEffect(() => {
     const frame = frameRef.current!;
     const running = move.current;
+    // A render that leaves the box expanded or collapsed as it was lets the move run on.
+    if (running && height.current?.expanded === expanded) return;
     const shown = frame.offsetHeight - (running ? clipTop(frame) : 0);
     running?.end();
     const toolbarElement = frame.querySelector<HTMLElement>("[data-ouro-composer-toolbar]");
