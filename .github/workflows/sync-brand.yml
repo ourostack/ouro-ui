@@ -1,7 +1,8 @@
 name: Sync brand art
-# Keeps site/public/brand/storybook/ the same bytes as ourostack/.github's brand/ art (site/scripts/sync-storybook.mjs).
-# Every 10 minutes it copies the art this site serves; when a brand merge changed any of it, it keeps one pull request
-# open on one branch and turns auto-merge on, so it merges once the checks main's ruleset requires pass, and Pages then
+# Keeps site/public/brand/storybook/ (site/scripts/sync-storybook.mjs) and site/src/family.json
+# (site/scripts/sync-family.mjs) the same bytes as ourostack/.github's brand/ art and brand/family.json. Every 10
+# minutes it copies what this site serves; when a brand merge changed any of it, it keeps one pull request open on
+# one branch and turns auto-merge on, so it merges once the checks main's ruleset requires pass, and Pages then
 # deploys main. The brand audit in ourostack/.github shows site:ui.ouroboros.bot as pending, not stale, for 90 minutes
 # after a brand merge, so its main stays green while this runs.
 # The branch is pushed, and the pull request opened, as the Ouro Current GitHub App (a token from OURO_CURRENT_APP_ID and
@@ -43,6 +44,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node site/scripts/sync-storybook.mjs main
+      - name: Copy the family links from ourostack/.github main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node site/scripts/sync-family.mjs main
       # Three sets of pictures are cut from the synced scenes, each with a test that fails until they are cut again:
       # plan-ship (site/public/plan-ship/), the nemo egg's ships (site/public/eggs/) and the crew's faces
       # (site/public/crew/). A sync that changes any scene recuts what went stale here and commits it with the art. It
@@ -64,7 +69,7 @@ jobs:
       - id: changes
         name: See whether it changed
         run: |
-          if [ -z "$(git status --porcelain -- site/public/brand/storybook site/public/plan-ship site/public/eggs site/public/crew)" ]; then
+          if [ -z "$(git status --porcelain -- site/public/brand/storybook site/public/plan-ship site/public/eggs site/public/crew site/src/family.json)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -75,14 +80,14 @@ jobs:
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: |
           brand=$(gh api repos/ourostack/.github/commits/main --jq '.sha[0:7]')
-          title="Sync the storybook art with ourostack/.github@$brand"
+          title="Sync the brand files with ourostack/.github@$brand"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -q -c "$BRANCH"
-          git add site/public/brand/storybook site/public/plan-ship site/public/eggs site/public/crew
+          git add site/public/brand/storybook site/public/plan-ship site/public/eggs site/public/crew site/src/family.json
           git commit -q -m "$title"
           git push -q --force origin "$BRANCH"
-          body="A brand merge changed art this site serves. Sync brand art copied it byte for byte with site/scripts/sync-storybook.mjs; this pull request merges once the required checks pass."
+          body="A brand merge changed art or family links this site serves. Sync brand art copied them byte for byte with site/scripts/sync-storybook.mjs and site/scripts/sync-family.mjs; this pull request merges once the required checks pass."
           number=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
           if [ -n "$number" ]; then
             gh pr edit "$number" --title "$title" --body "$body"

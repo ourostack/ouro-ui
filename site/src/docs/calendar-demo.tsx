@@ -1,4 +1,4 @@
-import { useCallback, useId, useRef, useState, useSyncExternalStore, type FormEvent, type JSX } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Calendar } from "@/registry/ouro/components/ouro/calendar/calendar";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
@@ -118,6 +118,22 @@ function Screen(): JSX.Element {
   const [jump, setJump] = useState(false);
   const eventRef = useRef<HTMLElement | null>(null);
   const jumpRef = useRef<HTMLButtonElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [refocus, setRefocus] = useState(0);
+  // The deleted event's popover has nothing to return focus to, so focus goes to the grid's event stop once the popover is gone.
+  useEffect(() => {
+    if (refocus === 0) return;
+    let frame = 0;
+    let tries = 0;
+    const settle = () => {
+      const target = rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]');
+      const lost = document.activeElement?.matches('body, div:not([tabindex])') ?? true;
+      if (target && lost) target.focus({ preventScroll: true });
+      if (++tries < 30) frame = requestAnimationFrame(settle);
+    };
+    frame = requestAnimationFrame(settle);
+    return () => cancelAnimationFrame(frame);
+  }, [refocus]);
   const formId = useId();
 
   const shown = stage === "empty" ? [] : events;
@@ -162,6 +178,7 @@ function Screen(): JSX.Element {
   const remove = (entry: Entry) => {
     const at = events.findIndex((candidate) => candidate.id === entry.id);
     setOpen(null);
+    setRefocus((count) => count + 1);
     setEvents((now) => now.filter((candidate) => candidate.id !== entry.id));
     toast("Event deleted", {
       description: entry.title,
@@ -177,7 +194,7 @@ function Screen(): JSX.Element {
   const label = "Calendar";
 
   return (
-    <div className="grid w-full grid-cols-1 gap-3" data-site-calendar-demo="">
+    <div ref={rootRef} className="grid w-full grid-cols-1 gap-3" data-site-calendar-demo="">
       <div className="min-w-0 overflow-x-auto">
         <SegmentedControl
           label="State"
@@ -195,7 +212,7 @@ function Screen(): JSX.Element {
         <Heading level={2} size="md" className="me-auto min-w-0">
           {heading}
         </Heading>
-        <Button ref={jumpRef} variant="outline" tone="secondary" aria-expanded={jump} onClick={() => setJump(!jump)}>
+        <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => setJump(!jump)}>
           Go to date
         </Button>
         <SegmentedControl

@@ -7,7 +7,7 @@ import { AxHero } from "../ax/hero";
 import { Popups, PopupsProvider } from "../components/popups";
 import { HydrateInTurn } from "../hydrate";
 import { APPLE_PATHS, href, normalizePath, PART_PATHS, PLATFORM_PATHS, type PlatformPath } from "../paths";
-import { ActionsIsland, AdoptionIsland, AndroidHomeIsland, AndroidStartIsland, AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, ComposedUiIsland, CurrentIsland, HackamoreIsland, HomeReferenceIsland, HxIsland, ProofIsland, RepaintIsland, StoryIsland, WindowsHomeIsland, WindowsStartIsland, XrayIsland } from "../voyage/chapters/island";
+import { ActionsIsland, AdoptionIsland, AndroidAxIsland, AndroidHomeIsland, AndroidHxIsland, AndroidStartIsland, AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, ComposedUiIsland, CurrentIsland, HackamoreIsland, HomeReferenceIsland, HxIsland, ProofIsland, RepaintIsland, StoryIsland, WindowsAxIsland, WindowsHomeIsland, WindowsHxIsland, WindowsStartIsland, XrayIsland } from "../voyage/chapters/island";
 import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
@@ -37,8 +37,12 @@ const isApple = (page: string): page is (typeof APPLE_PATHS)[number] => page in 
 const PLATFORM_ISLANDS: Record<PlatformPath, () => JSX.Element> = {
   "/hx/": HxIsland,
   "/windows/": WindowsHomeIsland,
+  "/windows/hx/": WindowsHxIsland,
+  "/windows/ax/": WindowsAxIsland,
   "/windows/start/": WindowsStartIsland,
   "/android/": AndroidHomeIsland,
+  "/android/hx/": AndroidHxIsland,
+  "/android/ax/": AndroidAxIsland,
   "/android/start/": AndroidStartIsland,
 };
 const isPlatform = (page: string): page is PlatformPath => (PLATFORM_PATHS as readonly string[]).includes(page);
