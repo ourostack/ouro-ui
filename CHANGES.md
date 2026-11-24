@@ -1,0 +1,5 @@
+# Changes in this release
+
+- New: BuildChip, a compact title-bar chip that names the build a window runs and opens a picker of the official build and the builds serving now, with a skew line and fix when it trails the official build.
+- New: [Ouro check keeps a decision a person made as a check](scripts/check/check.test.mts "verify:testExists(scripts/check/check.test.mts::Ouro check > a decision in the config is a check: it fails where its expectation, count or only breaks, and holds where the page, width or a veil leaves it out)"): `decisions` in `ouro-check.json` names a selector and what must hold for it (computed style, box, count or only), judged with the other rules, with no test file.
+- Changed: the squircle polyfill (`lib-squircle-polyfill`) skips re-measuring descendants when an element's style changes without touching a custom property, which cuts its cost while typing and scrolling; one `registerSquirclePolyfill()` call at startup gives an app squircles in engines without `corner-shape`, and an element of your own gets one with `data-corner-shape="squircle"`.
