@@ -64,14 +64,22 @@ export default function WindowsHome(): JSX.Element {
         <ul className="apple-doors">
           <li className="apple-door">
             <p className="apple-door-kicker">Ouro HX for Windows</p>
-            <h3 className="site-h3">The controls</h3>
+            <h3 className="site-h3">
+              <a className="apple-door-link" href={href("/windows/hx/")}>
+                The controls <span aria-hidden="true">→</span>
+              </a>
+            </h3>
             <p className="apple-door-body">
               {claim("Button to Table, each following light and dark, a Windows contrast theme, the text size and the animation setting.", { source: { spec: "https://github.com/ourostack/ouro-ui-windows/blob/65dc6dce47d3e7e8f77164f63e617b9ee3e1b773/README.md" }, verify: [{ fileLine: "site/src/platforms/kits.json", pattern: "Each follows light and dark mode, a Windows contrast theme, the text size and the animation setting" }] })}
             </p>
           </li>
           <li className="apple-door">
             <p className="apple-door-kicker">Ouro AX for Windows</p>
-            <h3 className="site-h3">The doors</h3>
+            <h3 className="site-h3">
+              <a className="apple-door-link" href={href("/windows/ax/")}>
+                The doors <span aria-hidden="true">→</span>
+              </a>
+            </h3>
             <p className="apple-door-body">
               Doors are the ways an agent gets in without a screen.{" "}
               {claim("Here they are Windows App Actions and an MCP server for the On-device Agent Registry, generated from core's one defineAction\u00a0declaration.", { source: { spec: "https://github.com/ourostack/ouro-ui-windows/blob/65dc6dce47d3e7e8f77164f63e617b9ee3e1b773/README.md" }, verify: [{ fileLine: "site/src/platforms/kits.json", pattern: "Windows App Actions and an MCP server for the On-device Agent Registry\\), all generated from ouro-ui-core's one defineAction" }] })}

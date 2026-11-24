@@ -90,8 +90,12 @@ export const routes: Route[] = [
   { path: "/apple/start/", title: "Get started · Ouro UI for Apple", description: "Add one Swift package, set a theme, animate with the shared spring, play a named haptic, and X-ray your App Intents in CI." },
   { path: "/hx/", title: "Ouro HX · Ouro UI", description: "Components for people's screens, in React, SwiftUI, WinUI and Compose." },
   { path: "/windows/", title: "Ouro UI for Windows", description: "Ouro HX in WinUI, and App Actions and MCP for agents." },
+  { path: "/windows/hx/", title: "Ouro HX for Windows", description: "Ouro's controls in WinUI, from core's specs and tokens, following light and dark, a contrast theme, the text size and the animation setting." },
+  { path: "/windows/ax/", title: "Ouro AX for Windows", description: "App Actions and an MCP server from your defineAction declaration, the runtime behind them, and the X-ray that checks agents and people see the same actions." },
   { path: "/windows/start/", title: "Get started · Ouro UI for Windows", description: "Add Ouro.UI.Windows and give your first OuroButton an action." },
   { path: "/android/", title: "Ouro UI for Android", description: "Ouro HX in Jetpack Compose, and AppFunctions for agents." },
+  { path: "/android/hx/", title: "Ouro HX for Android", description: "Ouro's components in Jetpack Compose, with core's themes, increased contrast and reduced motion, and free of Material." },
+  { path: "/android/ax/", title: "Ouro AX for Android", description: "AppFunctions from your defineAction declaration, the person's yes before a consequential call, and the X-ray that checks agents and people see the same actions." },
   { path: "/android/start/", title: "Get started · Ouro UI for Android", description: "Add bot.ouro.ui:ouro-hx and give agents your actions as AppFunctions." },
   { path: "/adoption/", title: "Adoption · Ouro UI", description: "Who uses Ouro UI, and who gives back to it: our maintained products, measured from GitHub and CI hourly, furthest from confirmed first." },
   // The part pages (parts/); each description is its page's lede (copy deck 3.3).
