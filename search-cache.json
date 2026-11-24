@@ -1,8 +1,8 @@
 {
   "spoonjoy/spoonjoy-v2": {
     "defineCommand": {
-      "commit": "93876dc4ce5b48e245b36b1774aa578d128316aa",
-      "at": "2026-11-24T22:20:12.848Z",
+      "commit": "016a3002a4a0193fb287bc4c7ee27b9dd1cfc61d",
+      "at": "2026-11-24T23:18:05.833Z",
       "total": 5,
       "paths": [
         "app/lib/ouro/ax/ax-command.ts",
@@ -13,8 +13,8 @@
       ]
     },
     "bindAx": {
-      "commit": "93876dc4ce5b48e245b36b1774aa578d128316aa",
-      "at": "2026-11-24T22:22:12.545Z",
+      "commit": "016a3002a4a0193fb287bc4c7ee27b9dd1cfc61d",
+      "at": "2026-11-24T23:20:03.520Z",
       "total": 4,
       "paths": [
         "app/lib/ouro/ax/component.ts",
@@ -25,6 +25,20 @@
     }
   },
   "spoonjoy/spoonjoy-apple": {
+    "OuroButton": {
+      "commit": "d18aab0ccfe0053860e3c4ce8670d06917ccbeaf",
+      "at": "2026-11-24T23:27:37.911Z",
+      "total": 7,
+      "paths": [
+        "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift",
+        "Apps/Spoonjoy/Shared/Views/SearchView.swift",
+        "docs/native-design-language.md",
+        "scripts/validate-design-review.rb",
+        "Apps/Spoonjoy/Shared/Views/KitchenView.swift",
+        "scripts/capture-native-screenshots.sh",
+        "Apps/Spoonjoy/Shared/Components/ScreenshotAccessibilityProofWriter.swift"
+      ]
+    },
     "\"import OuroAX\"": {
       "commit": "d18aab0ccfe0053860e3c4ce8670d06917ccbeaf",
       "at": "2026-11-24T22:27:20.964Z",
@@ -159,25 +173,6 @@
       "at": "2026-11-24T01:25:01.167Z",
       "total": 0,
       "paths": []
-    }
-  },
-  "ourostack/ouroboros": {
-    "defineCommand": {
-      "commit": "83fa77804d104a02448d65db054a580edf1046cc",
-      "at": "2026-11-24T22:28:17.016Z",
-      "total": 10,
-      "paths": [
-        "src/eval/interviews/guest/ax/ax-command.ts",
-        "lib/ouro-ui/registry/ouro/ax/ax-command.ts",
-        "lib/ouro-ui/registry/ouro/ax/xray.kit.mts",
-        "lib/ouro-ui/registry/ouro/ax/flows.kit.mts",
-        "lib/ouro-ui/registry/ouro/ax/example-cli.ts",
-        "src/eval/interviews/guest/arms.ts",
-        "lib/ouro-ui/registry/ouro/ax/lint.ts",
-        "lib/ouro-ui/registry/ouro/ax/flows.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "lib/ouro-ui/registry/ouro/ax/xray.ts"
-      ]
     }
   }
 }
