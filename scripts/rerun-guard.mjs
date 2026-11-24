@@ -1,14 +1,18 @@
-// Whether a push to main's rerun (github.run_attempt > 1) already has its cause on record (ci.yml's
-// rerun-guard job). A rerun without a recorded cause gets a ::error:: annotation, a step summary line and a
+// Whether a push to main's rerun (github.run_attempt > 1) already has its cause on record
+// (.github/workflows/rerun-guard.yml). A rerun without a recorded cause gets a ::error:: annotation, a step summary line and a
 // comment on #2469 (the infra flake log), asking for the cause: a comment that names this run (its id, as a
 // number or inside its URL) alongside a line that files a signature, as #2469's existing comments already
-// write ("Signature:", case-insensitive, with or without bold). One comment per run and attempt: a marker in
-// the comment's own body stops a second run of this job from commenting again.
+// write ("Signature:", case-insensitive, with or without bold), and names the rerun's triggering actor when
+// known. One comment per run and attempt: a marker in the comment's own body stops a second run of this job
+// from commenting again.
 //
 // Report-only (contributing/ci.md): this always exits 0, whatever it finds, so it joins no required check
-// yet. Fail-open: an unreadable issue is not a missing cause, so it passes with a note.
+// yet. Fail-open: an unreadable issue is not a missing cause, so it passes with a note. A ci.yml job of the
+// same name ran this first, gated on needs: [plan]; it never reported a run cancelled before the plan
+// finished (ourostack/ouro-ui#3210's run 45339486025), so .github/workflows/rerun-guard.yml, a separate
+// workflow_run workflow that starts independently of the triggering run finishing, replaced it.
 //
-//   node scripts/rerun-guard.mjs   needs GH_TOKEN, GITHUB_REPOSITORY, RUN_ID, RUN_ATTEMPT, RUN_URL.
+//   node scripts/rerun-guard.mjs   needs GH_TOKEN, GITHUB_REPOSITORY, RUN_ID, RUN_ATTEMPT, RUN_URL; RUN_ACTOR is optional.
 import { appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -39,11 +43,11 @@ export function alreadyFiled(bodies, runId, attempt) {
   return bodies.some((body) => body.includes(marker));
 }
 
-/** The comment rerun-guard files on #2469 when this rerun has no cause on record yet. */
-export function guardComment({ runId, attempt, runUrl }) {
+/** The comment rerun-guard files on #2469 when this rerun has no cause on record yet. `actor` (the login that triggered the rerun) is named when known. */
+export function guardComment({ runId, attempt, runUrl, actor }) {
   return [
     guardMarker(runId, attempt),
-    `Rerun without a recorded cause: run ${runId} (attempt ${attempt}) on a push to main: ${runUrl}`,
+    `Rerun without a recorded cause: run ${runId} (attempt ${attempt}) on a push to main, rerun by ${actor || "someone (actor unknown)"}: ${runUrl}`,
     "",
     'File this run\'s signature here (a line starting `Signature:`, naming this run) before the next rerun.',
   ].join("\n");
@@ -74,14 +78,14 @@ export async function postComment({ fetch = globalThis.fetch, repository, token,
  * nothing to check (attempt 1), "caused" when a comment already names this run alongside a signature, or
  * "uncaused" (with the comment rerun-guard should file, `null` when it already has) otherwise.
  */
-export function verdict({ runId, attempt, runUrl, bodies }) {
+export function verdict({ runId, attempt, runUrl, actor, bodies }) {
   if (Number(attempt) <= 1) return { status: "first-attempt" };
   if (hasFiledCause(bodies, runId)) return { status: "caused" };
-  return { status: "uncaused", comment: alreadyFiled(bodies, runId, attempt) ? null : guardComment({ runId, attempt, runUrl }) };
+  return { status: "uncaused", comment: alreadyFiled(bodies, runId, attempt) ? null : guardComment({ runId, attempt, runUrl, actor }) };
 }
 
 async function main() {
-  const { RUN_ID: runId, RUN_ATTEMPT: attempt, RUN_URL: runUrl, GITHUB_REPOSITORY: repository, GH_TOKEN: token } = process.env;
+  const { RUN_ID: runId, RUN_ATTEMPT: attempt, RUN_URL: runUrl, RUN_ACTOR: actor, GITHUB_REPOSITORY: repository, GH_TOKEN: token } = process.env;
   const summary = (line) => {
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${line}\n`);
   };
@@ -97,7 +101,7 @@ async function main() {
     console.log(`::notice::rerun-guard: issue #${ISSUE_NUMBER} could not be read (${message}); passing (fail-open).`);
     return 0;
   }
-  const result = verdict({ runId, attempt, runUrl, bodies });
+  const result = verdict({ runId, attempt, runUrl, actor, bodies });
   if (result.status === "first-attempt") {
     console.log(`rerun-guard: attempt ${attempt} is this run's first; nothing to check.`);
     return 0;

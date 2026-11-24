@@ -301,12 +301,14 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   }
   for (const [role, name] of [
     ["link", "Ouro UI"],
-    ["link", "The Nautilus"],
-    ["link", "For Apple"],
-    ["link", "Guides"],
     ["link", "Ouro HX"],
     ["link", "Ouro AX"],
-    ["link", "Ouro UI on GitHub"],
+    ["link", "Actions"],
+    ["link", "Composed UI"],
+    ["link", "X-ray"],
+    ["link", "Proof"],
+    ["link", "Docs"],
+    ["link", "GitHub"],
   ] as const) {
     await pressTab(page);
     await expect(page.getByRole("banner").getByRole(role, { name, exact: true })).toBeFocused();

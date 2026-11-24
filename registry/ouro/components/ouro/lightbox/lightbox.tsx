@@ -249,17 +249,14 @@ interface ViewerProps {
   zoomLabel: string;
   /** Where the viewer writes the index of the image it shows, for focus to go to as it closes. */
   shownRef: { current: number };
-  /** Where the viewer puts the function that shows a position the keys chose (Home, End) before the scroll settles. */
-  chooseRef: { current: ((index: number) => void) | null };
 }
 
 /**
  * Steps the viewer with the arrow keys, in reading order, from anywhere in it, by pressing the
- * carousel's own Previous or Next, and goes to the first or the last image with Home or End,
- * showing that position at once (`choose`). A key with a modifier, or one typed into a field in a
- * caption, is left alone.
+ * carousel's own Previous or Next, and goes to the first or the last image with Home or End. A key
+ * with a modifier, or one typed into a field in a caption, is left alone.
  */
-function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number) => void, reduced: boolean): void {
+function stepWithKeys(event: KeyboardEvent<HTMLElement>, reduced: boolean): void {
   const { key } = event;
   if (key !== "ArrowLeft" && key !== "ArrowRight" && key !== "Home" && key !== "End") return;
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
@@ -268,13 +265,21 @@ function stepWithKeys(event: KeyboardEvent<HTMLElement>, choose: (index: number)
   event.preventDefault();
   if (key === "Home" || key === "End") {
     // Scrolled to the start or the end, as the carousel's buttons scroll: the carousel reports and
-    // announces where it settles. Right to left, the end is the most negative scrollLeft.
+    // announces where it settles, and shows that position at once (its own onTargetChange). Right
+    // to left, the end is the most negative scrollLeft. The jump goes through the carousel itself
+    // (the "ouro-carousel-goto" event its viewport listens for), the same heading-tracked path a
+    // button press takes, so a press just before or after this one is never read against a stale
+    // or missing heading.
     const viewport = event.currentTarget.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
     const end = getComputedStyle(viewport).direction === "rtl" ? -viewport.scrollWidth : viewport.scrollWidth;
     const behavior = reduced ? "instant" : "smooth";
     // Stryker disable next-line ArithmeticOperator: the position stops at the last image, so one past it shows the same.
-    choose(key === "Home" ? 0 : viewport.children.length - 1);
-    viewport.scrollTo({ left: key === "Home" ? 0 : end, behavior });
+    const index = key === "Home" ? 0 : viewport.children.length - 1;
+    viewport.dispatchEvent(
+      new CustomEvent<{ index: number; left: number; behavior: ScrollBehavior }>("ouro-carousel-goto", {
+        detail: { index, left: key === "Home" ? 0 : end, behavior },
+      }),
+    );
     return;
   }
   const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
@@ -560,7 +565,6 @@ function LightboxViewer({
   originalLabel,
   zoomLabel,
   shownRef,
-  chooseRef,
 }: ViewerProps): JSX.Element {
   const [start, setStart] = useState(index);
   const [current, setCurrent] = useState(index);
@@ -591,13 +595,6 @@ function LightboxViewer({
   useLayoutEffect(() => {
     shownRef.current = shown;
   });
-  useLayoutEffect(
-    () => {
-      chooseRef.current = setTarget;
-    },
-    // Stryker disable next-line ArrayDeclaration: chooseRef is the same object for the viewer's life, so it runs once either way.
-    [chooseRef],
-  );
   // The position names the image chosen; the carousel announces it once the image has arrived.
   const chosen = target === null ? shown : Math.min(target, total - 1);
   const href = images[shown]?.href;
@@ -895,9 +892,6 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   const tapFrom = useRef<{ x: number; y: number } | null>(null);
   const popup = useRef<HTMLDivElement | null>(null);
   const shown = useRef(0);
-  // The open viewer's way to show a position the keys chose (LightboxViewer sets it).
-  const choose = useRef<((index: number) => void) | null>(null);
-
   const viewer = (
     <DialogRoot open={open && (controlled || ready)} onOpenChange={(next) => setOpen(next)}>
       <DialogPortal>
@@ -922,7 +916,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
             // viewer opened. A pressed thumbnail need not have had focus (Safari does not focus a
             // pressed button). A mosaic shows four: an image past them returns to the last, "+N".
             finalFocus={controlled ? () => returnFocus?.(shown.current) ?? true : () => thumbnails.current[mosaic ? Math.min(shown.current, 3) : shown.current]}
-            onKeyDown={(event) => stepWithKeys(event, choose.current!, reduced)}
+            onKeyDown={(event) => stepWithKeys(event, reduced)}
           >
             <LightboxViewer
               label={label}
@@ -938,7 +932,6 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               originalLabel={originalLabel}
               zoomLabel={zoomLabel}
               shownRef={shown}
-              chooseRef={choose}
             />
           </DialogPopupUnchecked>
         </DialogViewport>

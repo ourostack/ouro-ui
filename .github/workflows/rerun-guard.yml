@@ -1,0 +1,44 @@
+name: Rerun guard
+# A push to main's run that reruns (run_attempt > 1) and is cancelled before ci.yml's own plan job finishes
+# never got reported: the earlier in-run job needed plan, so ourostack/ouro-ui#3210's run 45339486025 (rerun by
+# arimendelow, cancelled at 06:56Z, two minutes after the rerun started) commented on no one. This workflow
+# starts independently of the triggering run ever finishing, so a cancelled rerun is reported too.
+#
+# `workflow_run`'s requested activity type does not fire for a rerun (GitHub's own events-that-trigger-workflows
+# doc, workflow_run section: "The requested activity type does not occur when a workflow is re-run."), so this
+# watches in_progress instead: the only other activity type the triggering run reaches before completing, and
+# the one the REST API's own run-status values (queued, in_progress, completed) say every attempt, reruns
+# included, passes through again on its way to running. Report-only (contributing/ci.md): this never fails,
+# asks for issues: write only, and reuses scripts/rerun-guard.mjs's same check, fetched from the default branch
+# with curl, never checked out, so no untrusted code runs here.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [in_progress]
+permissions:
+  contents: read
+  issues: write # comments on #2469 when this rerun has no cause on record (scripts/rerun-guard.mjs)
+concurrency:
+  group: rerun-guard-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+  cancel-in-progress: false
+jobs:
+  rerun-guard:
+    name: Rerun without a recorded cause?
+    if: ${{ github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.run_attempt > 1 }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Checked #2469 for this rerun's cause
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_ACTOR: ${{ github.event.workflow_run.triggering_actor.login }}
+        run: |
+          curl -fsSL --retry 2 --max-time 20 "https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/rerun-guard.mjs" -o "$RUNNER_TEMP/rerun-guard.mjs" \
+            && node "$RUNNER_TEMP/rerun-guard.mjs" || echo "::warning::rerun-guard could not run; passing (report-only)"

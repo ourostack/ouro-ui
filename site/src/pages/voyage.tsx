@@ -42,8 +42,14 @@ const PLATFORM_ISLANDS: Record<PlatformPath, () => JSX.Element> = {
   "/android/start/": AndroidStartIsland,
 };
 const isPlatform = (page: string): page is PlatformPath => (PLATFORM_PATHS as readonly string[]).includes(page);
-/** The header's current section for a platform page: Ouro HX, or the platform's own overview. */
-const platformSection = (page: PlatformPath) => (page === "/hx/" ? "/hx/" : page.startsWith("/windows/") ? "/windows/" : "/android/");
+/**
+ * The header's section for a page, by part (site-menu.tsx): Ouro HX for every platform's pages, X-ray for Hackamore, and
+ * Proof for the adoption board and Ouro Current. A page under its section, not the section's own, marks it as the section
+ * you are in (`pageNav`).
+ */
+const SECTION_OF: Record<string, string> = { "/hackamore/": "/xray/", "/adoption/": "/proof/", "/current/": "/proof/" };
+const headerSection = (page: string): string =>
+  isApple(page) || isPlatform(page) ? "/hx/" : (SECTION_OF[page] ?? (["/nautilus/", "/ax/", "/proof/"].includes(page) || isPart(page) ? page : "/"));
 
 /** Each part page's body, an island of its own (parts/). */
 const PART_ISLANDS: Record<(typeof PART_PATHS)[number], () => JSX.Element> = {
@@ -119,9 +125,9 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
         <div className="voyage min-h-dvh bg-background text-foreground">
           <Suspense>
             <VoyageHeader
-              path={page === "/nautilus/" || page === "/ax/" || isPart(page) ? page : isApple(page) ? "/apple/" : isPlatform(page) ? platformSection(page) : "/"}
+              path={headerSection(page)}
               page={page}
-              pageNav={isApple(page) || (isPlatform(page) && page !== "/hx/")}
+              pageNav={headerSection(page) !== page && headerSection(page) !== "/"}
             />
           </Suspense>
           {isApple(page) ? (

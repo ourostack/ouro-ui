@@ -78,68 +78,6 @@ export const knownFindings: KnownFinding[] = [
     reason: "The bar's divider runs against the story frame's edge, so the line is drawn twice; the bar should drop its own line where it meets an edge.",
   },
   {
-    story: "TimeGrid/Day",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do. Under nova's dark scheme the column's line is too faint against the page to count as drawn, so the finding shows in light only.",
-    theme: "nova",
-    sometimes: true,
-  },
-  {
-    story: "TimeGrid/Links",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do. Under nova's dark scheme the column's line is too faint against the page to count as drawn, so the finding shows in light only.",
-    theme: "nova",
-    sometimes: true,
-  },
-  {
-    story: "TimeGrid/Locales",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do. Under nova's dark scheme the column's line is too faint against the page to count as drawn, so the finding shows in light only.",
-    theme: "nova",
-    sometimes: true,
-  },
-  {
-    story: "TimeGrid/NowAdornment",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do. Under nova's dark scheme the column's line is too faint against the page to count as drawn, so the finding shows in light only.",
-    theme: "nova",
-    sometimes: true,
-  },
-  {
-    story: "TimeGrid/BackgroundEvents",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
-  },
-  {
-    story: "TimeGrid/BackgroundEventsDay",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
-  },
-  {
-    story: "TimeGrid/Playground",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
-  },
-  {
-    story: "TimeGrid/Statuses",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "Two events side by side touch, so the line between them is drawn twice; events want a small gap between them, as a calendar's do.",
-  },
-  {
-    story: "TimeGrid/WorkWeek",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "An event's edge sits on the day column's line, drawing it twice; events want a small inset from the column's lines, as a calendar's do.",
-  },
-  {
     story: "Emoji/Placeholder",
     rule: "broken-image",
     issue: 1959,
@@ -654,13 +592,6 @@ export const knownFindings: KnownFinding[] = [
   },
   {
     story: "TimeGrid/Playground",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "TimeGrid/WithToolbar",
     rule: "near-miss",
     issue: 3286,
     reason:

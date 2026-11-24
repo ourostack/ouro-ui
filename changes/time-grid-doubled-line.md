@@ -1,0 +1,2 @@
+- Fixed: TimeGrid's placed events keep a symmetric inset from their day column's lines on both sides, since a multi-column view's shared borders need both sides clear of the doubled-line threshold.
+- Fixed: TimeGrid's thin, borderless background bar events keep a minimal inset from their column's line instead of the wider inset full events use, since their narrow lane can't carry it.
