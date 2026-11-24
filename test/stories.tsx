@@ -333,13 +333,20 @@ async function clickExactly(element: HTMLElement): Promise<void> {
   element.setAttribute("data-testid", id);
   try {
     const box = element.getBoundingClientRect();
-    const center = { x: box.width / 2, y: box.height / 2 };
-    const hit = element.ownerDocument.elementFromPoint(box.left + center.x, box.top + center.y);
+    const reaches = (point: { x: number; y: number }) => {
+      const hit = element.ownerDocument.elementFromPoint(box.left + point.x, box.top + point.y);
+      return hit !== null && element.contains(hit);
+    };
+    // The center, or else the first point of a grid over the box that reaches the element: a phone's
+    // Combobox field holds chips whose remove buttons can cover its center.
+    const points = [{ x: box.width / 2, y: box.height / 2 }];
+    for (let row = 1; row < 6; row += 1) for (let column = 1; column < 10; column += 1) points.push({ x: (box.width * column) / 10, y: (box.height * row) / 6 });
+    const target = points.find(reaches);
     let position: { x: number; y: number } | undefined;
-    if (hit !== null && element.contains(hit)) {
+    if (target !== undefined) {
       // Scrolling an already hittable bar's whole box into view can hide that pointer-revealed bar.
       const style = getComputedStyle(element);
-      position = { x: center.x - Number.parseFloat(style.borderLeftWidth), y: center.y - Number.parseFloat(style.borderTopWidth) };
+      position = { x: target.x - Number.parseFloat(style.borderLeftWidth), y: target.y - Number.parseFloat(style.borderTopWidth) };
     }
     await userEvent.click(page.getByTestId(id), position === undefined ? undefined : { position });
   } finally {
