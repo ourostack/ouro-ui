@@ -10,6 +10,7 @@ afterEach(() => host?.remove());
 /** Draws `html`, runs `press` between beginTrace and stepTrace, and returns the faults the trace holds. */
 async function trace(html: string, press: () => void, attrs = "") {
   host = document.createElement("div");
+  host.style.cssText = "position:fixed;top:0;left:0;width:400px;overflow:hidden";
   host.innerHTML = `<style>#t-box{position:absolute;top:0;left:0;width:40px;height:40px;background:#cde}#t-next{position:absolute;top:80px}#t-text{width:200px}</style><div ${attrs}>${html}</div>`;
   document.body.append(host);
   beginTrace();
@@ -44,7 +45,7 @@ describe("transition rules", () => {
   it("finds a neighbour that moves while a box animates, and one that stays", async () => {
     const press = () => void document.getElementById("t-box")!.animate([{ height: "40px" }, { height: "120px" }], { duration: 300, fill: "forwards" });
     const { faults } = await trace(`<div id="t-box" style="position:static"></div><p id="t-next" style="position:static">Below</p>`, press);
-    expect(faults.map((f) => `${f.rule} ${f.element} ${f.detail}`)).toEqual(["sibling-reflow p#t-next"]);
+    expect(faults.map((f) => `${f.rule} ${f.element}`)).toEqual(["sibling-reflow p#t-next"]);
   });
 
   it("finds text that changes its number of lines, and a box that appears in one frame", async () => {
@@ -53,13 +54,13 @@ describe("transition rules", () => {
       document.getElementById("t-box")!.animate([{ opacity: 0, offset: 0 }, { opacity: 1, offset: 0.5 }], { duration: 300, easing: "steps(1, start)", fill: "forwards" });
     };
     const { faults } = await trace(`<div id="t-box"></div><p id="t-text">Words that wrap as it narrows</p>`, press);
-    expect(faults.map((f) => `${f.rule} ${f.element} ${f.detail}`).sort()).toEqual(["pop-in div#t-box", "text-rewrap p#t-text"]);
+    expect(faults.map((f) => `${f.rule} ${f.element}`).sort()).toEqual(["pop-in div#t-box", "text-rewrap p#t-text"]);
   });
 
   it("skips an element that says why it may, and reads the rest of the page as it was", async () => {
     const press = go('[{"transform":"none"},{"transform":"translateX(200px)"}]', '{ "duration": 480, "easing": "steps(1, end)", "fill": "forwards" }');
     const { faults } = await trace(slide(), press, 'data-ouro-allow="transition" data-ouro-allow-why="a step is the design"');
-    expect(faults.map((f) => `${f.rule} ${f.element} ${f.detail}`)).toEqual([]);
+    expect(faults.map((f) => `${f.rule} ${f.element}`)).toEqual([]);
   });
 
   it("reports an outer element's fault once, and leaves a bare trace's ids alone", () => {

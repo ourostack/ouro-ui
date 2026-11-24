@@ -837,7 +837,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
           await page.mouse.click(point.x, point.y);
           await page.waitForTimeout(400);
           const { longestFrameMs } = await page.evaluate(readMotion);
-          if (longestFrameMs > TRANSITION_LIMITS.frameMs) faults.push({ rule: "dropped-frames", element: "the page", detail: `its longest frame took ${longestFrameMs} ms after the press (keep to ${TRANSITION_LIMITS.frameMs} ms)`, value: longestFrameMs, budget: TRANSITION_LIMITS.frameMs, unit: "ms" });
+          if (longestFrameMs > TRANSITION_LIMITS.frameMs && longestFrameMs <= budgets.inp) faults.push({ rule: "dropped-frames", element: "the page", detail: `its longest frame took ${longestFrameMs} ms after the press (keep to ${TRANSITION_LIMITS.frameMs} ms; a press slower than the ${budgets.inp} ms input budget is the inp rule's)`, value: longestFrameMs, budget: TRANSITION_LIMITS.frameMs, unit: "ms" });
         }
         for (const fault of faults) {
           found++;

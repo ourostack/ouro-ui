@@ -195,8 +195,7 @@ describe("Ouro check", () => {
     assert.ok(report.findings.some((f) => f.rule === "inp" && f.value === pressed[0]!.value && f.budget === 200 && f.unit === "ms" && f.samples!.length === 5));
     assert.ok(report.findings.filter((f) => f.rule !== "inp" && f.rule !== "first-content").every((f) => !("samples" in f)));
     assert.ok(report.findings.filter((f) => f.rule === "overlap" || f.rule === "axe").every((f) => !("value" in f)));
-    assert.ok(result.shots.some((s) => s.page === "/inp-fail.html" && s.width === 1280 && s.theme === "dark" && s.count === 2));
-    // Its two findings: the slow press, and the frames its handler drops.
+    assert.ok(result.shots.some((s) => s.page === "/inp-fail.html" && s.width === 1280 && s.theme === "dark" && s.count === 1));
 
     // First content is what the page drew on arrival, read before any rule scrolls it: this page draws a large block
     // whenever it scrolls, which the corner rule does to reach the rounded picture far down, once the page has settled
