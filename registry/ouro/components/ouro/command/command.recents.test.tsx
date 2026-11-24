@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
+import { fairShare } from "@/registry/ouro/components/ouro/command/command-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // Runs in Chromium and WebKit.
@@ -247,5 +248,13 @@ describe("Command recents", () => {
     await expect.poll(() => chips().length).toBe(3);
     expect(chips().map((chip) => chip.style.maxWidth)).toEqual(["", "", ""]);
     expect(chips().every((chip) => chip.querySelector<HTMLElement>("[data-slot='command-recent-label']")!.scrollWidth <= chip.clientWidth)).toBe(true);
+  });
+
+  it("works out the widest a chip may be from the names' widths and the room, without touching the list it is given", () => {
+    const natural = [250, 80, 120];
+    expect(fairShare(natural, 400)).toBe(200);
+    expect(natural).toEqual([250, 80, 120]);
+    expect(fairShare([50, 50], 100)).toBe(Infinity);
+    expect(fairShare([100, 90, 300], 300)).toBe(110);
   });
 });

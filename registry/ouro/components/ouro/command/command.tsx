@@ -49,6 +49,7 @@ import {
   commandSearchClass,
   commandSheetListClass,
   commandSheetSearchClass,
+  fairShare,
   matchesQuery,
   queryMatch,
   queryRanges,
@@ -410,19 +411,6 @@ function toGroups(entries: readonly CommandEntry[]): Group[] {
 
 /** The widths of the rows that hold the place of results on their way. */
 const LOADING_ROWS = ["w-2/3", "w-1/2", "w-3/4"] as const;
-
-// The widest a chip may be so that chips share a row fairly: each is as wide as its name, up to an equal share of
-// what the shorter ones leave. Infinity when every name fits.
-function fairShare(natural: readonly number[], room: number): number {
-  let left = room;
-  const sorted = [...natural].sort((a, b) => a - b);
-  for (const [index, width] of sorted.entries()) {
-    const share = left / (sorted.length - index);
-    if (width > share) return share;
-    left -= width;
-  }
-  return Infinity;
-}
 
 const shown = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false;
 
