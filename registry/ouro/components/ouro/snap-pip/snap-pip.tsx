@@ -269,6 +269,12 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     setOwnCollapsed(next);
     onCollapsedChange!(next);
   };
+  // Said when the picture really goes or comes back, whoever changed it, and not on mount.
+  const wasCollapsed = useRef(collapsed);
+  useEffect(() => {
+    if (wasCollapsed.current !== collapsed) announce(collapsed ? `${label} hidden` : `${label} shown`);
+    wasCollapsed.current = collapsed;
+  }, [collapsed, label]);
   // The container's size once measured; until then CSS places it, as on the server.
   const [stage, setStage] = useState<{ width: number; height: number } | undefined>(undefined);
   // A new object on each release, so a controlled corner the app kept is gone back to.

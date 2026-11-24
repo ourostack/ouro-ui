@@ -582,6 +582,33 @@ describe("SnapPiP", () => {
     expect(nearestCorner({ x: (16 + 1051) / 2, y: 16 }, call, small, 16, [])).toBe("top-left");
   });
 
+  it("says when the picture is put away and brought back, once each", async () => {
+    await render(self({ onCollapsedChange: () => {} }));
+    const announced = watchAnnouncements();
+    await userEvent.click(page.getByRole("button", { name: "Hide Your camera", exact: true }));
+    await expect.poll(() => announced.count("Your camera hidden")).toBe(1);
+    await userEvent.click(page.getByRole("button", { name: "Show Your camera", exact: true }));
+    await expect.poll(() => announced.count("Your camera shown")).toBe(1);
+    expect(announced.count("Your camera hidden")).toBe(1);
+    announced.stop();
+  });
+
+  it("says nothing when an app keeps the picture showing, and nothing on mount", async () => {
+    const announced = watchAnnouncements();
+    await render(self({ collapsed: false, onCollapsedChange: () => {} }));
+    await userEvent.click(page.getByRole("button", { name: "Hide Your camera", exact: true }));
+    await act(async () => {});
+    expect(announced.count("Your camera hidden")).toBe(0);
+    announced.stop();
+    const mounted = watchAnnouncements();
+    await act(async () => root!.unmount());
+    root = undefined;
+    await render(self({ defaultCollapsed: true, onCollapsedChange: () => {} }));
+    await act(async () => {});
+    expect(mounted.count("Your camera hidden")).toBe(0);
+    mounted.stop();
+  });
+
   it("goes to the corner a flick points at, across the stage, with a little overshoot", async () => {
     const onCornerChange = vi.fn();
     const element = await render(self({ onCornerChange }));
