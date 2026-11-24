@@ -58,7 +58,11 @@ export interface ButtonBaseProps {
     | undefined;
   /**
    * Visual weight: `solid` for the primary action, `soft` for secondary actions,
-   * `outline` for a quiet bordered control, `plain` for a borderless one.
+   * `outline` for a quiet bordered control, `plain` for a borderless one, and `glass` for a
+   * Liquid Glass capsule (a circle when it holds only an icon) that floats over
+   * content, such as a window toolbar's button. A glass button stays pressed while the popup it opens is open
+   * (`aria-expanded`), draws solid with a defined edge under reduced transparency or more contrast,
+   * and takes the tone's text colour.
    * shadcn's `default` is `solid` (the default), `ghost` and `link` are `plain`, and
    * `destructive` and `secondary` are tones: `tone="destructive"`. Any other
    * string is a type error whose message names the fix.
@@ -71,6 +75,7 @@ export interface ButtonBaseProps {
     | "soft"
     | "outline"
     | "plain"
+    | "glass"
     | (string & { 'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never })
     | undefined;
   /**
@@ -276,6 +281,18 @@ const sizes = {
   inline: "h-auto min-w-6 px-1 py-[3px] -my-1 gap-1 rounded-ouro-md align-baseline text-[length:inherit] leading-[inherit]",
 } as const;
 
+// Liquid Glass: the theme's glass tint over what is behind, blurred, with its rim as the border and a soft shadow, in a
+// capsule 40px tall (the capsule radius stops at half the height, so Ouro's squircle capsule, a circle for an icon). It stays pressed
+// while the popup it opened is open. Solid, with a defined edge, under reduced transparency or more contrast.
+const glass =
+  "[--ouro-bd:var(--ouro-glass-rim)] [--ouro-bg:color-mix(in_oklab,var(--ouro-glass)_var(--ouro-glass-tint),transparent)] " +
+  "[--ouro-control-radius:9999px] [--ouro-control-corner-shape:superellipse(1.05)] " +
+  "[--ouro-button-h:calc(var(--spacing)*10)] sm:[--ouro-button-h:calc(var(--spacing)*10)] " +
+  "shadow-(--shadow-sm) backdrop-blur-xl aria-expanded:[--ouro-state:var(--ouro-state-pressed,14%)] aria-expanded:before:opacity-[var(--ouro-state-pressed,14%)] " +
+  // Stryker disable next-line StringLiteral: a test cannot emulate reduced transparency (Playwright has no option for it)
+  "[@media(prefers-reduced-transparency:reduce)]:[--ouro-bg:var(--ouro-glass-solid)] [@media(prefers-reduced-transparency:reduce)]:[--ouro-bd:var(--ouro-glass-edge)] [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
+  "contrast-more:[--ouro-bg:var(--ouro-glass-solid)] contrast-more:[--ouro-bd:currentColor] contrast-more:backdrop-blur-none";
+
 // `soft` is the tone at low opacity behind text in the tone, the pattern shadcn uses for
 // destructive, with the text mixed 20% toward the foreground so it keeps 4.5:1 on the
 // tint under shadcn's stock values too (plain `text-destructive` there is 3.97:1). `secondary` is shadcn's: a quiet surface (`bg-secondary`) with its own
@@ -320,6 +337,13 @@ const looks = {
     destructive: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-destructive",
     success: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-success",
     warning: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-warning",
+  },
+  glass: {
+    primary: `${glass} text-primary`,
+    secondary: `${glass} text-foreground`,
+    destructive: `${glass} text-destructive`,
+    success: `${glass} text-success`,
+    warning: `${glass} text-warning`,
   },
 } as const;
 
