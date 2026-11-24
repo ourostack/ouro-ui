@@ -234,7 +234,7 @@ export function Badge(props: BadgeProps): JSX.Element {
     icon: Icon,
     dot = false,
     count = false,
-    overlay = false,
+    overlay,
     onClick,
     children,
     className,
