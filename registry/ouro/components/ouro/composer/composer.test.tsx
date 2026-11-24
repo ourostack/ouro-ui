@@ -1405,8 +1405,8 @@ describe("Composer expanded motion", () => {
     const toolbar = () => root.querySelector('[data-ouro-part="toolbar"]');
     await act(async () => expandButton()!.click());
     expect(toolbar()).not.toBeNull();
-    await expect.poll(() => frameOf(root).hasAttribute("data-ouro-moving")).toBe(false);
-    expect(toolbar()).toBeNull();
+    await expect.poll(() => toolbar()).toBeNull();
+    expect(frameOf(root).hasAttribute("data-ouro-moving")).toBe(false);
   });
 
   it("takes the toolbar away at once when motion is reduced", async () => {
