@@ -1215,20 +1215,25 @@ function CommandList({ children, className, after, snap }: { children: (group: G
   const empty = Autocomplete.useFilteredItems().length === 0;
   const list = useRef<HTMLDivElement>(null);
   // The list ends on a whole row or heading, never through one: its height is cut to the last bottom edge that fits.
-  // Stryker disable all: pixel geometry, sub-pixel bounds and the guards around it; command.rows.test.tsx checks the cut flush with the last whole edge at four heights, with and without groups, and its growing back, in two engines.
   useLayoutEffect(() => {
     const node = list.current;
+    // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
     if (!snap || !node) return;
     const fit = () => {
+      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
       node.style.maxHeight = "";
+      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
       if (node.scrollHeight <= node.clientHeight) return;
+      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
       const top = node.getBoundingClientRect().top - node.scrollTop;
       const end = parseFloat(getComputedStyle(node).paddingBottom);
       let best = 0;
       for (const edge of node.querySelectorAll("[data-ouro-command-value],[data-ouro-command-group-label]")) {
         const bottom = edge.getBoundingClientRect().bottom - top + end;
+        // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
         if (bottom <= node.clientHeight + 0.5 && bottom > best) best = bottom;
       }
+      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
       if (best > 0) node.style.maxHeight = `${best}px`;
     };
     fit();
@@ -1237,11 +1242,12 @@ function CommandList({ children, className, after, snap }: { children: (group: G
     // The palette's own size is held by this list's cut, so a taller window has to be heard on its own.
     window.addEventListener("resize", fit);
     return () => {
+      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
       observer.disconnect();
+      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
       window.removeEventListener("resize", fit);
     };
   });
-  // Stryker restore all
   return (
     <Autocomplete.List ref={list} hidden={empty} className={className}>
       <Autocomplete.Collection>{children}</Autocomplete.Collection>
