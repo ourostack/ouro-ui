@@ -407,6 +407,28 @@ describe("TimeGrid", () => {
     expect(document.querySelectorAll('[data-ouro="time-grid"]')[3]!.querySelector("[data-ouro-time-grid-head] span span")!.textContent).toBe("9");
   });
 
+  it("draws a hairline border at every half hour of the day, the half hours at half strength, with no gradient", async () => {
+    const { grid } = await render({ view: "day" });
+    const lines = [...grid.querySelectorAll<HTMLElement>('[data-slot="time-grid-lines"] > [data-slot="time-grid-line"]')];
+    expect(lines).toHaveLength(48);
+    const step = lines[47]!.offsetTop / 47;
+    expect(step).toBeGreaterThan(1);
+    lines.forEach((line, index) => {
+      const style = getComputedStyle(line);
+      expect(style.backgroundImage).toBe("none");
+      expect(style.borderTopWidth).toBe("1px");
+      expect(Math.abs(line.offsetTop - index * step)).toBeLessThanOrEqual(1.5);
+      expect(style.borderTopColor).toBe(getComputedStyle(lines[index % 2]!).borderTopColor);
+    });
+    const probe = document.createElement("div");
+    probe.style.borderTop = "1px solid var(--border)";
+    grid.append(probe);
+    const full = getComputedStyle(probe).borderTopColor;
+    probe.remove();
+    expect(getComputedStyle(lines[0]!).borderTopColor).toBe(full);
+    expect(getComputedStyle(lines[1]!).borderTopColor).not.toBe(full);
+  });
+
   it("places each event by its times on the grid's clock, and moves it with the time zone", async () => {
     const { rerender } = await render({ view: "day", events: [forum] });
     const place = () => named("Thursday").closest("li")!.style;

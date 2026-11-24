@@ -371,6 +371,11 @@ const utcDate = (day: string) => new Date(`${day}T00:00:00Z`);
 // Node's ICU spaces a range with thin (U+2009) and narrow (U+202F) spaces where browsers put plain ones.
 const plainSpaces = (text: string) => text.replace(/[\u2009\u202f]/g, " ");
 const between = (low: number, value: number, high: number) => Math.min(high, Math.max(low, value));
+/** Hour and half-hour hairlines, drawn as borders. */
+const hourLines = Array.from({ length: 48 }, (_, index) => ({ at: index * 30, half: index % 2 === 1 }));
+const hourLineClass = "absolute inset-x-0 border-0 border-t border-solid border-border";
+const halfHourLineClass = "absolute inset-x-0 border-0 border-t border-solid border-[color-mix(in_oklab,var(--border)_50%,transparent)]";
+
 /** A length in minutes as a share of the grid's hour height. */
 const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${minutes / 60})`;
 
@@ -1065,10 +1070,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             const off = weekend.includes(utcDate(day).getUTCDay());
             return (
               <div key={day} className="relative min-w-0 border-0 border-s border-solid border-border">
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 [background-image:linear-gradient(to_bottom,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border)_50%,transparent)_1px,transparent_1px)] [background-position:0_0,0_calc(var(--ouro-time-grid-hour)/2)] [background-size:100%_var(--ouro-time-grid-hour)]" // gradient-ok: hard-stop hour lines, no blend
-                />
+                <div aria-hidden="true" data-slot="time-grid-lines" className="pointer-events-none absolute inset-0">
+                  {hourLines.map((line) => (
+                    <span key={line.at} data-slot="time-grid-line" className={line.half ? halfHourLineClass : hourLineClass} style={{ top: minutesTall(line.at) }} />
+                  ))}
+                </div>
                 {off ? (
                   <div aria-hidden="true" data-ouro-time-grid-off="" className="pointer-events-none absolute inset-0 bg-[color-mix(in_oklab,var(--foreground)_4%,transparent)]" />
                 ) : (
