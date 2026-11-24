@@ -146,8 +146,18 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * itself the same way `ThemeDots` already was. The base had grown past this ceiling by more than #3284 could
  * recover, from other work landed since the docs' 196,004 baseline above; #3284's own commits found no further
  * cheap cut.
+ *
+ * The voyage's set again 2026-11-24 at 294,386 bytes, what CI measured on main at 71a68f136 (run 45309360133, e2e
+ * job 138161324780, issue #3347), 525 bytes over its 293,861 base: the equal-corner, joined-run chat bubbles
+ * (#3278) added a new `--ouro-jr` custom property and three new gating selectors (a continued bubble's own mark, a
+ * run-next bubble's mark from `markRunNext` in message-list.tsx, and a has-() fallback for the sibling not yet
+ * marked) to each of `bubbles.user`/`assistant` and `layouts.filled.user`/`assistant`, classes `message.tsx` and
+ * `message-list.tsx` carry in the voyage's first script already (the stage's own messages). Folding the four
+ * near-identical copies into two shared strings measured 8 bytes worse after gzip (294,151 against 294,143 before
+ * the fold): gzip already finds the repeat within the file, and the fold's two new identifiers cost more than the
+ * repeat did, so #3278 left no cheaper cut.
  */
-const MEASURED = { voyage: 293_861, docs: 196_591 } as const;
+const MEASURED = { voyage: 294_386, docs: 196_591 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
