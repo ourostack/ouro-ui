@@ -363,6 +363,20 @@ describe("MessageList switching conversations", () => {
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
+  it("switches to a conversation at the message initialAnchor names, away from the end, or at the end when it names the newest", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="theo" keyed={false} initialAnchor="theo-500" />);
+    await settle(list.scroller);
+    expect(messagesOf(list.scroller).some((message) => message.id === "theo-500")).toBe(true);
+    expect(distanceFromBottom(list.scroller)).toBeGreaterThan(2);
+    await list.commit(<Switcher open="ana" keyed={false} initialAnchor="ana-999" />);
+    await settle(list.scroller);
+    expect(messagesOf(list.scroller).at(-1)!.id).toBe("ana-999");
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
   it("keeps focus on the newest message, at the end, when it is replaced under a new key after older messages went in above it", async () => {
     const items = conversation("mara", 1000);
     const list = mount();
