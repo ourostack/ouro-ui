@@ -31,6 +31,6 @@ const capLabelClippedClass = "[text-box:trim-both_cap_alphabetic] py-[0.3em] -my
  */
 function capLabel(children: ReactNode): ReactNode {
   return Children.map(children, (child) =>
-    typeof child === "string" || typeof child === "number" ? <span className={capLabelClass}>{child}</span> : child,
+    typeof child === "string" || typeof child === "number" ? <span data-slot="cap-label-text" className={capLabelClass}>{child}</span> : child,
   );
 }
