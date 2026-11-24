@@ -158,6 +158,8 @@ describe("FamilyBar", () => {
     const html = renderToString(<FamilyBar links={sites} current="blog" brand={<span>Lantern</span>} />);
     expect(html).toContain('aria-label="Ouro family"');
     expect(html).toContain(">Ouro family</span>");
+    // Nothing is cut off until the row has been measured in the browser.
+    expect(html).not.toContain("data-more");
     expect(html).toMatch(/aria-current="true"[^>]*>(?:<span[^>]*><\/span>)?Blog</);
     for (const site of sites) expect(html).toContain(`href="${site.href}"`);
     expect(html).toContain("<span>Lantern</span>");
@@ -206,6 +208,15 @@ describe("FamilyBar", () => {
     const fits = await render(<FamilyBar links={sites} />);
     expect(fits.row.scrollWidth).toBeLessThanOrEqual(fits.row.clientWidth);
     await expect.poll(() => getComputedStyle(fits.row).maskImage).toBe("none");
+    // It is measured again when the strip narrows, at the same height, and when the links change: two frames first, so
+    // the first measure, which a ResizeObserver delivers, is behind us.
+    for (let frame = 0; frame < 2; frame++) await new Promise(requestAnimationFrame);
+    (fits.host as HTMLElement).style.width = "320px";
+    await expect.poll(() => getComputedStyle(fits.row).maskImage).not.toBe("none");
+    await act(async () => fits.root.render(<FamilyBar links={sites.slice(0, 1)} />));
+    await expect.poll(() => getComputedStyle(fits.row).maskImage).toBe("none");
+    await act(async () => fits.root.render(<FamilyBar links={sites} />));
+    await expect.poll(() => getComputedStyle(fits.row).maskImage).not.toBe("none");
   });
 
   it("brings each link the keyboard focuses clear of the row's edge, outline and all", async () => {

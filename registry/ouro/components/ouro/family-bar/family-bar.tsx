@@ -130,20 +130,25 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
 
   const scroller = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
-  // Whether more of the row is cut off at its end, which fades there. scrollLeft runs negative in a right-to-left row.
+  // Whether more of the row is cut off at its end, which fades there: measured when the row or its list first lays out
+  // and on each change of size, and as it scrolls. scrollLeft runs negative in a right-to-left row.
   useLayoutEffect(() => {
     const row = scroller.current!;
     const measure = () => setMore(row.scrollWidth - row.clientWidth - Math.abs(row.scrollLeft) > 1);
-    measure();
-    row.addEventListener("scroll", measure, { passive: true });
+    row.addEventListener("scroll", measure);
     const observer = new ResizeObserver(measure);
     observer.observe(row);
     observer.observe(row.lastElementChild!);
+    // Stryker disable next-line BlockStatement: a listener or an observer left behind measures a row React has removed, and sets nothing.
     return () => {
+      // Stryker disable next-line StringLiteral,CallExpression: a listener left behind on a removed row never hears a scroll.
       row.removeEventListener("scroll", measure);
+      // Stryker disable next-line CallExpression: a detached row and list never resize; disconnecting frees the observer.
       observer.disconnect();
     };
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: equivalent; any constant dependency list runs this effect once, on mount.
+  []);
   // Before paint, so the row never shows the current site's link out of view first; a link already in view, and a row
   // that fits, stay where they are.
   useLayoutEffect(() => {
@@ -175,7 +180,7 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
         )}
         {/* Room after the last link: the row's scroll width rounds the list's down, which would clip the last link and
             its outline by a fraction of a pixel when the row is scrolled to its end. */}
-        <ul onFocus={clearOfEdge} className="m-0 flex w-max list-none items-stretch gap-2 p-0 pe-1">
+        <ul onFocus={clearOfEdge} className="m-0 flex w-max shrink-0 list-none items-stretch gap-2 p-0 pe-1">
           {links.map((link, index) => (
             <li key={index} className="relative flex snap-start">
               <RouterLink
