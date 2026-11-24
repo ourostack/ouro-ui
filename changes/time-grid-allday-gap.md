@@ -1,0 +1,1 @@
+- Fixed: TimeGrid's all-day row keeps at least the minimum gap below its last event, so the sticky day header no longer sits a near-miss distance from an all-day event in the German, Japanese and Arabic locale stories.
