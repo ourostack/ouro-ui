@@ -800,7 +800,10 @@ export function Composer(props: ComposerProps): JSX.Element {
     frames = requestAnimationFrame(() => {
       frames = requestAnimationFrame(() => {
         for (const element of elements) element.style.animationPlayState = "";
-        void Promise.allSettled(frame.getAnimations({ subtree: true }).map((animation) => animation.finished)).then(end);
+        void Promise.allSettled(frame.getAnimations({ subtree: true }).map((animation) => animation.finished)).then(() => {
+          // One more frame, so the browser reports the animations' ends before they are removed.
+          frames = requestAnimationFrame(end);
+        });
       });
     });
     frame.dispatchEvent(new CustomEvent<ComposerMove>("ouro-composer-move", { bubbles: true, detail: { from, to: px, playing } }));
