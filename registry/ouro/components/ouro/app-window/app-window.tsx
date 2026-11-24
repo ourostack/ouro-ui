@@ -134,7 +134,7 @@ export function AppWindow(props: AppWindowProps): JSX.Element {
         {children}
       </div>
       {hasFoot ? (
-        <div data-slot="built-with" className="flex flex-wrap items-center gap-1.5 rounded-b-[calc(var(--radius-ouro-xl)-1px)] border-0 border-t border-solid border-border px-4 py-3 sm:px-6">
+        <div data-slot="built-with" className="flex flex-wrap items-center gap-2 rounded-b-[calc(var(--radius-ouro-xl)-1px)] border-0 border-t border-solid border-border px-4 py-3 sm:px-6">
           <span id={labelId} className="me-1 text-xs text-muted-foreground">
             {builtWithLabel}
           </span>

@@ -223,7 +223,7 @@ function Stage({ children }: { children: ReactNode }) {
       <Person name="Priya Raman" hue="var(--chart-3, var(--accent))" />
       <Person name="Theo Okafor" hue="var(--chart-4, var(--muted-foreground))" />
       {/* The wrapper passes presses through to the pictures beside the bar; a floating bar takes its own. */}
-      <div style={{ position: "absolute", insetInline: 0, bottom: 16, display: "flex", justifyContent: "center", paddingInline: 16, pointerEvents: "none" }}>{children}</div>
+      <div style={{ position: "absolute", insetInline: 0, bottom: 8, display: "flex", justifyContent: "center", paddingInline: 16, pointerEvents: "none" }}>{children}</div>
     </div>
   );
 }

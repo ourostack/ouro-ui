@@ -69,14 +69,22 @@ export default function AndroidHome(): JSX.Element {
         <ul className="apple-doors">
           <li className="apple-door">
             <p className="apple-door-kicker">Ouro HX for Android</p>
-            <h3 className="site-h3">The composables</h3>
+            <h3 className="site-h3">
+              <a className="apple-door-link" href={href("/android/hx/")}>
+                The composables <span aria-hidden="true">→</span>
+              </a>
+            </h3>
             <p className="apple-door-body">
               {claim("OuroTheme brings core's six themes, light and dark, increased contrast and reduced motion, and the kit stays free of Material.", { source: { spec: "https://github.com/ourostack/ouro-ui-android/blob/1f47ebe626806473f8c2c971d3e91da32b641dc5/README.md" }, verify: [{ fileLine: "site/src/platforms/kits.json", pattern: "six themes, light and dark, increased contrast, reduce motion" }, { fileLine: "site/src/platforms/kits.json", pattern: "the kit stays free of Material" }] })}
             </p>
           </li>
           <li className="apple-door">
             <p className="apple-door-kicker">Ouro AX for Android</p>
-            <h3 className="site-h3">The doors</h3>
+            <h3 className="site-h3">
+              <a className="apple-door-link" href={href("/android/ax/")}>
+                The doors <span aria-hidden="true">→</span>
+              </a>
+            </h3>
             <p className="apple-door-body">
               Doors are the ways an agent gets in without a screen.{" "}
               {claim("Here they are AppFunctions, and a consequential one never runs until the person says yes.", { source: { spec: "https://github.com/ourostack/ouro-ui-android/blob/1f47ebe626806473f8c2c971d3e91da32b641dc5/README.md" }, verify: [{ fileLine: "site/src/platforms/kits.json", pattern: "never runs from an agent's AppFunction call until the person says yes" }] })}

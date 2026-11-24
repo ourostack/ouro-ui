@@ -1,5 +1,5 @@
 {
-  "$comment": "Ouro UI for Windows and for Android, as their READMEs say at the commits below (site/src/platforms/). platforms.test.tsx holds each component list to scripts/parity-data/platforms.json.",
+  "$comment": "Ouro UI for Windows and for Android, as their READMEs and X-ray sources say at the commits below (site/src/platforms/). platforms.test.tsx holds each component list to scripts/parity-data/platforms.json.",
   "apple": {
     "name": "Ouro UI for Apple",
     "readme": "https://github.com/ourostack/ouro-ui-apple/blob/84512c1d678dce337513fcdd975ed76a583c888d/README.md",
@@ -68,7 +68,38 @@
       "GitHub's NuGet feed needs a sign-in even for public packages: a token with read:packages",
       "The .nupkg files are also attached to each release, for a local feed with no sign-in.",
       "a yes from the person before a consequential action an agent prepared",
-      "gives each file it attaches a GitHub build attestation, so you can check that a package was built from its tag"
+      "gives each file it attaches a GitHub build attestation, so you can check that a package was built from its tag",
+      "from core's specs (`vendor/core/components`) and tokens.",
+      "Switch: a Button with the Toggle pattern, as WinUI's ToggleSwitch is. Its thumb stretches while pressed, never with Windows animations off.",
+      "Select: a WinUI ComboBox, so its list opens as a flyout and its options are 44 epx tall.",
+      "Under a contrast theme the controls draw the person's system colours, not the theme's (as Windows asks). Status tones then look alike, so their meaning must also be in words.",
+      "that opens a menu of every action, so a swipe is never the only way",
+      "that opens a menu of moves, so a drag is never the only way",
+      "Every move is announced with its place, and focus stays on the moved row's handle.",
+      "It checks every claim core makes for each component (`tools/claims.mts`)",
+      "samples pixels against what each control reports it drew",
+      "every tone and variant reads at 4.5:1 or better in all 6 themes, light and dark.",
+      "and measures launch time, memory and press latency.",
+      "The runtime every door goes through: input checked against the schema, idempotency keys, an audit of every call, a yes from the person before a consequential action an agent prepared, and core's typed refusal for a person-only action at every agent door.",
+      "The MCP server is three lines (`samples/OuroShop/OuroShop.Mcp/Program.cs`). An App Action launch is `OuroAppActionUri.Read(catalog, uri)` passed to the same runtime.",
+      "The MSIX registers its App Actions and its MCP server.",
+      "runs the X-ray (`tools/xray.mts`) that agents and people see the same actions, answers the MCP server's confirmation dialog",
+      "A Windows 11 client check (build 26220.7262 or later) would add the system App Actions catalog, `odr.exe mcp list`, an agent calling through the registry, and Mica in the screenshots.",
+      "Person-only actions: UI Automation can press their buttons. Requiring Windows Hello first is built and off"
+    ],
+    "xray": "https://github.com/ourostack/ouro-ui-windows/blob/65dc6dce47d3e7e8f77164f63e617b9ee3e1b773/tools/xray.mts",
+    "xraySays": [
+      "does what agents can call agree with what people press? It reads the window's UI Automation tree,",
+      "the live MCP server's answers, the App Actions the installed package registered",
+      "doorsOf, so the X-ray and the generator can't disagree about what a door carries.",
+      "people press it",
+      "MCP call answers core's refusal",
+      "App Action launch refused",
+      "MCP call asks the person first (No is the default)",
+      "person's No means nothing ran",
+      "a retry with the same key runs once",
+      "no undeclared button",
+      "Exit 1 when they disagree."
     ]
   },
   "android": {
@@ -128,7 +159,31 @@
       "AppFunctions need compileSdk 37 and AGP 9.1 or later.",
       "OuroTheme from core's tokens (six themes, light and dark, increased contrast, reduce motion)",
       "the kit stays free of Material",
-      "gives each file it attaches a GitHub build attestation, so you can check that a library was built from its tag"
+      "gives each file it attaches a GitHub build attestation, so you can check that a library was built from its tag",
+      "the overlays `OuroDialog`, `OuroSheet` and `OuroConfirmDialog` (platform windows drawn from the theme, not Material's `AlertDialog` or `ModalBottomSheet`, so the kit stays free of Material; each has a pane title, a heading and the dismiss action)",
+      "component specs are vendored from core by hash, and only the rendering is written here.",
+      "It also checks the snapshots in light, dark, increased contrast and 200% text.",
+      "A person's press and an agent's AppFunction call take one path. A person-only action refuses agents with core's typed refusal, and a consequential one asks the person first with a built-in confirmation (`OuroConfirm`), which an app can replace with its own `confirm`.",
+      "action declarations become `OuroActions.kt` (an AppFunction per action an agent may call, none for person-only) and `doors.json` (which door carries which action, and why not).",
+      "Android has no system prompt to ask for an app, so `ouro-actions` asks itself",
+      "**App on screen:** the confirmation opens at once.",
+      "a high-priority notification titled with the question. Tapping it opens the confirmation. The notification has no Allow and shows none of the values",
+      "nothing can ask, so the call is refused with `OuroNeedsPerson`",
+      "the call suspends until the person answers or two minutes pass",
+      "the timeout all mean no, and no runs nothing.",
+      "whose message says why and how to fix it.",
+      "Don't is the default button.",
+      "On CI's API 36 emulator image Android indexed none of the sample's AppFunctions, so CI checks them on Android 17 (API 37).",
+      "share runs only after the person confirms in the card's own sheet, and place order hands off without ordering"
+    ],
+    "xray": "https://github.com/ourostack/ouro-ui-android/blob/f27522bb0dc12193f1051e1a31f3b94e7efa16fc/samples/shop/src/androidTest/kotlin/bot/ouro/shop/XRayTest.kt",
+    "xraySays": [
+      "what agents can call (the AppFunctions Android indexed for this app) and what people",
+      "can press (the buttons on screen) both come from shopping.actions.mts, and they agree with it.",
+      "agents_get_exactly_the_declared_actions_an_agent_may_call",
+      "a_person_only_action_has_no_appfunction_and_a_typed_refusal",
+      "an_agent_adds_through_the_same_handler_people_press",
+      "people_get_a_button_for_every_declared_action"
     ]
   },
   "oneButton": {
