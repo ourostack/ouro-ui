@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CHECKER_FILES, checkerHash } from "./census.mts";
 import { censusManifest, runManifest, VENDORED_FILES } from "./manifest.mts";
+import { importedFiles } from "../ts71.mts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const sha256 = (file: string) => createHash("sha256").update(readFileSync(file)).digest("hex");
@@ -23,6 +24,19 @@ test("the committed manifest pins every vendored file by hash and names the chec
 test("every built-in walker's file is part of the checker, so its hash vouches for each one", () => {
   const walkers = readdirSync(join(here, "walkers")).filter((f) => f.endsWith(".mts") && !f.endsWith(".node-test.mts")).map((f) => `walkers/${f}`);
   for (const file of walkers) ok(CHECKER_FILES.includes(file), `${file} is a built-in walker's code, so it is in CHECKER_FILES`);
+});
+
+test("a vendored file imports only Node's built-ins, the product's own typescript and other vendored files, so a product's census runs on what it installs", () => {
+  // A product installs the census's walkers with its own typescript and nothing else (README), so an import of a
+  // repository-only helper or package fails there with ERR_MODULE_NOT_FOUND (#3380).
+  for (const file of VENDORED_FILES.filter((f) => /\.m?[jt]s$/.test(f))) {
+    const text = readFileSync(join(here, file), "utf8");
+    for (const spec of importedFiles(file, text)) {
+      if (spec.startsWith("node:") || spec === "typescript") continue;
+      const target = join(dirname(file), spec).replaceAll("\\", "/");
+      ok(spec.startsWith(".") && VENDORED_FILES.includes(target), `${file} imports "${spec}", which a product's census does not have: import typescript, a node: module or a vendored file`);
+    }
+  }
 });
 
 test("--check fails when a vendored file changed, and --write brings the manifest back", async () => {
