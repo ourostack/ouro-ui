@@ -15,14 +15,14 @@ const capLabelClass = "[text-box:trim-both_cap_alphabetic]";
 
 /**
  * {@link capLabelClass} for a line that clips (`truncate`): the padding gives the clip back the room the trim took
- * above the caps and under the baseline, so no ascender or descender is cut, and the margin takes it out of the layout.
+ * above the caps and under the baseline, and the negative margin takes it out of the layout again.
  *
  * @internal
  */
 const capLabelClippedClass = "[text-box:trim-both_cap_alphabetic] py-[0.3em] -my-[0.3em]";
 
 /**
- * Wraps a control's text children, each in a block of its own that {@link capLabelClass} trims, so they centre on
+ * Wraps a control's text children in blocks of their own that {@link capLabelClass} trims, to centre them on
  * their cap height in a flex row. Elements pass through unchanged, as the icons and badges beside the words do.
  *
  * @example
