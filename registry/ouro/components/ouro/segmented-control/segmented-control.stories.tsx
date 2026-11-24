@@ -68,7 +68,7 @@ export const Glass: Story = {
   render: function Render(args) {
     const dot = <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="currentColor" /></svg>;
     return (
-      <div style={{ padding: 24, background: "linear-gradient(90deg, var(--primary), var(--muted))" }}>
+      <Surface>
         <SegmentedControl
           {...args}
           glass
@@ -81,7 +81,7 @@ export const Glass: Story = {
             { value: "dates", label: "Dates", icon: dot },
           ]}
         />
-      </div>
+      </Surface>
     );
   },
 };

@@ -108,7 +108,7 @@ const glassGroupClass =
   "contrast-more:bg-(--ouro-glass-solid) contrast-more:border-current contrast-more:backdrop-blur-none";
 
 /** A segment's icon, before its label. @internal */
-const iconClass = "me-1.5 inline-flex shrink-0 items-center [&:only-child]:me-0 [&_svg]:size-4";
+const iconClass = "me-1.5 inline-flex shrink-0 items-center [&:only-child]:me-0 [&_svg]:size-[1.25em]";
 
 /** A count pill inside the segment, after its label. @internal */
 const countClass =

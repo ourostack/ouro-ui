@@ -142,13 +142,13 @@ function Segment(props: {
     >
       <TouchTarget />
       {item.icon !== undefined && (
-        <span aria-hidden="true" data-ouro-part="icon" className={iconClass}>
+        <span aria-hidden="true" data-slot="segmented-control-icon" className={iconClass}>
           {item.icon}
         </span>
       )}
       <span className={cn("relative min-w-0 truncate", glass && !selected && item.icon !== undefined && "sr-only")}>{item.label}</span>
       {item.count !== undefined && (glass ? selected : true) && (
-        <span data-ouro-part="count" className={countClass}>
+        <span data-slot="segmented-control-count" className={countClass}>
           {item.count}
         </span>
       )}

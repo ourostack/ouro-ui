@@ -51,11 +51,11 @@ describe("SegmentedControl glass", () => {
   it("shows the label and count of the checked segment only, and the icon of every segment", async () => {
     const { group, segments } = await mount();
     const [places, people] = segments as [HTMLElement, HTMLElement];
-    expect(places.querySelectorAll('[data-ouro-part="icon"]')).toHaveLength(1);
-    expect(people.querySelectorAll('[data-ouro-part="icon"]')).toHaveLength(1);
-    expect(places.querySelector('[data-ouro-part="count"]')?.textContent).toBe("14");
-    expect(people.querySelector('[data-ouro-part="count"]')).toBeNull();
-    const labelOf = (segment: HTMLElement) => segment.querySelector<HTMLElement>(":scope > span:not([data-ouro-part])")!;
+    expect(places.querySelectorAll('[data-slot="segmented-control-icon"]')).toHaveLength(1);
+    expect(people.querySelectorAll('[data-slot="segmented-control-icon"]')).toHaveLength(1);
+    expect(places.querySelector('[data-slot="segmented-control-count"]')?.textContent).toBe("14");
+    expect(people.querySelector('[data-slot="segmented-control-count"]')).toBeNull();
+    const labelOf = (segment: HTMLElement) => segment.querySelector<HTMLElement>(":scope > span:not([data-slot])")!;
     expect(labelOf(places).getBoundingClientRect().width).toBeGreaterThan(1);
     expect(labelOf(people).getBoundingClientRect().width).toBeLessThanOrEqual(1);
     expect(group.querySelectorAll('[role="radio"][aria-checked="true"]')).toHaveLength(1);
@@ -64,7 +64,7 @@ describe("SegmentedControl glass", () => {
   it("draws the count as a 14px pill inside the segment", async () => {
     const { segments } = await mount();
     const segment = segments[0]!;
-    const pill = segment.querySelector<HTMLElement>('[data-ouro-part="count"]')!;
+    const pill = segment.querySelector<HTMLElement>('[data-slot="segmented-control-count"]')!;
     const box = pill.getBoundingClientRect();
     const outer = segment.getBoundingClientRect();
     expect(box.height).toBe(14);
@@ -78,8 +78,8 @@ describe("SegmentedControl glass", () => {
     const { group, segments } = await mount(false);
     expect(group.getBoundingClientRect().height).toBeLessThan(40);
     expect(getComputedStyle(group).backdropFilter).toBe("none");
-    expect(segments.every((segment) => segment.querySelector('[data-ouro-part="count"]'))).toBe(true);
-    expect(segments[1]!.querySelector<HTMLElement>(":scope > span:not([data-ouro-part])")!.getBoundingClientRect().width).toBeGreaterThan(1);
+    expect(segments.every((segment) => segment.querySelector('[data-slot="segmented-control-count"]'))).toBe(true);
+    expect(segments[1]!.querySelector<HTMLElement>(":scope > span:not([data-slot])")!.getBoundingClientRect().width).toBeGreaterThan(1);
   });
 
   it("is solid and unblurred under more contrast", async () => {
