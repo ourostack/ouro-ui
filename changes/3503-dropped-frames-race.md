@@ -1,0 +1,1 @@
+- Fix: Ouro check's dropped-frames rule no longer misreads a longer frame gap when another check run (another tab, or a concurrent whole/shard run) is measuring real frame timing at the same moment; the measuring window is now serialized.

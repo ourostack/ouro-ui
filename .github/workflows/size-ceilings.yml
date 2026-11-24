@@ -1,11 +1,12 @@
 name: Size ceilings
 # The absolute size ceilings, on main (scripts/size-gate.mjs). On a pull request and in the merge queue the size checks
-# judge only the change's own growth over its base (site/e2e/catalog.spec.ts for the pages' JavaScript,
+# judge only the change's own growth over its base (site/e2e/catalog.spec.ts for the pages' JavaScript and CSS,
 # scripts/pattern-size.test.mjs for the page patterns), so a ceiling main has crept over fails no one's pull request. It is
 # caught here instead: after each CI run on a push to main, this reads the sizes that commit's tree measured (the
-# artifacts size-closure-<tree> and size-patterns-<tree>, from that run or, when the push passed by proof, from the run
-# that proved the tree) and opens or comments on one issue, "A size is over its ceiling on main", for any over its
-# ceiling. Main stays green: the fix is a smaller change or a raise with its new measurement and reason.
+# artifacts size-closure-<tree>, size-page-css-<tree>, size-shell-css-<tree> and size-patterns-<tree>, from that run or,
+# when the push passed by proof, from the run that proved the tree) and opens or comments on one issue, "A size is over
+# its ceiling on main", for any over its ceiling. Main stays green: the fix is a smaller change or a raise with its new
+# measurement and reason.
 on:
   workflow_run:
     workflows: [CI]
@@ -38,7 +39,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SIZE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-        run: node scripts/size-gate.mjs main closure patterns
+        run: node scripts/size-gate.mjs main closure patterns page-css shell-css
       - name: Open or comment on the issue for a size over its ceiling
         if: steps.sizes.outputs.breaches != ''
         env:

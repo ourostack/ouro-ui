@@ -30,7 +30,7 @@ Type: `ButtonGroupProps`.
 | `children` (required) | `ReactNode` | The buttons, in order: `Button`s or `Toggle`s, each with its own `variant`, `tone` and `size`. |
 | `className` | `string` | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development. |
 | `fullWidth` | `boolean` | Stretches the group to the width of its container, with the buttons sharing it equally. |
-| `glass` | `boolean` | Draws the group as one Liquid Glass capsule: the theme's glass behind blur, a rim, a soft shadow, and a hairline divider between the buttons, which sit flat inside it. Use it for a window toolbar's back and forward. Solid under reduced transparency or more contrast. Put `variant="plain"` buttons in it. |
+| `glass` | `boolean \| "sm"` | Draws the group as one Liquid Glass capsule: the theme's glass behind blur, a rim, a soft shadow, and a hairline divider between the buttons, which sit flat inside it. Use it for a window toolbar's back and forward. Solid under reduced transparency or more contrast. Put `variant="plain"` buttons in it. `glass="sm"` makes it as tall as a `size="sm"` glass Button. |
 | `label` (required) | `string` | Names the group for screen readers ("Pagination", "Text alignment"). It is not shown. |
 | `ref` | `Ref<HTMLDivElement>` | The group element (`role="group"`). |
 
