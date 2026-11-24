@@ -139,6 +139,7 @@ describe("the call window page", () => {
   it("shows a short assembly under the demo", async () => {
     await renderPage("/docs/call-demo/");
     const code = document.querySelector("[data-site-call-demo-page] pre, main pre");
+    expect(code?.textContent).toMatch(/import \{ useRef \} from "react"/);
     expect(code?.textContent).toMatch(/import \{ SnapPiP \}[\s\S]*<SnapPiP[^>]*keepOut=\{\[gridRef, controlsRef\]\}/);
   });
 

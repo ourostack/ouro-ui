@@ -480,7 +480,8 @@ function CallDemo(): JSX.Element {
   );
 }
 
-const shortCall = `import { MediaTile } from "@/components/ouro/media-tile/media-tile";
+const shortCall = `import { useRef } from "react";
+import { MediaTile } from "@/components/ouro/media-tile/media-tile";
 import { LiveCaptions } from "@/components/ouro/live-captions/live-captions";
 import { Toolbar } from "@/components/ouro/toolbar/toolbar";
 import { SnapPiP } from "@/components/ouro/snap-pip/snap-pip";
