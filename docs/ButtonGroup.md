@@ -2,7 +2,7 @@
 
 # ButtonGroup
 
-Related buttons joined into one control, such as Previous, a page number and Next, or a split button. Only the outer corners are round, borders are shared, and buttons without a border get a separator. Each child keeps its own `variant`, `tone` and `size`, and the group has a name for screen readers.
+Related buttons joined into one control, such as Previous, a page number and Next, or a split button. Only the outer corners are round, borders are shared, and buttons without a border get a separator. Each child keeps its own `variant`, `tone` and `size`, and the group has a name for screen readers. `glass` draws it as one Liquid Glass capsule.
 
 ```tsx
 import { ButtonGroup } from "@/registry/ouro/components/ouro/button-group/button-group";
