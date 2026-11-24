@@ -33,7 +33,7 @@ describe("findPanelIssues: which panels", () => {
       <div role="dialog" aria-label="Dialog">${blurb}</div>
       <div popover="manual" id="pop">${blurb}</div>
       <div data-side="bottom" data-open="">${blurb}</div>
-      <section data-ouro-panel aria-label="Marked">${blurb}</section>
+      <section data-ouro-panel data-ouro="nav-panel" aria-label="Marked">${blurb}</section>
       <div role="menu" aria-label="Hidden" hidden>${blurb}</div>
       <div role="listbox" aria-label="Inline">${blurb}</div>
       <div role="dialog" aria-label="Outer"><div role="listbox" id="inner" aria-label="Inner">${blurb}</div><button aria-controls="inner">Open</button></div>`);
@@ -43,7 +43,7 @@ describe("findPanelIssues: which panels", () => {
       'div[role=dialog] "Dialog"',
       "div#pop",
       "div",
-      'section "Marked"',
+      'section[data-ouro=nav-panel] "Marked"',
       'div[role=dialog] "Outer"',
     ]);
   });
@@ -51,7 +51,7 @@ describe("findPanelIssues: which panels", () => {
 
 describe("findPanelIssues: empty-panel", () => {
   it("finds a wide panel with its links in one narrow column, with the share it fills", () => {
-    render(`<nav data-ouro-panel aria-label="Sections" style="width:360px;height:240px;padding:16px;box-sizing:border-box"><ul style="${mono};width:8ch;list-style:none;padding:0"><li><a href="#a">Actions</a></li><li><a href="#b">Forms</a></li></ul></nav>`);
+    render(`<nav data-ouro-panel aria-label="Sections" style="width:360px;height:240px;padding:16px;box-sizing:border-box"><ul style="${mono};width:8ch;list-style:none;padding:0"><li><a href="#a">Actions</a></li><li><a href="#b">Forms</a></li></ul><button hidden>More</button></nav>`);
     const [issue] = of("empty-panel");
     expect(issue).toMatchObject({ element: 'nav "Sections"', unit: "%", budget: 60 });
     expect(issue!.value).toBeLessThan(30);
@@ -79,12 +79,19 @@ describe("findPanelIssues: wrapped-short-line", () => {
     expect(issue!.element).toBe('nav "Guides": "Install and theme"');
     expect(issue!.detail).toMatch(/^2 lines of 60 characters or fewer wrap at \d+px \("Install and theme", "Check it"\)/);
     expect(of("wrapped-short-line", { wideScreen: 100000 })[0]!.detail).toMatch(/^2 lines of 24 characters/);
+    host.remove();
+    render(`<nav data-ouro-panel aria-label="One"><p style="${mono};width:6ch">Check it</p></nav>`);
+    expect(of("wrapped-short-line")[0]!.detail).toMatch(/^1 line of \d+ characters or fewer wraps at \d+px \("Check it"\)$/);
+    host.remove();
+    render(`<nav data-ouro-panel aria-label="Four">${["Aa bb", "Cc dd", "Ee ff", "Gg hh"].map((words) => `<p style="${mono};width:3ch">${words}</p>`).join("")}</nav>`);
+    expect(of("wrapped-short-line")[0]!.detail).toMatch(/^4 lines .*\("Aa bb", "Cc dd", "Ee ff", …\)$/);
   });
 
   it("passes words longer than the limit, words on one line, an element of parts, code and the opted out", () => {
     render(`<nav data-ouro-panel aria-label="Guides">
       <p style="${mono};width:20ch">A description that runs past the twenty-four characters a phone allows</p>
       <p style="${mono}">Install and theme</p>
+      <p style="${mono}">Install <!-- a break in the source --> and theme</p>
       <p style="${mono};width:8ch">Install <strong>and</strong> theme</p>
       <code style="${mono};display:block;width:6ch">pnpm i x</code>
       <p style="${mono};width:8ch" ${allow("wrapped-short-line")}>Install and theme</p></nav>`);
@@ -93,13 +100,15 @@ describe("findPanelIssues: wrapped-short-line", () => {
 });
 
 describe("findPanelIssues: boxed-blurb", () => {
-  it("finds a filled box and a framed one of words with nothing to press, the outermost only", () => {
+  it("finds a filled box and a framed one of words with nothing to press, the outermost only, and one allowed with no reason", () => {
     render(`<nav data-ouro-panel aria-label="Kit" style="background:rgb(255,255,255)">
       <div style="border-radius:8px;background:rgb(238,242,247)"><p style="border-radius:8px;background:rgb(220,230,240)">Every part of the kit, in one place.</p></div>
-      <aside style="border-radius:12px;border:1px solid rgb(200,200,200)">A note on what the kit is for.</aside></nav>`);
+      <aside style="border-radius:12px;border:1px solid rgb(200,200,200)">A note on what the kit is for.</aside>
+      <div data-ouro-allow="boxed-blurb" style="border-radius:8px;background:rgb(238,242,247)">An allow with no reason, and words that run on past sixty characters.</div></nav>`);
     expect(of("boxed-blurb").map(({ element, detail }) => [element, detail.split(" holds")[0]])).toEqual([
       ['nav "Kit": "Every part of the kit, in one place."', "a rounded box with a fill"],
       ['nav "Kit": "A note on what the kit is for."', "a rounded box with a border"],
+      ['nav "Kit": "An allow with no reason, and words that run on past sixty ch…"', "a rounded box with a fill"],
     ]);
   });
 
@@ -148,6 +157,14 @@ describe("findPanelIssues: panel-clip", () => {
     const [issue] = of("panel-clip");
     expect(issue!.element).toBe('nav "Guides": div "How to install the kit and theme it"');
     expect(issue!.detail).toMatch(/^cuts \d+px off its own words \(it shows \d+×20px of /);
+  });
+
+  it("reads a box that clips one axis on that axis only", () => {
+    render(`<nav data-ouro-panel aria-label="Guides">
+      <div style="${mono};width:6ch;overflow-x:clip;white-space:nowrap">Across the box</div>
+      <div style="${mono};width:6ch;height:20px;overflow-y:clip">Down the box</div>
+      <div style="${mono};width:8ch;overflow-x:clip">Fits by wrapping</div></nav>`);
+    expect(of("panel-clip").map((issue) => issue.element)).toEqual(['nav "Guides": div "Across the box"', 'nav "Guides": div "Down the box"']);
   });
 
   it("passes a box that fits, one that scrolls, one folded to nothing, an ellipsis, visually hidden text, the opted out, and the page as it loads", () => {

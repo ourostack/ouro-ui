@@ -132,7 +132,7 @@ function findPanelIssues({ minHeight = 120, coverage = 0.6, nearPx = 24, wideCha
             if (rects.some((r) => x >= r.left - nearPx && x <= r.right + nearPx && y >= r.top - nearPx && y <= r.bottom + nearPx)) hit++;
           }
         }
-        const share = total ? hit / total : 1;
+        const share = hit / total;
         if (share < coverage) {
           issues.push({ ref: mark(panel), rule: "empty-panel", element: name, detail: `${Math.round(share * 100)}% of its ${Math.round(width)}×${Math.round(height)}px inside has content within ${nearPx}px (keep to ${Math.round(coverage * 100)}% or more)`, value: Math.round(share * 100), budget: Math.round(coverage * 100), unit: "%" });
         }
@@ -183,7 +183,7 @@ function findPanelIssues({ minHeight = 120, coverage = 0.6, nearPx = 24, wideCha
     // that, by the page, when the panel isn't fixed to the screen and the page's scroll isn't locked. A panel's box may
     // run past the screen where it draws nothing (a sheet's bleed below its edge), so its content is what is measured.
     if (!optedOut(panel, "panel-off-screen")) {
-      const root = document.scrollingElement ?? document.documentElement;
+      const root = document.scrollingElement!;
       const locked = [document.documentElement, document.body].some((el) => /hidden|clip/.test(getComputedStyle(el).overflowY));
       let past = 0;
       for (const { el: start, rect } of content) {
