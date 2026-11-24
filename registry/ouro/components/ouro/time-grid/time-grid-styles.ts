@@ -351,20 +351,25 @@ const eventClass =
   "forced-colors:border forced-colors:border-s-3 forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText] forced-colors:aria-[current=true]:pointer-fine:hover:bg-[Highlight] forced-colors:aria-[current=true]:active:bg-[Highlight]";
 
 /**
- * A timed event fills its place in the day's column, over the now line, with an 8px gap from the
+ * A timed event fills its place in the day's column, over the now line, with a gap from the
  * column's own line on each inline side: an absolutely positioned child fills its parent's padding
  * box regardless of the parent's own padding, so the gap has to be the event's own inset, not
- * padding on its `<li>`. 8px clears Ouro check's doubled-line rule (a 6px line-gap threshold)
+ * padding on its `<li>`. The inset clears Ouro check's doubled-line rule's line-gap threshold
  * against the column's own line on the start side, and the next column's on the end side, where a
- * 1px inset still read as the same line drawn twice.
+ * narrower inset still read as the same line drawn twice.
+ *
+ * @claim "a gap from the column's own line" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /start-2 end-2/)
+ * @claim "doubled-line rule's line-gap threshold" registry/ouro/check/design-check.ts verify:fileLine(registry/ouro/check/design-check.ts, /lineGapPx = 6/)
  */
 const timedClass = "absolute inset-y-0 start-2 end-2 z-10 scroll-mt-(--ouro-time-grid-head) @container/event";
 
 /**
  * A background event too narrow to label draws as a thin bar at its day's start, in a lane too
- * tight for the 8px gap `timedClass` gives a labelled event: `backgroundBarClass` already gives it
+ * tight for the gap `timedClass` gives a labelled event: `backgroundBarClass` already gives it
  * no border and a transparent fill, so it is never itself one of Ouro check's doubled-line's
- * paired "lines", and a 1px gap from the column's own line is enough to keep the two apart.
+ * paired "lines", and a narrower gap from the column's own line is enough to keep the two apart.
+ *
+ * @claim "a narrower gap from the column's own line" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /start-px end-px/)
  */
 const timedBarClass = "absolute inset-y-0 start-px end-px z-10 scroll-mt-(--ouro-time-grid-head) @container/event";
 
