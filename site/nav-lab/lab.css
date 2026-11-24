@@ -1,0 +1,48 @@
+/* The nav lab: the site's own stylesheet (app.css, the presets) and the lab's sources. Not part of the site's build. */
+@import "../../app.css";
+@import "../src/themes/presets.generated.css";
+
+@source "./";
+@source "../src/components/brand.tsx";
+
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+@layer base {
+  [class*="rounded"] {
+    corner-shape: var(--ouro-corner-shape);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+}
+
+/* A panel arrives: it rises 4px as it fades in; with reduced motion it only fades. */
+@keyframes ouro-lab-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes ouro-lab-fade {
+  from {
+    opacity: 0;
+  }
+}
+.lab-panel:not([hidden]) {
+  animation: ouro-lab-in var(--ouro-duration-fast, 150ms) var(--ouro-ease-out, ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab-panel:not([hidden]) {
+    animation-name: ouro-lab-fade;
+  }
+}
