@@ -196,6 +196,21 @@ describe("the call window page", () => {
     }
   });
 
+  it("tucks the self view away when a phone starts sharing, so it never sits on the control bar", async () => {
+    const real = window.matchMedia.bind(window);
+    const spy = vi.spyOn(window, "matchMedia").mockImplementation((query) => (query === "(max-width: 639px)" ? ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} } as unknown as MediaQueryList) : real(query)));
+    try {
+      await renderPage("/docs/call-demo/");
+      const pip = () => document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
+      await page.getByRole("button", { name: "Show Your camera" }).click();
+      await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(false);
+      await page.getByRole("button", { name: "Share screen" }).click();
+      await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("says which parts of the demo are scripted", async () => {
     await renderPage("/docs/call-demo/");
     expect(document.body.textContent).toMatch(/own script/);
