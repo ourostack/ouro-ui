@@ -95,8 +95,8 @@ function cornersOf(rule: Node): (string | null)[] {
     const value = decl.value!.trim();
     if (decl.prop === "border-radius" && !value.includes("/")) {
       const [a, b = a, c = a, d = b] = splitTop(value);
-      out.splice(0, 4, a, b, c, d);
-    } else if (decl.prop! in LONGHANDS) out[LONGHANDS[decl.prop!]] = splitTop(value)[0];
+      out.splice(0, 4, a ?? null, b ?? null, c ?? null, d ?? null);
+    } else if (decl.prop! in LONGHANDS) out[LONGHANDS[decl.prop!]!] = splitTop(value)[0] ?? null;
   }
   return out;
 }
@@ -130,12 +130,12 @@ function isRound(value: string, rule: Node): boolean {
 function clipPath(): string {
   const n = (x: number, k: string) => `calc(var(--sq-${k}) * ${Number(x.toFixed(4))})`;
   const curves = KEYS.map((k, i) => {
-    const pts: [number, number][] = [[CORNER[0][0], CORNER[0][1]]];
-    for (const c of [CORNER[1], CORNER[2]]) for (let j = 0; j < 6; j += 2) pts.push([c[j], c[j + 1]]);
+    const pts: [number, number][] = [[CORNER[0]![0]!, CORNER[0]![1]!]];
+    for (const c of [CORNER[1], CORNER[2]]) for (let j = 0; j < 6; j += 2) pts.push([c![j]!, c![j + 1]!]);
     const placed = pts.map(([u, v]) => [i === 1 || i === 2 ? -u : u, i >= 2 ? -v : v] as [number, number]);
     if (i === 1 || i === 3) placed.reverse();
     const rel = (p: [number, number], from: [number, number]) => `${n(p[0] - from[0], k)} ${n(p[1] - from[1], k)}`;
-    return [0, 3].map((s) => `curve by ${rel(placed[s + 3], placed[s])} with ${rel(placed[s + 1], placed[s])} / ${rel(placed[s + 2], placed[s])}`).join(", ");
+    return [0, 3].map((s) => `curve by ${rel(placed[s + 3]!, placed[s]!)} with ${rel(placed[s + 1]!, placed[s]!)} / ${rel(placed[s + 2]!, placed[s]!)}`).join(", ");
   });
   return [
     "shape(nonzero from -9999px -9999px", "hline to calc(100% + 9999px)", "vline to calc(100% + 9999px)", "hline to -9999px", "close",
