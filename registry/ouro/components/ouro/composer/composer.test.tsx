@@ -1394,7 +1394,7 @@ describe("Composer expanded motion", () => {
     await moves[1]!.playing;
   });
 
-  it("clips and fades the box   it("keeps the toolbar on screen while a collapse fades it out, and takes it away at the end", async () => {
+  it("keeps the toolbar on screen while a collapse fades it out, and takes it away at the end", async () => {
     const { root } = await render(<Composer label="Reply" defaultExpanded toolbar={<span>Tools</span>} onSend={() => {}} />);
     const toolbar = () => root.querySelector('[data-ouro-part="toolbar"]');
     await act(async () => expandButton()!.click());
@@ -1442,7 +1442,7 @@ describe("Composer expanded motion", () => {
     await moves[0]!.playing;
   });
 
-in over a moment, and only fades the toolbar in with reduced motion", async () => {
+  it("clips and fades the box in over a moment, and only fades the toolbar in with reduced motion", async () => {
     const { root } = await render(<Composer label="Reply" defaultExpanded={false} toolbar={<span>Tools</span>} onSend={() => {}} />);
     const toolbar = () => root.querySelector<HTMLElement>('[data-ouro-part="toolbar"]')!;
     const fast = token("--ouro-duration-fast");
