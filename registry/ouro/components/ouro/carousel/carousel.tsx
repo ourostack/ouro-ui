@@ -360,6 +360,20 @@ export function Carousel(props: CarouselProps): JSX.Element {
       touching = event.touches.length > 0;
       wait();
     };
+    // An outside caller that scrolls the viewport itself (Lightbox's Home and End, which jump
+    // further than a button steps) dispatches this so the scroll it starts is heading-tracked
+    // too: without it, a press right before or after leaves heading stale, and a scrollend or
+    // pause for the real scroll reads as a mismatch against the wrong slide, or none at all.
+    const onGoto = (event: Event) => {
+      const { index, left, behavior } = (event as CustomEvent<{ index: number; left: number; behavior: ScrollBehavior }>).detail;
+      heading.current = index;
+      latest.current.onTargetChange?.(index);
+      viewport.scrollTo({ left, behavior });
+      // Stryker disable next-line OptionalChaining: equivalent; the settling effect's mount-time
+      // assignment (deps []) always runs first and is never cleared before this listener can fire.
+      restartWait.current?.();
+    };
+    viewport.addEventListener("ouro-carousel-goto", onGoto);
     if (fallback) {
       viewport.addEventListener("scroll", wait, { passive: true });
       viewport.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -369,6 +383,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
     return () => {
       stopWaiting();
       restartWait.current = undefined;
+      viewport.removeEventListener("ouro-carousel-goto", onGoto);
       viewport.removeEventListener("scroll", wait);
       viewport.removeEventListener("touchstart", onTouchStart);
       viewport.removeEventListener("touchend", onTouchEnd);
