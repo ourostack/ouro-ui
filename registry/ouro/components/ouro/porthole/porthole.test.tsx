@@ -443,7 +443,8 @@ describe("Porthole", () => {
     // Once the width has eased to fit, the style holds what the content and the pill's edges need.
     await expect.poll(() => pill.style.width === `${Math.ceil(content.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
     await commands.emulateMedia({ reducedMotion: "reduce" });
-    expect(getComputedStyle(pill).transitionProperty).toBe("none");
+    // WebKit hasn't always applied the emulated media by the next statement (#3518): poll instead of reading once.
+    await expect.poll(() => getComputedStyle(pill).transitionProperty).toBe("none");
   });
 
   it("draws its width at once when its column shows again, never easing from the width it had while hidden", async () => {

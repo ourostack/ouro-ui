@@ -2,7 +2,7 @@
   "name": "ouro-ui",
   "private": true,
   "version": "0.0.1",
-  "description": "React components for coding agents, as a shadcn registry. Install: npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.518",
+  "description": "React components for coding agents, as a shadcn registry. Install: npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.522",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -11,7 +11,7 @@
   "homepage": "https://github.com/ourostack/ouro-ui",
   "type": "module",
   "ouro": {
-    "latestRelease": "v1.3.518"
+    "latestRelease": "v1.3.522"
   },
   "packageManager": "pnpm@10.2.0",
   "engines": {
@@ -105,6 +105,7 @@
     "motion": "14.0.0",
     "oxlint": "1.86.0",
     "playwright": "1.65.0",
+    "playwright-core-chromium-floor": "npm:playwright-core@1.65.0",
     "postcss": "8.5.28",
     "react": "19.3.0",
     "react-dom": "19.3.0",

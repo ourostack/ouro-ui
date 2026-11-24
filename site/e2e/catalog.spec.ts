@@ -237,6 +237,12 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // which no voyage page rendered before, and the voyage's pages share one stylesheet. A build of the card's own failed:
 // a second Tailwind build repeats utilities the shared one has, and its later copies override responsive classes.
 const CSS_CEILINGS = { voyage: 54 * 1024, docs: 55 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+/**
+ * How much one pull request may add to a page's CSS before its ceiling is raised: judged the same way as a page's
+ * JavaScript closure (MARGIN above), by growth over the pull request's own base, so a ceiling main is already over,
+ * or over only because another pull request raced this one to main (scripts/size-gate.mjs), fails neither's PR.
+ */
+const CSS_MARGIN = 512;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the
@@ -382,6 +388,7 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   const report: Record<string, unknown> = {};
   const sheets: Record<string, string[]> = {};
   const sizes: Sizes = {};
+  const cssSizes: Sizes = {};
   for (const [name, kind, path, ready] of [
     ["home", "voyage", "./", page.locator("html[data-site-ready]")],
     ["nautilus", "voyage", "nautilus/", page.locator("html[data-site-ready]")],
@@ -450,7 +457,8 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     sizes[`${name} initial JavaScript, gzip bytes`] = { bytes: gzip, ceiling: CEILINGS[kind], budget: MARGIN };
     expect(styles.length, `${name} loads its stylesheets`).toBeGreaterThan(0);
     sheets[name] = [...new Set(styles)];
-    expect(css, `${name} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILINGS[kind]);
+    console.log(`css-size ${name} ${css} of ${CSS_CEILINGS[kind]}`);
+    cssSizes[`${name} CSS, gzip bytes`] = { bytes: css, ceiling: CSS_CEILINGS[kind], budget: CSS_MARGIN };
   }
   // On a pull request, each page's JavaScript is judged by what the pull request added over its base (scripts/size-gate.mjs).
   writeReport("closure", sizes);
@@ -458,6 +466,13 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   for (const line of verdict.lines) console.log(`script-size-gate ${line}`);
   for (const tip of verdict.tips) console.log(`::warning title=Pull request tips a size ceiling::${tip}`);
   expect(verdict.failures, "each page's initial JavaScript, gzip bytes").toEqual([]);
+  // Each page's CSS is judged the same way: a pull request fails only for CSS it grew past budget, never because main's
+  // own ceiling breach, or another pull request's race, landed on the commit this branched from.
+  writeReport("page-css", cssSizes);
+  const cssVerdict = judgeSizes(cssSizes, { mode: gateMode(), base: readBase("page-css") });
+  for (const line of cssVerdict.lines) console.log(`css-size-gate ${line}`);
+  for (const tip of cssVerdict.tips) console.log(`::warning title=Pull request tips a size ceiling::${tip}`);
+  expect(cssVerdict.failures, "each page's CSS, gzip bytes").toEqual([]);
   // The voyage has a Tailwind build of its own (site/src/voyage/voyage-tailwind.css), without the
   // registry components and site files it never renders: it loads none of the docs' stylesheets but
   // the theme presets (themes/presets.generated.css), which the header's picker switches on both, and
@@ -533,6 +548,7 @@ test("each docs page links the shared shell or the whole build, and inlines only
   };
   const wholeSheet = sheetsOf(built("docs/index.html"))[0]!;
   expect(wholeSheet, "the components index links the whole build").toMatch(/(^|\/)docs-full-/);
+  const cssSizes: Sizes = {};
   const shellSheet = sheetsOf(built("docs/badge/index.html"))[0]!;
   expect(shellSheet, "a component's page links the shared shell first").toMatch(/(^|\/)docs-shell-/);
   const shellCss = built(shellSheet);
@@ -540,7 +556,7 @@ test("each docs page links the shared shell or the whole build, and inlines only
   const shellDeclarations = declarationsOf(shellCss);
   const shellGzip = gzip(shellCss);
   console.log(`css-size docs-shell ${shellGzip} of ${CSS_CEILINGS.docsShell}`);
-  expect(shellGzip, "the docs' shared shell, gzip bytes").toBeLessThanOrEqual(CSS_CEILINGS.docsShell);
+  cssSizes["docs-shell CSS, gzip bytes"] = { bytes: shellGzip, ceiling: CSS_CEILINGS.docsShell, budget: CSS_MARGIN };
   const wholeCss = built(wholeSheet);
   const wholeClasses = classNames(wholeCss);
   // The properties each plain one-class utility of a stylesheet sets, and where the whole build places each one.
@@ -574,7 +590,7 @@ test("each docs page links the shared shell or the whole build, and inlines only
     const bytes = sheets.reduce((sum, file) => sum + gzip(built(file)), 0) + (inline ? gzip(inline) : 0);
     // In the job's log on every run, so a raise is set from what CI measures (#2724).
     console.log(`css-size ${name} ${bytes} of ${CSS_CEILINGS[kind]}`);
-    expect(bytes, `${name} CSS, gzip bytes`).toBeLessThanOrEqual(CSS_CEILINGS[kind]);
+    cssSizes[`${name} CSS, gzip bytes`] = { bytes, ceiling: CSS_CEILINGS[kind], budget: CSS_MARGIN };
     if (whole) continue;
     const own = declarationsOf(inline);
     const repeated = [...own].flatMap(([block, declarations]) => [...declarations].filter((d) => shellDeclarations.get(block)?.has(d)).map((d) => `${block} { ${d} }`));
@@ -599,6 +615,14 @@ test("each docs page links the shared shell or the whole build, and inlines only
     });
     expect(reversed, `${name}: a page utility the build sorts before a shell utility it shares a property with`).toEqual([]);
   }
+  // Judged the same way as the pages' JavaScript closures: a pull request fails only for CSS it grew past budget, never
+  // because main's own ceiling breach, or another pull request's race, landed on the commit this branched from
+  // (scripts/size-gate.mjs); main's own breach is size-ceilings.yml's to report, with an issue, after CI on main.
+  writeReport("shell-css", cssSizes);
+  const verdict = judgeSizes(cssSizes, { mode: gateMode(), base: readBase("shell-css") });
+  for (const line of verdict.lines) console.log(`css-size-gate ${line}`);
+  for (const tip of verdict.tips) console.log(`::warning title=Pull request tips a size ceiling::${tip}`);
+  expect(verdict.failures, "each docs page's CSS, gzip bytes").toEqual([]);
 });
 
 /** Chapter I's island: its chunk and everything it imports. */
