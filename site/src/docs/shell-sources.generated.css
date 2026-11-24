@@ -115,6 +115,7 @@
 @source not "../components/icons.tsx";
 @source not "../components/story-world.tsx";
 @source not "../current";
+@source not "calendar-demo.tsx";
 @source not "call-demo.tsx";
 @source not "chat-demo.tsx";
 @source not "demos";

@@ -160,6 +160,11 @@ export const routes: Route[] = [
     title: "A call window · Ouro HX for web",
     description: "A whole call window from Ouro HX's call components: a tile grid, speaking and muted tiles, captions, the control bar and a picture-in-picture.",
   },
+  {
+    path: "/docs/calendar-demo/",
+    title: "A calendar · Ouro HX for web",
+    description: "A whole calendar screen from Ouro HX's parts: a week on TimeGrid, a date jump, a create dialog, event details with Edit and Delete, and an undo toast.",
+  },
   // One component's live demo alone (components/phone-demo.tsx), which a component page shows in a phone's frame.
   { path: "/docs/demo/", title: "Live demo · Ouro HX for web", description: "One Ouro HX component's live demo, on its own.", noindex: true },
 ];
