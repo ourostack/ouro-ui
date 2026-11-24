@@ -79,7 +79,7 @@ The props the modes share. Type: `MessageProps`.
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `presence` (required) | `"offline" \| "available" \| "busy" \| "away" \| "do-not-disturb" \| "out-of-office"` | The author's presence, as Avatar's dot on the avatar's lower end corner: available, busy, away, do not disturb, offline or out of office, each in its own shape and tone. It shows wherever the avatar does, so not on a `continued` message or the user's own `chat` messages. With an `Avatar` element as `avatar`, pass `presence` to that Avatar instead. |
+| `presence` (required) | `"offline" \| "available" \| "busy" \| "away" \| "do-not-disturb" \| "out-of-office" \| "unknown"` | The author's presence, as Avatar's dot on the avatar's lower end corner: available, busy, away, do not disturb, offline or out of office, each in its own shape and tone. It shows wherever the avatar does, so not on a `continued` message or the user's own `chat` messages. With an `Avatar` element as `avatar`, pass `presence` to that Avatar instead. |
 | `presenceLabel` (required) | `string` | What the dot says, such as "Busy" or "In a meeting". Screen readers hear it on the avatar, as Avatar reads a presence beside a written name. Required with `presence`, so no dot is silent. |
 
 ### With `presenceLabel`

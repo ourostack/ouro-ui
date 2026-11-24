@@ -1032,10 +1032,14 @@ describe("Avatar presence", () => {
         <Avatar name="Ana Lind" />
         <Avatar name="Halden" shape="agent" />
         <Avatar name="Ana Lind" presence="away" presenceLabel="Away" />
+        <Avatar name="Ana Lind" presence="unknown" presenceLabel="Presence unknown" />
       </div>,
     );
-    const [plain, agent, dotted] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
-    for (const avatar of [plain!, agent!]) {
+    const [plain, agent, dotted, unknown] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    const hidden = unknown!.querySelector<HTMLElement>("[data-ouro-avatar-presence]")!;
+    expect(hidden.childElementCount).toBe(0);
+    expect(getComputedStyle(hidden).visibility).toBe("hidden");
+    for (const avatar of [plain!, agent!, unknown!]) {
       const fill = getComputedStyle(surface(avatar));
       expect(surface(avatar).hasAttribute("data-ouro-bite")).toBe(false);
       expect(fill.maskImage).toBe("none");
