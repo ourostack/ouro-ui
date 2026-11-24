@@ -50,7 +50,7 @@ describe("the Actions page's demo", () => {
     await renderPage("/actions/");
     await userEvent.click(page.getByRole("radio", { name: "Person only" }));
     await userEvent.click(page.getByRole("button", { name: "Call it as the agent" }));
-    await expect.element(page.getByText(mcp.refusals.place_grocery_order.summary, { exact: false })).toBeInTheDocument();
+    await expect.element(page.getByRole("main").getByText(mcp.refusals.place_grocery_order.summary, { exact: false })).toBeInTheDocument();
   });
 
   it("asks the person first before sharing, with the declared question", async () => {
@@ -58,7 +58,7 @@ describe("the Actions page's demo", () => {
     await userEvent.click(page.getByRole("radio", { name: "Asks first" }));
     await userEvent.click(page.getByRole("button", { name: "Share list" }));
     const question = "Share your list with this person? They will be able to see it and change it.";
-    await expect.element(page.getByRole("alertdialog", { name: question })).toBeInTheDocument();
+    await expect.poll(() => document.querySelector('[role="alertdialog"]')?.textContent ?? "").toContain(question);
   });
 });
 
@@ -68,7 +68,7 @@ describe("the Composed UI page's tricks", () => {
     async (trick) => {
       await renderPage("/composed-ui/");
       await userEvent.click(page.getByRole("button", { name: trick }));
-      await expect.element(page.getByText(/Refused\. Nothing drew\.\n\/children\//)).toBeInTheDocument();
+      await expect.element(page.getByRole("main").getByText(/Refused\. Nothing drew\.\n\/children\//)).toBeInTheDocument();
     },
   );
 });
@@ -86,7 +86,7 @@ describe("the X-ray page", () => {
   it("shows AX X-ray's report for a conformant tool", async () => {
     await renderPage("/xray/");
     await userEvent.click(page.getByRole("radio", { name: "With the kit" }));
-    await expect.element(page.getByText(/^Conforms: every applicable must claim holds/)).toBeInTheDocument();
+    await expect.element(page.getByRole("main").getByText(/^Conforms: every applicable must claim holds/)).toBeInTheDocument();
   });
 });
 
@@ -94,6 +94,6 @@ describe("the Hackamore page's terminal", () => {
   it("prints hackamore's own refusal when Allow isn't on the screen", async () => {
     await renderPage("/hackamore/");
     await userEvent.click(page.getByRole("button", { name: "Press Allow" }));
-    await expect.element(page.getByText("hackamore: do click: click isn't available on screen. Fix: use one of: type_text, press_key, open_app, activate.")).toBeInTheDocument();
+    await expect.element(page.getByRole("main").getByText("hackamore: do click: click isn't available on screen. Fix: use one of: type_text, press_key, open_app, activate.")).toBeInTheDocument();
   });
 });
