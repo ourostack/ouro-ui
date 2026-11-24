@@ -1704,8 +1704,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // Whether the list has opened: at its first messages, at `initialAnchor` if it holds that message, else at the newest.
     let opened = false;
-    // Where code scrolled the list to a message before the newest, until a scroll moves it from there.
-    let placed: number | null = null;
     // Every message node drawn so far, so a message moved to the end (a reply bumping a post) is told from one that is
     // new there (the reader's own, just sent): only a node never drawn before counts as new.
     const seenMessages = new WeakSet<Element>();
@@ -1749,7 +1747,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
       const newest = target === topItems(content).at(-1);
-      placed = newest ? null : scroller.scrollTop;
       // Stryker disable next-line ConditionalExpression: the hold in the microtask after this reads the list at its end and follows it, so not following here changes nothing.
       pinned.current = newest && atBottom();
     };
@@ -1769,7 +1766,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (target) {
         centre(target);
         const newest = target === topItems(content).at(-1);
-        placed = newest ? null : scroller.scrollTop;
         pinned.current = newest && atBottom();
       }
       // Stryker disable next-line CallExpression: the observer's hold in the microtask after the commit takes the anchors and the end, before any frame or event; at the end of the new conversation, the next message is then followed.
@@ -1951,11 +1947,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
       // not following starts only when the browser reports that scroll: in a windowed list the bottom may come up as heights
       // replace estimates above the view, which holding the place below undoes first.
-      // A list opened at a message before the newest, still where that put it, is not at its end by a pixel or two of overflow:
-      // nothing scrolled it there, so it does not start following.
-      if (placed !== null && scroller.scrollTop !== placed) placed = null;
       // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
-      if (placed === null) pinned.current = Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || (pinned.current && farthest() < end - AT_BOTTOM);
+      pinned.current = Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || (pinned.current && farthest() < end - AT_BOTTOM);
       // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
       const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
@@ -2076,8 +2069,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         wheelStarts = false;
       }
       // Leaving the bottom, even by a few pixels, stops the following; reaching it again follows.
-      if (placed !== null && scroller.scrollTop !== placed) placed = null;
-      if (placed === null) pinned.current = atBottom();
+      pinned.current = atBottom();
       // What is carried goes into the scroll position before the reader reaches an end, so it never stops them there.
       if (nearEnd()) pay();
       release();
