@@ -9,6 +9,7 @@ import postcss from "postcss";
 import { findOffendersInSource } from "../registry/ouro/source-rules/source-rules.mjs";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
+import { squircleCorners } from "../registry/ouro/lib/ouro/squircle-corners.ts";
 import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, gradientKnown, gradients, hasClientDirective, leadingComment, namedRenderFunctions, needsClientDirective, numericSizes, layoutAnimationAllowed, physicalAllowed, physicalUtilities, pollTimeoutFiles, radiusSteps, realClockEscapeKeys, realClockEscapes, realClockProblems, shortPollTimeouts, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -603,6 +604,70 @@ test("every shadow reads the theme: shadcn's --shadow-* tokens or --ouro-shadow-
   );
   const offenders = runtime.map(read).flatMap(({ path, text }) => fixedShadows(text).map((token) => `${path}: ${token}`));
   assert.deepEqual(offenders, [], "Write shadow-(--shadow-lg), so a theme's --shadow-lg applies; a sheet reads --ouro-shadow-sheet-<side>.");
+});
+
+/**
+ * Declarations in `css` whose value holds a `shape()` with a top-level segment that is only
+ * a `var()` call, outside a custom property (a property starting with `--`). Chromium 149 to
+ * 157 eagerly parses an ordinary property's value and, finding a `shape()` segment that is
+ * nothing but a `var()`, drops the whole declaration and every rule after it in the same
+ * stylesheet; the same `shape()` written into a custom property's value is fine there, since a
+ * custom property's value is parsed lazily (ourostack/ouro-ui#3491). A fallback inside the
+ * `var()` (`var(--x, move to 0 0, close)`) does not help: the whole segment is still a `var()`.
+ */
+const bareVarShapeDecls = (css) => {
+  const topLevelSegments = (value) => {
+    const parts = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i <= value.length; i++) {
+      const ch = value[i];
+      if (ch === "(") depth++;
+      else if (ch === ")") depth--;
+      else if ((ch === "," || i === value.length) && depth === 0) {
+        parts.push(value.slice(start, i).trim());
+        start = i + 1;
+      }
+    }
+    return parts;
+  };
+  const offenders = [];
+  postcss.parse(css).walkDecls((decl) => {
+    if (decl.prop.startsWith("--")) return;
+    let index = decl.value.indexOf("shape(");
+    while (index !== -1) {
+      const start = index + "shape(".length;
+      let depth = 1;
+      let i = start;
+      for (; i < decl.value.length && depth > 0; i++) {
+        if (decl.value[i] === "(") depth++;
+        else if (decl.value[i] === ")") depth--;
+      }
+      for (const segment of topLevelSegments(decl.value.slice(start, i - 1))) {
+        if (/^var\(--[\w-]+(?:,[\s\S]*)?\)$/.test(segment)) offenders.push(`${decl.prop}: ${segment}`);
+      }
+      index = decl.value.indexOf("shape(", i);
+    }
+  });
+  return offenders;
+};
+
+test("bareVarShapeDecls finds an ordinary property's shape() segment that is only a var(), and clears it once the shape() moves into a custom property", () => {
+  assert.deepEqual(bareVarShapeDecls("a{clip-path: shape(from 0 0, hline to 100%, close, var(--x));}"), ["clip-path: var(--x)"]);
+  assert.deepEqual(
+    bareVarShapeDecls("a{clip-path: shape(from 0 0, hline to 100%, close, var(--x, move to 0 0, close));}"),
+    ["clip-path: var(--x, move to 0 0, close)"],
+  );
+  assert.deepEqual(bareVarShapeDecls("a{--c: shape(from 0 0, hline to 100%, close, var(--x)); clip-path: var(--c);}"), []);
+});
+
+test("ouro-base's avatar notch and squircleCorners()'s clip path read their shape() back through a custom property, never straight into an ordinary one", async () => {
+  assert.deepEqual(bareVarShapeDecls(read("registry/ouro/theme/ouro-base.css").text), []);
+
+  // A rule a real app would round under half its box, the case squircleCorners() draws a shape() clip path for.
+  const result = await postcss([squircleCorners()]).process(".card { border-radius: 12px; }", { from: undefined });
+  assert.match(result.css, /shape\(/, "the plugin emits a shape() clip path for this fixture");
+  assert.deepEqual(bareVarShapeDecls(result.css), []);
 });
 
 test("physicalUtilities finds a class on a physical side, after its variants, and leaves logical sides, words and allowed classes", () => {
