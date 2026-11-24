@@ -110,7 +110,7 @@ export const knownFindings: KnownFinding[] = [
     rule: "overlap",
     issue: 3337,
     reason:
-      "The same hover-bar overlap as Message/Chat, sighted on this story (added after #2177, neither hovered nor focused) on some CI runs (#3337, #1957).",
+      "The same hover-bar overlap as Message/Chat, sighted on this standalone Message (added after #2177, neither hovered nor focused). It renders its own inline bar, never MessageList's layered one row-hover.ts tracks, so #2177's pointer-position fix could not reach it: a third sighting of the still-open second path, not a stale pointer (#3337, #1957).",
     sometimes: true,
   },
   {
