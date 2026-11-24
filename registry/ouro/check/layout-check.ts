@@ -225,12 +225,15 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
   const near: { a: Element; b: Element; gap: number }[] = [];
   // A surface's position against a scrolling ancestor is wherever it's scrolled to, not a design gap.
   const scrolls = (el: Element, axis: "x" | "y") => (axis === "x" ? /auto|scroll/.test(getComputedStyle(el).overflowX) && el.scrollWidth > el.clientWidth : /auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight);
+  // container is always an ancestor of a (the caller only calls this with a container that contains a), so the walk
+  // always reaches it and returns from inside the loop: no trailing fallback return is reachable.
   const scrollsBetween = (a: Element, container: Element, axis: "x" | "y") => {
-    for (let n = a.parentElement; n; n = n.parentElement) {
+    let n = a.parentElement!;
+    for (;;) {
       if (scrolls(n, axis)) return true;
       if (n === container) return false;
+      n = n.parentElement!;
     }
-    return false;
   };
   surfaces.forEach((a, i) => {
     for (const b of surfaces.slice(i + 1)) {
