@@ -49,7 +49,7 @@ export const InContext: Story = {
           <Heading level={2}>Recipes</Heading>
           <Button href="#new">New recipe</Button>
         </Row>
-        <Row gap="xs" wrap>
+        <Row gap="sm" wrap>
           {["Braise", "Weeknight", "Make ahead", "Freezer friendly", "Dairy free", "One pot"].map((tag) => (
             <Tag key={tag}>{tag}</Tag>
           ))}
