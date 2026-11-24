@@ -650,9 +650,11 @@ export function Avatar(props: AvatarProps): JSX.Element {
       className={cn(
         "relative box-border inline-flex shrink-0 items-center justify-center align-middle",
         "font-medium leading-none select-none",
-        // The box's own corner is a circle at 0.543 of the surface's squircle radius, the largest circle that encloses it, so a shadow
-        // follows it and the build-time squircle leaves the root unclipped, where the presence dot hangs over its edge.
-        shape === "circle" ? "rounded-[24%] [corner-shape:round]" : "rounded-[13%] [corner-shape:round]",
+        // Where the engine draws corner-shape, the box is the surface's own squircle, so the edge and ring follow it. Elsewhere its corner
+        // is a circle at 0.543 of that radius, the largest circle that encloses the squircle, so a shadow follows it.
+        shape === "circle"
+          ? "rounded-[24%] supports-[corner-shape:squircle]:rounded-[44%] supports-[corner-shape:squircle]:[corner-shape:squircle]"
+          : "rounded-[13%] supports-[corner-shape:squircle]:rounded-[24%] supports-[corner-shape:squircle]:[corner-shape:squircle]",
         shape === "square" && squareEdgeClass,
         !nameLoading && !group && ink,
         drawn && biteSizes[size],

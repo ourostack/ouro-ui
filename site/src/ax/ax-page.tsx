@@ -260,6 +260,26 @@ export default function AxPage(): JSX.Element {
               </li>
             ))}
           </ul>
+          <p className="m-0 max-w-(--measure-lede-wide) text-muted-foreground" data-ax-drive-screens="">
+            No door yet? Drive the screen instead.{" "}
+            <a className="site-quiet-link font-semibold text-foreground" href={href("/apple/reins/")}>
+              Ouro Reins
+            </a>{" "}
+            {claim("drives your own app's screens as state and actions, for tests, headless and in milliseconds.", {
+              source: { evidence: "site/src/apple/evidence/reins-headless-timing.json" },
+              verify: [{ fileLine: "site/src/routes.ts", pattern: "Agents drive an app's screens as state and actions with ls and do: headless, in milliseconds" }],
+            })}{" "}
+            <a className="site-quiet-link font-semibold text-foreground" href={href("/hackamore/")}>
+              Hackamore
+            </a>{" "}
+            {claim("drives Mac apps that never had doors, through their accessibility tree, and refuses what isn't on the screen.", {
+              source: [{ evidence: "docs/guides/evidence/part-pages/hackamore-README.txt" }, { evidence: "docs/guides/evidence/part-pages/hackamore-refusal.txt" }],
+              verify: [
+                { fileLine: "docs/guides/evidence/part-pages/hackamore-README.txt", pattern: "hackamore steers apps that were never built for it" },
+                { fileLine: "docs/guides/evidence/part-pages/hackamore-refusal.txt", pattern: "click isn't available on screen" },
+              ],
+            })}
+          </p>
         </Container>
       </section>
     </div>
