@@ -70,16 +70,19 @@ describe("Composer rich paste", () => {
 
   it("keeps ⌘K from reaching the browser", async () => {
     const editor = await render(rich({ defaultValue: "words" }));
-    vi.spyOn(window, "prompt").mockReturnValue(null);
     await selectAll(editor);
     const event = new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true, cancelable: true });
     await act(async () => void editor.dispatchEvent(event));
     expect(event.defaultPrevented).toBe(true);
   });
 
-  it("asks for an address with its own words, and takes a link off a selection that holds one among other text", async () => {
+  const linkForm = () => document.querySelector<HTMLFormElement>("[data-ouro-composer-link]");
+  const addressField = () => linkForm()!.querySelector<HTMLInputElement>("input")!;
+  const addButton = () => [...linkForm()!.querySelectorAll("button")].find((button) => button.textContent === "Add link")!;
+
+  it("takes a link off a selection that holds one, and makes a selected address a link to itself, asking nothing", async () => {
     const seen: string[] = [];
-    const prompt = vi.spyOn(window, "prompt").mockReturnValue(null);
+    const prompt = vi.spyOn(window, "prompt");
     const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
     editor.focus();
     await paste(editor, { "text/html": 'a <a href="https://x.test/">b</a> c' });
@@ -87,10 +90,56 @@ describe("Composer rich paste", () => {
     await selectAll(editor);
     await key(editor, { key: "k", metaKey: true });
     await expect.poll(() => seen.at(-1)).toBe("a b c");
-    expect(prompt).not.toHaveBeenCalled();
+    await paste(editor, { "text/plain": "https://y.test/" });
     await selectAll(editor);
     await key(editor, { key: "k", metaKey: true });
-    expect(prompt).toHaveBeenCalledWith("Link address");
+    await expect.poll(() => seen.at(-1)).toBe("[https://y.test/](https://y.test/)");
+    expect(linkForm()).toBeNull();
+    expect(prompt).not.toHaveBeenCalled();
+  });
+
+  it("asks for an address in its own popover, never the browser's prompt, and links the words it was asked over", async () => {
+    const seen: string[] = [];
+    const prompt = vi.spyOn(window, "prompt");
+    const editor = await render(rich({ defaultValue: "read this", onValueChange: (value: string) => void seen.push(value) }));
+    await selectAll(editor);
+    await key(editor, { key: "k", ctrlKey: true });
+    await expect.poll(linkForm).not.toBeNull();
+    expect(prompt).not.toHaveBeenCalled();
+    await expect.poll(() => document.activeElement).toBe(addressField());
+    expect(addButton().getAttribute("aria-disabled")).toBe("true");
+    await userEvent.type(addressField(), "https://z.test/");
+    await expect.poll(() => addButton().getAttribute("aria-disabled")).toBeNull();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => seen.at(-1)).toBe("[read this](https://z.test/)");
+    await expect.poll(linkForm).toBeNull();
+    expect(document.activeElement).toBe(editor);
+  });
+
+  it("adds nothing for words that aren't an address, and Escape leaves the words as they were, back in the box", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ defaultValue: "read this", onValueChange: (value: string) => void seen.push(value) }));
+    await selectAll(editor);
+    await key(editor, { key: "k", metaKey: true });
+    await expect.poll(linkForm).not.toBeNull();
+    await userEvent.type(addressField(), "not an address");
+    await act(async () => void linkForm()!.requestSubmit());
+    expect(linkForm()).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(linkForm).toBeNull();
+    expect(seen).toEqual([]);
+    expect(document.activeElement).toBe(editor);
+  });
+
+  it("asks nothing with the caret alone, or in a read-only box", async () => {
+    const editor = await render(rich({ defaultValue: "read this" }));
+    editor.focus();
+    await key(editor, { key: "k", metaKey: true });
+    expect(linkForm()).toBeNull();
+    const fixed = await render(rich({ defaultValue: "read this", readOnly: true }));
+    await selectAll(fixed);
+    await key(fixed, { key: "k", metaKey: true });
+    expect(linkForm()).toBeNull();
   });
 
   it.each(["script", "style", "noscript", "iframe", "object", "noembed", "noframes", "title", "svg"])("drops <%s> with its text", async (tag) => {

@@ -285,7 +285,8 @@ export interface ComposerOwnProps {
    * shows. A paste keeps only what an allowlist names: bold, italic, underline, strikethrough, code,
    * web and mail links, line breaks, and lists and quotes as lines with their Markdown marks; scripts,
    * styles, attributes and other links are dropped and their text kept. ⌘⇧V pastes the text only, a web
-   * address pasted over selected text links it, and ⌘K links the selection or takes its link off.
+   * address pasted over selected text links it, and ⌘K links the selection or takes its link off: over
+   * words that aren't an address it asks for one in its own popover, never the browser's prompt.
    * A `value` or `defaultValue` spelling italic with a star (`*italic*`) or bold with underscores
    * (`__bold__`) reads the same way and writes back out with that same mark, rather than switching
    * to the keys' own underscore or star; plain text keeps a star, an underscore or a tilde bare
