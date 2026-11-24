@@ -809,7 +809,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Carousel** — A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards. [Docs](docs/Carousel.md)
 - **CodeBlock** — Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it. [Docs](docs/CodeBlock.md)
 - **ComposedSurface** — Draws Ouro's composed tree with Ouro HX, whatever format it came in: core's `ComposedNode`, from A2UI messages, an MCP tool result's `structuredContent.ouro`, or your own code. [Docs](docs/ComposedSurface.md)
-- **Cover** — A thing's cover: its picture, or, without one, the first letter of its title in the theme's heading font on a wash from the muted color toward the primary. [Docs](docs/Cover.md)
+- **Cover** — A thing's cover: its picture, or, without one, the first letter of its title in the theme's heading font on a solid tint of the muted color toward the primary. [Docs](docs/Cover.md)
 - **DescriptionList** — One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email. [Docs](docs/DescriptionList.md)
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
 - **Lightbox** — Thumbnails that open a full-screen image viewer. [Docs](docs/Lightbox.md)
