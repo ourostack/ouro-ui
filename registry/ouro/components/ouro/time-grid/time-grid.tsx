@@ -857,7 +857,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       className: cn(
         eventClass,
         eventHitClass,
-=======
+        bar ? backgroundBarClass : [status === "away" ? awayBarClass : toneBarClass[tone], background ? backgroundFillClass : status === "away" ? awayFillClass : status === "busy" ? toneFillClass[tone] : plainFillClass, statusClass[status]],
         placed ? (bar ? timedBarClass : timedClass) : allDayClass,
         // Under the person's own events, so a background event's touch target never covers them.
         background && "z-[9]",
