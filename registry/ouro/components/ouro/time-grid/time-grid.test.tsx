@@ -1042,7 +1042,7 @@ describe("TimeGrid", () => {
     const all = await render({ view: "week", markedDays: { "2026-03-09": { label: "a" }, "2026-03-10": { label: "b", tone: "secondary" }, "2026-03-11": { label: "c", tone: "success" }, "2026-03-12": { label: "d", tone: "warning" }, "2026-03-13": { label: "e", tone: "destructive" } } });
     const tints = [...all.grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")].map((column) => getComputedStyle(column).backgroundColor);
     expect(new Set(tints).size).toBe(5);
-    const oof = await render({ view: "week", markedDays: { "2026-03-09": { label: "a" }, "2026-03-10": { label: "b", tone: "away" } } });
+    const oof = await render({ view: "week", markedDays: { "2026-03-09": { label: "a", tone: "success" }, "2026-03-10": { label: "b", tone: "away" } } });
     const oofTints = [...oof.grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")].map((column) => getComputedStyle(column).backgroundColor);
     expect(oofTints).toHaveLength(2);
     expect(oofTints[0]).not.toBe(oofTints[1]);
