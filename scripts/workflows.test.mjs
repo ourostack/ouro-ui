@@ -3341,7 +3341,7 @@ test("Docs pin points main's docs at the newest release through one pull request
   assert.match(pin, /\n {6}BRANCH: docs\/point-at-release\n/);
   assert.deepEqual(
     stepScript(pin, "Point the docs at the release").split("\n").filter((line) => /^(node|pnpm) /.test(line)),
-    ['node scripts/latest-release.mjs set "$TAG"', "pnpm run docs"],
+    ['node scripts/docs-pin-release-check.mjs "$TAG"', 'node scripts/latest-release.mjs set "$TAG"', "pnpm run docs"],
   );
   const push = stepScript(pin, "Commit the docs and push their branch");
   assert.match(push, /git push -q --force origin "\$BRANCH"/);
@@ -3529,7 +3529,8 @@ test("Docs pin changes nothing for a tag that is not the newest release, and say
   const newer = runStep(`gh() { case "$*" in "api repos/"*"/releases/latest"*) echo v1.3.57 ;; esac; }\n${script}`, env);
   assert.equal(newer.status, 0, newer.calls);
   assert.equal(newer.output.result, "stale");
-  assert.doesNotMatch(newer.calls, /CALL (node|pnpm)/);
+  assert.match(newer.calls, /CALL node scripts\/docs-pin-release-check\.mjs v1\.3\.56/, "still checks the tag is published before comparing it with the newest release");
+  assert.doesNotMatch(newer.calls, /CALL node scripts\/latest-release\.mjs set|CALL pnpm/);
   const latest = `gh() { case "$*" in "api repos/"*"/releases/latest"*) echo v1.3.56 ;; esac; }\n`;
   const current = runStep(`${latest}git() { :; }\n${script}`, env);
   assert.equal(current.output.result, "current");
