@@ -148,7 +148,7 @@ test("the family links are in the family's order, with its ids, labels and addre
       ["desk", "Desk", "https://ouroboros.bot/desk/"],
       ["apps", "Apps", "https://ouroboros.bot/apps/"],
       ["ari", "Ari Mendelow", "https://mendelow.me/"],
-      ["github", "GitHub", "https://github.com/ourostack"],
+      ["github", "GitHub (ourostack)", "https://github.com/ourostack"],
     ],
   );
 });

@@ -1,0 +1,1 @@
+- Fixed: the AppWindow footer keeps the built-with names a full step apart.
