@@ -239,6 +239,12 @@
   }
 }
 
+@property --ouro-composer-inset {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 @keyframes ouro-spin {
   to {
     rotate: 1turn;

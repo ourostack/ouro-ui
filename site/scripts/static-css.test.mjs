@@ -42,6 +42,8 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
     split.keyframes.map((text) => /@keyframes\s+([\w-]+)/.exec(text)[1]),
     ["ouro-spin", "ouro-composer-reveal", "ouro-composer-conceal", "ouro-composer-toolbar-in", "ouro-composer-toolbar-out", "ouro-composer-fade-in", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-hero-rise", "ouro-hero-fade", "ouro-moment-arrive"],
   );
+  assert.deepEqual(split.properties, ['@property --ouro-composer-inset {\n  syntax: "<length>";\n  inherits: false;\n  initial-value: 0px;\n}']);
+  assert.ok(outputs["ouro-base.css"].includes(split.properties[0]), "ouro-base.css carries the registered properties");
   const css = outputs["ouro-base.css"];
   const root = parseBlocks(css.replace(/@media[^{]*\{[\s\S]*?\n\}/g, "").replace(/@(?:supports|container)[^{]*\{[\s\S]*?\n\}/g, "").replace(/@keyframes[\s\S]*$/, "")).find((block) => block.selector === ":root");
   const rootLines = declarations(root.body);
