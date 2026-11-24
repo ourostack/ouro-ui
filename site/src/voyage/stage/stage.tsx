@@ -327,18 +327,32 @@ const CrewLine = memo(function CrewLine({ entry, logOpen }: { entry: Entry; logO
   // #3139 made this line's own commit synchronous (ourostack/ouro-ui#728). Deferred this way
   // (afterPaint, as the picture's own update is), it never delays the frame the switch is measured
   // in. A region of its own, not the shared announce() others use, so two lines close together (the
-  // bell answers in turn) are each still heard once instead of the second dropping the first. The
+  // bell answers in turn) are each still heard once instead of the second dropping the first: a
+  // still-pending write is said at once, rather than cancelled, the moment the next line's effect
+  // runs, so a second press within the same frame never silently drops the first's answer. The
   // ref starts at this entry's id so the opening line, already on screen when the region appears,
   // is never read aloud on mount.
   const spoken = useRef(entry.id);
   const region = useRef<HTMLSpanElement>(null);
+  const pendingText = useRef<string | null>(null);
   useEffect(() => {
     const before = spoken.current;
     spoken.current = entry.id;
-    if (quiet || before === entry.id) return;
-    return afterPaint(() => {
+    // A still-unpainted announcement from the line this effect is about to replace is said at
+    // once here, rather than silently cancelled by the previous run's cleanup (its own afterPaint
+    // cancel), so two lines close together are each still heard once.
+    if (pendingText.current !== null) {
       const node = region.current;
-      if (node) node.textContent = `${SPEAKER[entry.name]}: ${entry.text}`;
+      if (node) node.textContent = pendingText.current;
+      pendingText.current = null;
+    }
+    if (quiet || before === entry.id) return;
+    const text = `${SPEAKER[entry.name]}: ${entry.text}`;
+    pendingText.current = text;
+    return afterPaint(() => {
+      pendingText.current = null;
+      const node = region.current;
+      if (node) node.textContent = text;
     });
   }, [entry, quiet]);
   return (

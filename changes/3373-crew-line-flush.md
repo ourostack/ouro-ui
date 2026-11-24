@@ -1,0 +1,1 @@
+- Fixed: the call demo's Stage crew line dropped an earlier bell answer's announcement when a second press committed before it had painted, instead of still saying it.

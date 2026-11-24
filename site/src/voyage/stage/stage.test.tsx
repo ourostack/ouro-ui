@@ -363,6 +363,48 @@ describe("the stage's controls", () => {
     expect(document.querySelectorAll('[data-ouro="toast"]')).toHaveLength(0);
   });
 
+  it("rings the bell twice before the first answer has painted: both are still heard once each", async () => {
+    // A real press always lands at least a frame apart, but under a loaded CI runner the first
+    // answer's requestAnimationFrame can still be pending (not yet run) when the second press's
+    // render commits. React runs the first answer's effect cleanup before the second runs, and
+    // that cleanup is the first answer's own cancel from afterPaint: cancelling it drops the first
+    // answer instead of flushing it. Held frames here force exactly that ordering every time.
+    await renderPage("/");
+    const bell = page.getByRole("button", { name: STAGE_COPY.bell });
+    const frames = new Map<number, FrameRequestCallback>();
+    let nextId = 0;
+    const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      const id = ++nextId;
+      frames.set(id, callback);
+      return id;
+    });
+    const caf = vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => {
+      frames.delete(id);
+    });
+    const announced = watchAnnouncements();
+    try {
+      await userEvent.click(bell);
+      await userEvent.click(bell);
+      // Both presses' outer defers (onBell's own afterPaint, then each crew line's own) land
+      // through this held queue; draining it oldest callback first, with a real tick after each
+      // one, serializes them the way real animation frames would, including the second press's
+      // commit interrupting the first's still-pending inner defer.
+      for (let step = 0; step < 20 && frames.size > 0; step += 1) {
+        const oldestId = Math.min(...frames.keys());
+        const callback = frames.get(oldestId)!;
+        frames.delete(oldestId);
+        await act(() => callback(performance.now()));
+        await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+      }
+      await expect.poll(() => announced.count(LOG.bell[1].text)).toBe(1);
+    } finally {
+      raf.mockRestore();
+      caf.mockRestore();
+      announced.stop();
+    }
+    expect(announced.count(LOG.bell[0].text)).toBe(1);
+  });
+
   it("keeps the crew's line plain, its aria-live in a separate region that never gains visible text", async () => {
     // The porthole's own paragraph carries no aria-live: a live region's content change makes
     // WebKit rebuild its accessibility tree before the next paint, and that landed in the very
