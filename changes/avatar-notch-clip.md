@@ -1,0 +1,1 @@
+- Changed: Avatar cuts the notch round its presence dot from the surface's clip path while a dot is drawn, in place of a radial-gradient mask.
