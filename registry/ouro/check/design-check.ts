@@ -485,15 +485,20 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       continue;
     }
     // The numerals' ink: a run of text is drawn from its font's ascent above the baseline, and the glyphs' own bounds
-    // say how far above and below the baseline their ink reaches. Across, the run's advance stands for its ink.
+    // say how far above and below the baseline their ink reaches. Across, the run's advance stands for its ink. The
+    // ascent is read at the badge's size, as its line was laid out; the glyphs' bounds at 100px, scaled back, since a
+    // Linux host rounds them to whole pixels at a badge's size, which read a centred count as exactly centred in WebKit
+    // and 1px high in Chromium.
     const text = document.createTreeWalker(badge, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.textContent!.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP) }).nextNode() as Text;
     const ts = getComputedStyle(text.parentElement!);
     const range = document.createRange();
     range.selectNodeContents(text);
     const t = range.getBoundingClientRect();
     context.font = `${ts.fontStyle} ${ts.fontWeight} ${ts.fontSize} ${ts.fontFamily}`;
-    const m = context.measureText(text.textContent!.trim());
-    const ink = t.top + m.fontBoundingBoxAscent + (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2;
+    const ascent = context.measureText(text.textContent!.trim()).fontBoundingBoxAscent;
+    context.font = `${ts.fontStyle} ${ts.fontWeight} 100px ${ts.fontFamily}`;
+    const glyphs = context.measureText(text.textContent!.trim());
+    const ink = t.top + ascent + ((glyphs.actualBoundingBoxDescent - glyphs.actualBoundingBoxAscent) * px(ts.fontSize)) / 200;
     const dy = ink - (b.top + px(s.borderTopWidth) + badge.clientHeight / 2);
     const dx = t.left + t.width / 2 - (b.left + px(s.borderLeftWidth) + badge.clientWidth / 2);
     // A count already centred on its cap height (text-box-trim) has a trimmed line box this reading can't place, so it
