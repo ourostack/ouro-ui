@@ -5,9 +5,6 @@
   "registry/ouro/components/ouro/checklist/checklist-styles.ts": {
     "motion-safe:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out),grid-template-rows_var(--ouro-duration-base)_var(--ouro-ease-out)]": "a row added or removed closes its gap so the rows below follow it, which a transform would overlap; with reduced motion it only fades"
   },
-  "registry/ouro/components/ouro/composer/composer.tsx": {
-    "transition-[height]": "an in-flow growth: the box's height moves the messages above and below it as a long message makes it taller, which a transform would overlap; it is off with reduced motion"
-  },
   "registry/ouro/components/ouro/porthole/porthole.tsx": {
     "transition-[width,background-color,border-color,box-shadow]": "an in-flow pill: its width eases as its words change, moving what sits beside it in a header or toolbar, which a transform would overlap or leave a gap beside; box-shadow eases in with the floating look's soft shadow, paint only, nothing it moves; it is off with reduced motion"
   },
