@@ -1,0 +1,1 @@
+- Fixed: Avatar's outer box, which paints the square tile's peeking edge and the circle's ring, drew plain round corners around a squircle in engines that draw corner-shape; it now takes the surface's own squircle radius there.

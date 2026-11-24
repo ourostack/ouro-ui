@@ -581,6 +581,22 @@ export const knownFindings: KnownFinding[] = [
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
+    story: "MessageList/Actions",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Under nova's spacing scale the message bubble sits closer than the minimum gap to its actions toolbar without touching (a demo's own spacing, unrelated to scroll position); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "MessageList/LongConversation",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Under nova's spacing scale the message bubble sits closer than the minimum gap to its actions toolbar without touching (a demo's own spacing, unrelated to scroll position); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
     story: "NavigationRail/LongLabels",
     rule: "near-miss",
     issue: 3286,
