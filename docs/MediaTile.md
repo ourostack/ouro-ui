@@ -221,7 +221,7 @@ interface AvatarOwnProps {
 
 ### `AvatarPresence`
 
-A person's presence, drawn as a dot with its own shape: a check (available), a solid dot (busy), a bar (do not disturb), a clock (away), a ring with a cross (offline) and a ring with an arrow (out of office), so it never relies on color alone.
+A person's presence, drawn as a dot with its own shape: a check (available), a solid dot (busy), a bar (do not disturb), a clock (away), a ring with a cross (offline) and a ring with an arrow (out of office), so it never relies on color alone. `"unknown"` is a face whose presence has not loaded: its dot is in the tree, not drawn, and the avatar is not cut away.
 
 ```ts
 type AvatarPresence = "available" | "busy" | "away" | "do-not-disturb" | "offline" | "out-of-office" | "unknown";
@@ -240,7 +240,8 @@ interface AvatarPresenceProps {
    * circle round the dot (a bite), so whatever lies behind the avatar, a photo or a gradient
    * too, shows through the gap. The dot lies over the corner and takes no room, so
    * the initials, icon or picture stay in the middle with or without it, and the dot stays
-   * below the letters at every size.
+   * below the letters at every size. `"unknown"` keeps the dot in the tree but draws neither it
+   * nor the bite, for a face whose presence has not loaded yet.
    */
   presence: AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never });
   /**

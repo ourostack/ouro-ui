@@ -81,7 +81,7 @@ interface AvatarMember {
 
 ### `AvatarPresence`
 
-A person's presence, drawn as a dot with its own shape: a check (available), a solid dot (busy), a bar (do not disturb), a clock (away), a ring with a cross (offline) and a ring with an arrow (out of office), so it never relies on color alone.
+A person's presence, drawn as a dot with its own shape: a check (available), a solid dot (busy), a bar (do not disturb), a clock (away), a ring with a cross (offline) and a ring with an arrow (out of office), so it never relies on color alone. `"unknown"` is a face whose presence has not loaded: its dot is in the tree, not drawn, and the avatar is not cut away.
 
 ```ts
 type AvatarPresence = "available" | "busy" | "away" | "do-not-disturb" | "offline" | "out-of-office" | "unknown";
