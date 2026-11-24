@@ -45,6 +45,13 @@ describe("BuildChip", () => {
     await userEvent.click(page.getByRole("button", { name: "Official 1.2.3" }));
     await expect.element(page.getByRole("menuitemradio", { name: "Official 1.2.3" })).toHaveAttribute("aria-checked", "true");
     await expect.element(page.getByRole("menuitemradio", { name: "feature/x · a1b2c3d + edits" })).toHaveAttribute("aria-checked", "false");
+    await expect.element(page.getByText("Build")).toBeVisible();
+  });
+
+  it("takes the picker's group label in another language", async () => {
+    await render(<BuildChip builds={builds} current="official" labels={{ group: "Compilation" }} />);
+    await userEvent.click(page.getByRole("button", { name: "Official 1.2.3" }));
+    await expect.element(page.getByText("Compilation")).toBeVisible();
   });
 
   it("reports the id of the build a person chooses", async () => {
@@ -71,14 +78,22 @@ describe("BuildChip", () => {
     expect(page.getByRole("button", { name: "feature/x · a1b2c3d (local edits)" }).element()).toBeTruthy();
   });
 
-  it("names the fix for a current id that is not in builds, and for an empty list", async () => {
+  it("names the fix for a current id that is not in builds, without the empty-list message", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await render(<BuildChip builds={builds} current="missing" />);
-    await render(<BuildChip builds={[]} current="official" />);
     const said = [...error.mock.calls, ...warn.mock.calls].map((c) => String(c[0])).join("\n");
     expect(said).toContain('[ouro-ui] BuildChip: current="missing" is not in builds, so the trigger shows no build. Fix: <BuildChip builds={builds} current={builds[0].id} />.');
+    expect(said).not.toContain("builds is empty");
+  });
+
+  it("names the fix for an empty list, without the missing-current message", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await render(<BuildChip builds={[]} current="official" />);
+    const said = [...error.mock.calls, ...warn.mock.calls].map((c) => String(c[0])).join("\n");
     expect(said).toContain('[ouro-ui] BuildChip: builds is empty, so there is nothing to choose. Fix: <BuildChip builds={[{ id: "official", label: "Official 1.2.3" }]} current="official" />.');
+    expect(said).not.toContain("is not in builds");
   });
 
   it("names the fix for an appearance class", async () => {
