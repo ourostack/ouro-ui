@@ -107,6 +107,19 @@ describe("transition rules", () => {
     host2.remove();
   });
 
+  it("ignores an animation that finished before the trace steps it, even though its fill still holds its end state", async () => {
+    host = document.createElement("div");
+    host.style.cssText = "position:fixed;top:0;left:0;width:400px;overflow:hidden";
+    host.innerHTML = '<style>#t-box{position:absolute;top:0;left:0;width:40px;height:40px;background:#cde}</style><div id="t-box"></div>';
+    document.body.append(host);
+    beginTrace();
+    const anim = document.getElementById("t-box")!.animate([{ transform: "translateX(0)" }, { transform: "translateX(200px)" }], { duration: 480, easing: "steps(1, end)", fill: "forwards" });
+    anim.finish();
+    const result = await stepTrace();
+    expect(result.frames).toEqual([]);
+    expect(findTransitionFaults(result)).toEqual([]);
+  });
+
   it("reports an outer element's fault once, leaves a bare trace's ids alone, and reads a frame missing an id as absent", () => {
     const reading = (x: number): TransitionTrace["frames"][number] => ({ a: [x, 0, x + 40, 40, 0, 1, 0], b: [x, 0, x + 40, 40, 0, 1, 0] });
     const frames = [reading(0), ...[0, 100, 200].map(reading)];
