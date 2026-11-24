@@ -159,7 +159,7 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
                 // Where the row starts with no script: the browser scrolls a scroll-initial-target to the row's start,
                 // so this mark sits a row's width less twice the scroll padding before the link's end. The row starts
                 // scrolled just far enough to bring the link clear of the edge, and not at all when it already is.
-                <span aria-hidden="true" data-ouro-family-start="" className="pointer-events-none absolute top-0 end-[calc(100cqw-1rem)] size-px [scroll-initial-target:nearest]" />
+                <span aria-hidden="true" data-ouro-family-start="" className="pointer-events-none absolute top-0 end-[calc(100cqw-4rem)] size-px [scroll-initial-target:nearest]" />
               )}
             </li>
           ))}
