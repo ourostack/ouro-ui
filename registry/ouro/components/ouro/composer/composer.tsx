@@ -383,7 +383,7 @@ const toolbarClass =
 // The quote: a box on the muted surface with a hairline, which fades in when it appears after the
 // composer is on screen (not with reduced motion); a quote there at mount is drawn at once. Message's quote looks the same (message.tsx).
 const quoteBoxClass =
-  "flex min-w-0 items-center gap-1 rounded-ouro-inner [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-muted pe-1 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid " +
+  "flex min-w-0 items-center gap-2 rounded-ouro-inner [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-muted pe-1 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid " +
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none";
 const quoteFadeClass = "starting:opacity-0";
 const quoteBodyClass = "flex min-w-0 flex-1 items-center gap-2 p-1.5";
@@ -904,7 +904,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   const reasonHidden = notes[0] !== undefined && hideSendDisabledReason;
 
   return (
-    <div data-ouro="composer" data-expanded={expanded ? "" : undefined} data-sending={sending ? "" : undefined} data-send-disabled={sendDisabledReason !== undefined ? "" : undefined} className={cn("box-border flex min-w-0 flex-col gap-1.5", className)}>
+    <div data-ouro="composer" data-expanded={expanded ? "" : undefined} data-sending={sending ? "" : undefined} data-send-disabled={sendDisabledReason !== undefined ? "" : undefined} className={cn("box-border flex min-w-0 flex-col gap-2", className)}>
       <div ref={frameRef} data-ouro-composer-frame="" data-ouro-part="frame" className={frameClass}>
         {toolbar && (
           <div data-ouro-composer-toolbar="" data-ouro-part="toolbar" className={toolbarClass}>
@@ -912,7 +912,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           </div>
         )}
         {quote && (
-          <div className="px-1 pt-1">
+          <div className="px-2 pt-2">
             <div data-ouro-composer-quote="" className={cn(quoteBoxClass, mounted && quoteFadeClass)}>
               {quote.onActivate ? (
                 <button type="button" data-ouro-control="composer" data-ouro-part="quote" onClick={quote.onActivate} className={quoteButtonClass}>
@@ -1039,7 +1039,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           </div>
         </div>
         {hasAttachments && (
-          <div role="group" aria-label={attachmentsLabel} data-ouro-composer-attachments="" className="flex min-w-0 flex-wrap gap-2 px-2 pb-2">
+          <div role="group" aria-label={attachmentsLabel} data-ouro-composer-attachments="" className="flex min-w-0 flex-wrap gap-2 px-2 pt-1 pb-2">
             {attachments}
           </div>
         )}
