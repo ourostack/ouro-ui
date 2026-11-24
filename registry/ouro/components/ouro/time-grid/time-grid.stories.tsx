@@ -90,7 +90,7 @@ export const Statuses: Story = {
   args: {
     view: "day",
     workingHours: { start: 9, end: 18 },
-    events: (["busy", "tentative", "free", "unanswered", "cancelled"] as const).flatMap((status, row) =>
+    events: (["busy", "tentative", "free", "unanswered", "cancelled", "away"] as const).flatMap((status, row) =>
       (["primary", "secondary", "success", "warning", "destructive"] as const).map((tone, column) => ({
         id: `${status}-${tone}`,
         title: `${status} ${tone}`,

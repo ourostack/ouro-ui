@@ -482,6 +482,14 @@ describe("TimeGrid", () => {
     ]);
   });
 
+  it("says an away event is out of office in its name, and draws it in the away colour whatever its tone", async () => {
+    await render({ view: "day", events: [{ id: "o", title: "Offsite", start: at(12, "15:00"), end: at(12, "16:00"), status: "away", tone: "success" }] });
+    expect(plain(titled("Offsite").getAttribute("aria-label"))).toBe("Offsite, 3:00 – 4:00 PM, Thursday, out of office");
+    expect(titled("Offsite").dataset.status).toBe("away");
+    expect(getComputedStyle(titled("Offsite")).borderInlineStartColor).not.toBe(getComputedStyle(document.documentElement).getPropertyValue("--success"));
+    expect(warnings()).toEqual([]);
+  });
+
   it("shows the title first, then the time and the description as the event's height allows", async () => {
     await render({
       view: "day",
@@ -1319,7 +1327,7 @@ describe("TimeGrid", () => {
         expect.arrayContaining([
           '[ouro-ui] TimeGrid: event "forum": tone="danger" is not a tone; use "primary", "secondary", "success", "warning" or "destructive". Fix: { tone: "destructive" }.',
           '[ouro-ui] TimeGrid: event "focus": tone="brand" is not a tone; use "primary", "secondary", "success", "warning" or "destructive". Fix: { tone: "primary" }.',
-          '[ouro-ui] TimeGrid: event "forum": status="maybe" is not a status; use "busy", "tentative", "free", "unanswered" or "cancelled". Fix: { status: "tentative" }.',
+          '[ouro-ui] TimeGrid: event "forum": status="maybe" is not a status; use "busy", "tentative", "free", "unanswered", "cancelled" or "away" (out of office). Fix: { status: "away" }.',
           "[ouro-ui] TimeGrid: event \"forum\": allDay is not a field; an all-day event's start is a date. Fix: { start: \"2026-03-12\" }.",
           '[ouro-ui] TimeGrid: event "forum": color is not a field; colours come from the theme. Fix: { tone: "success" }.',
           '[ouro-ui] TimeGrid: two events have id "forum". Fix: give each event its own id.',
