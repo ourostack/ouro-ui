@@ -48,15 +48,8 @@ describe("the calendar page", () => {
 
   it("deletes an event from its details and brings it back with Undo", async () => {
     await renderPage("/docs/calendar-demo/");
-    await page.getByRole("radio", { name: "Day" }).click();
-    await page.getByRole("button", { name: "Today" }).click();
-    await page.getByRole("button", { name: "New event" }).click();
-    const dialog = page.getByRole("dialog", { name: "New event" });
-    await dialog.getByRole("textbox", { name: /Title/ }).fill("Tea with Ada");
-    await dialog.getByRole("button", { name: "Create" }).click();
-    await expect.element(dialog).not.toBeInTheDocument();
     const before = eventTitles();
-    await page.getByRole("button", { name: /Tea with Ada/ }).first().click();
+    await page.getByRole("button", { name: /Sprint planning/ }).first().click();
     await userEvent.click(page.getByRole("button", { name: "Delete" }));
     await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
     await expect.poll(eventTitles).toBe(before - 1);
