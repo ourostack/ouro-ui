@@ -61,7 +61,11 @@ describe("the call window page", () => {
     await renderPage("/docs/call-demo/");
     await page.getByRole("button", { name: "Leave" }).click();
     await expect.poll(() => document.querySelector("[data-site-call-demo] [data-ouro=\"moment\"]")?.textContent).toContain("You left the call");
-    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Call");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Rejoin");
+    await page.getByRole("button", { name: "Rejoin" }).click();
+    await page.getByRole("button", { name: "Join now" }).click();
+    await expect.poll(() => document.querySelector("[data-site-call-demo] [role=status]")?.textContent).toBe("You joined the call");
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Mute");
     await page.getByRole("radio", { name: "Alone" }).click();
     const empty = document.querySelector<HTMLElement>('[data-ouro="moment"][data-moment="empty"]')!;
     expect(empty.querySelector("[data-moment-art]")).not.toBeNull();
@@ -97,8 +101,17 @@ describe("the call window page", () => {
     host.style.overflow = "";
   });
 
-  it("keeps the self view clear of every tile, in each corner it can take", async () => {
+  it("shows a short assembly under the demo", async () => {
     await renderPage("/docs/call-demo/");
+    const code = document.querySelector("[data-site-call-demo-page] pre, main pre");
+    expect(code?.textContent).toMatch(/<SnapPiP[\s\S]*keepOut/);
+  });
+
+  it("keeps the self view clear of every tile, in each corner it can take", async () => {
+    // The grid's columns follow the viewport's width, so the test sets the one it measures at, whatever a file before it left.
+    await page.viewport(1280, 800);
+    await renderPage("/docs/call-demo/");
+    await document.fonts.ready;
     const pip = document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
     const overlaps = () => {
       const a = pip.getBoundingClientRect();
@@ -111,6 +124,8 @@ describe("the call window page", () => {
     await expect.poll(overlaps).toBe(0);
     pip.focus();
     await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    // The first frames of the move still read the old place: wait for it to land before it is judged.
+    await expect.poll(() => pip.hasAttribute("data-ouro-settling")).toBe(false);
     await expect.poll(overlaps).toBe(0);
   });
 
@@ -126,6 +141,11 @@ describe("the call window page", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  it("says which parts of the demo are scripted", async () => {
+    await renderPage("/docs/call-demo/");
+    expect(document.body.textContent).toMatch(/own script/);
   });
 
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {

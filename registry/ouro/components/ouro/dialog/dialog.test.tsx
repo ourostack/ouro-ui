@@ -231,6 +231,24 @@ describe("automatic presentation", () => {
   });
 });
 
+describe("onOpenChangeComplete", () => {
+  it("tells once an open and a close have finished, centered and as a sheet", async () => {
+    for (const presentation of ["dialog", "sheet"] as const) {
+      const complete = vi.fn();
+      const frame = (open: boolean) => (
+        <Dialog title="Edit recipe" presentation={presentation} open={open} onOpenChange={() => {}} onOpenChangeComplete={complete}>
+          Body
+        </Dialog>
+      );
+      const { rerender } = await render(frame(true));
+      await expect.poll(() => complete.mock.calls, { message: presentation }).toEqual([[true]]);
+      await rerender(frame(false));
+      await expect.poll(() => complete.mock.calls, { message: presentation }).toEqual([[true], [false]]);
+      await rerender(<></>);
+    }
+  });
+});
+
 describe("closeOnOutsidePress", () => {
   it.each([1280, 390])("closes on a press on the backdrop by default, at %ipx", async (width) => {
     await page.viewport(width, 844);

@@ -122,6 +122,14 @@ jobs:
           # The hourly run (adoption-ledger.yml) writes ledger.json to the adoption-data branch. The copy committed
           # on main is only a fallback, so /adoption/ never opens on numbers older than the last hourly run.
           node scripts/adoption/take-newest.mjs "https://api.github.com/repos/$REPO/contents/ledger.json?ref=adoption-data" site/src/adoption/ledger.json
+      - name: Build in Ouro Current's newest list
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Every run of ouro-current.yml writes current.json to the adoption-data branch, so /current/ opens on the last
+          # run's releases and repositories rather than on the copy committed on main.
+          node scripts/adoption/take-newest.mjs "https://api.github.com/repos/$REPO/contents/current.json?ref=adoption-data" site/src/current/current.json
       - run: pnpm site:build && mkdir -p _site && cp -R site/dist/. _site/
       - run: pnpm build-storybook --output-dir _site/storybook
       - run: scripts/namespace.sh _site/r

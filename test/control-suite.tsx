@@ -74,14 +74,17 @@ async function closeAll(): Promise<void> {
  * `parameters` defaults to the story's own, exactly as a direct {@link overlayOpeners} call would;
  * pass `{}` to query a host with no registered story, as test/control-suite.test.tsx does.
  *
+ * `options` defaults to {@link waitOptions}; test/control-suite.test.tsx passes a shorter bound to
+ * prove the "never comes back" case without waiting out the full real-world wait.
+ *
  * @internal exported for test/control-suite.test.tsx only.
  */
-export async function reopener(id: string, host: HTMLElement, name: string, parameters?: OuroStoryParameters): Promise<Opener> {
+export async function reopener(id: string, host: HTMLElement, name: string, parameters?: OuroStoryParameters, options: typeof waitOptions = waitOptions): Promise<Opener> {
   let found: Opener | undefined;
   await vi.waitFor(() => {
     found = overlayOpeners(id, host, parameters).find((candidate) => candidate.name === name);
     if (!found) throw new Error(`"${name}" is no longer there to open`);
-  }, waitOptions);
+  }, options);
   return found!;
 }
 

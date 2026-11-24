@@ -4,7 +4,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Container } from "../voyage/layout";
-import { INSTALL_URL, isNewer, LIVE_URL, SNAPSHOT, stamp, type Current, type CurrentRepo } from "./data";
+import { INSTALL_URL, isNewer, LIVE_URL, SNAPSHOT, stamp, type Current, type CurrentPin, type CurrentRepo } from "./data";
 import "./current.css";
 
 /*
@@ -21,6 +21,9 @@ const STATE: Record<string, { label: string; tone: "success" | "warning" | "dest
   failed: { label: "could not update", tone: "destructive" },
 };
 
+/** One row per file, release and version: a project that takes two Ouro packages at one version is one row. */
+const pinRows = (pins: CurrentPin[]): CurrentPin[] => [...new Map(pins.map((pin) => [`${pin.file}-${pin.follows}-${pin.current}`, pin])).values()];
+
 function Repo({ repo }: { repo: CurrentRepo }): JSX.Element {
   const state = STATE[repo.state] ?? { label: repo.state, tone: "secondary" as const };
   return (
@@ -34,8 +37,8 @@ function Repo({ repo }: { repo: CurrentRepo }): JSX.Element {
         </Badge>
       </div>
       <ul className="current-pins">
-        {repo.pins.map((pin) => (
-          <li key={`${pin.file}-${pin.follows}`}>
+        {pinRows(repo.pins).map((pin) => (
+          <li key={`${pin.file}-${pin.follows}-${pin.current}`}>
             <code>{pin.file}</code> {pin.behind ? `${pin.current} to ${pin.latest}` : `${pin.current}, up to date`}
           </li>
         ))}
@@ -80,7 +83,7 @@ export function CurrentPage({ initial = SNAPSHOT, live = true }: { initial?: Cur
           </h1>
           <div className="site-lede current-lede">
             <p>
-              Install the Ouro Current GitHub App on a repository. When Ouro UI, Ouro UI core or Ouro UI for Apple releases, that repository gets one pull request,{" "}
+              Install the Ouro Current GitHub App on a repository. When a new Ouro UI release lands, for the web, Apple, Windows or Android, or for Ouro UI core, that repository gets one pull request,{" "}
               <strong>“Update to Ouro UI vX”</strong>, with auto-merge on. Your own checks decide whether it lands.
             </p>
           </div>
@@ -119,13 +122,19 @@ export function CurrentPage({ initial = SNAPSHOT, live = true }: { initial?: Cur
             <li>
               <h3 className="current-h3">It finds your pins</h3>
               <p>
-                {claim("It reads the Ouro HX install record, files vendored from Ouro UI core or from a commit, SwiftPM, XcodeGen, an Xcode project and a workflow's OURO_UI_TAG.", { source: { test: "scripts/current/current.test.mjs::pins are found by file name in every format Ouro UI is taken in" }, verify: { testExists: "scripts/current/current.test.mjs::pins are found by file name in every format Ouro UI is taken in" } })}
+                {claim("It reads the Ouro HX install record, files vendored from Ouro UI core or from a commit, SwiftPM, XcodeGen, an Xcode project, NuGet package references, Gradle build scripts and version catalogs, and a workflow's OURO_UI_TAG.", { source: { test: "scripts/current/current.test.mjs::pins are found by file name in every format Ouro UI is taken in" }, verify: { testExists: "scripts/current/current.test.mjs::pins are found by file name in every format Ouro UI is taken in" } })}
               </p>
             </li>
             <li>
               <h3 className="current-h3">It moves them to the latest release</h3>
               <p>
                 {claim("An Ouro HX file takes the new release's source, written to your aliases the way the shadcn CLI writes it, and files the release added come with it.", { source: { test: "scripts/current/current.test.mjs::Ouro HX takes the new tag's source as the CLI would write it, adds files its items gained, and leaves an edited file alone" }, verify: { testExists: "scripts/current/current.test.mjs::Ouro HX takes the new tag's source as the CLI would write it, adds files its items gained, and leaves an edited file alone" } })}
+              </p>
+            </li>
+            <li>
+              <h3 className="current-h3">It moves native pins in place</h3>
+              <p>
+                {claim("On Windows and Android only the Ouro package's version changes, where your file writes it, and a lock file that holds the old package's hashes is named in the pull request with the command that writes it again.", { source: { test: "scripts/current/current.test.mjs::a NuGet or Gradle update opens one pull request, and names a lock file holding the old package's hashes instead of writing it" }, verify: { testExists: "scripts/current/current.test.mjs::a NuGet or Gradle update opens one pull request, and names a lock file holding the old package's hashes instead of writing it" } })}
               </p>
             </li>
             <li>

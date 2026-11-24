@@ -52,6 +52,11 @@
       "reason": "scripts/model-reviews/interviews-page.mjs renders it from the published runs in scripts/model-reviews/interviews-results/ and the synthesis in scripts/model-reviews/findings.json, at pnpm i, and git ignores it (#2600); pnpm claims:check renders it again and compares"
     },
     {
+      "match": "^contributing/typescript-7-1-findings\\.md$",
+      "mode": "evidence",
+      "reason": "observations of a prerelease of another project's API, each with the snippet that reproduces it, written to be passed to that project"
+    },
+    {
       "match": "^scripts/agent-usability/runs/",
       "mode": "evidence",
       "reason": "a scored run's record, written by the agent-usability harness"

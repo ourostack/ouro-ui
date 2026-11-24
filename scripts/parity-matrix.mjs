@@ -24,6 +24,7 @@
 //   Exits 1 on drift (and writes behind=true to GITHUB_OUTPUT), 2 when GitHub cannot be read, which is no drift.
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { sideState } from "./parity-rows.mjs";
 
@@ -234,13 +235,39 @@ export function readData(read = (path) => readFileSync(join(root, path), "utf8")
 
 export class Unreadable extends Error {}
 
-/** A GET that returns null for a 404 when `allow404`, and throws Unreadable for any other failure. */
-const client = (fetch, token) => async (url, { allow404 = false } = {}) => {
-  const response = await fetch(url, { headers: token ? { authorization: `Bearer ${token}` } : {} });
-  if (allow404 && response.status === 404) return null;
-  if (!response.ok) throw new Unreadable(`${url} answered ${response.status}`);
-  return response;
-};
+/**
+ * How long to wait before each retry of a 5xx or a network error: 5s, then 20s. Three attempts total, so a GitHub 503
+ * (ourostack/ouro-ui-apple's run 45308495839) that clears before the third try never reaches Unreadable. A 4xx (a 404 is
+ * real drift) throws on the first try, with no retry.
+ */
+const RETRY_DELAYS_MS = [5000, 20000];
+
+/**
+ * A GET that returns null for a 404 when `allow404`, retries a 5xx or a network error up to twice (the delays above,
+ * logged before each), and throws Unreadable for a 4xx straight away or once the retries are spent.
+ */
+const client = (fetch, token, { wait = (ms) => delay(ms), log = console.log } = {}) =>
+  async (url, { allow404 = false } = {}) => {
+    for (let attempt = 0; ; attempt++) {
+      let response;
+      let networkError;
+      try {
+        response = await fetch(url, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+      } catch (error) {
+        networkError = error;
+      }
+      if (!networkError) {
+        if (allow404 && response.status === 404) return null;
+        if (response.ok) return response;
+        if (response.status < 500) throw new Unreadable(`${url} answered ${response.status}`);
+      }
+      const message = networkError ? `${url}: ${networkError.message}` : `${url} answered ${response.status}`;
+      if (attempt >= RETRY_DELAYS_MS.length) throw new Unreadable(message);
+      const delayMs = RETRY_DELAYS_MS[attempt];
+      log(`::warning::${message}. Retrying in ${delayMs / 1000}s (attempt ${attempt + 2} of ${RETRY_DELAYS_MS.length + 1}).`);
+      await wait(delayMs);
+    }
+  };
 
 /** The text of every file under a commit whose path matches `pattern`, by path. */
 async function readFiles(get, repo, commit, pattern) {
@@ -253,8 +280,8 @@ async function readFiles(get, repo, commit, pattern) {
 }
 
 /** Apple's facts: its components at the release versions.json pins, which the scheduled check holds to GitHub. */
-export async function gatherApple({ fetch = globalThis.fetch, token, apple }) {
-  const files = await readFiles(client(fetch, token), APPLE, apple.commit, APPLE_FILES);
+export async function gatherApple({ fetch = globalThis.fetch, token, apple, wait, log }) {
+  const files = await readFiles(client(fetch, token, { wait, log }), APPLE, apple.commit, APPLE_FILES);
   return { repo: APPLE, tag: apple.tag, commit: apple.commit, components: appleComponents(files) };
 }
 
@@ -262,8 +289,8 @@ export async function gatherApple({ fetch = globalThis.fetch, token, apple }) {
  * Each other kit's newest release, its commit and the components its source names, with a note for a kit whose repository
  * does not exist. Given `only`, it reads that kit alone and keeps each other kit as `stored` has it.
  */
-export async function gatherKits({ fetch = globalThis.fetch, token, only, stored }) {
-  const get = client(fetch, token);
+export async function gatherKits({ fetch = globalThis.fetch, token, only, stored, wait, log }) {
+  const get = client(fetch, token, { wait, log });
   const kits = {};
   for (const [id, repo] of Object.entries(KITS)) {
     if (only !== undefined && id !== only) {
