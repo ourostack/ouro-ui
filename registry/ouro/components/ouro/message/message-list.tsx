@@ -2089,12 +2089,26 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // pushing the view by more than that would itself move the held place; and clearing mid-scroll would fight the
     // carry and anchor work above, which also move the scroll position as the turn continues.
     const clearJump = () => {
+      // The room and the button it clears are raised by the same showJump gate below, so a mounted room's
+      // button is always mounted too: nothing left to check once room is non-null.
       const room = jumpRoomRef.current;
-      if (pinned.current || jumpRef.current === null || room === null) return;
+      if (pinned.current || room === null) {
+        // Test-only: reaching the very end sets pinned synchronously, same tick, while the commit that would
+        // drop room and the button is still scheduled for its own, later turn; a run caught in that exact
+        // window leaves the DOM exactly as it finds it, with nothing else to tell its bail apart from a run
+        // that reached past this guard and simply found nothing to correct.
+        scroller.dataset.ouroMessageListJumpGuard = "bailed";
+        return;
+      }
+      scroller.dataset.ouroMessageListJumpGuard = "ran";
       const drawn = content.querySelectorAll<HTMLElement>(items);
       const newest = drawn[drawn.length - 1]!;
-      const clear = jumpRef.current.getBoundingClientRect().top - newest.getBoundingClientRect().bottom;
-      if (clear < 0 && clear >= -room.offsetHeight) {
+      const clear = jumpRef.current!.getBoundingClientRect().top - newest.getBoundingClientRect().bottom;
+      const clears = clear < 0 && clear >= -room.offsetHeight;
+      // Test-only: at clear exactly 0 the correction below is a no-op on scrollTop either way, so a boundary
+      // test needs the guard's own decision, not a scrollTop or rendered-position read, to tell the two apart.
+      room.dataset.ouroMessageListJumpClears = String(clears);
+      if (clears) {
         scroller.scrollTop -= clear;
         ownTop.current = scroller.scrollTop;
       }
