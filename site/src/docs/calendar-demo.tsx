@@ -180,6 +180,7 @@ function Screen(): JSX.Element {
     setOpen(null);
     setRefocus((count) => count + 1);
     setEvents((now) => now.filter((candidate) => candidate.id !== entry.id));
+    // An Undo toast stays until dismissed, so a slow or screen-reader reader can reach it; the demo leaves room under the grid on a phone for it to rest.
     toast("Event deleted", {
       description: entry.title,
       action: {
@@ -194,7 +195,7 @@ function Screen(): JSX.Element {
   const label = "Calendar";
 
   return (
-    <div ref={rootRef} className="grid w-full grid-cols-1 gap-3" data-site-calendar-demo="">
+    <div ref={rootRef} className="grid w-full grid-cols-1 gap-3 max-sm:pb-24" data-site-calendar-demo="">
       <div className="min-w-0 overflow-x-auto">
         <SegmentedControl
           label="State"

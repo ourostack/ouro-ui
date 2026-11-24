@@ -46,6 +46,13 @@ describe("the calendar page", () => {
     }
   });
 
+  it("leaves room under the grid on a phone for the Undo toast", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    const root = document.querySelector<HTMLElement>("[data-site-calendar-demo]")!;
+    await expect.poll(() => getComputedStyle(root).paddingBottom).toBe("96px");
+  });
+
   it("deletes an event from its details and brings it back with Undo", async () => {
     await renderPage("/docs/calendar-demo/");
     const before = eventTitles();
