@@ -1,1 +1,1 @@
-- Changed: Composer's expand and collapse clips the box with a registered length (`--ouro-composer-inset`) instead of animating `clip-path`, so it paints under a `backdrop-filter` and never shows the end state before it starts; add `ouro-base` again to get its keyframes.
+- Changed: Composer's expand and collapse clips the box with a registered length (`--ouro-composer-inset`) instead of animating `clip-path`, so it paints under a `backdrop-filter` and does not draw the end state before it starts; add `ouro-base` again to get its keyframes.
