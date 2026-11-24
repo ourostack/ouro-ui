@@ -29,15 +29,12 @@ const platform = (id: Platform["id"], name: string, kit: string, paths: [string,
   start: { label: "Get started", path: paths[3], hint: "Install and first screen" },
 });
 
-/**
- * Web, Apple, Windows, Android. Windows and Android have no HX or AX page of their own yet, so those slots land on the
- * overview's "two halves" section: the mockups keep the slot, and the gap is a content job, not a nav one.
- */
+/** Web, Apple, Windows, Android: each with the same four pages. */
 export const PLATFORMS: readonly Platform[] = [
   platform("web", "Web", "React", ["/hx/#web", "/docs/", "/docs/ax/", "/docs/installing/"]),
   platform("apple", "Apple", "SwiftUI", ["/apple/", "/apple/hx/", "/apple/ax/", "/apple/start/"]),
-  platform("windows", "Windows", "WinUI", ["/windows/", "/windows/#windows-halves", "/windows/#windows-halves", "/windows/start/"]),
-  platform("android", "Android", "Compose", ["/android/", "/android/#android-halves", "/android/#android-halves", "/android/start/"]),
+  platform("windows", "Windows", "WinUI", ["/windows/", "/windows/hx/", "/windows/ax/", "/windows/start/"]),
+  platform("android", "Android", "Compose", ["/android/", "/android/hx/", "/android/ax/", "/android/start/"]),
 ];
 
 export const SLOTS = ["overview", "hx", "ax", "start"] as const;

@@ -1,16 +1,16 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
+import { startTransition, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
-import { FamilyBar } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-footer";
-import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { HxLogo } from "../src/components/brand";
+import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
+import { PlatformMark } from "./marks";
 import { FAMILY, FAMILY_CURRENT } from "../src/family";
-import { COMPONENT_GROUPS, FAMILY_LINES, GUIDES, HOME, PARTS, PLATFORMS, PROOF, SLOT_NAMES, SOURCE, type Page, type Slot } from "./ia";
+import { COMPONENT_GROUPS, GUIDES, HOME, PARTS, PLATFORMS, PROOF, SLOT_NAMES, SOURCE, type Page, type Slot } from "./ia";
 
 /* ---------------------------------------------------------------- where you are */
 
@@ -108,15 +108,11 @@ export function LinkList({ pages, here, hint = true, label, columns = 1 }: { pag
 
 /* ---------------------------------------------------------------- the platforms, always alike */
 
-const PLATFORM_GLYPH: Record<string, string> = { web: "◐", apple: "◓", windows: "◑", android: "◒" };
-
 /** A platform's name as every mockup writes it: a porthole glyph that turns a quarter per platform, the name, the kit. */
 export function PlatformName({ id, name, kit, className }: { id: string; name: string; kit: string; className?: string }): JSX.Element {
   return (
     <span className={cn("inline-flex items-baseline gap-2", className)}>
-      <span aria-hidden="true" className="text-primary">
-        {PLATFORM_GLYPH[id]}
-      </span>
+      <PlatformMark id={id} className="text-foreground" />
       <span className="font-[family-name:var(--font-heading,inherit)] font-semibold text-foreground">{name}</span>
       <span className="text-xs text-muted-foreground">{kit}</span>
     </span>
@@ -450,47 +446,53 @@ export function BrandArea(): JSX.Element {
   return (
     <div className="flex shrink-0 items-center">
       <Brand />
-      {FAMILY_MODE === "switcher" && <FamilySwitcher />}
     </div>
   );
 }
 
 /* ---------------------------------------------------------------- the Ouro family: four ways to show it */
 
-/** How the family's sites show: today's strip, a switcher by the logo, a slim strip that hides on the way down, or the footer only. */
-export type FamilyMode = "strip" | "switcher" | "slim" | "footer";
-export const FAMILY_MODES: ReadonlyArray<{ id: FamilyMode; label: string }> = [
-  { id: "strip", label: "Strip" },
-  { id: "switcher", label: "Switcher" },
-  { id: "slim", label: "Slim" },
-  { id: "footer", label: "Footer" },
-];
-const wanted = typeof location === "undefined" ? null : new URLSearchParams(location.search).get("f");
-export const FAMILY_MODE: FamilyMode = FAMILY_MODES.some((mode) => mode.id === wanted) ? (wanted as FamilyMode) : "strip";
+/** The family strip's height: what scrolling down hides. */
+const STRIP = "[--lab-strip:1.75rem] max-sm:[--lab-strip:2rem]";
 
-/** Today's strip over the header, from 1024px. */
-export function FamilyStrip(): JSX.Element {
-  return <FamilyBar links={FAMILY} current={FAMILY_CURRENT} className="px-4 max-lg:hidden sm:px-6 lg:px-8" />;
-}
-
-/** The family as one line each, for the switcher and the slim strip's names. */
-const familyLabel = (id: string, label: string) => (id === "github" ? "GitHub (ourostack)" : label);
-
-/** A 24px strip, small type, that slides away as you scroll down and back as you scroll up. From 640px. */
-function SlimStrip(): JSX.Element {
+/**
+ * The Ouro family: a slim strip over the bar, on the bar's surface with no line between them, that says what it is
+ * ("Ouro family"), slides away as you scroll down and comes back as you scroll up. On a phone it is the same strip, in
+ * the same order, one row that scrolls sideways and fades where it is cut off.
+ */
+function FamilyStrip(): JSX.Element {
+  const list = useRef<HTMLUListElement>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = list.current;
+    if (!el) return;
+    const check = () => setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    addEventListener("resize", check);
+    return () => {
+      el.removeEventListener("scroll", check);
+      removeEventListener("resize", check);
+    };
+  }, []);
   return (
-    <nav aria-label="Ouro family" className="h-6 border-0 border-b border-solid border-border bg-background max-sm:hidden">
-      <ul className="m-0 mx-auto flex h-full max-w-7xl list-none items-stretch gap-4 px-4 sm:px-6 lg:px-8">
-        <li aria-hidden="true" className="flex items-center text-[0.6875rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+    <nav aria-label="Ouro family" className="h-(--lab-strip)">
+      <ul
+        ref={list}
+        data-more={more ? "" : undefined}
+        className="m-0 mx-auto flex h-full max-w-7xl list-none items-stretch gap-4 overflow-x-auto px-4 [scrollbar-width:none] sm:px-6 lg:px-8 data-[more]:[mask-image:linear-gradient(to_right,#000_calc(100%-3rem),transparent)] rtl:data-[more]:[mask-image:linear-gradient(to_left,#000_calc(100%-3rem),transparent)]"
+      >
+        <li aria-hidden="true" className="flex shrink-0 items-center text-[0.6875rem] font-semibold tracking-[0.08em] whitespace-nowrap text-muted-foreground uppercase">
           Ouro family
         </li>
         {FAMILY.map((site) => (
-          <li key={site.id} className="flex">
+          <li key={site.id} className="flex shrink-0">
             <a
               href={site.href}
               aria-current={site.id === FAMILY_CURRENT ? "true" : undefined}
-              className="relative inline-flex items-center text-xs text-muted-foreground no-underline outline-ring focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:text-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground pointer-coarse:min-h-11"
+              className="relative inline-flex items-center rounded-ouro-sm text-xs whitespace-nowrap text-muted-foreground no-underline outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:text-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground"
             >
+              <TouchTarget />
               {familyLabel(site.id, site.label)}
             </a>
           </li>
@@ -499,6 +501,9 @@ function SlimStrip(): JSX.Element {
     </nav>
   );
 }
+
+/** The family as each site is named: GitHub says it is the organisation. */
+const familyLabel = (id: string, label: string) => (id === "github" ? "GitHub (ourostack)" : label);
 
 /** Whether the page is being scrolled down (true) or up (false), past the first 40px. */
 function useScrollingDown(): boolean {
@@ -517,90 +522,21 @@ function useScrollingDown(): boolean {
   return down;
 }
 
-/** The family's sites and the bar under them, as the chosen mode shows them. */
+/** The family strip and the bar under it: one surface, one line under both. */
 export function Masthead({ children }: { children: ReactNode }): JSX.Element {
   const down = useScrollingDown();
-  if (FAMILY_MODE === "slim")
-    return (
-      <div
-        data-lab-masthead=""
-        className="sticky top-0 z-40 sm:transition-transform sm:duration-(--ouro-duration-base) sm:ease-(--ouro-ease-out) motion-reduce:transition-none sm:data-[down]:-translate-y-6 [&>*]:static"
-        data-down={down ? "" : undefined}
-      >
-        <SlimStrip />
-        {children}
-      </div>
-    );
   return (
-    <>
-      {FAMILY_MODE === "strip" && <FamilyStrip />}
-      {children}
-    </>
-  );
-}
-
-/** The switcher: a button by the logo that drops the family's sites down, each with its line. A sheet on a phone. */
-function FamilySwitcher(): JSX.Element {
-  return (
-    <Popover
-      title="The Ouro family"
-      description="Ari's sites, in one order everywhere."
-      align="start"
-      trigger={
-        <button type="button" aria-label="Ouro family" className={cn(iconButton, "-ms-1 w-9 pointer-coarse:w-11")}>
-          <Chevron open={false} className="size-4" />
-        </button>
-      }
+    <div
+      data-lab-masthead=""
+      data-down={down ? "" : undefined}
+      className={cn(
+        STRIP,
+        "sticky top-0 z-40 border-0 border-b border-solid border-border bg-background transition-transform duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none data-[down]:-translate-y-(--lab-strip) [&_[data-lab-bar]]:static [&_[data-lab-bar]]:border-0",
+      )}
     >
-      <ul className="m-0 grid list-none gap-0.5 p-0">
-        {FAMILY.map((site) => {
-          const here = site.id === FAMILY_CURRENT;
-          return (
-            <li key={site.id}>
-              <a href={site.href} aria-current={here ? "true" : undefined} className={cn(row, "py-1.5 aria-[current=true]:bg-[color-mix(in_oklab,var(--primary)_10%,transparent)]")}>
-                <span className="grid min-w-0 flex-1 gap-0.5">
-                  <span className="text-[0.9375rem] leading-5 font-medium text-foreground">
-                    {familyLabel(site.id, site.label)}
-                    {!here && (
-                      <span aria-hidden="true" className="ms-1 text-muted-foreground">
-                        ↗
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-[0.8125rem] leading-[1.125rem] text-muted-foreground">{FAMILY_LINES[site.id]}</span>
-                </span>
-                {here && <Here />}
-              </a>
-            </li>
-          );
-        })}
-      </ul>
-    </Popover>
-  );
-}
-
-/** The family's sites at the foot of a phone's menu: after the site's own sections, small and quiet. */
-export function FamilyFoot({ bare = false }: { bare?: boolean }): JSX.Element | null {
-  const id = useId();
-  if (FAMILY_MODE === "switcher") return null;
-  return (
-    <section aria-labelledby={id} className={cn("grid gap-1", !bare && "mt-6 border-0 border-t border-solid border-border pt-4")}>
-      <Eyebrow id={id}>The Ouro family</Eyebrow>
-      <ul className="m-0 flex list-none flex-wrap gap-x-1 p-0">
-        {FAMILY.map((site) => (
-          <li key={site.id}>
-            <a
-              href={site.href}
-              aria-current={site.id === FAMILY_CURRENT ? "true" : undefined}
-              className={cn(row, "gap-1 text-sm text-muted-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground")}
-            >
-              {familyLabel(site.id, site.label)}
-              {site.id !== FAMILY_CURRENT && <span aria-hidden="true">↗</span>}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
+      <FamilyStrip />
+      {children}
+    </div>
   );
 }
 
@@ -612,7 +548,7 @@ export function SiteFooter(): JSX.Element {
 /** The sticky bar under the family strip. */
 export function Bar({ children, className }: { children: ReactNode; className?: string }): JSX.Element {
   return (
-    <div className={cn("sticky top-0 z-40 border-0 border-b border-solid border-border bg-background", className)}>
+    <div data-lab-bar="" className={cn("sticky top-0 z-40 border-0 border-b border-solid border-border bg-background", className)}>
       <div className="relative mx-auto flex min-h-16 max-w-7xl items-center gap-2 px-4 sm:px-6 lg:px-8">{children}</div>
     </div>
   );
@@ -645,5 +581,119 @@ export function MenuButton({ onOpen, label = "Menu" }: { onOpen: () => void; lab
       </svg>
       {label}
     </button>
+  );
+}
+
+/* ---------------------------------------------------------------- the phone menu's switch */
+
+/**
+ * Two ways in, as a segmented switch whose thumb slides the moment it is pressed (transform on --ouro-ease-out over
+ * --ouro-duration-base), with the label turning to the checked colour as the thumb arrives, not before. With reduced
+ * motion nothing slides: the thumb fades from one side to the other. A radio group, as Ouro HX's SegmentedControl is.
+ */
+export function WaySwitch<T extends string>({ label, items, value, onChange }: { label: string; items: readonly [{ value: T; label: string }, { value: T; label: string }]; value: T; onChange: (value: T) => void }): JSX.Element {
+  const id = useId();
+  // The thumb follows the press at once; the view under it follows as the next render allows.
+  const [mine, setMine] = useState(value);
+  useEffect(() => setMine(value), [value]);
+  const at = items.findIndex((item) => item.value === mine);
+  const choose = (next: T) => {
+    setMine(next);
+    startTransition(() => onChange(next));
+  };
+  const refs = useRef<Array<HTMLButtonElement | null>>([]);
+  return (
+    <div className="grid gap-2">
+      <span id={id} className="text-sm leading-5 font-medium text-foreground">
+        {label}
+      </span>
+      <div
+        role="radiogroup"
+        aria-labelledby={id}
+        data-lab-switch=""
+        className="relative isolate grid h-11 grid-cols-2 rounded-ouro-control bg-muted p-0.5 pointer-fine:h-9"
+        onKeyDown={(event) => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === "Home" ? 0 : event.key === "End" ? 1 : 1 - at;
+          choose(items[next]!.value);
+          refs.current[next]?.focus();
+        }}
+      >
+        <span
+          aria-hidden="true"
+          data-lab-thumb=""
+          style={{ translate: `${at * 100}% 0` }}
+          className="pointer-events-none absolute top-0.5 bottom-0.5 start-0.5 -z-1 w-[calc(50%-0.125rem)] rounded-ouro-control-md bg-background shadow-(--shadow-sm) dark:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--muted))] motion-safe:transition-[translate] motion-safe:duration-(--ouro-duration-base) motion-safe:ease-(--ouro-ease-out) motion-reduce:hidden"
+        />
+        {items.map((item, index) => {
+          const checked = index === at;
+          return (
+            <button
+              key={item.value}
+              ref={(el) => {
+                refs.current[index] = el;
+              }}
+              type="button"
+              role="radio"
+              aria-checked={checked}
+              tabIndex={checked ? 0 : -1}
+              onClick={() => choose(item.value)}
+              className={cn(
+                "relative m-0 cursor-pointer rounded-ouro-control-md border-0 bg-transparent px-3 text-base font-medium whitespace-nowrap text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] outline-ring outline-offset-1 select-none touch-manipulation [-webkit-tap-highlight-color:transparent] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:text-sm aria-checked:text-foreground",
+                // The colour follows the thumb: it changes as the thumb lands, so nothing announces the move before it happens.
+                "transition-colors duration-(--ouro-duration-fast) ease-[ease] motion-safe:aria-checked:delay-(--ouro-duration-fast)",
+                // With reduced motion each segment carries its own thumb, which fades in and out.
+                "motion-reduce:before:absolute motion-reduce:before:inset-0 motion-reduce:before:-z-1 motion-reduce:before:rounded-[inherit] motion-reduce:before:bg-background motion-reduce:before:opacity-0 motion-reduce:before:shadow-(--shadow-sm) motion-reduce:before:transition-opacity motion-reduce:before:duration-(--ouro-duration-base) motion-reduce:aria-checked:before:opacity-100 dark:motion-reduce:before:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--muted))]",
+              )}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Shows one of its panes and crossfades to another: both stay mounted, so the swap draws nothing new mid-press. The
+ * box's height follows the shown pane over the same duration; with reduced motion it changes at once and only the
+ * panes fade.
+ */
+export function Crossfade({ shown, panes }: { shown: string; panes: ReadonlyArray<{ id: string; content: ReactNode }> }): JSX.Element {
+  const box = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | undefined>(undefined);
+  useLayoutEffect(() => {
+    const pane = box.current?.querySelector<HTMLElement>(`[data-lab-pane="${shown}"]`);
+    if (!pane) return;
+    const measure = () => setHeight(pane.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(pane);
+    return () => observer.disconnect();
+  }, [shown]);
+  return (
+    <div ref={box} data-lab-crossfade="" style={{ height }} className="relative overflow-hidden motion-safe:transition-[height] motion-safe:duration-(--ouro-duration-base) motion-safe:ease-(--ouro-ease-out)">
+      {panes.map((pane) => {
+        const on = pane.id === shown;
+        return (
+          <div
+            key={pane.id}
+            data-lab-pane={pane.id}
+            inert={!on}
+            aria-hidden={on ? undefined : true}
+            // A pane fading out keeps to the shown pane's height, so the box never holds more than it shows; once faded it is hidden.
+            style={on ? undefined : { maxHeight: height }}
+            className={cn(
+              "absolute inset-x-0 top-0 transition-[opacity,visibility] duration-(--ouro-duration-base) ease-(--ouro-ease-out)",
+              on ? "opacity-100" : "pointer-events-none invisible overflow-hidden opacity-0",
+            )}
+          >
+            {pane.content}
+          </div>
+        );
+      })}
+    </div>
   );
 }

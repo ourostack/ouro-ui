@@ -11,7 +11,6 @@ import {
   Chevron,
   DisclosureBar,
   Eyebrow,
-  FamilyFoot,
   HOVER_CLOSE_MS,
   HOVER_OPEN_MS,
   Here,
@@ -31,6 +30,8 @@ import {
   iconButton,
   row,
   useFitToScreen,
+  Crossfade,
+  WaySwitch,
 } from "./shared";
 
 export interface MockupProps {
@@ -52,7 +53,7 @@ export interface Mockup {
 /** A panel's first line: the section's own page and its line, as open text, and anything for its end. */
 function PanelHead({ section, here, end }: { section: Section; here: string; end?: ReactNode }): JSX.Element {
   return (
-    <div className="mb-2 flex flex-wrap items-center gap-x-1 border-0 border-b border-solid border-border pb-2">
+    <div className="mb-3 flex flex-wrap items-center gap-x-1">
       <PageLink page={section} here={here} hint={false} size="lg" />
       <span className="pe-4 text-sm leading-5 text-muted-foreground">{section.hint}</span>
       {end && <span className="ms-auto">{end}</span>}
@@ -228,6 +229,19 @@ function PhoneSections({ here, sections }: { here: string; sections: readonly Se
   );
 }
 
+/** A section of the phone's menu: its name as a heading with its own page, its line, then its pages. Space sets it apart, not a rule. */
+function PhoneSection({ section, here, children }: { section: Section; here: string; children: ReactNode }): JSX.Element {
+  const id = useId();
+  return (
+    <section aria-labelledby={id} className="grid gap-1">
+      <h2 id={id} className="m-0">
+        <PageLink page={section} here={here} size="lg" />
+      </h2>
+      {children}
+    </section>
+  );
+}
+
 function DesktopOnly({ children }: { children: ReactNode }): JSX.Element {
   return <div className="flex flex-1 items-center gap-2 max-lg:hidden">{children}</div>;
 }
@@ -269,7 +283,6 @@ function AtlasHeader({ here, search }: MockupProps): JSX.Element {
       </Masthead>
       <PhoneMenu open={menu} onOpenChange={setMenu}>
         <PhoneSections here={here} sections={[HOME, ...sections]} />
-        <FamilyFoot />
       </PhoneMenu>
     </>
   );
@@ -308,8 +321,10 @@ const content =
   "[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)] " +
   "motion-safe:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out),translate_var(--ouro-duration-slow)_var(--ouro-ease-out)] " +
   "data-starting-style:opacity-0 data-ending-style:opacity-0 " +
-  "motion-safe:data-starting-style:data-[activation-direction=left]:-translate-x-[30%] motion-safe:data-starting-style:data-[activation-direction=right]:translate-x-[30%] " +
-  "motion-safe:data-ending-style:data-[activation-direction=left]:translate-x-[30%] motion-safe:data-ending-style:data-[activation-direction=right]:-translate-x-[30%]";
+  // The incoming panel slides in with a keyframe animation, which states where it starts: a transition from a starting
+  // style began from the outgoing side for one frame in Chromium, so the panel appeared to come from the wrong way.
+  "motion-safe:data-open:data-[activation-direction=left]:animate-[ouro-lab-from-left_var(--ouro-duration-slow)_var(--ouro-ease-out)] motion-safe:data-open:data-[activation-direction=right]:animate-[ouro-lab-from-right_var(--ouro-duration-slow)_var(--ouro-ease-out)] " +
+  "motion-safe:data-ending-style:data-[activation-direction=left]:[translate:30%_0] motion-safe:data-ending-style:data-[activation-direction=right]:[translate:-30%_0]";
 
 function CompassBar({ here }: { here: string }): JSX.Element {
   const [value, setValue] = useState<string | null>(null);
@@ -384,21 +399,30 @@ function CompassHeader({ here, search }: MockupProps): JSX.Element {
         </Bar>
       </Masthead>
       <PhoneMenu open={menu} onOpenChange={setMenu}>
-        <div className="grid gap-4">
-          <SegmentedControl
+        <div className="grid gap-6">
+          <WaySwitch
             label="Find your way"
-            fullWidth
             items={[
               { value: "platform", label: "By platform" },
               { value: "part", label: "By part" },
             ]}
             value={way}
-            onValueChange={setWay}
+            onChange={setWay}
           />
-          {way === "platform" ? <PlatformGrid compact slots={SLOTS} here={here} label="Every platform, the same four doors" /> : <PartRows here={here} compact />}
-          <PhoneSections here={here} sections={[PROOF, DOCS]} />
+          <Crossfade
+            shown={way}
+            panes={[
+              { id: "platform", content: <PlatformGrid compact slots={SLOTS} here={here} label="Every platform, the same four doors" /> },
+              { id: "part", content: <PartRows here={here} compact /> },
+            ]}
+          />
+          <PhoneSection section={PROOF} here={here}>
+            <Columns groups={PROOF.groups} here={here} />
+          </PhoneSection>
+          <PhoneSection section={DOCS} here={here}>
+            <DocsPanel here={here} compact />
+          </PhoneSection>
         </div>
-        <FamilyFoot />
       </PhoneMenu>
     </>
   );
@@ -526,7 +550,6 @@ function HullHeader({ here, search }: MockupProps): JSX.Element {
       </Masthead>
       <PhoneMenu open={menu} onOpenChange={setMenu} title="Browse" side="bottom">
         <Tree here={here} />
-        <FamilyFoot />
       </PhoneMenu>
     </>
   );
@@ -747,9 +770,7 @@ function ChartHeader({ here, search }: MockupProps): JSX.Element {
           }}
         >
           <ChartMap here={here} />
-          <div className="mt-6">
-            <FamilyFoot bare />
-          </div>
+
         </nav>
       </Sheet>
     </>
@@ -770,10 +791,7 @@ function MapButton({ onOpen }: { onOpen: () => void }): JSX.Element {
 
 /* ---------------------------------------------------------------- the list */
 
-export const MOCKUPS: readonly Mockup[] = [
-  { id: "a", name: "Atlas", idea: "Every part opens a panel; Ouro HX and Ouro AX each show the four platforms in one row.", Header: AtlasHeader },
-  { id: "b", name: "Compass", idea: "Two ways in: by platform (four identical columns) or by part, in one panel that reshapes as you move.", Header: CompassHeader },
-  { id: "c", name: "Hull", idea: "The whole site as a tree beside every page, with a search bar in the middle of the header.", Header: HullHeader, Aside: HullAside },
-  { id: "d", name: "Sonar", idea: "Search first, with every section as a chip; a chip opens its pages in a row under it.", Header: SonarHeader },
-  { id: "e", name: "Chart", idea: "A slim bar of plain links, and a Map that unrolls every page, with platforms as a grid.", Header: ChartHeader },
-];
+export const MOCKUPS: readonly Mockup[] = [{ id: "b", name: "Compass", idea: "Two ways in, by platform or by part, in one panel that reshapes as you move.", Header: CompassHeader }];
+
+// The other four mockups stay in this file's history (round 2), unused, for reference.
+void [AtlasHeader, HullHeader, HullAside, SonarHeader, ChartHeader];

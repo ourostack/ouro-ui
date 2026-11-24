@@ -4,9 +4,9 @@ import { chromium } from "@playwright/test";
 const [base] = process.argv.slice(2);
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
-await page.goto(`${base}?m=a#/`, { waitUntil: "networkidle" });
-const hx = page.getByRole("button", { name: "Ouro HX" });
-const ax = page.getByRole("button", { name: "Ouro AX" });
+await page.goto(`${base}#/`, { waitUntil: "networkidle" });
+const hx = page.getByRole("button", { name: "Platforms", exact: true });
+const ax = page.getByRole("button", { name: "Parts", exact: true });
 const expanded = async (button) => (await button.getAttribute("aria-expanded")) === "true";
 const results = [];
 const check = (name, ok) => results.push(`${ok ? "pass" : "FAIL"}: ${name}`);
@@ -46,11 +46,12 @@ await page.mouse.click(700, 800);
 check("a press outside closes it", !(await expanded(hx)));
 
 const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();
-await phone.goto(`${base}?m=a#/`, { waitUntil: "networkidle" });
+await phone.goto(`${base}#/`, { waitUntil: "networkidle" });
 const sizes = await phone.evaluate(() =>
-  [...document.querySelectorAll("header button, header a, .sticky button, .sticky a")]
+  [...document.querySelectorAll("[data-lab-masthead] button, [data-lab-masthead] a")]
     .filter((el) => el.checkVisibility())
-    .map((el) => [el.textContent.trim() || el.getAttribute("aria-label"), Math.round(el.getBoundingClientRect().height)]),
+    // A control's hit area: its own box, or the 44px touch target it carries.
+    .map((el) => [el.textContent.trim() || el.getAttribute("aria-label"), Math.round(Math.max(el.getBoundingClientRect().height, el.querySelector("[data-ouro-touch-target]")?.getBoundingClientRect().height ?? 0))]),
 );
 check(`every control in the phone's bar is at least 44px tall (${JSON.stringify(sizes)})`, sizes.every(([, h]) => h >= 44));
 check("search shows on the phone's bar", await phone.getByRole("button", { name: "Search" }).isVisible());

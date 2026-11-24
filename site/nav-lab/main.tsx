@@ -4,7 +4,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { DESCRIPTIONS, pageAt } from "./ia";
 import { MOCKUPS } from "./mockups";
-import { FAMILY_MODE, FAMILY_MODES, SearchPalette, SiteFooter, useSearch, usePath } from "./shared";
+import { SearchPalette, SiteFooter, useSearch, usePath } from "./shared";
 import "./lab.css";
 
 const params = new URLSearchParams(location.search);
@@ -18,39 +18,12 @@ document.documentElement.setAttribute("data-theme", "pearl");
 setScheme(initialDark);
 
 /** Lab chrome, kept apart from the mockup: which mockup, and light or dark. */
-function Dock({ current }: { current: string | null }): JSX.Element {
+function Dock(): JSX.Element {
   const [dark, setDark] = useState(initialDark);
-  const link = (id: string | null) => {
-    const next = new URLSearchParams(location.search);
-    if (id) next.set("m", id);
-    else next.delete("m");
-    return `?${next.toString()}${location.hash}`;
-  };
   return (
     <div className="lab-dock pointer-events-none fixed inset-x-0 bottom-3 z-30 flex flex-col items-center gap-2 px-3 pb-[env(safe-area-inset-bottom)]">
-      {current && (
-        <nav aria-label="Family bar" className="pointer-events-auto flex items-center gap-0.5 rounded-ouro-2xl bg-foreground p-1.5 text-background shadow-(--shadow-lg)">
-          <span className="px-2 text-xs font-semibold">Family</span>
-          {FAMILY_MODES.map((mode) => {
-            const next = new URLSearchParams(location.search);
-            next.set("f", mode.id);
-            return (
-              <a key={mode.id} href={`?${next.toString()}${location.hash}`} aria-current={FAMILY_MODE === mode.id ? "page" : undefined} className={`${dockItem} h-11 w-auto px-2.5 text-xs pointer-fine:h-8`}>
-                {mode.label}
-              </a>
-            );
-          })}
-        </nav>
-      )}
       <nav aria-label="Mockups" className="pointer-events-auto flex items-center gap-2 rounded-ouro-2xl bg-foreground p-2 text-background shadow-(--shadow-lg)">
-        <a href={link(null)} aria-current={current === null ? "page" : undefined} className={dockItem}>
-          Lab
-        </a>
-        {MOCKUPS.map((m) => (
-          <a key={m.id} href={link(m.id)} aria-current={current === m.id ? "page" : undefined} aria-label={`${m.id.toUpperCase()}: ${m.name}`} className={dockItem}>
-            {m.id.toUpperCase()}
-          </a>
-        ))}
+        <span className="px-2 text-sm font-semibold">Nav lab</span>
         <button
           type="button"
           aria-pressed={dark}
@@ -88,11 +61,11 @@ function Stub({ here }: { here: string }): JSX.Element {
       <section aria-label="Try" className="mt-12 grid gap-3 text-pretty text-[0.9375rem] leading-6 text-foreground">
         <h2 className="m-0 font-[family-name:var(--font-heading,inherit)] text-xl font-semibold">Things to try</h2>
         <ul className="m-0 grid gap-1.5 ps-5 text-muted-foreground">
-          <li>Find Ouro AX for Windows, then Get started on Android. Every platform should look the same.</li>
-          <li>Rest the pointer on a menu for half a second, then slide across to another.</li>
+          <li>Find Ouro AX for Windows, then Get started on Android. Every platform has the same four pages.</li>
+          <li>Rest the pointer on a menu for half a second, then slide across to another: one panel reshapes.</li>
           <li>Tab in, open a panel with Enter, press Escape. Focus goes back to its button.</li>
           <li>Press ⌘K, or the search button on a phone, and type "sheet".</li>
-          <li>Scroll: the bar stays. Try each family bar (Strip, Switcher, Slim, Footer) in the pill over the dock.</li>
+          <li>Scroll down: the family strip slides away and the bar stays. Scroll up and it comes back.</li>
         </ul>
       </section>
       {Array.from({ length: 10 }, (_, index) => (
@@ -130,7 +103,7 @@ function LabIndex(): JSX.Element {
 function Lab(): JSX.Element {
   const here = usePath();
   const [searching, setSearching] = useSearch();
-  const mockup = MOCKUPS.find((m) => m.id === params.get("m")) ?? null;
+  const mockup = MOCKUPS.find((m) => m.id === params.get("m")) ?? MOCKUPS[0]!;
   useEffect(() => {
     if (!params.has("open")) return;
     // For screenshots and Ouro check: open the mockup's first menu once the page has settled.
@@ -148,7 +121,7 @@ function Lab(): JSX.Element {
     return (
       <>
         <LabIndex />
-        <Dock current={null} />
+        <Dock />
       </>
     );
   const props = { here, search: () => setSearching(true) };
@@ -160,7 +133,7 @@ function Lab(): JSX.Element {
         <Stub here={here} />
       </div>
       <SearchPalette open={searching} onOpenChange={setSearching} />
-      <Dock current={mockup.id} />
+      <Dock />
     </>
   );
 }

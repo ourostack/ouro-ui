@@ -97,7 +97,7 @@ function measure() {
       for (const el of [panel, ...panel.querySelectorAll("*")]) {
         const s = getComputedStyle(el);
         // A box with no height or width is folded away (a closed accordion), not cutting anything off.
-        if (el.clientWidth <= 2 || el.clientHeight === 0 || !/hidden|clip/.test(s.overflowY + s.overflowX) || /auto|scroll/.test(s.overflowY)) continue;
+        if (!el.checkVisibility({ visibilityProperty: true }) || el.clientWidth <= 2 || el.clientHeight === 0 || !/hidden|clip/.test(s.overflowY + s.overflowX) || /auto|scroll/.test(s.overflowY)) continue;
         if ((el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2) && el.textContent.trim()) clipped.push(`${el.tagName.toLowerCase()} shows ${el.clientWidth}×${el.clientHeight} of ${el.scrollWidth}×${el.scrollHeight}`);
       }
       const height = Math.round(inner.bottom - inner.top);
@@ -123,7 +123,7 @@ const record = async (page, mockup, size, panel) => {
   }
 };
 
-for (const mockup of ["a", "b", "c", "d", "e"]) {
+for (const mockup of ["b"]) {
   for (const size of Object.keys(sizes)) {
     const { shoot, ...options } = sizes[size];
     const context = await browser.newContext(options);
