@@ -107,7 +107,7 @@ function releaseCheckout(version) {
   const dir = scratchDir("ouro-proof-release-");
   const git = (cwd, ...args) => execFileSync("git", args, { cwd, stdio: "ignore" });
   git(origin, "init", "--quiet", "--bare");
-  for (const path of ["registry/ouro/lib/ouro/testing/vitest.ts", "vitest.config.ts", "site/src/themes/themes.json", "site/e2e/voyage-presets.spec.ts", "site/src/voyage/stage/stage.tsx"]) {
+  for (const path of ["registry/ouro/lib/ouro/testing/vitest.ts", "vitest.config.ts", "site/src/themes/themes.json", "site/e2e/voyage-presets.spec.ts", "site/src/voyage/stage/stage.tsx", "docs/guides/agent-interfaces.md", "site/src/apple/kit.json", "docs/platforms/windows.md", "docs/platforms/android.md"]) {
     mkdirSync(join(dir, dirname(path)), { recursive: true });
     writeFileSync(join(dir, path), read(path));
   }

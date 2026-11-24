@@ -382,11 +382,10 @@ export function InstallSteps(): JSX.Element {
   );
 }
 
-/** The island's content: the agents section, Ouro AX, then the install steps. */
+/** The island's content: Ouro AX, then the install steps. "Agents read the types" (Agents) is on /hx/. */
 export default function HomeReference(): JSX.Element {
   return (
     <div id="reference">
-      <Agents />
       <OuroAx />
       <InstallSteps />
     </div>

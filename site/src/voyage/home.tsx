@@ -86,6 +86,12 @@ export function TwoShips(): JSX.Element {
           {TWO_SHIPS.title}
         </h2>
         <p className="site-lede mt-5 mb-0 max-w-(--measure-lede)">{TWO_SHIPS.intro}</p>
+        <p className="mt-4 mb-0 max-w-(--measure-lede) text-muted-foreground" data-site-adoption-line="">
+          {TWO_SHIPS.adoption}{" "}
+          <Link href={href("/adoption/")} tone="secondary" inline>
+            {TWO_SHIPS.adoptionLink}
+          </Link>
+        </p>
         <div className="mt-12 grid gap-y-14 lg:mt-16 lg:gap-y-20">
           <Showcase
             id="ship-nautilus"
