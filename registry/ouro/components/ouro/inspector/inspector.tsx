@@ -652,6 +652,7 @@ function InspectorLayer({
     };
     const schedule = () => {
       if (!frame) {
+        // Stryker disable next-line StringLiteral: a test reads only whether the attribute is set, never its value.
         own.setAttribute("data-ouro-settling", "");
         frame = requestAnimationFrame(update);
       }
@@ -668,6 +669,9 @@ function InspectorLayer({
     schedule();
     return () => {
       cancelAnimationFrame(frame);
+      // Stryker disable next-line StringLiteral: `own` is this layer's own element, coming down with
+      // it (X-ray closes by unmounting), so clearing an attribute on an element about to leave the
+      // page changes nothing a test, or anything else, can observe.
       own.removeAttribute("data-ouro-settling");
       mutations.disconnect();
       resizes.disconnect();
