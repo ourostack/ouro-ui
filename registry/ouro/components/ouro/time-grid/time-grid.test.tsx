@@ -1024,7 +1024,7 @@ describe("TimeGrid", () => {
         const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
         return (hi! + 0.05) / (lo! + 0.05);
       };
-      await expect.poll(() => rgba(getComputedStyle(head).backgroundColor)[3]).toBeGreaterThan(0.5);
+      await expect.poll(() => rgba(getComputedStyle(head).backgroundColor)[3] > 0.5 && head.getAnimations({ subtree: true }).length === 0).toBe(true);
       const tint = rgba(getComputedStyle(head).backgroundColor);
       // The worst thing that can scroll under the glass is the page's foreground colour, unblurred.
       const probe = head.appendChild(document.createElement("span"));
