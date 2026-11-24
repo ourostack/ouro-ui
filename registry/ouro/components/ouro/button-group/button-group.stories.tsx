@@ -59,6 +59,22 @@ export const Playground: Story = {
   ),
 };
 
+/** A Liquid Glass capsule for a window toolbar: back and forward with a divider, over a picture. */
+export const Glass: Story = {
+  render: () => (
+    <div style={{ padding: 24, background: "linear-gradient(90deg, var(--primary), var(--muted))" }}>
+      <ButtonGroup label="History" glass>
+        <Button variant="plain" aria-label="Back">
+          <ChevronIcon style={{ width: "1.25em", height: "1.25em", transform: "scaleX(-1)" }} />
+        </Button>
+        <Button variant="plain" aria-label="Forward">
+          <ChevronIcon style={{ width: "1.25em", height: "1.25em" }} />
+        </Button>
+      </ButtonGroup>
+    </div>
+  ),
+};
+
 /** Outline buttons share borders; solid ones get separators; a split button; toggles; full width. */
 export const Looks: Story = {
   parameters: { screenshot: { name: "button-group-looks" } },

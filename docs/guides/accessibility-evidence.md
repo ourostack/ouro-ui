@@ -36,7 +36,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [breadcrumb](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/breadcrumb) | 3 | 0 | none yet |
 | [build-chip](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/build-chip) | 4 | 0 | none yet |
 | [button](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/button) | 9 | 0 | [button.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/button.sr.spec.ts): 1 test on `actions-button--loading` |
-| [button-group](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/button-group) | 2 | 0 | none yet |
+| [button-group](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/button-group) | 3 | 0 | none yet |
 | [calendar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/calendar) | 8 | 0 | none yet |
 | [card](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/card) | 8 | 0 | none yet |
 | [carousel](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/carousel) | 4 | 0 | none yet |
