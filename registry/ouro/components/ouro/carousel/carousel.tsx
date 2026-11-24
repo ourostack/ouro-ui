@@ -369,6 +369,8 @@ export function Carousel(props: CarouselProps): JSX.Element {
       heading.current = index;
       latest.current.onTargetChange?.(index);
       viewport.scrollTo({ left, behavior });
+      // Stryker disable next-line OptionalChaining: equivalent; the settling effect's mount-time
+      // assignment (deps []) always runs first and is never cleared before this listener can fire.
       restartWait.current?.();
     };
     viewport.addEventListener("ouro-carousel-goto", onGoto);
