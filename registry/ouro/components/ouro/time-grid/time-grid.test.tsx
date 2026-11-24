@@ -493,6 +493,12 @@ describe("TimeGrid", () => {
     probe.remove();
     expect(getComputedStyle(titled("Offsite")).borderInlineStartColor).toBe(away);
     expect(getComputedStyle(titled("Offsite")).backgroundColor).not.toBe(getComputedStyle(titled("Planning")).backgroundColor);
+    const fillProbe = document.createElement("div");
+    fillProbe.style.backgroundColor = "color-mix(in oklab, var(--ouro-away) var(--ouro-time-grid-tint), var(--background))";
+    titled("Offsite").parentElement!.append(fillProbe);
+    const fill = getComputedStyle(fillProbe).backgroundColor;
+    fillProbe.remove();
+    expect(getComputedStyle(titled("Offsite")).backgroundColor).toBe(fill);
     expect(warnings()).toEqual([]);
   });
 
@@ -1046,6 +1052,7 @@ describe("TimeGrid", () => {
     const oofTints = [...oof.grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")].map((column) => getComputedStyle(column).backgroundColor);
     expect(oofTints).toHaveLength(2);
     expect(oofTints[0]).not.toBe(oofTints[1]);
+    expect(oofTints[1]).not.toBe(clear);
     expect(tints).not.toContain(clear);
     // An unmarked day keeps the page's own colour.
     expect(grid.querySelectorAll("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked]")).toHaveLength(2);
