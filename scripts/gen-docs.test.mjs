@@ -73,6 +73,16 @@ test("generating is deterministic and matches the committed files", () => {
   }
 });
 
+test("a guide or platform page's title drops a claim's footnote mark, so the docs menu shows only the page's name (ourostack/ouro-ui#3556)", () => {
+  const out = scratchDir("ouro-docs-title-");
+  const result = run("--out", out);
+  assert.equal(result.status, 0, result.stderr);
+  const pages = JSON.parse(readFileSync(join(out, "site/src/docs/pages.json"), "utf8"));
+  const browserSupport = pages.find((page) => page.name === "browser-support");
+  assert.equal(browserSupport.title, "Browser support");
+  for (const page of pages) assert.doesNotMatch(page.title, /\[\^[^\]]+\]/, page.name);
+});
+
 test("the eager page index retains routing text without Markdown-only metadata", () => {
   const out = scratchDir("ouro-docs-index-");
   const result = run("--out", out);
