@@ -432,13 +432,13 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
 
   /** Puts it back in its corner's place after a change around it: with the spring, or at once (`jump`). */
   const reflow = useCallback(
-    (jump: boolean) => {
+    (jump: boolean, stay = false) => {
       if (!stageRef.current || pressed.current) return;
       const pip = element.current!;
       const size = { width: pip.offsetWidth, height: pip.offsetHeight };
       // No place in its corner clears what is in the way: a picture the person can hide gets out of it.
       if (!clearsKeepOut(target.current, stageRef.current, size, latest.current.inset, keepRects())) {
-        if (latest.current.collapse) return latest.current.collapse();
+        if (!stay && latest.current.collapse) return latest.current.collapse();
       }
       const { x, y } = anchor(target.current);
       // Already there, or on its way there.
@@ -510,7 +510,9 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   [reflow, rewatch]);
 
   // A new size, shape or container size: it stays in its corner, at once.
-  useLayoutEffect(() => reflow(true), [stage, size, aspectRatio, collapsed, reflow]);
+  // Opening it again by hand is the person's call, so it stays until a keep-out changes.
+  useLayoutEffect(() => reflow(true, true), [collapsed]);
+  useLayoutEffect(() => reflow(true), [stage, size, aspectRatio, reflow]);
   // New keep-out rectangles or a new inset: it follows its corner's new place with the spring.
   const keepKey = JSON.stringify((keepOut ?? []).map((item) => ("current" in item ? null : item)));
   useLayoutEffect(() => reflow(false), [keepKey, inset, reflow]);

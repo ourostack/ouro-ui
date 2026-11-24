@@ -1111,6 +1111,11 @@ describe("SnapPiP", () => {
     expect(onCollapsedChange).not.toHaveBeenCalled();
     await render(self({ onCollapsedChange, keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));
     expect(onCollapsedChange).toHaveBeenCalledWith(true);
+    // Opened again by hand while the keep-out still covers it: it stays open.
+    onCollapsedChange.mockClear();
+    await render(self({ onCollapsedChange, collapsed: false, keepOut: [{ x: 0, y: 60, width: 380, height: 420 }] }));
+    await rest();
+    expect(onCollapsedChange).not.toHaveBeenCalled();
   });
 
   it("keeps its corner when no corner is clear and it cannot be hidden", async () => {
