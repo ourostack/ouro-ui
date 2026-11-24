@@ -301,7 +301,7 @@ function CallDemo(): JSX.Element {
   );
 
   const bar = (
-    <div className="flex flex-wrap items-center justify-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
       <Toolbar label="Call controls" items={items} />
       {stage === "call" ? (
         <Button tone="destructive" onClick={() => go("left", true)}>
@@ -408,7 +408,7 @@ function CallDemo(): JSX.Element {
   return (
     <div className="grid w-full grid-cols-1 gap-3" data-site-call-demo="">
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <div className="min-w-0">
+        <div className="min-w-0 overflow-x-auto">
           <SegmentedControl
             label="State"
             fullWidth
