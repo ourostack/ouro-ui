@@ -60,6 +60,14 @@ test("a site URL must name a published page, in its exact letter case", () => {
   assert.match(siteUrlProblem("https://ui.ouroboros.bot/docs/Text-Field.md", published), /differs in letter case from the published .*docs\/text-field\.md/);
 });
 
+test("the platform pages the voyage spreads into its list count as published", () => {
+  const published = publishedPaths(
+    repoFiles({ "site/src/paths.ts": 'export const PLATFORM_PATHS = ["/hx/", "/windows/start/", "/android/start/"] as const;\nexport const VOYAGE_PATHS = ["/", ...PLATFORM_PATHS, "/proof/"] as const;\n' }),
+  );
+  assert.equal(siteUrlProblem("https://ui.ouroboros.bot/proof/", published), null);
+  for (const url of ["https://ui.ouroboros.bot/hx/#coverage", "https://ui.ouroboros.bot/windows/start/", "https://ui.ouroboros.bot/android/start/"]) assert.equal(siteUrlProblem(url, published), null, url);
+});
+
 test("the source check fails on a dead relative link, a wrong letter case, a missing heading and a dead site URL", () => {
   const dir = repoFiles({
     "README.md": [

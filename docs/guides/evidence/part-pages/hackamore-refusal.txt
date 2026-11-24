@@ -1,0 +1,26 @@
+hackamore at ourostack/hackamore 25e0eeda779c662a2caa30929e8b628cb001ed5a, against its fixture engine (test/fixtures/engine-stub.mjs), proved by scripts/assert-mock.mjs.
+The open_app list, which names the apps on the Mac that ran it, is left out.
+
+$ hackamore do click '{"element":"button[Allow]"}' --why "Ari asked me to allow the prompt"
+exit=2
+
+stderr:
+hackamore: do click: click isn't available on screen. Fix: use one of: type_text, press_key, open_app, activate.
+
+stdout .error:
+{
+  "code": "action-unavailable",
+  "exit": 2,
+  "thing": "do click",
+  "problem": "click isn't available on screen",
+  "fix": "use one of: type_text, press_key, open_app, activate",
+  "message": "do click: click isn't available on screen. Fix: use one of: type_text, press_key, open_app, activate.",
+  "available": [
+    "type_text",
+    "press_key",
+    "open_app",
+    "activate"
+  ]
+}
+
+stdout .ok: false

@@ -53,7 +53,7 @@ export const guessedAddresses: Array<{ from: string; to: string; note?: string }
 ];
 
 /** Old and guessed addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
-export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, { from: "/benchmark/", to: "/proof/" }, { from: "/web/", to: "/hx/#web" }, ...guessedAddresses];
+export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, { from: "/benchmark/", to: "/proof/" }, { from: "/web/", to: "/hx/#web" }, { from: "/composed/", to: "/composed-ui/" }, ...guessedAddresses];
 
 // The words a person or an agent searches with: what it is (React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits), who it is for (agents building A2UI and MCP Apps interfaces) and how it installs.
 const DESCRIPTION = claim("Accessible React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits, for agents building A2UI and MCP Apps. Installs with the shadcn CLI.", {
@@ -94,6 +94,23 @@ export const routes: Route[] = [
   { path: "/android/", title: "Ouro UI for Android", description: "Ouro HX in Jetpack Compose, and AppFunctions for agents." },
   { path: "/android/start/", title: "Get started · Ouro UI for Android", description: "Add bot.ouro.ui:ouro-hx and give agents your actions as AppFunctions." },
   { path: "/adoption/", title: "Adoption · Ouro UI", description: "Who uses Ouro UI, and who gives back to it: our maintained products, measured from GitHub and CI hourly, furthest from confirmed first." },
+  // The part pages (parts/); each description is its page's lede (copy deck 3.3).
+  { path: "/actions/", title: "Actions · Ouro UI", description: "Write an action once. People press it, agents call it, and paying, sending and deleting wait for the person's yes." },
+  {
+    path: "/composed-ui/",
+    title: "Composed UI · Ouro UI",
+    description: "Your agent sends a card as data. Ouro checks its components and buttons against your app's list, then draws it natively. It sends cards to MCP Apps hosts and reads A2UI.",
+  },
+  {
+    path: "/xray/",
+    title: "X-ray · Ouro UI",
+    description: "See inside. HX X-ray outlines and names the components on a screen. AX X-ray calls the doors the way an agent would. Ouro check, Feel and Reins live here too.",
+  },
+  {
+    path: "/hackamore/",
+    title: "Hackamore · Ouro UI",
+    description: "Reins for Mac apps that were built without them. Ask for a button that isn't on the screen, and it says what to do instead before it touches the app.",
+  },
   { path: "/current/", title: "Ouro Current · Ouro UI", description: "Our own Dependabot for Ouro UI: install the GitHub App, and Ouro UI releases arrive as one pull request with auto-merge on." },
   // Proof's lede (copy deck v7, 3.3; proof/copy.ts says the same on the page).
   {
