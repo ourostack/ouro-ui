@@ -1,0 +1,1 @@
+- Fixed: Button's label stays above its squircle-fallback surface in painting order; the surface now takes `zIndex: -1`, matching Badge, Card, Toggle, Dialog, TextField and ThemePicker's existing fix for the same non-positioned-label case.

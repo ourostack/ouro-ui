@@ -561,12 +561,15 @@ export function Button(props: ButtonProps): JSX.Element {
   // The touch target comes first and the label is its own stacking context, so the label paints above
   // the target: the target still enlarges the hit area, and nothing covers the text
   // (axe can check its contrast). It is `isolate`, not `relative`, so it is no containing block
-  // for an app's absolutely placed children.
+  // for an app's absolutely placed children. The label is otherwise non-positioned (static), so it
+  // paints in an earlier step than the surface's own `position: absolute` unless the surface takes a
+  // negative z-index first, as every other `data-ouro-surface` consumer (Badge, Card, Toggle, Dialog,
+  // TextField, ThemePicker) already does for the same reason (#3396).
   const fade = cn("isolate transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out)", loading && "opacity-0");
   const content = (
     <>
       <TouchTarget />
-      <span data-ouro-surface="" aria-hidden="true" />
+      <span data-ouro-surface="" aria-hidden="true" style={{ zIndex: -1 }} />
       <span
         data-slot="button-label"
         data-ouro-label=""
