@@ -46,10 +46,13 @@ const prefix = "ourostack/ouro-ui/";
 // message, so nothing there reached the bundle, and no cheaper cut was found for this small, genuinely new code. Measured
 // by CI over main at 902939ded (main's run 45293648025, Size ceilings): 86,430 bytes of JavaScript (CSS stays under its
 // own ceiling, so only JavaScript moves).
+// list-detail-page's and settings-page's ceilings raised 2026-11-24 (SegmentedControl's glass look, after Button's and
+// ButtonGroup's): the glass classes and the item's icon and count parts are new in every page that renders one. Measured
+// by CI over the pull request's head in JavaScript and CSS: 87,068 and 10,885; 105,784 and 14,633.
 export const CEILINGS = {
   "dashboard-page": { js: 86_430 + 1024, css: 10_598 + 512 },
-  "list-detail-page": { js: 85_796 + 1024, css: 9_731 + 512 },
-  "settings-page": { js: 105_063 + 1024, css: 13_737 + 512 },
+  "list-detail-page": { js: 87_068 + 1024, css: 10_885 + 512 },
+  "settings-page": { js: 105_784 + 1024, css: 14_633 + 512 },
 };
 
 /**
