@@ -1035,7 +1035,7 @@ describe("Composer expanded", () => {
     await expect.poll(() => textarea.getBoundingClientRect().height).toBeGreaterThanOrEqual(6 * parseFloat(getComputedStyle(textarea).lineHeight));
     await userEvent.click(button);
     expect(onExpandedChange).toHaveBeenLastCalledWith(false);
-    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    await expect.poll(() => root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
     expect(iconPath()).toBe(collapsedIcon);
     expect(warn).not.toHaveBeenCalled();
   });
