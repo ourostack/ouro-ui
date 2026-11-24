@@ -1,9 +1,9 @@
 {
   "spoonjoy/spoonjoy-v2": {
     "components/ouro/": {
-      "commit": "72088f7acc77940990e1dbad71a0aa509f48aaf9",
-      "at": "2026-11-23T23:16:46.959Z",
-      "total": 659,
+      "commit": "b897b3dd7690fddefc37d187221f719c333b63b4",
+      "at": "2026-11-24T00:37:25.361Z",
+      "total": 656,
       "paths": [
         "app/components/ouro/inspector/inspector.stories.tsx",
         ".storybook/main.ts",
@@ -108,8 +108,8 @@
       ]
     },
     "\"ouro-ui-core\"": {
-      "commit": "72088f7acc77940990e1dbad71a0aa509f48aaf9",
-      "at": "2026-11-23T23:19:31.742Z",
+      "commit": "b897b3dd7690fddefc37d187221f719c333b63b4",
+      "at": "2026-11-24T00:40:54.352Z",
       "total": 13,
       "paths": [
         "README.md",
@@ -125,37 +125,6 @@
         "test/scripts/sync-sj-tokens.test.ts",
         "test/components/recipe/CoverPlaceholder.test.tsx",
         "test/lib/mcp/declared-actions.server.test.ts"
-      ]
-    },
-    "defineCommand": {
-      "commit": "72088f7acc77940990e1dbad71a0aa509f48aaf9",
-      "at": "2026-11-23T23:19:48.961Z",
-      "total": 5,
-      "paths": [
-        "app/lib/ouro/ax/ax-command.ts",
-        "scripts/ouro/ax/xray.kit.mts",
-        "scripts/ouro/ax/xray.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "app/lib/ouro/ax/ax-moved.d.ts"
-      ]
-    },
-    "bindAx": {
-      "commit": "72088f7acc77940990e1dbad71a0aa509f48aaf9",
-      "at": "2026-11-23T23:21:57.563Z",
-      "total": 4,
-      "paths": [
-        "app/lib/ouro/ax/component.ts",
-        "actions/generated/web.ts",
-        "scripts/ouro/ax/xray.ts",
-        "tools/ouro-actions/ouro-actions.mts"
-      ]
-    },
-    "ax-mcp": {
-      "commit": "72088f7acc77940990e1dbad71a0aa509f48aaf9",
-      "at": "2026-11-23T23:22:04.098Z",
-      "total": 1,
-      "paths": [
-        "app/lib/ouro/ax/ax-claims.ts"
       ]
     }
   },
@@ -187,6 +156,77 @@
         "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift"
       ]
     },
+    "OuroSheet": {
+      "commit": "7787a197165328d3998d7aa0510b4fa797fafc58",
+      "at": "2026-11-24T00:44:02.458Z",
+      "total": 0,
+      "paths": []
+    },
+    "OuroEmptyState": {
+      "commit": "7787a197165328d3998d7aa0510b4fa797fafc58",
+      "at": "2026-11-24T00:44:09.002Z",
+      "total": 9,
+      "paths": [
+        "Apps/Spoonjoy/Shared/Views/SearchView.swift",
+        "Apps/Spoonjoy/Shared/Views/RecipesView.swift",
+        "scripts/check-kitchen-recipe-surfaces.rb",
+        "Apps/Spoonjoy/Shared/Views/ProfileView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookbooksView.swift",
+        "Apps/Spoonjoy/Shared/Views/ShoppingListView.swift",
+        "Apps/Spoonjoy/Shared/Views/SpoonCookLogView.swift",
+        "Tests/SpoonjoyCoreTests/NativeMobileDesignContractTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenRecipesStructureContractTests.swift"
+      ]
+    },
+    "OuroHX": {
+      "commit": "7787a197165328d3998d7aa0510b4fa797fafc58",
+      "at": "2026-11-24T00:46:58.650Z",
+      "total": 42,
+      "paths": [
+        "Package.swift",
+        "Sources/SpoonjoyCore/Design/KitchenMotion.swift",
+        "Apps/Spoonjoy/Shared/Design/SpoonjoyFonts.swift",
+        "Sources/SpoonjoyCore/Design/KitchenHaptics.swift",
+        "Apps/Spoonjoy/Shared/Components/KitchenCheckMark.swift",
+        "Apps/Spoonjoy/Shared/Design/KitchenMotion+SwiftUI.swift",
+        "Apps/Spoonjoy/Shared/Components/KitchenSafeControls.swift",
+        "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift",
+        "scripts/generate-xcode-project.rb",
+        "scripts/check-xcode-project-contract.rb",
+        "Apps/Spoonjoy/Shared/Moderation/ThirdPartyAIConsentSheet.swift",
+        "scripts/check-native-web-palette-contract.rb",
+        "Spoonjoy.xcodeproj/project.pbxproj",
+        "Sources/SpoonjoyCore/Design/KitchenTypeRole.swift",
+        "Apps/Spoonjoy/Shared/Views/AddRecipeSheet.swift",
+        "Apps/Spoonjoy/Shared/Design/KitchenTableTheme.swift",
+        "Apps/Spoonjoy/Shared/Views/SearchView.swift",
+        "Apps/Spoonjoy/Shared/Views/RecipesView.swift",
+        "Apps/Spoonjoy/Shared/Views/KitchenView.swift",
+        "Apps/Spoonjoy/Shared/Views/ProfileView.swift",
+        "Apps/Spoonjoy/Shared/Views/CaptureDraftView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookModeComponents.swift",
+        "Apps/Spoonjoy/Shared/Components/ReceiptListView.swift",
+        "Apps/Spoonjoy/Shared/Views/SettingsView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookbooksView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookModeView.swift",
+        "Apps/Spoonjoy/Shared/Moderation/ModerationViews.swift",
+        "Apps/Spoonjoy/Shared/Views/SpoonCookLogView.swift",
+        "Apps/Spoonjoy/Shared/Views/AccountDeletionSheet.swift",
+        "Apps/Spoonjoy/Shared/Views/ShoppingListView.swift",
+        "Apps/Spoonjoy/Shared/Views/RecipeDetailView.swift",
+        "Apps/Spoonjoy/Shared/Components/KitchenTableLoadingStateView.swift",
+        "Apps/Spoonjoy/Shared/AppShell/SpoonjoyRootView.swift",
+        "Apps/Spoonjoy/Shared/Views/NotificationAPNsSettingsView.swift",
+        "Tests/SpoonjoyCoreTests/KitchenMotionTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenHapticsTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenPaletteOuroTests.swift",
+        "scripts/test/no_design_hex_test.rb",
+        "Tests/SpoonjoyCoreTests/KitchenContrastTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenFontFilesTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenTypeRoleTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenComponentParityTests.swift"
+      ]
+    },
     "\"import OuroAX\"": {
       "commit": "7787a197165328d3998d7aa0510b4fa797fafc58",
       "at": "2026-11-23T23:29:25.270Z",
@@ -204,6 +244,12 @@
       "paths": [
         "Sources/OuroMD/Sidebar.swift"
       ]
+    },
+    "OuroToast": {
+      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
+      "at": "2026-11-24T00:47:09.488Z",
+      "total": 0,
+      "paths": []
     },
     "\"import OuroAX\"": {
       "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
