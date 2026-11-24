@@ -114,6 +114,20 @@ describe("the call window page", () => {
     await expect.poll(overlaps).toBe(0);
   });
 
+  it("starts the self view tucked away on a phone with a full grid, and shows it on request", async () => {
+    const real = window.matchMedia.bind(window);
+    const spy = vi.spyOn(window, "matchMedia").mockImplementation((query) => (query === "(max-width: 639px)" ? ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} } as unknown as MediaQueryList) : real(query)));
+    try {
+      await renderPage("/docs/call-demo/");
+      const pip = () => document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
+      await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(true);
+      await page.getByRole("button", { name: "Show Your camera" }).click();
+      await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
     setScheme(scheme);
     await renderPage("/docs/call-demo/");

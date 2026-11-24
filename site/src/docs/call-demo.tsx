@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode, type SVGProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type SVGProps } from "react";
 import { AgentPresence, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -107,6 +107,12 @@ function useFakeLevel(active: boolean): number {
   return level;
 }
 
+function subscribeNarrow(notify: () => void): () => void {
+  const query = window.matchMedia("(max-width: 639px)");
+  query.addEventListener("change", notify);
+  return () => query.removeEventListener("change", notify);
+}
+
 /** A call window in one box: a lobby, a joining moment, the call itself, an empty room and a goodbye. */
 function CallDemo(): JSX.Element {
   const [stage, setStage] = useState<Stage>("call");
@@ -118,6 +124,10 @@ function CallDemo(): JSX.Element {
   const [captionsOn, setCaptionsOn] = useState(true);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [corner, setCorner] = useState<SnapPiPCorner>("bottom-right");
+  // On a phone with a full grid no corner is free of a face, so the picture starts tucked away; the person can show it.
+  const narrow = useSyncExternalStore(subscribeNarrow, () => window.matchMedia("(max-width: 639px)").matches, () => false);
+  const [chosenHidden, setSelfHidden] = useState<boolean | null>(null);
+  const selfHidden = chosenHidden ?? narrow;
   const [agents, setAgents] = useState<ListeningAgent[]>([helper]);
   const [status, setStatus] = useState("");
   const [lines, setLines] = useState<LiveCaptionLine[]>([]);
@@ -357,7 +367,7 @@ function CallDemo(): JSX.Element {
             {bar}
           </div>
         </div>
-        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} keepOut={[bottomRef]}>
+        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} collapsed={selfHidden} onCollapsedChange={setSelfHidden} keepOut={[bottomRef]}>
           {selfPicture}
         </SnapPiP>
         <Popover title="React" open={reactionsOpen} onOpenChange={setReactionsOpen} anchor={bottomRef}>

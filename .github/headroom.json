@@ -10,16 +10,6 @@
     "owner": "drain-3"
   },
   {
-    "test": "* registry/ouro/lib/ouro/testing/press.touch.test.ts > fails on an element with no pressed tint",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* registry/ouro/lib/ouro/testing/press.touch.test.ts > leaves no listener or data-press-target behind, even after a failure",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* registry/ouro/components/ouro/message/message-list.switching.test.tsx > MessageList switching conversations > opens the newest message when every message gets a new key with no conversation named, as another conversation's messages would",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
@@ -112,11 +102,6 @@
   {
     "test": "ouro-webkit (webkit) registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx > EmojiPicker with a catalogue > searches by shortcode, with or without colons, by keyword and by the emoji's text",
     "reason": "ouro-webkit at 7.7s of 15s on #3032 (run 45072536276). Measured clean locally: the test finishes quickly. Its cost is a real open plus a run of searches, each filling the field in one command rather than one key at a time (the file's own comment already names that choice) and then polling for the exact results React draws, so each search is one real round trip. The searches each prove a distinct match path (a shortcode with and without its colons, a custom shortcode by its full and partial text, a keyword, and an emoji matched by its own text), so cutting any would drop real coverage rather than a repeat. No avoidable wait found. Reads as CI-shard load on real search round trips. Revisit if a shard measures it slow again with headroom to spare.",
-    "owner": "drain-3"
-  },
-  {
-    "test": "* test/control-suite.test.tsx > reopener > names the opener it never finds again",
-    "reason": "Proves a true negative: the opener it asks for is one reopener's own poll never finds, so the test runs out that poll's full 10 s before it throws. A shard measured it at 10.6 s against a budget of 15 s.",
     "owner": "drain-3"
   },
   {
