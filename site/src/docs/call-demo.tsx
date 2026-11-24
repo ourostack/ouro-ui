@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type SVGProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type ReactNode, type SVGProps } from "react";
 import { AgentPresence, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -107,6 +107,16 @@ function useFakeLevel(active: boolean): number {
     return () => window.clearInterval(timer);
   }, [active]);
   return level;
+}
+
+// On a wide screen the grid is as wide as its area's height allows, so 16:9 tiles fit without a scrollbar of their own.
+function gridFit(tiles: number, sharing: boolean): CSSProperties {
+  const faces = tiles - (sharing ? 1 : 0);
+  const columns = tiles <= 1 ? 1 : tiles <= 4 ? 2 : 3;
+  const rows = Math.ceil(faces / columns);
+  const units = (sharing ? 1 : 0) + rows / columns;
+  const gaps = rows + (sharing ? 1 : 0) - 1;
+  return { "--call-grid-width": `min(100%, max(14rem, calc((100cqh - ${gaps * 0.5}rem) * 16 / 9 / ${units})))` } as CSSProperties;
 }
 
 function subscribeNarrow(notify: () => void): () => void {
@@ -349,11 +359,12 @@ function CallDemo(): JSX.Element {
     const tiles = (sharing ? 1 : 0) + visible.length;
     body = (
       <div className="relative flex h-full min-h-0 flex-col">
-        <div className="min-h-0 flex-1 overflow-auto p-2">
+        <div className="min-h-0 flex-1 overflow-auto p-2 [container-type:size]">
           <div
             ref={gridRef}
+            style={gridFit(tiles, sharing)}
             className={
-              "grid gap-2 " +
+              "grid gap-2 md:mx-auto md:w-(--call-grid-width) " +
               (tiles <= 1 ? "grid-cols-1" : tiles === 2 ? "grid-cols-1 md:grid-cols-2" : tiles <= 4 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3")
             }
           >
