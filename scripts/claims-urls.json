@@ -111,10 +111,6 @@
     "status": 200,
     "checked": "2026-11-06"
   },
-  "https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode": {
-    "status": 200,
-    "checked": "2026-11-06"
-  },
   "https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow": {
     "status": 200,
     "checked": "2026-11-14"
