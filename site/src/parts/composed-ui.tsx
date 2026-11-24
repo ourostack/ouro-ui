@@ -7,6 +7,7 @@ import { validateTree, type ComposedNode, type TreeProblem } from "@/registry/ou
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { recipeCatalog, recipeFormTree } from "@/test/fixtures/composed/recipe-tree";
 import { href } from "../paths";
+import { StoryOpener } from "../components/story-world";
 import { Output, PartBand, PartNext } from "./shell";
 
 /*
@@ -133,6 +134,7 @@ const FORMATS = [
 export default function ComposedUiPage(): JSX.Element {
   return (
     <div id="composed-ui" className="part">
+      <StoryOpener scene="composed-ui" line="The robot slides a blank card into the easel and fills it in; the person just looks." short={false} />
       <div className="part-hero">
         <Hero
           layout="split"

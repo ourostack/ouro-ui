@@ -1,0 +1,1 @@
+- Fix: `Combobox` with `multiple` no longer names both the footer button and the phone sheet's close button "Done"; the sheet's close button now takes its own `closeLabel` prop, defaulting to "Close".

@@ -1,0 +1,1 @@
+- New: [Ouro check steps each transition a frame at a time](docs/guides/guardrails.md "verify:fileLine(docs/guides/guardrails.md, /backtrack/)") and fails a jump, a backtrack, siblings that reflow, text that re-wraps, content that pops in within a frame and a frame over 50 ms, in Chromium and WebKit.

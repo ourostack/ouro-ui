@@ -59,7 +59,7 @@ const DOCS_URL = "https://ui.ouroboros.bot/docs";
 const components = readComponents();
 
 /** Registry files that test this repository itself and never ship. */
-const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/theme/radius-fallback.test.tsx", "registry/ouro/theme/squircle-surface.test.tsx", "registry/ouro/theme/control-shape.test.tsx", "registry/ouro/theme/hover-tokens.test.tsx", "registry/ouro/theme/plain-classes.touch.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
+const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/theme/control-shape.test.tsx", "registry/ouro/theme/hover-tokens.test.tsx", "registry/ouro/theme/plain-classes.touch.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
 
 /**
  * Repository-only folders: the screen-reader lane's specs (playwright.screen-reader.config.ts) need VoiceOver or NVDA,
@@ -453,9 +453,6 @@ export function itemForFile(path: string): string | null {
     return "ouro-feel-probe";
   } else if (path.startsWith(testingDir) || path === `${e2eDir}story.ts`) {
     return "ouro-testing";
-  } else if (path.startsWith(`${libDir}squircle/`)) {
-    // The squircle polyfill's engine (hyperellipse, MIT), vendored with its tests and imported relatively.
-    return devFile.test(file) ? "lib-squircle-polyfill-tests" : "lib-squircle-polyfill";
   } else if (path.startsWith(libDir) && !path.slice(libDir.length).includes("/")) {
     return libItem(file);
   } else if (path.startsWith(e2eDir)) {

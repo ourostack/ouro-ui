@@ -51,7 +51,7 @@ Type: `TimeGridProps`.
 | `selectedId` | `string \| null` |  | The selected event's id: it gets a deeper fill of its own colour and `aria-current`. |
 | `slotMinutes` | `15 \| 30 \| 60` | `30` | How long a slot `onSlotSelect` gets is, in minutes: 15, 30 or 60. |
 | `stackLabel` | `((count: number) => string)` | `` (count) => `${count} events` `` | The words on a stack of a day's background events drawn as one: in a day too narrow to label each of them, overlapping background events show as one block with their count, which opens their list. Translate it with your app. |
-| `statusLabels` | `TimeGridStatusLabels` | { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" } | The words screen readers hear for each status, after the event's title. Translate them with your app. |
+| `statusLabels` | `TimeGridStatusLabels` | { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled", away: "out of office" } | The words screen readers hear for each status, after the event's title. Translate them with your app. |
 | `timeZone` | `string` |  | The IANA time zone the grid's clock reads (`"Europe/Berlin"`): which day and hour each event falls on, where the now line is, and the times shown. Without it, the reader's own, once the page runs in the browser; the server writes UTC until then. |
 | `view` | `"day" \| "week" \| "work-week"` | `"week"` | `day`, `work-week` (the week without the locale's weekend) or `week`, from the locale's first day of the week. |
 | `workingHours` | `{ start: number; end: number }` | { start: 8, end: 17 } | The working day, in hours from midnight (`{ start: 8.5, end: 17 }`). The hours outside it, and weekend days, are shaded, and the grid opens scrolled to its start unless today is shown, when it opens at now, or at today's first event when now is before it. |
@@ -113,11 +113,12 @@ interface TimeGridEvent {
   /**
    * What it does to the person's time. `busy` is filled; `tentative` is hatched; `free` is
    * outlined; `unanswered`, an invitation still waiting for an answer, is outlined in dashes;
-   * `cancelled` is struck through. Screen readers hear every status but busy, in the words of
-   * `statusLabels`.
+   * `cancelled` is struck through; `away`, out of office, is filled in the away colour
+   * (`--ouro-away`, Teams' purple) whatever the event's `tone`. Screen readers hear every status
+   * but busy, in the words of `statusLabels`.
    * @default "busy"
    */
-  status?: TimeGridStatus | (string & { 'Use "busy", "tentative", "free", "unanswered" or "cancelled"': never }) | undefined;
+  status?: TimeGridStatus | (string & { 'Use "busy", "tentative", "free", "unanswered", "cancelled" or "away" (oof and out-of-office are "away")': never }) | undefined;
   /** Makes the event a link to its page, through `OuroProvider`'s router link for a path in your app. */
   href?: string | undefined;
 
@@ -138,8 +139,8 @@ Why a day is marked (TimeGrid's `markedDays`): the words, and the tone of its ti
 interface TimeGridMark {
   /** The words that say why, such as "Out of office". */
   label: string;
-  /** The tint's tone. @default "primary" */
-  tone?: TimeGridTone | undefined;
+  /** The tint's tone; `"away"` is the colour of an `away` event, so an out-of-office day and its meetings agree. @default "primary" */
+  tone?: TimeGridTone | "away" | undefined;
 }
 ```
 

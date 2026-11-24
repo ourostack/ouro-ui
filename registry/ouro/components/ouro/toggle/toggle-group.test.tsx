@@ -439,21 +439,16 @@ describe("ToggleGroup server rendering", () => {
     expect(host.querySelector("button")!.getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("gives a rect toggle the squircle marker and a hidden surface, and a pill neither", async () => {
-    const { host } = await render(
-      <>
-        <ToggleGroup label="Rect" items={align} />
-        <ToggleGroup label="Pill" items={align} shape="pill" />
-      </>,
-    );
-    const [rectGroup, pillGroup] = [...host.querySelectorAll<HTMLElement>('[data-ouro="toggle-group"]')];
-    const rect = rectGroup!.querySelector<HTMLElement>("[data-shape]");
-    const pill = pillGroup!.querySelector<HTMLElement>("[data-shape]");
-    const surface = rect!.querySelector<HTMLElement>("[data-ouro-surface]")!;
-    expect(rect!.getAttribute("data-ouro-squircle")).toBe("");
-    expect(surface.getAttribute("aria-hidden")).toBe("true");
-    expect(surface.style.zIndex).toBe("-1");
-    expect(pill!.hasAttribute("data-ouro-squircle")).toBe(false);
-    expect(pill!.querySelector("[data-ouro-surface]")).toBeNull();
+});
+
+describe("ToggleGroup spacing", () => {
+  it("keeps adjacent toggles at least 8px apart, Ouro check's near-miss minimum, in both wrap and scroll overflow", async () => {
+    const { toggles: wrapToggles } = await render(<ToggleGroup label="Alignment" items={align} />);
+    const wrapGap = wrapToggles[1]!.getBoundingClientRect().left - wrapToggles[0]!.getBoundingClientRect().right;
+    expect(wrapGap).toBeGreaterThanOrEqual(8);
+
+    const { toggles: scrollToggles } = await render(<ToggleGroup label="Styles" items={styles} overflow="scroll" />);
+    const scrollGap = scrollToggles[1]!.getBoundingClientRect().left - scrollToggles[0]!.getBoundingClientRect().right;
+    expect(scrollGap).toBeGreaterThanOrEqual(8);
   });
 });

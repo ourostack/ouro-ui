@@ -482,6 +482,26 @@ describe("TimeGrid", () => {
     ]);
   });
 
+  it("says an away event is out of office in its name, and draws it in the away colour whatever its tone", async () => {
+    await render({ view: "day", events: [{ id: "o", title: "Offsite", start: at(12, "15:00"), end: at(12, "16:00"), status: "away", tone: "success" }, { id: "p", title: "Planning", start: at(12, "17:00"), end: at(12, "18:00"), tone: "success" }] });
+    expect(plain(titled("Offsite").getAttribute("aria-label"))).toBe("Offsite, 3:00 – 4:00 PM, Thursday, out of office");
+    expect(titled("Offsite").dataset.status).toBe("away");
+    const probe = document.createElement("div");
+    probe.style.borderTop = "3px solid var(--ouro-away)";
+    document.body.append(probe);
+    const away = getComputedStyle(probe).borderTopColor;
+    probe.remove();
+    expect(getComputedStyle(titled("Offsite")).borderInlineStartColor).toBe(away);
+    expect(getComputedStyle(titled("Offsite")).backgroundColor).not.toBe(getComputedStyle(titled("Planning")).backgroundColor);
+    const fillProbe = document.createElement("div");
+    fillProbe.style.backgroundColor = "color-mix(in oklab, var(--ouro-away) var(--ouro-time-grid-tint), var(--background))";
+    titled("Offsite").parentElement!.append(fillProbe);
+    const fill = getComputedStyle(fillProbe).backgroundColor;
+    fillProbe.remove();
+    expect(getComputedStyle(titled("Offsite")).backgroundColor).toBe(fill);
+    expect(warnings()).toEqual([]);
+  });
+
   it("shows the title first, then the time and the description as the event's height allows", async () => {
     await render({
       view: "day",
@@ -963,6 +983,13 @@ describe("TimeGrid", () => {
     expect(getComputedStyle(viewport()).maskImage).toBe("none");
     const head = viewport().querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
     expect(getComputedStyle(head).backdropFilter).toContain("blur");
+    await expect.poll(() => getComputedStyle(head).borderBottomColor).not.toBe("rgba(0, 0, 0, 0)");
+    await expect.poll(() => getComputedStyle(head).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    viewport().scrollTop = 0;
+    await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(false);
+    await expect.poll(() => getComputedStyle(head).backdropFilter).toBe("none");
+    await expect.poll(() => getComputedStyle(head).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    await expect.poll(() => getComputedStyle(head).borderBottomColor).toBe("rgba(0, 0, 0, 0)");
     expect(warnings()).toEqual([]);
   });
 
@@ -1028,6 +1055,15 @@ describe("TimeGrid", () => {
     const all = await render({ view: "week", markedDays: { "2026-03-09": { label: "a" }, "2026-03-10": { label: "b", tone: "secondary" }, "2026-03-11": { label: "c", tone: "success" }, "2026-03-12": { label: "d", tone: "warning" }, "2026-03-13": { label: "e", tone: "destructive" } } });
     const tints = [...all.grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")].map((column) => getComputedStyle(column).backgroundColor);
     expect(new Set(tints).size).toBe(5);
+    const oof = await render({ view: "week", markedDays: { "2026-03-09": { label: "a", tone: "success" }, "2026-03-10": { label: "b", tone: "away" } } });
+    const oofTints = [...oof.grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")].map((column) => getComputedStyle(column).backgroundColor);
+    expect(oofTints).toHaveLength(2);
+    expect(oofTints[0]).not.toBe(oofTints[1]);
+    const tintProbe = document.createElement("div");
+    tintProbe.style.backgroundColor = "color-mix(in oklab, var(--ouro-away) calc(var(--ouro-time-grid-tint) / 2), transparent)";
+    oof.grid.querySelectorAll("[data-ouro-time-grid-body] [data-ouro-time-grid-mark]")[1]!.append(tintProbe);
+    expect(oofTints[1]).toBe(getComputedStyle(tintProbe).backgroundColor);
+    tintProbe.remove();
     expect(tints).not.toContain(clear);
     // An unmarked day keeps the page's own colour.
     expect(grid.querySelectorAll("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked]")).toHaveLength(2);
@@ -1319,7 +1355,7 @@ describe("TimeGrid", () => {
         expect.arrayContaining([
           '[ouro-ui] TimeGrid: event "forum": tone="danger" is not a tone; use "primary", "secondary", "success", "warning" or "destructive". Fix: { tone: "destructive" }.',
           '[ouro-ui] TimeGrid: event "focus": tone="brand" is not a tone; use "primary", "secondary", "success", "warning" or "destructive". Fix: { tone: "primary" }.',
-          '[ouro-ui] TimeGrid: event "forum": status="maybe" is not a status; use "busy", "tentative", "free", "unanswered" or "cancelled". Fix: { status: "tentative" }.',
+          '[ouro-ui] TimeGrid: event "forum": status="maybe" is not a status; use "busy", "tentative", "free", "unanswered", "cancelled" or "away" (out of office). Fix: { status: "away" }.',
           "[ouro-ui] TimeGrid: event \"forum\": allDay is not a field; an all-day event's start is a date. Fix: { start: \"2026-03-12\" }.",
           '[ouro-ui] TimeGrid: event "forum": color is not a field; colours come from the theme. Fix: { tone: "success" }.',
           '[ouro-ui] TimeGrid: two events have id "forum". Fix: give each event its own id.',
@@ -1434,6 +1470,15 @@ describe("TimeGrid background events", () => {
     const swatch = (title: string) => getComputedStyle(spokenAs(title).querySelector("[data-ouro-time-grid-bar]")!).backgroundColor;
     expect(swatch("All hands")).not.toBe(swatch("Budget review"));
     expect(getComputedStyle(spokenAs("All hands")).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    // An away background event's bar is the away colour, whatever its tone.
+    await rerender({ events: [forum, standup], backgroundEvents: [{ ...hands, status: "away" }, review] });
+    const probe = document.createElement("div");
+    probe.style.borderTop = "3px solid var(--ouro-away)";
+    document.body.append(probe);
+    const away = getComputedStyle(probe).borderTopColor;
+    probe.remove();
+    expect(getComputedStyle(spokenAs("All hands").querySelector("[data-ouro-time-grid-bar]")!).borderTopColor).toBe(away);
+    await rerender({ events: [forum, standup], backgroundEvents: [hands, review] });
     // The lane's name follows backgroundLabel; with no background events there is no lane.
     await rerender({ events: [forum, standup], backgroundEvents: [hands], backgroundLabel: "In the crowd" });
     expect(lanes().map((lane) => lane.getAttribute("aria-label"))).toEqual(["Thursday, March 12, In the crowd"]);

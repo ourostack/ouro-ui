@@ -90,11 +90,9 @@ function GroupItem(props: {
       data-ouro-part="item"
       data-variant={variant}
       data-shape={shape}
-      data-ouro-squircle={shape === "rect" ? "" : undefined}
       className={cn(toggleBase, shapes[shape], sizes[size], looks[variant], iconOnly && squareClass)}
     >
       <TouchTarget />
-      {shape === "rect" && <span data-ouro-surface="" aria-hidden="true" style={{ zIndex: -1 }} />}
       {Icon && <Icon aria-hidden="true" className={cn(iconClass, "relative", !iconOnlyItem && "-ms-0.5")} />}
       {!iconOnly && <span className={cn("relative", iconOnlyItem && "sr-only")}>{label}</span>}
       {reason.note}
@@ -429,7 +427,7 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
           role="group"
           aria-labelledby={labelId}
           onKeyDown={move}
-          className="m-0 box-border inline-flex max-w-full flex-wrap items-center gap-1"
+          className="m-0 box-border inline-flex max-w-full flex-wrap items-center gap-2"
         >
           {groupItems}
         </div>
@@ -468,7 +466,7 @@ function ScrollRow(props: {
       role="group"
       aria-labelledby={labelId}
       onKeyDown={onKeyDown}
-      className={cn("m-0 box-border flex max-w-full items-center gap-1", overflowScrollerClass)}
+      className={cn("m-0 box-border flex max-w-full items-center gap-2", overflowScrollerClass)}
     >
       {children}
     </div>

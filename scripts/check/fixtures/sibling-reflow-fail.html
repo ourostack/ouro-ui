@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sibling reflow: fails</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:60rem;margin:0 auto}button{font:inherit}</style>
+<style>.panel{overflow:hidden;height:40px;transition:height 300ms ease-in-out;background:#cde}.panel.open{height:200px}.after{margin:0}</style>
+<main><h1>Notes</h1><p>A panel that grows.</p><button type="button" data-ouro-check-press onclick="p.classList.toggle('open')">Grow</button><div class="panel" id="p">Panel</div><p class="after">Below the panel.</p></main>

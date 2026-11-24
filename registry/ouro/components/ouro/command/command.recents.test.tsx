@@ -149,4 +149,14 @@ describe("Command recents", () => {
     expect(chips()).toHaveLength(0);
     await expect.poll(highlighted).not.toBeNull();
   });
+
+  it("says nothing of an empty list while the recents show with nothing typed, and says it once something typed matches nothing", async () => {
+    await render(
+      <Command title="Go to" open onOpenChange={() => {}} recents={[{ label: "Pie", onSelect: () => {} }]} items={[]} />,
+    );
+    expect(chips()).toHaveLength(1);
+    expect(document.querySelector("[data-ouro-command-empty]")).toBeNull();
+    await userEvent.type(input(), "zz");
+    await expect.poll(() => document.querySelector("[data-ouro-command-empty]")).not.toBeNull();
+  });
 });

@@ -62,7 +62,7 @@ In an app with Tailwind CSS v4 and an `@/*` path alias, run shadcn's `init` once
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.510
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.512
 ```
 
 `ouro-base` is the only Ouro UI item that writes to your stylesheet (the file `components.json` names in `tailwind.css`), apart from the optional `ouro-theme` and `ouro-plain`. It adds what a shadcn theme lacks and the components need:
@@ -95,7 +95,7 @@ Ouro Current, which keeps an app's Ouro UI on the newest release, moves `ouro-ba
 Add [fragmentFocusScript](../fragmentFocusScript.md) once, too, first in `<body>`, so that Safari keeps a person's focus on a page whose address names a place on it (`/guide#install`).[^fragment-focus] Without it, Safari jumps back to that place and takes focus as later stylesheets load, once the page finished parsing, or a link to the place was followed, while a stylesheet was still loading, such as a route's CSS your script adds as the page starts (ourostack/ouro-ui#2224): an open menu closes, and a field loses the person mid-word. Other browsers don't, and the script leaves them alone. Ouro check names a page without it (`fragment-focus`).[^fragment-focus-rule]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/lib-fragment-focus-script#v1.3.510
+npx shadcn@latest add ourostack/ouro-ui/lib-fragment-focus-script#v1.3.512
 ```
 
 In Vite, from `vite.config.ts`'s plugins, as an inline script after the stylesheets:
@@ -116,7 +116,7 @@ In Next.js, in the root layout: `<body><script dangerouslySetInnerHTML={{ __html
 A page that builds rows and controls as strings, or prerenders them to read without a script, can't render Ouro's components there. For that markup, add `ouro-plain` once, after `ouro-base`: it gives the markup Ouro's states as classes, each drawn as its component draws it. No component installs it, so an app built only from components doesn't carry its CSS.[^plain-item] A page without Tailwind loads the plain stylesheet `ouro-plain.css` from [the static CSS](static-css.md) instead.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-plain#v1.3.510
+npx shadcn@latest add ourostack/ouro-ui/ouro-plain#v1.3.512
 ```
 
 - The focus ring and row states: `ouro-focus-ring` draws the ring the components draw on keyboard focus, `ouro-focus-ring-inset` draws it inside the box for a row or cell a scroller would clip, and `ouro-row` tints a row that opens something while a mouse rests on it and while it is pressed, as a linked `Item` does.[^plain-classes] The Ouro source rule counts these classes as Ouro's, and names them as the fix for a focus or press state written by hand.[^plain-classes-rule]
@@ -148,21 +148,19 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-plain#v1.3.510
 
 When your pages are served with a policy that refuses inline styles (`style-src 'self'`, with no `'unsafe-inline'` or nonce), wrap the app in `<OuroProvider strictCsp>` in place of Base UI's `CSPProvider`. Under it no Ouro UI part adds a `<style>` element, and the page breaks no rule of that policy, in Chromium and WebKit.[^strict-csp] Styles set from script still apply. The Ouro source rule counts a bare `CSPProvider` and names this fix.[^csp-rule]
 
-In an engine without native `corner-shape` (a WebKit web view), call `registerSquirclePolyfill()` once at startup to draw true squircles on every rounded Ouro UI surface; give an element of your own `data-corner-shape="squircle"` beside its `border-radius` to draw it too. The polyfill works under such a policy too: its stylesheets are constructed and adopted by the document, not `<style>` elements, in Chromium, WebKit and Firefox.[^polyfill-style]
-
-An app that builds its CSS can draw the same squircles at build time instead, leaving the page's code alone: add `squircleCorners()` from `lib/ouro/squircle-corners` (the `lib-squircle-corners` item, added the way the other items are) to the PostCSS plugins of the app's bundler (`css: { postcss: { plugins: [squircleCorners()] } }` in Vite) and the rules that round a corner come out with a `clip-path: shape()` squircle in WebKit and `corner-shape: squircle` where the engine has it. Corners that are round by design (a pill, a circle, half the box) stay round.
+In an engine without native `corner-shape` (a WebKit web view), true squircles come from one build-time step, with nothing loaded at runtime: add `squircleCorners()` from `lib/ouro/squircle-corners` (the `lib-squircle-corners` item, added the way the other items are) to the PostCSS plugins of the app's bundler (`css: { postcss: { plugins: [squircleCorners()] } }` in Vite) and the rules that round a corner come out with a `clip-path: shape()` squircle in WebKit and `corner-shape: squircle` where the engine has it. Corners that are round by design (a pill, a circle, half the box) stay round.
 
 ## Adding components
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.510
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.512
 ```
 
 A component installs its own files in `components/ouro/<component>/`, the components it renders, and only the helpers it imports, one file each in `lib/ouro/`.[^lands] Its install message names what came with it. It adds the npm packages it imports (`@base-ui/react`, `clsx`, `tailwind-merge`) and nothing for tests.
 
 A component that finds no `ouro-base` tokens still installs, type checks and builds, but renders without them: a `Sheet` with no backdrop, layer or spring, a field with no border.[^theme-check] In development, the first Ouro UI component to mount checks the page once and logs `[ouro-ui] theme: ouro-base is not in this page's CSS …` with the command to run. Production builds contain no such check.[^dev-strip]
 
-`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v1.3.510` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).[^v0.7.0]
+`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v1.3.512` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).[^v0.7.0]
 
 ## What an add changes in package.json
 
@@ -180,7 +178,7 @@ Change any component in your app whenever your app needs it: the copied files ar
 
 ## Updating
 
-List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.510 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]
+List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.512 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]
 
 ### Check that ouro-base has not drifted
 
@@ -230,7 +228,6 @@ build: {
 [^use-client-notices]: https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22; https://github.com/vitejs/vite/issues/15012 verify:urlOk(https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22) verify:urlOk(https://github.com/vitejs/vite/issues/15012) verify:fileLine(package.json, /"@vitejs.plugin-react": "\^6\.1\.1"/)
 [^strict-csp]: test:test/strict-csp.test.tsx::under style-src 'self' > OuroProvider strictCsp adds no <style> element, and the page breaks no rule of its policy, in every part that would add one verify:testExists(test/strict-csp.test.tsx::under style-src 'self' > OuroProvider strictCsp adds no <style> element, and the page breaks no rule of its policy, in every part that would add one)
 [^csp-rule]: test:scripts/kits/source-rules.test.mjs::third-party-control > points Base UI's CSPProvider to OuroProvider strictCsp, which it does not count verify:testExists(scripts/kits/source-rules.test.mjs::third-party-control > points Base UI's CSPProvider to OuroProvider strictCsp, which it does not count)
-[^polyfill-style]: test:registry/ouro/lib/ouro/squircle/csp.test.ts::under style-src 'self' > draws the squircle with no <style> element and nothing refused, and takes its stylesheets away when destroyed verify:testExists(registry/ouro/lib/ouro/squircle/csp.test.ts::under style-src 'self' > draws the squircle with no <style> element and nothing refused, and takes its stylesheets away when destroyed)
 [^plain-classes]: test:registry/ouro/theme/theme.test.tsx::focus and row classes for plain markup > draws the ring Ouro's controls draw on keyboard focus: ouro-focus-ring outside the box, ouro-focus-ring-inset inside it verify:testExists(registry/ouro/theme/theme.test.tsx::focus and row classes for plain markup > draws the ring Ouro's controls draw on keyboard focus: ouro-focus-ring outside the box, ouro-focus-ring-inset inside it) verify:testExists(registry/ouro/theme/theme.test.tsx::focus and row classes for plain markup > tints a row while a mouse rests on it, and more while it is pressed)
 [^plain-classes-rule]: test:scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > counts ouro-plain's own rules in the app's stylesheet as Ouro's, and the classes in markup as no control state verify:testExists(scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > counts ouro-plain's own rules in the app's stylesheet as Ouro's, and the classes in markup as no control state) verify:testExists(scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > still counts a hand-written state beside an Ouro class, and names the Ouro classes as the fix for focus and press)
 [^disclosure]: test:registry/ouro/theme/theme.test.tsx::disclosure classes for pages with no script > draws the title as Collapsible does, with no browser marker, and opens on Enter with no script, turning the chevron over verify:testExists(registry/ouro/theme/theme.test.tsx::disclosure classes for pages with no script > draws the title as Collapsible does, with no browser marker, and opens on Enter with no script, turning the chevron over) verify:testExists(registry/ouro/theme/theme.test.tsx::disclosure classes for pages with no script > turns the chevron on the motion tokens, and snaps it under reduced motion) verify:testExists(registry/ouro/theme/plain-classes.touch.test.tsx::disclosure classes on a touch screen > make the title at least 44px tall, at the 16px text size)

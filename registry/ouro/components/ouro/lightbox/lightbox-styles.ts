@@ -10,6 +10,9 @@ export {
   captionClass,
   counterClass,
   figureClass,
+  fitClass,
+  fitFrom,
+  fitQuietTitleClass,
   gridClass,
   headerClass,
   imageClass,
@@ -82,6 +85,25 @@ const popupClass =
 const fullScreenClass =
   "dark -m-4 h-[calc(100%+2rem)] max-h-none w-[calc(100%+2rem)] max-w-none rounded-none ring-0 shadow-none " +
   "bg-(--ouro-backdrop-color) text-foreground forced-colors:bg-[Canvas]";
+
+/**
+ * With `fit`, the viewer is the picture alone: the popup covers the whole screen, over the scrim, its
+ * panel, hairline and shadow taken away, so a press anywhere that is not the
+ * image, the caption or a button lands on it and dismisses the viewer. It grows from the thumbnail's
+ * size (`--ouro-lightbox-from-scale`, from the thumbnail's place `--ouro-lightbox-from-x` and
+ * `--ouro-lightbox-from-y`, set as it opens), not from 0.9. With reduced motion it only fades, by the dialog's own rule. @internal
+ *
+ * @claim "grows from the thumbnail's size" registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx::Lightbox fit > grows from the thumbnail's size, not from 0.9, and only fades with reduced motion)
+ */
+const fitClass =
+  "-m-4 h-[calc(100%+2rem)] max-h-none w-[calc(100%+2rem)] max-w-none rounded-none bg-transparent ring-0 shadow-none " +
+  "[--ouro-bg:transparent] [--ouro-bd:transparent] [--ouro-sq-w:0px] " +
+  "data-starting-style:[transform:translate(var(--ouro-lightbox-from-x,0px),var(--ouro-lightbox-from-y,0px))_scale(var(--ouro-lightbox-from-scale,0.9))] " +
+  "data-ending-style:[transform:translate(var(--ouro-lightbox-from-x,0px),var(--ouro-lightbox-from-y,0px))_scale(var(--ouro-lightbox-from-scale,0.9))]";
+
+/** With `fit`, the gallery's name in the bar is a quiet line, not a heading. @internal */
+const fitQuietTitleClass =
+  "[&_[data-ouro-dialog-title]]:text-sm [&_[data-ouro-dialog-title]]:font-normal [&_[data-ouro-dialog-title]]:text-muted-foreground";
 
 /**
  * Around a mosaic: as wide as its column, at most 25rem, and no wider than keeps it 17.5rem tall at
@@ -230,4 +252,33 @@ function zoomOrigin(thumbnail: Element, popup: HTMLElement): string {
   const x = rect.left + rect.width / 2 - popup.offsetLeft;
   const y = rect.top + rect.height / 2 - popup.offsetTop;
   return `${Math.round(x)}px ${Math.round(y)}px`;
+}
+
+/** The height of the bar above the image, which the fitted image sits under. */
+const barHeight = 56;
+/** The margin around the fitted image, at the sides and under it. */
+const margin = 20;
+
+/**
+ * Where a fitted viewer starts: scaled to the size the thumbnail shows the picture at, and moved so
+ * the picture's centre is on the thumbnail's, the viewer's own centre being where it scales from.
+ * The picture's shape is the image's own, else the thumbnail's picture's, else the thumbnail's. @internal
+ */
+function fitFrom(thumbnail: Element, popup: HTMLElement, shape?: { width?: number | undefined; height?: number | undefined }): { scale: number; x: number; y: number } {
+  const rect = thumbnail.getBoundingClientRect();
+  const picture = thumbnail.querySelector("img");
+  const [w, h] = shape?.width && shape.height ? [shape.width, shape.height] : picture?.naturalWidth && picture.naturalHeight ? [picture.naturalWidth, picture.naturalHeight] : [rect.width, rect.height];
+  const room = { width: popup.offsetWidth - 2 * margin, height: popup.offsetHeight - barHeight - margin };
+  const drawn = Math.min(room.width, (room.height * w) / h);
+  const scale = Math.min(1, Math.max(0.05, rect.width / drawn));
+  const box = popup.getBoundingClientRect();
+  const centre = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  // The image sits centred on the popup's own horizontal centre, so only its vertical offset
+  // (the bar's height, pushing the room down) ever differs from centre; x needs no such term.
+  const imageY = box.top + barHeight + room.height / 2;
+  return {
+    scale,
+    x: rect.left + rect.width / 2 - centre.x,
+    y: rect.top + rect.height / 2 - centre.y - scale * (imageY - centre.y),
+  };
 }

@@ -30,6 +30,13 @@ export const agentCases: AgentCase[] = [
     dev: '{ start: "2026-03-12" }',
     names: ["tsc", "dev"],
   },
+  {
+    id: "timeGrid05",
+    habit: "Outlook's showAs oof for an out-of-office event",
+    tsc: [`error TS2322: Type '"oof"' is not assignable to type 'TimeGridStatus | (string & { 'Use "busy", "tentative", "free", "unanswered", "cancelled" or "away" (oof and out-of-office are "away")': never; }) | undefined'.`],
+    dev: '{ status: "away" }',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid time-grid snippets: no type error, no development message, and hover on every prop. */

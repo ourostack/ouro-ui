@@ -172,7 +172,7 @@ describe("the call window page", () => {
       await renderPage("/docs/call-demo/");
       const pip = () => document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
       await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(true);
-      await page.getByRole("button", { name: "Show Your camera" }).click();
+      await page.getByRole("button", { name: "Show your camera" }).click();
       await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(false);
     } finally {
       spy.mockRestore();
@@ -203,7 +203,7 @@ describe("the call window page", () => {
     try {
       await renderPage("/docs/call-demo/");
       const pip = () => document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!;
-      await page.getByRole("button", { name: "Show Your camera" }).click();
+      await page.getByRole("button", { name: "Show your camera" }).click();
       await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(false);
       await page.getByRole("button", { name: "Share screen" }).click();
       await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(true);
@@ -212,12 +212,12 @@ describe("the call window page", () => {
     }
   });
 
-  it("sizes the captions to their lines, without a tall empty slab above short ones", async () => {
+  it("sizes the captions to one line on a wide screen, without an empty line above it", async () => {
     await page.viewport(1280, 800);
     await renderPage("/docs/call-demo/");
     await document.fonts.ready;
     const captions = document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="live-captions"]')!;
-    expect(captions.getBoundingClientRect().height).toBeLessThan(88);
+    expect(captions.getBoundingClientRect().height).toBeLessThan(56);
   });
 
   it("fits the tile grid in its area on a wide screen, with no scrollbar of its own", async () => {
@@ -265,7 +265,7 @@ describe("the call window page", () => {
       const bottom = () => document.querySelector<HTMLElement>('[data-site-call-demo] [role="toolbar"]')!.parentElement!.closest<HTMLElement>("div.grid")!;
       await expect.poll(() => document.querySelector('[data-site-call-demo] [role="toolbar"]')).not.toBeNull();
       await page.getByRole("radio", { name: "2" }).click();
-      if (pip().hasAttribute("data-collapsed")) await page.getByRole("button", { name: "Show Your camera" }).click();
+      if (pip().hasAttribute("data-collapsed")) await page.getByRole("button", { name: "Show your camera" }).click();
       await expect.poll(() => pip().hasAttribute("data-collapsed")).toBe(false);
       await expect.poll(() => pip().hasAttribute("data-ouro-settling")).toBe(false);
       await expect.poll(() => pip().getBoundingClientRect().bottom <= bottom().getBoundingClientRect().top).toBe(true);
@@ -283,11 +283,31 @@ describe("the call window page", () => {
     await expect.poll(() => names()[0]).not.toBe(before[0]);
   });
 
+  it("lets the tiles take the height the self view is not using, with no one sharing", async () => {
+    await page.viewport(1100, 800);
+    await renderPage("/docs/call-demo/");
+    await document.fonts.ready;
+    const scroller = document.querySelector<HTMLElement>('[data-site-call-demo] .overflow-auto')!;
+    const grid = scroller.querySelector<HTMLElement>(".grid")!;
+    const bottom = document.querySelector<HTMLElement>('[data-site-call-demo] [role="toolbar"]')!.parentElement!.closest<HTMLElement>("div.grid")!;
+    const gap = () => bottom.getBoundingClientRect().top - grid.getBoundingClientRect().bottom;
+    await page.getByRole("radio", { name: "4" }).click();
+    await expect.poll(() => scroller.querySelectorAll('[data-ouro="media-tile"]').length).toBe(4);
+    await expect.poll(() => gap()).toBeGreaterThanOrEqual(124);
+    const pipBox = document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="snap-pip"]')!.getBoundingClientRect();
+    // The band is the self view's height, its 16px margin above the captions and below the tiles, and the scroller's 8px padding: no more.
+    expect(gap()).toBeLessThanOrEqual(pipBox.height + 2 * 16 + 8);
+    await page.getByRole("button", { name: "Hide your camera" }).click();
+    await expect.poll(() => gap()).toBeLessThan(24);
+    expect(scroller.scrollHeight - scroller.clientHeight).toBeLessThanOrEqual(0);
+  });
+
   it("says which parts of the demo are scripted", async () => {
     await renderPage("/docs/call-demo/");
     expect(document.body.textContent).toMatch(/own script/);
     expect(document.body.textContent).toMatch(/State and Others in the call switchers/);
     expect(document.body.textContent).toMatch(/timer is the app's to set/);
+    expect(document.body.textContent).toMatch(/tucks into a small camera button/);
   });
 
   it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {

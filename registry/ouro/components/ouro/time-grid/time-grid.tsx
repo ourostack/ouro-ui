@@ -40,6 +40,9 @@ import {
   isIsoDate,
   layoutDay,
   lineCount,
+  awayBarClass,
+  awayFillClass,
+  awaySwatchClass,
   markedMutedClass,
   minuteClock,
   stepTo,
@@ -74,8 +77,8 @@ export type { TimeGridStatus, TimeGridTone, TimeGridView };
 export interface TimeGridMark {
   /** The words that say why, such as "Out of office". */
   label: string;
-  /** The tint's tone. @default "primary" */
-  tone?: TimeGridTone | undefined;
+  /** The tint's tone; `"away"` is the colour of an `away` event, so an out-of-office day and its meetings agree. @default "primary" */
+  tone?: TimeGridTone | "away" | undefined;
 }
 
 /**
@@ -83,8 +86,9 @@ export interface TimeGridMark {
  * (`--ouro-time-grid-tint`), so events on the day still stand out.
  * @claim "A marked day's tint" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /backgroundColor: `color-mix\(in oklab, \$\{markColor\[tone\]\} calc\(var\(--ouro-time-grid-tint\) \/ 2\), transparent\)`/)
  */
-const markColor: Record<TimeGridTone, string> = { primary: "var(--primary)", secondary: "var(--muted-foreground)", success: "var(--success)", warning: "var(--warning)", destructive: "var(--destructive)" };
-const markStyle = (tone: TimeGridTone): CSSProperties => ({ backgroundColor: `color-mix(in oklab, ${markColor[tone]} calc(var(--ouro-time-grid-tint) / 2), transparent)` });
+const markColor: Record<TimeGridTone | "away", string> = { away: "var(--ouro-away)", primary: "var(--primary)", secondary: "var(--muted-foreground)", success: "var(--success)", warning: "var(--warning)", destructive: "var(--destructive)" };
+const markTones = [...tones, "away"] as const;
+const markStyle = (tone: TimeGridTone | "away"): CSSProperties => ({ backgroundColor: `color-mix(in oklab, ${markColor[tone]} calc(var(--ouro-time-grid-tint) / 2), transparent)` });
 
 /** One event on a {@link TimeGrid}. */
 export interface TimeGridEvent {
@@ -114,12 +118,13 @@ export interface TimeGridEvent {
   /**
    * What it does to the person's time. `busy` is filled; `tentative` is hatched; `free` is
    * outlined; `unanswered`, an invitation still waiting for an answer, is outlined in dashes;
-   * `cancelled` is struck through. Screen readers hear every status but busy, in the words of
-   * `statusLabels`.
+   * `cancelled` is struck through; `away`, out of office, is filled in the away colour
+   * (`--ouro-away`, Teams' purple) whatever the event's `tone`. Screen readers hear every status
+   * but busy, in the words of `statusLabels`.
    * @default "busy"
    * @claim "Screen readers hear every" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > names each event by the words it shows first, its title and its time, then its day, its status and its description)
    */
-  status?: TimeGridStatus | (string & { 'Use "busy", "tentative", "free", "unanswered" or "cancelled"': never }) | undefined;
+  status?: TimeGridStatus | (string & { 'Use "busy", "tentative", "free", "unanswered", "cancelled" or "away" (oof and out-of-office are "away")': never }) | undefined;
   /** Makes the event a link to its page, through `OuroProvider`'s router link for a path in your app. */
   href?: string | undefined;
 
@@ -294,7 +299,7 @@ export interface TimeGridOwnProps {
   /**
    * The words screen readers hear for each status, after the event's title. Translate them with
    * your app.
-   * @default { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" }
+   * @default { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled", away: "out of office" }
    * @claim "The words screen readers hear for each status, after" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > speaks the statuses in the words given)
    */
   statusLabels?: TimeGridStatusLabels | undefined;
@@ -325,7 +330,7 @@ export interface TimeGridOwnProps {
 export type TimeGridProps = Omit<HTMLAttributes<HTMLDivElement>, keyof TimeGridOwnProps> & TimeGridOwnProps;
 
 // Busy, the usual, goes unsaid.
-const defaultStatusLabels: Record<TimeGridStatus, string> = { busy: "", tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled" };
+const defaultStatusLabels: Record<TimeGridStatus, string> = { busy: "", tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled", away: "out of office" };
 /** `value` when it is one of `list`, else `fallback`. */
 const oneOf = <Name extends string>(list: readonly Name[], value: string | undefined, fallback: Name): Name => ((list as readonly (string | undefined)[]).includes(value) ? (value as Name) : fallback);
 const defaultWorkingHours = { start: 8, end: 17 };
@@ -467,7 +472,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const weekend = weekendDays(locale);
   const markOf = (day: string) => {
     const mark = markedDays && Object.hasOwn(markedDays, day) ? markedDays[day] : undefined;
-    return mark?.label ? { label: mark.label, style: markStyle(oneOf(tones, mark.tone, "primary")) } : null;
+    return mark?.label ? { label: mark.label, style: markStyle(oneOf(markTones, mark.tone, "primary")) } : null;
   };
   const formats = useMemo(
     () => ({
@@ -614,8 +619,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               `{ tone: "${Object.hasOwn(renamedTones, event.tone) ? renamedTones[event.tone] : "primary"}" }`,
             ],
             event.status !== undefined && !(statuses as readonly string[]).includes(event.status) && [
-              `event "${event.id}": status="${String(event.status)}" is not a status; use "busy", "tentative", "free", "unanswered" or "cancelled"`,
-              '{ status: "tentative" }',
+              `event "${event.id}": status="${String(event.status)}" is not a status; use "busy", "tentative", "free", "unanswered", "cancelled" or "away" (out of office)`,
+              '{ status: "away" }',
             ],
             event.allDay !== undefined && [`event "${event.id}": allDay is not a field; an all-day event's start is a date`, '{ start: "2026-03-12" }'],
             event.color !== undefined && [`event "${event.id}": color is not a field; colours come from the theme`, '{ tone: "success" }'],
@@ -853,7 +858,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       className: cn(
         eventClass,
         eventHitClass,
-        bar ? backgroundBarClass : [toneBarClass[tone], background ? backgroundFillClass : status === "busy" ? toneFillClass[tone] : plainFillClass, statusClass[status]],
+        bar ? backgroundBarClass : [status === "away" ? awayBarClass : toneBarClass[tone], background ? backgroundFillClass : status === "away" ? awayFillClass : status === "busy" ? toneFillClass[tone] : plainFillClass, statusClass[status]],
         placed ? (bar ? timedBarClass : timedClass) : allDayClass,
         // Under the person's own events, so a background event's touch target never covers them.
         background && "z-[9]",
@@ -867,7 +872,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       <>
         <TouchTarget />
         {bar ? (
-          <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, toneSwatchClass[tone], barStatusClass[status])} />
+          <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, status === "away" ? awaySwatchClass : toneSwatchClass[tone], barStatusClass[status])} />
         ) : (
           <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
         )}
@@ -997,7 +1002,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       onKeyDown={onKeyDown}
     >
       <ScrollArea label={label} className="min-h-0 flex-1">
-        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-border bg-background/80 backdrop-blur-md [@media(prefers-reduced-transparency:reduce)]:bg-background [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none contrast-more:bg-background contrast-more:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
+        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/80 [[data-overflow-y-start]_&]:backdrop-blur-md [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
           <div aria-hidden="true" />
           {days.map((day, index) => (
             <div

@@ -1881,12 +1881,10 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   const block = jobs.design;
   assert.match(block, /^ {4}needs: \[plan\]$/m);
   assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 12 \|\| 6 \}\}\)$/m);
-  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12,"fallback"\]' \|\| '\[1,2,3,4,5,6,"fallback"\]'\) \}\}$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12\]' \|\| '\[1,2,3,4,5,6\]'\) \}\}$/m);
   // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
   assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 12 \|\| 6 \}\}\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
   assert.doesNotMatch(block, /continue-on-error/);
-  // The first shard also checks the converted components' pages with the corner-shape fallback forced on.
-  assert.match(block, /targets: site\/dist-fallback\n {10}sizes: 390x844,1440x900\n {10}themes: dark,light\n/);
   assert.match(block, /^ {6}- run: pnpm site:build$/m);
   // The plan decides whether its runners start at all (scripts/ci-relevance.mjs screens): off a pull request (the
   // merge queue, main, a dispatch) and on a change to ci.yml it always runs.
@@ -2425,8 +2423,7 @@ test("motion coverage runs beside the ci check, over the partitions the browser 
   // browser shards), once per shard, and once per fallback shard when the full suite decided. The reduced run
   // names every project too (scripts/test-impact.mjs).
   const config = (await import("../vitest.config.ts")).default;
-  // The squircle-* projects write no motion evidence (scripts/motion-reporter.mts).
-  const projects = config.test.projects.map((project) => project.test.name).filter((name) => !name.startsWith("squircle-"));
+  const projects = config.test.projects.map((project) => project.test.name);
   assert.deepEqual(projects, ["ouro-chromium", "ouro-webkit", "ouro-touch", "site"]);
   const shards = shardCount(jobs.browser);
   assert.equal(coverage.match(/^ {6}MOTION_PARTITIONS: (.+)$/m)?.[1], projects.map((name) => `${name}:${shards}`).join(","));
@@ -2865,7 +2862,6 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "main-green.yml": "  group: main-green-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "release-note.yml": "  group: release-note-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "stale-pages.yml": "  group: stale-pages-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
-    "squircle-cost.yml": "  group: squircle-cost-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "ax-xray.yml": "  group: ax-xray-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "first-run-windows.yml": "  group: first-run-windows-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "incumbent.yml": "  group: incumbent-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",

@@ -24,6 +24,9 @@ import {
   captionClass,
   counterClass,
   figureClass,
+  fitClass,
+  fitFrom,
+  fitQuietTitleClass,
   gridClass,
   headerClass,
   imageClass,
@@ -129,6 +132,18 @@ export interface LightboxBaseProps {
    * @claim "Below an app's `--ouro-inset-top` bar it starts" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > starts below --ouro-inset-top and fills the rest of the window)
    */
   fullScreen?: boolean | undefined;
+
+  /**
+   * The viewer shows the picture alone: centred and fitted with a margin,
+   * over the scrim, without a panel behind it. A press anywhere but on the image, its caption or a button dismisses it. It
+   * zooms from the thumbnail by scaling from the thumbnail's size rather than from 0.9, and its
+   * caption and buttons are quiet. Use it where the picture is all that should show, as in a
+   * chat's photos. With `fullScreen` too, `fit` wins.
+   *
+   * @claim "A press anywhere but on the image," registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx::Lightbox fit > draws no panel, and a press beside the image dismisses it, but not one on the image, the caption or a button)
+   * @claim "It zooms from the thumbnail by scaling" registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx::Lightbox fit > grows from the thumbnail's size, not from 0.9, and only fades with reduced motion)
+   */
+  fit?: boolean | undefined;
 
   /** Not a prop. Pass the images as `images`: `<Lightbox images={[{ src, alt }]}>`. */
   slides?: { 'Use images={[{ src, alt }]}': never };
@@ -247,6 +262,8 @@ interface ViewerProps {
   positionLabel: string;
   originalLabel: string;
   zoomLabel: string;
+  /** Whether the viewer shows the picture alone, with quiet buttons. */
+  fit: boolean;
   /** Where the viewer writes the index of the image it shows, for focus to go to as it closes. */
   shownRef: { current: number };
 }
@@ -547,6 +564,11 @@ function warm(src: string): void {
 /** How far a finger may move between press and release and still be a tap, not a scroll, in CSS pixels. */
 const TAP_SLOP = 10;
 
+/** Whether a press landed beside the picture, its caption and the buttons: on the empty viewer, which a fitted viewer dismisses. */
+function beside(target: EventTarget): boolean {
+  return !(target as Element).closest("img, figcaption, button, a, input, [data-ouro-lightbox-zoom-view], [data-ouro-lightbox-position], [data-ouro-dialog-title]");
+}
+
 /**
  * The viewer's contents. It mounts when the viewer opens, so it starts on the image chosen; an
  * index the app changes while it is open starts the carousel again on that image.
@@ -564,6 +586,7 @@ function LightboxViewer({
   positionLabel,
   originalLabel,
   zoomLabel,
+  fit,
   shownRef,
 }: ViewerProps): JSX.Element {
   const [start, setStart] = useState(index);
@@ -607,7 +630,7 @@ function LightboxViewer({
   return (
     <>
       <div ref={header} data-ouro-lightbox-header="" className={headerClass}>
-        <div className={titleClass}>
+        <div className={cn(titleClass, fit && fitQuietTitleClass)}>
           <DialogTitle>{label}</DialogTitle>
           {/* The viewer's name: the label and the position, which the header shows apart. One image
               has no position worth naming. */}
@@ -625,7 +648,7 @@ function LightboxViewer({
             href={href}
             target="_blank"
             reloadDocument
-            variant="outline"
+            variant={fit ? "plain" : "outline"}
             tone="secondary"
             size="sm"
             data-ouro-control="lightbox"
@@ -638,7 +661,7 @@ function LightboxViewer({
         )}
         {zoomable && (
           <Button
-            variant="outline"
+            variant={fit ? "plain" : "outline"}
             tone="secondary"
             size="sm"
             aria-label={zoomLabel}
@@ -653,7 +676,7 @@ function LightboxViewer({
         <DialogClose
           render={
             <Button
-              variant="outline"
+              variant={fit ? "plain" : "outline"}
               tone="secondary"
               size="sm"
               aria-label={closeLabel}
@@ -795,6 +818,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     onOpenChange,
     returnFocus,
     fullScreen = false,
+    fit = false,
     layout: layoutProp = "grid",
     // Guard props (hint types), dropped here so they never reach the DOM.
     slides,
@@ -891,6 +915,8 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   // Where a finger or pen came down on a thumbnail, until it lifts or a scroll takes it.
   const tapFrom = useRef<{ x: number; y: number } | null>(null);
   const popup = useRef<HTMLDivElement | null>(null);
+  // Whether the press now under way began beside the picture, in a fitted viewer.
+  const pressedBeside = useRef(false);
   const shown = useRef(0);
   const viewer = (
     <DialogRoot open={open && (controlled || ready)} onOpenChange={(next) => setOpen(next)}>
@@ -904,11 +930,27 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               // controlled, what had focus (nothing when the page had none).
               if (!node || node.style.transformOrigin) return;
               const from = controlled ? opener : thumbnails.current[start]!;
-              if (from && from !== document.body) node.style.transformOrigin = zoomOrigin(from, node);
+              if (!from || from === document.body) return;
+              if (!fit) {
+                node.style.transformOrigin = zoomOrigin(from, node);
+                return;
+              }
+              const { scale, x, y } = fitFrom(from, node, images[controlled ? (indexProp ?? 0) : start]);
+              node.style.transformOrigin = "50% 50%";
+              node.style.setProperty("--ouro-lightbox-from-scale", String(scale));
+              node.style.setProperty("--ouro-lightbox-from-x", `${Math.round(x)}px`);
+              node.style.setProperty("--ouro-lightbox-from-y", `${Math.round(y)}px`);
             }}
             size="lg"
-            className={fullScreen ? cn(popupClass, fullScreenClass) : popupClass}
-            data-full-screen={fullScreen ? "" : undefined}
+            className={fit ? fitClass : fullScreen ? cn(popupClass, fullScreenClass) : popupClass}
+            data-full-screen={fullScreen && !fit ? "" : undefined}
+            data-fit={fit ? "" : undefined}
+            onPointerDown={fit ? (event) => (pressedBeside.current = beside(event.target)) : undefined}
+            onClick={fit ? (event) => {
+              const was = pressedBeside.current;
+              pressedBeside.current = false;
+              if (was && beside(event.target)) setOpen(false);
+            } : undefined}
             aria-labelledby={nameId}
             initialFocus={() => popup.current!.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")}
             // Focus goes to the thumbnail of the image last shown. Controlled, that is what
@@ -931,6 +973,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
               positionLabel={positionLabel}
               originalLabel={originalLabel}
               zoomLabel={zoomLabel}
+              fit={fit}
               shownRef={shown}
             />
           </DialogPopupUnchecked>

@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin, type Rolldown } from "vite";
+import { squircleCorners } from "../registry/ouro/lib/ouro/squircle-corners.ts";
 import { colorMixFallbacks } from "./scripts/color-mix-fallbacks.mts";
 import { claimEvidencePlugin } from "./scripts/claim-evidence.mts";
 import { proofPlugin } from "./scripts/proof.mts";
@@ -102,6 +103,7 @@ export default defineConfig(({ isSsrBuild }) => ({
   base: "/",
   // claimEvidencePlugin: a page ships its claims' words, not their sources and checks (scripts/claim-evidence.mts).
   plugins: [claimEvidencePlugin(), react(), tailwindcss(), colorMixFallbacks(), chunkEvidence(repo), proofPlugin()],
+  css: { postcss: { plugins: [squircleCorners()] } },
   // `@/` is the repo root, as in the registry source, so the site imports components the
   // way an app's components.json alias does.
   resolve: { alias: { "@": repo } },

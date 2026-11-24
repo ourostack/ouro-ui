@@ -24,8 +24,6 @@ export function runtimeSource(path) {
   if (!/\.(ts|tsx)$/.test(path) || /\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\.touch\.test\./.test(path)) return false;
   // A file vendored from core can't take a Stryker comment without breaking its pin (scripts/vendored.mjs).
   if (vendored.includes(path)) return false;
-  // The squircle engine is ourostack/hyperellipse's, mutated and tested there.
-  if (path.startsWith("registry/ouro/lib/ouro/squircle/")) return false;
   // The build-time plugin runs in Node, so its tests are node:test (scripts/squircle-corners.test.mjs).
   if (path === `${libDir}squircle-corners.ts`) return false;
   // ouro-build-source.ts runs only under Node (it shells to real git), so, like squircle, it is

@@ -13,6 +13,9 @@ export {
   isIsoDate,
   layoutDay,
   lineCount,
+  awayBarClass,
+  awayFillClass,
+  awaySwatchClass,
   markedMutedClass,
   minuteClock,
   minVisibleMinutes,
@@ -53,8 +56,8 @@ type TimeGridTone = "primary" | "secondary" | "success" | "warning" | "destructi
 const tones: readonly TimeGridTone[] = ["primary", "secondary", "success", "warning", "destructive"];
 
 /** What an event does to the person's time, which sets how it is drawn and read. */
-type TimeGridStatus = "busy" | "tentative" | "free" | "unanswered" | "cancelled";
-const statuses: readonly TimeGridStatus[] = ["busy", "tentative", "free", "unanswered", "cancelled"];
+type TimeGridStatus = "busy" | "tentative" | "free" | "unanswered" | "cancelled" | "away";
+const statuses: readonly TimeGridStatus[] = ["busy", "tentative", "free", "unanswered", "cancelled", "away"];
 
 /** The lengths an empty slot can be, in minutes. */
 const slotSizes: readonly number[] = [15, 30, 60];
@@ -424,6 +427,20 @@ const plainFillClass =
   "bg-background pointer-fine:hover:bg-(--ouro-time-grid-hover,var(--accent)) active:bg-accent aria-[current=true]:bg-[color-mix(in_oklab,var(--foreground)_14%,var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_18%,var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--foreground)_18%,var(--background))]";
 
 /**
+ * An away event (out of office): the away colour, `--ouro-away`, over the page as a busy event's tone is, whatever
+ * the event's `tone`, so it reads apart from primary, secondary and success.
+ * @claim "the away colour" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /bg-\[color-mix\(in_oklab,var\(--ouro-away\)_var\(--ouro-time-grid-tint\)/)
+ */
+const awayFillClass =
+  "bg-[color-mix(in_oklab,var(--ouro-away)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--ouro-away)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--ouro-away)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--ouro-away)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--ouro-away)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--ouro-away)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]";
+
+/** An away event's start bar. */
+const awayBarClass = "border-(color:--ouro-away)";
+
+/** The away colour as a solid swatch, a background event's slim bar. */
+const awaySwatchClass = "border-(color:--ouro-away) bg-[color-mix(in_oklab,var(--ouro-away)_60%,var(--background))]";
+
+/**
  * A background event's fill: a step off the page whatever its tone, so it reads as secondary
  * beside the person's own events; its tone is the bar on its start edge.
  * @claim "A background event's fill" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > draws background events in a lane at each day's start, beside the person's own)
@@ -477,6 +494,7 @@ const toneSwatchClass: Record<TimeGridTone, string> = {
  */
 const barStatusClass: Record<TimeGridStatus, string> = {
   busy: "border-0 forced-colors:bg-[CanvasText]",
+  away: "border-0 forced-colors:bg-[CanvasText]",
   tentative: "border bg-transparent",
   free: "border bg-transparent",
   unanswered: "border bg-transparent border-dashed",
@@ -491,6 +509,7 @@ const barStatusClass: Record<TimeGridStatus, string> = {
  */
 const statusClass: Record<TimeGridStatus, string> = {
   busy: "border-0 border-s-3",
+  away: "border-0 border-s-3",
   tentative:
     "border-0 border-s-3 [border-inline-start-style:dashed] forced-colors:[border-inline-start-style:dashed] [background-image:repeating-linear-gradient(135deg,transparent_0_5px,color-mix(in_oklab,currentColor_4%,transparent)_5px_10px)]", // gradient-ok: a hard-stop hatch that marks a tentative event, no blend
   free: "border border-s-3",

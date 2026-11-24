@@ -7,6 +7,7 @@ import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-cont
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock } from "../components/code";
 import { href } from "../paths";
+import { StoryOpener } from "../components/story-world";
 import { Output, PartBand, PartNext } from "./shell";
 import declarations from "@/docs/guides/evidence/part-pages/core-shopping.actions.mts.txt?raw";
 import webTs from "@/docs/guides/evidence/part-pages/core-shopping.web.ts.txt?raw";
@@ -203,6 +204,7 @@ export default function ActionsPage(): JSX.Element {
   const swiftButton = swift.slice(swift.indexOf("public struct ShareShoppingListButton"), swift.indexOf("extension ShareShoppingListButton"));
   return (
     <div id="actions" className="part">
+      <StoryOpener scene="actions" line="The robot rings up the order; the bell only rings once the person says yes." short={false} />
       <div className="part-hero">
         <Hero
           layout="split"

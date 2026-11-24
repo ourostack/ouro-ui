@@ -55,7 +55,7 @@ Type: `CardProps`.
 | --- | --- | --- | --- |
 | `action` | `ReactNode` |  | One control beside the title, at the end: a menu or a share button. With `href` it stays its own tab stop, above the link. |
 | `as` | `"div" \| "article" \| "li" \| "section"` | `"div"` | The element to render: `li` in a list of cards, `article` for a self-contained item. |
-| `backdrop` | `ReactNode` |  | A picture behind the whole card, edge to edge, with the title, body and footer over it: usually an `<img alt="" />` (it fills the card, cropped to cover), and a shade of your own where the text needs it. Only the picture is clipped to the card's squircle, so its title, text and controls repaint without a clip, and where the engine has no corner-shape it takes the same squircle clip as an avatar's photo, at the card's radius. |
+| `backdrop` | `ReactNode` |  | A picture behind the whole card, edge to edge, with the title, body and footer over it: usually an `<img alt="" />` (it fills the card, cropped to cover), and a shade of your own where the text needs it. Only the picture is clipped to the card's squircle, so its title, text and controls repaint without a clip. |
 | `children` | `ReactNode` |  | The card's body, under the title. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`col-span-2`). Appearance classes warn in development; use `variant`. |
 | `description` | `ReactNode` |  | A sentence or a count under the title: "12 recipes". |

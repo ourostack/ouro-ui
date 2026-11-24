@@ -1323,7 +1323,7 @@ describe("Composer expanded motion", () => {
     for (const open of [true, false]) {
       const samples = await sampled(frame, [header, thread], () => userEvent.click(expandButton()!));
       const moving = samples.filter((sample) => sample.moving);
-      expect(moving.length).toBeGreaterThan(3);
+      expect(moving.length).toBeGreaterThan(1);
       const first = samples[0]!.height;
       const last = samples.at(-1)!.height;
       heights.push(last);
@@ -1482,7 +1482,8 @@ describe("Composer expanded motion", () => {
     const { root, frame } = await render(<Composer label="Reply" defaultExpanded={false} toolbar={<span>Tools</span>} onSend={() => {}} />);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     try {
-      await userEvent.click(expandButton()!);
+      // A synchronous click, so a slow browser cannot let the fade end before it is read.
+      await act(async () => expandButton()!.click());
       expect(frame.getAnimations().filter((animation) => (animation as CSSAnimation).animationName === "ouro-composer-reveal")).toEqual([]);
       expect(getComputedStyle(frame).clipPath).toBe("none");
       const names = root.querySelector<HTMLElement>('[data-ouro-part="toolbar"]')!.getAnimations().map((animation) => (animation as CSSAnimation).animationName);

@@ -30,12 +30,14 @@ interface Painted {
 interface Measures {
   shift: number;
   shiftNode: Node | null;
+  /** The shifts of that burst as text lines: the time, the value, the element and its boxes. */
+  shiftLog: string[];
   paint: number;
   paintNode: Element | null;
   events: { start: number; duration: number }[];
   painted: Map<Element, Painted>;
   /** Adds a layout-shift entry to the score: kept apart so a test can feed it shifts. */
-  add: (entry: { value: number; startTime: number; hadRecentInput: boolean; sources: { node: Node | null }[] }) => void;
+  add: (entry: { value: number; startTime: number; hadRecentInput: boolean; sources: { node: Node | null; previousRect?: DOMRectReadOnly; currentRect?: DOMRectReadOnly }[] }) => void;
 }
 
 interface LoadingBudgets {
@@ -56,9 +58,18 @@ function listenForMeasures(): void {
   let last = -Infinity;
   let worst = 0;
   let worstNode: Node | null = null;
+  let burstLog: string[] = [];
+  // As a person would find it: tag, id and first classes, written when the shift happens, since the node may leave later.
+  const describe = (node: Node | null) => {
+    const el = node instanceof Element ? node : (node?.parentElement ?? null);
+    if (!el) return "(removed)";
+    return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""}`;
+  };
+  const box = (r?: DOMRectReadOnly) => (r ? `${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}x${Math.round(r.height)}` : "?");
   const m: Measures = {
     shift: 0,
     shiftNode: null,
+    shiftLog: [],
     paint: 0,
     paintNode: null,
     events: [],
@@ -71,8 +82,13 @@ function listenForMeasures(): void {
         first = entry.startTime;
         worst = 0;
         worstNode = null;
+        burstLog = [];
       }
       burst += entry.value;
+      if (burstLog.length < 12) {
+        const moved = entry.sources.slice(0, 3).map((source) => `${describe(source.node)} ${box(source.previousRect)} -> ${box(source.currentRect)}`);
+        burstLog.push(`${Math.round(entry.startTime)} ms after navigation: ${entry.value.toFixed(3)}${moved.length ? `, ${moved.join("; ")}` : ""}`);
+      }
       last = entry.startTime;
       const node = entry.sources.map((source) => source.node).find(Boolean);
       if (node && entry.value > worst) {
@@ -83,6 +99,7 @@ function listenForMeasures(): void {
       if (burst > m.shift) {
         m.shift = burst;
         m.shiftNode = worstNode;
+        m.shiftLog = [...burstLog];
       }
     },
   };
@@ -185,7 +202,7 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
     else issues.push({ ref, rule, element, detail, value: value!, budget: budgets[rule as keyof LoadingBudgets], unit: rule === "layout-shift" ? "" : "ms" });
   };
   const shift = Math.round(m.shift * 1000) / 1000;
-  if (shift > budgets["layout-shift"]) report("layout-shift", m.shiftNode, shift, `shifted ${shift} while loading, over the budget of ${budgets["layout-shift"]}`);
+  if (shift > budgets["layout-shift"]) report("layout-shift", m.shiftNode, shift, `shifted ${shift} while loading, over the budget of ${budgets["layout-shift"]}${m.shiftLog.length ? `\n${m.shiftLog.join("\n")}` : ""}`);
   const paint = Math.round(m.paint);
   if (paint > budgets["first-content"]) report("first-content", m.paintNode, paint, `${paint} ms to its largest content, over the budget of ${budgets["first-content"]} ms`);
   // A control the first frames drew that is gone at rest, and a control a later frame drew over its place, with no input

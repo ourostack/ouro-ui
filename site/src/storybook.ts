@@ -28,7 +28,11 @@ export type SceneName =
   | "nautilus-porthole-free"
   | "nautilus-organ"
   | "nautilus-organ-playing"
-  | "nautilus-organ-asleep";
+  | "nautilus-organ-asleep"
+  | "actions"
+  | "composed-ui"
+  | "xray"
+  | "hackamore";
 
 export interface Scene {
   /** What the picture shows, for a screen reader: the friends in it and what they are up to. */
@@ -278,6 +282,38 @@ export const SCENES: Record<SceneName, Scene> = {
       phoneHeight: 512,
       alt: "The captain plays the Nautilus's great organ softly at night: its glowing brass pipes are the brightest light in the dim saloon, the small lilac robot pumps the bellows, Ouro listens from the organ's top, and at the great oval window the giant squid rests against the glass with its eye closed, fast asleep.",
     },
+  },
+  actions: {
+    alt: "A glass person at a market stall reaches for a brass bell; a saffron robot waits with its hand ready, and Ouro rests on a crate of apples.",
+    sky: ["#cba487","#c99e7d","#c59a7a","#c09679","#c79a7b"],
+    height: 576,
+    phoneHeight: 384,
+    band: 50,
+    night: { phoneHeight: 384 },
+  },
+  "composed-ui": {
+    alt: "In an easel studio, a glass person watches a lilac robot slide a blank card into the easel; Ouro rests on top.",
+    sky: ["#eed0a6","#f0c798","#a87443","#a17959","#784b2c"],
+    height: 576,
+    phoneHeight: 512,
+    band: 50,
+    night: { phoneHeight: 512 },
+  },
+  xray: {
+    alt: "In an apothecary, a glass person holds a brass lens to a cabinet and sees cogs inside; a sea-blue robot peeks round it, Ouro on top.",
+    sky: ["#e9cb8d","#e5ca9b","#d6b189","#cba884","#be9b78"],
+    height: 576,
+    phoneHeight: 384,
+    band: 50,
+    night: { phoneHeight: 384 },
+  },
+  hackamore: {
+    alt: "In a pear orchard, a pink robot leads a carousel horse by a rope hackamore, and Ouro sits in the saddle.",
+    sky: ["#dfb970","#f5ddb0","#f3dcc2","#e1cbb3","#957a41"],
+    height: 576,
+    phoneHeight: 512,
+    band: 50,
+    night: { phoneHeight: 512 },
   },
 };
 

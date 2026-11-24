@@ -53,6 +53,38 @@ const position = () => {
 };
 const button = (name: string) => [...popup()!.querySelectorAll<HTMLElement>("button, a")].find((element) => element.getAttribute("aria-label") === name || element.textContent === name)!;
 
+/**
+ * Watches the open viewer's position counter and timestamps every DOM change to it, so a race
+ * between a press and the app's own move explains itself without a rerun. `note` timestamps an
+ * input the DOM alone would not show, such as a click or a rerender the app chose to do.
+ */
+function watchPosition() {
+  const counter = popup()!.querySelector("[data-ouro-lightbox-position]")!;
+  const start = performance.now();
+  const elapsed = () => `+${(performance.now() - start).toFixed(0)}ms`;
+  const timeline: string[] = [`${elapsed()} start: ${position()}`];
+  const observer = new MutationObserver(() => timeline.push(`${elapsed()} dom: ${position()}`));
+  observer.observe(counter, { attributes: true, attributeFilter: ["data-pending"], characterData: true, childList: true, subtree: true });
+  return {
+    note: (event: string) => timeline.push(`${elapsed()} ${event}`),
+    /** Stops watching and returns the recorded timeline, oldest first. */
+    stop: () => {
+      observer.disconnect();
+      return timeline.join("\n");
+    },
+  };
+}
+
+/** Runs `fn`, and on failure rethrows with the viewer's position now and `watch`'s timeline appended. */
+async function withPositionEvidence<T>(watch: ReturnType<typeof watchPosition>, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    const state = popup() ? `position now: ${position()}` : "viewer now: closed";
+    throw new Error(`${(error as Error).message}\n\n${state}\nTimeline:\n${watch.stop()}`, { cause: error });
+  }
+}
+
 /** The slide whose start edge lines up with the scroller's start edge. */
 function slideInView(): number {
   const edge = viewport().getBoundingClientRect();
@@ -818,14 +850,46 @@ describe("Lightbox controlled", () => {
     await settled();
     const scroller = viewport();
     scroller.scrollTo = (() => {}) as typeof scroller.scrollTo;
-    await userEvent.click(button("Next image"));
-    // A busy runner can read the DOM before React commits the press: wait for it, not a fixed pause.
-    await expect.poll(() => popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
-    await rerender(<Lightbox label="Kitchen photos" images={images} open index={3} onOpenChange={() => {}} />);
-    // At once, before the new carousel's own scroll settles: the old choice is gone with the old carousel.
-    expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("4 of 4");
+    const watch = watchPosition();
+    await withPositionEvidence(watch, async () => {
+      await userEvent.click(button("Next image"));
+      watch.note("clicked Next image");
+      // A busy runner can read the DOM before React commits the press: wait for it, not a fixed pause.
+      await expect.poll(() => popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
+      watch.note("pending now true");
+      await rerender(<Lightbox label="Kitchen photos" images={images} open index={3} onOpenChange={() => {}} />);
+      watch.note("app rerendered at index 3");
+      // At once, before the new carousel's own scroll settles: the old choice is gone with the old carousel.
+      expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("4 of 4");
+      await settled();
+      expect(position()).toBe("4 of 4");
+    });
+  });
+
+  it("keeps a chosen position pending as long as its scroll has not actually arrived, however long that takes", async () => {
+    const images = kitchen;
+    await render(<Lightbox label="Kitchen photos" images={images} open index={0} onOpenChange={() => {}} />);
     await settled();
-    expect(position()).toBe("4 of 4");
+    const scroller = viewport();
+    // A no-op: the scroll never starts, so the only honest position is "still pending", for as long
+    // as we keep watching. Regression for ourostack/ouro-ui#3377: the carousel's settle check used to
+    // give up on a press after a stable ~300ms mismatch and report it arrived anyway, even though
+    // nothing had moved, dropping the pending position to a guess before the viewer had actually got
+    // there.
+    scroller.scrollTo = (() => {}) as typeof scroller.scrollTo;
+    const watch = watchPosition();
+    await withPositionEvidence(watch, async () => {
+      await userEvent.click(button("Next image"));
+      watch.note("clicked Next image");
+      // A busy runner can read the DOM before React commits the press: wait for it, not a fixed pause.
+      await expect.poll(() => popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
+      watch.note("pending now true");
+      // Real time, not a poll: staying pending is what passes, and long enough past the old ~300ms
+      // settle guess that a reintroduced bug would have cleared it by now.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      watch.note("waited 500ms with the scroll still never having moved");
+      expect(popup()!.querySelector("[data-ouro-lightbox-position]")!.hasAttribute("data-pending")).toBe(true);
+    });
   });
 
   it("opens on the first image without index", async () => {

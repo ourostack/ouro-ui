@@ -14,6 +14,7 @@ import { findImageFades } from "./fade-check.ts";
 import { ALIASES, behindModal, boxOf, veiled, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { AUTO_PRESS, findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
 import { findPopupJumps, watchPopups } from "./popup-check.ts";
+import { beginTrace, findTransitionFaults, stepTrace, TRANSITION_LIMITS } from "./transition-check.ts";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, type MotionReading } from "./motion-check.ts";
 import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
@@ -260,6 +261,12 @@ const LABELS: Record<string, string> = {
   "squircle-missing": "plain corner where a squircle belongs",
   jank: "jank",
   repaint: "repaints at rest",
+  jump: "jumping transition",
+  backtrack: "transition goes back",
+  "sibling-reflow": "transition reflows siblings",
+  "text-rewrap": "text re-wraps mid-transition",
+  "pop-in": "pops in mid-transition",
+  "dropped-frames": "dropped frames",
   "leaked-value": "leaked value",
   "odd-timestamp": "odd timestamp",
   "console-error": "console error",
@@ -311,9 +318,15 @@ const HINTS: Record<string, string> = {
   "shadow-scale": "pick shadows from a few elevations",
   "grey-on-colour": "use a shade of the background's own hue, or white at reduced opacity",
   "heading-hierarchy": "size headings by rank: a heading under another is smaller",
-  "squircle-missing": "register the polyfill (registerSquirclePolyfill) or clip the surface to a squircle (data-ouro-squircle); run with --engine wkwebview to see it",
+  "squircle-missing": "add squircleCorners() to your build's PostCSS plugins, or clip the surface to a squircle with clip-path; run with --engine webkit to see it",
   jank: "batch layout reads before writes, animate transform and opacity, and keep hover from moving content",
   repaint: "animate transform or opacity, outside SVG, or let the animation end",
+  jump: "ease the whole move on one easing and duration: a box's edge moves a share of its travel each frame, never half of it at once",
+  backtrack: "move each edge one way to where it ends; drive a box's size and place from one transition, not two that cross",
+  "sibling-reflow": "animate transform or opacity on the moving box and leave its neighbours' layout alone until it ends",
+  "text-rewrap": "hold the text's width through the move (a fixed width, nowrap, or a clip that grows) so its lines don't change mid-transition",
+  "pop-in": "fade or grow what appears on the same transition as the box that holds it, never switch it on part way through",
+  "dropped-frames": "keep a press's handler to a few milliseconds: defer work with startTransition or after the transition, and don't read layout in a loop",
   "leaked-value": "show a person's words for the value, or nothing, never what the program holds for itself",
   "odd-timestamp": "check the time was set before formatting it, and format it for a person: a date, a time or an age",
   "console-error": "fix what threw or warned; a warning a library prints is fixed by using it as it asks",
@@ -728,8 +741,10 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   // press that starts a navigation counts as leaving the page, even before the address changes: the page opens again
   // and that control's presses end. The finding is the presses' 75th percentile, so one slow press on a busy machine
   // does not make one; its photograph is the page after the presses.
+  const leaves = new Set<number>();
   const press = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
+    leaves.clear();
     let at = page.url();
     // Counts the navigations the page's main frame requests, which a press starts before the address changes.
     let navigations = 0;
@@ -757,6 +772,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
           } catch (problem) {
             // A navigation that committed before the listener saw its request ends the page's context, so the press left.
             if (!/Execution context was destroyed|navigat/i.test((problem as Error).message)) throw problem;
+            leaves.add(i);
             await reopen();
             break;
           }
@@ -769,6 +785,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
           const ms = await page.evaluate(interactionSince, since).catch(() => 0);
           await page.keyboard.press("Escape");
           if (navigations !== requested || page.url() !== at) {
+            leaves.add(i);
             await reopen();
             break;
           }
@@ -787,6 +804,48 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     } finally {
       page.off("request", onRequest);
     }
+  };
+  // The transition rules: each listed control is pressed once, with its transitions paused and stepped a frame at a time
+  // (transition-check.ts), and once more in real time for the longest gap between frames, since a handler that blocks
+  // the page drops frames whatever its transition is. Each control meets the page as it was loaded.
+  const transit = async (page: Page, target: Target, width: number, height: number, theme: string) => {
+    let found = 0;
+    const list = () => page.evaluate(markPressables, { limit: config.pressLimit ?? MAX_PRESSES, press: [...(config.press ?? []), ...(config.pressAll ? [AUTO_PRESS] : [])], never: NEVER_PRESS });
+    const total = (await list()).length;
+    for (let i = 0; i < total; i++) {
+      // A control whose press left the page has no transition to step.
+      if (leaves.has(i)) continue;
+      for (const stepped of [true, false]) {
+        await reach(page, target);
+        const { ref, element } = (await list())[i]!;
+        const point = await page.evaluate(pressPoint, { ref, never: NEVER_PRESS });
+        if (!point) continue;
+        const faults: { rule: string; element: string; detail: string; value?: number; budget?: number; unit?: string }[] = [];
+        if (stepped) {
+          await page.evaluate(beginTrace);
+          await page.mouse.click(point.x, point.y);
+          /* node:coverage disable */
+          try {
+            faults.push(...findTransitionFaults(await page.evaluate(stepTrace)));
+          } catch (problem) {
+            // A press that navigates ends the page's context: it has no transition to step.
+            if (!/Execution context was destroyed|navigat/i.test((problem as Error).message)) throw problem;
+          }
+          /* node:coverage enable */
+        } else {
+          await page.evaluate(resetMotion);
+          await page.mouse.click(point.x, point.y);
+          await page.waitForTimeout(400);
+          const { longestFrameMs } = await page.evaluate(readMotion);
+          if (longestFrameMs > TRANSITION_LIMITS.frameMs && longestFrameMs <= budgets.inp) faults.push({ rule: "dropped-frames", element: "the page", detail: `its longest frame took ${longestFrameMs} ms after the press (keep to ${TRANSITION_LIMITS.frameMs} ms; a press slower than the ${budgets.inp} ms input budget is the inp rule's)`, value: longestFrameMs, budget: TRANSITION_LIMITS.frameMs, unit: "ms" });
+        }
+        for (const fault of faults) {
+          found++;
+          await record(page, target, { ref, ...fault, element: `pressing ${element}: ${fault.element}` }, width, height, theme);
+        }
+      }
+    }
+    return found;
   };
   // baked-corner: each picture and video as drawn, from its top, as far as the screen shows it, with the corners the
   // screen shows of it.
@@ -1012,6 +1071,11 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await reach(tab, target);
       pressed = await press(tab, target, width, height, theme);
       await own.close();
+      const moving = await contextFor(width, height, theme, "no-preference");
+      const stage = await moving.newPage();
+      await reach(stage, target);
+      pressed += await transit(stage, target, width, height, theme);
+      await moving.close();
     }
     let walked = 0;
     if (measured && !failed && config.walk !== false && inpAt === `${width}x${height} ${theme}`) {

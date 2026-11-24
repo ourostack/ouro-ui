@@ -1,0 +1,1 @@
+- Changed: squircles are drawn by `squircleCorners()` alone: the `[data-ouro-surface]` clip-path layer, `--ouro-corner-fallback` and `registerSquirclePolyfill()` are removed, so add `squircleCorners()` to your build's PostCSS plugins (see UPGRADING.md) to keep squircles in WebKit.

@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pop-in: passes</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:60rem;margin:0 auto}button{font:inherit}</style>
+<style>.bar{position:absolute;opacity:0;transition:opacity 300ms ease-in-out}.open .bar{opacity:1}.box{height:40px;width:40px;background:#cde;transition:width 300ms ease-in-out}.open .box{width:300px}</style>
+<main><h1>Notes</h1><p>A box that opens.</p><button type="button" data-ouro-check-press onclick="w.classList.toggle('open')">Open</button><div id="w"><div class="box"></div><div class="bar"><span>Bold Italic Link Quote</span></div></div></main>

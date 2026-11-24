@@ -341,10 +341,10 @@ describe("ThemePicker", () => {
     const abyss = option(el, "abyss");
     expect(abyss.getAttribute("aria-label")).toBe("Abyss");
     expect(abyss.textContent).toBe("Abyss");
-    const name = tile(abyss).children[1] as HTMLElement;
+    const name = tile(abyss).children[0] as HTMLElement;
     expect(getComputedStyle(name).fontFamily).toContain("monospace");
     expect(getComputedStyle(name).fontSizeAdjust).toMatch(/0\.53/);
-    const square = tile(abyss).children[2] as HTMLElement;
+    const square = tile(abyss).children[1] as HTMLElement;
     expect(getComputedStyle(square).backgroundColor).toBe("rgb(15, 118, 110)");
   });
 
@@ -362,8 +362,8 @@ describe("ThemePicker", () => {
     document.head.append(wordmark);
     try {
       const el = await render(<ThemePicker presets={presets} />);
-      expect(getComputedStyle(tile(option(el, "abyss")).children[1]!).fontFamily).toBe("fantasy");
-      expect(getComputedStyle(tile(option(el, "pearl")).children[1]!).fontFamily).toContain("sans-serif");
+      expect(getComputedStyle(tile(option(el, "abyss")).children[0]!).fontFamily).toBe("fantasy");
+      expect(getComputedStyle(tile(option(el, "pearl")).children[0]!).fontFamily).toContain("sans-serif");
     } finally {
       wordmark.remove();
     }
@@ -517,13 +517,6 @@ describe("ThemePicker", () => {
     expect(getComputedStyle(tile(option(popup, "pearl"))).height).toBe("44px");
   });
 
-  it("paints each tile and its square on a surface behind its text, with the page's squircle radius to clip it where corner-shape is missing", async () => {
-    const el = await render(<ThemePicker presets={presets} />);
-    const surfaces = [...option(el, "pearl").querySelectorAll<HTMLElement>("[data-ouro-surface]")];
-    expect(surfaces).toHaveLength(2);
-    for (const surface of surfaces) expect(getComputedStyle(surface).zIndex).toBe("-1");
-    expect(getComputedStyle(el.querySelector('[role="listbox"]')!).getPropertyValue("--ouro-tp-sq").trim()).not.toBe("");
-  });
 });
 
 describe("ThemePicker popover", () => {

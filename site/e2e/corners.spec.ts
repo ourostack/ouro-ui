@@ -21,6 +21,8 @@ const ROUND_ON_PURPOSE = [
   "[data-ouro-part='dot']",
   "[data-ouro-part='thumb']",
   "[data-ouro-round]",
+  // The avatar's box is the circle that encloses its squircle surface, so its shadow follows it and the presence dot may hang over it.
+  "[data-ouro='avatar']",
   ".rounded-full",
   ".site-dot",
   ".site-dot *",

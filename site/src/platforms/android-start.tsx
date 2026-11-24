@@ -14,7 +14,7 @@ const kit = kits.android;
 /** /android/start/: the Maven repository, the library, a first button, and the person's yes, from the kit's README "Use it". */
 export default function AndroidStart(): JSX.Element {
   return (
-    <div id="android-start" className="apple">
+    <div id="android-start" className="apple platform-page">
       <SectionMenu label="Ouro UI for Android" pages={ANDROID_PAGES} current="/android/start/" />
       <StoryOpener scene="ouro-ui-android" line="Grab a basket. One repository line and one dependency, and the first phone is ripe." />
       <Hero

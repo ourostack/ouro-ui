@@ -248,7 +248,7 @@ for (const [name, css] of Object.entries(themes)) {
         mounted.push(host);
         const root = createRoot(host);
         roots.push(root);
-        const marks = { "2026-03-09": "primary", "2026-03-10": "secondary", "2026-03-11": "success", "2026-03-12": "warning", "2026-03-13": "destructive" } as const;
+        const marks = { "2026-03-09": "primary", "2026-03-10": "secondary", "2026-03-11": "success", "2026-03-12": "warning", "2026-03-13": "destructive", "2026-03-14": "away" } as const;
         await act(async () =>
           root.render(
             <TimeGrid
@@ -269,7 +269,7 @@ for (const [name, css] of Object.entries(themes)) {
           ...host.querySelectorAll('[data-slot="time-grid-mark-label"]'),
           ...[...host.querySelectorAll("[data-ouro-time-grid-summary]")].filter((summary) => summary.getAttribute("aria-label")!.includes("Away")),
         ];
-        expect(muted).toHaveLength(14);
+        expect(muted).toHaveLength(17);
         const short = muted.flatMap((element) => {
           const behind = backdrop(element);
           const value = ratio(over(getComputedStyle(element).color, behind), behind);
