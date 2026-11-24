@@ -236,7 +236,10 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // (/composed-ui/): ComposedSurface draws Card, Alert, DescriptionList, NumberField and the other composed components,
 // which no voyage page rendered before, and the voyage's pages share one stylesheet. A build of the card's own failed:
 // a second Tailwind build repeats utilities the shared one has, and its later copies override responsive classes.
-const CSS_CEILINGS = { voyage: 54 * 1024, docs: 55 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+// Raised the docs shell a KiB (26,721 bytes measured in CI run 45421717003 on main at d095eb6f9, 97 over) for the WebKit
+// squircle copies of capsule radii: since #3481 squircleCorners() gives a rounded-full rule its own @supports copy, read by
+// the capsule measure that follows it, so each rounded-full class the shell carries now adds one.
+const CSS_CEILINGS = { voyage: 54 * 1024, docs: 55 * 1024, docsShell: 27 * 1024, docsPage: 36 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the
