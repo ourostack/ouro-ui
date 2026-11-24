@@ -586,7 +586,8 @@ export const knownFindings: KnownFinding[] = [
     issue: 3286,
     theme: "nova",
     reason:
-      "Under nova's spacing scale the message bubble sits closer than the minimum gap to its actions toolbar without touching (a demo's own spacing, unrelated to scroll position); the story shows exactly that until the demo's spacing is fixed.",
+      "Under nova's spacing scale the message bubble sits closer than the minimum gap to its actions toolbar without touching (a demo's own spacing, unrelated to scroll position); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "MessageList/LongConversation",
@@ -594,7 +595,8 @@ export const knownFindings: KnownFinding[] = [
     issue: 3286,
     theme: "nova",
     reason:
-      "Under nova's spacing scale the message bubble sits closer than the minimum gap to its actions toolbar without touching (a demo's own spacing, unrelated to scroll position); the story shows exactly that until the demo's spacing is fixed.",
+      "Under nova's spacing scale the message bubble sits closer than the minimum gap to its actions toolbar without touching (a demo's own spacing, unrelated to scroll position); which pair of surfaces trips the 1px-to-6px near-miss gap, or whether any does, shifts run to run, so the story shows it only sometimes.",
+    sometimes: true,
   },
   {
     story: "NavigationRail/LongLabels",
