@@ -1,12 +1,12 @@
 import reviewsPage from "@/docs/guides/model-reviews.md?raw";
 
 /** What the latest model review found: how many models picked Ouro UI, out of how many, from how many toolkits, and when. */
-export interface Review {
+export type Review = {
   picked: number;
   models: number;
   toolkits: number;
   date: string;
-}
+};
 
 /**
  * Reads the latest review from the page its runs render (docs/guides/model-reviews.md, which `pnpm i` writes), the page
