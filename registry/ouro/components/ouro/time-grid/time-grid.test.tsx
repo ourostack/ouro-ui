@@ -420,7 +420,13 @@ describe("TimeGrid", () => {
       expect(Math.abs(line.offsetTop - index * step)).toBeLessThanOrEqual(1.5);
       expect(style.borderTopColor).toBe(getComputedStyle(lines[index % 2]!).borderTopColor);
     });
-    expect(getComputedStyle(lines[0]!).borderTopColor).not.toBe(getComputedStyle(lines[1]!).borderTopColor);
+    const probe = document.createElement("div");
+    probe.style.borderTop = "1px solid var(--border)";
+    grid.append(probe);
+    const full = getComputedStyle(probe).borderTopColor;
+    probe.remove();
+    expect(getComputedStyle(lines[0]!).borderTopColor).toBe(full);
+    expect(getComputedStyle(lines[1]!).borderTopColor).not.toBe(full);
   });
 
   it("places each event by its times on the grid's clock, and moves it with the time zone", async () => {
