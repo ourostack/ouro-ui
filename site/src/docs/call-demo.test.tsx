@@ -211,6 +211,14 @@ describe("the call window page", () => {
     }
   });
 
+  it("sizes the captions to their lines, without a tall empty slab above short ones", async () => {
+    await page.viewport(1280, 800);
+    await renderPage("/docs/call-demo/");
+    await document.fonts.ready;
+    const captions = document.querySelector<HTMLElement>('[data-site-call-demo] [data-ouro="live-captions"]')!;
+    expect(captions.getBoundingClientRect().height).toBeLessThan(88);
+  });
+
   it("says which parts of the demo are scripted", async () => {
     await renderPage("/docs/call-demo/");
     expect(document.body.textContent).toMatch(/own script/);

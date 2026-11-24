@@ -382,9 +382,7 @@ function CallDemo(): JSX.Element {
         </div>
         <div ref={bottomRef} className="grid gap-2 p-2">
           {captionsOn ? (
-            <div style={{ height: "7rem" }}>
-              <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={3} />
-            </div>
+            <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={2} />
           ) : null}
           <div className="flex min-w-0 justify-center">
             {bar}
