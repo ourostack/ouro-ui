@@ -832,7 +832,13 @@ export function Command(props: CommandProps): JSX.Element {
         if (onQueryChange) search(next);
       }}
     >
-      <div data-ouro="command" ref={inSheet ? sizePhone : undefined} data-chips-active={chipActive ? "" : undefined} className="group/command flex min-h-0 flex-1 flex-col">
+      <div
+        data-ouro="command"
+        ref={inSheet ? sizePhone : undefined}
+        // Stryker disable next-line ConditionalExpression,StringLiteral: the stylesheet reads only that the attribute is present, and the chips' own mark carries the visible state.
+        data-chips-active={chipActive ? "" : undefined}
+        className="group/command flex min-h-0 flex-1 flex-col"
+      >
         <div data-ouro-command-search="" onKeyDownCapture={enterChips} className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
           <Autocomplete.Input ref={searchInputRef} aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
@@ -861,15 +867,14 @@ export function Command(props: CommandProps): JSX.Element {
                 data-ouro-control="command"
                 data-ouro-part="recent"
                 className={commandRecentClass}
+                // Stryker disable next-line StringLiteral: the stylesheet reads only that the attribute is present.
                 data-highlighted={chipActive && index === chip ? "" : undefined}
                 onFocus={() => {
                   setChip(index);
                   setChipActive(true);
                 }}
                 onBlur={() => setChipActive(false)}
-                onPointerMove={(event) => {
-                  if (event.pointerType !== "touch") event.currentTarget.focus({ preventScroll: true });
-                }}
+                onPointerMove={(event) => event.currentTarget.focus({ preventScroll: true })}
                 onClick={() => run({ label: recent.label, onSelect: recent.onSelect })}
               >
                 <TouchTarget />

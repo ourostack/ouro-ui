@@ -184,6 +184,8 @@ describe("Command recents", () => {
     await expect.poll(() => document.activeElement === input()).toBe(true);
     await expect.poll(() => chips().some((chip) => chip.hasAttribute("data-highlighted"))).toBe(false);
     expect(getComputedStyle(rows()[1]!).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(input());
     await userEvent.keyboard("{ArrowUp}");
     expect(document.activeElement).toBe(input());
     await expect.poll(() => marked()).toEqual([rows()[0]]);
