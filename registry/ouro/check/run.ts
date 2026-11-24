@@ -3,10 +3,11 @@ export type { Budgets, CheckOptions, CheckResult, Finding, Gate, ImageEntry, Mer
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFile, copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { appendFile, copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { tmpdir } from "node:os";
 import type { Browser, BrowserType, Page, Request } from "playwright";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
@@ -22,6 +23,7 @@ import { findLayoutIssues } from "./layout-check.ts";
 import { findThemeIssues } from "./theme-check.ts";
 import { findOffThemeIssues } from "./token-check.ts";
 import { findDecisionIssues, type Decision } from "./decision-check.ts";
+import { waitForChange, watchLoop } from "./watch.ts";
 import { findInteractionIssues } from "./interaction-check.ts";
 import { findDeadZones, markReveals, movedSince, revealLayout } from "./reach-check.ts";
 import { findFirstRunIssues, type FirstRunOptions } from "./first-run-check.ts";
@@ -35,6 +37,7 @@ import { findWrapIssues, readHeroArt, type HeroArt } from "./wrap-check.ts";
 //   node scripts/ouro/check/check.ts <url | built folder>… [--pages <glob>] [--out <folder>] [--sizes WxH,…]
 //        [--themes light,dark] [--before <old report.json>] [--config ouro-check.json] [--no-axe]
 //        [--no-measured] [--engine chromium|webkit|wkwebview] [--ready-event <name>] [--shard k/n] [--images-report <file.json>] [--handoff]
+//   node scripts/ouro/check/check.ts watch <url | built folder>… [--watch <folder>…] [--every <seconds>] [--times <n>] [--sizes WxH,…] [--themes light,dark]
 //   node scripts/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config ouro-check.json] [--images-report <file.json>] [--handoff]
 //
 // Exits as every Ouro tool does (EXIT): 0 ok, 1 error (the check could not run), 2 usage, 3 findings. Playwright comes
@@ -1352,6 +1355,10 @@ interface Args {
   readyEvents: string[];
   imagesReport?: string | undefined;
   handoff: boolean;
+  watching: boolean;
+  every: number;
+  times: number;
+  folders: string[];
 }
 
 const ABOUT = [
@@ -1382,6 +1389,18 @@ const CHECK_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
   "no-measured": { type: "boolean", description: "Skip the measured rules, and press nothing." },
   "ready-event": { type: "string", repeat: true, placeholder: "<name>", description: "An event the page fires once it has drawn, besides ouro:ready." },
   ...REPORT_FLAGS,
+});
+
+const WATCH_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
+  pages: CHECK_FLAGS.pages!,
+  sizes: { ...CHECK_FLAGS.sizes!, description: "The screen sizes (default 1280x800, the one a person has open)." },
+  themes: { ...CHECK_FLAGS.themes!, description: "The colour schemes (default light)." },
+  engine: CHECK_FLAGS.engine!,
+  "ready-event": CHECK_FLAGS["ready-event"]!,
+  config: REPORT_FLAGS.config!,
+  watch: { type: "list", placeholder: "<folder,…>", description: "Folders whose changes rerun the check (default: only the clock does)." },
+  every: { type: "string", placeholder: "<seconds>", description: "Rerun at least this often (default 5)." },
+  times: { type: "string", placeholder: "<n>", description: "Stop after n runs (default: until stopped)." },
 });
 
 const URL_TARGET = /^https?:\/\//;
@@ -1430,40 +1449,53 @@ function shardOf(cli: Cli, cmd: CommandDef, input: Input): [number, number] {
 }
 
 // The arguments a run takes, each checked; a value that is refused names the command as typed, with its fix.
-function argsOf(cli: Cli, cmd: CommandDef, input: Input): Args {
+function countOf(cli: Cli, cmd: CommandDef, input: Input, name: "every" | "times", fallback: number): number {
+  const text = input[name] as string | undefined;
+  if (text === undefined) return fallback;
+  if (!(Number(text) > 0)) throw refusal("bad-value", `watch --${name}`, `takes a number above 0, not "${text}"`, fixFor(cli, cmd, input, { [name]: name === "every" ? "5" : "3" }));
+  return Number(text);
+}
+
+function argsOf(cli: Cli, cmd: CommandDef, input: Input, context: Env): Args {
   const text = (name: string) => input[name] as string | undefined;
   const merging = cmd.name === "merge";
+  const watching = cmd.name === "watch";
   const targets = (input[merging ? "folder" : "target"] as readonly string[] | undefined) ?? [];
   return {
     merge: merging,
     targets: [...targets],
     out: text("out") ?? "ouro-check",
     pages: text("pages"),
-    sizes: sizesOf(cli, cmd, input),
-    themes: themesOf(cli, cmd, input),
+    sizes: watching && input["sizes"] === undefined ? [[1280, 800]] : sizesOf(cli, cmd, input),
+    themes: watching && input["themes"] === undefined ? ["light"] : themesOf(cli, cmd, input),
     shard: shardOf(cli, cmd, input),
     engine: engineOf(cli, cmd, input),
     before: text("before"),
     config: text("config"),
-    axe: input["no-axe"] !== true,
-    measured: input["no-measured"] !== true,
+    axe: !watching && input["no-axe"] !== true,
+    measured: !watching && input["no-measured"] !== true,
     readyEvents: [...((input["ready-event"] as readonly string[] | undefined) ?? [])],
     imagesReport: text("images-report"),
     handoff: input.handoff === true,
+    watching,
+    every: watching ? countOf(cli, cmd, input, "every", 5) : 0,
+    times: watching ? countOf(cli, cmd, input, "times", Infinity) : 0,
+    folders: [...((input["watch"] as readonly string[] | undefined) ?? [])].map((folder) => resolve(context.cwd, folder)),
   };
 }
 
 // A mistyped command word is a target, so it names the word it is closest to.
 function targetRefusal(cli: Cli, target: string): AxError {
-  const word = didYouMean(target, ["merge"]);
-  return refusal("not-a-target", "check", `"${target}" is not a folder or an http(s) URL`, word ? `${cli.name} merge <out folders>` : `${cli.name} <built folder or URL>`);
+  const word = didYouMean(target, ["merge", "watch"]);
+  return refusal("not-a-target", "check", `"${target}" is not a folder or an http(s) URL`, word ? `${cli.name} ${word} <${word === "merge" ? "out folders" : "built folder or URL"}>` : `${cli.name} <built folder or URL>`);
 }
 
 // The command line as the kit reads it: a run's arguments, checked. A help request reads the defaults.
 function parseArgs(argv: string[]): Args {
-  const cli = checkTool({ cwd: process.cwd(), env: {}, log: console.log, error: console.error });
+  const context = { cwd: process.cwd(), env: {}, log: console.log, error: console.error };
+  const cli = checkTool(context);
   const parsed = parse(cli, argv);
-  return parsed.kind === "run" ? argsOf(cli, parsed.command, parsed.input) : argsOf(cli, cli.defaultCommand!, {});
+  return parsed.kind === "run" ? argsOf(cli, parsed.command, parsed.input, context) : argsOf(cli, cli.defaultCommand!, {}, context);
 }
 
 interface Env {
@@ -1584,7 +1616,7 @@ async function runCheck(context: Env, cli: Cli, cmd: CommandDef, input: Input, j
   const { cwd, env } = context;
   // Under --json, stdout holds the outcome alone, so the progress lines go to stderr.
   const log = json ? context.error : context.log;
-  const args = argsOf(cli, cmd, input);
+  const args = argsOf(cli, cmd, input, context);
   const merging = args.merge;
   const from = context.from ?? [cwd, dirname(fileURLToPath(import.meta.url))];
   for (const target of args.targets) if (!merging && !URL_TARGET.test(target) && !(await isFolder(resolve(cwd, target)))) throw targetRefusal(cli, target);
@@ -1620,7 +1652,7 @@ async function runCheck(context: Env, cli: Cli, cmd: CommandDef, input: Input, j
         axe = await readFile(file, "utf8");
       }
       const before = args.before === undefined ? { findings: [] } : await readJson<{ findings: Finding[] }>(resolve(cwd, args.before));
-      result = await check({
+      const options: CheckOptions = {
         targets: args.targets.map((t) => (URL_TARGET.test(t) ? t : resolve(cwd, t))),
         out,
         ...(args.pages === undefined ? {} : { pages: args.pages }),
@@ -1637,7 +1669,9 @@ async function runCheck(context: Env, cli: Cli, cmd: CommandDef, input: Input, j
         engine: args.engine,
         ...executable,
         log,
-      });
+      };
+      if (args.watching) return await watchChecks(args, options, log);
+      result = await check(options);
       if (!result.pages.length && args.shard[1] === 1)
         throw refusal("no-pages", "check", `No pages to check in ${args.targets.join(", ")}${args.pages === undefined ? "" : ` matching ${args.pages}`}`, null);
     }
@@ -1665,6 +1699,23 @@ async function runCheck(context: Env, cli: Cli, cmd: CommandDef, input: Input, j
   }
 }
 
+// Watch: the fast rules and the config's decisions, headless, again and again; each run prints only the findings it
+// opened and closed. The pictures of a run go to a scratch folder that is removed, so the person's windows are never touched.
+async function watchChecks(args: Args, options: CheckOptions, log: (line: string) => void): Promise<Outcome> {
+  const scratch = await mkdtemp(join(tmpdir(), "ouro-watch-"));
+  try {
+    const open = await watchLoop({
+      times: args.times,
+      log,
+      wait: () => waitForChange(args.folders, args.every),
+      run: async () => new Map((await check({ ...options, out: scratch, log: () => undefined })).findings.map((f) => [spotOf(f), `${f.rule} ${f.page} ${f.width}x${f.height} ${f.theme} ${f.element}: ${f.detail}`])),
+    });
+    return outcome({ action: "watch", state: open.size ? "needs-human" : "done", summary: `${open.size} finding(s) open after ${args.times} run(s).` });
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
+  }
+}
+
 // The tool: `check` is the default command, which runs for any leading word that is not `merge`; a target named like
 // `merge` goes after `--`.
 function checkTool(context: Env): Cli {
@@ -1688,13 +1739,23 @@ function checkTool(context: Env): Cli {
     output: "an outcome: state needs-human when gated findings remain (exit 3), else done; its summary names report.json",
     run: (input, ctx) => runCheck(context, cli, mergeCommand, input, ctx.json),
   });
+  const watchCommand: CommandDef<Outcome> = defineCommand<Outcome>({
+    name: "watch",
+    summary: "Reruns the fast rules and the config's decisions against a running dev server, headless, printing only what changed.",
+    effect: "private",
+    examples: ["ouro-check watch http://localhost:5174 --watch src --every 5"],
+    args: [{ name: "target", description: "A running dev server's URL, or a built folder.", required: true, rest: "list", missing: "Name a URL or a built folder to watch." }],
+    flags: WATCH_FLAGS,
+    output: "the findings opened (+) and closed (-) by each run; at the end, an outcome: state needs-human while findings are open (exit 3), else done",
+    run: (input, ctx) => runCheck(context, cli, watchCommand, input, ctx.json),
+  });
   const cli: Cli = defineCli({
     name: "ouro-check",
     about: ABOUT,
     exits: defineExitCodes([...BASE_EXIT_CODES, FINDINGS_EXIT_CODE]),
     outcomeExits: { ...DEFAULT_OUTCOME_EXITS, "needs-human": "findings" },
     command: checkCommand,
-    commands: [mergeCommand],
+    commands: [mergeCommand, watchCommand],
   });
   return cli;
 }

@@ -526,6 +526,14 @@ Each entry has a `name` (the person's words, which head the finding), a `selecto
 
 Only drawn elements outside a veil count. A selector the browser refuses is reported as a finding, and a malformed entry stops the run with the fix.
 
+### Watch it while you iterate
+
+`ouro-check watch <url> --watch src` reruns the fast rules and your `decisions` against a running dev server, headless, and prints only what changed: findings a run opened (`+`) and findings it closed (`-`), or `· no change`.[^check-watch] It checks one screen size (1280x800) in light, with no axe and no measured rules, and keeps its pictures in a scratch folder it removes, so a run takes seconds and the person's browser is never touched.[^check-watch]
+
+- `--watch <folder,…>` reruns when a file under a folder changes (after it has been quiet for 300 ms); `--every <seconds>` (default 5) reruns after that many seconds even when nothing changed, so a change in a place no folder names still shows up.[^check-watch]
+- `--sizes`, `--themes`, `--pages` and `--ready-event` take what they take in a full check; `--times <n>` stops after n runs, so a script can use the final exit code (3 while findings are open).[^check-watch]
+- Start it on a second dev server that no person has open, so the check never drives the view they watch.
+
 ### Hand off to a person
 
 Run `ouro check --handoff` and it writes `handoff.md` beside `summary.md`: the floor it proves, what it can't judge (whether someone finishes the task unaided, whether the words mean to them what you meant, whether they trust the screen, whether it works on their own device) and the sessions to run next.[^handoff] Declare the sessions in `ouro-check.json`, one per task, with the question that tells whether the person got there and what to watch for:
@@ -812,3 +820,5 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^vague-escape]: test:scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it verify:testExists(scripts/kits/ratchets.test.mjs::ouro-source-rules: the failure copy comment escape > counts a copy kept by a comment with a reason, so it rises against a base that lacked it)
 [^check-veil]: test:scripts/check/check.test.mts::Ouro check > a finding inside a [data-ouro-veil] layer is skipped, and the same page unveiled still fails verify:testExists(scripts/check/check.test.mts::Ouro check > a finding inside a [data-ouro-veil] layer is skipped, and the same page unveiled still fails)
 [^check-decision]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > a decision in the config is a check: it fails where its expectation, count or only breaks, and holds where the page, width or a veil leaves it out)
+
+[^check-watch]: scripts/check/check-watch.test.mts verify:testExists(scripts/check/check-watch.test.mts::Ouro check watch > watch reruns a running server's page and prints only the findings a run opened and closed, headless) verify:testExists(scripts/check/check-watch.test.mts::Ouro check watch > waitForChange resolves on a clock, and a quiet 300 ms after a file changes) verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > reads every option, and refuses what it cannot run)
