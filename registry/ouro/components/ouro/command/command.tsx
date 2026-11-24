@@ -794,14 +794,15 @@ export function Command(props: CommandProps): JSX.Element {
   // separate array to fall out of sync with what actually rendered. The attribute name and value are
   // split into their own constants so this selector's text does not itself look like a second,
   // uncontrolled data-ouro-part marker to scripts/control-matrix.mts's source scan.
-  const chipsContainer = useRef<HTMLDivElement>(null);
+  const chipsContainer = useRef<HTMLDivElement | null>(null);
+  const [chipsRow, setChipsRow] = useState<HTMLDivElement | null>(null);
   const chipAt = (index: number) => chipsContainer.current!.querySelectorAll<HTMLButtonElement>(`[${RECENT_PART_ATTR}="${RECENT_PART}"]`)[index]!;
   const [chip, setChip] = useState(0);
   // Whether a chip holds focus: the chip is then the one highlight, whether the keyboard or the pointer put it there.
   const [chipActive, setChipActive] = useState(false);
   const showRecents = recents !== undefined && recents.length > 0 && query === "";
   useLayoutEffect(() => {
-    const row = chipsContainer.current;
+    const row = chipsRow;
     if (!row) return;
     const share = () => {
       const nodes = [...row.querySelectorAll<HTMLElement>(`[${RECENT_PART_ATTR}="${RECENT_PART}"]`)];
@@ -815,7 +816,7 @@ export function Command(props: CommandProps): JSX.Element {
     const observer = new ResizeObserver(share);
     observer.observe(row);
     return () => observer.disconnect();
-  }, [showRecents, recents]);
+  }, [chipsRow, recents]);
   const enterChips = (event: KeyboardEvent<HTMLElement>) => {
     if (!showRecents || event.key !== "ArrowDown") return;
     // A row the pointer highlighted is walked from, not skipped for the chips.
@@ -879,7 +880,10 @@ export function Command(props: CommandProps): JSX.Element {
         </div>
         {showRecents && (
           <div
-            ref={chipsContainer}
+            ref={(node) => {
+              chipsContainer.current = node;
+              setChipsRow(node);
+            }}
             data-slot="command-recents"
             data-ouro-command-recents=""
             role="group"
