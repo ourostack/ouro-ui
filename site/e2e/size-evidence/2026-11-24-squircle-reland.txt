@@ -1,0 +1,13 @@
+# node scripts/size-budget.mjs site/dist, local builds, docs-shell CSS gzip bytes against
+# site/e2e/catalog.spec.ts's CSS_CEILINGS.docsShell (26624) and CSS_MARGIN (512).
+#
+# Base: main at 27bead8e7 (this pull request's merge base), pnpm site:build, no other changes:
+ok   docs-shell CSS 26538 of 26624 gzip bytes
+#
+# This pull request: main at 27bead8e7 with registry/ouro/lib/ouro/squircle-corners.ts relanding
+# #3481's cascade fixes (copy order, !important, longhands, capsule hooks) plus the new shared
+# --sq-r custom property, pnpm site:build:
+ok   docs-shell CSS 26421 of 26624 gzip bytes
+#
+# Growth over the base: 26421 - 26538 = -117 bytes (a reduction, not a growth; well under the
+# 512-byte CSS_MARGIN and the 26624 ceiling).
