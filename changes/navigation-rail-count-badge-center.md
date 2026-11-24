@@ -1,0 +1,1 @@
+- Fixed: NavigationRail's count badge centres its digits on their own glyph box with flex, instead of a line-height, so the digits sit centred in the pill whatever the badge's font leaves above its cap height.
