@@ -134,6 +134,7 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
   // and on each change of size, and as it scrolls. scrollLeft runs negative in a right-to-left row.
   useLayoutEffect(() => {
     const row = scroller.current!;
+    // Stryker disable next-line EqualityOperator: the 1px allows for rounding at the row's end; a row left exactly 1px short is the same case.
     const measure = () => setMore(row.scrollWidth - row.clientWidth - Math.abs(row.scrollLeft) > 1);
     row.addEventListener("scroll", measure);
     const observer = new ResizeObserver(measure);
