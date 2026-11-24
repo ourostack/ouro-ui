@@ -1236,6 +1236,7 @@ function CommandList({ children, className, after, snap }: { children: (group: G
       // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
       if (best > 0) node.style.maxHeight = `${best}px`;
     };
+    // Stryker disable next-line all: the observer's first callback runs fit as well; command.rows.test.tsx checks the cut.
     fit();
     const observer = new ResizeObserver(fit);
     // Stryker disable next-line all: listener wiring and the cleanup that undoes it; command.rows.test.tsx checks the cut follows the window.
