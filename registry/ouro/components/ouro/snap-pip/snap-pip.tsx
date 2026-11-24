@@ -431,6 +431,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   );
 
   /** Puts it back in its corner's place after a change around it: with the spring, or at once (`jump`). */
+  // Stryker disable next-line BooleanLiteral: the collapsed effect sets it before any reflow reads it, so its first value never shows.
   const held = useRef(false);
   const reflow = useCallback(
     (jump: boolean) => {
@@ -449,7 +450,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       go(target.current, { jump });
     },
     // Stryker disable next-line ArrayDeclaration: anchor and go keep their identity for the component's life, so any constant list keeps reflow the same.
-    [anchor, go],
+    [anchor, go, keepRects],
   );
 
   const observer = useRef<ResizeObserver | undefined>(undefined);
@@ -516,7 +517,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   useLayoutEffect(() => {
     held.current = !collapsed;
     reflow(true);
-  }, [collapsed]);
+  }, [collapsed, reflow]);
   useLayoutEffect(() => reflow(true), [stage, size, aspectRatio, reflow]);
   // New keep-out rectangles or a new inset: it follows its corner's new place with the spring.
   const keepKey = JSON.stringify((keepOut ?? []).map((item) => ("current" in item ? null : item)));
