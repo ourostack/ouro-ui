@@ -161,7 +161,7 @@ const interactive =
 // A toolbar count: a pill whose fill is the theme's --ouro-count, so it stays red in dark where --destructive is pale.
 // text-box trims the line to the cap height so the numeral sits in the middle of the pill.
 const countClass =
-  "h-[14px] min-w-[14px] justify-center gap-0 rounded-full px-[3px] text-[10px]/none font-semibold tabular-nums [font-variant-numeric:tabular-nums] [text-box:trim-both_cap_alphabetic] " +
+  "h-[16px] min-w-[16px] justify-center gap-0 rounded-full px-[3px] text-[10px]/none font-semibold tabular-nums [font-variant-numeric:tabular-nums] [text-box:trim-both_cap_alphabetic] " +
   "[--ouro-bd:transparent] [--ouro-bg:var(--ouro-count,#c50f1f)] text-white contrast-more:[--ouro-bd:currentColor]";
 const countOverlayClass = "absolute end-(--ouro-count-x,-6px) top-(--ouro-count-y,-4px) z-10";
 
