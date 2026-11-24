@@ -20,7 +20,7 @@ function selectorsOf(rules: CSSRuleList, out: string[]): void {
 }
 
 /**
- * Draws capsules as squircles where the engine lacks `corner-shape`. Sets `--sq-half` on each capsule, the variable the
+ * Draws capsules as squircles where the engine lacks `corner-shape`. Sets `--sq-half` on capsules, the variable the
  * clip from `squircleCorners()` waits on. Use it once at the root; `OuroProvider` calls it for you. It does nothing where `corner-shape` is drawn or
  * `clip-path: shape()` is missing, and returns a function that stops it.
  * @example
