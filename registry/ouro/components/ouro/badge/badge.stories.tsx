@@ -103,7 +103,7 @@ function FilterChips() {
 export const Count: Story = {
   render: () => (
     <Surface>
-      <div style={row}>
+      <div style={{ ...row, gap: 12 }}>
         <span style={{ position: "relative", display: "inline-flex", width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
           <span aria-hidden="true">✉</span>
           <Badge count overlay>
