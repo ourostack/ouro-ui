@@ -1065,9 +1065,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             const off = weekend.includes(utcDate(day).getUTCDay());
             return (
               <div key={day} className="relative min-w-0 border-0 border-s border-solid border-border">
-                <div aria-hidden="true" data-ouro-time-grid-lines="" className="pointer-events-none absolute inset-0">
+                <div aria-hidden="true" data-slot="time-grid-lines" className="pointer-events-none absolute inset-0">
                   {hourLines.map((line) => (
-                    <span key={line.at} className={line.half ? halfHourLineClass : hourLineClass} style={{ top: minutesTall(line.at) }} />
+                    <span key={line.at} data-slot="time-grid-line" className={line.half ? halfHourLineClass : hourLineClass} style={{ top: minutesTall(line.at) }} />
                   ))}
                 </div>
                 {off ? (
