@@ -59,7 +59,9 @@ function beginTrace(): void {
       if (el.getClientRects().length === 0 || count++ > 800) continue;
       const style = getComputedStyle(el);
       const own = style.visibility === "hidden" ? 0 : Number(style.opacity);
-      const parent = el.parentElement ? (opacity.get(el.parentElement) ?? 1) : 1;
+      // querySelectorAll("body *") only returns elements under body, so a match's parentElement is never null;
+      // Map#get(null) would read as a miss (undefined) all the same, so the fallback covers both.
+      const parent = opacity.get(el.parentElement!) ?? 1;
       opacity.set(el, parent * own);
       const r = el.getBoundingClientRect();
       const text = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent!.trim());
@@ -101,7 +103,9 @@ async function stepTrace(): Promise<TransitionTrace> {
   for (const el of document.querySelectorAll("body *")) {
     const id = state.ids.get(el);
     if (!id) continue;
-    parents[id] = el.parentElement ? state.ids.get(el.parentElement) : undefined;
+    // Same here: a WeakMap#get of a non-object (a null parentElement, which querySelectorAll("body *") never gives) just
+    // reads as undefined, so no separate null check is needed.
+    parents[id] = state.ids.get(el.parentElement!);
     roles[id] = targets.some((t) => el === t || el.contains(t) ? el !== t : false) ? "ancestor" : targets.some((t) => t.contains(el)) ? "motion" : "other";
     names[id] = `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 2).join(".")}` : ""}`;
     if ((el as unknown as { __ouroText?: boolean }).__ouroText) texts.push(id);

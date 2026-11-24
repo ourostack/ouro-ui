@@ -66,10 +66,50 @@ describe("transition rules", () => {
     expect(faults.map((f) => `${f.rule} ${f.element}`)).toEqual([]);
   });
 
-  it("reports an outer element's fault once, and leaves a bare trace's ids alone", () => {
+  it("still reports an element that says it may with no reason, reads a hidden sibling's opacity as zero, and names a class", async () => {
+    const host2 = document.createElement("div");
+    host2.style.cssText = "position:fixed;top:0;left:0;width:400px;overflow:hidden";
+    host2.innerHTML = '<div><div id="t-box" class="cls"></div><div id="t-skip" data-ouro-allow="transition"></div><p id="t-hidden" style="visibility:hidden">Hidden</p></div>';
+    document.body.append(host2);
+    beginTrace();
+    const jump = '[{"transform":"none"},{"transform":"translateX(200px)"}]';
+    const options = '{ "duration": 480, "easing": "steps(1, end)", "fill": "forwards" }';
+    document.getElementById("t-box")!.animate(JSON.parse(jump), JSON.parse(options));
+    document.getElementById("t-skip")!.animate(JSON.parse(jump), JSON.parse(options));
+    const result = await stepTrace();
+    const faults = findTransitionFaults(result);
+    expect(faults.map((f) => `${f.rule} ${f.element}`).sort()).toEqual(["jump div#t-box.cls", "jump div#t-skip"]);
+    host2.remove();
+  });
+
+  it("reports an outer element's fault once, leaves a bare trace's ids alone, and reads a frame missing an id as absent", () => {
     const reading = (x: number): TransitionTrace["frames"][number] => ({ a: [x, 0, x + 40, 40, 0, 1], b: [x, 0, x + 40, 40, 0, 1] });
     const frames = [reading(0), ...[0, 100, 200].map(reading)];
     const base = { frames, roles: { a: "motion", b: "motion" }, names: { a: "a", b: "b" }, parents: { a: undefined, b: "a" }, texts: [], allowed: [] } as TransitionTrace;
     expect(findTransitionFaults(base).map((f) => f.element)).toEqual(["a"]);
+
+    // A frame that drops an id partway through (as when an element briefly has no box) reads as absent there, with no
+    // crash, and an opacity that swings from shown to hidden across that gap still pops.
+    const sparse: TransitionTrace = {
+      frames: [{ c: [0, 0, 50, 50, 0, 1] }, { c: [0, 0, 50, 50, 0, 1] }, {}, { c: [0, 0, 50, 50, 0, 1] }],
+      roles: { c: "motion" },
+      names: { c: "div#c" },
+      parents: { c: undefined },
+      texts: [],
+      allowed: [],
+    };
+    expect(findTransitionFaults(sparse)).toEqual([{ rule: "pop-in", element: "div#c", detail: "it went from shown to hidden within one frame of a 3-frame transition" }]);
+
+    // A frame missing an id before any frame that still has it reads its area as 0 rather than skipping the read:
+    // `series.some` must call area() on that absent reading, not short-circuit past it on an earlier truthy one.
+    const missingFirst: TransitionTrace = {
+      frames: [{}, {}, { d: [0, 0, 50, 50, 0, 1] }],
+      roles: { d: "motion" },
+      names: { d: "div#d" },
+      parents: { d: undefined },
+      texts: [],
+      allowed: [],
+    };
+    expect(findTransitionFaults(missingFirst)).toEqual([]);
   });
 });
