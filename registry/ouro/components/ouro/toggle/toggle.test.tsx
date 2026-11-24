@@ -110,6 +110,12 @@ describe("Toggle", () => {
     expect(toggle.textContent).toBe("Bold");
   });
 
+  it("keeps its label span above the touch target with position: relative", async () => {
+    const { toggle } = await render(<Toggle label="Bold" />);
+    const label = [...toggle.querySelectorAll("span")].find((span) => span.textContent === "Bold")!;
+    expect(getComputedStyle(label).position).toBe("relative");
+  });
+
   it("with hideLabel shows only the icon, in a square, and keeps the label as the name", async () => {
     const { toggle, host } = await render(
       <>
