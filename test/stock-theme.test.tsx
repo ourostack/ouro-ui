@@ -13,6 +13,7 @@ import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swip
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text, type TextProps } from "@/registry/ouro/components/ouro/text/text";
+import { TimeGrid } from "@/registry/ouro/components/ouro/time-grid/time-grid";
 import stockCss from "./shadcn-stock.css?raw";
 
 // Every Button tone and variant, every Text tone and Heading, every Badge tone and
@@ -232,6 +233,49 @@ for (const [name, css] of Object.entries(themes)) {
         const bubble = host.querySelector<HTMLElement>("[data-ouro-message-content]")!;
         const behind = backdrop(bubble);
         expect(ratio(over(getComputedStyle(bubble).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
+      });
+
+      it("a TimeGrid's muted text on a marked day keeps 4.5:1 or more on the day's tint, in every tone", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.cssText = "background:var(--background);width:1000px";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        const marks = { "2026-03-09": "primary", "2026-03-10": "secondary", "2026-03-11": "success", "2026-03-12": "warning", "2026-03-13": "destructive" } as const;
+        await act(async () =>
+          root.render(
+            <TimeGrid
+              label="Team calendar"
+              view="week"
+              date="2026-03-12"
+              events={[]}
+              timeZone="America/New_York"
+              now="2026-03-12T10:00:00-04:00"
+              className="h-[30rem]"
+              renderDaySummary={() => "2 events"}
+              markedDays={Object.fromEntries(Object.entries(marks).map(([day, tone]) => [day, { label: `Away (${tone})`, tone }]))}
+            />,
+          ),
+        );
+        const muted = [
+          ...host.querySelectorAll("[data-ouro-time-grid-head] > [data-ouro-time-grid-marked]:not([data-today]) > span > span:last-child"),
+          ...host.querySelectorAll('[data-slot="time-grid-mark-label"]'),
+          ...[...host.querySelectorAll("[data-ouro-time-grid-summary]")].filter((summary) => summary.getAttribute("aria-label")!.includes("Away")),
+        ];
+        expect(muted).toHaveLength(14);
+        const short = muted.flatMap((element) => {
+          const behind = backdrop(element);
+          const value = ratio(over(getComputedStyle(element).color, behind), behind);
+          return value < 4.5 ? [`${element.textContent}: ${value.toFixed(2)}`] : [];
+        });
+        expect(short).toEqual([]);
       });
 
       it.each(["background", "popover"] as const)("every tone and variant has text at 4.5:1 or more on the %s", async (surface) => {

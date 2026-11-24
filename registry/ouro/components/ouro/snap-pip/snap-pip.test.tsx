@@ -2,7 +2,7 @@ import { Activity, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, server, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { AX_ACTION_ATTRIBUTE, expectAxRendered } from "@/registry/ouro/ax/component";
 import { SnapPiP, type SnapPiPCorner, type SnapPiPProps } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
 import { anchorFor, cornerToward, HINT_DELAY, nearestCorner, snapPipAx, widthFor } from "@/registry/ouro/components/ouro/snap-pip/snap-pip-styles";
@@ -161,14 +161,14 @@ function middle(element: Element): [number, number] {
 
 let clock = 1000;
 /** Dispatches a pointer event on the picture `ms` after the last one. While the pointer is down its button is held. */
-async function fire(type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel", x: number, y: number, ms = 16) {
+async function fire(type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel", x: number, y: number, ms = 16, target?: Element) {
   clock += ms;
   const buttons = type === "pointerdown" || type === "pointermove" ? 1 : 0;
   // Not the mouse's id (1), so a real pointer event the browser sends mid-test is no part of this gesture.
   const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: "touch", isPrimary: true, button: 0, buttons, clientX: x, clientY: y });
   Object.defineProperty(event, "timeStamp", { value: clock });
   await act(async () => {
-    pip().dispatchEvent(event);
+    (target ?? pip()).dispatchEvent(event);
   });
 }
 /** Drags the picture by (dx, dy) in `steps` moves `ms` apart, and lifts the pointer `release` ms after the last. */
@@ -252,6 +252,80 @@ describe("SnapPiP", () => {
     expect(hint().getBoundingClientRect().left).toBe(top.getBoundingClientRect().left);
     await act(async () => top.blur());
     expect(hintShown()).toBe(false);
+  });
+
+  it("hides to a Show button with the Hide button or Escape, keeps its content and focus, and shows again", async () => {
+    const changes: boolean[] = [];
+    await render(self({ onCollapsedChange: (next) => changes.push(next) }));
+    expect(page.getByRole("button", { name: "Hide Your camera", exact: true }).element()).toBeTruthy();
+    const hide = page.getByRole("button", { name: "Hide Your camera", exact: true }).element();
+    expect(hide.getAttribute("aria-expanded")).toBe("true");
+    expect(hide.getAttribute("data-variant")).toBe("plain");
+    await userEvent.click(hide);
+    const show = page.getByRole("button", { name: "Show Your camera", exact: true });
+    expect(changes).toEqual([true]);
+    expect(show.element().getAttribute("aria-expanded")).toBe("false");
+    expect(show.element().getAttribute("data-variant")).toBe("soft");
+    expect(pip().getAttribute("data-collapsed")).toBe("");
+    expect(stage.querySelector('[data-testid="video"]')).not.toBeNull();
+    expect(pip().getBoundingClientRect().width).toBeGreaterThanOrEqual(44);
+    expect(pip().getBoundingClientRect().width).toBeLessThan(60);
+    expect(document.activeElement).toBe(show.element());
+    await userEvent.click(show);
+    expect(changes).toEqual([true, false]);
+    expect(pip().hasAttribute("data-collapsed")).toBe(false);
+    expect(pip().getBoundingClientRect().width).toBe(160);
+    // Escape, with the hint not showing, hides it too.
+    pip().focus();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.keyboard("{Escape}");
+    expect(changes).toEqual([true, false, true]);
+    // An Escape from the app's own content inside it is that content's.
+    await userEvent.click(page.getByRole("button", { name: "Show Your camera", exact: true }));
+    const inner = document.createElement("button");
+    stage.querySelector('[data-testid="video"]')!.append(inner);
+    inner.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(changes).toEqual([true, false, true, false]);
+    // Without a handler there is no button.
+    await render(self());
+    expect(stage.querySelector('[data-ouro-part="collapse"]')).toBeNull();
+  });
+
+  it("keeps a press, a double-click and Escape on its Hide button from moving or resizing the picture", async () => {
+    const outside = vi.fn();
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && outside();
+    document.addEventListener("keydown", onKey);
+    try {
+      const element = await render(self({ onCollapsedChange: () => undefined }));
+      const button = page.getByRole("button", { name: "Hide Your camera", exact: true }).element() as HTMLElement;
+      const [x, y] = middle(button);
+      const before = at();
+      const hidePath = button.querySelector("path")!.getAttribute("d");
+      await fire("pointerdown", x, y, 0, button);
+      await fire("pointermove", x - 40, y - 40, 0, button);
+      expect(element.hasAttribute("data-dragging")).toBe(false);
+      expect(at()).toEqual(before);
+      await fire("pointerup", x - 40, y - 40, 150, button);
+      await act(async () => void button.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
+      expect(element.getAttribute("data-size")).toBe("small");
+      button.focus();
+      await userEvent.keyboard("a");
+      expect(element.hasAttribute("data-collapsed")).toBe(false);
+      await userEvent.keyboard("{Escape}");
+      expect(element.hasAttribute("data-collapsed")).toBe(true);
+      expect(outside).not.toHaveBeenCalled();
+      expect(page.getByRole("button", { name: "Show Your camera", exact: true }).element().querySelector("path")!.getAttribute("d")).not.toBe(hidePath);
+    } finally {
+      document.removeEventListener("keydown", onKey);
+    }
+  });
+
+  it("follows a controlled collapsed prop", async () => {
+    const element = await render(self({ collapsed: true, onCollapsedChange: () => undefined }));
+    expect(element.hasAttribute("data-collapsed")).toBe(true);
+    await userEvent.click(page.getByRole("button", { name: "Show Your camera", exact: true }));
+    expect(element.hasAttribute("data-collapsed")).toBe(true);
   });
 
   it("puts the hint away on Escape, a move or a press, until focus and the pointer have left", async () => {

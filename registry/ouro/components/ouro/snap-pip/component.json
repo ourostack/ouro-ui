@@ -1,10 +1,23 @@
 {
   "order": 2650,
-  "components": ["snap-pip"],
-  "titles": { "snap-pip": "SnapPiP" },
+  "components": [
+    "snap-pip"
+  ],
+  "titles": {
+    "snap-pip": "SnapPiP"
+  },
   "controls": {
     "snap-pip": [
-      {"part": "pip", "role": "group", "portal": false}
+      {
+        "part": "pip",
+        "role": "group",
+        "portal": false
+      },
+      {
+        "part": "collapse",
+        "role": "button",
+        "portal": false
+      }
     ]
   }
 }

@@ -1,0 +1,7 @@
+{
+  "registry/ouro/components/ouro/scroll-area/scroll-area.tsx": "scroll-edge fade mask; becomes a glass bar or nothing",
+  "registry/ouro/components/ouro/tabs/tabs-styles.ts": "scroll-edge fade mask on a row of tabs; becomes nothing",
+  "registry/ouro/components/ouro/time-grid/time-grid.tsx": "scroll-edge fade mask on the hours; becomes nothing",
+  "registry/ouro/lib/ouro/scroll-fade.ts": "the shared scroll-edge fade mask; removed with its users",
+  "registry/ouro/theme/ouro-base.css": "reads the shared scroll-edge fade ramps; removed with them"
+}

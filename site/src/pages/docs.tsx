@@ -11,7 +11,7 @@ import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode, InlinePath } from "../components/code";
 import { CatalogPreview } from "../components/catalog-preview";
 import { DocsShell } from "../components/docs-shell";
-import { PatternPreview, patternStories, type PatternName } from "../components/pattern-preview";
+import { patternStories, type PatternName } from "../components/pattern-names";
 import { SurpriseMe } from "../components/surprise-me";
 import type { SceneName } from "../storybook";
 import { DemoFrame, DemoStage } from "../components/phone-demo";
@@ -31,6 +31,8 @@ import itemSources from "../docs/sources.json";
 
 // Only the theming guide shows the looks, so the other pages' first JavaScript leaves them out.
 const ThemeDots = lazy(() => import("../voyage/theme-dots").then((module) => ({ default: module.ThemeDots })));
+// Only the patterns guide draws a pattern live, so the other pages' first JavaScript leaves the frame's code out.
+const PatternPreview = lazy(() => import("../components/pattern-preview").then((module) => ({ default: module.PatternPreview })));
 
 // The prerender links each page's Tailwind sheet in its head, the shared shell or the whole build (site/scripts/prerender.mts).
 // The dev server has no prerender, so it loads the whole build here.
@@ -295,7 +297,11 @@ function PatternSections({ blocks, link }: { blocks: Block[]; link: (target: str
         return (
           <section key={index}>
             <Markdown blocks={section} link={link} />
-            {name in patternStories && <PatternPreview name={name as PatternName} />}
+            {name in patternStories && (
+              <Suspense fallback={null}>
+                <PatternPreview name={name as PatternName} />
+              </Suspense>
+            )}
           </section>
         );
       })}
@@ -452,6 +458,9 @@ export function DocsIndex(): JSX.Element {
           <Door to="/docs/chat-demo/" title="A chat app">
             The chat components composed into one app you can try.
           </Door>
+          <Door to="/docs/call-demo/" title="A call window">
+            The call components composed into one window you can try.
+          </Door>
           <Door to="/docs/updating/" title="Updating components">
             Review upstream changes, then overwrite and reapply your edits.
           </Door>
@@ -546,6 +555,8 @@ export function Switching(): JSX.Element {
 // docs page's first script (site/e2e/catalog.spec.ts, the docs size ceiling).
 const chatDemoModules = import.meta.glob<{ default: () => JSX.Element }>("../docs/chat-demo.tsx");
 const ChatDemoPage = lazy(Object.values(chatDemoModules)[0]!);
+const callDemoModules = import.meta.glob<{ default: () => JSX.Element }>("../docs/call-demo.tsx");
+const CallDemoPage = lazy(Object.values(callDemoModules)[0]!);
 
 export function Updating(): JSX.Element {
   return (
@@ -653,7 +664,7 @@ export async function prepare(path: string): Promise<void> {
 /** Whether the docs module has no page for a path, so it shows Not found. */
 function lost(path: string): boolean {
   const route = routeFor(path)?.path;
-  return route !== "/docs/" && route !== "/docs/demo/" && route !== "/docs/switching-from-shadcn/" && route !== "/docs/updating/" && route !== "/docs/chat-demo/" && !docFor(path);
+  return route !== "/docs/" && route !== "/docs/demo/" && route !== "/docs/switching-from-shadcn/" && route !== "/docs/updating/" && route !== "/docs/chat-demo/" && route !== "/docs/call-demo/" && !docFor(path);
 }
 
 /** The docs module's page for a path: the index, a guide, a component's page, or Not found. */
@@ -664,6 +675,7 @@ export default function DocsRoute({ path }: { path: string }): JSX.Element {
   if (route === "/docs/switching-from-shadcn/") return <Switching />;
   if (route === "/docs/updating/") return <Updating />;
   if (route === "/docs/chat-demo/") return <Suspense fallback={null}><ChatDemoPage /></Suspense>;
+  if (route === "/docs/call-demo/") return <Suspense fallback={null}><CallDemoPage /></Suspense>;
   if (lost(path)) return <NotFound />;
   const doc = docFor(path)!;
   return "item" in doc ? <DocsComponent item={doc.item} /> : <DocsPageView page={doc.page} />;

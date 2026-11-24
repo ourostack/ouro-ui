@@ -140,9 +140,11 @@ export const pageScanTimeout = 30_000;
 /**
  * Runs the accessibility gate over the whole document (`audit` in the test kit): a site page is a
  * full page, so every rule applies, every violation fails whatever its impact, and every check axe
- * could not decide fails unless a measurement passes it.
+ * could not decide fails unless a measurement passes it. It brings the page to rest first ({@link settle}), so nothing
+ * the page adds once idle, such as the Navbar's sheet and its heading on a phone, arrives mid-scan (#3282).
  */
 export async function scan(): Promise<GateFinding[]> {
+  await settle();
   // Base UI's focus guards are excluded for the reason given in test/story-axe.ts. A pattern's live preview is a Storybook
   // frame, which axe cannot enter (frame-tested); the story test scans that page, and the docs test checks the frame's title.
   return audit({ include: [document.documentElement], exclude: [...axeExclude, "iframe[data-pattern-frame]"].map((selector) => [selector]) });

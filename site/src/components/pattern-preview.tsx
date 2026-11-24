@@ -1,11 +1,7 @@
 import { useSyncExternalStore, type JSX } from "react";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { href } from "../paths";
-
-/** The page patterns that have a story, by the name `registry/ouro/patterns/<name>` gives them. */
-export const patternStories = { "settings-page": "settings", "dashboard-page": "dashboard", "list-detail-page": "list-detail" } as const;
-
-export type PatternName = keyof typeof patternStories;
+import { patternStories, type PatternName } from "./pattern-names";
 
 function watchScheme(notify: () => void): () => void {
   const observer = new MutationObserver(notify);

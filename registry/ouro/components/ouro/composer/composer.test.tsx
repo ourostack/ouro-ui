@@ -1815,3 +1815,37 @@ describe("Composer with a catalogue", () => {
     expect((await paste(textarea, "🎉")).defaultPrevented).toBe(false);
   });
 });
+
+describe("Composer text at rest", () => {
+  /** Where the placeholder's capital letters centre: the line's baseline from the font's ascent and descent, less half a cap height. */
+  function capCentre(textarea: HTMLTextAreaElement) {
+    const style = getComputedStyle(textarea);
+    const context = document.createElement("canvas").getContext("2d")!;
+    context.font = style.font;
+    const { fontBoundingBoxAscent: ascent, fontBoundingBoxDescent: descent } = context.measureText("H");
+    const cap = context.measureText("H").actualBoundingBoxAscent;
+    const lineHeight = parseFloat(style.lineHeight);
+    const lineTop = textarea.getBoundingClientRect().top + parseFloat(style.borderTopWidth) + parseFloat(style.paddingTop);
+    return lineTop + (lineHeight - (ascent + descent)) / 2 + ascent - cap / 2;
+  }
+  const middle = (element: Element) => {
+    const { top, height } = element.getBoundingClientRect();
+    return top + height / 2;
+  };
+
+  it("centres the placeholder on its cap height in the box, level with the send button", async () => {
+    const { frame, textarea, send } = await render(<Composer label="Reply" placeholder="Message Mia" onSend={() => {}} />);
+    expect(Math.abs(capCentre(textarea) - middle(frame))).toBeLessThanOrEqual(0.75);
+    expect(Math.abs(middle(send) - middle(frame))).toBeLessThanOrEqual(0.75);
+  });
+
+  it("keeps the actions at the bottom when the text takes three lines", async () => {
+    const { host, textarea, send } = await render(<Composer label="Reply" onSend={() => {}} />);
+    const body = host.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
+    await userEvent.fill(textarea, "One\nTwo\nThree");
+    await expect.poll(() => textarea.getBoundingClientRect().height).toBeGreaterThan(parseFloat(getComputedStyle(textarea).lineHeight) * 3);
+    const tools = send.parentElement!.getBoundingClientRect();
+    expect(Math.abs(tools.bottom - body.getBoundingClientRect().bottom)).toBeLessThanOrEqual(0.75);
+    expect(tools.top).toBeGreaterThan(textarea.getBoundingClientRect().top + 20);
+  });
+});
