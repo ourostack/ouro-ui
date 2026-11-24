@@ -963,5 +963,11 @@ describe("findDesignIssues: count-badge", () => {
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="background:transparent;color:#111;line-height:6px">7</span></span>
 <span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="display:flex;align-items:center;justify-content:center;text-box:trim-both cap alphabetic">8</span></span>`);
     expect(of("count-badge", slack)).toEqual([]);
+    // With no slack, a centred count still reads a fraction of a pixel off: its ink is measured finer than the whole
+    // pixels a Linux host rounds a font's metrics to at a badge's size (WebKit read every one as exactly centred, Chromium
+    // as 1px high).
+    const exact = of("count-badge", { badgeSlackPx: 0 });
+    expect(exact.length).toBeGreaterThan(0);
+    for (const { detail } of exact) expect(detail).toMatch(/^its numerals sit 0\.\dpx (high|low|to the (left|right))( and 0\.\dpx to the (left|right))? of/);
   });
 });
