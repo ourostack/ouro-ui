@@ -74,9 +74,9 @@ export interface SegmentedControlProps {
   /** Stretches the control to the width of its container, with the segments sharing it equally. */
   fullWidth?: boolean | undefined;
   /**
-   * Draws the control as a Liquid Glass capsule for a window toolbar: 40px tall, the theme's glass behind blur, and a
-   * glass thumb. Only the checked segment shows its label (and count); the others show their `icon`, so give each
-   * segment an `icon`. Solid under reduced transparency or more contrast.
+   * Draws the control as a Liquid Glass capsule for a window toolbar, in the theme's glass behind blur, with a glass
+   * thumb. The checked segment shows its label and count while the others show their `icon`, so give the segments an
+   * `icon`. It turns solid under reduced transparency or more contrast.
    */
   glass?: boolean | undefined;
   /**

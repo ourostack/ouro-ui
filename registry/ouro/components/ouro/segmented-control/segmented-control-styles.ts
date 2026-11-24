@@ -92,8 +92,7 @@ const segmentClass =
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
 /**
- * Liquid Glass for a window toolbar: a 40px capsule of the theme's glass with a rim, and a glass thumb. Solid under
- * reduced transparency or more contrast.
+ * Liquid Glass for a window toolbar: a capsule of the theme's glass with a rim, and a glass thumb.
  *
  * @internal
  */
@@ -111,6 +110,6 @@ const glassGroupClass =
 /** A segment's icon, before its label. @internal */
 const iconClass = "me-1.5 inline-flex shrink-0 items-center [&:only-child]:me-0 [&_svg]:size-4";
 
-/** A count: a 14px pill inside the segment, after its label, at one offset. @internal */
+/** A count pill inside the segment, after its label. @internal */
 const countClass =
   "ms-1.5 inline-flex h-3.5 min-w-3.5 shrink-0 items-center justify-center rounded-full bg-foreground/15 px-1 text-[10px] leading-none font-medium tabular-nums";
