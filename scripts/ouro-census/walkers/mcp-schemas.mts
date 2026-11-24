@@ -31,7 +31,7 @@ function readSource(fileName: string, text: string): { lines: Map<string, number
     if (ts.isObjectLiteralExpression(node)) {
       const named = (p: ts.ObjectLiteralElementLike, key: string) => ts.isPropertyAssignment(p) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === key;
       const name = node.properties.find((p) => named(p, "name"));
-      if (name && ts.isPropertyAssignment(name) && node.properties.some((p) => named(p, "inputSchema") || (ts.isShorthandPropertyAssignment(p) && p.name.text === "inputSchema"))) {
+      if (name && ts.isPropertyAssignment(name) && node.properties.some((p) => named(p, "inputSchema") || (ts.isShorthandPropertyAssignment(p) && (p.name as ts.Identifier).text === "inputSchema"))) {
         const init = name.initializer;
         if (isText(init)) {
           const line = sourceFile.getLineAndCharacterOfPosition(name.getStart(sourceFile)).line + 1;

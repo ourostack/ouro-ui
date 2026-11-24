@@ -146,7 +146,7 @@ function impureRead(expr: ts.Node, seen = new Set<ts.Node>()): { name: string; l
 
 /** The parameter or local variable an identifier reads, from the functions around it; null at module scope. */
 function declarationOf(id: ts.Identifier): ts.ParameterDeclaration | ts.VariableDeclaration | null {
-  const binds = (b: ts.BindingName): boolean => (ts.isIdentifier(b) ? b.text === id.text : b.elements.some((e) => !ts.isOmittedExpression(e) && binds(e.name)));
+  const binds = (b: ts.BindingName): boolean => (ts.isIdentifier(b) ? b.text === id.text : b.elements.some((e) => !ts.isOmittedExpression(e) && !!e.name && binds(e.name)));
   for (let n: ts.Node | undefined = id.parent; n; n = n.parent) {
     if (!isFn(n)) continue;
     const param = n.parameters.find((p) => binds(p.name));

@@ -125,7 +125,7 @@ export class Sources {
     const env = new Map<string, Binding>();
     const bindPattern = (pattern: ts.ArrayBindingPattern, offset: number) => {
       pattern.elements.forEach((el, i) => {
-        if (!ts.isOmittedExpression(el) && ts.isIdentifier(el.name)) env.set(el.name.text, el.dotDotDotToken ? { arr: offset + i } : { word: offset + i });
+        if (!ts.isOmittedExpression(el) && !!el.name && ts.isIdentifier(el.name)) env.set(el.name.text, el.dotDotDotToken ? { arr: offset + i } : { word: offset + i });
       });
     };
     const bind = (name: ts.BindingName, init: ts.Expression) => {
@@ -139,7 +139,7 @@ export class Sources {
       const arr = arrayOf(init);
       if (arr === null) return;
       if (ts.isArrayBindingPattern(name)) bindPattern(name, arr);
-      else for (const el of name.elements) if (ts.isIdentifier(el.name)) env.set(el.name.text, { arr });
+      else for (const el of name.elements) if (el.name && ts.isIdentifier(el.name)) env.set(el.name.text, { arr });
     };
     if (!ts.isSourceFile(body)) {
       body.parameters.forEach((p, i) => {
@@ -275,7 +275,7 @@ export class Sources {
       if (ts.isArrayLiteralExpression(e)) return e.elements.filter(isText);
       if (ts.isNewExpression(e)) return e.arguments?.[0] ? tableOf(e.arguments[0]) : null;
       if (ts.isObjectLiteralExpression(e)) {
-        return e.properties.map((p) => p.name).filter((n): n is ts.Identifier | ts.StringLiteral => !!n && (ts.isIdentifier(n) || ts.isStringLiteral(n)));
+        return e.properties.map((p) => (p as ts.PropertyAssignment).name).filter((n): n is ts.Identifier | ts.StringLiteral => !!n && (ts.isIdentifier(n) || ts.isStringLiteral(n)));
       }
       return null;
     };

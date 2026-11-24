@@ -29,7 +29,7 @@ const isProcess = (n: ts.Node): boolean =>
 const isArgv = (n: ts.Node): boolean =>
   (ts.isPropertyAccessExpression(n) && isProcess(n.expression) && n.name.text === "argv") ||
   (ts.isElementAccessExpression(n) && isProcess(n.expression) && ts.isStringLiteral(n.argumentExpression) && n.argumentExpression.text === "argv") ||
-  (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && !!n.initializer && isProcess(n.initializer) && n.name.elements.some((e) => (e.propertyName ?? e.name).getText() === "argv"));
+  (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && !!n.initializer && isProcess(n.initializer) && n.name.elements.some((e) => (e.propertyName ?? e.name)?.getText() === "argv"));
 
 /** The node of the module's first `process.argv` read when the module is an entry point, else null. */
 function entryRead(sf: ts.SourceFile): ts.Node | null {
