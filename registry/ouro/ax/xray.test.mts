@@ -323,6 +323,15 @@ test("an MCP server: listed tools, annotations, a bad call refused naming the ar
   assert.match(dead.results[0]!.note, /no answer to initialize/);
 });
 
+test("an MCP tool whose description promises a stream fails: this transport answers once per call, never a stream", async () => {
+  const report = await xray(base({ mcp: fixture("mcp-server.mjs") }));
+  assert.deepEqual(report.results.filter((r) => r.claim === "mcp.no-stream-promise").map((r) => r.verdict), ["pass", "pass"]);
+  const streaming = await xray(base({ mcp: fixture("mcp-server.mjs"), env: { MCP_MODE: "stream" } }));
+  const tail = streaming.results.find((r) => r.claim === "mcp.no-stream-promise" && r.surface === "tail")!;
+  assert.equal(tail.verdict, "fail");
+  assert.match(tail.note, /answers one reply, never a stream/);
+});
+
 test("the reports: Markdown and HTML list every claim and surface", async () => {
   const report = await xray(base({ mcp: fixture("mcp-server.mjs") }));
   const md = renderMarkdown(report);

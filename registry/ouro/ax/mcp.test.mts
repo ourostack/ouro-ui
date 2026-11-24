@@ -20,6 +20,45 @@ const handle = createMcpHandler({ cli, version: "1.0.0", maxChars: 300 });
 const call = async (name: string, args: unknown) => ((await handle({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } })) as { result: { content: { text: string }[]; isError: boolean; structuredContent?: { error?: { code: string; fix: string } } } }).result;
 beforeEach(resetRooms);
 
+test("a word that only disambiguates the CLI's longer form is left out of the MCP schema, with every other property described", () => {
+  const t = defineCli({
+    name: "t",
+    about: ["t"],
+    commands: [
+      defineCommand({
+        name: "react",
+        summary: "React to a message.",
+        effect: "private",
+        readOnly: true,
+        args: [
+          { name: "message", description: "The message to react to.", required: true },
+          { name: "emoji", description: "The emoji to react with.", required: true },
+          { name: "third", description: "A fourth CLI word some installs still send after the emoji; it means nothing on its own.", cliOnly: true, required: true },
+        ],
+      }),
+    ],
+  });
+  const tool = mcpTools({ cli: t }).find((x) => x.name === "react")!;
+  assert.deepEqual(Object.keys(tool.inputSchema.properties!), ["message", "emoji"]);
+  assert.deepEqual(tool.inputSchema.required, ["message", "emoji"]);
+  for (const prop of Object.values(tool.inputSchema.properties!)) assert.ok(prop.description);
+});
+
+test("a command whose CLI streams forever is left out of the MCP tool list", () => {
+  const t = defineCli({
+    name: "t",
+    about: ["t"],
+    commands: [
+      defineCommand({ name: "tail", summary: "Streams new log lines as they arrive, forever.", effect: "private", readOnly: true, streams: true }),
+      defineCommand({ name: "rooms", summary: "R.", effect: "private", readOnly: true }),
+    ],
+  });
+  assert.deepEqual(
+    mcpTools({ cli: t }).map((x) => x.name),
+    ["rooms"],
+  );
+});
+
 test("initialize, ping and tools/list: one tool per command, schema and effect annotations from the definition", async () => {
   const older = createRawHandler({ cli, version: "1.0.0" });
   const init = (await older({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-03-26" } })) as { result: { protocolVersion: string; serverInfo: { name: string } } };
