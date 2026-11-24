@@ -29,8 +29,8 @@ describe("Badge count", () => {
     );
     const [one, two] = [...page.querySelectorAll<HTMLElement>('[data-ouro="badge"]')] as [HTMLElement, HTMLElement];
     const style = getComputedStyle(one);
-    expect(one.getBoundingClientRect().height).toBe(14);
-    expect(one.getBoundingClientRect().width).toBeGreaterThanOrEqual(14);
+    expect(one.getBoundingClientRect().height).toBe(16);
+    expect(one.getBoundingClientRect().width).toBeGreaterThanOrEqual(16);
     expect(two.getBoundingClientRect().width).toBeGreaterThan(one.getBoundingClientRect().width);
     expect(style.fontSize).toBe("10px");
     expect(style.fontWeight).toBe("600");
@@ -67,7 +67,7 @@ describe("Badge count", () => {
 
   it("is left alone by an ordinary badge without count", async () => {
     const page = await mount(<Badge>3</Badge>);
-    expect(page.querySelector<HTMLElement>('[data-ouro="badge"]')!.getBoundingClientRect().height).toBeGreaterThan(14);
+    expect(page.querySelector<HTMLElement>('[data-ouro="badge"]')!.getBoundingClientRect().height).toBeGreaterThan(16);
   });
 
   it("ignores overlay without count", async () => {
