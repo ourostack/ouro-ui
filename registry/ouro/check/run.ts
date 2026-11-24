@@ -824,7 +824,14 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         if (stepped) {
           await page.evaluate(beginTrace);
           await page.mouse.click(point.x, point.y);
-          faults.push(...findTransitionFaults(await page.evaluate(stepTrace)));
+          /* node:coverage disable */
+          try {
+            faults.push(...findTransitionFaults(await page.evaluate(stepTrace)));
+          } catch (problem) {
+            // A press that navigates ends the page's context: it has no transition to step.
+            if (!/Execution context was destroyed|navigat/i.test((problem as Error).message)) throw problem;
+          }
+          /* node:coverage enable */
         } else {
           await page.evaluate(resetMotion);
           await page.mouse.click(point.x, point.y);
