@@ -1144,10 +1144,17 @@ describe("SnapPiP", () => {
       await render(self({ onCollapsedChange, collapsed: true, keepOut: covered }));
       await render(self({ onCollapsedChange, collapsed: false, keepOut: covered }));
       onCollapsedChange.mockClear();
-      const contentRect = { width: 380, height: 480 } as DOMRectReadOnly;
-      await act(async () => held.forEach(({ callback, observer }) => callback([{ target: stage, contentRect } as unknown as ResizeObserverEntry], observer)));
+      const report = (height: number) =>
+        act(async () => held.forEach(({ callback, observer }) => callback([{ target: stage, contentRect: { width: 380, height } } as unknown as ResizeObserverEntry], observer)));
+      await report(480);
       await rest();
       expect(onCollapsedChange).not.toHaveBeenCalled();
+      // The same size again is no change either, but a new size is one, and a covered picture hides again.
+      await report(480);
+      await rest();
+      expect(onCollapsedChange).not.toHaveBeenCalled();
+      await report(470);
+      await expect.poll(() => onCollapsedChange).toHaveBeenCalledWith(true);
     } finally {
       vi.unstubAllGlobals();
     }
