@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin, type Rolldown } from "vite";
 import { squircleCorners } from "../registry/ouro/lib/ouro/squircle-corners.ts";
 import { colorMixFallbacks } from "./scripts/color-mix-fallbacks.mts";
+import { claimEvidencePlugin } from "./scripts/claim-evidence.mts";
 import { proofPlugin } from "./scripts/proof.mts";
 
 // The landing page and docs site, built from the repository's own dependencies (no
@@ -100,7 +101,8 @@ export function voyageSmallModules(): Rolldown.CodeSplittingGroup {
 export default defineConfig(({ isSsrBuild }) => ({
   root: fileURLToPath(new URL(".", import.meta.url)),
   base: "/",
-  plugins: [react(), tailwindcss(), colorMixFallbacks(), chunkEvidence(repo), proofPlugin()],
+  // claimEvidencePlugin: a page ships its claims' words, not their sources and checks (scripts/claim-evidence.mts).
+  plugins: [claimEvidencePlugin(), react(), tailwindcss(), colorMixFallbacks(), chunkEvidence(repo), proofPlugin()],
   css: { postcss: { plugins: [squircleCorners()] } },
   // `@/` is the repo root, as in the registry source, so the site imports components the
   // way an app's components.json alias does.

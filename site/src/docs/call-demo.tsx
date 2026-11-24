@@ -137,6 +137,7 @@ function CallDemo(): JSX.Element {
   const [handUp, setHandUp] = useState(false);
   const [captionsOn, setCaptionsOn] = useState(true);
   const [reactionsOpen, setReactionsOpen] = useState(false);
+  const [reacted, setReacted] = useState<typeof quick[number] | null>(null);
   const [corner, setCorner] = useState<SnapPiPCorner>("bottom-right");
   // On a phone with a full grid no corner is free of a face, so the picture starts tucked away; the person can show it.
   const narrow = useSyncExternalStore(subscribeNarrow, () => window.matchMedia("(max-width: 639px)").matches, () => false);
@@ -360,6 +361,11 @@ function CallDemo(): JSX.Element {
     body = (
       <div className="relative flex h-full min-h-0 flex-col">
         <div className="min-h-0 flex-1 overflow-auto p-2 [container-type:size]">
+          {reacted ? (
+            <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center" data-site-call-reaction>
+              <ReactionBar reactions={[{ ...reacted, count: 1, mine: true, tooltip: "You" }]} />
+            </div>
+          ) : null}
           <div
             ref={gridRef}
             style={gridFit(tiles, sharing)}
@@ -408,6 +414,7 @@ function CallDemo(): JSX.Element {
             quick={quick}
             onReact={(key) => {
               setReactionsOpen(false);
+              setReacted(quick.find((option) => option.key === key) ?? null);
               setStatus(`You reacted: ${quick.find((option) => option.key === key)?.label ?? key}`);
             }}
           />

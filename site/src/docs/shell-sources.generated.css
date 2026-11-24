@@ -140,9 +140,13 @@
 @source not "../voyage/handoff.tsx";
 @source not "../voyage/hero.tsx";
 @source not "../voyage/home-reference.tsx";
+@source not "../voyage/home-sections.tsx";
 @source not "../voyage/home.tsx";
 @source not "../voyage/layout.tsx";
 @source not "../voyage/nautilus.tsx";
 @source not "../voyage/repaint.tsx";
 @source not "../voyage/stage";
+@source not "../voyage/story-copy.ts";
 @source not "../voyage/use-stable.ts";
+@source not "../voyage/why-copy.ts";
+@source not "../voyage/why.tsx";

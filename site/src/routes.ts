@@ -123,7 +123,7 @@ export const routes: Route[] = [
   },
   {
     path: "/docs/",
-    title: "Components · Ouro HX",
+    title: "Components · Ouro HX for web",
     description: claim("Every Ouro HX component, with install commands, props and live demos.", {
       source: { file: "site/src/site.test.tsx" },
       verify: { testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" },
@@ -131,37 +131,37 @@ export const routes: Route[] = [
   },
   ...docsItems.map((item) => ({
     path: `/docs/${item.name}/`,
-    title: `${item.title} · Ouro HX`,
+    title: `${item.title} · Ouro HX for web`,
     description: `${item.title}: install it with npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}.`,
   })),
   ...pageIndex.map((page) => ({
     path: `/docs/${page.name}/`,
-    // A platform page names both products itself, so its title ends with their parent's name.
-    title: `${page.title} · ${page.kind === "platform" ? "Ouro UI" : "Ouro HX"}`,
+    // An export is a web component's own page; a guide or a platform page is about the whole kit (AGENTS.md, Names).
+    title: `${page.title} · ${page.kind === "export" ? "Ouro HX for web" : "Ouro UI"}`,
     description: page.summary.replace(/`/g, ""),
   })),
   {
     path: "/docs/switching-from-shadcn/",
-    title: "Switching from shadcn · Ouro HX",
+    title: "Switching from shadcn · Ouro UI",
     description: "How shadcn/ui components and props map to Ouro HX, and how both live in one app.",
   },
   {
     path: "/docs/updating/",
-    title: "Updating components · Ouro HX",
+    title: "Updating components · Ouro UI",
     description: "Review upstream changes with add --diff, then overwrite and reapply your edits.",
   },
   {
     path: "/docs/chat-demo/",
-    title: "A chat app · Ouro HX",
+    title: "A chat app · Ouro HX for web",
     description: "A whole chat app from Ouro HX's chat components: conversations, messages, a thread, typing, read receipts and composers.",
   },
   {
     path: "/docs/call-demo/",
-    title: "A call window · Ouro HX",
+    title: "A call window · Ouro HX for web",
     description: "A whole call window from Ouro HX's call components: a tile grid, speaking and muted tiles, captions, the control bar and a picture-in-picture.",
   },
   // One component's live demo alone (components/phone-demo.tsx), which a component page shows in a phone's frame.
-  { path: "/docs/demo/", title: "Live demo · Ouro HX", description: "One Ouro HX component's live demo, on its own.", noindex: true },
+  { path: "/docs/demo/", title: "Live demo · Ouro HX for web", description: "One Ouro HX component's live demo, on its own.", noindex: true },
 ];
 
 /** The route for a path, tolerating a missing trailing slash and `index.html`. */
