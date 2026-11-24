@@ -131,6 +131,33 @@ describe("Lightbox fit", () => {
     await expect.poll(popup).toBeNull();
   });
 
+  it("fits a controlled viewer from what had focus, on the first image or the index given, and wins over fullScreen", async () => {
+    const opener = document.createElement("button");
+    opener.textContent = "Open";
+    opener.style.cssText = "width:60px;height:40px";
+    document.body.append(opener);
+    mounted.push(opener);
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const show = (index?: number) =>
+      act(async () => root.render(<Lightbox label="Photos" images={images} open onOpenChange={() => {}} fullScreen fit {...(index === undefined ? {} : { index })} />));
+    opener.focus();
+    await show();
+    await settled();
+    expect(popup()!.hasAttribute("data-fit")).toBe(true);
+    expect(popup()!.hasAttribute("data-full-screen")).toBe(false);
+    expect(popup()!.style.getPropertyValue("--ouro-lightbox-from-scale")).not.toBe("");
+    await act(async () => root.render(<Lightbox label="Photos" images={images} open={false} onOpenChange={() => {}} fit />));
+    await expect.poll(popup).toBeNull();
+    opener.focus();
+    await show(1);
+    await settled();
+    expect(popup()!.style.getPropertyValue("--ouro-lightbox-from-scale")).not.toBe("");
+  });
+
   it("keeps the panel and the 0.9 growth without fit", async () => {
     const host = await render(false);
     await userEvent.click(thumbnail(host));
