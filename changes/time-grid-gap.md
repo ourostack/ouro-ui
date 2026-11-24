@@ -1,0 +1,1 @@
+- Fixed: TimeGrid keeps its all-day events a full step in from the header and column edges, and an event the time puts against another no longer draws as a near miss.
