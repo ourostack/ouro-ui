@@ -83,7 +83,7 @@ export function CurrentPage({ initial = SNAPSHOT, live = true }: { initial?: Cur
           </h1>
           <div className="site-lede current-lede">
             <p>
-              Install the Ouro Current GitHub App on a repository. Each Ouro UI release, for the web, Apple, Windows or Android, and each Ouro UI core release, arrives there as one pull request,{" "}
+              Install the Ouro Current GitHub App on a repository. When a new Ouro UI release lands, for the web, Apple, Windows or Android, or for Ouro UI core, that repository gets one pull request,{" "}
               <strong>“Update to Ouro UI vX”</strong>, with auto-merge on. Your own checks decide whether it lands.
             </p>
           </div>
