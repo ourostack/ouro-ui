@@ -72,18 +72,6 @@ export function knownProblems(entries: readonly KnownFinding[]): string[] {
 
 export const knownFindings: KnownFinding[] = [
   {
-    story: "FamilyBar/FarAlong",
-    rule: "doubled-line",
-    issue: 3257,
-    reason: "The bar's divider runs against the story frame's edge, so the line is drawn twice; the bar should drop its own line where it meets an edge.",
-  },
-  {
-    story: "TextArea/Composer",
-    rule: "off-centre-text",
-    issue: 3257,
-    reason: "The story's form aligns its row to the end, so the one-line text area sits at the bottom beside a taller Send button and its placeholder reads low; the story should show Ouro's Composer, which centres its one line.",
-  },
-  {
     story: "Emoji/Placeholder",
     rule: "broken-image",
     issue: 1959,
@@ -609,14 +597,6 @@ export const knownFindings: KnownFinding[] = [
   },
   {
     story: "ScrollArea/InContext",
-    rule: "near-miss",
-    issue: 3286,
-    theme: "nova",
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "TextArea/Composer",
     rule: "near-miss",
     issue: 3286,
     theme: "nova",
