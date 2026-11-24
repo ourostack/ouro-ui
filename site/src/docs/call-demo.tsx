@@ -394,7 +394,7 @@ function CallDemo(): JSX.Element {
             style={gridFit(tiles, sharing, selfHidden ? 0 : SELF_ROOM)}
             className={
               "grid gap-2 " +
-              (sharing ? "md:mx-auto md:w-(--call-grid-width) " : "md:h-(--call-grid-height) md:auto-rows-fr ") +
+              (sharing ? "md:mx-auto md:w-(--call-grid-width) " : "h-(--call-grid-height) auto-rows-fr ") +
               (tiles <= 1 ? "grid-cols-1" : tiles === 2 ? "grid-cols-1 md:grid-cols-2" : tiles <= 4 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3")
             }
           >
@@ -407,7 +407,7 @@ function CallDemo(): JSX.Element {
               <MediaTile
                 key={person.name}
                 name={person.name}
-                className={sharing ? undefined : "md:aspect-auto md:h-full"}
+                className={sharing ? undefined : "aspect-auto h-full"}
                 speaking={index === speaking}
                 muted={person.muted}
                 cameraOn={!person.cameraOff}
@@ -424,7 +424,7 @@ function CallDemo(): JSX.Element {
         </div>
         <div ref={bottomRef} className="grid gap-2 p-2">
           {captionsOn ? (
-            <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={narrow ? 2 : 1} />
+            <LiveCaptions label="Captions" hideLabel lines={lines} maxLines={1} />
           ) : null}
           <div className="flex min-w-0 justify-center">
             {bar}

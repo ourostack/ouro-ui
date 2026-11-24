@@ -25,6 +25,9 @@ import type { PageIssue } from "./size-check.ts";
 //   count-badge        a count on a small filled pill laid over an icon: clipped by a box around it, its numerals'
 //                      ink off the pill's middle by more than `badgeSlackPx`, or at another offset from its icon than
 //                      the page's other count badges on icons of that size
+//   off-centre-text    one line of words in a control (a button, a tab, a field's value or placeholder) whose cap
+//                      height sits more than `textSlackPx` off the control's middle, as a placeholder pushed low by
+//                      uneven padding does; a writing area tall enough for two lines starts at its top, and is left alone
 //   baked-corner       (readCorners) a picture or video whose own pixels draw a corner of another colour, such as a
 //                      screen recording of a window with its dark corner, inside the page's frame
 //   type-scale         more text sizes, or more font weights in running text or in headings, than a type scale holds
@@ -60,6 +63,12 @@ interface DesignOptions {
   lineGapPx?: number;
   /** How far, in pixels, a count badge's numerals may sit from its middle. */
   badgeSlackPx?: number;
+  /**
+   * How far, in pixels, one line of a control's words may sit from its middle, by its cap height. The default passes a
+   * font whose line box sits a little off its cap height, as shadcn's nova preset does, so the rule
+   * names a layout that pushes words off, such as a bottom-aligned row.
+   */
+  textSlackPx?: number;
   /** The limit on a page's text sizes and font weights. */
   maxSizes?: number;
   maxWeights?: number;
@@ -96,7 +105,7 @@ interface CornerReading {
   corners: string[];
 }
 
-function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75 }: DesignOptions = {}): PageIssue[] {
+function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 2.5 }: DesignOptions = {}): PageIssue[] {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
@@ -498,9 +507,11 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const ascent = context.measureText(text.textContent!.trim()).fontBoundingBoxAscent;
     context.font = `${ts.fontStyle} ${ts.fontWeight} 100px ${ts.fontFamily}`;
     const glyphs = context.measureText(text.textContent!.trim());
-    const ink = t.top + ascent + ((glyphs.actualBoundingBoxDescent - glyphs.actualBoundingBoxAscent) * px(ts.fontSize)) / 200;
-    const dy = ink - (b.top + px(s.borderTopWidth) + badge.clientHeight / 2);
-    const dx = t.left + t.width / 2 - (b.left + px(s.borderLeftWidth) + badge.clientWidth / 2);
+    // Boxes are read as drawn, and a scaled thumbnail draws everything smaller: lengths from styles are scaled to match.
+    const scale = b.height / (badge as HTMLElement).offsetHeight;
+    const ink = t.top + (ascent + ((glyphs.actualBoundingBoxDescent - glyphs.actualBoundingBoxAscent) * px(ts.fontSize)) / 200) * scale;
+    const dy = (ink - b.top) / scale - (px(s.borderTopWidth) + badge.clientHeight / 2);
+    const dx = (t.left + t.width / 2 - b.left) / scale - (px(s.borderLeftWidth) + badge.clientWidth / 2);
     // A count already centred on its cap height (text-box-trim) has a trimmed line box this reading can't place, so it
     // is left to its author.
     const trimmed = (ts as CSSStyleDeclaration & { textBoxTrim?: string }).textBoxTrim;
@@ -523,6 +534,81 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const usual = peers.map((p) => ({ p, n: peers.filter((q) => alike(p, q)).length })).sort((x, y) => y.n - x.n)[0]!.p;
     if (alike(usual, o)) continue;
     issues.push({ ref: ref(o.el), rule: "count-badge", element: `${describe(o.el)}${quoted(o.el)}`, detail: `set ${Math.round(o.across)}px past its ${o.icon}px icon's side and ${Math.round(-o.down)}px above its top, where the page's other badges sit ${Math.round(usual.across)}px and ${Math.round(-usual.down)}px: give every badge one offset` });
+  }
+
+  // off-centre-text: one line of words in a control (a button, a tab, a field, its placeholder) drawn off the control's
+  // middle, read by its cap height (the middle of a capital, which is what the eye centres), not its line box. A field
+  // or an editor tall enough for two lines is a writing area whose text starts at its top, and is left alone.
+  const controls = "button, [role=button], [role=tab], input:not([type=checkbox], [type=radio], [type=range], [type=color], [type=file], [type=hidden], [type=image]), textarea, [contenteditable=''], [contenteditable=true]";
+  for (const el of visible.filter((el) => el.matches(controls) && !optedOut(el, "off-centre-text"))) {
+    const s = getComputedStyle(el);
+    const b = el.getBoundingClientRect();
+    const field = el.matches("input, textarea");
+    // A field draws its value, or else its placeholder in the placeholder's own font; an empty editor, the placeholder
+    // its ::before draws; a button or an editor with words, its text.
+    const before = getComputedStyle(el, "::before");
+    const editor = el.matches("[contenteditable]") && !el.textContent!.trim();
+    const value = field ? (el as HTMLInputElement).value || (el as HTMLInputElement).placeholder : editor && /^".+"$/.test(before.content) ? (JSON.parse(before.content) as string) : "";
+    const placeholder = field ? !(el as HTMLInputElement).value : Boolean(value);
+    const fs = field && placeholder ? getComputedStyle(el, "::placeholder") : placeholder ? before : s;
+    context.font = `${fs.fontStyle} ${fs.fontWeight} ${fs.fontSize} ${fs.fontFamily}`;
+    const cap = context.measureText("H").actualBoundingBoxAscent;
+    const m = context.measureText(value || "H");
+    const lineHeight = s.lineHeight === "normal" ? m.fontBoundingBoxAscent + m.fontBoundingBoxDescent : px(s.lineHeight);
+    // Boxes are read as drawn, and a scaled thumbnail draws everything smaller: lengths from styles are scaled to match.
+    const scale = b.height / (el as HTMLElement).offsetHeight;
+    const top = b.top + px(s.borderTopWidth) * scale;
+    const contentTop = top + px(s.paddingTop) * scale;
+    const contentHeight = el.clientHeight - px(s.paddingTop) - px(s.paddingBottom);
+    // A box with room for two lines or more lays its words out from its top (a writing area, an event in a calendar,
+    // an icon over its label), so only a box of one line is judged.
+    if (b.height > 72 * scale || contentHeight >= lineHeight * 2) continue;
+    let baseline: number;
+    if (field || !el.textContent!.trim()) {
+      if (!value) continue;
+      // An input centres its line in its content box; a textarea or an editor starts it at the top.
+      baseline = el.matches("input")
+        ? contentTop + (contentHeight / 2 + (m.fontBoundingBoxAscent - m.fontBoundingBoxDescent) / 2) * scale
+        : contentTop + ((lineHeight - m.fontBoundingBoxAscent - m.fontBoundingBoxDescent) / 2 + m.fontBoundingBoxAscent) * scale;
+    } else {
+      // Words a person sees: not a screen reader's copy in a 1px box, nor a hidden or see-through one.
+      const seenWords = (n: Node) => {
+        const box = n.parentElement!.getBoundingClientRect();
+        return n.textContent!.trim() && box.width > 1 && box.height > 1 && n.parentElement!.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+      };
+      const words = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (seenWords(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP) });
+      const rects: DOMRect[] = [];
+      let first: Text | null = null;
+      for (let n = words.nextNode() as Text | null; n; n = words.nextNode() as Text | null) {
+        first ??= n;
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        rects.push(...range.getClientRects());
+      }
+      if (!first) continue;
+      const ts = getComputedStyle(first.parentElement!);
+      const trimmed = (ts as CSSStyleDeclaration & { textBoxTrim?: string }).textBoxTrim;
+      // Words on more than one line, or a line box trimmed to its cap height already, which this reading can't place, are
+      // left alone.
+      if (rects.some((r) => Math.abs(r.top - rects[0]!.top) > 2) || (trimmed && trimmed !== "none")) continue;
+      // An icon above or below the words, as a rail's item draws them, makes a stack whose middle isn't the words'.
+      const line = rects[0]!;
+      const stacked = [...el.querySelectorAll("svg, img, canvas, video")].some((icon) => {
+        const r = icon.getBoundingClientRect();
+        return r.width > 1 && r.height > 1 && (r.bottom <= line.top + 1 || r.top >= line.bottom - 1);
+      });
+      if (stacked) continue;
+      context.font = `${ts.fontStyle} ${ts.fontWeight} ${ts.fontSize} ${ts.fontFamily}`;
+      baseline = rects[0]!.top + context.measureText(first.textContent!).fontBoundingBoxAscent * scale;
+    }
+    // A field with no frame or fill of its own, such as a composer's text area, is centred in the frame around it.
+    const frame = !el.matches("input, textarea, [contenteditable]") || filled(el) ? el : [el.parentElement, el.parentElement?.parentElement, el.parentElement?.parentElement?.parentElement].find((a) => a && filled(a) && a.getBoundingClientRect().height <= 72 * scale) ?? el;
+    const f = frame.getBoundingClientRect();
+    const middle = f.top + (px(getComputedStyle(frame).borderTopWidth) + frame.clientHeight / 2) * scale;
+    const dy = (baseline - (cap / 2) * scale - middle) / scale;
+    if (Math.abs(dy) > textSlackPx) {
+      issues.push({ ref: ref(el), rule: "off-centre-text", element: `${describe(el)}${quoted(el)}`, detail: `its ${placeholder ? "placeholder" : "text"} sits ${Math.abs(dy).toFixed(1)}px ${dy < 0 ? "high" : "low"}, by its cap height: even the padding above and below it, and centre it on its cap height, not its line box` });
+    }
   }
 
   // type-scale and shadow-scale: what the page draws, counted once. Text an element opts out of with a reason (hand

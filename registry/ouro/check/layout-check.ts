@@ -25,10 +25,17 @@ import type { PageIssue } from "./size-check.ts";
 //                      (--ouro-gap-min, read from the page; `gapMin` px where it has none). A surface is a block or inline-block box of at
 //                      least 16x16 with a fill unlike what is behind it, a frame (a border on every side, an outline
 //                      or a ring) or a picture. Two surfaces are a near miss when they don't overlap, aren't nested
-//                      and face each other across that gap along at least half of the shorter one's facing side.
+//                      and face each other across that gap along at least half of the shorter one's facing side. Two kinds
+//                      of near miss are no miss: parts of one control group, which read as one thing with their own
+//                      rhythm (surfaces under the same group root: role group, radiogroup, toolbar or tablist, or an Ouro
+//                      ToggleGroup, ButtonGroup, SegmentedControl, Tabs and the like), and a small adornment centred in a
+//                      control's frame (a Kbd hint, a clear button) whose frame is too small to hold the minimum gap on
+//                      both sides: the field's own padding insets it, it isn't placed beside anything.
 //                      A surface's inner edge is never judged against the surface it sits in when that surface is, or
 //                      sits inside, a button or a switch, checkbox, radio or slider role: a control's own parts
-//                      (Switch's track and thumb, a custom checkbox's box and mark) are drawn as one piece
+//                      (Switch's track and thumb, a custom checkbox's box and mark) are drawn as one piece. Nor is it
+//                      judged on an axis a scrolling ancestor between it and that surface scrolls: where it sits down
+//                      that axis is wherever it's scrolled to, not a design gap
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
 // do. `element` names the element by its words, the same at every size; `detail` has this size's numbers.
@@ -210,6 +217,11 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     }
     return 0;
   };
+  const groups = '[role=group], [role=radiogroup], [role=toolbar], [role=tablist], [data-ouro="toggle-group"], [data-ouro="button-group"], [data-ouro="segmented-control"], [data-ouro="tabs"], [data-ouro="radio-group"], [data-ouro="checkbox-group"], [data-ouro="pagination"], [data-ouro="otp-field"], [data-ouro="avatar-group"], [data-ouro="toolbar"]';
+  const sameGroup = (a: Element, b: Element) => {
+    const group = a.closest(groups);
+    return Boolean(group) && group === b.closest(groups);
+  };
   const near: { a: Element; b: Element; gap: number }[] = [];
   // A surface's position against a scrolling ancestor is wherever it's scrolled to, not a design gap.
   const scrolls = (el: Element, axis: "x" | "y") => (axis === "x" ? /auto|scroll/.test(getComputedStyle(el).overflowX) && el.scrollWidth > el.clientWidth : /auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight);
@@ -222,11 +234,11 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
   };
   surfaces.forEach((a, i) => {
     for (const b of surfaces.slice(i + 1)) {
-      const gap = a.contains(b) || b.contains(a) ? 0 : apart(rects.get(a)!, rects.get(b)!);
+      const gap = a.contains(b) || b.contains(a) || sameGroup(a, b) ? 0 : apart(rects.get(a)!, rects.get(b)!);
       if (gap) near.push({ a, b, gap });
     }
     const container = surfaces.filter((c) => c !== a && c.contains(a)).pop();
-    if (!container || isControlPiece(container)) return;
+    if (!container || isControlPiece(container) || sameGroup(a, container)) return;
     const r = rects.get(a)!;
     const c = rects.get(container)!;
     const scrollX = scrollsBetween(a, container, "x");
@@ -237,7 +249,10 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
       scrollX ? Infinity : c.right - r.right - (c.width - container.clientLeft - container.clientWidth),
       scrollY ? Infinity : c.bottom - r.bottom - (c.height - container.clientTop - container.clientHeight),
     ];
-    const gap = Math.min(...inner.filter((d) => d > touchPx && d < gapMin));
+    // Centred across a control's frame too small to give it the minimum gap on both sides: the frame's padding insets it.
+    const inControl = container.matches(controls) || Boolean(container.querySelector(controls));
+    const insetBy = (lo: number, hi: number) => inControl && Math.abs(lo - hi) <= 1 && lo + hi < 2 * gapMin;
+    const gap = Math.min(...inner.filter((d, k) => d > touchPx && d < gapMin && !insetBy(inner[k % 2 ? 1 : 0]!, inner[k % 2 ? 3 : 2]!)));
     if (gap < Infinity) near.push({ a: container, b: a, gap });
   });
   // The outermost of each nest of near misses: two cards a hair apart are one finding, not one for each part of them.

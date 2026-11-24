@@ -112,7 +112,7 @@ const commandGroupLabelClass = "box-border px-2 pt-2 pb-1 text-xs leading-4 font
 const commandItemClass =
   "relative box-border flex min-h-ouro-11 pointer-fine:min-h-9 cursor-default items-center gap-3 rounded-ouro-md px-2 py-1.5 " +
   "text-base leading-5 pointer-fine:text-sm text-popover-foreground outline-none select-none [-webkit-tap-highlight-color:transparent] " +
-  "data-highlighted:bg-accent data-highlighted:text-accent-foreground active:bg-accent active:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 " +
+  "data-highlighted:bg-accent data-highlighted:text-accent-foreground group-data-chips-active/command:data-highlighted:bg-transparent group-data-chips-active/command:data-highlighted:text-inherit active:bg-accent active:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 " +
   // Forced colours drop the fill, so the highlight takes the system's pair.
   "forced-colors:data-highlighted:bg-[Highlight] forced-colors:data-highlighted:text-[HighlightText]";
 
@@ -293,4 +293,4 @@ const commandRecentsClass = "box-border flex shrink-0 gap-2 overflow-x-auto over
 
 /** One recent chip: a quiet pill that shows focus and press. @internal */
 const commandRecentClass =
-  "press relative box-border inline-flex min-h-ouro-8 shrink-0 cursor-default items-center gap-1.5 rounded-ouro-4xl border-0 bg-secondary px-3 text-sm leading-5 text-secondary-foreground outline-none pointer-fine:hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  "press relative box-border inline-flex min-h-ouro-8 shrink-0 cursor-default items-center gap-1.5 rounded-ouro-4xl border-0 bg-secondary px-3 text-sm leading-5 text-secondary-foreground outline-none data-highlighted:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";

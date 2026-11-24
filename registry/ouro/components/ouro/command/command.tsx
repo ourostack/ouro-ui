@@ -784,9 +784,13 @@ export function Command(props: CommandProps): JSX.Element {
   const chipsContainer = useRef<HTMLDivElement>(null);
   const chipAt = (index: number) => chipsContainer.current!.querySelectorAll<HTMLButtonElement>(`[${RECENT_PART_ATTR}="${RECENT_PART}"]`)[index]!;
   const [chip, setChip] = useState(0);
+  // Whether a chip holds focus: the chip is then the one highlight, whether the keyboard or the pointer put it there.
+  const [chipActive, setChipActive] = useState(false);
   const showRecents = recents !== undefined && recents.length > 0 && query === "";
   const enterChips = (event: KeyboardEvent<HTMLElement>) => {
     if (!showRecents || event.key !== "ArrowDown") return;
+    // A row the pointer highlighted is walked from, not skipped for the chips.
+    if (event.currentTarget.parentElement!.querySelector("[data-ouro-command-value][data-highlighted]")) return;
     event.preventDefault();
     event.stopPropagation();
     chipAt(chip).focus();
@@ -828,7 +832,13 @@ export function Command(props: CommandProps): JSX.Element {
         if (onQueryChange) search(next);
       }}
     >
-      <div data-ouro="command" ref={inSheet ? sizePhone : undefined} className="flex min-h-0 flex-1 flex-col">
+      <div
+        data-ouro="command"
+        ref={inSheet ? sizePhone : undefined}
+        // Stryker disable next-line ConditionalExpression,StringLiteral: the stylesheet reads only that the attribute is present, and the chips' own mark carries the visible state.
+        data-chips-active={chipActive ? "" : undefined}
+        className="group/command flex min-h-0 flex-1 flex-col"
+      >
         <div data-ouro-command-search="" onKeyDownCapture={enterChips} className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
           <Autocomplete.Input ref={searchInputRef} aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
@@ -857,7 +867,15 @@ export function Command(props: CommandProps): JSX.Element {
                 data-ouro-control="command"
                 data-ouro-part="recent"
                 className={commandRecentClass}
-                onFocus={() => setChip(index)}
+                // Stryker disable next-line StringLiteral: the stylesheet reads only that the attribute is present.
+                data-highlighted={chipActive && index === chip ? "" : undefined}
+                onFocus={() => {
+                  setChip(index);
+                  setChipActive(true);
+                }}
+                onBlur={() => setChipActive(false)}
+                // Stryker disable next-line ObjectLiteral,BooleanLiteral: preventScroll only stops a scroll the row is already in view for.
+                onPointerMove={(event) => event.currentTarget.focus({ preventScroll: true })}
                 onClick={() => run({ label: recent.label, onSelect: recent.onSelect })}
               >
                 <TouchTarget />
@@ -871,7 +889,14 @@ export function Command(props: CommandProps): JSX.Element {
             ))}
           </div>
         )}
-        <div data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>
+        <div
+          data-ouro-command-list=""
+          onPointerMove={(event) => {
+            // Stryker disable next-line ConditionalExpression,LogicalOperator: focusing the search while it already has focus changes nothing, and the touch case is the next test.
+            if (chipActive && event.pointerType !== "touch") searchInputRef.current!.focus();
+          }}
+          className={inSheet ? commandSheetListClass : commandListClass}
+        >
           {/* Nothing here yet is said at once; while more is on its way, the loading line says so under it. */}
           {/* With nothing typed and the recents showing, the list is empty and silent: no label, no announcement. */}
           {!showRecents && (

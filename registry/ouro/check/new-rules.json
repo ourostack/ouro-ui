@@ -86,5 +86,9 @@
   {
     "rule": "dropped-frames",
     "summary": "A press after which one frame took over 50 ms (the jank rule's budget is 250 ms); the fix is to keep the handler to a few milliseconds."
+  },
+  {
+    "rule": "off-centre-text",
+    "summary": "One line of words in a control (a button, a field's value or placeholder, an editor, or a bare text area inside its frame) whose cap height sits off the control's middle, as a composer's placeholder pushed low by a bottom-aligned row does."
   }
 ]
