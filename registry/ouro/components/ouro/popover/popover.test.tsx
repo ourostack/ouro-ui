@@ -80,9 +80,22 @@ function entranceDone(element: HTMLElement | null) {
   );
 }
 
-/** Waits until the open popup has finished its entrance. */
+/** Waits until the open popup has finished its entrance, with its place settled. */
 async function settled() {
   await expect.poll(() => entranceDone(popup()), { interval: 50 }).toBe(true);
+  // playState can turn "finished" a frame before the entrance transform snaps to its end
+  // value; read the popup's place once two frame-apart reads agree, as Tooltip's settle does.
+  const place = () => JSON.stringify(popup()?.getBoundingClientRect());
+  let rest = place();
+  await expect
+    .poll(async () => {
+      await nextFrame();
+      const now = place();
+      const same = now === rest;
+      rest = now;
+      return same;
+    })
+    .toBe(true);
 }
 
 async function openUncontrolled(props: Partial<PopoverProps> = {}) {
