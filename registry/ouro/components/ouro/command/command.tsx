@@ -873,12 +873,15 @@ export function Command(props: CommandProps): JSX.Element {
         )}
         <div data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>
           {/* Nothing here yet is said at once; while more is on its way, the loading line says so under it. */}
-          <Autocomplete.Empty className={commandEmptyRoomClass}>
-            <div data-ouro-command-empty="" className={commandEmptyClass}>
-              {empty ?? emptyLabel}
-              {loading && <span className="mt-1 block text-xs">{loadingLabel}</span>}
-            </div>
-          </Autocomplete.Empty>
+          {/* With nothing typed and the recents showing, the list is empty and silent: no label, no announcement. */}
+          {!showRecents && (
+            <Autocomplete.Empty className={commandEmptyRoomClass}>
+              <div data-ouro-command-empty="" className={commandEmptyClass}>
+                {empty ?? emptyLabel}
+                {loading && <span className="mt-1 block text-xs">{loadingLabel}</span>}
+              </div>
+            </Autocomplete.Empty>
+          )}
           <NoMatchNote query={query}>{empty ?? emptyLabel}</NoMatchNote>
           <CommandList
             className={inSheet ? "outline-none" : commandListboxClass}
