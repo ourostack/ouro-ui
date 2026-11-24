@@ -2,7 +2,6 @@
 
 import { CSPProvider } from "@base-ui/react/csp-provider";
 import { Tooltip } from "@base-ui/react/tooltip";
-import { registerSquirclePolyfill } from "@/registry/ouro/lib/ouro/squircle-polyfill";
 import { useEffect, useLayoutEffect, useMemo, type JSX, type ReactNode, type RefObject } from "react";
 import { TooltipsGrouped } from "@/registry/ouro/lib/ouro/portal-container";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -90,14 +89,6 @@ export interface OuroProviderProps {
    * @default false
    */
   strictCsp?: boolean | undefined;
-
-  /**
-   * Squircle corners in engines without native `corner-shape` (WebKit's web views): the provider draws them for
-   * you, with the vendored hyperellipse polyfill, loaded only where it is needed. Pass `false` to keep round corners
-   * there. To draw your own element as a squircle, give it `data-corner-shape="squircle"` beside its `border-radius`.
-   * @default true
-   */
-  squircles?: boolean | undefined;
 
   /** Not a prop. Ouro UI sets Base UI's `disableStyleElements` for you: `<OuroProvider strictCsp>`. */
   disableStyleElements?: { "Use <OuroProvider strictCsp>": never };
@@ -215,7 +206,6 @@ export function OuroProvider({
   motion: motionProp,
   quiet: quietProp,
   strictCsp: strictCspProp,
-  squircles = true,
   disableStyleElements,
 }: OuroProviderProps): JSX.Element {
   const outer = useOuro();
@@ -249,9 +239,6 @@ export function OuroProvider({
       document.adoptedStyleSheets = document.adoptedStyleSheets.filter((adopted) => adopted !== sheet);
     };
   }, [stillSheet]);
-  useEffect(() => {
-    if (squircles) void registerSquirclePolyfill();
-  }, [squircles]);
   useEffect(() => {
     if (!quiet) return;
     quietProviders += 1;

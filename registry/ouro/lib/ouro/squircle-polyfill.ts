@@ -2,9 +2,9 @@ export { registerSquirclePolyfill };
 
 /**
  * Draws squircle corners in engines without native `corner-shape`, which round the corner instead until this runs.
- * `<OuroProvider>` calls it for you, so an app with a provider has nothing to remember; call it yourself once on the
- * client (for example from your entry file) in an app without one, or pass `squircles={false}` to the provider to keep
- * round corners. To draw an element of your own as a squircle, give it `data-corner-shape="squircle"` (or set
+ * Call it once on the client, for example from your entry file: that is the one line an app needs to get squircles
+ * in an engine without `corner-shape`, and `<OuroProvider>` does not load it, so apps that install no polyfill carry no
+ * engine code. To draw an element of your own as a squircle, give it `data-corner-shape="squircle"` (or set
  * `--corner-shape: squircle` in its style or a class) beside its `border-radius`. Calling it again does nothing. The
  * engine is hyperellipse (MIT), vendored beside this file in `squircle/`. It does nothing where `corner-shape` is native.
  * It adds no `<style>` element: its stylesheets are constructed and adopted by the document, so it works under a
