@@ -108,5 +108,15 @@
     "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command motion > fades and scales in from 0.96 on the Dialog's slow token, and only fades with reduced motion",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/combobox/combobox.test.tsx > Combobox > leaves the rest of the page exposed while its list is open, so the gate passes from the page's main landmark",
+    "reason": "ouro-webkit at 10.0s of 15s on a pull request run (#3341). The shared setup now reads and restores the real viewport and media state around every test, not just the ones that used to pay for it themselves, so every test in a changed file now carries two extra round trips (ourostack/ouro-ui#3300, #3319). Combobox's own test body does no avoidable wait; the added cost is the correctness fix itself. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-4"
+  },
+  {
+    "test": "ouro-webkit (webkit) registry/ouro/components/ouro/popover/popover.test.tsx > Popover > keeps its fixed sizes at a compact --spacing: an 18rem panel",
+    "reason": "ouro-webkit at 8.9s of 15s on a pull request run (#3341). The shared setup now reads and restores the real viewport and media state around every test, not just the ones that used to pay for it themselves, so every test in a changed file now carries two extra round trips (ourostack/ouro-ui#3300, #3319). Popover's own test body does no avoidable wait; the added cost is the correctness fix itself. Revisit if a shard measures it slow again with headroom to spare.",
+    "owner": "drain-4"
   }
 ]
