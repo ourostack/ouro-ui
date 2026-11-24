@@ -919,6 +919,12 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       const step = `max(0.75rem, min(${share}%, (100% - ${overlapMinWidth}) / ${Math.max(placed.columns - 1, 1)}))`;
       const startAt = !stepped ? `${placed.column * share}%` : placed.columns > 1 ? `calc(${step} * ${placed.column})` : "0%";
       const widthAt = !stepped ? `${placed.span * share}%` : placed.columns > 1 ? `min(max(${placed.span * share}%, ${overlapMinWidth}), 100% - ${startAt})` : "100%";
+      // The text of an event a later one steps over ends where that one starts, so it is never drawn under another event.
+      const coveredBy = stepped && placed.columns > 1 ? placements.filter((other) => other.column > placed.column && other.top < placed.bottom && other.bottom > placed.top).sort((one, two) => one.column - two.column)[0] : undefined;
+      const unit = `max(0.75rem, min(${share}cqw, (100cqw - ${overlapMinWidth}) / ${placed.columns - 1}))`;
+      const width = `min(max(${placed.span * share}cqw, ${overlapMinWidth}), 100cqw - ${unit} * ${placed.column})`;
+      // Padding and borders must still fit the button, or it would spill out of its place.
+      const cover = coveredBy ? `max(0px, min(${width} - ${unit} * ${coveredBy.column - placed.column} - 0.875rem, ${width} - 2rem))` : undefined;
       return (
         <li
           key={placed.key}
@@ -926,6 +932,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           style={{
             top: minutesTall(placed.top),
             height: `calc(${minutesTall(placed.bottom - placed.top)} - 1px)`,
+            ...(cover ? { "--ouro-time-grid-cover": cover } : {}),
             insetInlineStart: cleared ? `calc(var(--ouro-time-grid-lane) + ${free} * ${placed.column / placed.columns})` : startAt,
             width: cleared ? `calc(${free} * ${placed.span / placed.columns})` : widthAt,
           }}
@@ -1079,7 +1086,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           {days.map((day, index) => {
             const off = weekend.includes(utcDate(day).getUTCDay());
             return (
-              <div key={day} className="relative min-w-0 border-0 border-s border-solid border-border">
+              <div key={day} className="relative @container/col min-w-0 border-0 border-s border-solid border-border">
                 <div aria-hidden="true" data-slot="time-grid-lines" className="pointer-events-none absolute inset-0">
                   {hourLines.map((line) => (
                     <span key={line.at} data-slot="time-grid-line" className={line.half ? halfHourLineClass : hourLineClass} style={{ top: minutesTall(line.at) }} />

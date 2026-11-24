@@ -463,6 +463,16 @@ describe("TimeGrid", () => {
     for (const width of widths()) expect(width).toBeGreaterThanOrEqual(4.5 * rem - 1);
     const day = titled(forum.title).closest("ul")!.getBoundingClientRect();
     for (const event of [forum, focus, third]) expect(titled(event.title).closest("li")!.getBoundingClientRect().right).toBeLessThanOrEqual(day.right + 1);
+    // An event's words end where the next one steps over it, so they are never drawn beneath it.
+    const items = [forum, focus, third].map((event) => titled(event.title).closest("li")!);
+    for (const item of items) {
+      const left = item.getBoundingClientRect().left;
+      const next = Math.min(...items.map((other) => other.getBoundingClientRect().left).filter((other) => other > left + 1));
+      if (next === Infinity) continue;
+      const words = item.querySelector<HTMLElement>("span.flex-1")!;
+      const content = words.getBoundingClientRect().right;
+      expect(content).toBeLessThanOrEqual(next + 1);
+    }
   });
 
   it("names each event by the words it shows first, its title and its time, then its day, its status and its description", async () => {
