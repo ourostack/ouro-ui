@@ -94,6 +94,7 @@
 @source not "../components/phone-status.tsx";
 @source not "../components/surprise-me.tsx";
 @source not "../docs/agent-prompt.ts";
+@source not "../docs/calendar-demo.tsx";
 @source not "../docs/call-demo.tsx";
 @source not "../docs/chat-demo.tsx";
 @source not "../docs/demos";
