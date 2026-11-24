@@ -103,6 +103,10 @@ const islandSheets: Record<string, string[]> = {
   "/adoption/": ["src/adoption/adoption.tsx"],
   "/current/": ["src/current/current.tsx"],
   "/proof/": ["src/proof/proof.tsx"],
+  "/actions/": ["src/parts/actions.tsx"],
+  "/composed-ui/": ["src/parts/composed-ui.tsx"],
+  "/xray/": ["src/parts/xray.tsx"],
+  "/hackamore/": ["src/parts/hackamore.tsx"],
 };
 
 function islandAssets(path: string): string[] {

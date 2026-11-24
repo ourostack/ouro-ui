@@ -18,6 +18,12 @@ export interface ButtonGroupProps {
   children: ReactNode;
   /** Stretches the group to the width of its container, with the buttons sharing it equally. */
   fullWidth?: boolean | undefined;
+  /**
+   * Draws the group as one Liquid Glass capsule: the theme's glass behind blur, a rim, a soft shadow, and a
+   * hairline divider between the buttons, which sit flat inside it. Use it for a window toolbar's back and forward.
+   * Solid under reduced transparency or more contrast. Put `variant="plain"` buttons in it.
+   */
+  glass?: boolean | undefined;
   /** Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development. */
   className?: string | undefined;
   /** The group element (`role="group"`). */
@@ -72,11 +78,23 @@ const groupClass =
   "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:bg-current " +
   "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:opacity-25";
 
+// The capsule is the group's; its buttons give up their own surface, rim and shadow and take the capsule's ends.
+const glassClass =
+  "h-[calc(var(--spacing)*10)] rounded-full [corner-shape:superellipse(1.05)] border border-(--ouro-glass-rim) " +
+  "bg-[color-mix(in_oklab,var(--ouro-glass)_var(--ouro-glass-tint),transparent)] shadow-(--shadow-sm) backdrop-blur-xl " +
+  "[&>[data-variant]]:[--ouro-bg:transparent] [&>[data-variant]]:[--ouro-bd:transparent] [&>[data-variant]]:shadow-none " +
+  "[&>[data-variant]]:backdrop-blur-none [&>[data-variant]]:[--ouro-button-h:calc(var(--spacing)*9.5)] " +
+  "[&>[data-variant]:first-child]:rounded-s-full [&>[data-variant]:last-child]:rounded-e-full " +
+  // Stryker disable next-line StringLiteral: a test cannot emulate reduced transparency (Playwright has no option for it)
+  "[@media(prefers-reduced-transparency:reduce)]:bg-(--ouro-glass-solid) [@media(prefers-reduced-transparency:reduce)]:border-(--ouro-glass-edge) " +
+  "[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
+  "contrast-more:bg-(--ouro-glass-solid) contrast-more:border-current contrast-more:backdrop-blur-none";
+
 /**
  * Related buttons joined into one control, such as Previous, a page number and Next, or a
  * split button. Only the outer corners are round, borders are shared, and buttons without
  * a border get a separator. Each child keeps its own `variant`, `tone` and `size`, and the
- * group has a name for screen readers.
+ * group has a name for screen readers. `glass` draws it as one Liquid Glass capsule.
  *
  * Use `ToggleGroup` instead when the buttons stay pressed and share one value, and a plain
  * row (`<div className="flex gap-2">`) for buttons that are not one control.
@@ -97,6 +115,7 @@ export function ButtonGroup(props: ButtonGroupProps): JSX.Element {
     label,
     children,
     fullWidth,
+    glass,
     className,
     ref,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -130,7 +149,7 @@ export function ButtonGroup(props: ButtonGroupProps): JSX.Element {
       role="group"
       aria-label={label}
       data-ouro="button-group"
-      className={cn(groupClass, fullWidth && "flex w-full [&>*]:flex-1 [&>*]:basis-0", className)}
+      className={cn(groupClass, glass && glassClass, fullWidth && "flex w-full [&>*]:flex-1 [&>*]:basis-0", className)}
     >
       {children}
     </div>

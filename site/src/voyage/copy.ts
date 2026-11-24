@@ -1,3 +1,5 @@
+import { claim } from "@/registry/ouro/lib/ouro/claims";
+
 /**
  * The words the voyage pages add around the hero, the stage and the chapters (which have copy files
  * of their own): the home page's two ships and the Nautilus's opening. Here, not in site/src/copy.ts,
@@ -13,6 +15,12 @@ export const TWO_SHIPS = {
   eyebrow: "Showcases",
   title: "Two ships, same parts.",
   intro: "Two of the many in the harbour. One is a story we made up to show the parts off; the other is a real recipe app you can open and X-ray.",
+  /** Under the showcases: the rest of the harbour is on the adoption board. */
+  adoption: claim("Every product I maintain is on the adoption board, checked every hour, in public.", {
+    source: [{ file: ".github/workflows/adoption-ledger.yml" }, { file: "site/src/adoption/adoption.tsx" }],
+    verify: [{ fileLine: ".github/workflows/adoption-ledger.yml", pattern: "cron: \"7 \\* \\* \\* \\*\"" }, { fileLine: "site/src/adoption/adoption.tsx", pattern: "refreshed hourly" }],
+  }),
+  adoptionLink: "See the adoption board",
   nautilus: {
     title: "The Nautilus: built for the story.",
     body: "Captain Nemo is building a submarine in secret. Help him get her ready to dive, with controls built from Ouro HX.",

@@ -2,7 +2,7 @@
 
 # ButtonGroup
 
-Related buttons joined into one control, such as Previous, a page number and Next, or a split button. Only the outer corners are round, borders are shared, and buttons without a border get a separator. Each child keeps its own `variant`, `tone` and `size`, and the group has a name for screen readers.
+Related buttons joined into one control, such as Previous, a page number and Next, or a split button. Only the outer corners are round, borders are shared, and buttons without a border get a separator. Each child keeps its own `variant`, `tone` and `size`, and the group has a name for screen readers. `glass` draws it as one Liquid Glass capsule.
 
 ```tsx
 import { ButtonGroup } from "@/registry/ouro/components/ouro/button-group/button-group";
@@ -30,6 +30,7 @@ Type: `ButtonGroupProps`.
 | `children` (required) | `ReactNode` | The buttons, in order: `Button`s or `Toggle`s, each with its own `variant`, `tone` and `size`. |
 | `className` | `string` | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development. |
 | `fullWidth` | `boolean` | Stretches the group to the width of its container, with the buttons sharing it equally. |
+| `glass` | `boolean` | Draws the group as one Liquid Glass capsule: the theme's glass behind blur, a rim, a soft shadow, and a hairline divider between the buttons, which sit flat inside it. Use it for a window toolbar's back and forward. Solid under reduced transparency or more contrast. Put `variant="plain"` buttons in it. |
 | `label` (required) | `string` | Names the group for screen readers ("Pagination", "Text alignment"). It is not shown. |
 | `ref` | `Ref<HTMLDivElement>` | The group element (`role="group"`). |
 

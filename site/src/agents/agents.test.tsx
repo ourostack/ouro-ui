@@ -31,8 +31,9 @@ it("has generated compiler output for every example", () => {
   expect(Object.keys(generated).sort()).toEqual(agentExamples.map((example) => example.id).sort());
 });
 
-it.each(agentExamples)("$id: the landing page shows the code, the type error, the prop's source and the dev message", async (example) => {
-  await renderPage("/");
+// /hx/ renders every platform's kit before the examples, so the first case also loads that page: it gets twice the budget.
+it.each(agentExamples)("$id: the Ouro HX page shows the code, the type error, the prop's source and the dev message", async (example) => {
+  await renderPage("/hx/");
   const output = generated[example.id as keyof typeof generated];
   const card = page.getByTestId(`agent-example-${example.id}`);
   await expect.element(card.getByText(example.code, { exact: true })).toBeInTheDocument();
@@ -40,4 +41,4 @@ it.each(agentExamples)("$id: the landing page shows the code, the type error, th
   await expect.element(card.getByText(output.source.code, { exact: true })).toBeInTheDocument();
   await expect.element(card.getByText(`/** ${output.source.doc} */`, { exact: true })).toBeInTheDocument();
   await expect.element(card.getByText(example.devMessage, { exact: true })).toBeInTheDocument();
-});
+}, 30_000);

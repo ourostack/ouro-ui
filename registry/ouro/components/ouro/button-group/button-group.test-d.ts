@@ -27,3 +27,6 @@ expectTypeOf<{ label: "Pagination"; children: "x"; isAttached: true }>().not.toE
 propsOf<ComponentProps<typeof ButtonGroup>>({ children: "x" });
 // @ts-expect-error variant goes on each Button.
 propsOf<ComponentProps<typeof ButtonGroup>>({ label: "Pagination", variant: "outline", children: "x" });
+
+// glass is a boolean.
+expectTypeOf<{ label: "History"; children: "x"; glass: true }>().toExtend<ButtonGroupProps>();

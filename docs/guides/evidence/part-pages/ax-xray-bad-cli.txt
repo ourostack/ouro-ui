@@ -1,0 +1,197 @@
+# AX X-ray: bad-cli
+
+Ouro AX claim set 1.8.0 (sha256 0d917b37a68e6488efa516b93a63280d0f3105a5542bc38b6fb50a107fe4787b), checked by ax-xray 1.8.0 at 2026-11-23T23:16:46.767Z. Target: CLI `bad-cli` (3 commands, 16 calls).
+
+**Does not conform yet: 5 must claims not holding; no inventory given; 5 must claims skipped.** Claims holding: 9 of 32 (must: 2 of 12). Checks: 21 pass, 26 fail, 10 skipped.
+
+Calls to what other people see: not made (loopback: no, isolated home: yes, no credentials: yes, mock identity: no).
+
+Effects the X-ray caused: none recorded.
+
+| | Claim | Tier | Rule | Pass | Fail | Skip |
+|---|---|---|---|---|---|---|
+| ✗ | `cli.no-dev-commands` | must | No message the CLI gives an agent or a person (help, a refusal, an error, a next step, an outcome's `human.resume`, a doctor's fix) asks for a developer command, a repository path or a step that only works in a source checkout, unless the step is marked `sourceCheckout: true`. | 0 | 4 | 0 |
+| ✗ | `cli.unknown-flag` | must | An unknown flag fails before anything runs, and the error names the flag. | 0 | 3 | 0 |
+| ✗ | `cli.ambiguous-verbs` | must | Ambiguous verbs (edit, delete, remove) don't act; they answer with the specific commands. | 0 | 3 | 0 |
+| ✗ | `cli.exit-codes` | must | Exit codes are documented, and every exit code the CLI gives is one of them. | 0 | 1 | 0 |
+| ✗ | `copy.precise-failure` | must | Every failure the CLI reports to an agent or a person (a refusal, an error, an outcome's `error` and `summary`, `human.reason`, a doctor's finding, and any failure `help --json` describes) says what happened and precisely why (the system and its answer), who or what caused it where that is known, and the next step; when the cause is unknown, what was tried and what came back. It never stops at "couldn't", "could not", "something went wrong", "unable to", "failed to load", "an error occurred" or a bare "Error" or "Failed": a phrase passes only with its cause after it in the same sentence ("Couldn't send: you're offline", "… because the server refused it"; not "Couldn't send: try again"). | 0 | 1 | 0 |
+| – | `cli.inventory` | must | Every command the CLI registers is listed once in `help --json` and in the inventory the adopter generates from its command registration, and the X-ray covers exactly that set. | 0 | 0 | 1 |
+| – | `cli.others-need-why` | must | Every command other people see refuses to run without `--why`, and says so. | 0 | 0 | 1 |
+| – | `cli.wrong-ref-first` | must | A wrong reference fails before anything reaches anyone, and the error says where to get a right one. | 0 | 0 | 1 |
+| – | `cli.others-preview` | must | Every command other people see has a preview that acts on nothing (`--dry-run`) and names who will see it. | 0 | 0 | 1 |
+| – | `cli.reads-stay-reads` | must | Reads change nothing. | 0 | 0 | 1 |
+| ✗ | `cli.error-teaches` | should | Every error names a next action: a command to run or a flag to add. | 0 | 4 | 0 |
+| ✗ | `cli.plain-pipe` | should | Output into a pipe is plain text: no ANSI escape codes and no carriage-return redraws, and `NO_COLOR` wins over `FORCE_COLOR`. | 0 | 3 | 0 |
+| ✗ | `cli.read-json` | should | Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines) and writes nothing to stderr. It exits 0, except a check command (a doctor), which exits with the declared `findings` code when its checks find a problem. | 0 | 2 | 0 |
+| ✗ | `cli.help-width` | should | No help line is wider than the width limit (100 columns by default). | 3 | 1 | 0 |
+| ✗ | `cli.unknown-command` | should | An unknown command fails with the usage exit code and lists the commands, or names the help that lists them. | 0 | 1 | 0 |
+| ✗ | `cli.flag-suggest` | should | A misspelt flag's error names the closest real flag. | 0 | 1 | 0 |
+| ✗ | `cli.one-line-error` | should | Every error is one line on stderr; stdout stays empty, or with `--json` holds the same error as one JSON document. A command that help JSON marks `protocol: true` may print its one JSON reply line on stdout instead, since another program reads it. | 3 | 1 | 0 |
+| ✗ | `cli.check-verdict` | should | A check command (a doctor) puts its verdict on the first line of its text, and its `--json` has the same verdict and exit code. | 0 | 1 | 0 |
+| – | `cli.outcome` | should | An action's `--json` result is an outcome (`outcome/1`) that validates: its state, who can see it, a postcondition, a receipt and the next commands. | 0 | 0 | 1 |
+| – | `cli.work-events` | should | The interface records an attributed work event (`work-event/1`) for each action, handoff and wait, and an agent can read them through the interface. | 0 | 0 | 1 |
+| – | `cli.voice-off-when-piped` | should | A voice line prints only when stdout is a terminal: never into a pipe, a file or an agent's tool call. | 0 | 0 | 1 |
+| – | `cli.fact-before-voice` | should | An action's text result starts with its outcome's summary: what happened, and who can see it, before anything else. | 0 | 0 | 1 |
+| – | `cli.audience-named` | should | The preview of an action other people see names who will see it, not a placeholder such as "other people". | 0 | 0 | 1 |
+| ✓ | `cli.help-parses` | must | `<cli> help --json` prints one JSON document that names every command. | 1 | 0 | 0 |
+| ✓ | `cli.help-effects` | must | Help says who sees each command: only the person, or other people. | 3 | 0 | 0 |
+| ✓ | `cli.command-help` | should | Every command answers `<command> --help` with exit 0 on stdout, and nothing on stderr. | 3 | 0 | 0 |
+| ✓ | `cli.overview-short` | should | The overview (`--help`) fits one screen: at most 60 lines. | 1 | 0 | 0 |
+| ✓ | `cli.optional-args` | should | A command's optional words come after its required words, its usage line brackets each optional word, and a word's default is a string of its values, shown in usage as `[<name>=<value>]`. A word may stay bare where a `\| --flag` alternative or another usage line leaves it out, or its schema names the flag that replaces it. | 1 | 0 | 0 |
+| ✓ | `cli.no-stack-trace` | should | No call prints a stack trace. | 1 | 0 | 0 |
+| ✓ | `cli.voice-off-in-json` | should | Under `--json`, stdout holds the JSON alone, and no voice line is printed on stdout or stderr. | 1 | 0 | 0 |
+| ✓ | `cli.named-is-listed` | should | Every command the CLI tells an agent to run, in an error's fix or another command's help, is listed in the overview. | 1 | 0 | 0 |
+| ✓ | `cli.help-size` | should | Each command's `--help` is at most 6,000 bytes. | 3 | 0 | 0 |
+
+## What fails, and the fix
+
+### `cli.no-dev-commands`: No message the CLI gives an agent or a person (help, a refusal, an error, a next step, an outcome's `human.resume`, a doctor's fix) asks for a developer command, a repository path or a step that only works in a source checkout, unless the step is marked `sourceCheckout: true`.
+
+Why: An agent passes a next step on to the person, who has the installed tool and no source checkout, so a repository script fails for them and leaves both stuck.
+
+Fix: Name the command the installed tool runs (`<cli> <command>`) or the step to take by hand. A step that only works in a source checkout gets `sourceCheckout: true` (a next step, a doctor's fix), and only a source checkout shows it.
+
+- **pnpm build**: `bad-cli help --json` commands[2].summary: "Checks the setup; run `pnpm build` first" asks for `pnpm build`
+- **pnpm dev**: `bad-cli edit` prints: "Start the dev server with pnpm dev." asks for `pnpm dev`
+- **node scripts/doctor.mjs --fix**: `bad-cli doctor --json` rows[0].fix.command: "node scripts/doctor.mjs --fix" asks for `node scripts/doctor.mjs --fix`
+- **npm run writes -- on**: `bad-cli doctor` prints: "Writes are off: run npm run writes -- on." asks for `npm run writes -- on`
+
+### `cli.unknown-flag`: An unknown flag fails before anything runs, and the error names the flag.
+
+Why: A silently ignored flag gives an agent a wrong answer that looks right: `--limt 2` returns everything.
+
+Fix: Check every flag against the command's declared flags before acting; refuse an unknown one with the usage exit code.
+
+- **rooms**: `bad-cli rooms --ax-xray-no-such-flag --json` → exit 0; stdout: {"rooms":[{"ref":"r1"}]}: the flag was ignored
+- **rooms --limt**: `bad-cli rooms --limt 2 --json` → exit 0; stdout: {"rooms":[{"ref":"r1"}]}: --limt was ignored, so the answer is not what was asked
+- **doctor**: `bad-cli doctor --ax-xray-no-such-flag --json` → exit 1; stdout: {"ax":"checks/1","verdict":"failed","summary":"1 of 1 check failed: The cache. 0 passed, in under 0.1s.","durationMs":5…
+
+### `cli.ambiguous-verbs`: Ambiguous verbs (edit, delete, remove) don't act; they answer with the specific commands.
+
+Why: `edit` could mean a private draft or a message others already saw; guessing is how agents do the wrong thing.
+
+Fix: Answer each ambiguous verb with one line naming the private command and the one others see.
+
+- **edit**: `bad-cli edit` → exit 0; stderr: Start the dev server with pnpm dev.
+- **delete**: `bad-cli delete` → exit 1; stderr: what?
+- **remove**: `bad-cli remove` → exit 1; stderr: what?
+
+### `cli.exit-codes`: Exit codes are documented, and every exit code the CLI gives is one of them.
+
+Why: Stable, documented exit codes let an agent branch without parsing prose.
+
+Fix: Keep one exit-code table, print it in help and help JSON, and exit only with codes from it.
+
+- **help**: no exit codes in help --json or an `Exit codes:` line
+
+### `copy.precise-failure`: Every failure the CLI reports to an agent or a person (a refusal, an error, an outcome's `error` and `summary`, `human.reason`, a doctor's finding, and any failure `help --json` describes) says what happened and precisely why (the system and its answer), who or what caused it where that is known, and the next step; when the cause is unknown, what was tried and what came back. It never stops at "couldn't", "could not", "something went wrong", "unable to", "failed to load", "an error occurred" or a bare "Error" or "Failed": a phrase passes only with its cause after it in the same sentence ("Couldn't send: you're offline", "… because the server refused it"; not "Couldn't send: try again").
+
+Why: A vague failure gives the agent nothing to pass on and nothing to act on: it can't tell the person whether to retry, ask someone or change something, so both are stuck.
+
+Fix: Name the system and its answer ("The mail service says this file was deleted"), who or what caused it, and the next step as a command or an action ("Ask its owner to share it again"). When a precise text still holds a phrase ("The card service says your card could not be charged. Use another card."), list it in `--failure-copy-allow` with its reason.
+
+- **Could not reach the room service. Try later.**: `bad-cli help --json` commands[0].errors[0]: "Could not reach the room service. Try later." says "could not" and not what happened or why
+
+### `cli.error-teaches`: Every error names a next action: a command to run or a flag to add.
+
+Why: An agent recovers from the error alone when the error says what to do instead.
+
+Fix: End each error with what to do: `Try "<cli> conversations"`.
+
+- **ax-xray-no-such-command**: `bad-cli ax-xray-no-such-command` → exit 1; stderr: what?: names no command or flag to try
+- **delete**: `bad-cli delete` → exit 1; stderr: what?: names no command or flag to try
+- **remove**: `bad-cli remove` → exit 1; stderr: what?: names no command or flag to try
+- **doctor --ax-xray-no-such-flag**: `bad-cli doctor --ax-xray-no-such-flag --json` → exit 1; stdout: {"ax":"checks/1","verdict":"failed","summary":"1 of 1 check failed: The cache. 0 passed, in under 0.1s.","durationMs":5…: names no command or flag to try
+
+### `cli.plain-pipe`: Output into a pipe is plain text: no ANSI escape codes and no carriage-return redraws, and `NO_COLOR` wins over `FORCE_COLOR`.
+
+Why: An agent reads a pipe. Escape codes and redraws are noise in its context and break a match on the text.
+
+Fix: Decide colour and progress from the stream: colour and redraws only on a terminal, and `NO_COLOR` always off (`terminalStyle` and `createProgress` in ax-terminal).
+
+- **bad-cli edit**: a carriage return redraws piped output
+- **bad-cli doctor**: escape codes in piped output: "\u001b[35mDOCTOR\u001b[0m"
+- **NO_COLOR=1 FORCE_COLOR=1 bad-cli --help**: escape codes in piped output: "\u001b[1mbad\u001b[0m"
+
+### `cli.read-json`: Every read takes `--json` and prints exactly one JSON document (a stream prints JSON lines) and writes nothing to stderr. It exits 0, except a check command (a doctor), which exits with the declared `findings` code when its checks find a problem.
+
+Why: One parseable answer per call is the cheapest thing for an agent to consume.
+
+Fix: Give the read a `--json` that prints the same data the text shows, as one document.
+
+- **rooms**: `bad-cli rooms --json` → exit 0; stdout: {"rooms":[{"ref":"r1"}]}; stdout is not one JSON document
+- **doctor**: `bad-cli doctor --json` → exit 1; stdout: {"ax":"checks/1","verdict":"failed","summary":"1 of 1 check failed: The cache. 0 passed, in under 0.1s.","durationMs":5…
+
+### `cli.help-width`: No help line is wider than the width limit (100 columns by default).
+
+Why: Long lines wrap unpredictably in terminals and transcripts and cost tokens to re-read.
+
+Fix: Wrap help at one width in the help renderer, not by hand.
+
+- **--help**: 1 lines over 100 columns, first:   rooms   List rooms, and also this line goes on and on well past any sensible terminal width so it wraps badly everywhere.
+
+### `cli.unknown-command`: An unknown command fails with the usage exit code and lists the commands, or names the help that lists them.
+
+Why: A guessed command is the commonest first call; the error should be the menu.
+
+Fix: On an unknown command, print one line: `unknown command "x". Commands: a, b, c. Details: <cli> help`, and exit with the usage code.
+
+- **ax-xray-no-such-command**: `bad-cli ax-xray-no-such-command` → exit 1; stderr: what?; lists 0 of 3 commands
+
+### `cli.flag-suggest`: A misspelt flag's error names the closest real flag.
+
+Why: The error should carry the fix, so the next call is right.
+
+Fix: Suggest the declared flag nearest by edit distance: `unknown flag --limt; did you mean --limit?`.
+
+- **rooms --limt**: `bad-cli rooms --limt 2 --json` → exit 0; stdout: {"rooms":[{"ref":"r1"}]}; does not name --limit
+
+### `cli.one-line-error`: Every error is one line on stderr; stdout stays empty, or with `--json` holds the same error as one JSON document. A command that help JSON marks `protocol: true` may print its one JSON reply line on stdout instead, since another program reads it.
+
+Why: One line is cheap to read and easy to quote back; stdout stays parseable.
+
+Fix: Catch errors at the entry point and print one line to stderr.
+
+- **doctor --ax-xray-no-such-flag**: `bad-cli doctor --ax-xray-no-such-flag --json` → exit 1; stdout: {"ax":"checks/1","verdict":"failed","summary":"1 of 1 check failed: The cache. 0 passed, in under 0.1s.","durationMs":5… (0 stderr lines, 1 stdout lines)
+
+### `cli.check-verdict`: A check command (a doctor) puts its verdict on the first line of its text, and its `--json` has the same verdict and exit code.
+
+Why: A person reads the first line and an agent reads the JSON: they must agree, and neither should scroll for the answer.
+
+Fix: Declare the checks with `defineChecks` (ax-checks) and print the report with `checksText` or `printChecks`, or return it from a kit command.
+
+- **doctor**: `bad-cli doctor` starts "DOCTOR", not the verdict "1 of 1 check failed: The cache. 0 passed, in under 0.1s."
+
+## Every surface
+
+| Surface | Holds | Fails | Skipped |
+|---|---|---|---|
+| cli · help | `cli.help-parses` | `cli.exit-codes` |  |
+| cli · inventory |  |  | `cli.inventory` |
+| cli · rooms | `cli.help-effects` `cli.command-help` | `cli.read-json` `cli.unknown-flag` |  |
+| cli · send | `cli.help-effects` `cli.optional-args` `cli.command-help` |  | `cli.others-need-why` `cli.wrong-ref-first` `cli.others-preview` `cli.outcome` `cli.fact-before-voice` `cli.audience-named` |
+| cli · doctor | `cli.help-effects` `cli.command-help` | `cli.read-json` `cli.unknown-flag` `cli.check-verdict` |  |
+| cli · --help | `cli.overview-short` | `cli.help-width` |  |
+| cli · rooms --help | `cli.help-size` `cli.help-width` |  |  |
+| cli · send --help | `cli.help-size` `cli.help-width` |  |  |
+| cli · doctor --help | `cli.help-size` `cli.help-width` |  |  |
+| cli · ax-xray-no-such-command | `cli.one-line-error` | `cli.unknown-command` `cli.error-teaches` |  |
+| cli · edit |  | `cli.ambiguous-verbs` |  |
+| cli · delete | `cli.one-line-error` | `cli.ambiguous-verbs` `cli.error-teaches` |  |
+| cli · remove | `cli.one-line-error` | `cli.ambiguous-verbs` `cli.error-teaches` |  |
+| cli · rooms --limt |  | `cli.unknown-flag` `cli.flag-suggest` |  |
+| cli · doctor --ax-xray-no-such-flag |  | `cli.one-line-error` `cli.error-teaches` |  |
+| cli · state |  |  | `cli.reads-stay-reads` |
+| cli · events |  |  | `cli.work-events` |
+| cli · all 6 --json calls | `cli.voice-off-in-json` |  |  |
+| cli · help --json |  |  | `cli.voice-off-when-piped` |
+| cli · 0 commands named | `cli.named-is-listed` |  |  |
+| cli · pnpm build |  | `cli.no-dev-commands` |  |
+| cli · pnpm dev |  | `cli.no-dev-commands` |  |
+| cli · node scripts/doctor.mjs --fix |  | `cli.no-dev-commands` |  |
+| cli · npm run writes -- on |  | `cli.no-dev-commands` |  |
+| cli · Could not reach the room service. Try later. |  | `copy.precise-failure` |  |
+| cli · all 16 calls | `cli.no-stack-trace` |  |  |
+| cli · bad-cli edit |  | `cli.plain-pipe` |  |
+| cli · bad-cli doctor |  | `cli.plain-pipe` |  |
+| cli · NO_COLOR=1 FORCE_COLOR=1 bad-cli --help |  | `cli.plain-pipe` |  |

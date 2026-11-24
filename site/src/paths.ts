@@ -41,8 +41,11 @@ export type PlatformPath = (typeof PLATFORM_PATHS)[number];
  */
 export type PageKind = "voyage" | "docs";
 
-/** The paths the voyage module renders: the home page, the Nautilus's, Ouro AX's, the Ouro UI for Apple pages, the platform pages, the adoption ledger, Ouro Current and Proof. */
-export const VOYAGE_PATHS = ["/", "/nautilus/", "/ax/", ...APPLE_PATHS, ...PLATFORM_PATHS, "/adoption/", "/current/", "/proof/"] as const;
+/** The part pages: Actions, Composed UI, X-ray and Hackamore (parts/). */
+export const PART_PATHS = ["/actions/", "/composed-ui/", "/xray/", "/hackamore/"] as const;
+
+/** The paths the voyage module renders: the home page, the Nautilus's, Ouro AX's, the Ouro UI for Apple pages, the platform pages, the adoption ledger, Ouro Current, Proof and the part pages. */
+export const VOYAGE_PATHS = ["/", "/nautilus/", "/ax/", ...APPLE_PATHS, ...PLATFORM_PATHS, "/adoption/", "/current/", "/proof/", ...PART_PATHS] as const;
 
 /** A site path with a trailing slash and no `index.html`. */
 export function normalizePath(path: string): string {

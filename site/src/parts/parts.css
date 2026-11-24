@@ -1,0 +1,285 @@
+/*
+ * The part pages (/actions/, /composed-ui/, /xray/, /hackamore/). Each loads with its island and the page links it in
+ * its HTML (site/scripts/prerender.mts), so it paints styled. Every colour is a theme variable or mixed from one, so
+ * light, dark and the six presets all repaint it. Every corner is a squircle. With reduced motion, nothing moves: only
+ * colour and opacity change.
+ */
+@layer components {
+  .part {
+    --part-hairline: color-mix(in oklab, var(--border) 70%, transparent);
+    --part-quiet: color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground));
+    --part-gap: calc(var(--spacing) * 8);
+    --part-corner: calc(var(--radius) * 1.4 * var(--ouro-corner-fallback, 1));
+    padding-bottom: calc(var(--spacing) * 4);
+  }
+  /* Room under the hero before the first band's rule. */
+  .part-hero {
+    padding-bottom: calc(var(--spacing) * 12);
+  }
+
+  /* Bands. */
+  .part-band {
+    padding-block: calc(var(--spacing) * 16);
+    border-top: 1px solid var(--part-hairline);
+    scroll-margin-top: calc(var(--spacing) * 20);
+  }
+  .part-band-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--part-gap);
+  }
+  .part-band-grid > * {
+    min-width: 0;
+  }
+  .part-band-head {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    max-width: 46rem;
+  }
+  .part-lede {
+    display: grid;
+    gap: calc(var(--spacing) * 3);
+  }
+  .part-lede > p {
+    margin: 0;
+  }
+  .part-fine {
+    margin: 0;
+    color: var(--part-quiet);
+    font-size: 0.875rem;
+    line-height: 1.55;
+  }
+  .part-fine code,
+  .part-lede code {
+    font-family: var(--font-mono);
+    font-size-adjust: 0.46;
+  }
+
+  /* Two things side by side from a laptop's width: a demo and what it shows. */
+  .part-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--part-gap);
+    align-items: start;
+  }
+  .part-pair > * {
+    min-width: 0;
+  }
+  @media (width >= 64rem) {
+    .part-band {
+      padding-block: calc(var(--spacing) * 24);
+    }
+    .part-pair {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: calc(var(--spacing) * 12);
+    }
+  }
+
+  /* A list of named things with a line each, ruled, never boxed. */
+  .part-rows {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .part-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--spacing) * 1);
+    padding-block: calc(var(--spacing) * 5);
+    border-top: 1px solid var(--part-hairline);
+  }
+  .part-row:last-child {
+    border-bottom: 1px solid var(--part-hairline);
+  }
+  .part-row-name {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .part-row-body {
+    margin: 0;
+    color: var(--part-quiet);
+  }
+  @media (width >= 48rem) {
+    .part-row {
+      grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
+      gap: calc(var(--spacing) * 8);
+      align-items: baseline;
+    }
+  }
+
+  /* Real output: what a tool printed, in a frame of its own. */
+  .part-output {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+    margin: 0;
+    min-width: 0;
+  }
+  .part-output-label {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .part-output-text {
+    margin: 0;
+    padding: calc(var(--spacing) * 4);
+    overflow-x: auto;
+    border: 1px solid var(--part-hairline);
+    border-radius: var(--part-corner);
+    corner-shape: var(--ouro-corner-shape, squircle);
+    background: color-mix(in oklab, var(--muted) 60%, var(--background));
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-size-adjust: 0.46;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    outline-color: var(--ring);
+  }
+  .part-output-text:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .part-output-text .part-said {
+    color: var(--muted-foreground);
+  }
+  .part-output-text .part-no {
+    color: var(--destructive);
+    font-weight: 600;
+  }
+  .part-output-text .part-yes {
+    color: var(--success, var(--primary));
+    font-weight: 600;
+  }
+
+  /* The demo's controls, above what they change. */
+  .part-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--spacing) * 3);
+  }
+
+  /* The way on. */
+  .part-next {
+    padding-block: calc(var(--spacing) * 10) calc(var(--spacing) * 20);
+    border-top: 1px solid var(--part-hairline);
+  }
+  .part-next-link {
+    display: inline-grid;
+    gap: calc(var(--spacing) * 1);
+    color: inherit;
+    text-decoration: none;
+    border-radius: calc(var(--radius) * 0.333);
+    corner-shape: var(--ouro-corner-shape, squircle);
+  }
+  .part-next-label {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .part-next-title {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    transition: color var(--ouro-duration-fast, 150ms) ease;
+  }
+  @media (width >= 64rem) {
+    .part-next-title {
+      font-size: 2.25rem;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .part-next-link:hover .part-next-title {
+      color: var(--primary);
+    }
+  }
+  .part-next-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+  }
+
+  /* /actions/: the four kinds of consent, and the doors one declaration opens. */
+  .actions-doors {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--spacing) * 6);
+  }
+  .actions-person {
+    display: grid;
+    gap: calc(var(--spacing) * 3);
+    align-content: start;
+    justify-items: start;
+  }
+  .actions-person-says {
+    margin: 0;
+    color: var(--part-quiet);
+    min-height: 2lh;
+  }
+
+  /* /composed-ui/: the card, and the sender's tricks beside it. */
+  .composed-stage {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    max-width: 26rem;
+  }
+  .composed-tricks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* /xray/: AX X-ray's scan, a row per must claim. */
+  .xray-claims {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9375rem;
+  }
+  .xray-claim {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+    gap: calc(var(--spacing) * 3);
+    padding-block: calc(var(--spacing) * 2.5);
+    border-top: 1px solid var(--part-hairline);
+  }
+  .xray-claim-mark {
+    font-weight: 600;
+    text-align: center;
+  }
+  .xray-claim[data-verdict="holds"] .xray-claim-mark {
+    color: var(--success, var(--primary));
+  }
+  .xray-claim[data-verdict="fails"] .xray-claim-mark {
+    color: var(--destructive);
+  }
+  .xray-claim[data-verdict="skipped"] .xray-claim-mark {
+    color: var(--muted-foreground);
+  }
+  .xray-claim-id {
+    font-family: var(--font-mono);
+    font-size-adjust: 0.46;
+  }
+  .xray-claim-rule {
+    display: block;
+    color: var(--part-quiet);
+  }
+  .xray-verdict {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+}

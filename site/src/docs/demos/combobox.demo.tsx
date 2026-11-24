@@ -20,6 +20,7 @@ export default function ComboboxDemo(): JSX.Element {
       <Combobox label="Herbs" name="herbs" multiple items={herbs} defaultValue={["Basil", "Mint"]} placeholder="Add a herb" />
       <Combobox label="To" name="to" multiple autoHighlight items={people} placeholder="Enter a name" />
       <Combobox label="Cuisine" name="cuisine" allowCustomValue items={["Indian", "Italian", "Mexican", "Thai"]} description="Pick one or type your own." />
+      <Combobox label="Tags" name="tags" multiple allowCustomValue items={["Weeknight", "Vegan", "Quick lunch"]} placeholder="Add a tag" description="Pick or type tags; a comma adds one." />
     </form>
   );
 }

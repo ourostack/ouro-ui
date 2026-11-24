@@ -232,7 +232,11 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // floating look (#3236): contrast-more, forced-colors and reduced-transparency fallback classes on its live demo page.
 // Raised voyage a KiB (50,246 bytes measured in CI run 45286452756, 70 over) for the bubble run corners: the joined-corner
 // classes on the chat bubbles the home page's chat shows.
-const CSS_CEILINGS = { voyage: 50 * 1024, docs: 53 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+// Raised voyage a KiB (51,651 bytes measured by scripts/size-budget.mjs on a build merged with main at 90edc5624, 1,475 over) for the Composed UI page's live card
+// (/composed-ui/): ComposedSurface draws Card, Alert, DescriptionList, NumberField and the other composed components,
+// which no voyage page rendered before, and the voyage's pages share one stylesheet. A build of the card's own failed:
+// a second Tailwind build repeats utilities the shared one has, and its later copies override responsive classes.
+const CSS_CEILINGS = { voyage: 51 * 1024, docs: 53 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the

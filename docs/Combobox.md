@@ -2,7 +2,7 @@
 
 # Combobox
 
-A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check. It picks one item, several as chips with `multiple`, or accepts any text with `allowCustomValue`. Pass `onInputChange` and `loading` to search on your server. A clear button shows while there is a value. On a phone (below 640px with touch) the field is a button that opens a full-height bottom sheet with the search input pinned at the top, and a clear button sits beside it. With `allowCustomValue` the sheet's first row keeps what was typed (`customValueLabel`). The sheet opens with focus on itself, not the search input, so the keyboard does not cover the list until people tap the search (as Base UI does for touch). In a right-to-left page (`dir="rtl"` on `<html>`) the arrow keys move between chips from the right: ArrowRight goes from the input to the last chip. There, End also scrolls long typed text to its end, on the left.
+A text input that filters a list of items as people type, on the Field contract: pass `label`, `items`, and `error` from your server action or client check. It picks one item, several as chips with `multiple`, or accepts any text with `allowCustomValue`. Pass `onInputChange` and `loading` to search on your server. With `multiple` and `allowCustomValue` together it is a token input, for tags: typed text becomes a chip on Enter or at a comma, and text that matches an item ignoring case picks that item. A clear button shows while there is a value. On a phone (below 640px with touch) the field is a button that opens a full-height bottom sheet with the search input pinned at the top, and a clear button sits beside it. With `allowCustomValue` the sheet's first row keeps what was typed (`customValueLabel`), and with `multiple` that row adds it as a chip. The sheet opens with focus on itself, not the search input, so the keyboard does not cover the list until people tap the search (as Base UI does for touch). In a right-to-left page (`dir="rtl"` on `<html>`) the arrow keys move between chips from the right: ArrowRight goes from the input to the last chip. There, End also scrolls long typed text to its end, on the left.
 
 ```tsx
 import { Combobox } from "@/registry/ouro/components/ouro/combobox/combobox";
@@ -15,6 +15,7 @@ import { Combobox } from "@/registry/ouro/components/ouro/combobox/combobox";
 <Combobox label="Tags" name="tags" multiple items={tags} defaultValue={["Quick"]} />
 <Combobox label="Recipe" items={results} loading={searching} onInputChange={search} />
 <Combobox label="Cuisine" name="cuisine" allowCustomValue items={["Italian", "Thai"]} />
+<Combobox label="Tags" name="tags" multiple allowCustomValue items={["Weeknight", "Vegan"]} />
 ```
 
 ## Use instead when
@@ -62,7 +63,7 @@ A Combobox that accepts any text, suggesting matching items as people type.
 | `allowCustomValue` (required) | `true` |  | Accept any text: the value is what is in the input, and items are suggestions. |
 | `customValueLabel` | `((text: string) => string)` | `` (text) => `Use “${text}”` `` | The sheet's row (on a phone) that keeps what was typed, from the text. Translate it with your app. |
 | `defaultValue` | `string` |  | The text at first, when the field keeps its own. |
-| `multiple` | `false` |  | Not with `allowCustomValue`: it keeps one typed value. |
+| `multiple` | `false` |  | One typed value. With `multiple` too, typed text becomes chips: see `ComboboxTokensProps`. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the text as people type or pick a suggestion. A suggestion puts its `label` in the input, and the text is the value, so an `{ value, label }` item submits its label. |
 | `value` | `string` |  | The text, when you control it. |
 
@@ -77,13 +78,13 @@ A Combobox that picks several items, shown as chips in the input.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `allowCustomValue` | `false` |  | Not with `multiple`: `allowCustomValue` keeps one typed value. |
-| `defaultValue` | `string[]` |  | The items picked at first, when the field keeps its own. |
+| `allowCustomValue` | `false` |  | Also take typed text as chips: see `ComboboxTokensProps`. |
+| `defaultValue` | `string[]` |  | The chips at first, when the field keeps its own. |
 | `inputValue` | `string` |  | The input's text, when you control it with `onInputChange`. Set it to `""` in `onValueChange` to clear the input after a pick. |
 | `multiple` (required) | `true` |  | Pick several items, shown as chips; the value is an array. |
-| `onValueChange` | `((value: string[]) => void)` |  | Called with the picked items' values. |
-| `removeLabel` | `((label: string) => string)` | `` (label) => `Remove ${label}` `` | The name of a chip's remove button, from the item's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
-| `value` | `string[]` |  | The picked items' values, when you control them. |
+| `onValueChange` | `((value: string[]) => void)` |  | Called with the chips' values: picked items' values, and typed text with `allowCustomValue`. |
+| `removeLabel` | `((label: string) => string)` | `` (label) => `Remove ${label}` `` | The name of a chip's remove button, from the chip's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
+| `value` | `string[]` |  | The chips' values, when you control them. |
 
 Not in this mode (a type error):
 
@@ -106,6 +107,21 @@ Not in this mode (a type error):
 
 - `customValueLabel`: Only with `allowCustomValue`.
 - `removeLabel`: Only with `multiple`.
+
+### Tokens: `ComboboxTokensProps`
+
+A token input: picks several items as chips, and makes typed text a chip too, as for a recipe's tags. Suggestions match ignoring case and extra spaces. Enter picks the highlighted suggestion, or, with none highlighted, makes the typed text a chip; a comma also makes a chip, so a pasted "quick, vegan" becomes two. Text that matches an item ignoring case picks that item, so "weeknight" adds the existing "Weeknight" and no duplicate chip appears.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `allowCustomValue` (required) | `true` |  | Typed text becomes a chip too, on Enter or at a comma. |
+| `customValueLabel` | `((text: string) => string)` | `` (text) => `Use “${text}”` `` | The sheet's row (on a phone) that adds what was typed as a chip, from the text. Translate it with your app. |
+| `defaultValue` | `string[]` |  | The chips at first, when the field keeps its own. |
+| `inputValue` | `string` |  | The input's text, when you control it with `onInputChange`. Set it to `""` in `onValueChange` to clear the input after a pick. |
+| `multiple` (required) | `true` |  | Pick several items, shown as chips; the value is an array. |
+| `onValueChange` | `((value: string[]) => void)` |  | Called with the chips' values: picked items' values, and typed text with `allowCustomValue`. |
+| `removeLabel` | `((label: string) => string)` | `` (label) => `Remove ${label}` `` | The name of a chip's remove button, from the chip's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
+| `value` | `string[]` |  | The chips' values, when you control them. |
 
 ## Don't use
 
