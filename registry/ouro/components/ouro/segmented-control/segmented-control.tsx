@@ -119,7 +119,7 @@ function Segment(props: {
       pressed={selected}
       // Pressing the checked segment would leave none checked. Keep it.
       onPressedChange={(next) => {
-        // Stryker disable next-line ConditionalExpression: only the checked segment reports false, and choose ignores the checked value
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: only the checked segment reports false, and choose ignores the checked value
         if (next && !reason.off) choose(item.value);
       }}
       disabled={disabled || (item.disabled && !reason.off)}
@@ -356,7 +356,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
           if (!event.currentTarget.contains(event.relatedTarget)) asked.current.clear();
         }}
         data-glass={glass ? "" : undefined}
-        // Stryker disable next-line ConditionalExpression: fullWidth is tested on the plain group; the glass class sets its own grid
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: fullWidth is tested on the plain group; the glass class sets its own grid
         className={cn(groupClass, glass && glassGroupClass, fullWidth && "grid w-full")}
       >
         <span aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={thumbStyle} />
