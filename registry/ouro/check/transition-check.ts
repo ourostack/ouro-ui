@@ -111,7 +111,13 @@ async function stepTrace(): Promise<TransitionTrace> {
   for (let i = 0; i <= steps; i++) {
     for (const a of animations) a.currentTime = Math.min(i * (1000 / 60), a.effect!.getComputedTiming().endTime as number);
     frames.push(state.read());
-    for (const [key, a] of timed) progress[key]!.push(a.effect!.getComputedTiming().progress ?? Number(a.currentTime === a.effect!.getComputedTiming().endTime));
+    for (const [key, a] of timed) {
+      const eased = a.effect!.getComputedTiming().progress ?? Number(a.currentTime === a.effect!.getComputedTiming().endTime);
+      // A CSS animation's timing function lives on its keyframes, so run the progress through it too.
+      const between = new Animation(new KeyframeEffect(null, null, { duration: 1, fill: "both", easing: (a.effect as KeyframeEffect).getKeyframes()[0]!.easing }));
+      between.currentTime = eased;
+      progress[key]!.push(between.effect!.getComputedTiming().progress!);
+    }
   }
   for (const a of animations) a.finish();
   const targets = animations.map((a) => (a.effect as KeyframeEffect).target!);
