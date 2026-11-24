@@ -1,0 +1,1 @@
+- Fixed: Reverted the removal of the scroll-edge fades on FamilyBar, CodeBlock, Chart, ToggleGroup, Tabs and ScrollArea, and TimeGrid's day header is a faded sticky bar again, not glass: the glass header landed under the Ouro check near-miss rule's minimum gap to an event button.
