@@ -427,7 +427,11 @@ function CallDemo(): JSX.Element {
         onPointerEnter={() => setStill(true)}
         onPointerLeave={() => setStill(false)}
         onFocusCapture={() => setStill(true)}
-        onBlurCapture={() => setStill(false)} aria-label="Call" role="group" className="h-160 overflow-hidden rounded-lg border border-border outline-none">
+        onBlurCapture={() => setStill(false)}
+        style={inCall && others > 4 ? { height: "46rem" } : undefined}
+        aria-label="Call"
+        role="group"
+        className="h-160 overflow-hidden rounded-lg border border-border outline-none">
         {body}
       </div>
       <div className="min-w-0 max-w-sm">
@@ -443,8 +447,8 @@ export default function CallDemoPage(): JSX.Element {
     <DocsShell current="/docs/call-demo/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "A call window" }}>
       <Text size="lg" tone="muted" className="mb-10 max-w-2xl text-pretty" data-ouro-measure="">
         The call components together, with made-up people and placeholder pictures: a tile grid that grows as people join, speaking, muted and camera-off
-        tiles, captions, the control bar, your own picture in a corner, a timer, and the lobby, joining and waiting states. Try the keyboard, a narrow
-        window and dark mode.
+        tiles, captions, the control bar, your own picture in a corner, a timer, and the lobby, joining and waiting states. The switchers above the window and the moving speaker, captions
+        and microphone level are the demo's own script; an app supplies the real ones. Try the keyboard, a narrow window and dark mode.
       </Text>
       <CallDemo />
     </DocsShell>

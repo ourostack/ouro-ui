@@ -19,6 +19,12 @@ import type { PageIssue } from "./size-check.ts";
 //                      a frame, or a picture that runs to its corner, not an icon or a clear logo), sits in its corner
 //                      (under half the radius in) with a radius that isn't the outer radius less the inset, so the
 //                      corners don't nest
+//   doubled-line       two dividing lines side by side where one would separate: a divider (a border on some sides of
+//                      a box, an hr, a separator or a hairline fill) within a few pixels of another line, or of a
+//                      frame's edge, along most of its length, such as a list's last row's border over its card's
+//   count-badge        a count on a small filled pill laid over an icon: clipped by a box around it, its numerals'
+//                      ink off the pill's middle by more than `badgeSlackPx`, or at another offset from its icon than
+//                      the page's other count badges on icons of that size
 //   baked-corner       (readCorners) a picture or video whose own pixels draw a corner of another colour, such as a
 //                      screen recording of a window with its dark corner, inside the page's frame
 //   type-scale         more text sizes, or more font weights in running text or in headings, than a type scale holds
@@ -50,6 +56,10 @@ interface DesignOptions {
   headingRoom?: number;
   /** The gap, in pixels, under which a frame inside a frame reads as a double border. */
   hugPx?: number;
+  /** The gap, in pixels, under which parallel lines read as one line drawn twice. */
+  lineGapPx?: number;
+  /** How far, in pixels, a count badge's numerals may sit from its middle. */
+  badgeSlackPx?: number;
   /** The limit on a page's text sizes and font weights. */
   maxSizes?: number;
   maxWeights?: number;
@@ -86,7 +96,7 @@ interface CornerReading {
   corners: string[];
 }
 
-function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4 }: DesignOptions = {}): PageIssue[] {
+function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75 }: DesignOptions = {}): PageIssue[] {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
@@ -371,6 +381,148 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         });
       }
     }
+  }
+
+  // doubled-line: two dividing lines side by side where one would separate. A line is a border on some sides of a box
+  // (a divider), a hairline box (an hr, a separator, a fill 3px thick or less) or one edge of a frame. Two frames' edges
+  // are neighbours, as chips in a row are, so a pair needs a divider in it. Lines that share pixels draw as one, a table
+  // whose borders collapse draws each shared edge once, and a thick coloured edge on one side is an accent (an event's
+  // stripe, a quote's bar), not a divider.
+  type Line = { el: Element; across: boolean; near: number; far: number; from: number; to: number };
+  const lines: Line[] = [];
+  const dividers = new Set<Element>();
+  const seen = (colour: string, el: Element) => {
+    const [c, behind] = [rgba(colour), backgroundOf(el.parentElement!) ?? [255, 255, 255, 1]];
+    return c[3] >= 0.2 && Math.abs(c[0] - behind[0]!) + Math.abs(c[1] - behind[1]!) + Math.abs(c[2] - behind[2]!) > 12;
+  };
+  // A hairline under 2px is too thin for `visible`, which wants a box a person can see whole, so it is found on its own.
+  const thin = all.filter((el) => {
+    const r = el.getBoundingClientRect();
+    return Math.min(r.width, r.height) > 0 && Math.min(r.width, r.height) < 2 && Math.max(r.width, r.height) >= 16 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+  });
+  for (const el of [...visible, ...thin]) {
+    const table = el.closest("table");
+    if (isLayer(el) || optedOut(el, "doubled-line") || (table && getComputedStyle(table).borderCollapse === "collapse")) continue;
+    const s = getComputedStyle(el);
+    const b = el.getBoundingClientRect();
+    const d = drawnRect(el)!;
+    if (Math.min(b.width, b.height) <= 3 && Math.max(b.width, b.height) >= 16 && (el.matches("hr") || seen(s.backgroundColor, el))) {
+      const across = b.width > b.height;
+      dividers.add(el);
+      lines.push(across ? { el, across, near: b.top, far: b.bottom, from: d.left, to: d.right } : { el, across, near: b.left, far: b.right, from: d.top, to: d.bottom });
+      continue;
+    }
+    const edges = {
+      Top: { across: true, near: b.top, from: d.left, to: d.right, drawn: d.top <= b.top + 0.5 },
+      Bottom: { across: true, near: b.bottom, from: d.left, to: d.right, drawn: d.bottom >= b.bottom - 0.5 },
+      Left: { across: false, near: b.left, from: d.top, to: d.bottom, drawn: d.left <= b.left + 0.5 },
+      Right: { across: false, near: b.right, from: d.top, to: d.bottom, drawn: d.right >= b.right - 0.5 },
+    };
+    const sides = (Object.keys(edges) as (keyof typeof edges)[]).filter((side) => {
+      const [width, colour] = [px(s[`border${side}Width`]), s[`border${side}Color`]];
+      const accent = width >= 2 && hsl(rgba(colour)).s >= 0.25;
+      return !/none|hidden/.test(s[`border${side}Style`]) && width >= 0.5 && seen(colour, el) && !accent;
+    });
+    if (sides.length < 4) dividers.add(el);
+    for (const side of sides.filter((side) => edges[side].drawn)) {
+      const { across, near, from, to } = edges[side];
+      // A bottom or right border is drawn inside the box's far edge.
+      const width = px(s[`border${side}Width`]);
+      const start = side === "Bottom" || side === "Right" ? near - width : near;
+      lines.push({ el, across, near: start, far: start + width, from, to });
+    }
+  }
+  const paired = new Set<Element>();
+  const bars = visible.filter((el) => /sticky|fixed/.test(getComputedStyle(el).position) && rgba(getComputedStyle(el).backgroundColor)[3] >= 0.9);
+  for (const across of [true, false]) {
+    const run = lines.filter((l) => l.across === across).sort((a, b) => a.near - b.near);
+    for (const [i, a] of run.entries()) {
+      for (const b of run.slice(i + 1)) {
+        const gap = b.near - a.far;
+        if (gap > lineGapPx) break;
+        const overlap = Math.min(a.to, b.to) - Math.max(a.from, b.from);
+        const pair = a.el !== b.el && gap >= 0 && (dividers.has(a.el) || dividers.has(b.el)) && !paired.has(a.el) && !paired.has(b.el);
+        if (!pair || overlap < Math.max(24, Math.min(a.to - a.from, b.to - b.from) * 0.5)) continue;
+        // Each line has to be on top where they run together: one under a sticky bar or an opaque layer isn't seen. Off
+        // the screen nothing can be hit, so only the page's sticky and fixed bars are looked for there. A hit test lands
+        // on a whole pixel, so the line is tried at the pixels its edge and its middle round to.
+        const onTop = (l: Line) =>
+          [0.25, 0.5, 0.75].every((t) => {
+            const along = Math.max(a.from, b.from) + overlap * t;
+            const tries = [Math.ceil(l.near), Math.floor((l.near + l.far) / 2)].map((at) => (across ? [along, at] : [at, along]) as [number, number]);
+            const [x, y] = tries[0]!;
+            const under = bars.some((bar) => {
+              const r = bar.getBoundingClientRect();
+              return !bar.contains(l.el) && x > r.left && x < r.right && y >= r.top && y < r.bottom;
+            });
+            const offScreen = x < 0 || y < 0 || x >= innerWidth || y >= innerHeight;
+            return !under && (offScreen || tries.some(([hx, hy]) => l.el.contains(document.elementFromPoint(hx, hy))));
+          });
+        if (!onTop(a) || !onTop(b)) continue;
+        const [first, second] = a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? [a.el, b.el] : [b.el, a.el];
+        paired.add(a.el).add(b.el);
+        issues.push({ ref: ref(second), rule: "doubled-line", element: `${describe(first)} and ${describe(second)}`, detail: `two ${across ? "horizontal" : "vertical"} lines ${Math.round(gap)}px apart where one separates: keep one, or space them apart` });
+      }
+    }
+  }
+
+  // count-badge: a count on a small filled pill laid over something (a bell, an avatar, a tab): clipped by a box around
+  // it, off-centre on its numerals as the eye reads them (their ink, not their line box), or set at another offset from
+  // its icon than the page's other count badges on icons of that size.
+  const badges = visible.filter((el) => {
+    const s = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    return /absolute|fixed/.test(s.position) && /^\d{1,3}\+?$/.test(el.textContent!.trim()) && r.height <= 28 && r.width <= 56 && rgba(s.backgroundColor)[3] >= 0.5 && !optedOut(el, "count-badge");
+  });
+  const offsets: { el: Element; icon: number; across: number; down: number }[] = [];
+  for (const badge of badges) {
+    const b = badge.getBoundingClientRect();
+    const d = drawnRect(badge)!;
+    const s = getComputedStyle(badge);
+    const found = (detail: string) => issues.push({ ref: ref(badge), rule: "count-badge", element: `${describe(badge)}${quoted(badge)}`, detail });
+    if (d.width < b.width - 0.5 || d.height < b.height - 0.5) {
+      found(`clipped: ${Math.max(0, Math.round(d.width))}×${Math.max(0, Math.round(d.height))} of its ${Math.round(b.width)}×${Math.round(b.height)} is drawn; let it overflow the box around it, or move it inside`);
+      continue;
+    }
+    // The numerals' ink: a run of text is drawn from its font's ascent above the baseline, and the glyphs' own bounds
+    // say how far above and below the baseline their ink reaches. Across, the run's advance stands for its ink. The
+    // ascent is read at the badge's size, as its line was laid out; the glyphs' bounds at 100px, scaled back, since a
+    // Linux host rounds them to whole pixels at a badge's size, which read a centred count as exactly centred in WebKit
+    // and 1px high in Chromium.
+    const text = document.createTreeWalker(badge, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.textContent!.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP) }).nextNode() as Text;
+    const ts = getComputedStyle(text.parentElement!);
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const t = range.getBoundingClientRect();
+    context.font = `${ts.fontStyle} ${ts.fontWeight} ${ts.fontSize} ${ts.fontFamily}`;
+    const ascent = context.measureText(text.textContent!.trim()).fontBoundingBoxAscent;
+    context.font = `${ts.fontStyle} ${ts.fontWeight} 100px ${ts.fontFamily}`;
+    const glyphs = context.measureText(text.textContent!.trim());
+    const ink = t.top + ascent + ((glyphs.actualBoundingBoxDescent - glyphs.actualBoundingBoxAscent) * px(ts.fontSize)) / 200;
+    const dy = ink - (b.top + px(s.borderTopWidth) + badge.clientHeight / 2);
+    const dx = t.left + t.width / 2 - (b.left + px(s.borderLeftWidth) + badge.clientWidth / 2);
+    // A count already centred on its cap height (text-box-trim) has a trimmed line box this reading can't place, so it
+    // is left to its author.
+    const trimmed = (ts as CSSStyleDeclaration & { textBoxTrim?: string }).textBoxTrim;
+    const way = trimmed && trimmed !== "none" ? [] : [Math.abs(dy) > badgeSlackPx ? `${Math.abs(dy).toFixed(1)}px ${dy < 0 ? "high" : "low"}` : "", Math.abs(dx) > badgeSlackPx ? `${Math.abs(dx).toFixed(1)}px to the ${dx < 0 ? "left" : "right"}` : ""];
+    if (way.some(Boolean)) found(`its numerals sit ${way.filter(Boolean).join(" and ")} of the badge's middle: centre their ink, not their line box`);
+    // Its icon: a picture beside it in the box it is laid over. A badge is placed by its outer edges, so the offset is
+    // from the icon's edge on the badge's side to the badge's edge beyond it, and from top to top: a wider count keeps
+    // its place, and a badge on the start corner in right-to-left reads the same as one on the end corner.
+    const icon = [...badge.parentElement!.querySelectorAll("svg, img, [role=img]")].find((el) => !badge.contains(el) && !el.parentElement!.closest("svg") && shown(el));
+    if (!icon) continue;
+    const i = icon.getBoundingClientRect();
+    const after = b.left + b.width / 2 > i.left + i.width / 2;
+    offsets.push({ el: badge, icon: Math.round(i.width), across: after ? b.right - i.right : i.left - b.left, down: b.top - i.top });
+  }
+  // The page's usual offset, for an icon's size, is the one most of its badges there share; a badge off it is the odd one.
+  type Offset = (typeof offsets)[number];
+  const alike = (p: Offset, q: Offset) => Math.abs(p.across - q.across) <= 1 && Math.abs(p.down - q.down) <= 1;
+  for (const o of offsets) {
+    const peers = offsets.filter((p) => p.icon === o.icon);
+    const usual = peers.map((p) => ({ p, n: peers.filter((q) => alike(p, q)).length })).sort((x, y) => y.n - x.n)[0]!.p;
+    if (alike(usual, o)) continue;
+    issues.push({ ref: ref(o.el), rule: "count-badge", element: `${describe(o.el)}${quoted(o.el)}`, detail: `set ${Math.round(o.across)}px past its ${o.icon}px icon's side and ${Math.round(-o.down)}px above its top, where the page's other badges sit ${Math.round(usual.across)}px and ${Math.round(-usual.down)}px: give every badge one offset` });
   }
 
   // type-scale and shadow-scale: what the page draws, counted once. Text an element opts out of with a reason (hand

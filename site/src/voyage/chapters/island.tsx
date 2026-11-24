@@ -187,3 +187,5 @@ export const AdoptionIsland = island("adoption", () => import("../../adoption/ad
 /** Ouro Current (current/): its list and page load only on /current/. */
 export const CurrentIsland = island("current", () => import("../../current/current"));
 export const AppleStartIsland = island("apple-start", () => import("../../apple/start"));
+/** Proof (proof/): the benchmark, the Errand's transcripts and the rest load only on /proof/. */
+export const ProofIsland = island("proof", () => import("../../proof/proof"));

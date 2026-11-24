@@ -12,7 +12,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import * as ts from "./ts71.mts";
 import { componentsDir, MANIFEST } from "./components.mts";
 import { treeFiles } from "./tree.mjs";
 
@@ -164,7 +164,7 @@ export function partNames(root: string = repoRoot): PartScan {
     }
     const isStrict = strict.has(stem);
     const text = readFileSync(file, "utf8");
-    const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const source = ts.createSourceFile(file, text, ts.ScriptKind.TSX);
     const outside = packageImports(source);
     const at = (node: ts.Node) => `${relative(root, file)}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`;
     const missing = (where: string, message: string): void => {

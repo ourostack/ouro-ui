@@ -6,7 +6,16 @@
 
 # Ouro UI
 
-**Delightful interfaces, by agents, for everyone.**[^for-everyone] Ouro UI is a complete kit for agents to build interfaces for people and for other agents. An agent composes an interface as data that Ouro draws natively, and every button in it is an action declared once, which a person presses and an agent calls as a tool, with consent built in and an X-ray to check both.[^composed]
+**Delightful interfaces, by agents, for everyone.**[^for-everyone] A kit for agents to build interfaces people enjoy and other agents can use, on the web, Apple, Windows and Android.[^native] MIT.[^glance-licence] Components per platform: web, every one in [the catalog](#components); Apple 20,[^glance-apple] Windows 26[^glance-windows] and Android 26.[^glance-android] Which ones, including chat: https://ui.ouroboros.bot/docs/platforms/parity/
+
+- **Ouro HX** (human experience): components. Web: copy-in source from a shadcn registry, start at https://ui.ouroboros.bot/docs/agent-quickstart.md. Apple: Swift package, start at https://ui.ouroboros.bot/apple/start/. Windows: WinUI 3,[^glance-windows] start at https://ui.ouroboros.bot/docs/platforms/windows/. Android: Compose, start at https://ui.ouroboros.bot/docs/platforms/android/. Ouro Current keeps all four up to date with one pull request per release.[^open-current]
+- **Ouro AX** (agent experience): the doors agents use (CLIs, HTTP APIs, MCP servers, App Intents, AppFunctions, Windows App Actions), with a kit and an AX X-ray. Guide: https://ui.ouroboros.bot/docs/ax.md
+- **Actions**: declare an action once to generate its button and its agent tools; existing MCP tools keep their names and inputs.[^open-actions] Each is a read, a write, consequential (the person confirms first) or person-only (no agent door offers it).[^person-only]
+- **Composed UI**: an agent sends a card as data, checked against your app's catalog and drawn by each kit.[^composed] Sends cards to any MCP Apps host; reads A2UI.[^composed] Guide: https://ui.ouroboros.bot/docs/composed-ui.md
+- **Missing a component?** Write it natively beside Ouro's and offer it back as a pull request.
+- **Check your work:** Ouro check (`node scripts/ouro/check/check.ts <built folder>`) finds what's broken on every page; HX X-ray names every component on a page; AX X-ray tests every door.[^xray]
+
+**Evidence** (10 models, scored on app state): through Ouro's actions agents finished 98% of jobs and paid without the person 0 of 32 times; driving the browser, 83% and 30 of 30.[^open-benchmark] Method and every run, with where every number comes from:[^open-runs] https://ui.ouroboros.bot/docs/agent-interfaces/
 
 **What a person gets.** Screens that pass axe in their stories,[^glance-axe] controls that hand focus on when a press removes them and announce a result once,[^person-focus] a confirmation that shows what an agent prepared before a consequential action runs,[^person-confirm] and controls that get a 44px hit area on a touch screen.[^person-touch] [Make review worth the time](docs/guides/review-volume.md) covers how to keep that confirmation worth a person's attention. The rest of this page is how an agent builds it.
 
@@ -36,7 +45,7 @@ Ouro UI has a native kit for each platform, in that platform's own toolkit: Reac
 
 ## Ouro AX
 
-Ouro AX is Ouro UI's half for agents: it is for the interfaces an agent uses, such as a CLI, an HTTP API or an MCP server, as Ouro HX is for the screens a person uses ([decision record](docs/decisions/2026-10-30-ouro-ax.md)). Its parts:
+Ouro AX is the part of Ouro UI for agents: it is for the interfaces an agent uses, such as a CLI, an HTTP API or an MCP server, as Ouro HX is for the screens a person uses ([decision record](docs/decisions/2026-10-30-ouro-ax.md)). Its parts:
 
 - **A standard with an X-ray.** `ax-claims` holds the standard as checkable claims about agent-facing surfaces. `ax-xray` calls an interface from outside, the way an agent would, and reports which claims hold on which command, route and tool, with the fix where one does not.
 - **A kit.** With `ax-command`, one definition of a command gives its parser, its help and `help --json`, `--json` output, exit codes, one-line errors that name the fix, and the same command as an MCP tool. An action returns a typed outcome (`ax-outcome`), a wait returns a typed wait with a cursor (`ax-wait`), and `ax-work-event` records who acted for whom.
@@ -57,9 +66,9 @@ Guides: [Ouro AX](docs/guides/ax.md), [add AX to an app you already have](docs/g
 
 **[See it live: ui.ouroboros.bot](https://ui.ouroboros.bot/)**, with the [docs](https://ui.ouroboros.bot/docs/) and [Storybook](https://ui.ouroboros.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
-Ouro HX is the half of Ouro UI for the interfaces people use: React components you copy in with the shadcn CLI. **[Ouro AX](#ouro-ax)** is the other half, for the interfaces agents use.
+Ouro HX is the part of Ouro UI for the screens people use, with a kit for each platform.[^native] This repository is Ouro HX for web: React components you copy in with the shadcn CLI. **[Ouro AX](#ouro-ax)** is the part for the doors agents use.
 
-Ouro UI has a web half (this repository) and an Apple half ([ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple), a Swift package), with a side for people and a side for agents in both:
+Ouro UI has a kit for the web (this repository) and one for Apple ([ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple), a Swift package), with a side for people and a side for agents in both:
 
 | | Web | Apple |
 |---|---|---|
@@ -67,7 +76,7 @@ Ouro UI has a web half (this repository) and an Apple half ([ourostack/ouro-ui-a
 | Agents (Ouro AX) | [the kit and X-ray](#ouro-ax) for command lines, HTTP APIs and MCP servers | typed outcomes, an X-ray for an app's App Intents, and Ouro Reins to drive its screens[^apple-box] |
 | Both, from one declaration | a command line, MCP and WebMCP tools and a web control | an App Intent, a SwiftUI button and a Reins action[^actions] |
 
-[Web and Apple parity](https://ui.ouroboros.bot/apple/#parity) is a table built from ouro-ui-core's claim files, and it marks the gaps. The Apple half is at [1.10](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1).[^apple-1] The one action model is in [ouro-ui-core](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md): declare an action once, and its generator writes the surfaces above, with a check that fails your CI when a generated file drifts from the declaration.[^actions] Windows and Android each have a [first kit](docs/platforms/README.md).[^windows-first][^android-first]
+[Web and Apple parity](https://ui.ouroboros.bot/apple/#parity) is a table built from ouro-ui-core's claim files, and it marks the gaps. The Apple kit is at [1.10](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1).[^apple-1] The one action model is in [ouro-ui-core](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md): declare an action once, and its generator writes the surfaces above, with a check that fails your CI when a generated file drifts from the declaration.[^actions] Windows and Android each have a [first kit](docs/platforms/README.md).[^windows-first][^android-first]
 
 ```sh
 # In an app set up with shadcn init (see Quick start):
@@ -419,6 +428,7 @@ Components:
 `avatar`,
 `badge`,
 `breadcrumb`,
+`build-chip`,
 `button`,
 `button-group`,
 `calendar`,
@@ -767,6 +777,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### Feedback
 
 - **AgentPresence** — The person's always-visible sign of which of their agents are listening to something on their behalf, such as a meeting, with Stop one click away. [Docs](docs/AgentPresence.md)
+- **BuildChip** — A compact, neutral chip for the title bar, like Xcode's scheme and activity area: it names the build the window runs ("Official 1.2.3", or "branch · sha" with "+ edits" for local changes not yet in any build), and opens a picker of the official build plus the builds serving now so a person can switch to the official build from the trigger. [Docs](docs/BuildChip.md)
 - **buzz** — Vibrates the device in a short alert pattern, where it can (most Android phones; not iOS or desktops). [Docs](docs/buzz.md)
 - **Celebrate** — A small moment of celebration for something the person finished: confetti bursts from a badge with the message ("List cleared") and screen readers hear the message once. [Docs](docs/Celebrate.md)
 - **chime** — Plays a short alert, three soft tones, for something that just finished: a timer at zero. [Docs](docs/chime.md)
@@ -997,6 +1008,10 @@ MIT
 [^a2ui-render]: https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.4.0; https://github.com/ourostack/ouro-ui-android/releases/tag/v0.4.0; https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json; test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated; https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#agent-composed-ui-a2ui verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json) verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#agent-composed-ui-a2ui) verify:urlOk(https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.4.0) verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/tag/v0.4.0)
 [^works-with]: test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated; test:registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated) verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card)
 [^mcp-app]: docs/OuroMcpApp.md; test:registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card)
+[^open-current]: site/src/current/current.tsx verify:fileLine(site/src/current/current.tsx, /When a new Ouro UI release lands, for the web, Apple, Windows or Android, or for Ouro UI core, that repository gets one pull request/)
+[^open-actions]: scripts/ouro-actions/ouro-actions.mts verify:fileLine(scripts/ouro-actions/ouro-actions.mts, /the MCP and WebMCP tool name/) verify:fileLine(scripts/ouro-actions/ouro-actions.mts, /openInput\?: true;/)
+[^open-runs]: docs/guides/agent-interfaces.md verify:fileLine(docs/guides/agent-interfaces.md, /Every number on this page is computed from the runs' results files; none is written by hand\./)
+[^open-benchmark]: docs/guides/agent-interfaces.md verify:fileLine(docs/guides/agent-interfaces.md, /Across 712 checked trials by 10 models/) verify:fileLine(docs/guides/agent-interfaces.md, /^- Ouro UI action model \(generated MCP tools\): 179 of 182 \(98%\) done/) verify:fileLine(docs/guides/agent-interfaces.md, /^- Ouro UI action model \(generated MCP tools\): 0 of 32\.$/) verify:fileLine(docs/guides/agent-interfaces.md, /^- Browser driving \(Playwright, accessibility tree\): 144 of 174 \(83%\) done/) verify:fileLine(docs/guides/agent-interfaces.md, /^- Browser driving \(Playwright, accessibility tree\): 30 of 30\.$/)
 [^for-everyone]: test:test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action; test:registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing verify:testExists(test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action) verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
 [^one-action]: https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5)
 [^consent-confirm]: test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm)

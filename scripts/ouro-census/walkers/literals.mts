@@ -1,6 +1,6 @@
 // Which string literals in a source file are codes the code may raise: every literal outside a card. Shared by the
 // walkers that check a card's error codes against its handler (design section 3).
-import ts from "typescript";
+import * as ts from "../../ts71.mts";
 
 const keyOf = (p: ts.ObjectLiteralElementLike): string | null =>
   (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? p.name.text : null;

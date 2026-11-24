@@ -870,3 +870,104 @@ describe("markWalkables", () => {
     expect(markWalkables({ limit: 1, never }).map((w) => w.element)).toEqual(['button "One"', 'a "A"']);
   });
 });
+
+describe("findDesignIssues: doubled-line", () => {
+  const line = (gap: number, across = "horizontal") => `two ${across} lines ${gap}px apart where one separates: keep one, or space them apart`;
+
+  it("finds a divider drawn against a frame's edge or another line, across and down, naming both and marking the later", () => {
+    render(`<section id="card" style="border:1px solid #bbb;border-radius:12px;overflow:hidden;width:320px"><ul style="margin:0;padding:0;list-style:none"><li style="padding:12px">Rye</li><li id="last" style="padding:12px;border-bottom:2px solid #bbb">Bun</li></ul></section>
+<header id="head" style="border-bottom:1px solid #bbb;width:320px;margin-top:24px;padding:8px">Orders</header><hr id="rule" style="margin:2px 0 0;width:320px"><hr style="margin:2px 0 0;width:320px">
+<div style="display:flex;height:120px;margin-top:24px"><nav id="side" style="width:120px;border-inline-end:1px solid #bbb">Side</nav><div id="split" style="width:1px;background:#bbb"></div><div style="flex:1">Main</div></div>
+<div style="display:flex;flex-direction:column-reverse;width:320px;margin-top:24px;background:linear-gradient(#fff,#eee)"><div id="low" style="height:1px;background:#bbb"></div><div id="up" style="border-bottom:1px solid #bbb;padding:8px">Above</div></div>`);
+    const issues = of("doubled-line");
+    expect(issues.map(({ element, detail }) => [element, detail])).toEqual([
+      ["section#card and li#last", line(0)],
+      ["header#head and hr#rule", line(2)],
+      ["div#low and div#up", line(0)],
+      ["nav#side and div#split", line(0, "vertical")],
+    ]);
+    expect(document.getElementById("last")!.getAttribute("data-ouro-check-ref")).toBe(issues[0]!.ref);
+    expect(document.getElementById("up")!.getAttribute("data-ouro-check-ref")).toBe(issues[2]!.ref);
+  });
+
+  it("passes frames side by side, lines that share pixels, collapsed tables, accents, lines apart or short, and the opted out", () => {
+    render(`<p style="display:flex;gap:4px"><span style="border:1px solid #bbb;border-radius:999px;padding:2px 8px">Bread</span><span style="border:1px solid #bbb;border-radius:999px;padding:2px 8px">Bakery</span></p>
+<div style="border:1px solid #bbb;height:40px;width:300px"></div><div style="border:1px solid #bbb;height:40px;width:300px;margin-top:4px"></div>
+<div role="tablist" style="display:flex;border-bottom:1px solid #bbb;width:320px"><span style="padding:8px;border-bottom:2px solid #bbb;margin-bottom:-1px">One</span><span style="padding:8px">Two</span></div>
+<table style="border-collapse:collapse"><tr><td style="border:1px solid #bbb">a</td></tr><tr><td style="border:1px solid #bbb">b</td></tr></table>
+<table style="border-spacing:12px"><tr><td style="border:1px solid #bbb">a</td></tr><tr><td style="border:1px solid #bbb">b</td></tr></table>
+<p style="border-inline-start:3px solid #c2410c;border-top:1px solid #bbb;padding:8px;width:300px">Bake at 7</p>
+<div style="border-bottom:1px solid #bbb;width:300px;height:20px"></div><div style="border-top:1px solid #bbb;width:300px;margin-top:12px;height:20px"></div>
+<div style="border-bottom:1px solid #bbb;width:20px;height:20px"></div><div style="border-top:1px solid #bbb;width:20px;height:20px"></div>
+<div data-ouro-allow="doubled-line" data-ouro-allow-why="a ruled form" style="border-bottom:1px solid #bbb;width:300px;height:20px"></div><div style="border-top:1px solid #bbb;width:300px;height:20px"></div>
+<div style="height:4px;width:300px;border-top:1px solid #bbb;border-bottom:1px solid #bbb;margin-top:24px"></div>
+<div style="border-bottom:1px solid #fff;width:300px;height:20px;margin-top:24px"></div><div style="border-top:0px solid #bbb;height:2px;width:300px"></div><div style="border-top:1px solid #bbb;width:300px;height:20px"></div>
+<div style="height:30px;overflow:hidden;width:300px;margin-top:24px"><div style="height:40px;border-bottom:1px solid #bbb"></div></div><div style="border-top:1px solid #bbb;width:300px;height:20px"></div>
+<div style="position:relative;width:300px;margin-top:24px;isolation:isolate;border-top:1px solid #bbb"><span data-ouro-surface="" style="position:absolute;inset:0;border-bottom:1px solid #bbb"></span><p style="margin:0;height:20px">Surface</p></div><div style="border-top:1px solid #bbb;width:300px;height:20px"></div>`);
+    expect(of("doubled-line")).toEqual([]);
+  });
+
+  it("passes a line a sticky bar covers, and finds a pair off the screen, where nothing can be hit", () => {
+    render(`<div id="scroller" style="height:200px;overflow:auto;width:320px"><div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #bbb;height:30px;z-index:1">Monday</div><div style="height:400px;position:relative"><button style="position:absolute;top:-10px;left:0;width:300px;height:40px;border:1px solid #bbb;background:#fff">Event</button></div></div>`);
+    expect(of("doubled-line")).toEqual([]);
+    host.remove();
+    render(`<div style="position:absolute;top:3000px;left:0;width:320px"><div style="border-bottom:1px solid #bbb;height:20px"></div><div style="border-top:1px solid #bbb;height:20px"></div></div>`);
+    expect(of("doubled-line").map(({ detail }) => detail)).toEqual([line(0)]);
+  });
+
+  it("passes a pair of lines a fixed opaque layer hides, not just the one under a sticky bar", () => {
+    render(`<div style="position:fixed;top:0;left:0;width:320px;height:60px;background:#fff;z-index:5"></div><div style="border-bottom:1px solid #bbb;width:300px;height:20px"></div><div style="border-top:1px solid #bbb;width:300px;height:20px"></div>`);
+    expect(of("doubled-line")).toEqual([]);
+  });
+
+  it("reads lines further apart as one drawn twice when told a wider gap", () => {
+    render(`<div style="border-bottom:1px solid #bbb;width:300px;height:20px"></div><div style="border-top:1px solid #bbb;width:300px;margin-top:10px;height:20px"></div>`);
+    expect(of("doubled-line")).toEqual([]);
+    expect(of("doubled-line", { lineGapPx: 12 }).map(({ detail }) => detail)).toEqual([line(10)]);
+  });
+});
+
+describe("findDesignIssues: count-badge", () => {
+  // A host's fonts place a centred count's numerals a fraction of a pixel apart, so these cases, whose faults are 4px or
+  // more, judge centring at 1.5px.
+  const slack = { badgeSlackPx: 1.5 };
+  it("finds a count off its middle, high, low, right or left, a clipped one, and one at another offset from its icon", () => {
+    render(`<style>.b{position:relative;display:inline-block;margin:24px}.b svg{display:block}.c{position:absolute;top:-6px;inset-inline-end:-8px;box-sizing:border-box;height:16px;min-width:16px;border-radius:999px;background:#b91c1c;color:#fff;font:600 10px/16px sans-serif;text-align:center}</style>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span id="high" class="c" style="line-height:6px">3</span></span>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span id="right" class="c" style="line-height:26px;padding-inline-start:8px;min-width:24px">4</span></span>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span id="left" class="c" style="padding-inline-end:8px;min-width:24px"> <b>5</b></span></span>
+<span class="b" style="overflow:hidden"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span id="cut" class="c">6</span></span>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span id="odd" class="c" style="top:-2px;inset-inline-end:-3px">7</span></span>
+<span class="b" dir="rtl"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c">8</span></span>
+<span class="b" style="padding:0"><span class="c" style="position:absolute">9</span>Inbox</span>`);
+    const issues = of("count-badge", slack);
+    expect(issues.map(({ element }) => element)).toEqual(['span#high.c "3"', 'span#right.c "4"', 'span#left.c "5"', 'span#cut.c "6"', 'span#odd.c "7"']);
+    const [high, right, left, cut, odd] = issues.map(({ detail }) => detail);
+    expect(high).toMatch(/^its numerals sit [\d.]+px high of the badge's middle: centre their ink, not their line box$/);
+    expect(right).toMatch(/^its numerals sit [\d.]+px low and [\d.]+px to the right of the badge's middle/);
+    expect(left).toMatch(/^its numerals sit [\d.]+px to the left of the badge's middle/);
+    expect(cut).toBe("clipped: 8×10 of its 16×16 is drawn; let it overflow the box around it, or move it inside");
+    expect(odd).toBe("set 3px past its 24px icon's side and 2px above its top, where the page's other badges sit 8px and 6px: give every badge one offset");
+    expect(document.getElementById("odd")!.getAttribute("data-ouro-check-ref")).toBe(issues[4]!.ref);
+  });
+
+  it("passes centred counts at one offset, either side of their icons, and what is no count badge or is opted out", () => {
+    render(`<style>.b{position:relative;display:inline-block;margin:24px}.b svg{display:block}.c{position:absolute;top:-6px;inset-inline-end:-8px;box-sizing:border-box;height:16px;min-width:16px;padding:0 4px;border-radius:999px;background:#b91c1c;color:#fff;font:600 10px/16px sans-serif;text-align:center}</style>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c">3</span></span>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c">12</span></span>
+<span class="b" dir="rtl"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c">99+</span></span>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="line-height:6px" data-ouro-allow="count-badge" data-ouro-allow-why="a deliberate dot">4</span></span>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c">New</span></span>
+<span class="c" style="position:static;display:inline-block;line-height:6px">5</span>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="height:32px;line-height:6px">6</span></span>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="background:transparent;color:#111;line-height:6px">7</span></span>
+<span class="b"><svg width="24" height="24"><rect width="24" height="24" fill="#555"/></svg><span class="c" style="display:flex;align-items:center;justify-content:center;text-box:trim-both cap alphabetic">8</span></span>`);
+    expect(of("count-badge", slack)).toEqual([]);
+    // With no slack, a centred count still reads a fraction of a pixel off: its ink is measured finer than the whole
+    // pixels a Linux host rounds a font's metrics to at a badge's size (WebKit read every one as exactly centred, Chromium
+    // as 1px high).
+    const exact = of("count-badge", { badgeSlackPx: 0 });
+    expect(exact.length).toBeGreaterThan(0);
+    for (const { detail } of exact) expect(detail).toMatch(/^its numerals sit 0\.\dpx (high|low|to the (left|right))( and 0\.\dpx to the (left|right))? of/);
+  });
+});

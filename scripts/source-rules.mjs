@@ -52,10 +52,10 @@
 // compares the comments of each installed file with its source.
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
-import ts from "typescript";
+import * as ts from "./ts71.mts";
 
 const kind = (path) => (path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
-const parse = (path, text) => ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, kind(path));
+const parse = (path, text) => ts.createSourceFile(path, text, kind(path));
 
 /** The comments before the first statement, as text, or "" when there are none (or no statement). */
 export function leadingComment(path, text) {

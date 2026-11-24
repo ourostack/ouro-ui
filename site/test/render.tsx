@@ -44,6 +44,7 @@ const islandChunks: Record<string, () => Promise<unknown>[]> = {
   "/ax/": () => [import("../src/ax/ax-page"), import("../src/ax/exhibit")],
   "/adoption/": () => [import("../src/adoption/adoption")],
   "/current/": () => [import("../src/current/current")],
+  "/proof/": () => [import("../src/proof/proof")],
   "/nautilus/": () => [import("../src/voyage/chapters/chapter-one"), import("../src/voyage/chapters/chapter-two"), import("../src/voyage/chapters/chapter-three")],
 };
 

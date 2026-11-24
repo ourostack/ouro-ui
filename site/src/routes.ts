@@ -53,7 +53,7 @@ export const guessedAddresses: Array<{ from: string; to: string; note?: string }
 ];
 
 /** Old and guessed addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
-export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, ...guessedAddresses];
+export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, { from: "/benchmark/", to: "/proof/" }, ...guessedAddresses];
 
 // The words a person or an agent searches with: what it is (React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits), who it is for (agents building A2UI and MCP Apps interfaces) and how it installs.
 const DESCRIPTION = claim("Accessible React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits, for agents building A2UI and MCP Apps. Installs with the shadcn CLI.", {
@@ -90,6 +90,15 @@ export const routes: Route[] = [
   { path: "/apple/start/", title: "Get started · Ouro UI for Apple", description: "Add one Swift package, set a theme, animate with the shared spring, play a named haptic, and X-ray your App Intents in CI." },
   { path: "/adoption/", title: "Adoption · Ouro UI", description: "Who uses Ouro UI, and who gives back to it: our maintained products, measured from GitHub and CI hourly, furthest from confirmed first." },
   { path: "/current/", title: "Ouro Current · Ouro UI", description: "Our own Dependabot for Ouro UI: install the GitHub App, and Ouro UI releases arrive as one pull request with auto-merge on." },
+  // Proof's lede (copy deck v7, 3.3; proof/copy.ts says the same on the page).
+  {
+    path: "/proof/",
+    title: "Proof · Ouro UI",
+    description: claim("The benchmark, what frontier models said when they compared toolkits, every product on the adoption board, how to run Ouro UI at a company, and the projects we borrowed from.", {
+      source: [{ file: "docs/guides/agent-interfaces.md" }, { file: "docs/guides/company.md" }, { file: "site/src/adoption/ledger.json" }],
+      verify: [{ fileLine: "docs/guides/agent-interfaces.md", pattern: "checked trials" }, { fileLine: "docs/guides/company.md", pattern: "# Ouro UI at a company" }, { testExists: "site/src/proof/proof.test.tsx::Proof's page > has a route, a forward from /benchmark/, and a section for each part of the proof" }],
+    }),
+  },
   {
     path: "/docs/",
     title: "Components · Ouro HX",
