@@ -1,0 +1,1 @@
+- Fixed: Toolbar's overflow menu no longer closes itself when a loading font (or any other benign re-measure) revalidates widths while the menu is open; it only closes or changes items when the available row width truly no longer fits them.
