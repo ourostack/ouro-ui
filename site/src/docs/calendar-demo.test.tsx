@@ -19,21 +19,6 @@ describe("the calendar page", () => {
     expect(routes.some((route) => route.path === "/docs/calendar-demo/")).toBe(true);
   });
 
-  it("opens a dialog from New event, asks for a title, and puts the event on the grid", async () => {
-    await renderPage("/docs/calendar-demo/");
-    await expect.element(page.getByRole("heading", { level: 1, name: "A calendar" })).toBeInTheDocument();
-    await page.getByRole("button", { name: "New event" }).click();
-    const dialog = page.getByRole("dialog", { name: "New event" });
-    await expect.element(dialog).toBeInTheDocument();
-    await dialog.getByRole("button", { name: "Create" }).click();
-    await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
-    await expect.poll(() => `${document.activeElement?.tagName}${document.activeElement?.getAttribute("aria-invalid")}`).toBe("INPUTtrue");
-    await dialog.getByRole("textbox", { name: /Title/ }).fill("Garden club");
-    await dialog.getByRole("button", { name: "Create" }).click();
-    await expect.element(dialog).not.toBeInTheDocument();
-    await expect.poll(() => document.body.textContent).toContain("Garden club");
-  });
-
   it("shows an empty week from the State switcher", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {
@@ -43,6 +28,27 @@ describe("the calendar page", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("opens a dialog from New event and asks for a title", async () => {
+    await renderPage("/docs/calendar-demo/");
+    await expect.element(page.getByRole("heading", { level: 1, name: "A calendar" })).toBeInTheDocument();
+    await page.getByRole("button", { name: "New event" }).click();
+    const dialog = page.getByRole("dialog", { name: "New event" });
+    await expect.element(dialog).toBeInTheDocument();
+    await dialog.getByRole("button", { name: "Create" }).click();
+    await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
+    await expect.poll(() => `${document.activeElement?.tagName}${document.activeElement?.getAttribute("aria-invalid")}`).toBe("INPUTtrue");
+  });
+
+  it("puts a new event on the grid once it has a title", async () => {
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: "New event" }).click();
+    const dialog = page.getByRole("dialog", { name: "New event" });
+    await dialog.getByRole("textbox", { name: /Title/ }).fill("Garden club");
+    await dialog.getByRole("button", { name: "Create" }).click();
+    await expect.element(dialog).not.toBeInTheDocument();
+    await expect.poll(() => document.body.textContent).toContain("Garden club");
   });
 
   it("leaves the now line off an empty week, and draws it on a week with events", async () => {
@@ -230,6 +236,40 @@ describe("the calendar page", () => {
     await expect.element(dialog).not.toBeInTheDocument();
     await expect.poll(() => document.activeElement === slots).toBe(true);
     expect(slots.getAttribute("aria-activedescendant")).toBe(was);
+  });
+
+  it("deletes a focused event with the Delete key, and Ctrl+Z brings it back with focus on it", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    const before = eventTitles();
+    const event = page.getByRole("button", { name: /Sprint planning/ }).first().element() as HTMLElement;
+    event.focus();
+    await userEvent.keyboard("{Delete}");
+    await expect.poll(eventTitles).toBe(before - 1);
+    await userEvent.keyboard("{Control>}z{/Control}");
+    await expect.poll(eventTitles).toBe(before);
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toMatch(/Sprint planning/);
+  });
+
+  it("puts focus on the event again after a second delete and Undo", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    for (let round = 0; round < 2; round++) {
+      page.getByRole("button", { name: /Sprint planning/ }).first().element().focus();
+      await userEvent.keyboard("{Delete}");
+      await userEvent.click(page.getByRole("button", { name: "Undo" }).last());
+      await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toMatch(/Sprint planning/);
+      (document.activeElement as HTMLElement).blur();
+    }
+  });
+
+  it("puts focus on the event Undo brings back", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    page.getByRole("button", { name: /Sprint planning/ }).first().element().focus();
+    await userEvent.keyboard("{Delete}");
+    await userEvent.click(page.getByRole("button", { name: "Undo" }));
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toMatch(/Sprint planning/);
   });
 
   it("marks Go to date as opening a dialog", async () => {
