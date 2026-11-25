@@ -1,8 +1,8 @@
 {
   "spoonjoy/spoonjoy-v2": {
     "components/ouro/": {
-      "commit": "5fb0776c0c9c932d966f7a32fafaf71b187927b2",
-      "at": "2026-11-25T02:21:31.062Z",
+      "commit": "52da7c577a3d358d9216c8d572b2a91e0220dcba",
+      "at": "2026-11-25T04:18:59.334Z",
       "total": 610,
       "paths": [
         "app/components/ouro/inspector/inspector.stories.tsx",
@@ -105,59 +105,6 @@
         "app/components/ouro/select/select.stories.tsx",
         "app/components/ouro/spinner/spinner.tsx",
         "app/components/ouro/toggle/toggle-group.tsx"
-      ]
-    },
-    "\"ouro-ui-core\"": {
-      "commit": "5fb0776c0c9c932d966f7a32fafaf71b187927b2",
-      "at": "2026-11-25T03:18:54.866Z",
-      "total": 13,
-      "paths": [
-        "README.md",
-        "tools/ouro-actions/README.md",
-        "scripts/sync-sj-tokens.mjs",
-        "actions/spoonjoy.actions.mts",
-        "app/styles/sj-tokens.css",
-        "app/styles/tailwind.css",
-        "claims-urls.json",
-        "tools/ouro-actions/actions.claims.json",
-        "test/styles/theme-css.ts",
-        "test/styles/sj-token-parity.test.ts",
-        "test/scripts/sync-sj-tokens.test.ts",
-        "test/components/recipe/CoverPlaceholder.test.tsx",
-        "test/lib/mcp/declared-actions.server.test.ts"
-      ]
-    },
-    "defineCommand": {
-      "commit": "5fb0776c0c9c932d966f7a32fafaf71b187927b2",
-      "at": "2026-11-25T03:19:13.261Z",
-      "total": 5,
-      "paths": [
-        "app/lib/ouro/ax/ax-command.ts",
-        "scripts/ouro/ax/xray.kit.mts",
-        "scripts/ouro/ax/xray.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "app/lib/ouro/ax/ax-moved.d.ts"
-      ]
-    },
-    "bindAx": {
-      "commit": "5fb0776c0c9c932d966f7a32fafaf71b187927b2",
-      "at": "2026-11-25T03:19:18.480Z",
-      "total": 4,
-      "paths": [
-        "app/lib/ouro/ax/component.ts",
-        "actions/generated/web.ts",
-        "scripts/ouro/ax/xray.ts",
-        "tools/ouro-actions/ouro-actions.mts"
-      ]
-    }
-  },
-  "spoonjoy/spoonjoy-apple": {
-    "\"import OuroAX\"": {
-      "commit": "ce399c78157a7b16fdcaf9e0737285fd1ce7950c",
-      "at": "2026-11-25T03:27:05.380Z",
-      "total": 1,
-      "paths": [
-        "Tests/SpoonjoyCoreTests/XrayExpectationTests.swift"
       ]
     }
   },
@@ -290,8 +237,8 @@
   },
   "ourostack/ouroboros": {
     "components/ouro/": {
-      "commit": "161be8032293eab383d2b199f9ee43e351201892",
-      "at": "2026-11-25T03:28:55.645Z",
+      "commit": "ae67f6a51f59b3a33af287bb428fd4a65906a606",
+      "at": "2026-11-25T04:28:43.214Z",
       "total": 4,
       "paths": [
         "deploy/eval/u/build/kit-config.mjs",
@@ -301,8 +248,8 @@
       ]
     },
     "\"ouro-ui-core\"": {
-      "commit": "161be8032293eab383d2b199f9ee43e351201892",
-      "at": "2026-11-25T03:29:02.150Z",
+      "commit": "ae67f6a51f59b3a33af287bb428fd4a65906a606",
+      "at": "2026-11-25T04:29:09.175Z",
       "total": 5,
       "paths": [
         "docs/bundle-declared-tools.md",
@@ -310,23 +257,6 @@
         "tools/ouro-actions/actions.claims.json",
         "deploy/eval/u/results/ouro-rewrite.json",
         "src/__tests__/repertoire/fixtures/declared-tools/SOURCE.md"
-      ]
-    },
-    "defineCommand": {
-      "commit": "161be8032293eab383d2b199f9ee43e351201892",
-      "at": "2026-11-25T03:29:28.190Z",
-      "total": 10,
-      "paths": [
-        "src/eval/interviews/guest/ax/ax-command.ts",
-        "lib/ouro-ui/registry/ouro/ax/ax-command.ts",
-        "lib/ouro-ui/registry/ouro/ax/xray.kit.mts",
-        "lib/ouro-ui/registry/ouro/ax/flows.kit.mts",
-        "lib/ouro-ui/registry/ouro/ax/example-cli.ts",
-        "src/eval/interviews/guest/arms.ts",
-        "lib/ouro-ui/registry/ouro/ax/lint.ts",
-        "lib/ouro-ui/registry/ouro/ax/flows.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "lib/ouro-ui/registry/ouro/ax/xray.ts"
       ]
     }
   }
