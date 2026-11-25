@@ -173,6 +173,12 @@ test("under a backdrop-filter, the box opens and closes in painted frames with o
   await settle();
   const box = (await frame.boundingBox())!;
   const tall = box.height;
+  // The Expand button keeps focus (and the caret) in the text, by design, so a user can keep
+  // typing through a press. Under this story's backdrop-filter, Chromium's compositor treats the
+  // caret's own blink as an ongoing repaint of the whole blurred layer, which keeps the screencast
+  // from ever going quiet. Only this geometry assertion cares about painted frames, not focus, so
+  // blur once before recording to remove that unrelated repaint source at the cause.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await cdp.send("Page.startScreencast", { format: "png", everyNthFrame: 1 });
   try {
     await expect.poll(() => shots.length).toBeGreaterThan(0);
