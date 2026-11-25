@@ -1515,6 +1515,7 @@ describe("TimeGrid", () => {
       const minutes = (/(\d+):(\d+) (AM|PM)/.exec(cell) ?? []).slice(1);
       const at = (((Number(minutes[0]) % 12) + (minutes[2] === "PM" ? 12 : 0)) * 60 + Number(minutes[1])) / 1440 * body.offsetHeight;
       expect(at).toBeGreaterThanOrEqual(before - 1);
+      expect(at).toBeLessThan(before + body.offsetHeight / 24);
     });
 
     it("starts on the day's last slot when now is in its last minutes", async () => {

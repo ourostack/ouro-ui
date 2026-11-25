@@ -853,7 +853,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // Focus never scrolls the grid away from what the person is looking at: a start above the visible hours moves to the first visible slot.
     const viewport = rootRef.current!.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const body = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
-    const firstSeen = Math.ceil((viewport.scrollTop * dayLength) / body.offsetHeight / slotMinutes) * slotMinutes;
+    // A body with no height yet reads as one pixel, so the division never yields NaN.
+    const firstSeen = Math.ceil((viewport.scrollTop * dayLength) / Math.max(1, body.offsetHeight) / slotMinutes) * slotMinutes;
     const from = Math.max(firstSeen, wanted);
     // Stryker disable next-line ArithmeticOperator: a start below the day's end already sits on a slot, so the upper clamp never moves it.
     return { day: Math.max(todayIndex, 0), minutes: between(0, Math.floor(from / slotMinutes) * slotMinutes, dayLength - slotMinutes) };
