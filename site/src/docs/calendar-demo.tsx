@@ -225,6 +225,7 @@ function Screen(): JSX.Element {
         <Heading level={2} size="md" className="me-auto min-w-0 max-sm:order-first max-sm:basis-full">
           {heading}
         </Heading>
+        <div className="flex flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
         <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => setJump(!jump)}>
           Go to date
         </Button>
@@ -240,6 +241,7 @@ function Screen(): JSX.Element {
           ]}
         />}
         <Button onClick={newEvent}>New event</Button>
+        </div>
       </div>
       <Popover title="Go to date" open={jump} onOpenChange={setJump} anchor={jumpRef} presentation="auto">
         <Calendar
