@@ -312,6 +312,7 @@ export function Popover(props: PopoverProps): JSX.Element {
               ? {
                   initialFocus: () => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true),
                   // Safari does not focus a button on click, so name where focus goes back.
+                  // Stryker disable next-line ConditionalExpression,BooleanLiteral,OptionalChaining: with no layer to stand down for, true (Base UI's own return) and the anchor land on the same element, and anchor is always set in this mode
                   finalFocus: () => (otherLayerOpen(anchor?.current) ? false : (anchor?.current ?? true)),
                 }
               : {})}

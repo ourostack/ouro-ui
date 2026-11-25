@@ -1266,7 +1266,7 @@ describe("Popover handing focus to a layer opened from inside it", () => {
       return (
         <>
           <button ref={anchor} type="button">Event</button>
-          <Popover title="Details" open={popover} onOpenChange={setPopover} anchor={anchor}>
+          <Popover title="Details" presentation="popover" open={popover} onOpenChange={setPopover} anchor={anchor}>
             <Button
               onClick={() => {
                 setPopover(false);
@@ -1296,7 +1296,7 @@ describe("Popover handing focus to a layer opened from inside it", () => {
       return (
         <Dialog title="Outer" open onOpenChange={() => {}} presentation="dialog">
           <button ref={anchor} type="button" onClick={() => setOpen(true)}>Anchor</button>
-          <Popover title="Inner" open={open} onOpenChange={setOpen} anchor={anchor}>
+          <Popover title="Inner" presentation="popover" open={open} onOpenChange={setOpen} anchor={anchor}>
             <Button>Inside</Button>
           </Popover>
         </Dialog>
@@ -1308,5 +1308,27 @@ describe("Popover handing focus to a layer opened from inside it", () => {
     await expect.poll(() => document.querySelector('[data-ouro-popover-content]')).not.toBeNull();
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.activeElement).toBe(anchor);
+  });
+
+  it("returns focus to the button that opened it when its anchor ref holds no element", async () => {
+    function App() {
+      const [open, setOpen] = useState(false);
+      const empty = useRef<HTMLElement>(null);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>Opener</button>
+          <Popover title="Loose" presentation="popover" open={open} onOpenChange={setOpen} anchor={empty}>
+            <Button>Inside</Button>
+          </Popover>
+        </>
+      );
+    }
+    await render(<App />);
+    const opener = [...document.querySelectorAll("button")].find((button) => button.textContent === "Opener")!;
+    await act(async () => opener.focus());
+    await act(async () => opener.click());
+    await expect.poll(() => document.querySelector("[data-ouro-popover-content]")).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(opener);
   });
 });
