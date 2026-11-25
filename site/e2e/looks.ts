@@ -338,6 +338,13 @@ export async function picture(page: Page, index: number, attributes?: string): P
   // The site scrolls smoothly (html's scroll-behavior), so a plain scrollIntoView is still moving when the cover check reads
   // the element, and the picture was skipped (#1463).
   await handle.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" })).catch(() => {});
+  // An instant scroll returns before the browser's own paint and compositor pipeline has necessarily caught up: a
+  // large jump (a control well below the fold) can leave part of the newly-visible area painted from its last
+  // frame for a tick or two, with no CSS Animation or Transition marking it, so settleMotion never sees it either.
+  // A picture taken in that gap shows the stale paint, and a retake taken once the page has had a moment longer
+  // disagrees with it even though nothing about the control itself changed (ourostack/ouro-ui#3693). Two real
+  // frames is enough to see the scroll's own repaint land before the clip rect and the screenshot are taken.
+  await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())))).catch(() => {});
   const clear = await handle.evaluate((el) => {
     const r = el.getBoundingClientRect();
     const points: [number, number][] = [
