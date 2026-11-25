@@ -627,13 +627,16 @@ test("a download follows its redirect to storage and returns the bytes", async (
   assert.equal(api.calls[1], "https://storage.example/z");
 });
 
-test("a run GitHub will not answer for reports budget unavailable and passes; any other error still fails it", () => {
+test("a run GitHub will not answer for reports budget unavailable, failing a pull request and passing elsewhere; any other error still fails it", () => {
   const logged = [];
   const summary = join(scratchDir("budget-"), "summary.md");
   assert.equal(reportUnavailable(new ApiUnavailable("x answered 503"), summary, (line) => logged.push(line)), 0);
   assert.match(logged[0], /^::warning::Budget unavailable: .*x answered 503/);
   assert.match(readFileSync(summary, "utf8"), /Budget unavailable/);
   assert.equal(reportUnavailable(new ApiUnavailable("y"), undefined, () => {}), 0);
+  const failed = [];
+  assert.equal(reportUnavailable(new ApiUnavailable("z"), undefined, (line) => failed.push(line), "pull_request"), 1);
+  assert.match(failed[0], /^::error::Budget unavailable/);
   assert.throws(() => reportUnavailable(new Error("x answered 404"), summary), /404/);
 });
 
@@ -674,7 +677,7 @@ test("the run prints the screen-reader lane's line and records it, both when the
   assert.deepEqual([none.record.laneRan, none.record.laneCriticalPathSeconds, none.record.laneWorkPathSeconds], [false, null, null]);
 });
 
-test("jobs answer, then the baseline read gets 502s: the run reports budget unavailable and exits 0", async () => {
+test("jobs answer, then the baseline read gets 502s: the pull request run reports budget unavailable and exits 1", async () => {
   const saved = { fetch: globalThis.fetch, log: console.log, base: retry.baseSeconds, env: { ...process.env } };
   const logged = [];
   Object.assign(process.env, { GH_TOKEN: "t", GITHUB_REPOSITORY: "o/r", RUN_ID: "1", RUN_ATTEMPT: "1", EVENT: "pull_request", FALLBACK: "false" });
@@ -685,12 +688,12 @@ test("jobs answer, then the baseline read gets 502s: the run reports budget unav
     ? new globalThis.Response(JSON.stringify({ total_count: 0, jobs: [] }), { status: 200 })
     : new globalThis.Response("bad gateway", { status: 502 });
   try {
-    assert.equal(await main(["--out", join(scratchDir("budget-"), "unused.json")]), 0);
+    assert.equal(await main(["--out", join(scratchDir("budget-"), "unused.json")]), 1);
   } finally {
     globalThis.fetch = saved.fetch;
     console.log = saved.log;
     retry.baseSeconds = saved.base;
     process.env = saved.env;
   }
-  assert.ok(logged.some((line) => line.startsWith("::warning::Budget unavailable")));
+  assert.ok(logged.some((line) => line.startsWith("::error::Budget unavailable")));
 });

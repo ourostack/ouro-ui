@@ -464,7 +464,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "check-node", "check-node-merge", "conformance-shard", "design", "e2e-shard", "install-checks", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "subsets", "sweep-shard", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "check-node", "check-node-merge", "conformance-shard", "design", "e2e-shard", "install-checks", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "subsets", "sweep-shard", "theme-install", "themes-shard"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -1659,7 +1659,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   const jobs = ciJobs();
   // ci-budget reads it too, in its step's env (the budget job's own test).
   const readers = Object.keys(jobs).filter((name) => /^ {6}FULL: \$\{\{ needs\.plan\.outputs\.full/m.test(jobs[name]));
-  assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "subsets", "themes"]);
+  assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "subsets", "themes-shard"]);
   for (const name of readers) {
     // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
     const condition = name === "install-shard" ? queuedInstalls : name === "browser" || name === "subsets" ? browserRuns : [...heavyJobs.filter((id) => id !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(name) ? heavyRuns : untested;
@@ -1737,10 +1737,10 @@ test("every required check is still a job that reports, under the name the rules
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
-  // check accepts, but the themes matrix only under its unexpanded name, so heavy-queued reports
-  // exactly the themes shards' checks, under a condition exclusive with theirs, and nothing else.
-  for (const id of heavyJobs) for (const name of checkNames(jobs[id], id)) assert.ok(requiredChecks.includes(name), `${name} is required`);
-  for (const id of heavyJobs.filter((id) => id !== "themes")) assert.doesNotMatch(jobs[id].match(/^ {4}name: (.+)$/m)?.[1] ?? "", /matrix/, id);
+  // check accepts, and the themes shards are no required check, only the themes check over them.
+  // The themes check is not required yet (it reports first; the ruleset swap follows), so the shards' names are.
+  for (const id of heavyJobs.map((job) => (job === "themes" ? "themes-shard" : job))) for (const name of checkNames(jobs[id], id)) assert.ok(requiredChecks.includes(name), `${name} is required`);
+  for (const id of heavyJobs) assert.doesNotMatch(jobs[id].match(/^ {4}name: (.+)$/m)?.[1] ?? "", /matrix/, id);
   // GitHub reports a skipped job whose name is only an expression under the bare expression
   // ("matrix.check"), which no job's name matches, so the budget would fail it as unmatched.
   for (const [id, block] of Object.entries(jobs)) assert.doesNotMatch(block.match(/^ {4}name: (.+)$/m)?.[1] ?? id, /^\$\{\{[^}]*\}\}$/, `${id}'s name has text besides an expression`);
@@ -2020,7 +2020,7 @@ test("the ci check requires the attribution job, which checks a pull request's c
 });
 
 test("the themes shards pass as not affected when a pull request changes no component, and scan only the selected stories otherwise", () => {
-  const block = ciJobs().themes;
+  const block = ciJobs()["themes-shard"];
   const affected = stepScript(block, "Is any story affected?");
   const none = runStep(affected, { FULL: "false", COMPONENTS: "" });
   assert.equal(none.status, 0);
@@ -2063,7 +2063,7 @@ test("the conformance shards run only the checks' proofs on the first shard when
 
 test("conformance and mutation are each one check over their shards, which passes only when every shard passed", () => {
   const jobs = ciJobs();
-  for (const [check, needs] of [["conformance", "plan, conformance-shard"], ["mutation", "plan, mutation-plan, mutation-shard"]]) {
+  for (const [check, needs] of [["conformance", "plan, conformance-shard"], ["themes", "plan, themes-shard"], ["mutation", "plan, mutation-plan, mutation-shard"]]) {
     assert.match(jobs[check], new RegExp(`^ {4}needs: \\[${needs}\\]\n {4}if: ${untested.replace(/[$(){}!.]/g, "\\$&")}$`, "m"), check);
     const script = stepScript(jobs[check], "Every shard passed");
     assert.equal(runStep(script, { RESULT: "success" }).status, 0, check);

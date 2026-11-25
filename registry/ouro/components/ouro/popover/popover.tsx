@@ -155,6 +155,12 @@ export type PopoverControlledProps = PopoverBaseProps & {
    * @claim "With `modal={false}` a press on" registry/ouro/components/ouro/popover/popover.test.tsx verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::controlled Popover > with modal={false}, leaves a press on the anchor to its own onClick, which closes it without reopening)
    */
   anchor: RefObject<HTMLElement | null>;
+  /**
+   * Where focus goes when the popover closes, when that is not the anchor: `finalFocus={gridRef}`.
+   * Use it when the element the popover pointed at is gone by then, such as a deleted row.
+   * The ref is read as the popover closes, so it can name an element drawn after `open` became false.
+   */
+  finalFocus?: RefObject<HTMLElement | null>;
   /** Not with `open`. Remove `open`, `onOpenChange` and `anchor` to let a trigger open the popover. */
   trigger?: never;
 };
@@ -217,6 +223,7 @@ export function Popover(props: PopoverProps): JSX.Element {
     open,
     onOpenChange,
     anchor,
+    finalFocus: returnFocus,
     // Guard props (hint types), dropped here so they never reach the DOM.
     isOpen,
     onClose,
@@ -227,6 +234,7 @@ export function Popover(props: PopoverProps): JSX.Element {
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
     anchor?: RefObject<HTMLElement | null>;
+    finalFocus?: RefObject<HTMLElement | null>;
   };
 
   checkOpenMode("Popover", "popover", trigger !== undefined, open, onOpenChange);
@@ -318,7 +326,7 @@ export function Popover(props: PopoverProps): JSX.Element {
                   initialFocus: () => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true),
                   // Safari does not focus a button on click, so name where focus goes back.
                   // Stryker disable next-line ConditionalExpression,BooleanLiteral,OptionalChaining: with no layer to stand down for, true (Base UI's own return) and the anchor land on the same element, and anchor is always set in this mode
-                  finalFocus: () => (otherLayerOpen(anchor?.current) ? false : (anchor?.current ?? true)),
+                  finalFocus: () => (otherLayerOpen(anchor?.current) ? false : ((returnFocus ?? anchor)?.current ?? true)),
                 }
               : {})}
           >
@@ -362,7 +370,7 @@ export function Popover(props: PopoverProps): JSX.Element {
           open={isOpenNow}
           onOpenChange={setOpen}
           presentation="sheet"
-          finalFocus={trigger !== undefined ? triggerRef : anchor}
+          finalFocus={trigger !== undefined ? triggerRef : (returnFocus ?? anchor)}
         >
           {children}
         </SheetFrame>

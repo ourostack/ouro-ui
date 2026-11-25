@@ -744,12 +744,14 @@ describe("Combobox multiple allowCustomValue", () => {
     const field = (name: string) => page.getByRole("combobox", { name, exact: true }).element() as HTMLInputElement;
     const chipsOf = (name: string) => chips(field(name).closest<HTMLElement>("[data-ouro-input-group]")!);
     await userEvent.click(button("Remove Vegan")!);
+    // Each field is already focused by its own click, so skipClick spares a loaded shard the
+    // round trip type() would otherwise spend re-focusing it.
     await userEvent.click(field("Tags"));
-    await userEvent.type(field("Tags"), "Picnic{Enter}{Escape}");
+    await userEvent.type(field("Tags"), "Picnic{Enter}{Escape}", { skipClick: true });
     await userEvent.click(field("Tools"));
-    await userEvent.type(field("Tools"), "Skillet{Enter}{Escape}");
+    await userEvent.type(field("Tools"), "Skillet{Enter}{Escape}", { skipClick: true });
     await userEvent.click(field("Moods"));
-    await userEvent.type(field("Moods"), "Cozy{Enter}{Escape}");
+    await userEvent.type(field("Moods"), "Cozy{Enter}{Escape}", { skipClick: true });
     expect([chipsOf("Tags"), chipsOf("Tools"), chipsOf("Moods")]).toEqual([["Weeknight", "Picnic"], ["Skillet"], ["Date night", "Cozy"]]);
     await act(async () => host.querySelector("form")!.reset());
     await expect.poll(() => [chipsOf("Tags"), chipsOf("Tools")]).toEqual([["Weeknight", "Vegan"], []]);
