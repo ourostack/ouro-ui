@@ -26,6 +26,10 @@ const { values } = parseArgs({
     // that hasn't merged yet applied on top.
     ref: { type: "string", multiple: true, default: [] },
     scenarios: { type: "string", multiple: true, default: [join(here, "scenarios.json")] },
+    // Tools beyond the read-only ones, such as task (a fresh subagent) or skill, and plugins to load, for a run that
+    // tests a gate or a skill.
+    tools: { type: "string", default: "" },
+    "plugin-dir": { type: "string", multiple: true, default: [] },
     models: { type: "string", default: "claude-sonnet-5.5,gpt-6.2-sol" },
     judge: { type: "string", default: "claude-opus-5.5" },
     reps: { type: "string", default: "2" },
@@ -52,6 +56,7 @@ const models = values.models.split(",");
 const out = resolve(values.out);
 mkdirSync(out, { recursive: true });
 
+const extraTools = values.tools.split(",").filter(Boolean);
 const READ_ONLY_SHELL = ["ls", "cat", "head", "tail", "wc", "find", "rg", "grep", "sed", "git log", "git show", "git grep", "git ls-files"];
 const cleanEnv = (home) => {
   const env = { ...process.env, COPILOT_HOME: home, COPILOT_AUTO_UPDATE: "false" };
@@ -70,7 +75,10 @@ function copilot(args, { cwd, home, timeoutMs }) {
   });
 }
 
-/** The events worth keeping from Copilot's JSONL: the prompt, each tool call, and each message the agent wrote. */
+/**
+ * The events worth keeping from Copilot's JSONL: each tool call and each message, with the subagent's id on what a
+ * subagent the agent started did, so its review stays in the record without being taken for the answer.
+ */
 function transcript(jsonl) {
   const events = [];
   for (const line of jsonl.split("\n")) {
@@ -80,8 +88,9 @@ function transcript(jsonl) {
     } catch {
       continue;
     }
-    if (event.type === "tool.execution_start") events.push({ tool: event.data.toolName, arguments: event.data.arguments });
-    if (event.type === "assistant.message" && event.data.content) events.push({ message: event.data.content });
+    const agent = event.agentId ? { agent: event.agentId } : {};
+    if (event.type === "tool.execution_start") events.push({ ...agent, tool: event.data.toolName, arguments: event.data.arguments });
+    if (event.type === "assistant.message" && event.data.content) events.push({ ...agent, message: event.data.content });
   }
   return events;
 }
@@ -97,8 +106,9 @@ async function runOne(scenario, model, rep, commits) {
   const prompt = `${scenario.prompt}\n\n${suffix}`;
   const started = Date.now();
   const result = await copilot(
-    ["-p", prompt, "--model", model, "--available-tools", "view", "grep", "glob", "web_fetch", "bash",
-      "--allow-tool", ...READ_ONLY_SHELL.map((cmd) => `shell(${cmd})`), "--allow-all-urls",
+    ["-p", prompt, "--model", model, "--available-tools", "view", "grep", "glob", "web_fetch", "bash", ...extraTools,
+      "--allow-tool", ...READ_ONLY_SHELL.map((cmd) => `shell(${cmd})`), ...extraTools, "--allow-all-urls",
+      ...values["plugin-dir"].flatMap((path) => ["--plugin-dir", resolve(path)]),
       "--no-ask-user", "--disable-builtin-mcps", "--output-format", "json"],
     { cwd: checkout, home: join(dir, "home"), timeoutMs: 20 * 60_000 },
   );
@@ -106,7 +116,7 @@ async function runOne(scenario, model, rep, commits) {
   rmSync(join(dir, "home"), { recursive: true, force: true });
   const events = transcript(result.stdout);
   // The answer is every message the agent wrote, in order, as the person reads it: a plan can end with a correction.
-  const answer = events.filter((event) => event.message).map((event) => event.message).join("\n\n");
+  const answer = events.filter((event) => event.message && !event.agent).map((event) => event.message).join("\n\n");
   const record = { id, scenario: scenario.id, repo: scenario.repo, commit: commits[scenario.repo], model, rep, exit: result.code, seconds: Math.round((Date.now() - started) / 1000), prompt, events };
   writeFileSync(join(dir, "run.json"), JSON.stringify(record, null, 2));
   writeFileSync(join(dir, "answer.md"), answer);
@@ -192,7 +202,7 @@ if (values["judge-only"]) {
 }
 const verdicts = await pool(records, Number(values.concurrency), (record) => judge(record, scenarios.find((s) => s.id === record.scenario)));
 
-const rows = records.map((record, i) => ({ id: record.id, scenario: record.scenario, model: record.model, rep: record.rep, commit: record.commit, seconds: record.seconds, calls: record.events.filter((e) => e.tool).length, pass: verdicts[i].pass, criteria: Object.fromEntries((verdicts[i].criteria ?? []).map((c) => [c.id, c.met])) }));
+const rows = records.map((record, i) => ({ id: record.id, scenario: record.scenario, model: record.model, rep: record.rep, commit: record.commit, seconds: record.seconds, calls: record.events.filter((e) => e.tool && !e.agent).length, pass: verdicts[i].pass, criteria: Object.fromEntries(scenarios.find((s) => s.id === record.scenario).criteria.map(({ id }) => [id, (verdicts[i].criteria ?? []).some((c) => c.id === id && c.met === true)])) }));
 writeFileSync(join(out, "results.json"), JSON.stringify({ phase: values.phase, judge: values.judge, models, rows }, null, 2));
 const table = [
   `# The bar evaluation: ${values.phase}`,

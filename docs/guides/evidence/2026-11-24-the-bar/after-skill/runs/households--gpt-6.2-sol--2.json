@@ -1,0 +1,245 @@
+{
+  "id": "households--gpt-6.2-sol--2",
+  "scenario": "households",
+  "repo": "spoonjoy",
+  "commit": "f49ba65b3397451d7c4f93fdac578ab255bea540",
+  "model": "gpt-6.2-sol",
+  "rep": 2,
+  "exit": 0,
+  "seconds": 128,
+  "prompt": "Agents can't do anything with households yet: Spoonjoy's actions and MCP tools have nothing for them. Add the agent side. The households service already has createHousehold, listHouseholds, getHousehold, renameHousehold, createInvite, emailInvite, previewInvite, acceptInvite, revokeInvite, changeMemberRole, removeFromHousehold and leave (app/domains/households-and-identity). Plan the actions: their ids, inputs, outputs, consent, and the descriptions agents read.\n\nReply with your answer in this chat; don't change any files.",
+  "events": [
+    {
+      "tool": "skill",
+      "arguments": {
+        "skill": "the-bar"
+      }
+    },
+    {
+      "tool": "glob",
+      "arguments": {
+        "pattern": "app/domains/households-and-identity/**/*household*"
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "household",
+        "paths": "BACKLOG.md",
+        "output_mode": "content",
+        "head_limit": 30
+      }
+    },
+    {
+      "tool": "glob",
+      "arguments": {
+        "pattern": "actions/*.mts"
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "consent|declaredOperation|household",
+        "paths": "app/lib/spoonjoy-api.server.ts",
+        "output_mode": "content",
+        "head_limit": 70
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/domains/households-and-identity/application/households.server.ts",
+        "view_range": [
+          1,
+          260
+        ]
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./actions/access.mts",
+        "view_range": [
+          1,
+          240
+        ]
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/domains/households-and-identity/model/household.ts"
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "households|previewInvite|emailInvite",
+        "paths": [
+          "app/route-config",
+          "app/routes"
+        ],
+        "output_mode": "content",
+        "head_limit": 65
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "households:|DEFAULT_.*SCOPES|DELEGATED.*SCOPES|requireScope|function .*User|consequential",
+        "paths": [
+          "app/lib",
+          "app/domains/households-and-identity",
+          "tools/ouro-actions"
+        ],
+        "output_mode": "content",
+        "head_limit": 105
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "for f in app/domains/households-and-identity/{model/invite.ts,application/household-store.ts,adapters/households-route.server.ts} 'app/routes/households.$id.tsx' actions/spoonjoy.actions.mts; do printf '\\n%s\\n' \"$f\"; sed -n '1,100p' \"$f\"; done",
+        "description": "Read invite defaults, household views, flag and action registration"
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "householdId|listId|scope",
+        "paths": "actions/shopping.mts",
+        "output_mode": "content",
+        "head_limit": 70
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "DEFAULT_PERSONAL|API_TOKEN_SCOPES|account:|shopping_list:|interface ApiPrincipal|type ApiPrincipal",
+        "paths": "app/lib/api-auth.server.ts",
+        "output_mode": "content",
+        "-n": true,
+        "-A": 4,
+        "head_limit": 35
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "confirmation|confirmed|annotations|callTool|invoke",
+        "paths": [
+          "app/lib/mcp",
+          "app/routes/mcp.tsx"
+        ],
+        "output_mode": "content",
+        "head_limit": 45
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "type SpoonjoyApiContext|type SpoonjoyApiOperation|readOnly:|authorization:|scopes:|principalFor|householdChefIds",
+        "paths": "app/lib/spoonjoy-api.server.ts",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 65
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "oneOf\\(|const field|function outputSchema|confirm",
+        "paths": "tools/ouro-actions/ouro-actions.mts",
+        "output_mode": "content",
+        "head_limit": 40
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/lib/mcp/http-mcp.server.ts",
+        "view_range": [
+          1,
+          200
+        ]
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "approve|confirm",
+        "paths": [
+          "actions",
+          "app/lib/mcp"
+        ],
+        "glob": "!**/generated/**",
+        "output_mode": "content",
+        "head_limit": 50
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "delegated|allowed.*Scope|SCOPES",
+        "paths": "app/lib/agent-connection.server.ts",
+        "output_mode": "content",
+        "head_limit": 40
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "last owner|last member|household_member|DELETE ON",
+        "paths": "migrations",
+        "output_mode": "content",
+        "head_limit": 25
+      }
+    },
+    {
+      "message": "The plan separates choosing a household from changing who has access, and gives link and email invites one shared action. I’ll have a fresh reviewer check the scope and consent flow before I present it."
+    },
+    {
+      "tool": "task",
+      "arguments": {
+        "description": "Challenge household action plan",
+        "agent_type": "rubber-duck",
+        "name": "household-plan-reviewer",
+        "prompt": "Fresh independent design review only; do not change files. User: “Agents can't do anything with households yet: Spoonjoy's actions and MCP tools have nothing for them. Add the agent side. The households service already has createHousehold, listHouseholds, getHousehold, renameHousehold, createInvite, emailInvite, previewInvite, acceptInvite, revokeInvite, changeMemberRole, removeFromHousehold and leave (app/domains/households-and-identity). Plan the actions: their ids, inputs, outputs, consent, and the descriptions agents read. Reply with your answer in this chat; don't change any files.” Check EACH mapping against the-bar steps 1–4 (jobs in their words; cut every supplied item before designing; one way per real job/no service mirror; usable results and recovery; fresh people or agents doing real QA jobs and rerun after small changes). Flag duplicate doors, service-only knobs, daily jobs cut, or concrete unsafe/impractical contracts. Draft: jobs 'Which households am I in? Who’s in Sunday Dinner, and what can I do there? Start a place for us / fix its name. Invite Sam by email or give me a link to send; stop that old invite. Help me join from this link. Let Sam help with the list / take away access / I’m leaving.' Cut map: createHousehold→create_household; listHouseholds→list_households for picking; getHousehold→get_household for people/roles and owner invite metadata, not extra roster/invite-list tools; renameHousehold→rename_household; createInvite and emailInvite merge into invite_to_household, optional email controls link vs email, 1 use/14 days, member default with viewer available, no owner or arbitrary TTL/use count; previewInvite no standalone tool, internal preview for join approval; acceptInvite→join_household (no public preview/accept split); revokeInvite→revoke_household_invite; changeMemberRole→set_household_member_role; removeFromHousehold→remove_household_member (someone else); leave→leave_household (self only). No duplicate shopping/meal tools or active household selection, since these are access actions. IDs & draft contracts: list {}→ {households:[{householdId,name,myRole,memberCount,url}]} read; get {householdId}→{householdId,name,url,myRole,members:[{memberId,username,role,isMe}],pendingInvites?:[{inviteId,channel,email?,role,expiresAt}],canEmailInvites} read; create {name}→{householdId,name,myRole:owner,url} write; rename {householdId,name}→{householdId,name,url} consequential shared name; invite {householdId,email?,role?}→link {inviteId,joinUrl,role,expiresAt} or email {to,role,expiresAt} (project actual persisted receipt or extend domain receipt, no URL on email) consequential; join {inviteUrl}→{householdId,name,myRole,url,joined} consequential; revoke {householdId,inviteId}→{householdId,inviteId,revoked:true}; role {householdId,memberId,role}→{householdId,memberId,username,role}; remove {householdId,memberId}→{householdId,memberId,username,removed:true}; leave {householdId}→{householdId,name,left:true,householdDeleted:boolean} (last person deletes; accurately get from committed result); last four consequential. Descriptions will be copy-ready and name lookup tool, permissions, effect and special branch. Standard generated consent metadata plus for remote callers no bare boolean; one short-lived signed-in approval handoff (same action retry/status/result, no extra MCP tools; leverage /join/:token to present and confirm joining) binds exact args session principal/credential, executes once, rechecks state at commit; output distinguishes pending vs success, no auto downgrade, remove/leave/role safeguards. Proposed opt-in households:read/write scopes for delegated flow and OAuth (not defaults, never broad account scope); server flag per principal; owner-only invites, all calls use credential identity not caller email, no invite secret in logs, unknown and inaccessible indistinguishable and never fetch submitted URL; only configured origin join path. Refusals give next action/name not opaque errors; named examples: ambiguous list choose; read stale IDs; expired invite ask sender for fresh; wrong email sign in on invited account; mail explicitly confirmed fallback link only; last owner promotes another after distinct yes; never auto change role before removal; temporary write recovery check result, not blind duplicate. Proof: fresh MCP agents who only have discovery, scratch owner/recipient and viewer, test overlapping names and same invite/revoke flows across transports with signed-in real approvals, role escalation/remove/leave safeguards, flag/scopes, verify after reload, CI Journeys isolated stack; repeat after small change. Recommend only concrete revisions and note any tension with actual architecture. Relevant observed facts: defineAction generated MCP hints are not enforceable approval; bare HTTP MCP has OAuth and shared operations; D1 service validates membership, routes support 1-use 14-day invites and sign-in flag. Invite service exposes multiple-use knobs internally but email invites intended one-use. Invite acceptance already-member is no-op even if invite is now unusable; service preview only has household name/role/status. Existing shopping tools currently don't accept householdId."
+      }
+    },
+    {
+      "agent": "bbdfdbc5-ebf7-48d7-871a-5ded8ea07469",
+      "message": "## Review: household agent actions\n\nI haven't opened the repo or run anything. This is a read of your draft against the-bar steps 1–4, plus the architecture facts you listed.\n\n**The cut map is sound.** All 12 service functions map to 10 tools, and there is no standalone preview, roster or invite-list tool. The `getHousehold` read covers \"who's in Sunday Dinner\", and `list_households` covers \"which households am I in\". I found no duplicate doors and no daily job cut. The service-only knobs (multi-use, arbitrary TTL, owner invites) are correctly left out.\n\n### Blocking\n\n1. **\"Let Sam help with the list\" doesn't work end to end.**\n   - Shopping and meal tools don't accept `householdId` today, so inviting Sam as a member gives him access to nothing an agent can use.\n   - The `invite_to_household` and `set_household_member_role` descriptions must not promise shared-list effects. A fresh agent will otherwise tell the user \"Sam can now edit the list\" when he can't.\n   - Fix: state in the descriptions what membership does today. Or mark this job as depending on a later change that adds `householdId` to the list tools. Do not add shopping duplicates here.\n\n2. **Every contract needs a pending branch, and the draft defines none.**\n   - The handoff is \"same action retry/status/result\", but the outputs shown are all success shapes.\n   - Specify one shared envelope for consequential tools: `{status:\"awaiting_approval\", approvalUrl, expiresAt}` or the success shape. It must also say what the agent does next: re-call with identical args, and that a changed arg means a new approval.\n   - Without this, agents will report \"done\" from a pending response, and the \"no auto downgrade\" rule has nothing to attach to.\n   - Tension: you said `defineAction` hints aren't enforceable, so this is new infrastructure (approval records, `/join/:token` reuse, commit-time recheck). Say so, and ship it as a distinct step. Don't let tool descriptions claim approval before the gate exists.\n\n3. **The invite secret ends up in stored approval args.**\n   - `join_household {inviteUrl}` binds \"exact args\" into an approval record. The token would then be persisted, logged and shown in handoff state.\n   - Fix: bind to a hash of the token and keep the token only in the in-flight call. Return `householdId` and name, never the URL, in pending and status outputs. Apply the same to `joinUrl` in `invite_to_household` results and receipts.\n\n### Non-blocking\n\n4. **Approval is over-applied to safe or trivial jobs.**\n   - `revoke_household_invite` only reduces access. Gating it makes \"stop that old invite\" slow in exactly the urgent case. Make it a plain write, owner-only and idempotent. Return `alreadyRevoked` rather than an error on a stale ID.\n   - `rename_household` is reversible and low-stakes. Consider a plain write with an owner check.\n   - Keep the gate on role changes, remove and leave. Also keep it on join, since it adds the user to a household.\n\n5. **Dangerous branches need explicit handling.**\n   - `leave_household` with `householdDeleted` is only reported after the fact. The approval screen must say \"you are the last person; this deletes the household and its data\" before commit. Compute that at approval time and recheck at commit. The output reports the committed result.\n   - `remove_household_member` with the caller's own `memberId` should refuse and name `leave_household`.\n   - A last-owner leave, or a self-demotion that would orphan the household, should refuse with \"promote X first\". The draft already covers this.\n   - Role promotion to owner is the escalation case. Specify that the approval screen shows who gets owner.\n\n6. **Email invite failure and fallback.**\n   - An email invite that fails delivery may already have a persisted invite row. Return its `inviteId` and a `delivered`/`failed` state so the agent can revoke it or retry.\n   - The fallback link needs no extra argument. The agent calls the no-email form after the user confirms. Don't add an `allowLinkFallback` knob.\n   - Output shape: link `{inviteId, joinUrl, role, expiresAt}`; email `{inviteId, to, role, expiresAt, delivered}`.\n   - The tool description must say that a lost link can't be recovered, because `pendingInvites` has no URL. The recovery is to revoke it and make a new one.\n\n7. **Idempotence for \"temporary write failure\".**\n   - \"Check result, don't duplicate\" works for rename, role and remove. For invites it only works if the agent calls `get_household` first and looks at `pendingInvites`. Say that in the description.\n   - Accepting an invite when the user is already a member is a no-op, even if the invite is now unusable. Return `joined:false, alreadyMember:true` explicitly, so the agent doesn't claim \"you joined\".\n\n8. **\"What can I do there?\" is answered only by a role string.**\n   - Add `can:{invite, manageMembers, rename}` booleans, or define each role in the `get_household` description. Otherwise agents guess what viewer can do.\n\n9. **Join error messages must not leak.**\n   - A wrong-email refusal must not reveal the invited address. Mask it, or say \"sign in with the account the invite was sent to\".\n   - Unknown and inaccessible must be byte-identical, including timing and fields.\n   - Parse only the token from the configured-origin `/join/` path. Reject other origins without fetching them.\n\n10. **Flag-off behaviour must be one stated choice.**\n    - If tools are hidden, discovery-only agents can't be told why. If they're refused, the refusal must say \"ask the household admin to enable agent household access\".\n    - Either works. Pick one and test it with fresh agents.\n\n### Suggestions\n\n- Assert that `memberId` is opaque and is not the user ID.\n- Scopes: enforce `households:read` for list and get, and `households:write` for the rest. Neither should be in a default or broad account scope. A write scope alone must never skip the approval handoff.\n\n### QA plan\n\nThe proof plan is good. Add these cases:\n- Pending-then-retry from a fresh agent that only has discovery, without it reporting success early.\n- An approval whose args are changed after the human approves.\n- The last-owner leave case, to check the delete warning appears.\n- An expired invite, a revoked invite and a wrong-account join.\n- An invite delivery failure followed by the confirmed link fallback.\n- Run all of these on both transports and re-run after each description edit."
+    },
+    {
+      "message": "## Jobs\n\n- “Which households am I in? Who’s in Sunday Dinner, and what can I do there?”\n- “Start a household for us. Fix its name.”\n- “Email Sam an invite, or give me a link I can send. Turn off that old invite.”\n- “Help me join from this link.”\n- “Make Sam view-only. Remove someone who moved out. Help me leave.”\n\n## Cut first\n\n| Service function | Keep, merge, or cut |\n|---|---|\n| `createHousehold` | Keep: start a household. No owner picker; the caller becomes owner. |\n| `listHouseholds` | Keep: find and choose among my households. No implicit “current household.” |\n| `getHousehold` | Keep: see people, permissions, and pending invites in one place. No separate roster or invite-list action. |\n| `renameHousehold` | Keep: correct the shared name without changing the household’s identity. |\n| `createInvite` | Merge into `invite_to_household`: omit `email` to get a link. Use the existing one-use, 14-day defaults; no expiry or use-count knobs. |\n| `emailInvite` | Merge into the same action: supply `email` to send an account-bound invite. No separate send or resend action. |\n| `previewInvite` | Cut as a standalone action. Use it to tell the person what they’re about to join. |\n| `acceptInvite` | Keep inside `join_household`: one action from invite link to confirmed membership. |\n| `revokeInvite` | Keep: stop an unused invite from granting access. It does not remove someone who already joined. |\n| `changeMemberRole` | Keep: set the desired role in one action, not separate promote and demote tools. |\n| `removeFromHousehold` | Keep: end someone else’s access as an owner. |\n| `leave` | Keep: end my own access, with no target ID and an explicit warning if leaving deletes the household. |\n\n## Action and MCP contracts\n\nUse the same ID and agent description in both surfaces. `?` means optional. Roles are `owner`, `member`, and `viewer` (view-only); invites allow only `member` or `viewer` and default to `member`. Names are trimmed, nonempty, and at most 80 characters. `url` opens the household; `joinUrl` is the secret invitation link.\n\n| Action ID | Inputs | Completed output | Consent | Agent description |\n|---|---|---|---|---|\n| `list_households` | `{}` | `{households: [{householdId, name, myRole, memberCount, url}]}` | `read` | “List households the connected account belongs to. Use the returned ID for other household actions. If names match, ask which household the person means.” |\n| `get_household` | `{householdId}` | `{householdId, name, url, myRole, members: [{memberId, username, role, isMe}], can: {editShared, invite, emailInvite, manageMembers, rename}, pendingInvites?: [{inviteId, channel, email?, role, expiresAt}]}` | `read` | “See who is in a household and what the connected account can do. Use member IDs for role changes or removal. Only owners see pending invites and their IDs; this action never returns invite links.” |\n| `create_household` | `{name}` | `{householdId, name, myRole: \"owner\", url}` | `write` | “Create a household with the connected account as its first owner. This does not invite anyone or move anything from their personal kitchen.” |\n| `rename_household` | `{householdId, name}` | `{householdId, name, url}` | `consequential` | “Change the name everyone in this household sees. Owner only. Confirm the old and new names; the household ID stays the same.” |\n| `invite_to_household` | `{householdId, email?, role?}` | Link: `{channel: \"link\", inviteId, joinUrl, role, expiresAt}`. Email: `{channel: \"email\", inviteId, to, role, expiresAt}` | `consequential` | “Invite one person as a member or view-only. Owner only. With email, Spoonjoy sends an invite only that account can use. Without email, return a link anyone holding it can redeem once. Confirm the role and recipient or link mode. Copy the link from the result; it can’t be recovered from household details.” |\n| `join_household` | `{inviteUrl}` | `{householdId, name, myRole, url, joined}` | `consequential` | “Join from a Spoonjoy invitation. Show the household and offered role before approval. An email invite requires the account it was sent to. `joined: false` means the connected account was already a member; no invite use was spent.” |\n| `revoke_household_invite` | `{householdId, inviteId}` | `{householdId, inviteId, revoked: true}` | `consequential` | “Turn off an invite using its ID from `get_household`. Owner only. Confirm which invite to turn off. This does not remove anyone who already joined.” |\n| `set_household_member_role` | `{householdId, memberId, role}` | `{householdId, memberId, username, role}` | `consequential` | “Set another member’s role using their ID from `get_household`. Owner only. Confirm who is changing roles and the new role. Owners manage access, members can edit shared content, and viewers can only read it.” |\n| `remove_household_member` | `{householdId, memberId}` | `{householdId, memberId, username, removed: true}` | `consequential` | “End another person’s access. Owner only. Confirm the person and household. You can’t remove another owner directly or use this action on yourself.” |\n| `leave_household` | `{householdId}` | `{householdId, name, left: true, householdDeleted}` | `consequential` | “End the connected account’s membership. If you’re the only owner and others remain, make someone else an owner first. If you’re the last person, leaving deletes the household; show that before approval.” |\n\n**Consent and wiring.** Declare once in `actions/households.mts`, register in `actions/spoonjoy.actions.mts`, and bind each `declaredOperation` to the existing household service. Use the same `households` flag and D1 store as the web UI. Require explicit `households:read` or `households:write` grants for agent credentials; don’t add them to existing defaults. Derive the actor from the credential and recheck permissions on every call. Return a clear feature-unavailable refusal when the flag is off; don’t distinguish a nonexistent household from one the caller can’t access.\n\nMCP annotations describe consent; they don’t enforce it. Before exposing consequential writes, add one server-enforced approval flow: the first call returns `{status: \"awaiting_approval\", approvalId, approvalUrl, expiresAt}` without mutating. The person reviews the exact effect in signed-in Spoonjoy. The agent calls the **same action** with the same inputs and `approvalId` to receive `{status: \"completed\", result}` or a refusal. Bind approval to the caller, credential, and exact request; recheck permissions and material changes at commit. A replay returns the same outcome, not another email or mutation. Use the existing join preview and confirmation UI. Accept only the configured Spoonjoy `/join/` URL, don’t fetch it, and keep raw tokens out of approval records and logs. Keep a generated link retrievable only by the initiating credential for the short receipt window.\n\n**Recovery is part of the contract.** Return a stable error code, what happened, and the next step. For a stale member or invite ID, run `get_household` again. For an expired, used, or revoked link, ask the sender for a fresh one; for an email mismatch, use the invited account without revealing its address. If mail fails, say the invite was turned off; offer a link only after a new approval. If another owner must be removed, explain the separate role change without doing it automatically. If a link is lost, revoke it and make a new one. Return the actual committed outcome for last-person deletion.\n\nThese actions manage household access. They don’t add household targeting to the existing shopping or meal-plan tools, and agents shouldn’t imply they can edit a household list through those tools.\n\n## Proof\n\nGive fresh agents only MCP discovery and give QA participants owner, recipient, and viewer accounts. Ask them to choose between two same-named households, create and rename one, invite by email and by link, join on the right account, then change a role, revoke an invite, remove a member, and leave. Watch for correct ID selection, no premature “done,” no accidental email or permission change, and a clear next step when blocked.\n\nRepeat on HTTP and stdio MCP. Exercise wrong-account and stale links, failed delivery, missing scopes, flag-off, changed approval inputs, replay, and both last-owner and last-person leave. Verify the resulting membership and invite state after reload in QA Journeys. Run the generated-action contract checks and repeat the affected journey with a fresh agent after each small change to the schema, wording, or consent flow.\n\nNo files changed."
+    }
+  ],
+  "answer": "The plan separates choosing a household from changing who has access, and gives link and email invites one shared action. I’ll have a fresh reviewer check the scope and consent flow before I present it.\n\n## Jobs\n\n- “Which households am I in? Who’s in Sunday Dinner, and what can I do there?”\n- “Start a household for us. Fix its name.”\n- “Email Sam an invite, or give me a link I can send. Turn off that old invite.”\n- “Help me join from this link.”\n- “Make Sam view-only. Remove someone who moved out. Help me leave.”\n\n## Cut first\n\n| Service function | Keep, merge, or cut |\n|---|---|\n| `createHousehold` | Keep: start a household. No owner picker; the caller becomes owner. |\n| `listHouseholds` | Keep: find and choose among my households. No implicit “current household.” |\n| `getHousehold` | Keep: see people, permissions, and pending invites in one place. No separate roster or invite-list action. |\n| `renameHousehold` | Keep: correct the shared name without changing the household’s identity. |\n| `createInvite` | Merge into `invite_to_household`: omit `email` to get a link. Use the existing one-use, 14-day defaults; no expiry or use-count knobs. |\n| `emailInvite` | Merge into the same action: supply `email` to send an account-bound invite. No separate send or resend action. |\n| `previewInvite` | Cut as a standalone action. Use it to tell the person what they’re about to join. |\n| `acceptInvite` | Keep inside `join_household`: one action from invite link to confirmed membership. |\n| `revokeInvite` | Keep: stop an unused invite from granting access. It does not remove someone who already joined. |\n| `changeMemberRole` | Keep: set the desired role in one action, not separate promote and demote tools. |\n| `removeFromHousehold` | Keep: end someone else’s access as an owner. |\n| `leave` | Keep: end my own access, with no target ID and an explicit warning if leaving deletes the household. |\n\n## Action and MCP contracts\n\nUse the same ID and agent description in both surfaces. `?` means optional. Roles are `owner`, `member`, and `viewer` (view-only); invites allow only `member` or `viewer` and default to `member`. Names are trimmed, nonempty, and at most 80 characters. `url` opens the household; `joinUrl` is the secret invitation link.\n\n| Action ID | Inputs | Completed output | Consent | Agent description |\n|---|---|---|---|---|\n| `list_households` | `{}` | `{households: [{householdId, name, myRole, memberCount, url}]}` | `read` | “List households the connected account belongs to. Use the returned ID for other household actions. If names match, ask which household the person means.” |\n| `get_household` | `{householdId}` | `{householdId, name, url, myRole, members: [{memberId, username, role, isMe}], can: {editShared, invite, emailInvite, manageMembers, rename}, pendingInvites?: [{inviteId, channel, email?, role, expiresAt}]}` | `read` | “See who is in a household and what the connected account can do. Use member IDs for role changes or removal. Only owners see pending invites and their IDs; this action never returns invite links.” |\n| `create_household` | `{name}` | `{householdId, name, myRole: \"owner\", url}` | `write` | “Create a household with the connected account as its first owner. This does not invite anyone or move anything from their personal kitchen.” |\n| `rename_household` | `{householdId, name}` | `{householdId, name, url}` | `consequential` | “Change the name everyone in this household sees. Owner only. Confirm the old and new names; the household ID stays the same.” |\n| `invite_to_household` | `{householdId, email?, role?}` | Link: `{channel: \"link\", inviteId, joinUrl, role, expiresAt}`. Email: `{channel: \"email\", inviteId, to, role, expiresAt}` | `consequential` | “Invite one person as a member or view-only. Owner only. With email, Spoonjoy sends an invite only that account can use. Without email, return a link anyone holding it can redeem once. Confirm the role and recipient or link mode. Copy the link from the result; it can’t be recovered from household details.” |\n| `join_household` | `{inviteUrl}` | `{householdId, name, myRole, url, joined}` | `consequential` | “Join from a Spoonjoy invitation. Show the household and offered role before approval. An email invite requires the account it was sent to. `joined: false` means the connected account was already a member; no invite use was spent.” |\n| `revoke_household_invite` | `{householdId, inviteId}` | `{householdId, inviteId, revoked: true}` | `consequential` | “Turn off an invite using its ID from `get_household`. Owner only. Confirm which invite to turn off. This does not remove anyone who already joined.” |\n| `set_household_member_role` | `{householdId, memberId, role}` | `{householdId, memberId, username, role}` | `consequential` | “Set another member’s role using their ID from `get_household`. Owner only. Confirm who is changing roles and the new role. Owners manage access, members can edit shared content, and viewers can only read it.” |\n| `remove_household_member` | `{householdId, memberId}` | `{householdId, memberId, username, removed: true}` | `consequential` | “End another person’s access. Owner only. Confirm the person and household. You can’t remove another owner directly or use this action on yourself.” |\n| `leave_household` | `{householdId}` | `{householdId, name, left: true, householdDeleted}` | `consequential` | “End the connected account’s membership. If you’re the only owner and others remain, make someone else an owner first. If you’re the last person, leaving deletes the household; show that before approval.” |\n\n**Consent and wiring.** Declare once in `actions/households.mts`, register in `actions/spoonjoy.actions.mts`, and bind each `declaredOperation` to the existing household service. Use the same `households` flag and D1 store as the web UI. Require explicit `households:read` or `households:write` grants for agent credentials; don’t add them to existing defaults. Derive the actor from the credential and recheck permissions on every call. Return a clear feature-unavailable refusal when the flag is off; don’t distinguish a nonexistent household from one the caller can’t access.\n\nMCP annotations describe consent; they don’t enforce it. Before exposing consequential writes, add one server-enforced approval flow: the first call returns `{status: \"awaiting_approval\", approvalId, approvalUrl, expiresAt}` without mutating. The person reviews the exact effect in signed-in Spoonjoy. The agent calls the **same action** with the same inputs and `approvalId` to receive `{status: \"completed\", result}` or a refusal. Bind approval to the caller, credential, and exact request; recheck permissions and material changes at commit. A replay returns the same outcome, not another email or mutation. Use the existing join preview and confirmation UI. Accept only the configured Spoonjoy `/join/` URL, don’t fetch it, and keep raw tokens out of approval records and logs. Keep a generated link retrievable only by the initiating credential for the short receipt window.\n\n**Recovery is part of the contract.** Return a stable error code, what happened, and the next step. For a stale member or invite ID, run `get_household` again. For an expired, used, or revoked link, ask the sender for a fresh one; for an email mismatch, use the invited account without revealing its address. If mail fails, say the invite was turned off; offer a link only after a new approval. If another owner must be removed, explain the separate role change without doing it automatically. If a link is lost, revoke it and make a new one. Return the actual committed outcome for last-person deletion.\n\nThese actions manage household access. They don’t add household targeting to the existing shopping or meal-plan tools, and agents shouldn’t imply they can edit a household list through those tools.\n\n## Proof\n\nGive fresh agents only MCP discovery and give QA participants owner, recipient, and viewer accounts. Ask them to choose between two same-named households, create and rename one, invite by email and by link, join on the right account, then change a role, revoke an invite, remove a member, and leave. Watch for correct ID selection, no premature “done,” no accidental email or permission change, and a clear next step when blocked.\n\nRepeat on HTTP and stdio MCP. Exercise wrong-account and stale links, failed delivery, missing scopes, flag-off, changed approval inputs, replay, and both last-owner and last-person leave. Verify the resulting membership and invite state after reload in QA Journeys. Run the generated-action contract checks and repeat the affected journey with a fresh agent after each small change to the schema, wording, or consent flow.\n\nNo files changed.",
+  "verdict": {
+    "criteria": [
+      {
+        "id": "jobs",
+        "met": true,
+        "evidence": "The answer opens with a \"## Jobs\" section before any service mapping, phrased as requests people make: \"Which households am I in? Who’s in Sunday Dinner, and what can I do there?\", \"Email Sam an invite, or give me a link I can send. Turn off that old invite.\", \"Make Sam view-only. Remove someone who moved out. Help me leave.\""
+      },
+      {
+        "id": "restraint",
+        "met": true,
+        "evidence": "It plans 10 actions for 12 functions, not one per function. It merges invite creation and sending: createInvite \"Merge into `invite_to_household`: omit `email` to get a link\" and emailInvite \"Merge into the same action\". It cuts preview as its own action with a reason: previewInvite \"Cut as a standalone action. Use it to tell the person what they’re about to join.\" It folds accept into one job: \"one action from invite link to confirmed membership.\" It names what it leaves out on purpose: \"No separate roster or invite-list action\", \"No separate send or resend action\", \"not separate promote and demote tools\". Every kept action matches a listed job. This is close to a mirror, but the merges and cuts are justified."
+      },
+      {
+        "id": "craft",
+        "met": true,
+        "evidence": "Inputs are small, such as `{householdId, memberId, role}` and `{householdId}` for leave (\"with no target ID\"). Consent follows who sees the effect: create is `write`, while rename (\"Change the name everyone in this household sees\") and the access changes are `consequential`. It ties into existing wiring: \"Declare once in `actions/households.mts`, register in `actions/spoonjoy.actions.mts`\". Failures give a next step: \"Return a stable error code, what happened, and the next step. For a stale member or invite ID, run `get_household` again. For an expired, used, or revoked link, ask the sender for a fresh one\". Caveat: it does not show it checked the naming and output style of Spoonjoy's other actions, and its new approval flow goes beyond the existing consent model."
+      },
+      {
+        "id": "proof",
+        "met": true,
+        "evidence": "\"Give fresh agents only MCP discovery and give QA participants owner, recipient, and viewer accounts. Ask them to choose between two same-named households, create and rename one, invite by email and by link, join on the right account, then change a role, revoke an invite, remove a member, and leave.\" It also says to \"repeat the affected journey with a fresh agent after each small change\", in addition to the contract checks."
+      }
+    ],
+    "summary": "The answer meets all four criteria: it starts from household jobs, merges invite and join flows with stated reasons, gives small contracts with fitting consent and recovery steps, and plans proof with fresh agents doing household jobs; its fit with existing action conventions is assumed rather than shown.",
+    "pass": true
+  }
+}
