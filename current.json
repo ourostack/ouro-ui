@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-25T19:57:07.133Z",
+  "generatedAt": "2026-11-25T20:27:26.543Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -107,8 +107,8 @@
         }
       ],
       "pr": {
-        "number": 1309,
-        "url": "https://github.com/ourostack/factory/pull/1309"
+        "number": 1310,
+        "url": "https://github.com/ourostack/factory/pull/1310"
       }
     },
     {
