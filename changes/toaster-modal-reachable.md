@@ -1,0 +1,1 @@
+- Fixed: a toast that is on screen when a modal Popover or Sheet opens stays in the accessibility tree, so its action button can still be reached by a screen reader.

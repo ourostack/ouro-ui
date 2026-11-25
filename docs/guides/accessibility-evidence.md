@@ -143,6 +143,7 @@ Screen-reader specs that cover a pattern rather than one component:
 
 - [menu-bar.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/menu-bar.sr.spec.ts): MenuBar opens File from the keyboard on its first item, reads the next item, and returns to File on Escape
 - [patterns.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/patterns.sr.spec.ts): a row is heard by its title, its entry's heading as the detail takes the list's place, and the row again after Back; a search that finds nothing says so; its chart and its table's scrolling region are heard by their names
+- [toast-undo.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/toast-undo.sr.spec.ts): A toast's Undo is reached from the keyboard and read out
 
 ## What each screen-reader test says it proves
 
