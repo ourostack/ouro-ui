@@ -619,6 +619,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-find-text`,
 `lib-floating`,
 `lib-focus-handoff`,
+`lib-fold-posture`,
 `lib-form-answer`,
 `lib-fragment-focus-script`,
 `lib-halve`,
