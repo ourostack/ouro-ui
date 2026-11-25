@@ -1,0 +1,1 @@
+- New: [the Ouro AX guide says what fresh agents taught Tandem's "what's new for me?" read](docs/guides/ax.md "verify:fileExists(docs/guides/ax.md)"): one read that answers the agent's question beats three partial ones, and an agent relays a warning stated as a warning, first, but treats a timestamp as metadata.
