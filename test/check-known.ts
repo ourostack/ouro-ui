@@ -526,187 +526,51 @@ export const knownFindings: KnownFinding[] = [
       "The trigger button shows the chosen look's wordmark, whose own font-size-adjust and leading-none tuning sit a couple of pixels off the Button's usual middle once ouro-base's 2560px root step (125%) scales every length; the trigger should centre the wordmark on its own cap height instead of the Button's default centring.",
   },
   {
-    story: "Attachment/OpensInApp",
+    story: "TimeGrid/BackgroundEvents",
     rule: "off-centre-text",
     issue: 3364,
     theme: "nova",
     reason:
-      "Its label isn't yet centred on its cap height under nova's metrics; #3565's rule fix (landed) found the rule itself read correctly-trimmed text as off-centre, but this finding persists after that fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
+      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
   },
   {
-    story: "Breadcrumb/InContext",
+    story: "TimeGrid/BackgroundEventsDay",
     rule: "off-centre-text",
     issue: 3364,
     theme: "nova",
     reason:
-      "Its label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
+      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
   },
   {
-    story: "Collapsible/InContext",
+    story: "TimeGrid/Day",
     rule: "off-centre-text",
     issue: 3364,
     theme: "nova",
     reason:
-      "Its trigger's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
+      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
   },
   {
-    story: "Collapsible/Playground",
+    story: "TimeGrid/NowAdornment",
     rule: "off-centre-text",
     issue: 3364,
     theme: "nova",
     reason:
-      "Its trigger's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
+      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
   },
   {
-    story: "ConversationList/Compact",
+    story: "TimeGrid/Playground",
     rule: "off-centre-text",
     issue: 3364,
     theme: "nova",
     reason:
-      "A row's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
+      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
   },
   {
-    story: "Navbar/Groups",
+    story: "TimeGrid/WorkWeek",
     rule: "off-centre-text",
     issue: 3364,
     theme: "nova",
     reason:
-      "A nav item's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
-  },
-  {
-    story: "NavigationMenu/Featured",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "A menu item's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
-  },
-  {
-    story: "NavigationMenu/InContext",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "A menu item's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
-  },
-  {
-    story: "NavigationMenu/Playground",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "A menu item's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
-  },
-  {
-    story: "Pagination/Buttons",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "A page button's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
-  },
-  {
-    story: "Sidebar/InContext",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "The collapse button's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
-  },
-  {
-    story: "EmojiPicker/ChoosingSkinTone",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the skin-tone option buttons' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "Sidebar/Items",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the sidebar's buttons' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "Sidebar/Playground",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the sidebar's collapse button's label isn't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "Sidebar/StatusBadges",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the sidebar's collapse button's label isn't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "SidebarLayout/InContext",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the sidebar's collapse button's label isn't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "SidebarLayout/Playground",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the sidebar's collapse button's label isn't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "SyncStatus/States",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the retry button's label isn't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "SyncStatus/WithQueue",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the queue rows' cancel buttons' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "Table/Sortable",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the sortable column headers' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "Table/SortableParts",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the sortable column headers' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "ToggleGroup/Modes",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the toggle options' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "ToggleGroup/Playground",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics the toggle options' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
   },
 ];
