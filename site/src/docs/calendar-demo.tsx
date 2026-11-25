@@ -189,8 +189,30 @@ function Screen(): JSX.Element {
     setRefocus((count) => count + 1);
   };
 
+  const lastRemoved = useRef<{ entry: Entry; at: number } | null>(null);
+  const restore = (entry: Entry, at: number) => {
+    lastRemoved.current = null;
+    setEvents((now) => (now.some((candidate) => candidate.id === entry.id) ? now : [...now.slice(0, at), entry, ...now.slice(at)]));
+    setRestored({ id: entry.id });
+  };
+  const [restored, setRestored] = useState<{ id: string } | null>(null);
+  // The restored event is drawn on the next render, so focus waits for it.
+  useEffect(() => {
+    if (!restored) return;
+    let frame = 0;
+    let tries = 0;
+    const settle = () => {
+      const target = rootRef.current?.querySelector<HTMLElement>(`[data-ouro-event-key$=":${CSS.escape(restored.id)}"]`);
+      if (target) target.focus({ preventScroll: true });
+      else if (++tries < 30) frame = requestAnimationFrame(settle);
+    };
+    frame = requestAnimationFrame(settle);
+    return () => cancelAnimationFrame(frame);
+  }, [restored]);
+
   const remove = (entry: Entry) => {
     const at = events.findIndex((candidate) => candidate.id === entry.id);
+    lastRemoved.current = { entry, at };
     setOpen(null);
     setRefocus((count) => count + 1);
     setEvents((now) => now.filter((candidate) => candidate.id !== entry.id));
@@ -201,10 +223,7 @@ function Screen(): JSX.Element {
       duration: 8000,
       action: {
         label: "Undo",
-        onClick: () => {
-          setEvents((now) => (now.some((candidate) => candidate.id === entry.id) ? now : [...now.slice(0, at), entry, ...now.slice(at)]));
-          setRefocus((count) => count + 1);
-        },
+        onClick: () => restore(entry, at),
       },
     });
   };
@@ -213,7 +232,27 @@ function Screen(): JSX.Element {
   const label = "Calendar";
 
   return (
-    <div ref={rootRef} className="grid w-full grid-cols-1 gap-3 max-sm:pb-24" data-site-calendar-demo="">
+    <div
+      ref={rootRef}
+      className="grid w-full grid-cols-1 gap-3 max-sm:pb-24"
+      data-site-calendar-demo=""
+      onKeyDown={(event) => {
+        const target = event.target as HTMLElement;
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && lastRemoved.current && !target.closest("input, textarea")) {
+          event.preventDefault();
+          restore(lastRemoved.current.entry, lastRemoved.current.at);
+          return;
+        }
+        const key = target.dataset.ouroEventKey;
+        if ((event.key === "Delete" || event.key === "Backspace") && key && !target.matches('[data-ouro-part="more"]')) {
+          const entry = events.find((candidate) => candidate.id === key.slice(key.lastIndexOf(":") + 1));
+          if (entry) {
+            event.preventDefault();
+            remove(entry);
+          }
+        }
+      }}
+    >
       <div className="min-w-0 overflow-x-auto">
         <SegmentedControl
           label="State"

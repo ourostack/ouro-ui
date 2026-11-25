@@ -232,6 +232,40 @@ describe("the calendar page", () => {
     expect(slots.getAttribute("aria-activedescendant")).toBe(was);
   });
 
+  it("deletes a focused event with the Delete key, and Ctrl+Z brings it back with focus on it", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    const before = eventTitles();
+    const event = page.getByRole("button", { name: /Sprint planning/ }).first().element() as HTMLElement;
+    event.focus();
+    await userEvent.keyboard("{Delete}");
+    await expect.poll(eventTitles).toBe(before - 1);
+    await userEvent.keyboard("{Control>}z{/Control}");
+    await expect.poll(eventTitles).toBe(before);
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toMatch(/Sprint planning/);
+  });
+
+  it("puts focus on the event again after a second delete and Undo", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    for (let round = 0; round < 2; round++) {
+      page.getByRole("button", { name: /Sprint planning/ }).first().element().focus();
+      await userEvent.keyboard("{Delete}");
+      await userEvent.click(page.getByRole("button", { name: "Undo" }).last());
+      await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toMatch(/Sprint planning/);
+      (document.activeElement as HTMLElement).blur();
+    }
+  });
+
+  it("puts focus on the event Undo brings back", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    page.getByRole("button", { name: /Sprint planning/ }).first().element().focus();
+    await userEvent.keyboard("{Delete}");
+    await userEvent.click(page.getByRole("button", { name: "Undo" }));
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toMatch(/Sprint planning/);
+  });
+
   it("marks Go to date as opening a dialog", async () => {
     await renderPage("/docs/calendar-demo/");
     expect(page.getByRole("button", { name: "Go to date" }).element().getAttribute("aria-haspopup")).toBe("dialog");
