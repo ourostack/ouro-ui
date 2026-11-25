@@ -1,0 +1,1 @@
+- Changed: TimeGrid's day header is a lighter glass over the hours scrolled beneath it: its background is 88% opaque with a 24px blur, and its text and controls keep 4.5:1 contrast over any event colour in light and dark.

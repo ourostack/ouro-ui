@@ -1824,7 +1824,8 @@ describe("TimeGrid", () => {
     await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(true);
     expect(getComputedStyle(viewport()).maskImage).toBe("none");
     const head = viewport().querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    expect(getComputedStyle(head).backdropFilter).toContain("blur");
+    expect(getComputedStyle(head).backdropFilter).toBe("blur(24px)");
+    await expect.poll(() => Number(getComputedStyle(head).backgroundColor.match(/\/ ([\d.]+)\)/)?.[1])).toBeCloseTo(0.88, 2);
     await expect.poll(() => getComputedStyle(head).borderBottomColor).not.toBe("rgba(0, 0, 0, 0)");
     await expect.poll(() => getComputedStyle(head).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     viewport().scrollTop = 0;
