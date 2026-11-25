@@ -1348,6 +1348,56 @@ describe("Popover handing focus to a layer opened from inside it", () => {
     await expect.poll(() => document.activeElement).toBe(anchor);
   });
 
+  it("returns focus to its anchor when it closes while another popover holds focus", async () => {
+    function App() {
+      const anchor = useRef<HTMLButtonElement>(null);
+      const other = useRef<HTMLButtonElement>(null);
+      const [first, setFirst] = useState(true);
+      return (
+        <>
+          <button ref={anchor} type="button">First anchor</button>
+          <button ref={other} type="button">Second anchor</button>
+          <Popover title="First" presentation="popover" open={first} onOpenChange={setFirst} anchor={anchor}>
+            <Button>First inside</Button>
+          </Popover>
+          <Popover title="Second" presentation="popover" open onOpenChange={() => {}} anchor={other}>
+            <Button onClick={() => setFirst(false)}>Close first</Button>
+          </Popover>
+        </>
+      );
+    }
+    await render(<App />);
+    const anchor = [...document.querySelectorAll("button")].find((button) => button.textContent === "First anchor")!;
+    const closeFirst = await vi.waitFor(() => [...document.querySelectorAll("button")].find((button) => button.textContent === "Close first")!);
+    await act(async () => closeFirst.focus());
+    await act(async () => closeFirst.click());
+    await expect.poll(() => [...document.querySelectorAll("[data-ouro-popover-content]")].some((panel) => panel.textContent?.includes("First inside"))).toBe(false);
+    await expect.poll(() => document.activeElement).toBe(anchor);
+  });
+
+  it("returns focus to its anchor when it closes while focus is elsewhere in the dialog that holds the anchor", async () => {
+    function App() {
+      const anchor = useRef<HTMLButtonElement>(null);
+      const [open, setOpen] = useState(true);
+      return (
+        <Dialog title="Outer" open onOpenChange={() => {}} presentation="dialog">
+          <button ref={anchor} type="button">Anchor</button>
+          <button type="button" onClick={() => setOpen(false)}>Close popover</button>
+          <Popover title="Inner" presentation="popover" open={open} onOpenChange={setOpen} anchor={anchor}>
+            <Button>Inside</Button>
+          </Popover>
+        </Dialog>
+      );
+    }
+    await render(<App />);
+    const anchor = [...document.querySelectorAll("button")].find((button) => button.textContent === "Anchor")!;
+    const closer = [...document.querySelectorAll("button")].find((button) => button.textContent === "Close popover")!;
+    await act(async () => closer.focus());
+    await act(async () => closer.click());
+    await expect.poll(() => document.querySelector("[data-ouro-popover-content]")).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(anchor);
+  });
+
   it("returns focus to the button that opened it when its anchor ref holds no element", async () => {
     function App() {
       const [open, setOpen] = useState(false);
