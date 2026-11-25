@@ -1,0 +1,1 @@
+- Fixed: Composer keeps a quote and its attachments a full step from the frame edge and from the toolbar.
