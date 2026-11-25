@@ -1,1 +1,0 @@
-- Changed: Button, Badge, Toggle, ToggleGroup, Tabs, SegmentedControl and Select centre a one-line label on its cap height with `text-box` where the browser draws it, and keep their height.

@@ -517,8 +517,7 @@ if [ "$variant" = upgrade ]; then
     local now css
     now=$(ls "$1/components/ouro" | tr '\n' ' ')
     # Button shows a disabled reason in a tooltip, so button-tests brings tooltip-tests, whose stories install the components they show.
-    # lib-cap-label-tests' story demos the cap height label on both Button and Toggle, so button-tests also brings toggle and toggle-tests.
-    [ "$now" = "button checkbox dialog field form kbd menu popover radio-group select sheet text text-field toggle tooltip " ] || { echo "the upgrade changed the component folders: $now"; exit 1; }
+    [ "$now" = "button checkbox dialog field form kbd menu popover radio-group select sheet text text-field tooltip " ] || { echo "the upgrade changed the component folders: $now"; exit 1; }
     css=$(node -p 'require("./components.json").tailwind.css')
     if grep -En -- '^[[:space:]]*--(color-)?ouro-[a-z-]+:[[:space:]]*var\(--ouro-[a-z-]+\);' "$css"; then
       echo "$css still maps an Ouro token through @theme inline"; exit 1
