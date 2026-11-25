@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: a continued chat message's hover/focus time in the leading gutter no longer runs under the bubble when its hour has a wide value; it now ends at a fixed inset from the gutter, growing away from the bubble as it widens.
