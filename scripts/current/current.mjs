@@ -157,6 +157,21 @@ export function createSources(publicGh, { unzip = defaultUnzip, liveCheck = runL
       return [];
     },
     /**
+     * Whether a commit still has a workflow run that has not finished (queued or in progress), read like ciReports;
+     * false when neither token can, so a repository whose Actions this cannot read is never held on a guess.
+     */
+    async ciPending(gh, repo, sha) {
+      for (const client of [gh, publicGh]) {
+        try {
+          const { workflow_runs: runs = [] } = await client.get(`repos/${repo}/actions/runs?head_sha=${sha}&per_page=100`);
+          return runs.some((run) => run.status !== "completed");
+        } catch {
+          // this token may not read the repository's Actions: the next one tries
+        }
+      }
+      return false;
+    },
+    /**
      * Ouro check run against a repository's live site at a release (live.mjs): { findings }, or a throw when it cannot
      * run. Only an update of a live-checked repository that brings a rule calls it.
      */
@@ -495,6 +510,13 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   // rather than force-push their work away. Closing the pull request or deleting the branch hands it back.
   if (existing && !existing.ours && existingPr) {
     return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "edited by someone else, so left alone", pushed: false, edited: true } };
+  }
+  // The last push's checks may still be running: force-pushing a newer release over them restarts those checks, so a
+  // release that keeps coming before the repository's slowest check finishes never gets a run that completes (#3573).
+  // The newer release waits; the run after this one, once nothing is still queued or in progress, moves the pull
+  // request straight to whatever is newest by then, in one push.
+  if (existing?.ours && existingPr && sources.ciPending && (await sources.ciPending(gh, repo, existing.sha))) {
+    return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "held: its last push still has checks running, so this release waits for them to finish", pushed: false, held: true } };
   }
   // An Ouro check rule this update brings in: the findings the pull request's own checks reported for it are recorded as
   // known, so they pass and a new one fails (known.mjs). The run after the one that brought the rule writes them. A

@@ -1,0 +1,1 @@
+- Fixed: Ouro check's dropped-frames rule no longer reports a false positive when its live frame-timing read races a concurrent walk() step's own live read (#3503).

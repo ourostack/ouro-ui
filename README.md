@@ -646,6 +646,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-server-element`,
 `lib-share`,
 `lib-spring`,
+`lib-squircle-capsules`,
 `lib-squircle-corners`,
 `lib-stretched-link`,
 `lib-theme-preset`,

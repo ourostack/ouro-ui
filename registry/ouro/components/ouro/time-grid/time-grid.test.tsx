@@ -766,6 +766,14 @@ describe("TimeGrid", () => {
     expect(document.activeElement).toBe(titled("Standup"));
   });
 
+  it("keeps an event's time range in reading order in a right-to-left page", async () => {
+    await render({ view: "day", events: [forum], locale: "en-US" }, (grid) => <div dir="rtl">{grid}</div>);
+    const range = titled("Architecture forum").querySelector<HTMLElement>('span[dir="ltr"]')!;
+    expect(range.textContent).toMatch(/^\d+:\d+\s*–\s*\d+:\d+/);
+    expect(getComputedStyle(range).unicodeBidi).toBe("isolate");
+    expect(getComputedStyle(range).textAlign).toBe("end");
+  });
+
   it("gives a short event and an all-day one a hit area at least 24px tall, without drawing them taller", async () => {
     await render({ view: "day", events: [{ ...standup, start: at(12, "09:30"), end: at(12, "09:45") }, { id: "closed", title: "Office closed", start: "2026-03-12" }] });
     for (const title of ["Standup", "Office closed"]) {
@@ -1970,7 +1978,7 @@ describe("TimeGrid slot preview", () => {
 });
 
 describe("TimeGridNav", () => {
-  it("moves the date by the view's day or week and to today, with each key in its button's tooltip", async () => {
+  const mountNav = () => {
     const onDateChange = vi.fn();
     const host = document.createElement("div");
     document.body.append(host);
@@ -1978,6 +1986,11 @@ describe("TimeGridNav", () => {
     const root = createRoot(host);
     roots.push(root);
     const show = (view: "day" | "week") => act(async () => root.render(<TimeGridNav date="2026-03-12" view={view} timeZone={zone} onDateChange={onDateChange} />));
+    return { onDateChange, root, show };
+  };
+
+  it("draws Previous and Next as named chevron icons, each tooltip saying its words and its key", async () => {
+    const { show } = mountNav();
     await show("week");
     // Previous and Next are icons, named for screen readers; each tooltip says its words and its key.
     expect(["Previous week", "Next week"].map((name) => page.getByRole("button", { name }).element().querySelector("svg") !== null)).toEqual([true, true]);
@@ -1994,6 +2007,11 @@ describe("TimeGridNav", () => {
     expect(await tipFor("Previous week")).toMatch(/^(⌥|Alt).*↑/);
     expect(await tipFor("Next week")).toMatch(/^(⌥|Alt).*↓/);
     expect(warnings()).toEqual([]);
+  });
+
+  it("moves the date by the view's day or week and to today", async () => {
+    const { onDateChange, show } = mountNav();
+    await show("week");
     await userEvent.click(page.getByRole("button", { name: "Next week" }));
     await userEvent.click(page.getByRole("button", { name: "Previous week" }));
     await userEvent.click(page.getByRole("button", { name: "Today" }));
@@ -2003,6 +2021,10 @@ describe("TimeGridNav", () => {
     await userEvent.click(page.getByRole("button", { name: "Next day" }));
     await userEvent.click(page.getByRole("button", { name: "Previous day" }));
     expect(onDateChange.mock.calls.map((call) => call[0])).toEqual(["2026-03-13", "2026-03-11"]);
+  });
+
+  it("takes its own labels and warns about an appearance class", async () => {
+    const { onDateChange, root } = mountNav();
     await act(async () => root.render(<TimeGridNav date="2026-03-12" onDateChange={onDateChange} labels={{ today: "Heute", previous: "Vorherige Woche", next: "Nächste Woche" }} />));
     await expect.element(page.getByRole("button", { name: "Nächste Woche" })).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Heute" })).toBeVisible();
