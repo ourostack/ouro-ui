@@ -606,6 +606,17 @@ describe("TimeGrid", () => {
       expect([chip(), stack()]).toEqual([null, null]);
     });
 
+    it("fills its whole strip, with its count on one line", async () => {
+      await render({ view: "day", events: crowd(5) }, (grid) => <div style={{ width: "260px", height: "600px" }}>{grid}</div>);
+      await expect.poll(() => chip()?.getBoundingClientRect().width).toBeGreaterThan(0);
+      const strip = chip()!.closest("li")!.getBoundingClientRect();
+      const box = chip()!.getBoundingClientRect();
+      expect(box.width).toBeCloseTo(strip.width, 0);
+      expect(box.height).toBeCloseTo(strip.height, 0);
+      const count = chip()!.querySelector("[data-slot=time-grid-more-count]")!.getBoundingClientRect();
+      expect(count.height).toBeLessThan(20);
+    });
+
     it("shows the first events and folds the rest into a +N chip that lists them, in a day about 12 rem wide", async () => {
       const onEventSelect = vi.fn();
       await render({ view: "day", events: crowd(5), onEventSelect }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);

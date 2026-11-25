@@ -1123,7 +1123,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               aria-current={members.some((piece) => piece.event.id === selectedId) ? "true" : undefined}
               onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => (event as typeof event & { preventBaseUIHandler: () => void }).preventBaseUIHandler()}
               onFocus={() => setActive(key)}
-              className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "z-[9] items-start justify-center px-0 text-center")}
+              className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "start-0 end-0 z-[9] items-start justify-center whitespace-nowrap px-0 text-center")}
             >
               <TouchTarget />
               <span aria-hidden="true" data-slot="time-grid-more-count" className="min-w-0 font-medium">{`+${members.length}`}</span>
