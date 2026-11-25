@@ -1,7 +1,7 @@
 import { createRef, StrictMode, useRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
@@ -48,18 +48,6 @@ async function render(node: ReactNode) {
 }
 
 let warn: ReturnType<typeof vi.spyOn>;
-// The first popover a browser opens pays for compiling and laying out its styles; open one once before the tests, so the first test is not charged for it.
-beforeAll(async () => {
-  await page.viewport(1280, 800);
-  const host = document.createElement("div");
-  document.body.append(host);
-  const root = createRoot(host);
-  await act(async () => root.render(<Popover title="Warm up" presentation="popover" trigger={<Button>Warm up</Button>}><input aria-label="Warm up" /></Popover>));
-  await userEvent.click(host.querySelector("button")!);
-  await vi.waitFor(() => expect(document.querySelector("[data-ouro-popover-content]")).not.toBeNull(), { timeout: 10_000 });
-  await act(async () => root.unmount());
-  host.remove();
-});
 beforeEach(async () => {
   await page.viewport(1280, 800);
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -123,7 +111,15 @@ async function openUncontrolled(props: Partial<PopoverProps> = {}) {
 
 describe("Popover", () => {
   it("keeps its fixed sizes at a compact --spacing: an 18rem panel", async () => {
-    const panel = await openUncontrolled({ presentation: "popover" });
+    // Layout width does not depend on the entrance, so this test need not wait for it.
+    await render(
+      <Popover title="Share recipe" presentation="popover" trigger={<Button>Share</Button>}>
+        <input aria-label="Link" />
+      </Popover>,
+    );
+    await userEvent.click(trigger());
+    await expect.poll(() => popup()).not.toBeNull();
+    const panel = popup()!;
     const width = () => parseFloat(getComputedStyle(panel).width);
     expect(width()).toBeCloseTo(288);
     panel.style.setProperty("--spacing", "0.2rem");
