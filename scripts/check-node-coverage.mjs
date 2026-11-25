@@ -39,6 +39,11 @@ export const groups = {
 };
 
 
+/** The flags that pick which tests of a group's files run. A lookahead in --test-name-pattern still matches the describe's own name, which runs every test inside it; skipping by title does not. */
+export function selectionFlags(group) {
+  return [...(group.pattern ? [`--test-name-pattern=${group.pattern}`] : []), ...(group.skip ? [`--test-skip-pattern=${group.skip}`] : [])];
+}
+
 /** V8's raw coverage `report` with only the included files' scripts left, which is all the merged report reads. */
 export function onlyIncluded(report) {
   const urls = included.map((file) => pathToFileURL(join(root, file)).href);
@@ -60,9 +65,7 @@ function run(name) {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   const args = ["--test", "--test-reporter=tap", "--experimental-test-coverage", ...includeFlags];
-  if (group.pattern) args.push(`--test-name-pattern=${group.pattern}`);
-  // A lookahead in --test-name-pattern still matches the describe's own name, which runs every test inside it; skipping by title does not.
-  if (group.skip) args.push(`--test-skip-pattern=${group.skip}`);
+  args.push(...selectionFlags(group));
   const result = spawnSync(process.execPath, [...args, ...group.files], { cwd: root, stdio: "inherit", env: nodeEnv({ NODE_V8_COVERAGE: out }) });
   for (const file of readdirSync(out)) {
     const path = join(out, file);

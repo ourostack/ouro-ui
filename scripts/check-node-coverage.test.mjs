@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL, URL } from "node:url";
 
-import { checkAlone, groups, included, onlyIncluded, pagesA } from "./check-node-coverage.mjs";
+import { checkAlone, groups, included, onlyIncluded, pagesA, selectionFlags } from "./check-node-coverage.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const tool = fileURLToPath(new URL("./check-node-coverage.mjs", import.meta.url));
@@ -54,4 +54,29 @@ test("every check.test.mts test falls in exactly one of its three groups", () =>
   const runs = (name, title) => { const g = groups[name]; const full = `Ouro check > ${title}`; return g.pattern ? new RegExp(g.pattern).test(full) : !new RegExp(g.skip).test(full); };
   for (const title of titles) assert.equal(names.filter((name) => runs(name, title)).length, 1, title);
   for (const [index, name] of checkAlone.entries()) assert.equal(titles.filter((title) => runs(names[index], title)).length, 1, name);
+});
+
+test("run by Node itself, each check test runs in exactly one group", () => {
+  const dir = scratchDir("check-groups-run");
+  const ran = new Map();
+  const real = new Map();
+  for (const file of ["check", "check-pages"]) {
+    const titles = [...readFileSync(join(root, `scripts/check/${file}.test.mts`), "utf8").matchAll(/^ {2}test\((["`])(.*?)\1, /gm)].map((match) => match[2]);
+    assert.ok(titles.length >= 16);
+    real.set(file, titles);
+    writeFileSync(join(dir, `${file}.test.mjs`), `import { describe, test } from "node:test";\ndescribe("Ouro check", () => {\n${titles.map((title) => `test(${JSON.stringify(title)}, () => {});`).join("\n")}\n});\n`);
+  }
+  for (const [name, group] of Object.entries(groups)) {
+    const stubs = group.files.map((file) => join(dir, file.split("/").pop().replace(".mts", ".mjs")));
+    const out = spawnSync(process.execPath, ["--test", "--test-reporter=tap", ...selectionFlags(group), ...stubs], { encoding: "utf8", env: Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT")) }).stdout;
+    for (const match of out.matchAll(/^ {4}ok \d+ - (.*)$/gm)) {
+      ran.set(match[1], [...new Set([...(ran.get(match[1]) ?? []), name])]);
+    }
+  }
+  for (const [file, titles] of real) {
+    for (const title of titles) {
+      const names = (ran.get(title) ?? []).filter((name) => groups[name].files.some((f) => f.endsWith(`${file}.test.mts`)));
+      assert.equal(names.length, 1, `${title} ran in: ${names.join(", ") || "no group"}`);
+    }
+  }
 });
