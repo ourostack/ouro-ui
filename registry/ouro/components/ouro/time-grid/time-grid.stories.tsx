@@ -250,3 +250,15 @@ export const WithToolbar: Story = {
     );
   },
 };
+
+const crowded: TimeGridEvent[] = [
+  { id: "c1", title: "Architecture forum", start: at(12, "10:00"), end: at(12, "11:30") },
+  { id: "c2", title: "Focus time", start: at(12, "10:15"), end: at(12, "11:45"), tone: "secondary" },
+  { id: "c3", title: "Pairing with Jo", start: at(12, "10:30"), end: at(12, "12:00"), tone: "success" },
+  { id: "c4", title: "Budget check-in", start: at(12, "10:45"), end: at(12, "12:15"), tone: "warning" },
+];
+
+/** A week whose Thursday has four overlapping events: a narrow day keeps the first ones and folds the rest into a "+N" chip that lists them. */
+export const CrowdedDay: Story = {
+  args: { view: "week", events: crowded },
+};

@@ -212,12 +212,13 @@ function foldsOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>, widthRem: nu
   const strip = 2;
   const folds: Array<{ shown: Array<DayPlacement<Key>>; folded: Array<DayPlacement<Key>> }> = [];
   for (const stack of stacksOf(placements)) {
-    const columns = Math.max(...stack.map((placed) => placed.columns));
+    // A stack is one group of overlapping events, so its events share their column count.
+    const columns = stack[0]!.columns;
     if (columns < 2 || widthRem >= minWidth + (columns - 1) * minStep) continue;
     const visible = Math.floor((widthRem - strip - minWidth) / minStep) + 1;
     folds.push({
-      shown: visible < 1 ? [] : stack.filter((placed) => placed.column < visible).map((placed) => ({ ...placed, columns: visible, span: Math.min(placed.span, visible - placed.column) })),
-      folded: visible < 1 ? stack : stack.filter((placed) => placed.column >= visible),
+      shown: stack.filter((placed) => placed.column < visible).map((placed) => ({ ...placed, columns: visible, span: Math.min(placed.span, visible - placed.column) })),
+      folded: stack.filter((placed) => placed.column >= visible),
     });
   }
   return folds;
