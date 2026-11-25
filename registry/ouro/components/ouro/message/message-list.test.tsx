@@ -894,6 +894,19 @@ describe("MessageList", () => {
     expect(scroller.scrollTop).toBe(top);
   });
 
+  // An app opens a chat at its first unread message, which is often among the last: the list can't centre it, so it opens
+  // at its end with the newest message in view. Nothing is below to jump to, so it offers no Jump to latest, which would
+  // sit over the newest message; scrolled up more than a line, it does.
+  it("offers no jump to the latest when it opens at a message with the newest in view, and does once the reader scrolls up", async () => {
+    const { scroller } = await render(<Found items={history(30)} initialAnchor="found-28" />);
+    await settle(scroller);
+    expect(inView(scroller, "found-29")).toBe(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await wheel(scroller, -400);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+  });
+
   it("opens at initialAnchor when it comes with the first messages, after the list mounted empty", async () => {
     const items = history(30);
     const { scroller, rerender } = await render(<Found windowing={false} items={[]} />);
