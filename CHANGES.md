@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: once nothing gated is left, [Ouro check's summary says a clean report is the floor, not the bar, and points at the beauty gate](scripts/check/check-command.test.mts "verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > exits 3 on gated findings, writes the step summary, and exits 0 when the config waives them)"); once a door conforms, [the AX X-ray's text says the same beside its verdict and points at the AX gate](registry/ouro/ax/xray.test.mts "verify:testExists(registry/ouro/ax/xray.test.mts::a mock check that answers text, a key path through a value that is not an object, and the command's last flags)").
