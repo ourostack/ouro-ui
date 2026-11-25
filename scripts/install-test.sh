@@ -508,7 +508,10 @@ if [ "$variant" = upgrade ]; then
   # After an upgrade: the app type checks, builds and runs its own test with its own config;
   # it has the same Ouro components as before; no v0.1.0 @theme inline token line
   # (`--ouro-x: var(--ouro-x);`, `--color-ouro-backdrop-color: var(--ouro-backdrop-color);`)
-  # is left in the CSS file components.json names. <base> is the layout's folder.
+  # is left in the CSS file components.json names, outside a @keyframes block (where
+  # ouro-base's own animations, such as Composer's clip inset, set one Ouro custom property
+  # from another's value on purpose: check-stale-theme-tokens.mjs tells the two apart).
+  # <base> is the layout's folder.
   upgraded() {
     npx tsc -b
     npx vite build
@@ -519,9 +522,7 @@ if [ "$variant" = upgrade ]; then
     # Button shows a disabled reason in a tooltip, so button-tests brings tooltip-tests, whose stories install the components they show.
     [ "$now" = "button checkbox dialog field form kbd menu popover radio-group select sheet text text-field tooltip " ] || { echo "the upgrade changed the component folders: $now"; exit 1; }
     css=$(node -p 'require("./components.json").tailwind.css')
-    if grep -En -- '^[[:space:]]*--(color-)?ouro-[a-z-]+:[[:space:]]*var\(--ouro-[a-z-]+\);' "$css"; then
-      echo "$css still maps an Ouro token through @theme inline"; exit 1
-    fi
+    node "$root/scripts/check-stale-theme-tokens.mjs" "$css" || exit 1
   }
   # After step 3: no Ouro test, story or spec file and no test kit is left.
   no_ouro_tests() {

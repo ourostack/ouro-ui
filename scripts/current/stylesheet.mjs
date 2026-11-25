@@ -124,7 +124,8 @@ export function itemTargets(item) {
       }
       const values = Object.values(value);
       if (values.every((entry) => typeof entry === "string")) {
-        if (at && at !== "@utility" && !isTheme(key)) unknown.push(key);
+        // shadcn writes a `@property` like a rule at the stylesheet's top, so it is read as one.
+        if (at && at !== "@utility" && at !== "@property" && !isTheme(key)) unknown.push(key);
         else rules.push({ wrappers, prelude: key, decls: Object.entries(value) });
       } else if (values.every((entry) => entry && typeof entry === "object" && !Array.isArray(entry)) && at && WRAPPERS.test(key)) {
         visit(value, [...wrappers, key]);

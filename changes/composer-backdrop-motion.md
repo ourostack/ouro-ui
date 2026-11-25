@@ -1,0 +1,2 @@
+- Changed: Composer's expand and collapse clips the box with a registered length (`@property --ouro-composer-inset`, in ouro-base) instead of animating `clip-path`, so it paints under a `backdrop-filter` and does not draw the end state before it starts; add `ouro-base` again to get the property and its keyframes.
+- Fixed: a collapse no longer shows the formatting toolbar at the frame's full, pre-collapse height for one frame before it unmounts.
