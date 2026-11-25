@@ -57,14 +57,20 @@ export function describe(arg: { selector: string; only?: number }): Described {
   const seenPictured = new Set<string>();
   const px = (v: string) => Math.round(parseFloat(v) || 0);
   const ctx = document.createElement("canvas").getContext("2d");
+  // The same few colours recur on every look, and each canvas read-back is a round trip through the engine's pixel buffer.
+  const converted = new Map<string, string>();
   const rgb = (v: string) => {
     if (!ctx || !v || v === "transparent") return v;
+    const known = converted.get(v);
+    if (known !== undefined) return known;
     ctx.clearRect(0, 0, 1, 1);
     ctx.fillStyle = "#000";
     ctx.fillStyle = v;
     ctx.fillRect(0, 0, 1, 1);
     const d = ctx.getImageData(0, 0, 1, 1).data;
-    return `${d[0]},${d[1]},${d[2]},${d[3]}`;
+    const result = `${d[0]},${d[1]},${d[2]},${d[3]}`;
+    converted.set(v, result);
+    return result;
   };
   // Components whose full-radius shape is the squircle on purpose; dots, lights, thumbs and pills are not.
   // A hover lift of up to 2px is layout settling, not a look: a translate-only transform that small reads as none.
