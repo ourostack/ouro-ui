@@ -29,6 +29,7 @@ export const storyIds = {
   tabsLinks: "navigation-tabs--links",
   textFieldStates: "forms-textfield--states",
   themePicker: "actions-themepicker--playground",
+  timeGridDay: "data-timegrid--day",
   timer: "feedback-timer--short",
   toast: "feedback-toast--playground",
 } as const;
