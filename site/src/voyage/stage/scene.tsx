@@ -21,6 +21,14 @@ export type SceneState = Primitives<{
   dives: number;
   /** Bumped by each ring of the bell, so ripples spread again. */
   rings: number;
+  /**
+   * When the stage itself computed this state, not when the picture committed it: useAfterPaint delays the
+   * picture's own commit by a frame and a task, independently for each change, so two changes close together
+   * can still land with a gap between them that has nothing to do with how far apart the presses were. stepping.ts
+   * reads this instead of its own clock, so a run of quick presses is read as quick even when the picture is slow
+   * to show them, and a real pause between presses (nothing changes this value meanwhile) still reads as one.
+   */
+  changedAt: number;
 }>;
 
 /** The small-step marker, once the first press of the depth lever has loaded it (stepping.ts). */
