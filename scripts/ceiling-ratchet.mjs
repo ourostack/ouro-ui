@@ -22,23 +22,45 @@ export const anchors = [
   { id: "catalog.spec.ts MARGIN", file: "site/e2e/catalog.spec.ts", name: "MARGIN" },
   { id: "catalog.spec.ts CSS_MARGIN", file: "site/e2e/catalog.spec.ts", name: "CSS_MARGIN" },
   { id: "catalog.spec.ts CSS_CEILINGS", file: "site/e2e/catalog.spec.ts", name: "CSS_CEILINGS" },
+  // CSS_CEILINGS also gets one anchor per key: it is one object literal, and every key shares the same
+  // 1024 multiplier, so a raise of one key hidden behind an equal-sized fall of another (#3524) changes
+  // none of the combined sums above, however they are computed, but always changes its own key's anchor.
+  { id: "catalog.spec.ts CSS_CEILINGS.voyage", file: "site/e2e/catalog.spec.ts", name: "CSS_CEILINGS", key: "voyage" },
+  { id: "catalog.spec.ts CSS_CEILINGS.docs", file: "site/e2e/catalog.spec.ts", name: "CSS_CEILINGS", key: "docs" },
+  { id: "catalog.spec.ts CSS_CEILINGS.docsShell", file: "site/e2e/catalog.spec.ts", name: "CSS_CEILINGS", key: "docsShell" },
+  { id: "catalog.spec.ts CSS_CEILINGS.docsPage", file: "site/e2e/catalog.spec.ts", name: "CSS_CEILINGS", key: "docsPage" },
   { id: "catalog.spec.ts PREVIEWS_CEILING", file: "site/e2e/catalog.spec.ts", name: "PREVIEWS_CEILING" },
   { id: "catalog.spec.ts ISLAND_CEILING", file: "site/e2e/catalog.spec.ts", name: "ISLAND_CEILING" },
   { id: "pattern-size.mjs CEILINGS", file: "scripts/pattern-size.mjs", name: "CEILINGS" },
   { id: "pattern-size.mjs BUDGET", file: "scripts/pattern-size.mjs", name: "BUDGET" },
 ];
 
+/** The value of one `a + b` or `a * b` run of integer literals (underscores allowed), left to right. */
+function evaluateExpr(expr) {
+  const tokens = expr.match(/\d[\d_]*|[*+]/g);
+  let result = Number(tokens[0].replace(/_/g, ""));
+  for (let i = 1; i < tokens.length; i += 2) {
+    const value = Number(tokens[i + 1].replace(/_/g, ""));
+    result = tokens[i] === "*" ? result * value : result + value;
+  }
+  return result;
+}
+
 /**
- * The sum of every integer literal (underscores allowed, as `295_904`) in `name`'s declaration in `text`,
- * or null when `name` is not declared there. A declaration's shape (how many keys, what multiplies what)
- * is never the same between unrelated changes, but its sum only grows when a measured value, a ceiling or
- * a budget genuinely does.
+ * The sum of every `a + b` or `a * b` arithmetic run (underscores allowed, as `295_904`, either operator,
+ * never both in one run) in `name`'s declaration in `text`, evaluated rather than digit-summed, so a
+ * `56 * 1024` ceiling counts as 57344 and not as 56 + 1024. Pass `key` to read one property's own run out
+ * of an object literal instead of every run in the whole declaration (`\bkey\b`, so `docs` does not match
+ * `docsShell`). Returns null when `name` (or `key` within it) is not declared there.
  */
-export function declaredSum(text, name) {
+export function declaredSum(text, name, key) {
   const match = text.match(new RegExp(`(?:export\\s+)?const\\s+${name}\\s*=[\\s\\S]*?;`));
   if (!match) return null;
-  const numbers = [...match[0].matchAll(/\d[\d_]*/g)].map((digits) => Number(digits[0].replace(/_/g, "")));
-  return numbers.reduce((sum, n) => sum + n, 0);
+  const scope =
+    key === undefined ? match[0] : (match[0].match(new RegExp(`\\b${key}\\b\\s*:\\s*(\\d[\\d_]*(?:\\s*[*+]\\s*\\d[\\d_]*)*)`)) ?? [])[1];
+  if (scope === undefined) return null;
+  const expressions = scope.match(/\d[\d_]*(?:\s*[*+]\s*\d[\d_]*)*/g) ?? [];
+  return expressions.reduce((sum, expr) => sum + evaluateExpr(expr), 0);
 }
 
 /** The reason on a `ceiling: <reason>` line of the description, or null when there is none or it is under three characters. */
@@ -85,13 +107,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(2);
   }
   const base = git(["merge-base", baseRef, "HEAD"]).trim();
-  const results = anchors.map(({ id, file, name }) => {
+  const results = anchors.map(({ id, file, name, key }) => {
     const baseText = contentAt(base, file);
     const headText = contentAt("HEAD", file);
     return {
       id,
-      base: baseText === null ? null : declaredSum(baseText, name),
-      head: headText === null ? null : declaredSum(headText, name),
+      base: baseText === null ? null : declaredSum(baseText, name, key),
+      head: headText === null ? null : declaredSum(headText, name, key),
     };
   });
   const body = process.env["PR_BODY"] ?? "";
