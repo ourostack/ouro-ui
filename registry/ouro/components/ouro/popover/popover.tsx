@@ -32,9 +32,11 @@ export type PopoverPresentation = "auto" | "popover" | "sheet";
 
 const presentations: readonly PopoverPresentation[] = ["auto", "popover", "sheet"];
 
-/** Whether a dialog or sheet outside this popup is open, so the popover's return of focus would take it from there. */
-const otherLayerOpen = (own: HTMLElement | null) =>
-  [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].some((layer) => layer !== own && !own?.contains(layer) && !layer.contains(own));
+/** Whether a dialog or sheet that is open and does not hold the popover's anchor is up, so returning focus to the anchor would take it from there. */
+const otherLayerOpen = (anchor: Element | null | undefined) =>
+  [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].some(
+    (layer) => layer.getAttribute("data-ouro-presentation") !== "popover" && !layer.hasAttribute("data-ending-style") && !layer.closest("[hidden]") && !(anchor && layer.contains(anchor)),
+  );
 
 const controlFix = "<Popover open={open} onOpenChange={setOpen} anchor={buttonRef}>";
 
@@ -310,7 +312,7 @@ export function Popover(props: PopoverProps): JSX.Element {
               ? {
                   initialFocus: () => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true),
                   // Safari does not focus a button on click, so name where focus goes back.
-                  finalFocus: () => (otherLayerOpen(popupRef.current) ? false : (anchor?.current ?? true)),
+                  finalFocus: () => (otherLayerOpen(anchor?.current) ? false : (anchor?.current ?? true)),
                 }
               : {})}
           >

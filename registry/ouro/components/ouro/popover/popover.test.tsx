@@ -1288,4 +1288,25 @@ describe("Popover handing focus to a layer opened from inside it", () => {
     await new Promise((resolve) => setTimeout(resolve, 1000)); // real clock: a late focus return is the bug, and it lands after Base UI's own frames
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Title");
   });
+
+  it("still returns focus to its anchor when it opens inside a dialog", async () => {
+    function App() {
+      const anchor = useRef<HTMLButtonElement>(null);
+      const [open, setOpen] = useState(false);
+      return (
+        <Dialog title="Outer" open onOpenChange={() => {}} presentation="dialog">
+          <button ref={anchor} type="button" onClick={() => setOpen(true)}>Anchor</button>
+          <Popover title="Inner" open={open} onOpenChange={setOpen} anchor={anchor}>
+            <Button>Inside</Button>
+          </Popover>
+        </Dialog>
+      );
+    }
+    await render(<App />);
+    const anchor = [...document.querySelectorAll("button")].find((button) => button.textContent === "Anchor")!;
+    await act(async () => anchor.click());
+    await expect.poll(() => document.querySelector('[data-ouro-popover-content]')).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(anchor);
+  });
 });
