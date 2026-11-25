@@ -1044,6 +1044,14 @@ const workflow = (file) => workflows.find((entry) => entry.file === file).text;
 const probe = workflow("skeleton-frames.yml");
 const probeOn = probe.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
 
+test("the route profile probe runs by hand only, in WebKit, and no CI shard runs it", () => {
+  const profile = workflow("route-profile.yml");
+  const on = profile.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
+  assert.deepEqual([...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["workflow_dispatch"]);
+  assert.match(profile, /playwright test --config playwright\.route-profile\.config\.ts/);
+  assert.doesNotMatch(workflow("ci.yml"), /route-profile/);
+});
+
 test("the skeleton frame probe runs daily and by hand, never on a pull request or a push", () => {
   assert.deepEqual([...probeOn.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["schedule", "workflow_dispatch"]);
   const cron = /^ {4}- cron: "(\d+) (\d+) \* \* \*"$/m.exec(probeOn);
@@ -2294,7 +2302,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   const mySpecs = installSpecShard(specs.slice(0, 3), { index: 2, count: 2 });
   assert.ok(mine.length > 0 && mySpecs.length > 0);
   const escaped = (paths) => paths.join(" ").replace(/[.]/g, "\\.");
-  assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=2 ${escaped(mine)}$`, "m"));
+  assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=1 ${escaped(mine)}$`, "m"));
   assert.match(shard.stdout, new RegExp(`^npx playwright test --fully-parallel --reporter=list ${escaped(mySpecs)}$`, "m"));
   const empty = run({ OURO_SHARD: "2/2" });
   assert.equal(empty.status, 1);
@@ -2343,11 +2351,11 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   // In CI a shard's run adds the stall reporter, so a hang in the installed app fails in minutes and names what hung (#671).
   const watched = run({ CI: "1", OURO_SYSTEM_PACKAGES: "image", OURO_SHARD: "2/2" }, [...shipped, ...specs]);
   assert.equal(watched.status, 0, watched.stderr);
-  assert.match(watched.stdout, new RegExp(`^npx vitest run --maxWorkers=2 --reporter=default --reporter=${escaped([join(root, "scripts/stall-reporter-default.mts")])} ${escaped(mine)}$`, "m"));
+  assert.match(watched.stdout, new RegExp(`^npx vitest run --maxWorkers=1 --reporter=default --reporter=${escaped([join(root, "scripts/stall-reporter-default.mts")])} ${escaped(mine)}$`, "m"));
   assert.doesNotMatch(all.stdout + shard.stdout, /stall-reporter/);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
-  assert.match(some.stdout, /^npx vitest run --maxWorkers=2 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
+  assert.match(some.stdout, /^npx vitest run --maxWorkers=1 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
   assert.match(some.stdout, /^npx playwright test --fully-parallel --reporter=list --pass-with-no-tests --shard=1\/3 e2e\/ouro\/checkbox\.spec\.ts e2e\/ouro\/checkbox-group\.spec\.ts$/m);
 });
 
@@ -3783,6 +3791,17 @@ test("the browser shards hold each test to half its timeout: vitest.config.ts ad
   assert.match(report, /scripts\/scheduled-failure\.sh "\$RUN" "Headroom breaches on main"/);
   // ci.yml itself writes no issues: rerun-guard.yml is the only caller of issues: write (checked on its own, above).
   assert.equal(workflow("ci.yml").match(/issues: write/g)?.length ?? 0, 0);
+});
+
+test("the changed-files step scopes to a stacked pull request's real base, not only main, and fails closed with a reason when it cannot diff", () => {
+  const script = stepScript(ciJobs().plan, "Which files does the change touch?");
+  // A pull request into any base (main or a stacked branch) gets its own real base diffed; only a
+  // release branch's own pull request (which runs full-judge today) is excluded (ourostack/ouro-ui#3665).
+  assert.doesNotMatch(script, /BASE_REF.? = main/);
+  assert.match(script, /EVENT" = pull_request/);
+  assert.match(script, /HEAD_REF" != release\//);
+  // A diff that fails (the base ref unresolved, say) leaves files empty, as today, but now says why.
+  assert.match(script, /::warning/);
 });
 
 test("rerun-guard.yml starts on CI going in_progress (requested never fires for a rerun), not needing plan or the run to finish, and comments only on main's own rerun", () => {

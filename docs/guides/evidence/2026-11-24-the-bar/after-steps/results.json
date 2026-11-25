@@ -1,0 +1,314 @@
+{
+  "phase": "after-steps",
+  "judge": "claude-opus-5.5",
+  "models": [
+    "claude-sonnet-5.5",
+    "gpt-6.2-sol"
+  ],
+  "rows": [
+    {
+      "id": "cook-settings--claude-sonnet-5.5--1",
+      "scenario": "cook-settings",
+      "model": "claude-sonnet-5.5",
+      "rep": 1,
+      "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+      "seconds": 127,
+      "calls": 7,
+      "pass": false,
+      "criteria": {
+        "restraint": false,
+        "jobs": false,
+        "builds": true,
+        "proof": false
+      }
+    },
+    {
+      "id": "cook-settings--claude-sonnet-5.5--2",
+      "scenario": "cook-settings",
+      "model": "claude-sonnet-5.5",
+      "rep": 2,
+      "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+      "seconds": 123,
+      "calls": 9,
+      "pass": false,
+      "criteria": {
+        "restraint": false,
+        "jobs": false,
+        "builds": true,
+        "proof": false
+      }
+    },
+    {
+      "id": "cook-settings--gpt-6.2-sol--1",
+      "scenario": "cook-settings",
+      "model": "gpt-6.2-sol",
+      "rep": 1,
+      "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+      "seconds": 128,
+      "calls": 25,
+      "pass": false,
+      "criteria": {
+        "restraint": false,
+        "jobs": true,
+        "builds": true,
+        "proof": false
+      }
+    },
+    {
+      "id": "cook-settings--gpt-6.2-sol--2",
+      "scenario": "cook-settings",
+      "model": "gpt-6.2-sol",
+      "rep": 2,
+      "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+      "seconds": 116,
+      "calls": 22,
+      "pass": false,
+      "criteria": {
+        "restraint": false,
+        "jobs": true,
+        "builds": true,
+        "proof": false
+      }
+    },
+    {
+      "id": "households--claude-sonnet-5.5--1",
+      "scenario": "households",
+      "model": "claude-sonnet-5.5",
+      "rep": 1,
+      "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+      "seconds": 81,
+      "calls": 3,
+      "pass": false,
+      "criteria": {
+        "jobs": false,
+        "restraint": false,
+        "craft": false,
+        "proof": false
+      }
+    },
+    {
+      "id": "households--claude-sonnet-5.5--2",
+      "scenario": "households",
+      "model": "claude-sonnet-5.5",
+      "rep": 2,
+      "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+      "seconds": 60,
+      "calls": 5,
+      "pass": false,
+      "criteria": {
+        "jobs": false,
+        "restraint": false,
+        "craft": false,
+        "proof": false
+      }
+    },
+    {
+      "id": "households--gpt-6.2-sol--1",
+      "scenario": "households",
+      "model": "gpt-6.2-sol",
+      "rep": 1,
+      "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+      "seconds": 106,
+      "calls": 15,
+      "pass": false,
+      "criteria": {
+        "jobs": false,
+        "restraint": true,
+        "craft": false,
+        "proof": true
+      }
+    },
+    {
+      "id": "households--gpt-6.2-sol--2",
+      "scenario": "households",
+      "model": "gpt-6.2-sol",
+      "rep": 2,
+      "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+      "seconds": 115,
+      "calls": 31,
+      "pass": false,
+      "criteria": {
+        "jobs": false,
+        "restraint": false,
+        "craft": false,
+        "proof": true
+      }
+    },
+    {
+      "id": "menus--claude-sonnet-5.5--1",
+      "scenario": "menus",
+      "model": "claude-sonnet-5.5",
+      "rep": 1,
+      "seconds": 198,
+      "calls": 13,
+      "pass": false,
+      "criteria": {
+        "restraint": false,
+        "jobs": false,
+        "basics": true,
+        "agents": false
+      }
+    },
+    {
+      "id": "menus--claude-sonnet-5.5--2",
+      "scenario": "menus",
+      "model": "claude-sonnet-5.5",
+      "rep": 2,
+      "seconds": 157,
+      "calls": 9,
+      "pass": false,
+      "criteria": {
+        "restraint": true,
+        "jobs": true,
+        "basics": true,
+        "agents": false
+      }
+    },
+    {
+      "id": "menus--gpt-6.2-sol--1",
+      "scenario": "menus",
+      "model": "gpt-6.2-sol",
+      "rep": 1,
+      "seconds": 102,
+      "calls": 22,
+      "pass": false,
+      "criteria": {
+        "restraint": false,
+        "jobs": true,
+        "basics": true,
+        "agents": false
+      }
+    },
+    {
+      "id": "menus--gpt-6.2-sol--2",
+      "scenario": "menus",
+      "model": "gpt-6.2-sol",
+      "rep": 2,
+      "seconds": 114,
+      "calls": 25,
+      "pass": false,
+      "criteria": {
+        "restraint": false,
+        "jobs": false,
+        "basics": true,
+        "agents": false
+      }
+    },
+    {
+      "id": "files--claude-sonnet-5.5--1",
+      "scenario": "files",
+      "model": "claude-sonnet-5.5",
+      "rep": 1,
+      "seconds": 115,
+      "calls": 7,
+      "pass": false,
+      "criteria": {
+        "one-way": false,
+        "earns-place": false,
+        "journey": false,
+        "proof": true
+      }
+    },
+    {
+      "id": "files--claude-sonnet-5.5--2",
+      "scenario": "files",
+      "model": "claude-sonnet-5.5",
+      "rep": 2,
+      "seconds": 76,
+      "calls": 3,
+      "pass": false,
+      "criteria": {
+        "one-way": false,
+        "earns-place": false,
+        "journey": false,
+        "proof": false
+      }
+    },
+    {
+      "id": "files--gpt-6.2-sol--1",
+      "scenario": "files",
+      "model": "gpt-6.2-sol",
+      "rep": 1,
+      "seconds": 130,
+      "calls": 31,
+      "pass": false,
+      "criteria": {
+        "one-way": true,
+        "earns-place": true,
+        "journey": true,
+        "proof": false
+      }
+    },
+    {
+      "id": "files--gpt-6.2-sol--2",
+      "scenario": "files",
+      "model": "gpt-6.2-sol",
+      "rep": 2,
+      "seconds": 136,
+      "calls": 32,
+      "pass": false,
+      "criteria": {
+        "one-way": true,
+        "earns-place": true,
+        "journey": false,
+        "proof": true
+      }
+    },
+    {
+      "id": "sections--claude-sonnet-5.5--1",
+      "scenario": "sections",
+      "model": "claude-sonnet-5.5",
+      "rep": 1,
+      "seconds": 82,
+      "calls": 7,
+      "pass": true,
+      "criteria": {
+        "builds": true,
+        "both": true,
+        "restraint": true
+      }
+    },
+    {
+      "id": "sections--claude-sonnet-5.5--2",
+      "scenario": "sections",
+      "model": "claude-sonnet-5.5",
+      "rep": 2,
+      "seconds": 319,
+      "calls": 13,
+      "pass": false,
+      "criteria": {
+        "builds": false,
+        "both": false,
+        "restraint": true
+      }
+    },
+    {
+      "id": "sections--gpt-6.2-sol--1",
+      "scenario": "sections",
+      "model": "gpt-6.2-sol",
+      "rep": 1,
+      "seconds": 121,
+      "calls": 26,
+      "pass": true,
+      "criteria": {
+        "builds": true,
+        "both": true,
+        "restraint": true
+      }
+    },
+    {
+      "id": "sections--gpt-6.2-sol--2",
+      "scenario": "sections",
+      "model": "gpt-6.2-sol",
+      "rep": 2,
+      "seconds": 125,
+      "calls": 24,
+      "pass": false,
+      "criteria": {
+        "builds": true,
+        "both": false,
+        "restraint": true
+      }
+    }
+  ]
+}

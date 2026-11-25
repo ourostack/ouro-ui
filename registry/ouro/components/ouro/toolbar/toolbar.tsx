@@ -332,7 +332,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
   useToolbarChecks(props, sizeProp, size, delay);
   const toggles = useToggles();
   const platform = usePlatform();
-  const { rootRef, setRef, probe, shown } = useOverflow(ref, items, size);
+  // Only observed, never controlled: Menu stays uncontrolled, and this tells the overflow measure
+  // whether the More menu is open, so a font loading while it is open waits to re-check widths.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { rootRef, setRef, probe, shown } = useOverflow(ref, items, size, menuOpen);
   const { hidden, faded } = useAutoHide(rootRef, delay, autoHideArea, hiddenProp, onHiddenChange);
   const { visible, overflow } = splitEntries(items, shown);
   const withMore = probe || overflow.length > 0;
@@ -372,7 +375,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         }
         return control(entry, context, index, index);
       })}
-      {withMore && (disabled ? more : <Menu items={overflow.map((entry) => asMenuEntry(entry, toggles))} align="end" trigger={more} />)}
+      {withMore && (disabled ? more : <Menu items={overflow.map((entry) => asMenuEntry(entry, toggles))} align="end" trigger={more} onOpenChange={setMenuOpen} />)}
       </TooltipsHidden>
     </div>
   );
@@ -513,7 +516,7 @@ function widthInputs(items: readonly ToolbarEntry[]): string {
 // as many as fit stay in the row and the rest move into the More menu. The widths measured
 // then serve every later resize, which the resize observer reports once the page is laid out, where
 // reads are free. A render of the same entries measures nothing: a read inside a commit lays the page out at once.
-function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly ToolbarEntry[], size: ToolbarSize) {
+function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly ToolbarEntry[], size: ToolbarSize, menuOpen: boolean) {
   const rootRef = useRef<HTMLDivElement>(null);
   const setRef = useMergedRef(ref, rootRef);
   const widths = useRef<readonly number[] | null>(null);
@@ -523,7 +526,15 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
   const [epoch, setEpoch] = useState(0);
   // `probe` is set while More is drawn only to read its width, once a measure finds the row too narrow.
   const [layout, setLayout] = useState<{ inputs: string; size: ToolbarSize; epoch: number; shown: number; probe?: true } | null>(null);
-  const measuring = layout?.inputs !== inputs || layout.size !== size || layout.epoch !== epoch;
+  // A new set of items or size leaves no row known to fit yet, so every entry shows while it is measured: More,
+  // and the menu it opens, unmount for that frame — fine, since nothing was open to disturb. An epoch alone
+  // re-validates the row already on screen (a font finished loading, maybe changing nothing a person sees), and
+  // must not vanish a menu already open to do it, so it waits: the epoch stays unsettled until the menu closes,
+  // and only then does the row measure again and, if it no longer fits, move entries into or out of More.
+  const structural = layout === null || layout.inputs !== inputs || layout.size !== size;
+  const epochChanged = !structural && layout.epoch !== epoch;
+  const deferred = epochChanged && menuOpen;
+  const measuring = !deferred && (structural || epochChanged);
   const probe = !measuring && layout.probe === true;
   const entries = useRef<ResizeObserver | null>(null);
   const refocus = useRef(false);

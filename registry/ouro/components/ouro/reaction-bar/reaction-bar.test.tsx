@@ -84,6 +84,16 @@ describe("ReactionBar", () => {
     expect(other!.className).not.toContain("[--ouro-bg:color-mix(in_oklab,var(--primary)_10%");
   });
 
+  it("gives a counted reaction that is not the reader's own a soft borderless pill, like a quick reaction", async () => {
+    const { bar } = await render(<ReactionBar reactions={reactions} quick={quick} onReact={() => {}} />);
+    const other = bar!.querySelector<HTMLElement>('[data-ouro-part="reaction"][aria-pressed="false"]')!;
+    const quickButton = bar!.querySelector<HTMLElement>('[data-ouro-part="quick"]')!;
+    expect(other.className).toContain("[--ouro-bg:var(--muted)]");
+    expect(other.className).not.toContain("[--ouro-bd:var(--border)]");
+    // The two share the same look: only `mine`'s tint sets a reaction apart.
+    expect(other.className.replace(/\s+/g, " ")).toBe(quickButton.className.replace(/\s+/g, " "));
+  });
+
   it("calls onReact with the key and the trusted click, to add or take back a reaction", async () => {
     const onReact = vi.fn();
     await render(<Toggling onReact={onReact} />);

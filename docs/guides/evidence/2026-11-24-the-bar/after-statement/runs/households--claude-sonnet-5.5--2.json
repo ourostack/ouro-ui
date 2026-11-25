@@ -1,0 +1,109 @@
+{
+  "id": "households--claude-sonnet-5.5--2",
+  "scenario": "households",
+  "repo": "spoonjoy",
+  "commit": "5006922388667c38f962330c113000bc69cf026a",
+  "model": "claude-sonnet-5.5",
+  "rep": 2,
+  "exit": 0,
+  "seconds": 38,
+  "prompt": "Agents can't do anything with households yet: Spoonjoy's actions and MCP tools have nothing for them. Add the agent side. The households service already has createHousehold, listHouseholds, getHousehold, renameHousehold, createInvite, emailInvite, previewInvite, acceptInvite, revokeInvite, changeMemberRole, removeFromHousehold and leave (app/domains/households-and-identity). Plan the actions: their ids, inputs, outputs, consent, and the descriptions agents read.\n\nReply with your answer in this chat; don't change any files.",
+  "events": [
+    {
+      "message": "I'll look at the service and the existing action declarations first."
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd app/domains/households-and-identity && ls -R . | head -50; grep -rn \"export async function\\|export function\" --include=*.ts . | grep -i \"household\\|invite\\|member\\|leave\" | head -40; ls ../../../actions; sed -n 1,80p ../../../actions/shopping.mts",
+        "description": "Inspect households service and action declarations"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd app/domains/households-and-identity && sed -n 1,260p application/households.server.ts; cat model/invite.ts | sed -n 1,60p; sed -n 1,40p model/household.ts; cd ../../../actions; cat access.mts | head -60; grep -n \"consent\" ../tools/ouro-actions/ouro-actions.mts | head -20; sed -n 1,40p fields.mts",
+        "description": "Read service, models, and access actions"
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "/var/folders/1z/9h7m1kcd6ps6k0b2d7sbrscc0000gn/T/1795560539342-copilot-tool-output-89658-bdff2e99-4453-49ff-a456-b1257135b426.txt"
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/domains/households-and-identity/application/households.server.ts",
+        "view_range": [
+          14,
+          260
+        ]
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/domains/households-and-identity/model/invite.ts"
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./actions/access.mts"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd . && grep -n \"consequential\\|destructive\\|consent\" tools/ouro-actions/ouro-actions.mts | head -25; grep -rn \"household\" -il app/lib app/routes docs actions app/domains/platform/flags 2>/dev/null | head -15; grep -rn \"scope\" app/lib/mcp/*.ts -il | head; grep -n \"shopping:\\|recipes:\" app/lib/*scope* 2>/dev/null | head",
+        "description": "Check consent model, existing household API, scopes"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd . && sed -n 20,40p tools/ouro-actions/ouro-actions.mts; sed -n 1,40p app/lib/mcp/scopes* 2>/dev/null | head -50; ls app/domains/platform/flags/flags; grep -n \"ousehold\" app/lib/api-v1.server.ts app/lib/spoonjoy-api.server.ts | head",
+        "description": "Check consent doc, scopes, flags, API household use"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd . && cat app/domains/platform/flags/flags/households.ts; grep -rn \"kitchen:\\|shopping:\\|scope\" app/lib/spoonjoy-api.server.ts | head -8; sed -n 1,40p actions/planning.mts",
+        "description": "Read households flag and scope usage"
+      }
+    },
+    {
+      "message": "Here is the plan. I changed no files.\n\n## Conventions\n- A new `actions/households.mts` holds the declarations. It sits behind the `households` flag, as `planning.mts` does behind `meal-planner`: a call from someone the flag is off for is refused as not found.\n- Each action spreads `declaredOperation(\"<id>\")` in `spoonjoy-api.server.ts` and is served over MCP. Then run `pnpm actions:generate` and commit `actions/generated/`.\n- Every action takes `ownerEmail` as the other areas do. Ids are snake_case. Ids of things come from earlier calls: `householdId` from `list_households`, `memberId` from `get_household`, `inviteId` from `get_household`.\n- Every action acts as the signed-in caller, never as a name an agent supplies.\n\n## Actions\n| id | consent | inputs | output |\n|---|---|---|---|\n| `list_households` | read | none | `{id, name}[]` |\n| `get_household` | read | `householdId` | `id`, `name`, `me` (role), `members` (id, username, role), and `invites`. Only an owner sees invites, and they carry no tokens. |\n| `create_household` | write | `name` | `{id, name}`. It changes only the caller's own space, and the caller becomes the owner. |\n| `rename_household` | write | `householdId`, `name` | `{id, name}`. `idempotent`. Owner only. |\n| `create_invite_link` (service `createInvite`) | **consequential** | `householdId`, `role` (member or viewer, default member), `uses` (1–50, default 1), `days` (1–30, default 14) | `inviteId`, `role`, `usesLeft`, `expiresAt`, and the join URL. The token is shown once. |\n| `email_household_invite` (`emailInvite`) | **consequential** | `householdId`, `email`, `role`, `days` | `{to}` |\n| `preview_household_invite` (`previewInvite`) | read | `token` | `householdName`, `role`, `status`. A token that matches no invite returns not found. |\n| `accept_household_invite` (`acceptInvite`) | **consequential** | `token` | `householdId`, `joined`. `idempotent`. |\n| `revoke_household_invite` (`revokeInvite`) | write, `destructive`, `idempotent` | `householdId`, `inviteId` | `{}` |\n| `change_household_member_role` (`changeMemberRole`) | **consequential** | `householdId`, `memberId`, `role` (owner, member or viewer) | `{}`. `idempotent`. |\n| `remove_household_member` (`removeFromHousehold`) | **consequential** | `householdId`, `memberId` | `{}`. A consequential action is destructive already. |\n| `leave_household` (`leave`) | **consequential** | `householdId` | `{}`. The last person to leave deletes the household. |\n\nI'd keep `create_invite_link`, `email_household_invite` and `accept_household_invite` as separate actions. Each does one thing, and their consent differs from the reads.\n\n## Consent reasoning\n- **Consequential** is for anything that reaches other people or can't be undone. That covers invites that grant access, joining (it exposes my recipes to the household), role changes, removal and leaving.\n- **Revoking an invite** only turns off access that was granted, so it is a destructive write.\n- **Renaming** is a write. It's visible to members, but it's a cosmetic edit an owner can reverse.\n- **Nothing is person-only.** Every action has a safe agent path, and the person approves the consequential ones.\n\n## Descriptions agents read\nEach `description` is short and in the person's words, such as \"Invite someone to your household by email.\" Each `agent` string states these four things:\n- **Who may run it.** For example, \"Only an owner can invite, rename, change roles or turn off invites; members can leave.\"\n- **What the caller must ask first.** For consequential actions, the agent prepares the call and shows the person who it affects, then waits for a yes.\n- **Where ids come from.** For example, \"`memberId` from `get_household`.\"\n- **Secrets and limits.**\n  - Invite links are never role owner; promote after joining.\n  - A link works N times and expires.\n  - The join link is a secret: show it to the person only, and don't log it.\n  - An email invite works only for that address's account.\n  - If the mail fails, the invite is turned off, so make a link instead.\n\n## Errors\nThe service's `Validated` failures map as follows:\n- `forbidden` becomes a typed refusal.\n- `unavailable` is returned for mail failures.\n- Other failures become the existing validation error carrying the service's plain message, such as \"An invite works 1 to 50 times.\"\n- A caller who isn't a member gets not found, which matches `getHousehold` returning null.\n\n## Wiring and tests\n- Add a store factory using `d1HouseholdStore` and `joinUrl`, and the email sender for `email_household_invite`.\n- Add the actions to `spoonjoy.actions.mts`.\n- Update the declared-actions test so the MCP tool list equals the declarations.\n- Add per-tool tests for the flag-off refusal, a non-owner refusal, the one-time token and the consent class.\n- Add `docs/claude-connector.md` entries.\n- Keep 100% coverage.\n\n## Open question\nDo household tools need a new token scope, or do they fit under the existing kitchen scopes? I'd add `households:read` and `households:write`, because membership changes are sensitive and the connector grants only kitchen and shopping scopes today. I'd decide this before implementing."
+    }
+  ],
+  "answer": "Here is the plan. I changed no files.\n\n## Conventions\n- A new `actions/households.mts` holds the declarations. It sits behind the `households` flag, as `planning.mts` does behind `meal-planner`: a call from someone the flag is off for is refused as not found.\n- Each action spreads `declaredOperation(\"<id>\")` in `spoonjoy-api.server.ts` and is served over MCP. Then run `pnpm actions:generate` and commit `actions/generated/`.\n- Every action takes `ownerEmail` as the other areas do. Ids are snake_case. Ids of things come from earlier calls: `householdId` from `list_households`, `memberId` from `get_household`, `inviteId` from `get_household`.\n- Every action acts as the signed-in caller, never as a name an agent supplies.\n\n## Actions\n| id | consent | inputs | output |\n|---|---|---|---|\n| `list_households` | read | none | `{id, name}[]` |\n| `get_household` | read | `householdId` | `id`, `name`, `me` (role), `members` (id, username, role), and `invites`. Only an owner sees invites, and they carry no tokens. |\n| `create_household` | write | `name` | `{id, name}`. It changes only the caller's own space, and the caller becomes the owner. |\n| `rename_household` | write | `householdId`, `name` | `{id, name}`. `idempotent`. Owner only. |\n| `create_invite_link` (service `createInvite`) | **consequential** | `householdId`, `role` (member or viewer, default member), `uses` (1–50, default 1), `days` (1–30, default 14) | `inviteId`, `role`, `usesLeft`, `expiresAt`, and the join URL. The token is shown once. |\n| `email_household_invite` (`emailInvite`) | **consequential** | `householdId`, `email`, `role`, `days` | `{to}` |\n| `preview_household_invite` (`previewInvite`) | read | `token` | `householdName`, `role`, `status`. A token that matches no invite returns not found. |\n| `accept_household_invite` (`acceptInvite`) | **consequential** | `token` | `householdId`, `joined`. `idempotent`. |\n| `revoke_household_invite` (`revokeInvite`) | write, `destructive`, `idempotent` | `householdId`, `inviteId` | `{}` |\n| `change_household_member_role` (`changeMemberRole`) | **consequential** | `householdId`, `memberId`, `role` (owner, member or viewer) | `{}`. `idempotent`. |\n| `remove_household_member` (`removeFromHousehold`) | **consequential** | `householdId`, `memberId` | `{}`. A consequential action is destructive already. |\n| `leave_household` (`leave`) | **consequential** | `householdId` | `{}`. The last person to leave deletes the household. |\n\nI'd keep `create_invite_link`, `email_household_invite` and `accept_household_invite` as separate actions. Each does one thing, and their consent differs from the reads.\n\n## Consent reasoning\n- **Consequential** is for anything that reaches other people or can't be undone. That covers invites that grant access, joining (it exposes my recipes to the household), role changes, removal and leaving.\n- **Revoking an invite** only turns off access that was granted, so it is a destructive write.\n- **Renaming** is a write. It's visible to members, but it's a cosmetic edit an owner can reverse.\n- **Nothing is person-only.** Every action has a safe agent path, and the person approves the consequential ones.\n\n## Descriptions agents read\nEach `description` is short and in the person's words, such as \"Invite someone to your household by email.\" Each `agent` string states these four things:\n- **Who may run it.** For example, \"Only an owner can invite, rename, change roles or turn off invites; members can leave.\"\n- **What the caller must ask first.** For consequential actions, the agent prepares the call and shows the person who it affects, then waits for a yes.\n- **Where ids come from.** For example, \"`memberId` from `get_household`.\"\n- **Secrets and limits.**\n  - Invite links are never role owner; promote after joining.\n  - A link works N times and expires.\n  - The join link is a secret: show it to the person only, and don't log it.\n  - An email invite works only for that address's account.\n  - If the mail fails, the invite is turned off, so make a link instead.\n\n## Errors\nThe service's `Validated` failures map as follows:\n- `forbidden` becomes a typed refusal.\n- `unavailable` is returned for mail failures.\n- Other failures become the existing validation error carrying the service's plain message, such as \"An invite works 1 to 50 times.\"\n- A caller who isn't a member gets not found, which matches `getHousehold` returning null.\n\n## Wiring and tests\n- Add a store factory using `d1HouseholdStore` and `joinUrl`, and the email sender for `email_household_invite`.\n- Add the actions to `spoonjoy.actions.mts`.\n- Update the declared-actions test so the MCP tool list equals the declarations.\n- Add per-tool tests for the flag-off refusal, a non-owner refusal, the one-time token and the consent class.\n- Add `docs/claude-connector.md` entries.\n- Keep 100% coverage.\n\n## Open question\nDo household tools need a new token scope, or do they fit under the existing kitchen scopes? I'd add `households:read` and `households:write`, because membership changes are sensitive and the connector grants only kitchen and shopping scopes today. I'd decide this before implementing.",
+  "verdict": {
+    "criteria": [
+      {
+        "id": "jobs",
+        "met": false,
+        "evidence": "The plan is organized around the service's functions. Each action is paired with one: \"`create_invite_link` (service `createInvite`)\", \"`email_household_invite` (`emailInvite`)\", and so on. It never starts from the jobs agents are asked to do, such as who is in my household or inviting someone."
+      },
+      {
+        "id": "restraint",
+        "met": false,
+        "evidence": "It plans 12 actions for the 12 service functions, one each. It refuses to merge invite creation and emailing: \"I'd keep `create_invite_link`, `email_household_invite` and `accept_household_invite` as separate actions.\" It leaves nothing out, so it never gives a reason for dropping one."
+      },
+      {
+        "id": "craft",
+        "met": false,
+        "evidence": "Several parts are good: \"Every action takes `ownerEmail` as the other areas do\", consent reasoning that turns on who sees the effect, and \"If the mail fails, the invite is turned off, so make a link instead.\" Other failures, though, only carry \"the service's plain message\", and many outputs are a bare `{}`. Marking `accept_household_invite` consequential because it exposes the caller's recipes is defensible. The criterion is not clearly met, because failures don't consistently say what happened and what to do next."
+      },
+      {
+        "id": "proof",
+        "met": false,
+        "evidence": "Testing is limited to \"per-tool tests for the flag-off refusal, a non-owner refusal...\", a declared-actions test and \"Keep 100% coverage.\" The plan never has fresh agents do a household job through the actions."
+      }
+    ],
+    "summary": "The plan maps each service function to its own action, starts from neither the jobs nor any restraint, and proves the actions only with unit and conformance tests.",
+    "pass": false
+  }
+}

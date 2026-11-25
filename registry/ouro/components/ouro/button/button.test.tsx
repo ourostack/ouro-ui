@@ -1,6 +1,6 @@
 import { type ReactNode, type SVGProps } from "react";
 import { flushSync } from "react-dom";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
@@ -84,17 +84,6 @@ describe("button branch", () => {
     expect(button.getAttribute("type")).toBe("button");
     expect(button.getAttribute("data-ouro")).toBe("button");
     expect(button.textContent).toBe("Go");
-  });
-
-  it("wraps its label in the cap-label span, but leaves an inline button's text as it is", async () => {
-    const { button } = await render(<Button>Go</Button>);
-    expect(button.querySelector('[data-slot="cap-label-text"]')).not.toBeNull();
-    const { button: inline } = await render(
-      <Button size="inline" variant="plain">
-        Go
-      </Button>,
-    );
-    expect(inline.querySelector('[data-slot="cap-label-text"]')).toBeNull();
   });
 
   // An app's theme may change the medium weight and the radius, on the root or on its buttons alone, and may give its
@@ -725,13 +714,6 @@ describe("inline size", () => {
     expect(button.getBoundingClientRect().width).toBeGreaterThanOrEqual(24);
     expect(warn).not.toHaveBeenCalled();
   });
-
-  it("leaves its label untrimmed, unlike every other size's cap-height trim", async () => {
-    const { button } = await render(<Button size="inline">Why</Button>);
-    expect(button.querySelector('[data-slot="cap-label-text"]')).toBeNull();
-    const { button: defaultButton } = await render(<Button>Why</Button>);
-    expect(defaultButton.querySelector('[data-slot="cap-label-text"]')).not.toBeNull();
-  });
 });
 
 describe("icon-only size", () => {
@@ -1339,6 +1321,35 @@ describe("Button server rendering", () => {
     expect(html).toContain('href="/x"');
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+
+  it("keeps a label built from more than one child as plain content, with no extra span per child (#3637)", () => {
+    const html = renderToString(<Button>Count: {5}</Button>);
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    const label = host.querySelector('[data-slot="button-label"]');
+    expect(label?.children.length).toBe(0);
+  });
+
+  it.each([
+    ["a plain text label", <Button key="plain">Save</Button>],
+    ["a label built from more than one child", <Button key="interpolated">Count: {5}</Button>],
+  ])("hydrates %s with no warning and no change to its DOM", async (_case, node) => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(node);
+    document.body.append(host);
+    mounted.push(host);
+    const firstFrameHtml = host.innerHTML;
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    expect(host.innerHTML).toBe(firstFrameHtml);
   });
 });
 

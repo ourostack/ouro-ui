@@ -19,7 +19,7 @@ Ask of every little thing a person or an agent meets, from a pixel or a control 
 | Federighi: the platform | Does it behave as agents expect of a command line, HTTP or MCP, with [Ouro AX's claims](ax-standard.md) holding as the floor? |
 | Clippy: getting out of the way | Does the job take few calls and few tokens? Could anyone miss an effect? |
 
-Use the same proof on both sides: fresh users doing real tasks, judged independently, never a score. Pass the [beauty gate](#the-beauty-gate) for a screen and the [AX gate](#the-ax-gate) for a door.
+Use the same proof on both sides: fresh users doing real tasks, judged independently, never a score. Before you show a scope or a design, follow the [`the-bar` skill](https://github.com/ourostack/ouro-ui/blob/main/.agents/skills/the-bar/SKILL.md), which agents load when they scope or design: jobs first, cut first, then a fresh agent checks every item. Pass the [beauty gate](#the-beauty-gate) for a screen and the [AX gate](#the-ax-gate) for a door.
 
 ## Judge a screen
 

@@ -36,6 +36,7 @@ const quiet = [
   [/^flows\//, "a Flow review flow"],
   [/^feel\//, "Ouro Feel, which its own workflow runs (feel.yml)"],
   [/^plugins\//, "an agent plugin, which only scripts/agent-plugin.test.mjs and the claims check read"],
+  [/^\.agents\/skills\//, "an agent skill, which only Ouro Current and its Node script test read"],
   [/^scripts\/.+\.test\.mjs$/, "a Node script test (pnpm test:scripts)"],
   [/^scripts\/agent-usability\//, "the agent-usability test, which runs in Node"],
   [/^\.github\/workflows\/(?!ci\.yml$)/, "another workflow"],
@@ -67,6 +68,7 @@ export const targets = {
       [/^flows\//, "a Flow review flow"],
       [/^feel\//, "Ouro Feel, which its own workflow runs (feel.yml)"],
       [/^plugins\//, "an agent plugin, which only scripts/agent-plugin.test.mjs and the claims check read"],
+      [/^\.agents\/skills\//, "an agent skill, which only Ouro Current and its Node script test read"],
       [/^scripts\/.+\.test\.mjs$/, "a Node script test (pnpm test:scripts)"],
       [/^scripts\/agent-usability\//, "the agent-usability test, which runs in Node"],
       [/^site\/e2e\/(?!voyage-presets\.spec\.ts$).+\.spec\.ts$/, "a site end-to-end spec, which Playwright runs"],
@@ -87,6 +89,7 @@ export const targets = {
       [/^flows\//, "a Flow review flow"],
       [/^feel\//, "Ouro Feel, which its own workflow runs (feel.yml)"],
       [/^plugins\//, "an agent plugin, which only scripts/agent-plugin.test.mjs and the claims check read"],
+      [/^\.agents\/skills\//, "an agent skill, which only Ouro Current and its Node script test read"],
       // site/scripts/proof.mts reads voyage-presets.spec.ts for the hero's proof line.
       [/^site\/e2e\/(?!voyage-presets\.spec\.ts$)/, "a site end-to-end spec or its helpers"],
       [/^site\/test\//, "a site test helper"],

@@ -1,7 +1,5 @@
 "use client";
 
-import { capLabelTruncateClass } from "@/registry/ouro/lib/ouro/cap-label";
-import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { useMemo, type JSX, type ReactNode, type Ref } from "react";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
@@ -232,7 +230,7 @@ function SelectControl({
       {...(reason.off ? { "data-disabled": "" } : {})}
       aria-invalid={field.invalid || undefined}
     >
-      <BaseSelect.Value data-slot="select-value" placeholder={placeholder} className={cn("min-w-0 flex-1", capLabelTruncateClass)} />
+      <BaseSelect.Value data-slot="select-value" placeholder={placeholder} className="min-w-0 flex-1 truncate" />
       <ChevronIcon />
     </BaseSelect.Trigger>
   );

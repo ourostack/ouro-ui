@@ -62,13 +62,22 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
     const looks = new Looks();
     const taken = new Map<string, number>();
     const guard = routeGuard(context, page);
+    const spent = { goto: 0, settled: 0, quiet: 0, loaded: 0, inventory: 0, motion: 0, reads: 0, picture: 0 };
+    const timed = async <T>(bucket: keyof typeof spent, work: () => Promise<T>) => {
+      const t = Date.now();
+      try {
+        return await work();
+      } finally {
+        spent[bucket] += Date.now() - t;
+      }
+    };
     for (const path of routes().filter((_, n) => n % CHUNKS === chunk)) {
       await guard.visit(path, async (page) => {
-        await page.goto(path);
-        await settled(page);
-        await quiet(page);
-        await loaded(page);
-        const { looks: rest } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
+        await timed("goto", () => page.goto(path));
+        await timed("settled", () => settled(page));
+        await timed("quiet", () => quiet(page));
+        await timed("loaded", () => loaded(page));
+        const { looks: rest } = await timed("inventory", () => page.evaluate(describe, { selector: LOOK_SELECTOR }));
         const candidates = await page.evaluate(
           ([all, control]) =>
             [...document.querySelectorAll<HTMLElement>(all as string)].flatMap((el, i) => {
@@ -107,31 +116,34 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
             // A transition or a finite (non-looping) animation can start a frame or two after the state does, so
             // wait until none runs for several frames.
             const settle = () => settleMotion(() => motionTick(page));
-            await settle();
+            await timed("motion", settle);
             if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await marks()) !== before) return;
             found.push(...(await broken(page, i)).map((m) => `${path} ${state}: ${m}`));
             // A state's style can land a frame after the state itself (#1404: a hover read with the resting border while
             // :hover matched), so the look is read until two reads, a couple of frames apart, agree.
             const read = () => page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
-            let { looks: now, escapes } = await read();
-            for (let tries = 0; tries < 5; tries++) {
-              await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-              const again = await read();
-              if (again.looks[0]?.sig === now[0]?.sig) break;
-              ({ looks: now, escapes } = again);
-            }
+            const { now, escapes } = await timed("reads", async () => {
+              let { looks: now, escapes } = await read();
+              for (let tries = 0; tries < 5; tries++) {
+                await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+                const again = await read();
+                if (again.looks[0]?.sig === now[0]?.sig) break;
+                ({ looks: now, escapes } = again);
+              }
+              return { now, escapes };
+            });
             found.push(...escapes.map((e) => `${path} ${state}: ${e}`));
             const look = now[0];
             if (!look) return;
             const tagged = { ...look, key: `${look.key}|${state}` };
             const label = await control.evaluate((el) => (el.getAttribute("aria-label") || el.closest("label, [data-ouro]")?.textContent || "").trim().slice(0, 40));
-            const shot = tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null;
+            const shot = tagged.pictured && looks.wants(tagged) ? await timed("picture", () => picture(page, i)) : null;
             if (shot && wantsRetake(process.env["OURO_SWEEP_RETAKE"], tagged.key)) {
               // The first take is only read once nothing is animating; the second take, read right after, needs the
               // same guard, or a transition that starts between the two takes reads as the state itself being
               // unstable (#2989).
               await settle();
-              const again = await picture(page, i);
+              const again = await timed("picture", () => picture(page, i));
               const unstable = instability(shot, again, { signature: tagged.key, page: path, state });
               // A control that left the state between the takes shows another state in the second take, not an unsteady
               // picture of this one: a control the picture scrolls out from under the mouse loses its hover (#3021).
@@ -163,6 +175,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
         }
       });
     }
+    console.log(`TIMING ${browserName} ${mode} part ${chunk + 1}: goto ${spent.goto} ms, settled ${spent.settled} ms, quiet ${spent.quiet} ms, loaded ${spent.loaded} ms, inventory ${spent.inventory} ms, motion settles ${spent.motion} ms, look reads ${spent.reads} ms, pictures ${spent.picture} ms, over ${looks.keys} control states`);
     console.log(`${browserName} ${mode}: ${looks.keys} control states, ${looks.crops} pictures`);
     for (const f of [...new Set(found), ...looks.differences(), ...looks.pixelDifferences()]) console.log(`FINDING ${browserName} ${mode}: ${typeof f === "string" ? f : JSON.stringify(f)}`);
     for (const side of looks.sides()) console.log(`SIDES ${browserName} ${mode}: ${side}`);

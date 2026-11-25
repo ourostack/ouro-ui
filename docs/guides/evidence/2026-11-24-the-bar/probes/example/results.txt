@@ -1,0 +1,24 @@
+# The bar evaluation: probe-example
+
+Judge: claude-opus-5.5. A run passes when the judge finds every criterion met.
+
+| Scenario | claude-sonnet-5.5 | gpt-6.2-sol |
+|---|---|---|
+| cook-settings | 1/1 | 0/1 |
+| households | 0/1 | 0/1 |
+| menus | 0/1 | 0/1 |
+| files | 0/1 | 0/1 |
+| sections (counter) | 1/1 | 1/1 |
+
+| Run | Pass | Criteria met | Missed |
+|---|---|---|---|
+| cook-settings--claude-sonnet-5.5--1 | yes | restraint, jobs, builds, proof |  |
+| cook-settings--gpt-6.2-sol--1 | no | builds, proof | restraint, jobs |
+| households--claude-sonnet-5.5--1 | no |  | jobs, restraint, craft, proof |
+| households--gpt-6.2-sol--1 | no | proof | jobs, restraint, craft |
+| menus--claude-sonnet-5.5--1 | no | restraint, basics | jobs, agents |
+| menus--gpt-6.2-sol--1 | no | restraint, jobs, basics | agents |
+| files--claude-sonnet-5.5--1 | no | one-way, proof | earns-place, journey |
+| files--gpt-6.2-sol--1 | no | one-way, earns-place, proof | journey |
+| sections--claude-sonnet-5.5--1 | yes | builds, both, restraint |  |
+| sections--gpt-6.2-sol--1 | yes | builds, both, restraint |  |

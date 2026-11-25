@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { ThreadSummary, type ThreadSummaryProps } from "@/registry/ouro/components/ouro/message/thread-summary";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -144,6 +145,28 @@ describe("ThreadSummary", () => {
     expect(quiet!.getBoundingClientRect()).toEqual(rest);
   });
 
+  it("alwaysShown keeps the quiet Reply visible with no hover or focus, in the same place and style", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="post" role="assistant" name="Jonah Vale" thread={<ThreadSummary count={0} onOpen={() => {}} />}>
+          Agenda for Friday
+        </Message>
+        <Message variant="post" role="assistant" name="Mara Quill" thread={<ThreadSummary count={0} alwaysShown onOpen={() => {}} />}>
+          Unanswered post
+        </Message>
+      </>,
+    );
+    const [hoverOnly, always] = [...host.querySelectorAll<HTMLElement>('[data-ouro="thread-summary"]')];
+    const opacity = (element: HTMLElement) => getComputedStyle(element).opacity;
+    expect(opacity(hoverOnly!)).toBe("0");
+    expect(opacity(always!)).toBe("1");
+    // Same place and the same quiet size: alwaysShown changes only whether it starts shown.
+    const hoverOnlyButton = hoverOnly!.querySelector("button")!.getBoundingClientRect();
+    const alwaysButton = always!.querySelector("button")!.getBoundingClientRect();
+    expect(alwaysButton.height).toBe(hoverOnlyButton.height);
+    expect(always!.querySelector("button")!.className).toBe(hoverOnly!.querySelector("button")!.className);
+  });
+
   it("takes other words for every label", async () => {
     await render(
       <ThreadSummary
@@ -215,6 +238,30 @@ describe("ThreadSummary", () => {
     const { summary } = await render(<ThreadSummary count={1} onOpen={() => {}} className="mt-4" ref={(node) => void (element = node)} />);
     expect(element).toBe(summary);
     expect(getComputedStyle(summary).marginTop).toBe("16px");
+  });
+
+  it("colours a replier's face by idForColor, matching the same id elsewhere, not by name", async () => {
+    const { host } = await render(
+      <>
+        <Message role="assistant" name="Riley Example" avatar={<Avatar name="Riley Example" idForColor="riley-id" />}>
+          Settings mockups
+        </Message>
+        <ThreadSummary count={2} onOpen={() => {}} repliers={[{ name: "Alex Example" }, { name: "Riley Example", idForColor: "riley-id" }]} />
+      </>,
+    );
+    const faces = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    expect(faces).toHaveLength(3);
+    const fill = (avatar: Element) => getComputedStyle(avatar.querySelector<HTMLElement>("[data-ouro-avatar-surface]")!).backgroundColor;
+    // Riley's name-line avatar and Riley's thread face share idForColor, so they share a hue; Alex's differs.
+    expect(fill(faces[2]!)).toBe(fill(faces[0]!));
+    expect(fill(faces[1]!)).not.toBe(fill(faces[2]!));
+  });
+
+  it("gives each overlapping face its own ring, so the second stays whole against the first", async () => {
+    const { host } = await render(<ThreadSummary count={2} onOpen={() => {}} repliers={[{ name: "Alex Example" }, { name: "Riley Example" }]} />);
+    const faces = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    expect(faces).toHaveLength(2);
+    expect(getComputedStyle(faces[1]!).boxShadow).not.toBe("none");
   });
 });
 

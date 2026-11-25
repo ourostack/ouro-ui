@@ -1,0 +1,1 @@
+- Fix: Button's `glass` look no longer repeats an `sm:` variant of `--ouro-button-h` that set the exact same value as its base rule, dead CSS that pushed settings-page's pattern CSS over its ceiling (#3613).

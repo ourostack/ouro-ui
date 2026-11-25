@@ -521,13 +521,13 @@ const mutedInk = {
 const layouts = {
   filled: {
     // A transparent border, which forced colours draw, so a bubble that is only a fill keeps its edge there.
-    user: `rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-se-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-ee-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-ee-(--ouro-jr) border border-solid border-transparent px-3 pt-2 pb-2 ${filledInk}`,
+    user: `rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-se-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-ee-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-ee-(--ouro-jr) border border-solid border-transparent px-3 pt-2 pb-2 has-[>[data-ouro=code-block]:first-child]:pt-3 ${filledInk}`,
     assistant:
-      "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-ss-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-es-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-es-(--ouro-jr) border border-solid border-transparent bg-(--ouro-bubble-other-fill) px-3 py-2 text-(--ouro-bubble-other-ink)",
+      "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-ss-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-es-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-es-(--ouro-jr) border border-solid border-transparent bg-(--ouro-bubble-other-fill) px-3 py-2 text-(--ouro-bubble-other-ink) has-[>[data-ouro=code-block]:first-child]:pt-3",
   },
   raised: {
-    user: "rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 pt-2 pb-2 text-foreground",
-    assistant: `rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] px-3 py-2 ${raised}`,
+    user: "rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 pt-2 pb-2 text-foreground has-[>[data-ouro=code-block]:first-child]:pt-3",
+    assistant: `rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] px-3 py-2 has-[>[data-ouro=code-block]:first-child]:pt-3 ${raised}`,
   },
 } as const;
 
@@ -1059,7 +1059,16 @@ export function Message(props: MessageProps): JSX.Element {
   // Hidden rather than left out when empty: MessageList reads every message's text from it.
   const marked = end && statusMark !== undefined && statusMark !== null && statusMark !== false;
   const contentBox = (
-    <div data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("relative box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface, marked && "pb-6")}>
+    <div
+      data-ouro-message-content=""
+      hidden={!worded}
+      style={surfaceColors}
+      className={cn(
+        "relative box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]",
+        surface,
+        marked ? "pb-6" : "has-[>[data-ouro=code-block]:last-child]:pb-3",
+      )}
+    >
       {contextLine}
       {titled && (
         <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
@@ -1101,7 +1110,7 @@ export function Message(props: MessageProps): JSX.Element {
       )}
     >
       {!end && avatar !== false && (
-        <span data-ouro-message-gutter="" className="flex w-ouro-8 shrink-0 justify-center">
+        <span data-ouro-message-gutter="" className="flex w-ouro-8 shrink-0 justify-end">
           {continued ? (
             showing ? (
               // A continued reply's line holds its text, so its clock sits in the gutter, where its time shows on hover.
@@ -1111,8 +1120,11 @@ export function Message(props: MessageProps): JSX.Element {
               <time
                 aria-hidden="true"
                 dateTime={dateTime}
-                // Centered wider than the gutter, so its first glyph would otherwise sit under the row's focus ring; ms-1.5 clears it.
-                className="mt-2.5 ms-1.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
+                // End-aligned so a two-digit hour overflows left (away from the bubble) instead of right, under it: -me-2
+                // holds its end at the same slack the gutter always gave it, whatever its width, so it never reaches the
+                // bubble and still clears the row's focus ring for a short time; it reuses the 2 step other parts of
+                // this file already apply at this inline edge (ms-2, me-2), rather than a new arbitrary value.
+                className="-me-2 mt-2.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
               >
                 {time}
               </time>

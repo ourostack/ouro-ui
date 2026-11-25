@@ -894,6 +894,28 @@ describe("Message chat", () => {
     expect(message.getBoundingClientRect().width).toBeLessThanOrEqual(600);
   });
 
+  it("evens its inset around a code block that starts or ends the bubble, instead of the text inset", async () => {
+    const { message: ending } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill">
+        <CodeBlock code="echo hi" />
+      </Message>,
+    );
+    const endingBubble = bubbleOf(ending).getBoundingClientRect();
+    const endingCode = ending.querySelector<HTMLElement>('[data-ouro="code-block"]')!.getBoundingClientRect();
+    const endingSideGap = endingCode.left - endingBubble.left;
+    expect(endingBubble.bottom - endingCode.bottom).toBeCloseTo(endingSideGap, 0);
+
+    const { message: starting } = await render(
+      <Message variant="chat" role="user" bubble="raised" name="Priya Okafor">
+        <CodeBlock code="echo hi" />
+      </Message>,
+    );
+    const startingBubble = bubbleOf(starting).getBoundingClientRect();
+    const startingCode = starting.querySelector<HTMLElement>('[data-ouro="code-block"]')!.getBoundingClientRect();
+    const startingSideGap = startingCode.left - startingBubble.left;
+    expect(startingCode.top - startingBubble.top).toBeCloseTo(startingSideGap, 0);
+  });
+
   it("fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with equal corners", async () => {
     const { host } = await render(
       <>
@@ -1231,6 +1253,27 @@ describe("Message chat", () => {
     await userEvent.hover(bubbleOf(second!));
     await expect.poll(() => getComputedStyle(gutterTime).opacity).toBe("1");
     expect(third!.querySelector("[data-ouro-message-gutter]")!.childElementCount).toBe(0);
+  });
+
+  it("keeps a continued message's hover time clear of the bubble, with a one- or two-digit hour alike", async () => {
+    const timeRight = async (time: string) => {
+      const { host } = await render(
+        <Message variant="chat" role="assistant" name="Mara Quill" time={time} dateTime="2026-05-04T00:52" continued>
+          The venue confirmed.
+        </Message>,
+      );
+      const message = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+      const gutterTime = message.querySelector<HTMLElement>("[data-ouro-message-gutter] time")!;
+      await userEvent.hover(bubbleOf(message));
+      await expect.poll(() => getComputedStyle(gutterTime).opacity).toBe("1");
+      // Its end never reaches the bubble's own leading edge, whatever the time's width.
+      expect(gutterTime.getBoundingClientRect().right).toBeLessThanOrEqual(bubbleOf(message).getBoundingClientRect().left);
+      return gutterTime.getBoundingClientRect().right;
+    };
+    const oneDigitHour = await timeRight("9:41 AM");
+    const twoDigitHour = await timeRight("12:52 AM");
+    // A two-digit hour is wider than a one-digit one, but its end sits no further right: growth goes left, away from the bubble.
+    expect(twoDigitHour).toBeLessThanOrEqual(oneDigitHour + 0.5);
   });
 
   it("keeps its fixed sizes at a compact --spacing: the typing dots, the sending and failed icons, the gutter, a reply's column, and the bar's icons and reactions", async () => {

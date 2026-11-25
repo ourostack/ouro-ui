@@ -42,7 +42,7 @@ const LONG_PRESS = 500;
 // How far a finger may drift, in px, and still be pressing rather than scrolling.
 const PRESS_SLOP = 10;
 
-const hasMenu = (item: ConversationListItem) => item.menu !== undefined && item.menu.length > 0;
+const hasMenu = (item: { menu?: readonly MenuEntry[] | undefined }) => item.menu !== undefined && item.menu.length > 0;
 
 /** An element's box as it is now, for a menu that stays where it opened after the row goes. */
 function frozen(element: Element): MenuAnchor {
@@ -171,6 +171,13 @@ export interface ConversationListSection {
   defaultOpen?: boolean | undefined;
   /** Whether the section is open, when the app keeps the state with `onSectionOpenChange`. */
   open?: boolean | undefined;
+  /**
+   * The header's menu, opened as a row's is: a right-click, a long press, Shift+F10 or the Menu key on the header, or its
+   * "…" button. Pressing the header itself still opens and closes the section. A header without one is unchanged.
+   * @example
+   * { id: "team", title: "My team", menu: [{ label: "Rename" }, { label: "Delete", tone: "destructive" }] }
+   */
+  menu?: readonly MenuEntry[] | undefined;
 }
 
 /** The density of the rows. */
@@ -539,39 +546,45 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
           )}
         </span>
       </button>
-      {hasMenu(item) && (
-        <button
-          type="button"
-          tabIndex={-1}
-          data-ouro-control="conversation-list"
-          data-ouro-part="more"
-          onClick={(event) => onMore(key, event.currentTarget)}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowLeft" || event.key === "Escape") {
-              event.preventDefault();
-              (event.currentTarget.previousElementSibling as HTMLElement).focus();
-            }
-          }}
-          className={cn(
-            "press absolute end-3 top-2 box-border flex h-ouro-5 w-ouro-7 cursor-pointer items-center justify-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 bg-transparent p-0 text-base leading-none text-foreground",
-            "touch-manipulation [-webkit-tap-highlight-color:transparent] outline-ring outline-offset-0 focus-visible:outline-2 focus-visible:outline-solid",
-            // Shown by the row's hover or focus-within on a fine pointer, where the more button floats
-            // free of the row: forced colours give it its own edge there only (#2489), matching a plain
-            // button's own "borderless until hover or focus" look.
-            "transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-focus-within/row:opacity-100 forced-colors:pointer-fine:group-hover/row:border forced-colors:pointer-fine:group-hover/row:border-solid forced-colors:pointer-fine:group-focus-within/row:border forced-colors:pointer-fine:group-focus-within/row:border-solid",
-            "pointer-fine:hover:bg-[color:var(--ouro-row-pressed,var(--muted))] active:bg-[color:var(--ouro-row-pressed,var(--muted))]",
-          )}
-        >
-          <TouchTarget />
-          <span aria-hidden="true">…</span>
-          <span className="sr-only">
-            {moreLabel} {item.name ?? item.title}
-          </span>
-        </button>
-      )}
+      {hasMenu(item) && <MoreButton rowKey={key} name={item.name ?? (item.title as string)} moreLabel={moreLabel} onMore={onMore} className="top-2" />}
     </li>
   );
 });
+
+/** The "…" button beside a row or a section header, which opens its menu. */
+function MoreButton({ rowKey, name, moreLabel, onMore, className }: { rowKey: string; name: string; moreLabel: string; onMore: (key: string, anchor: HTMLElement) => void; className: string }): JSX.Element {
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      data-ouro-control="conversation-list"
+      data-ouro-part="more"
+      onClick={(event) => onMore(rowKey, event.currentTarget)}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowLeft" || event.key === "Escape") {
+          event.preventDefault();
+          (event.currentTarget.previousElementSibling as HTMLElement).focus();
+        }
+      }}
+      className={cn(
+        "press absolute end-3 box-border flex h-ouro-5 w-ouro-7 cursor-pointer items-center justify-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 bg-transparent p-0 text-base leading-none text-foreground",
+        "touch-manipulation [-webkit-tap-highlight-color:transparent] outline-ring outline-offset-0 focus-visible:outline-2 focus-visible:outline-solid",
+        // Shown by the row's hover or focus-within on a fine pointer, where the more button floats
+        // free of the row: forced colours give it its own edge there only (#2489), matching a plain
+        // button's own "borderless until hover or focus" look.
+        "transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-focus-within/row:opacity-100 forced-colors:pointer-fine:group-hover/row:border forced-colors:pointer-fine:group-hover/row:border-solid forced-colors:pointer-fine:group-focus-within/row:border forced-colors:pointer-fine:group-focus-within/row:border-solid",
+        "pointer-fine:hover:bg-[color:var(--ouro-row-pressed,var(--muted))] active:bg-[color:var(--ouro-row-pressed,var(--muted))]",
+        className,
+      )}
+    >
+      <TouchTarget />
+      <span aria-hidden="true">…</span>
+      <span className="sr-only">
+        {moreLabel} {name}
+      </span>
+    </button>
+  );
+}
 
 /**
  * A list of conversations to choose from: each row shows the avatar, the title, when the
@@ -971,14 +984,21 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   // The row menu that opened, with Menu's code, and the row it belongs to: by its key, as the row may stop being drawn.
   const [menu, setMenu] = useState<{ M: MenuModule; key: string; name: string; entries: readonly MenuEntry[]; anchor: MenuAnchor; open: boolean } | null>(null);
   const itemOf = (key: string | undefined) => items.find((item) => `row:${item.id}` === key);
+  // What a row's or a header's key opens: its menu, named by the row's name or the section's title.
+  const menuOf = (key: string | undefined) => {
+    const item = itemOf(key);
+    if (item !== undefined) return hasMenu(item) ? { name: item.name ?? (item.title as string), entries: item.menu! } : undefined;
+    const section = sections.find((candidate) => `section:${candidate.id}` === key);
+    return section !== undefined && hasMenu(section) ? { name: section.title, entries: section.menu! } : undefined;
+  };
   // The key of the row an event came from: the button around it, as the list registered it.
   const rowAt = (target: EventTarget) => {
     const button = (target as Element).closest("button");
     for (const [key, control] of controls.current) if (control === button) return key;
     return undefined;
   };
-  const openMenu = (item: ConversationListItem, key: string, anchor: MenuAnchor) => {
-    const open = (M: MenuModule) => setMenu({ M, key, name: item.name ?? (item.title as string), entries: item.menu!, anchor, open: true });
+  const openMenu = (target: { name: string; entries: readonly MenuEntry[] }, key: string, anchor: MenuAnchor) => {
+    const open = (M: MenuModule) => setMenu({ M, key, name: target.name, entries: target.entries, anchor, open: true });
     // Loaded already (the first row with a menu loads it), it opens within the event, before the next frame.
     if (menuLoaded) flushSync(() => open(menuLoaded!));
     else void loadMenu().then(open);
@@ -1022,8 +1042,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     pressed.current = false;
     if (event.pointerType === "mouse") return;
     const key = rowAt(event.target);
-    const item = itemOf(key);
-    if (item === undefined || !hasMenu(item)) return;
+    const item = menuOf(key);
+    if (item === undefined) return;
     const { clientX: x, clientY: y } = event;
     press.current = {
       x,
@@ -1040,8 +1060,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   };
   const onContextMenu = (event: MouseEvent<HTMLUListElement>) => {
     const key = rowAt(event.target);
-    const item = itemOf(key);
-    if (item === undefined || !hasMenu(item)) return;
+    const item = menuOf(key);
+    if (item === undefined) return;
     event.preventDefault();
     openMenu(item, key!, { x: event.clientX, y: event.clientY });
   };
@@ -1051,8 +1071,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     event.preventDefault();
     event.stopPropagation();
   };
-  // Stryker disable next-line MethodExpression: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
-  const withMenus = items.some(hasMenu);
+  // Stryker disable next-line MethodExpression,ConditionalExpression,LogicalOperator: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
+  const withMenus = items.some(hasMenu) || sections.some(hasMenu);
   // Stryker disable next-line CallExpression,ArrowFunction,BlockStatement,ConditionalExpression,ArrayDeclaration: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
   useLayoutEffect(() => {
     // Stryker disable next-line ConditionalExpression: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
@@ -1064,14 +1084,13 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
     // Shift+F10 and the Menu key open a row's menu beside it, as a right-click does at the pointer.
     if ((event.key === "F10" && event.shiftKey) || event.key === "ContextMenu") {
-      // A row's own key names an item drawn from the items now.
-      const item = itemOf(key)!;
-      if (!hasMenu(item)) return;
+      // A key names a row or a header drawn from the props now.
+      const target = menuOf(key);
+      if (target === undefined) return;
       event.preventDefault();
-      return openMenu(item, key, frozen(event.currentTarget));
+      return openMenu(target, key, frozen(event.currentTarget));
     }
-    const row = itemOf(key);
-    if (event.key === "ArrowRight" && row !== undefined && hasMenu(row)) {
+    if (event.key === "ArrowRight" && menuOf(key) !== undefined) {
       const more = event.currentTarget.nextElementSibling as HTMLElement | null;
       event.preventDefault();
       // Stryker disable next-line OptionalChaining: a row with a menu always renders the more button right after it.
@@ -1084,7 +1103,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     focusKey(keys[to(keys.indexOf(key), keys.length - 1)]!);
   };
   // The rows are memoised, so they call the latest handlers through these stable ones.
-  const more = (key: string, anchor: HTMLElement) => openMenu(itemOf(key)!, key, frozen(anchor));
+  const more = (key: string, anchor: HTMLElement) => openMenu(menuOf(key)!, key, frozen(anchor));
   // Stryker disable next-line ObjectLiteral: the layout effect below sets the handlers before any row can call them.
   const handlers = useRef({ onSelect, move, more });
   useLayoutEffect(() => {
@@ -1169,7 +1188,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
             const groupId = `${baseId}-section-${index}`;
             const shownRows = open ? rows.flatMap((item, at) => (rendered(`row:${item.id}`) ? [rowFor(item, at + 1, rows.length)] : [])) : [];
             if (windowed && !rendered(key) && shownRows.length === 0) return null;
-            const header = (
+            const withMore = hasMenu(section);
+            const headerButton = (
               <button
                 ref={controlRef(key)}
                 type="button"
@@ -1186,7 +1206,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                   } else move(event, key);
                 }}
                 onFocus={() => setActive(key)}
-                className={cn(controlClass, headerClass)}
+                className={cn(controlClass, headerClass, withMore && "pe-ouro-9 [-webkit-touch-callout:none]")}
               >
                 <Chevron open={open} />
                 <span data-ouro-conversation-section-title="" className="min-w-0 truncate font-semibold">
@@ -1203,6 +1223,14 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                   </span>
                 )}
               </button>
+            );
+            const header = withMore ? (
+              <div data-slot="conversation-list-section-header" className="group/row relative">
+                {headerButton}
+                <MoreButton rowKey={key} name={section.title} moreLabel={moreLabel} onMore={onMore} className="top-1/2 -translate-y-1/2" />
+              </div>
+            ) : (
+              headerButton
             );
             return (
               <li

@@ -204,7 +204,7 @@ export function ListDetailPage({
               <Stack gap="md">
                 <div className="md:hidden">
                   <Button variant="plain" startIcon={BackIcon} onClick={back}>
-                    Back to {title.toLowerCase()}
+                    {`Back to ${title.toLowerCase()}`}
                   </Button>
                 </div>
                 <Stack gap="xs">

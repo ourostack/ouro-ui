@@ -401,6 +401,20 @@
     opacity var(--ouro-duration-fast) ease;
 }
 
+/* The fade a row that scrolls sideways draws over its cut-off end, in a left-to-right page (FamilyBar's row). An
+   arbitrary-value Tailwind class repeats this text as its own escaped selector on every page that links it; a shared
+   utility writes it once. */
+@utility ouro-fade-end {
+  /* fade-ok: fades a scrolling row of links, not a picture; gradient-ok: a hard mask, not a drawn gradient: it says more of the row is cut off past this edge. */
+  mask-image: linear-gradient(to right, #000 calc(100% - 3rem), transparent);
+}
+
+/* The same fade, mirrored for a right-to-left page (FamilyBar's row). */
+@utility ouro-fade-start {
+  /* fade-ok: fades a scrolling row of links, not a picture; gradient-ok: a hard mask, not a drawn gradient: it says more of the row is cut off past this edge. */
+  mask-image: linear-gradient(to left, #000 calc(100% - 3rem), transparent);
+}
+
 /* Spinner motion, namespaced so it never collides with an app's keyframes. */
 @keyframes ouro-spin {
   to {

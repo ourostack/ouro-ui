@@ -17,7 +17,7 @@ Some specs pass a step through a fallback or only log it, and the lane's advisor
 
 ## Per component
 
-Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 20 of 117 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
+Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 21 of 117 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
 
 | Component | Stories | Conformance declarations | Screen-reader spec (VoiceOver and NVDA) |
 | --- | --- | --- | --- |
@@ -55,7 +55,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [composed-surface](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/composed-surface) | 2 | 0 | none yet |
 | [composer](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/composer) | 13 | 0 | [composer.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/composer.sr.spec.ts): 1 test on `chat-composer--basic` |
 | [conversation-find](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/conversation-find) | 3 | 0 | none yet |
-| [conversation-list](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/conversation-list) | 10 | 0 | none yet |
+| [conversation-list](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/conversation-list) | 11 | 0 | none yet |
 | [copy-button](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/copy-button) | 2 | 0 | none yet |
 | [cover](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/cover) | 3 | 0 | none yet |
 | [description-list](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/description-list) | 3 | 0 | none yet |
@@ -84,7 +84,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [mcp-app](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/mcp-app) | 2 | 0 | none yet |
 | [media-tile](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/media-tile) | 9 | 0 | none yet |
 | [menu](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/menu) | 6 | 0 | [menu.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/menu.sr.spec.ts): 2 tests on `menus-menu--playground` |
-| [message](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/message) | 40 | 0 | none yet |
+| [message](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/message) | 41 | 0 | none yet |
 | [moment](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/moment) | 8 | 0 | none yet |
 | [navbar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/navbar) | 3 | 0 | none yet |
 | [navigation-menu](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/navigation-menu) | 3 | 0 | none yet |
@@ -130,7 +130,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [theme-picker](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/theme-picker) | 4 | 0 | [theme-picker.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/theme-picker.sr.spec.ts): 1 test on `actions-themepicker--playground` |
 | [thread-layout](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/thread-layout) | 3 | 0 | none yet |
 | [thread-rail](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/thread-rail) | 2 | 0 | none yet |
-| [time-grid](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/time-grid) | 10 | 0 | none yet |
+| [time-grid](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/time-grid) | 11 | 0 | [time-grid.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/time-grid.sr.spec.ts): 1 test on `data-timegrid--day` |
 | [timer](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/timer) | 10 | 0 | [timer.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/timer.sr.spec.ts): 1 test on `feedback-timer--short` |
 | [toast](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/toast) | 6 | 2 | [toast.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/toast.sr.spec.ts): 1 test on `feedback-toast--playground` |
 | [toggle](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/toggle) | 8 | 0 | none yet |
@@ -186,6 +186,8 @@ The test titles, in the words of the specs, so a reader sees the claim before op
   - TextField's error from a submit is announced as focus moves to the field
 - **theme-picker**
   - ThemePicker is announced as a list of looks: each one's name, its place in the list, and the one chosen with Enter as selected
+- **time-grid**
+  - TimeGrid reads each slot the arrow keys reach, then each event Tab reaches
 - **timer**
   - Timer's Start is heard in its named group, and the time being up is announced once
 - **toast**

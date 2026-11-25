@@ -1,0 +1,202 @@
+{
+  "id": "households--gpt-6.2-sol--1",
+  "scenario": "households",
+  "repo": "spoonjoy",
+  "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+  "model": "gpt-6.2-sol",
+  "rep": 1,
+  "exit": 0,
+  "seconds": 106,
+  "prompt": "Agents can't do anything with households yet: Spoonjoy's actions and MCP tools have nothing for them. Add the agent side. The households service already has createHousehold, listHouseholds, getHousehold, renameHousehold, createInvite, emailInvite, previewInvite, acceptInvite, revokeInvite, changeMemberRole, removeFromHousehold and leave (app/domains/households-and-identity). Plan the actions: their ids, inputs, outputs, consent, and the descriptions agents read.\n\nReply with your answer in this chat; don't change any files.",
+  "events": [
+    {
+      "message": "I’ll read the household service and existing action contracts, then turn them into a proposed tool set and consent model."
+    },
+    {
+      "tool": "glob",
+      "arguments": {
+        "pattern": "app/domains/households-and-identity/**/*"
+      }
+    },
+    {
+      "tool": "glob",
+      "arguments": {
+        "pattern": "actions/*.mts"
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "household|consent",
+        "glob": "BACKLOG.md",
+        "output_mode": "content",
+        "head_limit": 30
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "consent|declaredOperation",
+        "paths": [
+          "app/lib/mcp"
+        ],
+        "glob": "*.ts",
+        "output_mode": "content",
+        "head_limit": 45
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "sed -n '1,380p' app/domains/households-and-identity/application/households.server.ts",
+        "description": "Read household service and authorization checks"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cat app/domains/households-and-identity/model/{household,invite}.ts actions/{access,fields,spoonjoy.actions}.mts",
+        "description": "Read household types and example action declarations"
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "paths": [
+          "app/lib",
+          "tools/ouro-actions",
+          "docs",
+          "app/domains"
+        ],
+        "pattern": "confirmationRequired|humanOnly|declaredOperation|consent:|householdsEnabled|householdsFlag",
+        "output_mode": "content",
+        "head_limit": 105
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "paths": [
+          "app/lib/spoonjoy-api.server.ts",
+          "app/lib/mcp",
+          "tools/ouro-actions/ouro-actions.mts"
+        ],
+        "pattern": "consequential|readOnlyHint|destructiveHint|SpoonjoyApiContext|SCOPES|declaredOperation|outputSchema",
+        "output_mode": "content",
+        "head_limit": 80
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cat app/domains/households-and-identity/application/household-store.ts app/domains/households-and-identity/adapters/households-route.server.ts && rg -n 'emailInvite|previewInvite|household.*flag|flag.*household|/join/' app/routes app/domains/platform/flags app/route-config | head -65",
+        "description": "Read roster projections, feature gate and invite routes"
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "DELEGATED.*SCOPES|AGENT.*SCOPES|OAUTH.*SCOPES|scopeFor.*Operation|recipes:read",
+        "paths": [
+          "app",
+          "docs/claude-connector.md"
+        ],
+        "output_mode": "content",
+        "head_limit": 65
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "paths": [
+          "app/lib/spoonjoy-api.server.ts",
+          "app/lib/mcp/http-mcp.server.ts",
+          "app/lib/api-auth.server.ts"
+        ],
+        "pattern": "interface SpoonjoyApiContext|function assertToolScopes|function buildSpoonjoyApiContext|export const API_SCOPES|export const AGENT_CONNECTION_SCOPES|function listSpoonjoy|tools/list|outputSchema",
+        "output_mode": "content",
+        "-n": true,
+        "-A": 14,
+        "head_limit": 35
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "paths": [
+          "tools/ouro-actions/ouro-actions.mts"
+        ],
+        "pattern": "^export const field|^export type Consent|protocolOnly|function toMcp",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 23
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "paths": [
+          "app/routes/households.$id.tsx",
+          "app/routes/join.$token.tsx",
+          "app/domains/households-and-identity/adapters/d1-household-store.server.ts"
+        ],
+        "pattern": "uses:|acceptInvite|revokeInvite|inviteStatus",
+        "output_mode": "content",
+        "-n": true,
+        "-A": 4,
+        "head_limit": 22
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "paths": [
+          "app/lib/api-auth.server.ts",
+          "app/lib/oauth-server.server.ts",
+          "app/lib/mcp/http-mcp.server.ts"
+        ],
+        "pattern": "account:write|AGENT_CONNECTION_SCOPES|listTools|tools\\.filter|setRequestHandler|readOnlyHint|structuredContent",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 35
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "sed -n '30,43p;548,583p' tools/ouro-actions/ouro-actions.mts && sed -n '85,121p' 'app/routes/households.$id.tsx' && sed -n '17,27p' 'app/routes/join.$token.tsx'",
+        "description": "Confirm consent metadata and route-specific invite restrictions"
+      }
+    },
+    {
+      "message": "**Plan: give agents nine household tools.** They can find and set up a household, email an invitation, and manage access. Keep shareable-link creation and invite redemption in the browser: emailing a named recipient covers the common invite job without putting a join secret in chat, and `/join/:token` already lets the recipient review the household and role before joining.\n\n| Action ID | Inputs | Successful output | Consent | Agent description |\n|---|---|---|---|---|\n| `list_households` | `{}` | `{households: [{householdId, name, role, memberCount}]}` | `read` | “List households you belong to, with your role and the number of people in each. Use this to resolve a household name to an ID; ask if more than one matches.” |\n| `get_household` | `{householdId}` | `{householdId, name, myRole, members: [{userId, username, role}], pendingInvites?: [{inviteId, role, expiresAt, usesLeft, email}]}` | `read` | “See who belongs to a household and what each person can do. Owners also see usable invitations. Use member and invite IDs from this result when managing access.” |\n| `create_household` | `{name}` | `{householdId, name, role: \"owner\"}` | `write` | “Start a household with you as its only member and owner. This does not invite anyone.” |\n| `rename_household` | `{householdId, name}` | `{householdId, name}` | `consequential` | “Change the household name everyone sees. Only an owner can rename it. Confirm the household and new name first.” |\n| `email_household_invite` | `{householdId, email, role}` | `{to}` | `consequential` | “Email one person a single-use invitation, valid for 14 days and redeemable only by the Spoonjoy account with that address. Choose `member` for editing shared items or `viewer` for read-only access. Only an owner can send it. Confirm the address and role before sending.” |\n| `revoke_household_invite` | `{householdId, inviteId}` | `{householdId, inviteId, revoked: true}` | `consequential` | “Turn off an invitation so it can’t be used again. This doesn’t remove anyone who already joined. Only an owner can revoke it.” |\n| `change_household_member_role` | `{householdId, targetUserId, role}` | `{householdId, targetUserId, role}` | `consequential` | “Change another person’s access to owner, member, or viewer. Only an owner can do this, and nobody can change their own role. Confirm the person and new access level.” |\n| `remove_household_member` | `{householdId, targetUserId}` | `{householdId, targetUserId, removed: true}` | `consequential` | “Remove another person’s household access. Only an owner can remove a member or viewer. Use `leave_household` for yourself; don’t automatically demote an owner to remove them.” |\n| `leave_household` | `{householdId}` | `{householdId, left: true}` | `consequential` | “End your own membership. If you’re the only owner and others remain, make someone else an owner first. If you’re the last person, leaving deletes the household. Confirm before leaving.” |\n\n**Contract and wiring.** Declare the tools in `actions/households.mts`, include them in `spoonjoy.actions.mts`, and bind them through `declaredOperation` to the existing household service. Use explicit IDs, trimmed names of 1–80 characters, and the domain role enums. In `get_household`, omit `pendingInvites` for non-owners; for owners, include usable invites only, with `email: null` for shareable links and ISO timestamps. Never return invite tokens, hashes, or join URLs. Return the same not-found error for a missing household and one the caller can’t read.\n\n**Access and consent.** Require a signed-in principal and the existing `households` flag. Give MCP connections explicit opt-in `households:read` and `households:write` scopes; existing kitchen grants confer neither. Derive the acting user from the principal, never from tool input or an owner-email fallback, and let the service enforce current membership and role. MCP hints describe consent but don’t enforce it: require trusted user confirmation of the exact change before executing a consequential tool, or hand off to the signed-in web flow when confirmation isn’t available. Don’t automatically retry a timed-out create or send.\n\n**Prove it with a fresh agent.** Starting from `tools/list`, have it find the right household, confirm and send a viewer invite, then verify the recipient can join in the browser and read the roster but can’t manage access. Repeat with confirmation declined, an unauthorized caller, and the sole owner trying to leave while others remain; none should change state."
+    }
+  ],
+  "answer": "**Plan: give agents nine household tools.** They can find and set up a household, email an invitation, and manage access. Keep shareable-link creation and invite redemption in the browser: emailing a named recipient covers the common invite job without putting a join secret in chat, and `/join/:token` already lets the recipient review the household and role before joining.\n\n| Action ID | Inputs | Successful output | Consent | Agent description |\n|---|---|---|---|---|\n| `list_households` | `{}` | `{households: [{householdId, name, role, memberCount}]}` | `read` | “List households you belong to, with your role and the number of people in each. Use this to resolve a household name to an ID; ask if more than one matches.” |\n| `get_household` | `{householdId}` | `{householdId, name, myRole, members: [{userId, username, role}], pendingInvites?: [{inviteId, role, expiresAt, usesLeft, email}]}` | `read` | “See who belongs to a household and what each person can do. Owners also see usable invitations. Use member and invite IDs from this result when managing access.” |\n| `create_household` | `{name}` | `{householdId, name, role: \"owner\"}` | `write` | “Start a household with you as its only member and owner. This does not invite anyone.” |\n| `rename_household` | `{householdId, name}` | `{householdId, name}` | `consequential` | “Change the household name everyone sees. Only an owner can rename it. Confirm the household and new name first.” |\n| `email_household_invite` | `{householdId, email, role}` | `{to}` | `consequential` | “Email one person a single-use invitation, valid for 14 days and redeemable only by the Spoonjoy account with that address. Choose `member` for editing shared items or `viewer` for read-only access. Only an owner can send it. Confirm the address and role before sending.” |\n| `revoke_household_invite` | `{householdId, inviteId}` | `{householdId, inviteId, revoked: true}` | `consequential` | “Turn off an invitation so it can’t be used again. This doesn’t remove anyone who already joined. Only an owner can revoke it.” |\n| `change_household_member_role` | `{householdId, targetUserId, role}` | `{householdId, targetUserId, role}` | `consequential` | “Change another person’s access to owner, member, or viewer. Only an owner can do this, and nobody can change their own role. Confirm the person and new access level.” |\n| `remove_household_member` | `{householdId, targetUserId}` | `{householdId, targetUserId, removed: true}` | `consequential` | “Remove another person’s household access. Only an owner can remove a member or viewer. Use `leave_household` for yourself; don’t automatically demote an owner to remove them.” |\n| `leave_household` | `{householdId}` | `{householdId, left: true}` | `consequential` | “End your own membership. If you’re the only owner and others remain, make someone else an owner first. If you’re the last person, leaving deletes the household. Confirm before leaving.” |\n\n**Contract and wiring.** Declare the tools in `actions/households.mts`, include them in `spoonjoy.actions.mts`, and bind them through `declaredOperation` to the existing household service. Use explicit IDs, trimmed names of 1–80 characters, and the domain role enums. In `get_household`, omit `pendingInvites` for non-owners; for owners, include usable invites only, with `email: null` for shareable links and ISO timestamps. Never return invite tokens, hashes, or join URLs. Return the same not-found error for a missing household and one the caller can’t read.\n\n**Access and consent.** Require a signed-in principal and the existing `households` flag. Give MCP connections explicit opt-in `households:read` and `households:write` scopes; existing kitchen grants confer neither. Derive the acting user from the principal, never from tool input or an owner-email fallback, and let the service enforce current membership and role. MCP hints describe consent but don’t enforce it: require trusted user confirmation of the exact change before executing a consequential tool, or hand off to the signed-in web flow when confirmation isn’t available. Don’t automatically retry a timed-out create or send.\n\n**Prove it with a fresh agent.** Starting from `tools/list`, have it find the right household, confirm and send a viewer invite, then verify the recipient can join in the browser and read the roster but can’t manage access. Repeat with confirmation declined, an unauthorized caller, and the sole owner trying to leave while others remain; none should change state.",
+  "verdict": {
+    "criteria": [
+      {
+        "id": "jobs",
+        "met": false,
+        "evidence": "The answer opens with tools, not jobs: \"Plan: give agents nine household tools.\" It only sums up the jobs afterward (\"find and set up a household, email an invitation, and manage access\"). The table then follows the service functions almost one to one (create, list, get, rename, revoke, change role, remove, leave). It never lists the jobs agents are asked to do and works out the actions from them."
+      },
+      {
+        "id": "restraint",
+        "met": true,
+        "evidence": "It merges createInvite and emailInvite into one action, `email_household_invite`. It leaves out shareable links and redemption, with a reason: \"Keep shareable-link creation and invite redemption in the browser: emailing a named recipient covers the common invite job without putting a join secret in chat, and `/join/:token` already lets the recipient review the household and role before joining.\" previewInvite, acceptInvite and standalone createInvite are not mirrored."
+      },
+      {
+        "id": "craft",
+        "met": false,
+        "evidence": "Inputs and outputs are lean, for example `{householdId, email, role}` → `{to}`, and consent mostly fits. However, the answer never checks the actions against Spoonjoy's other actions. Its only failure design is \"Return the same not-found error for a missing household and one the caller can't read.\" It does not plan errors that say what happened and what to do next. Hints like \"make someone else an owner first\" sit in the descriptions, not in failure outputs."
+      },
+      {
+        "id": "proof",
+        "met": true,
+        "evidence": "\"Prove it with a fresh agent. Starting from `tools/list`, have it find the right household, confirm and send a viewer invite, then verify the recipient can join in the browser and read the roster but can't manage access. Repeat with confirmation declined, an unauthorized caller, and the sole owner trying to leave while others remain.\""
+      }
+    ],
+    "summary": "Restraint and proof are met. Jobs and craft are not: the plan follows the service's function list rather than agents' jobs, and it lacks failure messages that say what to do next and any check against Spoonjoy's other actions.",
+    "pass": false
+  }
+}

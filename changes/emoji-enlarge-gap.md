@@ -1,0 +1,1 @@
+- Fixed: EmojiText's enlarged emoji keep a clear gap apart, instead of sitting under the minimum gap on their source text's own space (#3286).

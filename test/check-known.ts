@@ -177,13 +177,6 @@ export const knownFindings: KnownFinding[] = [
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
-    story: "Emoji/InMessages",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
     story: "MessageList/Conversation",
     rule: "near-miss",
     issue: 3286,
@@ -412,53 +405,5 @@ export const knownFindings: KnownFinding[] = [
     theme: "nova",
     reason:
       "The trigger button shows the chosen look's wordmark, whose own font-size-adjust and leading-none tuning sit a couple of pixels off the Button's usual middle once ouro-base's 2560px root step (125%) scales every length; the trigger should centre the wordmark on its own cap height instead of the Button's default centring.",
-  },
-  {
-    story: "TimeGrid/BackgroundEvents",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "TimeGrid/BackgroundEventsDay",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "TimeGrid/Day",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "TimeGrid/NowAdornment",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "TimeGrid/Playground",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
-  },
-  {
-    story: "TimeGrid/WorkWeek",
-    rule: "off-centre-text",
-    issue: 3364,
-    theme: "nova",
-    reason:
-      "Under nova's metrics an event's own bespoke button, not yet migrated to cap-label, isn't centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
   },
 ];

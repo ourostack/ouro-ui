@@ -339,6 +339,33 @@ describe("Menu items", () => {
     expect(item("Copy link").element().querySelector("[data-ouro-menu-icon]")).toBeNull();
   });
 
+  it("shows a submenu's icon before its label, level with an item's, out of its name", async () => {
+    const icon = (name: string) => (
+      <svg viewBox="0 0 16 16" data-testid={name}>
+        <path d="M2 14 14 2" />
+      </svg>
+    );
+    await render(
+      <Menu
+        trigger={<Button>Actions</Button>}
+        items={[
+          { label: "Pin", icon: icon("pin"), onClick: () => {} },
+          { type: "submenu", label: "Move to", icon: icon("folder"), items: [{ label: "Favorites" }] },
+          { type: "submenu", label: "Share", items: [{ label: "Copy link" }] },
+        ]}
+      />,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Actions" }));
+    await expect.element(item("Move to")).toBeVisible();
+    const trigger = item("Move to").element() as HTMLElement;
+    const svg = trigger.querySelector("svg")!;
+    expect(svg.closest("[data-ouro-menu-icon]")!.getAttribute("aria-hidden")).toBe("true");
+    expect(svg.getBoundingClientRect().width).toBe(16);
+    expect(svg.getBoundingClientRect().left).toBe((item("Pin").element() as HTMLElement).querySelector("svg")!.getBoundingClientRect().left);
+    expect(page.getByRole("menuitem", { name: "Move to", exact: true }).query()).not.toBeNull();
+    expect(item("Share").element().querySelector("[data-ouro-menu-icon]")).toBeNull();
+  });
+
   it("sets an entry's axAction as data-ax-action on its item or checkbox item, and nothing without one", async () => {
     const items: MenuEntry[] = [
       { label: "Mute", axAction: "mute" },

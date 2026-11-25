@@ -517,8 +517,7 @@ if [ "$variant" = upgrade ]; then
     local now css
     now=$(ls "$1/components/ouro" | tr '\n' ' ')
     # Button shows a disabled reason in a tooltip, so button-tests brings tooltip-tests, whose stories install the components they show.
-    # lib-cap-label-tests' story demos the cap height label on both Button and Toggle, so button-tests also brings toggle and toggle-tests.
-    [ "$now" = "button checkbox dialog field form kbd menu popover radio-group select sheet text text-field toggle tooltip " ] || { echo "the upgrade changed the component folders: $now"; exit 1; }
+    [ "$now" = "button checkbox dialog field form kbd menu popover radio-group select sheet text text-field tooltip " ] || { echo "the upgrade changed the component folders: $now"; exit 1; }
     css=$(node -p 'require("./components.json").tailwind.css')
     if grep -En -- '^[[:space:]]*--(color-)?ouro-[a-z-]+:[[:space:]]*var\(--ouro-[a-z-]+\);' "$css"; then
       echo "$css still maps an Ouro token through @theme inline"; exit 1
@@ -919,11 +918,15 @@ while [ -n "${CI:-}" ] && pgrep -x 'apt-get|apt|dpkg' > /dev/null; do sleep 2; d
 
 echo "::group::Shipped Vitest browser tests"
 npx playwright install ${deps[@]+"${deps[@]}"} chromium webkit
-# A shard runs two workers a project at a time: the app's type check and build finished above, so
-# only the tests and the browsers they start share the runner (#623 capped one worker while they
-# overlapped).
+# Vitest gives each browser project its own pool of workers, and runs the shipped app's three
+# (ouro-chromium, ouro-webkit, ouro-touch) side by side, so the cap here multiplies by three: at two
+# workers a project, that is six browser tabs open at once on the runner's four vCPUs (#3314's
+# screenshot-timeout hangs). #917 raised this from one to two, reasoning the type check and build
+# finish before it so the tests and their browsers have the runner to themselves; that is true of
+# the total, not of each project's own pool. One worker a project (#623) keeps three tabs within
+# the four vCPUs, with one left for this process.
 workers=()
-[ -z "${OURO_SHARD:-}" ] || workers=(--maxWorkers=2)
+[ -z "${OURO_SHARD:-}" ] || workers=(--maxWorkers=1)
 # In CI a shard's run also fails a stall in minutes, naming the tests in flight, as the repository's own shards do: a hang
 # outside a test body otherwise runs silently to the job's limit (#671). Only where this tree has the reporter.
 stall=()

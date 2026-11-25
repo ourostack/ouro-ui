@@ -6,7 +6,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { lintMarkdown, lintPlain } from "../../registry/ouro/lib/ouro/claims-check.mjs";
-import { AGENTS_PATH, BAR, withBar } from "./agents.mjs";
+import { AGENTS_PATH, BAR, SKILL, SKILL_PATH, withBar } from "./agents.mjs";
 import { BRANCH, body, createSources, keepCurrent, keepRepo, main, publicView, title } from "./current.mjs";
 import { checkRulesSection } from "./known.mjs";
 import { appJwt, createGitHub, retryable } from "./github.mjs";
@@ -2435,20 +2435,29 @@ test("AGENTS.md gets the bar beside its pointer to Interfaces follow Ouro UI, or
   assert.deepEqual(lintMarkdown(BAR, { file: "AGENTS.md" }), [], "a repository that runs the claims check on AGENTS.md accepts the block");
 });
 
-test("an update brings the bar into AGENTS.md and moves its byte budget by the block alone, unless the repository ignores AGENTS.md", async () => {
+test("an update brings the bar into AGENTS.md and the skill it points at, and moves AGENTS.md's byte budget by the block alone, unless the repository ignores AGENTS.md", async () => {
   const budget = 5000;
   const repo = fakeRepo({ "Package.swift": SWIFT, [AGENTS_PATH]: AGENTS, ".github/agents-md-budget.json": `${JSON.stringify({ [AGENTS_PATH]: budget }, null, 2)}\n` });
   assert.equal((await keepRepo(repo.gh, "o/r", RELEASES, {})).state, "pr");
   const written = repo.fileAt(BRANCH, AGENTS_PATH);
   assert.equal(written, withBar(AGENTS));
   assert.deepEqual(JSON.parse(repo.fileAt(BRANCH, ".github/agents-md-budget.json")), { [AGENTS_PATH]: budget + Buffer.byteLength(written) - Buffer.byteLength(AGENTS) });
+  assert.equal(repo.fileAt(BRANCH, SKILL_PATH), SKILL);
   assert.match(repo.pulls[0].body, /Brings Ouro UI's bar for people and agents into `AGENTS\.md`, between `ouro-ui:bar` markers/);
+  assert.match(repo.pulls[0].body, /Brings the `the-bar` skill to `\.agents\/skills\/the-bar\/SKILL\.md`/);
   assert.deepEqual(lintMarkdown(repo.pulls[0].body, { file: "pull request body" }), []);
+
+  const edited = fakeRepo({ "Package.swift": SWIFT, [AGENTS_PATH]: withBar(AGENTS), [SKILL_PATH]: "an edited skill" });
+  await keepRepo(edited.gh, "o/r", RELEASES, {});
+  assert.equal(edited.fileAt(BRANCH, SKILL_PATH), SKILL, "an edited skill is brought back in step with Ouro UI's");
+  assert.equal(edited.fileAt(BRANCH, AGENTS_PATH), withBar(AGENTS), "a block in step is left as it is");
 
   const ignoring = fakeRepo({ "Package.swift": SWIFT, [AGENTS_PATH]: AGENTS, ".github/ouro-current.json": JSON.stringify({ ignore: [AGENTS_PATH] }) });
   await keepRepo(ignoring.gh, "o/r", RELEASES, {});
   assert.equal(ignoring.fileAt(BRANCH, AGENTS_PATH), AGENTS);
+  assert.equal(ignoring.fileAt(BRANCH, SKILL_PATH), undefined, "ignoring AGENTS.md leaves the skill out too");
   const without = fakeRepo({ "Package.swift": SWIFT });
   await keepRepo(without.gh, "o/r", RELEASES, {});
   assert.equal(without.fileAt(BRANCH, AGENTS_PATH), undefined, "a repository with no AGENTS.md gets none");
+  assert.equal(without.fileAt(BRANCH, SKILL_PATH), undefined, "nor the skill");
 });

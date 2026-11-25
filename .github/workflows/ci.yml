@@ -257,9 +257,12 @@ jobs:
             echo "Everything runs: $EVENT on $REF${BASE_REF:+ into $BASE_REF}. Only a pull request into main runs what it can affect."
             echo "full=true" >> "$GITHUB_OUTPUT"
           fi
-      # The files a pull request into main changes, which the browser and browser-fallback shards pass
-      # to the headroom reporter: on a pull request only tests in these files can fail it, and main
-      # judges every test.
+      # The files a pull request changes, scoped to its own real base (not always main: a stacked pull
+      # request's base is another branch, ourostack/ouro-ui#3665), which the browser and
+      # browser-fallback shards pass to the headroom reporter: on a pull request only tests in these
+      # files can fail it, and main judges every test. GitHub checks out the merge of head into base,
+      # so HEAD^1 is already that real base's tip, whatever base_ref is: no extra fetch is needed. A
+      # diff that fails for any reason leaves files empty (judging everything, as on main) and says why.
       - id: changed
         name: Which files does the change touch?
         env:
@@ -267,13 +270,15 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
         run: |
-          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [[ "$HEAD_REF" != release/* ]]; then
-            if files=$(git diff --name-only HEAD^1 HEAD); then
+          if [ "$EVENT" = pull_request ] && [[ "$HEAD_REF" != release/* ]]; then
+            if files=$(git diff --name-only HEAD^1 HEAD 2>&1); then
               {
                 echo "files<<CHANGED_FILES_EOF"
                 echo "$files"
                 echo "CHANGED_FILES_EOF"
               } >> "$GITHUB_OUTPUT"
+            else
+              echo "::warning title=Headroom scoping::Could not diff against base ${BASE_REF:-unknown} (HEAD^1 unresolved or git diff failed); every test is judged, as on main. git said: $files"
             fi
           fi
       # Whether the install test and the heavy tier run (scripts/ci-relevance.mjs installs|heavy): a

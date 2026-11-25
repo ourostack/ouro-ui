@@ -1,0 +1,264 @@
+{
+  "id": "cook-settings--claude-sonnet-5.5--1",
+  "scenario": "cook-settings",
+  "repo": "spoonjoy",
+  "commit": "f49ba65b3397451d7c4f93fdac578ab255bea540",
+  "model": "claude-sonnet-5.5",
+  "rep": 1,
+  "exit": 0,
+  "seconds": 114,
+  "prompt": "Cooks have asked for settings in cook mode. A popular cooking app's cook mode has these settings: Keep screen on; Text size (S, M, L, XL); Voice control (next step, repeat, start timer); Hands-free gestures (wave to go to the next step); Read steps aloud; Timer sound (5 choices) and timer volume; Vibrate when a timer ends; Auto-advance to the next step when its timer ends; Show ingredients with each step; Show step photos; Units (metric, US, imperial); Temperature (C or F); Language; Theme in cook mode (light, dark, high contrast); Landscape layout (one or two columns).\n\nPlan cook mode settings for Spoonjoy's web app: what you'd build, and how it looks and works. Look at the code to see what cook mode does today.\n\nReply with your answer in this chat; don't change any files.",
+  "events": [
+    {
+      "tool": "skill",
+      "arguments": {
+        "skill": "the-bar"
+      }
+    },
+    {
+      "message": "Let me look at what cook mode does today."
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd repo 2>/dev/null; git ls-files | grep -i -E \"cook\" | grep -v -E \"^(e2e|test)/\" | head -60; grep -ril \"wakeLock\\|speechSynthesis\\|SpeechRecognition\\|localStorage\" app | head -20",
+        "description": "Find cook mode files"
+      }
+    },
+    {
+      "tool": "glob",
+      "arguments": {
+        "pattern": "app/**/*[Cc]ook*"
+      }
+    },
+    {
+      "tool": "grep",
+      "arguments": {
+        "pattern": "wakeLock|speechSynthesis|SpeechRecognition|vibrate|localStorage",
+        "paths": "app",
+        "output_mode": "files_with_matches"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "wc -l app/components/cook/RecipeCookView.tsx app/hooks/use-screen-wake-lock.ts app/lib/client-storage-schema.ts app/lib/cook-timers.ts app/components/recipe/CookTimers.tsx app/lib/ouro/feedback.ts app/lib/ouro/color-scheme.ts",
+        "description": "Size files"
+      }
+    },
+    {
+      "tool": "grep",
+      "arguments": {
+        "pattern": "useScreenWakeLock|wakeLock|feedback|vibrate|ColorScheme|useTimer|Timer|aria-label|Button|text-(sm|base|lg|xl|2xl)|sound|audio",
+        "paths": "app/components/cook/RecipeCookView.tsx",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 80
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/cook/RecipeCookView.tsx",
+        "view_range": [
+          150,
+          315
+        ]
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/hooks/use-screen-wake-lock.ts"
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/lib/client-storage-schema.ts"
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/lib/cook-timers.ts",
+        "view_range": [
+          1,
+          60
+        ]
+      }
+    },
+    {
+      "tool": "grep",
+      "arguments": {
+        "output_mode": "content",
+        "-n": true,
+        "paths": "app/lib/ouro/feedback.ts",
+        "pattern": "export|vibrate|sound|audio"
+      }
+    },
+    {
+      "tool": "grep",
+      "arguments": {
+        "-n": true,
+        "output_mode": "content",
+        "paths": "app",
+        "pattern": "useScreenWakeLock\\(|UnitSystemControl\\b.*(function|=)|onComplete|chime\\(|buzz\\(|ColorSchemeToggle",
+        "glob": "!*.test.*",
+        "head_limit": 30
+      }
+    },
+    {
+      "tool": "grep",
+      "arguments": {
+        "-n": true,
+        "output_mode": "content",
+        "paths": "app/components/recipe/CookTimers.tsx",
+        "pattern": "Timer|sound|silent|mute",
+        "head_limit": 25
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "ls app/components/ouro | tr '\\n' ' '; grep -n \"wakeLock\\|WakeLock\" -r app --include=*.ts* -l | head; sed -n 95,145p app/components/recipe/CookTimers.tsx",
+        "description": "List HX components, timer alert code"
+      }
+    },
+    {
+      "tool": "task",
+      "arguments": {
+        "agent_type": "rubber-duck",
+        "description": "Check cook settings plan",
+        "prompt": "Review a plan against these rules: (1) jobs people do, in their words, not a reference product's item list; (2) every reference item gets one line: serves a job, or cut with a reason (right default, device/system already does it, another kept item covers it, no job needs it); one way in per job; (3) built from product's own components, result says what it did; (4) proof by fresh people/agents; flag anything that is a reference item rather than a job, a second way in, or a daily job cut/deferred.\n\nREQUEST: Plan cook mode settings for Spoonjoy web app (React Router, Ouro HX components). Reference app's settings: Keep screen on; Text size S/M/L/XL; Voice control; Hands-free gestures (wave); Read steps aloud; Timer sound (5 choices)+volume; Vibrate on timer end; Auto-advance when timer ends; Show ingredients with each step; Show step photos; Units metric/US/imperial; Temperature C/F; Language; Theme light/dark/high contrast; Landscape 1/2 columns.\n\nTODAY: cook mode (app/components/cook/RecipeCookView.tsx) has header with only an Exit (X) button; step text big (2xl..6xl); right panel with this step's ingredients checklist, Scale number field and UnitSystemControl (units already there); Pagination footer; per-step Timer + tray; timers always chime+vibrate on done (HX timer-styles.ts, pinned HX bytes); wake lock always held while cook mode open (use-screen-wake-lock.ts); page replaces whole shell so the global ColorSchemeToggle is not visible; progress synced per account, no cook settings exist. Storage schema migration wipes 'spoonjoy-' localStorage keys except theme.\n\nPLAN:\nJobs: read the step from across the counter; quiet the timer when someone's asleep/on a call; switch light/dark for a dim or bright kitchen without leaving the recipe; (existing) keep screen awake, scale, units.\nBuild: one gear button in the header (right of title) opening an HX Sheet titled \"Cook settings\" with 3 controls: Text size (SegmentedControl: Standard / Large / Largest, scales step description and ingredient list); Timer alerts (SegmentedControl: Sound and vibration / Vibration only / Silent; applies to ending timers, in-page; title/notification unchanged); Appearance (existing HX ColorSchemeToggle segmented, same key as site). Per-device localStorage key 'spoonjoy-cook-prefs' (exempted from migration wipe like theme), applied instantly; each control states its effect (e.g. \"Timers will vibrate only\"). Timer alerts needs HX Timer to take an alert option, added to HX first. No agent door: settings are display preferences on one device, no one asks an agent to change them; no MCP action.\nCuts: Keep screen on (already default on; setting not a job); S size (device zoom, default already small); Voice control, wave gestures, read aloud (job 'move on with messy hands' is real but web speech/camera need mic/camera permissions, patchy support; deferred to its own flagged feature, not settings); timer sound choices + volume (device volume does volume; one chime serves job); vibrate separate (folded into Timer alerts); auto-advance (surprising, cook decides when step is done); ingredients per step (already how it works); step photos (not in cook mode today); units+temperature (UnitSystemControl already there, no second way in); language (app-wide, not cook); high contrast (HX tokens/prefers-contrast, not a cook setting); landscape columns (layout already responsive).\nProof: fresh person cooking on a phone propped up, floury hands: find text size in <10s unaided, read step from 1m away; fresh agent given only the screen (Journey on iPhone WebKit + desktop in CI) is asked to make timers silent and verify it survives reload; journey step with verifyAfterReload; unit tests for prefs read/write with corrupt storage fallback; HX census baseline update.\n\nReply concisely: list each flag/issue, nothing else."
+      }
+    },
+    {
+      "tool": "task",
+      "arguments": {
+        "name": "plan-check",
+        "agent_type": "rubber-duck",
+        "description": "Check cook settings plan",
+        "prompt": "Review a plan against these rules: (1) jobs people do, in their words, not a reference product's item list; (2) every reference item gets one line: serves a job, or cut with a reason (right default, device/system already does it, another kept item covers it, no job needs it); one way in per job; (3) built from product's own components, result says what it did; (4) proof by fresh people/agents; flag anything that is a reference item rather than a job, a second way in, or a daily job cut/deferred.\n\nREQUEST: Plan cook mode settings for Spoonjoy web app (React Router, Ouro HX components). Reference app's settings: Keep screen on; Text size S/M/L/XL; Voice control; Hands-free gestures (wave); Read steps aloud; Timer sound (5 choices)+volume; Vibrate on timer end; Auto-advance when timer ends; Show ingredients with each step; Show step photos; Units metric/US/imperial; Temperature C/F; Language; Theme light/dark/high contrast; Landscape 1/2 columns.\n\nTODAY: cook mode (app/components/cook/RecipeCookView.tsx) has header with only an Exit (X) button; step text big (2xl..6xl); right panel with this step's ingredients checklist, Scale number field and UnitSystemControl (units already there); Pagination footer; per-step Timer + tray; timers always chime+vibrate on done (HX timer-styles.ts, pinned HX bytes); wake lock always held while cook mode open (use-screen-wake-lock.ts); page replaces whole shell so the global ColorSchemeToggle is not visible; progress synced per account, no cook settings exist. Storage schema migration wipes 'spoonjoy-' localStorage keys except theme.\n\nPLAN:\nJobs: read the step from across the counter; quiet the timer when someone's asleep/on a call; switch light/dark for a dim or bright kitchen without leaving the recipe; (existing) keep screen awake, scale, units.\nBuild: one gear button in the header (right of title) opening an HX Sheet titled \"Cook settings\" with 3 controls: Text size (SegmentedControl: Standard / Large / Largest, scales step description and ingredient list); Timer alerts (SegmentedControl: Sound and vibration / Vibration only / Silent; applies to ending timers, in-page; title/notification unchanged); Appearance (existing HX ColorSchemeToggle segmented, same key as site). Per-device localStorage key 'spoonjoy-cook-prefs' (exempted from migration wipe like theme), applied instantly; each control states its effect (e.g. \"Timers will vibrate only\"). Timer alerts needs HX Timer to take an alert option, added to HX first. No agent door: settings are display preferences on one device, no one asks an agent to change them; no MCP action.\nCuts: Keep screen on (already default on; setting not a job); S size (device zoom, default already small); Voice control, wave gestures, read aloud (job 'move on with messy hands' is real but web speech/camera need mic/camera permissions, patchy support; deferred to its own flagged feature, not settings); timer sound choices + volume (device volume does volume; one chime serves job); vibrate separate (folded into Timer alerts); auto-advance (surprising, cook decides when step is done); ingredients per step (already how it works); step photos (not in cook mode today); units+temperature (UnitSystemControl already there, no second way in); language (app-wide, not cook); high contrast (HX tokens/prefers-contrast, not a cook setting); landscape columns (layout already responsive).\nProof: fresh person cooking on a phone propped up, floury hands: find text size in <10s unaided, read step from 1m away; fresh agent given only the screen (Journey on iPhone WebKit + desktop in CI) is asked to make timers silent and verify it survives reload; journey step with verifyAfterReload; unit tests for prefs read/write with corrupt storage fallback; HX census baseline update.\n\nReply concisely: list each flag/issue, nothing else."
+      }
+    },
+    {
+      "agent": "8acbeb01-fe80-41a7-88e5-56b8d1fdb354",
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/cook/RecipeCookView.tsx"
+      }
+    },
+    {
+      "agent": "8acbeb01-fe80-41a7-88e5-56b8d1fdb354",
+      "tool": "rg",
+      "arguments": {
+        "pattern": "spoonjoy-|localStorage|ColorSchemeToggle|UnitSystemControl|useScreenWakeLock",
+        "paths": [
+          "./app"
+        ],
+        "output_mode": "content",
+        "head_limit": 110
+      }
+    },
+    {
+      "agent": "8acbeb01-fe80-41a7-88e5-56b8d1fdb354",
+      "tool": "rg",
+      "arguments": {
+        "pattern": "vibrat|playSound|chime|notification",
+        "paths": [
+          "."
+        ],
+        "glob": "*timer*",
+        "output_mode": "content",
+        "-i": true,
+        "head_limit": 100
+      }
+    },
+    {
+      "agent": "8acbeb01-fe80-41a7-88e5-56b8d1fdb354",
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/recipe/UnitSystemControl.tsx"
+      }
+    },
+    {
+      "agent": "8acbeb01-fe80-41a7-88e5-56b8d1fdb354",
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/recipe/CookTimers.tsx"
+      }
+    },
+    {
+      "agent": "8acbeb01-fe80-41a7-88e5-56b8d1fdb354",
+      "tool": "rg",
+      "arguments": {
+        "pattern": "temperature|fahrenheit|celsius|imperial|metric|unitSystem",
+        "paths": [
+          "./app/lib",
+          "./app/components/recipe"
+        ],
+        "output_mode": "content",
+        "-i": true,
+        "head_limit": 100
+      }
+    },
+    {
+      "agent": "8acbeb01-fe80-41a7-88e5-56b8d1fdb354",
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/ouro/timer/timer-styles.ts",
+        "view_range": [
+          1,
+          180
+        ]
+      }
+    },
+    {
+      "agent": "8acbeb01-fe80-41a7-88e5-56b8d1fdb354",
+      "tool": "rg",
+      "arguments": {
+        "pattern": "storage schema|spoonjoy-theme|schema.version|SCHEMA_VERSION",
+        "paths": [
+          "./app"
+        ],
+        "output_mode": "content",
+        "head_limit": 60
+      }
+    },
+    {
+      "agent": "8acbeb01-fe80-41a7-88e5-56b8d1fdb354",
+      "message": "- **Blocking — Quiet timer:** “Silent” leaves system notifications unchanged, which may make sound. Apply the choice to background notifications too, or clearly limit the promise.\n- **Blocking — Vibration only:** iPhone WebKit does not support web vibration, so this can become an unannounced silent timer. Detect support and offer a truthful fallback.\n- **Blocking — Timer coverage:** The plan changes HX Timer but not TimerTray, which alerts for other steps in `./app/components/recipe/CookTimers.tsx`. Apply preferences to both and test timers already running and repeating.\n- **Non-Blocking — Deferred daily job:** Moving between steps with messy hands is explicitly deferred. Flag it as an unmet daily job; separately assess read-aloud as a listening/accessibility job.\n- **Non-Blocking — Temperature:** `./app/components/recipe/UnitSystemControl.tsx` controls ingredient units, not temperatures in step text. Give C/F its own job or a valid cut reason.\n- **Non-Blocking — Step photos and smaller text:** “Not in cook mode today” is not a cut reason for photos; device zoom also does not establish that the current text can be made smaller. Assess the jobs and give each a valid disposition.\n- **Non-Blocking — Proof:** A scripted journey is not a fresh agent. Test actual alert behavior, including tray and background cases, plus appearance and text sizing; have a fresh agent independently discover and perform the task."
+    },
+    {
+      "message": "# Cook mode settings for Spoonjoy\n\n## What cook mode does today\n- **Header:** it has only an Exit button.\n- **Wake lock:** it holds a screen wake lock the whole time cook mode is open (`use-screen-wake-lock.ts`).\n- **Step panel:** the right panel already has this step's ingredients, Scale and `UnitSystemControl`.\n- **Timers:** each ending timer chimes and vibrates, always. That behaviour lives in HX's `timer-styles.ts`. The in-page title and background notification are in `CookTimers.tsx`.\n- **Theme:** cook mode replaces the whole page, so the site's theme toggle isn't reachable from it.\n- **Settings:** none exist, and the storage migration wipes `spoonjoy-*` keys except the theme.\n\n## 1. Jobs, in cooks' words\n- \"I can't read the step from where my phone is propped.\"\n- \"The baby's asleep. Don't blast the timer.\"\n- \"It's dark in here (or sunny). Change the look without leaving my recipe.\"\n- Already done, so left alone: screen stays on, scale, and units.\n- Unmet: \"move on without touching my phone with messy hands.\" It gets its own flagged feature (see the cuts).\n\n## 2. Cuts, one line each\n\n| Reference item | Decision |\n|---|---|\n| Keep screen on | Cut. It is already on, so the right default does it. |\n| Text size S/M/L/XL | Kept, as three sizes: Standard, Large, Largest. Standard is today's size. Browser zoom and system text size still shrink it, so S has no job of its own. |\n| Voice, wave gestures, read aloud | Not settings. Hands-free next step is a real daily job. It needs mic or camera permission and has patchy browser support, so it becomes its own feature behind a flag, with one \"Hands-free\" way in. Read aloud is separate: it's a listening and accessibility job and gets its own scope. |\n| Timer sound (5 choices) and volume | Cut. Device volume sets loudness, and no one's job needs a choice of five sounds. |\n| Vibrate when timer ends | Folded into one Timer alerts control. |\n| Auto-advance | Cut. It moves the cook off a step before they're ready. |\n| Ingredients with each step | Cut. It is already how cook mode works. |\n| Step photos | Not a setting. If cook mode gains photos, showing them is the default. Hiding them for data or clutter isn't a job anyone has raised. |\n| Units | Cut. `UnitSystemControl` is already in the panel, and a second way in would duplicate it. |\n| Temperature C/F | Cut from settings. Step text is free text, and the existing control only converts ingredients. Converting temperatures in steps is a separate job for Units to take on. |\n| Language | Cut. It is app-wide, not a cook mode job. |\n| Theme, including high contrast | Kept as light/dark/system through the existing HX `ColorSchemeToggle`, which shares the site's setting. High contrast follows the system's contrast setting and the HX tokens. |\n| Landscape 1 or 2 columns | Cut. The layout already goes to two columns on wide screens. |\n\n## 3. What gets built\n**One way in:** a gear button in the cook header, beside Exit. It opens an HX Sheet called \"Cook settings\" with three controls. Each one applies at once and says what it did.\n- **Text size:** HX `SegmentedControl` with Standard, Large and Largest. It scales the step text and the ingredient list. Confirmation: \"Step text: Large.\"\n- **Timer alerts:** `SegmentedControl` with Sound and vibration, Vibration only, and Silent.\n  - It applies to every alert path: the step Timer, the `TimerTray`, the background notification, and timers already running.\n  - Silent means the notification is silent too.\n  - Where the device can't vibrate (iPhone Safari), \"Vibration only\" isn't offered. The control says \"This device can't vibrate,\" so it never turns into a silent timer without telling the cook.\n  - HX has to gain this option first (an alert mode on `Timer` and `TimerTray`). Then Spoonjoy installs it from the release tag, because the HX files are pinned.\n- **Appearance:** the existing `ColorSchemeToggle` in its segmented variant.\n\n**Storage:** the first two are saved per device in one key, `spoonjoy-cook-prefs`. The migration wipe must exempt it, as it does the theme. A missing or corrupt value falls back to the defaults. Settings are per device because they describe the screen and speaker in front of the cook, so they don't sync to the account.\n\n**Agent door:** none, with no MCP action and nothing in `actions/`. These are display preferences for one device, and nobody asks an agent to change them.\n\n**Other consequences:**\n- The settings sheet adds census states for HX controls.\n- The new controls come from HX components, so they pass the source rules.\n- No feature flag is needed unless the work ships in unfinished parts.\n\n## 4. Proof\n- **Fresh cook:** a person who hasn't seen the app has a phone propped up with floury hands. They are asked to make the text readable from a metre away and then make timers silent. I watch whether they find the gear unprompted, and how long it takes.\n- **Fresh agent:** it gets only the screen and the task \"silence timers and make the text bigger,\" with no hints. I watch whether it finds the one door and whether the result says what changed.\n- **Journey, `@mutates`:** it changes each setting, uses `verifyAfterReload`, and checks it survives a reload and a new cook page.\n- **Alert behaviour:** tests cover step Timer and `TimerTray` alerts in all three modes, a timer already running when the setting changes, and the background notification. They also cover the iPhone no-vibration case.\n- **Unit tests:** prefs read, write and corrupt-storage fallback.\n- **Census:** I update the HX census baseline.\n- I rerun the fresh people and agents after each small change.\n\n## 5. Independent check\nA fresh reviewer flagged the following. Each item is fixed above except the last, which is only partly addressed:\n- Silent didn't cover notifications.\n- Vibration-only could silently fail on iPhone.\n- The tray alerts weren't covered.\n- Temperature and step photos were cut for weak reasons.\n- Hands-free is an unmet daily job. I've named it and given it its own scoped feature. The unmet job stays open until that feature is scoped."
+    }
+  ],
+  "answer": "Let me look at what cook mode does today.\n\n# Cook mode settings for Spoonjoy\n\n## What cook mode does today\n- **Header:** it has only an Exit button.\n- **Wake lock:** it holds a screen wake lock the whole time cook mode is open (`use-screen-wake-lock.ts`).\n- **Step panel:** the right panel already has this step's ingredients, Scale and `UnitSystemControl`.\n- **Timers:** each ending timer chimes and vibrates, always. That behaviour lives in HX's `timer-styles.ts`. The in-page title and background notification are in `CookTimers.tsx`.\n- **Theme:** cook mode replaces the whole page, so the site's theme toggle isn't reachable from it.\n- **Settings:** none exist, and the storage migration wipes `spoonjoy-*` keys except the theme.\n\n## 1. Jobs, in cooks' words\n- \"I can't read the step from where my phone is propped.\"\n- \"The baby's asleep. Don't blast the timer.\"\n- \"It's dark in here (or sunny). Change the look without leaving my recipe.\"\n- Already done, so left alone: screen stays on, scale, and units.\n- Unmet: \"move on without touching my phone with messy hands.\" It gets its own flagged feature (see the cuts).\n\n## 2. Cuts, one line each\n\n| Reference item | Decision |\n|---|---|\n| Keep screen on | Cut. It is already on, so the right default does it. |\n| Text size S/M/L/XL | Kept, as three sizes: Standard, Large, Largest. Standard is today's size. Browser zoom and system text size still shrink it, so S has no job of its own. |\n| Voice, wave gestures, read aloud | Not settings. Hands-free next step is a real daily job. It needs mic or camera permission and has patchy browser support, so it becomes its own feature behind a flag, with one \"Hands-free\" way in. Read aloud is separate: it's a listening and accessibility job and gets its own scope. |\n| Timer sound (5 choices) and volume | Cut. Device volume sets loudness, and no one's job needs a choice of five sounds. |\n| Vibrate when timer ends | Folded into one Timer alerts control. |\n| Auto-advance | Cut. It moves the cook off a step before they're ready. |\n| Ingredients with each step | Cut. It is already how cook mode works. |\n| Step photos | Not a setting. If cook mode gains photos, showing them is the default. Hiding them for data or clutter isn't a job anyone has raised. |\n| Units | Cut. `UnitSystemControl` is already in the panel, and a second way in would duplicate it. |\n| Temperature C/F | Cut from settings. Step text is free text, and the existing control only converts ingredients. Converting temperatures in steps is a separate job for Units to take on. |\n| Language | Cut. It is app-wide, not a cook mode job. |\n| Theme, including high contrast | Kept as light/dark/system through the existing HX `ColorSchemeToggle`, which shares the site's setting. High contrast follows the system's contrast setting and the HX tokens. |\n| Landscape 1 or 2 columns | Cut. The layout already goes to two columns on wide screens. |\n\n## 3. What gets built\n**One way in:** a gear button in the cook header, beside Exit. It opens an HX Sheet called \"Cook settings\" with three controls. Each one applies at once and says what it did.\n- **Text size:** HX `SegmentedControl` with Standard, Large and Largest. It scales the step text and the ingredient list. Confirmation: \"Step text: Large.\"\n- **Timer alerts:** `SegmentedControl` with Sound and vibration, Vibration only, and Silent.\n  - It applies to every alert path: the step Timer, the `TimerTray`, the background notification, and timers already running.\n  - Silent means the notification is silent too.\n  - Where the device can't vibrate (iPhone Safari), \"Vibration only\" isn't offered. The control says \"This device can't vibrate,\" so it never turns into a silent timer without telling the cook.\n  - HX has to gain this option first (an alert mode on `Timer` and `TimerTray`). Then Spoonjoy installs it from the release tag, because the HX files are pinned.\n- **Appearance:** the existing `ColorSchemeToggle` in its segmented variant.\n\n**Storage:** the first two are saved per device in one key, `spoonjoy-cook-prefs`. The migration wipe must exempt it, as it does the theme. A missing or corrupt value falls back to the defaults. Settings are per device because they describe the screen and speaker in front of the cook, so they don't sync to the account.\n\n**Agent door:** none, with no MCP action and nothing in `actions/`. These are display preferences for one device, and nobody asks an agent to change them.\n\n**Other consequences:**\n- The settings sheet adds census states for HX controls.\n- The new controls come from HX components, so they pass the source rules.\n- No feature flag is needed unless the work ships in unfinished parts.\n\n## 4. Proof\n- **Fresh cook:** a person who hasn't seen the app has a phone propped up with floury hands. They are asked to make the text readable from a metre away and then make timers silent. I watch whether they find the gear unprompted, and how long it takes.\n- **Fresh agent:** it gets only the screen and the task \"silence timers and make the text bigger,\" with no hints. I watch whether it finds the one door and whether the result says what changed.\n- **Journey, `@mutates`:** it changes each setting, uses `verifyAfterReload`, and checks it survives a reload and a new cook page.\n- **Alert behaviour:** tests cover step Timer and `TimerTray` alerts in all three modes, a timer already running when the setting changes, and the background notification. They also cover the iPhone no-vibration case.\n- **Unit tests:** prefs read, write and corrupt-storage fallback.\n- **Census:** I update the HX census baseline.\n- I rerun the fresh people and agents after each small change.\n\n## 5. Independent check\nA fresh reviewer flagged the following. Each item is fixed above except the last, which is only partly addressed:\n- Silent didn't cover notifications.\n- Vibration-only could silently fail on iPhone.\n- The tray alerts weren't covered.\n- Temperature and step photos were cut for weak reasons.\n- Hands-free is an unmet daily job. I've named it and given it its own scoped feature. The unmet job stays open until that feature is scoped.",
+  "verdict": {
+    "criteria": [
+      {
+        "id": "restraint",
+        "met": true,
+        "evidence": "The answer keeps three controls: \"an HX Sheet called \\\"Cook settings\\\" with three controls.\" Each cut has a one-line reason, for example \"Keep screen on | Cut. It is already on, so the right default does it\" and \"Timer sound (5 choices) and volume | Cut. Device volume sets loudness.\" It relies on the device where it can: \"High contrast follows the system's contrast setting.\""
+      },
+      {
+        "id": "jobs",
+        "met": true,
+        "evidence": "Section 1, \"Jobs, in cooks' words,\" comes before the cuts. It lists \"I can't read the step from where my phone is propped,\" \"The baby's asleep. Don't blast the timer,\" and \"It's dark in here (or sunny). Change the look without leaving my recipe.\" It also names the unmet need: \"move on without touching my phone with messy hands.\""
+      },
+      {
+        "id": "builds",
+        "met": true,
+        "evidence": "It ships a concrete design: \"a gear button in the cook header, beside Exit. It opens an HX Sheet,\" with \"HX `SegmentedControl` with Standard, Large and Largest,\" Timer alerts, and \"the existing `ColorSchemeToggle` in its segmented variant.\" It builds on existing patterns, such as extending HX `Timer`/`TimerTray` and keeping \"`UnitSystemControl` ... in the panel.\""
+      },
+      {
+        "id": "proof",
+        "met": true,
+        "evidence": "It plans a test with a real person: \"a person who hasn't seen the app has a phone propped up with floury hands. They are asked to make the text readable from a metre away and then make timers silent. I watch whether they find the gear unprompted, and how long it takes.\" It also says \"I rerun the fresh people and agents after each small change.\""
+      }
+    ],
+    "summary": "The answer meets all four criteria: it keeps three settings tied to cooks' needs, cuts the rest with reasons, builds them from HX components in cook mode's existing patterns, and plans for real cooks to try the result.",
+    "pass": true
+  }
+}

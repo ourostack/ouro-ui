@@ -1027,7 +1027,7 @@ describe("findDesignIssues: off-centre-text", () => {
     expect(of("off-centre-text", { fieldSlackPx: 8 })).toEqual([]);
     expect(of("off-centre-text")).toHaveLength(1);
     document.body.innerHTML = "";
-    render(`<p><button style="font:16px/24px system-ui, sans-serif;padding:11px 16px 5px;border:1px solid #999;background:#fff">Save</button></p>`);
+    render(`<p><button style="font:16px/24px system-ui, sans-serif;padding:14px 16px 2px;border:1px solid #999;background:#fff">Save</button></p>`);
     expect(of("off-centre-text", { textSlackPx: 8 })).toEqual([]);
     expect(of("off-centre-text")).toHaveLength(1);
   });

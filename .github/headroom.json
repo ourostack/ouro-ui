@@ -45,11 +45,6 @@
     "owner": "drain-3"
   },
   {
-    "test": "* site/src/site.test.tsx > home page > sets the headline at one height in every look beside the story, so choosing a look moves nothing below it",
-    "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "drain-3"
-  },
-  {
     "test": "* registry/ouro/lib/ouro/testing/commands.test.ts > emulateMedia throws, naming the query, when the frame never matches it",
     "reason": "Waits out a deliberate ten second poll bound, so it takes half its timeout by design.",
     "owner": "drain-3"

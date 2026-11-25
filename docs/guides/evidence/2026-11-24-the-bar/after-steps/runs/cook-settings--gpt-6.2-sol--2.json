@@ -1,0 +1,266 @@
+{
+  "id": "cook-settings--gpt-6.2-sol--2",
+  "scenario": "cook-settings",
+  "repo": "spoonjoy",
+  "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+  "model": "gpt-6.2-sol",
+  "rep": 2,
+  "exit": 0,
+  "seconds": 116,
+  "prompt": "Cooks have asked for settings in cook mode. A popular cooking app's cook mode has these settings: Keep screen on; Text size (S, M, L, XL); Voice control (next step, repeat, start timer); Hands-free gestures (wave to go to the next step); Read steps aloud; Timer sound (5 choices) and timer volume; Vibrate when a timer ends; Auto-advance to the next step when its timer ends; Show ingredients with each step; Show step photos; Units (metric, US, imperial); Temperature (C or F); Language; Theme in cook mode (light, dark, high contrast); Landscape layout (one or two columns).\n\nPlan cook mode settings for Spoonjoy's web app: what you'd build, and how it looks and works. Look at the code to see what cook mode does today.\n\nReply with your answer in this chat; don't change any files.",
+  "events": [
+    {
+      "message": "I’ll look at Spoonjoy’s cook flow and timer behavior first, so the plan builds on what cooks already use."
+    },
+    {
+      "tool": "glob",
+      "arguments": {
+        "pattern": "app/**/*[Cc]ook*"
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "cook mode|wake lock|step photo|timer|unit conversion",
+        "glob": "BACKLOG.md",
+        "output_mode": "content",
+        "-i": true,
+        "head_limit": 40
+      }
+    },
+    {
+      "tool": "glob",
+      "arguments": {
+        "pattern": "e2e/journeys/*cook*"
+      }
+    },
+    {
+      "tool": "glob",
+      "arguments": {
+        "pattern": "app/**/*[Tt]imer*"
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/cook/RecipeCookView.tsx",
+        "view_range": [
+          1,
+          240
+        ]
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "wakeLock|speechSynthesis|SpeechRecognition|\\.vibrate\\(|AudioContext|<RecipeCookView",
+        "paths": [
+          "app"
+        ],
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 65
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/recipe/CookTimers.tsx",
+        "view_range": [
+          1,
+          230
+        ]
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "model (RecipeStep|Step|User|RecipeIngredient)|temperatureUnit|unitSystem|prefers-color-scheme|localStorage",
+        "paths": [
+          "prisma",
+          "app/domains",
+          "app/routes"
+        ],
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 55
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "useScreenWakeLock|alert =|vibrat|playChime",
+        "paths": [
+          "app"
+        ],
+        "output_mode": "content",
+        "head_limit": 35
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/cook/RecipeCookView.tsx",
+        "view_range": [
+          240,
+          365
+        ]
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/domains/food-knowledge/model/units.ts",
+        "view_range": [
+          1,
+          95
+        ]
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./prisma/schema.prisma",
+        "view_range": [
+          515,
+          541
+        ]
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "Key|key|wake|timer|ingredient",
+        "paths": [
+          "e2e/journeys/cooking.mobile.journey.ts",
+          "e2e/journeys/cooking.journey.ts",
+          "app/hooks/use-route-cook-controller.ts"
+        ],
+        "output_mode": "content",
+        "head_limit": 50
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "setTheme|data-theme|color-scheme",
+        "paths": [
+          "app/root.tsx",
+          "app/styles"
+        ],
+        "output_mode": "content",
+        "head_limit": 20
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/hooks/use-screen-wake-lock.ts"
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "<UnitSystemProvider|UnitSystemControl|useScreenWakeLock|timer",
+        "paths": [
+          "app/routes/test-kitchen.tsx",
+          "app/lib/cook/local-cook-controller.ts",
+          "app/routes/recipes.$id.tsx",
+          "app/components/recipe/UnitSystemControl.tsx"
+        ],
+        "output_mode": "content",
+        "head_limit": 32
+      }
+    },
+    {
+      "tool": "glob",
+      "arguments": {
+        "pattern": "app/components/ouro/{sheet,dialog,segmented-control,switch,slider,select,disclosure}/*tsx"
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/recipe/UnitSystemControl.tsx"
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "SJ-028|Layout|cook-mode-pager",
+        "paths": [
+          "BACKLOG.md",
+          "app/styles/fold.css"
+        ],
+        "output_mode": "content",
+        "head_limit": 15
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "sessionStorage|localStorage|endAt|claim|visibilitychange|repeatFor",
+        "paths": [
+          "app/lib/cook-timers.ts",
+          "app/lib/ouro/use-timer.ts",
+          "app/components/ouro/timer/timer-styles.ts"
+        ],
+        "output_mode": "content",
+        "head_limit": 28
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "cook|timer|settings",
+        "paths": [
+          "actions"
+        ],
+        "glob": "*.mts",
+        "output_mode": "files_with_matches",
+        "head_limit": 15
+      }
+    },
+    {
+      "tool": "rg",
+      "arguments": {
+        "pattern": "i18next|react-intl|<html|languageCode|inLanguage",
+        "paths": [
+          "app"
+        ],
+        "output_mode": "content",
+        "head_limit": 20
+      }
+    },
+    {
+      "message": "I’d ship one **Cook settings** panel focused on three jobs: keep the recipe visible, make the current step easy to read, and get a timer alert you’ll notice. Keep Spoonjoy’s one-step-at-a-time flow rather than turning cook mode into a dashboard.\n\n**What Spoonjoy does today.** [`RecipeCookView.tsx`](app/components/cook/RecipeCookView.tsx) shows one step at a time, with a checklist for that step’s ingredients and anything prepared in earlier steps, a scale control, and a pager. The recipe route opens it at `#cook` and already requests a screen wake lock where supported. The [timer ring and tray](app/components/recipe/CookTimers.tsx) share countdowns that survive stepping away or reloading. They already chime and vibrate where supported, show “Time’s up,” and can send a background notification if permission was already granted. The existing [Units control](app/components/recipe/UnitSystemControl.tsx) offers Original, Metric, US, and Imperial.\n\n**What I’d ship first**\n\n| Setting | Default and behavior |\n|---|---|\n| **Keep screen on** | **On**, matching today’s recipe flow. Release the lock when switched off or on exit; request it again when the cook returns to the tab. Say “Your browser may let the screen sleep” if the lock can’t be held. |\n| **Text size** | **M** (today’s size), with S, L, and XL. Resize the method and ingredient text live. At XL, content scrolls without clipping or pushing the pager off-screen. |\n| **Theme** | **Follow app**, plus Light, Dark, and High contrast. Apply it only to cook mode and its settings, not the rest of Spoonjoy. |\n| **Show ingredients with each step** | **On**. Off collapses the checklist to a **Show ingredients** row for a quick peek, without clearing checkmarks or hiding Scale. |\n| **Units** | Move the existing picker into settings rather than adding a second one. Keep **Original** as the default and label this as a shared preference: it also changes amounts on the recipe and shopping list. |\n| **Timer alerts** | **Current chime** or **Silent**, with a **Preview** button and a separate **Vibrate** switch, on where supported. Use device volume for now. Silent never hides “Time’s up” or its screen-reader announcement. The ring and tray use the same alert settings, so a timer finishing during navigation doesn’t alert twice. |\n\nPut a gear labeled **Cook settings** opposite Exit in the cook header. Open an Ouro HX bottom sheet on phones and a compact dialog on wider screens, grouped into **Display**, **Ingredients**, and **Timer alerts**. Changes apply immediately and are remembered in this browser without an account; Units keeps its existing shared storage. **Done** or Escape returns focus to the gear and leaves the cook on the same step, with checkmarks and timers intact. Use the same panel in the recipe flow and Test Kitchen; keep preferences separate from synced cook progress.\n\n**What I’d hold back.** Add a tap-to-**Read step** button next, using browser speech where available, before trying automatic narration. Try voice commands only if cooks still need hands-free navigation: opt in, visibly show when the mic is listening, and stop listening when cook mode is hidden or closed. Skip camera gestures and auto-advance: a wave can be accidental, and a timer ending doesn’t mean the cook is ready to move on. Keep the existing responsive and foldable layout rather than adding a column picker. Step photos need actual step media; °C/°F needs reliably identified temperatures rather than rewriting free-text instructions; language belongs with app localization, not a switch that implies the recipe itself will be translated. Add more sounds or an in-app volume slider only if the basic alert choices don’t meet cooks’ needs.\n\n**Release bar:** On phone and desktop, start a timer, open settings, enlarge the text, silence the chime, and move to another step. The timer should finish once in the tray, visibly and accessibly, without moving the cook forward. After reload, the preferences should still apply without resetting the cook’s progress."
+    }
+  ],
+  "answer": "I’d ship one **Cook settings** panel focused on three jobs: keep the recipe visible, make the current step easy to read, and get a timer alert you’ll notice. Keep Spoonjoy’s one-step-at-a-time flow rather than turning cook mode into a dashboard.\n\n**What Spoonjoy does today.** [`RecipeCookView.tsx`](app/components/cook/RecipeCookView.tsx) shows one step at a time, with a checklist for that step’s ingredients and anything prepared in earlier steps, a scale control, and a pager. The recipe route opens it at `#cook` and already requests a screen wake lock where supported. The [timer ring and tray](app/components/recipe/CookTimers.tsx) share countdowns that survive stepping away or reloading. They already chime and vibrate where supported, show “Time’s up,” and can send a background notification if permission was already granted. The existing [Units control](app/components/recipe/UnitSystemControl.tsx) offers Original, Metric, US, and Imperial.\n\n**What I’d ship first**\n\n| Setting | Default and behavior |\n|---|---|\n| **Keep screen on** | **On**, matching today’s recipe flow. Release the lock when switched off or on exit; request it again when the cook returns to the tab. Say “Your browser may let the screen sleep” if the lock can’t be held. |\n| **Text size** | **M** (today’s size), with S, L, and XL. Resize the method and ingredient text live. At XL, content scrolls without clipping or pushing the pager off-screen. |\n| **Theme** | **Follow app**, plus Light, Dark, and High contrast. Apply it only to cook mode and its settings, not the rest of Spoonjoy. |\n| **Show ingredients with each step** | **On**. Off collapses the checklist to a **Show ingredients** row for a quick peek, without clearing checkmarks or hiding Scale. |\n| **Units** | Move the existing picker into settings rather than adding a second one. Keep **Original** as the default and label this as a shared preference: it also changes amounts on the recipe and shopping list. |\n| **Timer alerts** | **Current chime** or **Silent**, with a **Preview** button and a separate **Vibrate** switch, on where supported. Use device volume for now. Silent never hides “Time’s up” or its screen-reader announcement. The ring and tray use the same alert settings, so a timer finishing during navigation doesn’t alert twice. |\n\nPut a gear labeled **Cook settings** opposite Exit in the cook header. Open an Ouro HX bottom sheet on phones and a compact dialog on wider screens, grouped into **Display**, **Ingredients**, and **Timer alerts**. Changes apply immediately and are remembered in this browser without an account; Units keeps its existing shared storage. **Done** or Escape returns focus to the gear and leaves the cook on the same step, with checkmarks and timers intact. Use the same panel in the recipe flow and Test Kitchen; keep preferences separate from synced cook progress.\n\n**What I’d hold back.** Add a tap-to-**Read step** button next, using browser speech where available, before trying automatic narration. Try voice commands only if cooks still need hands-free navigation: opt in, visibly show when the mic is listening, and stop listening when cook mode is hidden or closed. Skip camera gestures and auto-advance: a wave can be accidental, and a timer ending doesn’t mean the cook is ready to move on. Keep the existing responsive and foldable layout rather than adding a column picker. Step photos need actual step media; °C/°F needs reliably identified temperatures rather than rewriting free-text instructions; language belongs with app localization, not a switch that implies the recipe itself will be translated. Add more sounds or an in-app volume slider only if the basic alert choices don’t meet cooks’ needs.\n\n**Release bar:** On phone and desktop, start a timer, open settings, enlarge the text, silence the chime, and move to another step. The timer should finish once in the tray, visibly and accessibly, without moving the cook forward. After reload, the preferences should still apply without resetting the cook’s progress.",
+  "verdict": {
+    "criteria": [
+      {
+        "id": "restraint",
+        "met": false,
+        "evidence": "The answer cuts several reference settings with reasons, such as \"Skip camera gestures and auto-advance: a wave can be accidental\". But it still plans six settings, including two that the device and browser already handle: \"**Text size** | **M** (today’s size), with S, L, and XL\" and \"**Theme** | **Follow app**, plus Light, Dark, and High contrast\". It also turns \"Keep screen on\" into a toggle, even though the default already does that job. It adds these settings instead of relying on the device's own settings."
+      },
+      {
+        "id": "jobs",
+        "met": true,
+        "evidence": "It opens with cooks' needs, not the reference's features: \"focused on three jobs: keep the recipe visible, make the current step easy to read, and get a timer alert you’ll notice. Keep Spoonjoy’s one-step-at-a-time flow rather than turning cook mode into a dashboard.\""
+      },
+      {
+        "id": "builds",
+        "met": true,
+        "evidence": "It plans a real panel built on existing patterns: \"Put a gear labeled **Cook settings** opposite Exit in the cook header. Open an Ouro HX bottom sheet on phones and a compact dialog on wider screens\". It also says \"Move the existing picker into settings rather than adding a second one\" and \"The ring and tray use the same alert settings.\""
+      },
+      {
+        "id": "proof",
+        "met": false,
+        "evidence": "The \"Release bar\" is a functional walkthrough: \"On phone and desktop, start a timer, open settings, enlarge the text, silence the chime... The timer should finish once in the tray, visibly and accessibly\". It does not plan a design review against the screen's references, a look at real sizes for visual quality, or cooks trying it."
+      }
+    ],
+    "summary": "The plan starts from cooks' jobs and builds a well-grounded Ouro HX panel, but it adds Text size and Theme settings that the device already handles, and it checks only function rather than how the result looks to a person.",
+    "pass": false
+  }
+}
