@@ -16,8 +16,7 @@
       "off-curve": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
       "opacity-step": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
       "label-clip": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
-      "off-centre-text": "A rule new on this site: it reports without failing while its first findings are fixed (ourostack/ouro-ui#3257).",
-      "wrapped-short-line": "A rule new on this site: short page titles wrap in the docs menu on a phone, and it reports without failing while they are fixed (ourostack/ouro-ui#3556)."
+      "off-centre-text": "A rule new on this site: it reports without failing while its first findings are fixed (ourostack/ouro-ui#3257)."
     },
     "/docs/card/": {
       "overlap": "The Searing card's title rises onto its band over the picture while the pointer rests on it, which the check reads as overlap since the family strip moved the page up (#3575)."
