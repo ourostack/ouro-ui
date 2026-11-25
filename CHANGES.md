@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: dragging a mouse over empty time in TimeGrid gives onSlotSelect the whole dragged range, with a preview while it is dragged; Escape cancels the drag.
