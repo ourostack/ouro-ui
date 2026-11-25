@@ -342,7 +342,7 @@ export const SectionMenu: Story = {
           { id: "trail", title: "Trail crew", preview: "Meet at the north gate at eight.", time: "9:41", section: "team" },
           { id: "ana", title: "Ana Lind", preview: "The engine notes are attached.", time: "8:15", section: "recent" },
         ]}
-        selectedId="ana"
+        selectedId="trail"
         onSelect={() => {}}
       />
     </Surface>
