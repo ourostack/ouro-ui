@@ -29,9 +29,9 @@ const DocsHeader = lazy(() => import("./docs-header"));
  * stretched aside's height changes as a sibling collapsible (More ways, #3320) transitions; only the invisible
  * aside wrapper does, which still needs a real fix at the Collapsible's own transition, not here.
  */
-// From 640px a narrower sidebar, so a tablet's page column is no narrower than a phone's; the full one from 768px. Neither takes
-// more than two fifths of the window, so large type on a narrow window leaves the page a column.
-const COLUMNS = "sm:grid sm:grid-cols-[12rem_minmax(0,1fr)] md:grid-cols-[min(16rem,40vw)_minmax(0,1fr)] gap-8";
+// The sidebar takes at most three tenths of the window, so a tablet's page column is no narrower than a phone's and large type
+// on a narrow window leaves the page a column; from about 850px it is the full 16rem.
+const COLUMNS = "sm:grid sm:grid-cols-[min(16rem,30vw)_minmax(0,1fr)] gap-8";
 
 /**
  * The page's column, which the picture fills: the window less its gutters, and from 640px less the sidebar too (narrower until 768px), until the
