@@ -1,0 +1,1 @@
+- Fix: the docs site's sidebar no longer resizes mid-transition when the page column's "More ways" collapsible expands or collapses (#3320).

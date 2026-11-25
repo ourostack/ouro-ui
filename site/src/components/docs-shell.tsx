@@ -19,9 +19,15 @@ const DocsSidebar = lazy(() => import("./docs-sidebar"));
  */
 const DocsHeader = lazy(() => import("./docs-header"));
 
-/** The sidebar's column and the page's: the title and its picture open the page's column, over the words they name. */
+/**
+ * The sidebar's column and the page's: the title and its picture open the page's column, over the words they name.
+ * `items-start` keeps each column sized to its own content: without it the grid's default stretch grows the
+ * sidebar's box to match the page column's height, so a collapsible in the page (More ways) resizes its sibling
+ * mid-transition (#3320); the sidebar's own sticky inner box (docs-sidebar.tsx) already sizes itself to the
+ * viewport, so nothing it draws depends on the outer box's height.
+ */
 // From 640px a narrower sidebar, so a tablet's page column is no narrower than a phone's; the full one from 768px.
-const COLUMNS = "sm:grid sm:grid-cols-[12rem_minmax(0,1fr)] md:grid-cols-[16rem_minmax(0,1fr)] sm:gap-8 lg:gap-12";
+const COLUMNS = "sm:grid sm:grid-cols-[12rem_minmax(0,1fr)] md:grid-cols-[16rem_minmax(0,1fr)] sm:gap-8 lg:gap-12 sm:items-start";
 
 /**
  * The page's column, which the picture fills: the window less its gutters, and from 640px less the sidebar too (narrower until 768px), until the
