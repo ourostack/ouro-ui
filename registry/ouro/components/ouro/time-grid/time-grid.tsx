@@ -1355,9 +1355,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                       <span
                         data-ouro-time-grid-drag=""
                         data-slot="time-grid-drag"
-                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border border-solid border-primary bg-primary/10"
+                        className="pointer-events-none absolute inset-x-0.5 box-border overflow-hidden rounded-ouro-md border border-solid border-primary bg-primary/10 px-1.5 text-[11px] leading-4 text-foreground"
                         style={{ top: minutesTall(Math.min(drag.from, drag.to)), height: minutesTall(Math.abs(drag.to - drag.from) + slotMinutes) }}
-                      />
+                      >
+                        {`${formats.time.format(formats.clock.instant(day, Math.min(drag.from, drag.to)))} – ${formats.time.format(formats.clock.instant(day, Math.max(drag.from, drag.to) + slotMinutes))}`}
+                      </span>
                     ) : null}
                     {hover?.day === index && !coveredAt(index, hover.minutes) ? (
                       <span
