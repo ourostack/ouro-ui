@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [TimeGrid decides the +N fold from a day's width as it mounts](registry/ouro/components/ouro/time-grid/time-grid.test.tsx "verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > folding overlapping events a day has no room for > folds by the day's width on the render that mounts, without waiting for a ResizeObserver notification)"), so a crowded day's events no longer draw unfolded for a frame before the fold replaces them once the observer's first notification lands (#3705).
