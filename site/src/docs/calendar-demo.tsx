@@ -148,6 +148,14 @@ function Screen(): JSX.Element {
     return () => cancelAnimationFrame(frame);
   }, [refocus]);
   const formId = useId();
+  // At large text the message below the input sits past the scrolled body's edge, under the footer, so it scrolls in once it is drawn and again after the sheet settles.
+  useEffect(() => {
+    if (!error) return;
+    const show = () => document.getElementById(formId)?.querySelector("input")?.getAttribute("aria-describedby")?.split(" ").forEach((id) => document.getElementById(id)?.scrollIntoView({ block: "nearest" }));
+    show();
+    const frame = requestAnimationFrame(() => requestAnimationFrame(show));
+    return () => cancelAnimationFrame(frame);
+  }, [error, formId]);
 
   const shown = stage === "empty" ? [] : events;
   const current = events.find((candidate) => candidate.id === open) ?? null;
@@ -181,8 +189,6 @@ function Screen(): JSX.Element {
       setError("Add a title");
       const input = document.getElementById(formId)?.querySelector<HTMLElement>("input");
       input?.focus();
-      // At large text the message below the input sits past the scrolled body's edge, under the footer.
-      requestAnimationFrame(() => input?.getAttribute("aria-describedby")?.split(" ").forEach((id) => document.getElementById(id)?.scrollIntoView({ block: "nearest" })));
       return;
     }
     const tone = kinds.find((candidate) => candidate.value === draft.kind)?.tone;

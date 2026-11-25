@@ -61,6 +61,7 @@ describe("the calendar page", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       await renderPage("/docs/calendar-demo/");
+      await page.getByRole("radio", { name: "Empty week" }).click();
       await page.getByRole("button", { name: "New event" }).click();
       const dialog = page.getByRole("dialog", { name: "New event" });
       await dialog.getByRole("button", { name: "Create" }).click();
