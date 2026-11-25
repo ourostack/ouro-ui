@@ -795,11 +795,19 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       setDayWidth(day.getBoundingClientRect().width);
       setDayRem(parseFloat(getComputedStyle(document.documentElement).fontSize));
     };
+    // Measured here, not only in the observer's callback, but only when a day has events that
+    // might fold: the observer's first notification runs after the layout effect's commit paints,
+    // which would draw every event unfolded for a frame before the fold replaced them. Measuring
+    // now decides the fold before that paint. A grid with no events has nothing to fold, so it
+    // keeps forcing no layout while it mounts.
+    if (timed.some((placements) => placements.length > 0)) measure();
     const observer = new ResizeObserver(measure);
     observer.observe(day);
     // Stryker disable next-line ArrowFunction: once the day is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
-    // The day column is replaced when the dates change, so the observer follows it.
+    // The day column is replaced when the dates change, so the observer follows it; a change to the
+    // events alone still measures, once the ResizeObserver's own notification lands.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayKey]);
 
   const focusPiece = (key: string) => {
