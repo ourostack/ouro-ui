@@ -96,6 +96,11 @@
   }
 
   /* Hero. */
+  /* The hero's last row (its buttons, or a capture) clears the next band's hairline instead of sitting on it, as
+     platforms.css does for the platform pages. */
+  .apple [data-ouro="hero"] + .apple-band {
+    margin-block-start: calc(var(--spacing) * 12);
+  }
   .apple-lede {
     display: grid;
     gap: calc(var(--spacing) * 3);
