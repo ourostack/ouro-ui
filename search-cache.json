@@ -106,6 +106,95 @@
         "app/components/ouro/spinner/spinner.tsx",
         "app/components/ouro/toggle/toggle-group.tsx"
       ]
+    },
+    "\"ouro-ui-core\"": {
+      "commit": "52da7c577a3d358d9216c8d572b2a91e0220dcba",
+      "at": "2026-11-25T05:18:38.843Z",
+      "total": 13,
+      "paths": [
+        "README.md",
+        "tools/ouro-actions/README.md",
+        "scripts/sync-sj-tokens.mjs",
+        "actions/spoonjoy.actions.mts",
+        "app/styles/sj-tokens.css",
+        "app/styles/tailwind.css",
+        "claims-urls.json",
+        "tools/ouro-actions/actions.claims.json",
+        "test/styles/theme-css.ts",
+        "test/styles/sj-token-parity.test.ts",
+        "test/scripts/sync-sj-tokens.test.ts",
+        "test/components/recipe/CoverPlaceholder.test.tsx",
+        "test/lib/mcp/declared-actions.server.test.ts"
+      ]
+    },
+    "defineCommand": {
+      "commit": "52da7c577a3d358d9216c8d572b2a91e0220dcba",
+      "at": "2026-11-25T05:18:54.626Z",
+      "total": 5,
+      "paths": [
+        "app/lib/ouro/ax/ax-command.ts",
+        "scripts/ouro/ax/xray.kit.mts",
+        "scripts/ouro/ax/xray.ts",
+        "tools/ouro-actions/ouro-actions.mts",
+        "app/lib/ouro/ax/ax-moved.d.ts"
+      ]
+    },
+    "bindAx": {
+      "commit": "52da7c577a3d358d9216c8d572b2a91e0220dcba",
+      "at": "2026-11-25T05:20:44.387Z",
+      "total": 4,
+      "paths": [
+        "app/lib/ouro/ax/component.ts",
+        "actions/generated/web.ts",
+        "scripts/ouro/ax/xray.ts",
+        "tools/ouro-actions/ouro-actions.mts"
+      ]
+    },
+    "ax-mcp": {
+      "commit": "52da7c577a3d358d9216c8d572b2a91e0220dcba",
+      "at": "2026-11-25T05:21:12.071Z",
+      "total": 1,
+      "paths": [
+        "app/lib/ouro/ax/ax-claims.ts"
+      ]
+    }
+  },
+  "spoonjoy/spoonjoy-apple": {
+    "OuroButton": {
+      "commit": "a919359e37f7972976f0586ae1465381fb4ff40e",
+      "at": "2026-11-25T05:24:52.617Z",
+      "total": 7,
+      "paths": [
+        "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift",
+        "Apps/Spoonjoy/Shared/Views/SearchView.swift",
+        "docs/native-design-language.md",
+        "scripts/validate-design-review.rb",
+        "Apps/Spoonjoy/Shared/Views/KitchenView.swift",
+        "scripts/capture-native-screenshots.sh",
+        "Apps/Spoonjoy/Shared/Components/ScreenshotAccessibilityProofWriter.swift"
+      ]
+    },
+    "OuroToast": {
+      "commit": "a919359e37f7972976f0586ae1465381fb4ff40e",
+      "at": "2026-11-25T05:24:58.680Z",
+      "total": 0,
+      "paths": []
+    },
+    "OuroBanner": {
+      "commit": "a919359e37f7972976f0586ae1465381fb4ff40e",
+      "at": "2026-11-25T05:25:31.715Z",
+      "total": 1,
+      "paths": [
+        "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift"
+      ]
+    },
+    "\"import OuroAX\"": {
+      "commit": "a919359e37f7972976f0586ae1465381fb4ff40e",
+      "at": "2026-11-25T05:29:48.018Z",
+      "total": 1,
+      "paths": [
+        "Tests/SpoonjoyCoreTests/XrayExpectationTests.swift"
+      ]
     }
   },
   "ourostack/ouro-md": {
@@ -233,31 +322,6 @@
       "at": "2026-11-25T01:25:50.335Z",
       "total": 0,
       "paths": []
-    }
-  },
-  "ourostack/ouroboros": {
-    "components/ouro/": {
-      "commit": "ae67f6a51f59b3a33af287bb428fd4a65906a606",
-      "at": "2026-11-25T04:28:43.214Z",
-      "total": 4,
-      "paths": [
-        "deploy/eval/u/build/kit-config.mjs",
-        "deploy/eval/u/results/k1-package.json",
-        "deploy/eval/u/results/ouro-baseline-summary.json",
-        "deploy/eval/u/results/ouro-rewrite.json"
-      ]
-    },
-    "\"ouro-ui-core\"": {
-      "commit": "ae67f6a51f59b3a33af287bb428fd4a65906a606",
-      "at": "2026-11-25T04:29:09.175Z",
-      "total": 5,
-      "paths": [
-        "docs/bundle-declared-tools.md",
-        "src/repertoire/mcp-declared-tools.ts",
-        "tools/ouro-actions/actions.claims.json",
-        "deploy/eval/u/results/ouro-rewrite.json",
-        "src/__tests__/repertoire/fixtures/declared-tools/SOURCE.md"
-      ]
     }
   }
 }
