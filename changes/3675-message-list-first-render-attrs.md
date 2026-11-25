@@ -1,0 +1,2 @@
+- Fix: MessageList gives [each message its Tab stop, control, part, position and size in its own first render, so a row mounted during a scroll gets no second attribute write](registry/ouro/components/ouro/message/message-list.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > gives a Message its control, part, position and size in its own first render, so none is written again once it mounts)").
+

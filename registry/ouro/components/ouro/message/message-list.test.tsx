@@ -2837,6 +2837,46 @@ describe("MessageList keyboard", () => {
     expect(document.getElementById("post-2")!.getAttribute("tabindex")).toBe("-1");
   });
 
+  it("gives a Message its control, part, position and size in its own first render, so none is written again once it mounts", async () => {
+    const { scroller, rerender } = await render(<Channel>{posts(10)}</Channel>);
+    const seen = new Set<Element>();
+    const mutated: Element[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === "childList") {
+          for (const node of record.addedNodes) {
+            if (!(node instanceof Element)) continue;
+            if (node.matches('[data-ouro="message"]')) seen.add(node);
+            for (const message of node.querySelectorAll('[data-ouro="message"]')) seen.add(message);
+          }
+        } else if (record.type === "attributes" && record.target instanceof Element && seen.has(record.target)) {
+          mutated.push(record.target);
+        }
+      }
+    });
+    observer.observe(scroller, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-ouro-control", "data-ouro-part", "aria-posinset", "aria-setsize"],
+    });
+    // The newest always draws, so appending one scrolls the list to it: a row mounted during a scroll, as the issue reports.
+    await rerender(<Channel>{posts(11)}</Channel>);
+    await settle(scroller);
+    observer.disconnect();
+    const added = document.getElementById("post-10")!;
+    expect(seen.has(added)).toBe(true);
+    expect(added.getAttribute("data-ouro-control")).toBe("message-list");
+    expect(added.getAttribute("data-ouro-part")).toBe("item");
+    expect(added.getAttribute("aria-posinset")).toBe("11");
+    expect(added.getAttribute("aria-setsize")).toBe("11");
+    // The newest just sent becomes the Tab stop; tabindex itself is excluded from the attributes watched above,
+    // since the roving Tab stop moving to it is its own, separate concern.
+    expect(added.getAttribute("tabindex")).toBe("0");
+    // No sync after its own render wrote any of these again.
+    expect(mutated).toEqual([]);
+  });
+
   it("keeps a list inside a message to its own messages", async () => {
     const { host } = await render(
       <Channel>
