@@ -3,6 +3,7 @@
 import { Toggle as BaseToggle } from "@base-ui/react/toggle";
 import { useState, type ButtonHTMLAttributes, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { capLabelClass } from "@/registry/ouro/lib/ouro/cap-label";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDisabledReason } from "@/registry/ouro/lib/ouro/disabled-reason";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -236,7 +237,7 @@ export function Toggle(props: ToggleProps): JSX.Element {
     >
       <TouchTarget />
       {Icon && <Icon aria-hidden="true" className={cn(iconClass, "relative", !hideLabel && "-ms-0.5")} />}
-      {!iconOnly && <span className={cn("relative", hideLabel && "sr-only")}>{label}</span>}
+      {!iconOnly && <span className={cn("relative", hideLabel ? "sr-only" : capLabelClass)}>{label}</span>}
       {reason.note}
     </BaseToggle>
   );

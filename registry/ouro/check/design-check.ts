@@ -64,11 +64,15 @@ interface DesignOptions {
   /** How far, in pixels, a count badge's numerals may sit from its middle. */
   badgeSlackPx?: number;
   /**
-   * How far, in pixels, one line of a control's words may sit from its middle, by its cap height. The default passes a
-   * font whose line box sits a little off its cap height, as shadcn's nova preset does, so the rule
-   * names a layout that pushes words off, such as a bottom-aligned row.
+   * How far, in pixels, one line of a button's, tab's or badge's words may sit from its middle, by its cap height. Ouro
+   * centres these on their cap height, so the default is the reading's own error.
    */
   textSlackPx?: number;
+  /**
+   * The same for a field's value or placeholder, which the browser centres by its line box, so the default passes a font
+   * whose line box sits a little off its cap height, as shadcn's nova preset does.
+   */
+  fieldSlackPx?: number;
   /** The limit on a page's text sizes and font weights. */
   maxSizes?: number;
   maxWeights?: number;
@@ -105,7 +109,7 @@ interface CornerReading {
   corners: string[];
 }
 
-function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 2.5 }: DesignOptions = {}): PageIssue[] {
+function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 2.1, fieldSlackPx = 2.5 }: DesignOptions = {}): PageIssue[] {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
@@ -552,7 +556,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const placeholder = field ? !(el as HTMLInputElement).value : Boolean(value);
     const fs = field && placeholder ? getComputedStyle(el, "::placeholder") : placeholder ? before : s;
     context.font = `${fs.fontStyle} ${fs.fontWeight} ${fs.fontSize} ${fs.fontFamily}`;
-    const cap = context.measureText("H").actualBoundingBoxAscent;
+    let cap = context.measureText("H").actualBoundingBoxAscent;
     const m = context.measureText(value || "H");
     const lineHeight = s.lineHeight === "normal" ? m.fontBoundingBoxAscent + m.fontBoundingBoxDescent : px(s.lineHeight);
     // Boxes are read as drawn, and a scaled thumbnail draws everything smaller: lengths from styles are scaled to match.
@@ -587,10 +591,8 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       }
       if (!first) continue;
       const ts = getComputedStyle(first.parentElement!);
-      const trimmed = (ts as CSSStyleDeclaration & { textBoxTrim?: string }).textBoxTrim;
-      // Words on more than one line, or a line box trimmed to its cap height already, which this reading can't place, are
-      // left alone.
-      if (rects.some((r) => Math.abs(r.top - rects[0]!.top) > 2) || (trimmed && trimmed !== "none")) continue;
+      // Words on more than one line are left alone.
+      if (rects.some((r) => Math.abs(r.top - rects[0]!.top) > 2)) continue;
       // An icon above or below the words, as a rail's item draws them, makes a stack whose middle isn't the words'.
       const line = rects[0]!;
       const stacked = [...el.querySelectorAll("svg, img, canvas, video")].some((icon) => {
@@ -599,14 +601,22 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       });
       if (stacked) continue;
       context.font = `${ts.fontStyle} ${ts.fontWeight} ${ts.fontSize} ${ts.fontFamily}`;
-      baseline = rects[0]!.top + context.measureText(first.textContent!).fontBoundingBoxAscent * scale;
+      // capLabel's text-box-trim already cuts the line box to [cap-top, alphabetic baseline]: that box's own edges
+      // are the reading, not a canvas-measured ascent stacked back onto a box already cut to the cap.
+      const trimmed = (ts as CSSStyleDeclaration & { textBoxTrim?: string }).textBoxTrim;
+      if (trimmed && trimmed !== "none") {
+        baseline = line.bottom;
+        cap = (line.bottom - line.top) / scale;
+      } else {
+        baseline = line.top + context.measureText(first.textContent!).fontBoundingBoxAscent * scale;
+      }
     }
     // A field with no frame or fill of its own, such as a composer's text area, is centred in the frame around it.
     const frame = !el.matches("input, textarea, [contenteditable]") || filled(el) ? el : [el.parentElement, el.parentElement?.parentElement, el.parentElement?.parentElement?.parentElement].find((a) => a && filled(a) && a.getBoundingClientRect().height <= 72 * scale) ?? el;
     const f = frame.getBoundingClientRect();
     const middle = f.top + (px(getComputedStyle(frame).borderTopWidth) + frame.clientHeight / 2) * scale;
     const dy = (baseline - (cap / 2) * scale - middle) / scale;
-    if (Math.abs(dy) > textSlackPx) {
+    if (Math.abs(dy) > (field || editor ? fieldSlackPx : textSlackPx)) {
       issues.push({ ref: ref(el), rule: "off-centre-text", element: `${describe(el)}${quoted(el)}`, detail: `its ${placeholder ? "placeholder" : "text"} sits ${Math.abs(dy).toFixed(1)}px ${dy < 0 ? "high" : "low"}, by its cap height: even the padding above and below it, and centre it on its cap height, not its line box` });
     }
   }

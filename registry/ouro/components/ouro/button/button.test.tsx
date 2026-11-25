@@ -86,6 +86,17 @@ describe("button branch", () => {
     expect(button.textContent).toBe("Go");
   });
 
+  it("wraps its label in the cap-label span, but leaves an inline button's text as it is", async () => {
+    const { button } = await render(<Button>Go</Button>);
+    expect(button.querySelector('[data-slot="cap-label-text"]')).not.toBeNull();
+    const { button: inline } = await render(
+      <Button size="inline" variant="plain">
+        Go
+      </Button>,
+    );
+    expect(inline.querySelector('[data-slot="cap-label-text"]')).toBeNull();
+  });
+
   // An app's theme may change the medium weight and the radius, on the root or on its buttons alone, and may give its
   // controls their own radius (--ouro-control-radius, which falls back to Ouro's lg step), so compare with a probe
   // inside the button that wears the same steps. A control's radius stops at half its height, so a theme's 9999px
@@ -713,6 +724,13 @@ describe("inline size", () => {
     );
     expect(button.getBoundingClientRect().width).toBeGreaterThanOrEqual(24);
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("leaves its label untrimmed, unlike every other size's cap-height trim", async () => {
+    const { button } = await render(<Button size="inline">Why</Button>);
+    expect(button.querySelector('[data-slot="cap-label-text"]')).toBeNull();
+    const { button: defaultButton } = await render(<Button>Why</Button>);
+    expect(defaultButton.querySelector('[data-slot="cap-label-text"]')).not.toBeNull();
   });
 });
 
