@@ -19,7 +19,16 @@ const DocsSidebar = lazy(() => import("./docs-sidebar"));
  */
 const DocsHeader = lazy(() => import("./docs-header"));
 
-/** The sidebar's column and the page's: the title and its picture open the page's column, over the words they name. */
+/**
+ * The sidebar's column and the page's: the title and its picture open the page's column, over the words they name.
+ * The grid's default stretch (not `items-start`) is required: the sidebar's own box (docs-sidebar.tsx) is
+ * `position: sticky`, and a sticky item's containing block for scroll purposes is its grid area, not its own
+ * content height — with `items-start` the aside shrinks to one viewport tall and the sidebar unsticks within a
+ * couple hundred pixels of scroll on every docs page (site.test.tsx's "keeps the header out of the way of the
+ * sidebar" test, #3659). The sidebar's own nav box has a fixed `h-dvh`, so it does not visibly resize when the
+ * stretched aside's height changes as a sibling collapsible (More ways, #3320) transitions; only the invisible
+ * aside wrapper does, which still needs a real fix at the Collapsible's own transition, not here.
+ */
 // From 640px a narrower sidebar, so a tablet's page column is no narrower than a phone's; the full one from 768px.
 const COLUMNS = "sm:grid sm:grid-cols-[12rem_minmax(0,1fr)] md:grid-cols-[16rem_minmax(0,1fr)] sm:gap-8 lg:gap-12";
 
