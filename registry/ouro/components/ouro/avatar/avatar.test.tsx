@@ -1103,8 +1103,10 @@ describe("Avatar presence", () => {
       expect(disc.width).toBeGreaterThan(frame.width * (ring ? 0.8 : 0.95));
       // A ring's mark is still a rounded stroke in the tone; available, do not disturb and away
       // cut theirs as a filled shape in the tone's foreground instead, so it stays crisp at 8 and
-      // 9px rather than blurring like a stroke that thin would.
-      for (const mark of glyph.querySelectorAll("path")) {
+      // 9px rather than blurring like a stroke that thin would. Do not disturb's bar is an exact
+      // rounded rect rather than a path, so a mark is either element.
+      const marks = [...glyph.querySelectorAll("path"), ...glyph.querySelectorAll("rect")];
+      for (const mark of marks) {
         const line = getComputedStyle(mark);
         if (ring) {
           expect(line.fill).toBe("none");
@@ -1118,7 +1120,7 @@ describe("Avatar presence", () => {
         const drawn = mark.getBBox();
         expect(Math.max(drawn.width, drawn.height)).toBeGreaterThan(4);
       }
-      expect(glyph.querySelectorAll("path")).toHaveLength(presence === "busy" ? 0 : 1);
+      expect(marks).toHaveLength(presence === "busy" ? 0 : 1);
     }
   });
 

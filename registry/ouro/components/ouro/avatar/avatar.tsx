@@ -477,12 +477,13 @@ const outOfOffice = "stroke-(--ouro-presence-out-of-office,var(--primary))";
 // circle), not a stroked line: a stroke that thin blurs away at the 8 and 9px dot sizes, where
 // a filled shape still anti-aliases to two crisp edges. Busy has no mark at any size, and
 // offline and out of office keep Fluent's own ring-and-stroke style, hidden below 40px as before.
-const checkMark =
-  "M11.366 6.566L7.766 10.166C7.453 10.478 6.947 10.478 6.634 10.166L5.034 8.566C4.722 8.253 4.722 7.747 5.034 7.434C5.347 7.122 5.853 7.122 6.166 7.434L7.2 8.469L10.234 5.434C10.547 5.122 11.053 5.122 11.366 5.434C11.678 5.747 11.678 6.253 11.366 6.566Z";
-const barMark =
-  "M5.6 7.2H10.4C10.842 7.2 11.2 7.558 11.2 8C11.2 8.442 10.842 8.8 10.4 8.8H5.6C5.158 8.8 4.8 8.442 4.8 8C4.8 7.558 5.158 7.2 5.6 7.2Z";
-const clockHandMark =
-  "M8 4.8V7.664L10.16 9.84C10.48 10.144 10.48 10.656 10.16 10.96C9.856 11.28 9.344 11.28 9.04 10.96L6.64 8.56C6.48 8.416 6.4 8.208 6.4 8V4.8C6.4 4.368 6.752 4 7.2 4C7.648 4 8 4.368 8 4.8Z";
+// Rounded to one decimal place, a tenth of this 16-unit viewBox's unit, and each cubic curve
+// (a rounded cap or corner) drawn as one quadratic curve through the same corner instead: both
+// sub-pixel even at the smallest dot (8px, under 0.02 units of deviation), so neither costs any
+// visible precision, while keeping these strings, repeated in every bundle that imports Avatar,
+// off the initial-load budget (ourostack/ouro-ui#3805).
+const checkMark = "M11.4 6.6L7.8 10.2Q7.2 10.6 6.6 10.2L5 8.6Q4.6 8 5 7.4Q5.6 7 6.2 7.4L7.2 8.5L10.2 5.4Q10.8 5 11.4 5.4Q11.8 6 11.4 6.6Z";
+const clockHandMark = "M8 4.8V7.7L10.2 9.8Q10.6 10.4 10.2 11Q9.6 11.4 9 11L6.6 8.6Q6.4 8.3 6.4 8V4.8Q6.5 4.1 7.2 4Q7.9 4.1 8 4.8Z";
 
 /** The presence dot's glyph: a shape per state, so color is not the only cue. */
 function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: boolean }): JSX.Element {
@@ -499,7 +500,7 @@ function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: b
       {presence === "do-not-disturb" && (
         <>
           <circle cx="8" cy="8" r="8" className={busy} />
-          <path d={barMark} className={busyInk} />
+          <rect x="4.8" y="7.2" width="6.4" height="1.6" rx="0.8" className={busyInk} />
         </>
       )}
       {presence === "away" && (
