@@ -289,7 +289,7 @@ const sizes = {
 const glass =
   "[--ouro-glass-h:calc(var(--spacing)*10)] [--ouro-bd:var(--ouro-glass-rim)] [--ouro-bg:color-mix(in_oklab,var(--ouro-glass)_var(--ouro-glass-tint),transparent)] " +
   "[--ouro-control-radius:9999px] [--ouro-control-corner-shape:superellipse(1.05)] " +
-  "[--ouro-button-h:var(--ouro-glass-h)] sm:[--ouro-button-h:var(--ouro-glass-h)] " +
+  "[--ouro-button-h:var(--ouro-glass-h)] " +
   "shadow-(--shadow-sm) backdrop-blur-xl aria-expanded:[--ouro-state:var(--ouro-state-pressed,14%)] aria-expanded:before:opacity-[var(--ouro-state-pressed,14%)] " +
   // Stryker disable next-line StringLiteral: a test cannot emulate reduced transparency (Playwright has no option for it)
   "[@media(prefers-reduced-transparency:reduce)]:[--ouro-bg:var(--ouro-glass-solid)] [@media(prefers-reduced-transparency:reduce)]:[--ouro-bd:var(--ouro-glass-edge)] [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +

@@ -1,0 +1,1 @@
+- Fixed: Card's risen title and description opt out of Ouro check's `overlap` rule, which could fire on Linux font metrics on their own glass band over the media (#3575).

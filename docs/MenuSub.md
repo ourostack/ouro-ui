@@ -30,4 +30,5 @@ Type: `MenuSubProps`.
 | `backLabel` | `string` | `"Back"` | The label of the item at the top of the submenu on a phone, where the submenu is a sheet over its menu, that goes back to it. |
 | `children` (required) | `ReactNode` |  | The submenu's items. |
 | `disabled` | `boolean` |  | The item cannot open the submenu. |
+| `icon` | `ReactNode` |  | An icon before the label, as `MenuItem` shows one in its children, so the submenu's words line up with its neighbours'. |
 | `label` (required) | `string` |  | The text of the item that opens the submenu. |

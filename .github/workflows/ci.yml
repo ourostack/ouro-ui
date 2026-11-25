@@ -559,7 +559,11 @@ jobs:
             # The checkout is GitHub's merge of the pull request into its base, so the base is that merge's first
             # parent: main as the merge saw it. Main's tip can be newer (it moved since, or this is a re-run), and
             # its changes would then read as the pull request's.
-            git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
+            # A dropped TLS handshake (exit 128) gets one retry, as the pnpm install step already retries (#3428).
+            git fetch --no-tags --depth=2 origin "$GITHUB_SHA" || {
+              echo "::warning title=Claims fetch failed::git fetch exited 128, often a dropped TLS handshake (ourostack/ouro-ui#3428); fetching once more."
+              git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
+            }
             CLAIMS_BASE_REF="HEAD^1" node scripts/claims.mjs ratchet
             REAL_CLOCK_BASE_REF="HEAD^1" node scripts/real-clock-ratchet.mjs
             HEADROOM_BASE_REF="HEAD^1" node scripts/headroom-ratchet.mjs
@@ -1012,6 +1016,149 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
+  check-node:
+    # Ouro check's Node tests (scripts/check/*.test.mts), in the pieces of scripts/check-node-coverage.mjs, in
+    # Playwright's image. Each piece keeps V8's raw coverage; check-node-merge holds the merge to 100%. Part of
+    # the ci check.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [pages-a, pages-b, rules-command, watch-small, check-rules, check-shards, check]
+    name: check (node ${{ matrix.group }})
+    env:
+      GROUP: ${{ matrix.group }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-tarball
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
+      - name: Ouro check's Node tests, one piece
+        run: node scripts/check-node-coverage.mjs run "$GROUP"
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: check-coverage-${{ matrix.group }}
+          path: .tmp/check-coverage/${{ matrix.group }}
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+  check-node-merge:
+    # Whether the pieces' raw coverage, merged by Node's own test runner, reaches 100% of the lines, branches and
+    # functions the single run of all twelve files was held to. Same image and workspace path as the pieces, since
+    # V8's coverage names files by absolute path. Part of the ci check.
+    needs: [plan, check-node]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    name: check (node coverage)
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-tarball
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: check-coverage-*
+          path: .tmp/check-coverage-all
+      - name: Merge and hold to 100%
+        run: |
+          mkdir -p .tmp/check-coverage
+          for dir in .tmp/check-coverage-all/check-coverage-*; do mv "$dir" ".tmp/check-coverage/${dir##*/check-coverage-}"; done
+          node scripts/check-node-coverage.mjs merge .tmp/check-coverage
   coverage:
     # Whether the browser shards' merged coverage reaches 100% (scripts/coverage-merge.mjs). On a
     # reduced pull request that falls short, a line may be covered only by another component's
@@ -1380,8 +1527,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8,9,10,11,12]' || '[1,2,3,4,5,6]') }}
-    name: design (${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 12 || 6 }})
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]' || '[1,2,3,4,5,6]') }}
+    name: design (${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 24 || 6 }})
     steps:
       # Its checkout needs the base commit (HEAD^1), which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -1441,7 +1588,7 @@ jobs:
         with:
           targets: site/dist
           sizes: 390x844,1440x900,3840x2160
-          shard: ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 12 || 6 }}
+          shard: ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 24 || 6 }}
           script: registry/ouro/check/check.ts
           config: .github/ouro-check.json
           artifact: design-check
@@ -1455,7 +1602,7 @@ jobs:
     # when the plan skipped the browser shards, the design shards or the screen-reader lane because nothing they read changed,
     # without them. Its
     # outputs tell motion-coverage which shards' motion evidence to read, if any.
-    needs: [plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, coverage, browser-fallback, screen-reader]
+    needs: [plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, check-node, check-node-merge, coverage, browser-fallback, screen-reader]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1480,6 +1627,8 @@ jobs:
           SUBSETS: ${{ needs.subsets.result }}
           SCRIPTS: ${{ needs.scripts.result }}
           SCRIPTS_BROWSER: ${{ needs.scripts-browser.result }}
+          CHECK_NODE: ${{ needs.check-node.result }}
+          CHECK_NODE_MERGE: ${{ needs.check-node-merge.result }}
           COVERAGE: ${{ needs.coverage.result }}
           BROWSER_FALLBACK: ${{ needs.browser-fallback.result }}
           SCREEN_READER: ${{ needs.screen-reader.result }}
@@ -1492,7 +1641,7 @@ jobs:
           if [ "$DESIGN_RUN" = false ] && [ "$DESIGN" = skipped ]; then DESIGN=success; fi
           # And the screen-reader lane, which the plan skipped when no screen-reader spec can see the change, or for a fork.
           if [ "$SCREEN_READER_RUN" = false ] && [ "$SCREEN_READER" = skipped ]; then SCREEN_READER=success; fi
-          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "subsets=$SUBSETS" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE" "screen-reader=$SCREEN_READER"; do
+          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "subsets=$SUBSETS" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "check-node=$CHECK_NODE" "check-node-merge=$CHECK_NODE_MERGE" "coverage=$COVERAGE" "screen-reader=$SCREEN_READER"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
               failed=1
@@ -3312,18 +3461,14 @@ jobs:
       matrix:
         variant: [shadcn, ouro]
         preset: [nova, vega]
-        # The shadcn variant's Ouro AX tests take about five minutes alone, so four jobs run a quarter each;
-        # the ouro variant has none, so it runs once.
-        ax: [1, 2, 3, 4]
+        # The shadcn variant's Ouro AX tests take about five minutes alone, and one of their files holds most of
+        # that, so two jobs run half each; the ouro variant has none, so it runs once.
+        ax: [1, 2]
         exclude:
           - variant: ouro
             preset: vega
           - variant: ouro
             ax: 2
-          - variant: ouro
-            ax: 3
-          - variant: ouro
-            ax: 4
     name: install checks (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.ax }})
     env:
       OURO_PRESET: ${{ matrix.preset }}
@@ -3387,7 +3532,7 @@ jobs:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
           OURO_CHECK_ONLY: "1"
-          OURO_AX_SHARD: ${{ matrix.variant == 'shadcn' && format('{0}/4', matrix.ax) || '' }}
+          OURO_AX_SHARD: ${{ matrix.variant == 'shadcn' && format('{0}/2', matrix.ax) || '' }}
         run: scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
   install-gate:
     # A variant's install check: passes when each of its shards passed, as their markers show,

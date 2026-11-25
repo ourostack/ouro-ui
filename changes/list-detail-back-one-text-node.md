@@ -1,0 +1,1 @@
+- Fixed: ListDetailPage's Back button renders its label as a single text node, so NVDA no longer drops the space in "Back to <title>".

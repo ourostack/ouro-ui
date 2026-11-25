@@ -1,0 +1,31 @@
+name: Repeat-red quarantine
+# Report-only (AGENTS.md's "Red-main fixes", coordinator ruling): when the same test fails main a second
+# time in a day and no fix pull request goes green within an hour, it moves here: an open issue naming
+# its product-bug cause, an owner and a 24 hour deadline (.github/repeat-red-quarantine.json). This runs
+# on every push to main and prints a step summary and an annotation per entry, warning once an entry's
+# deadline has passed, but always exits 0: the quarantined test still runs and still fails where it is,
+# main stays green on this check, and releases keep flowing. scripts/repeat-red-quarantine.mjs holds the
+# mechanics.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: repeat-red-quarantine
+  cancel-in-progress: false
+jobs:
+  report:
+    name: repeat-red quarantine
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Report the repeat-red quarantine
+        run: node scripts/repeat-red-quarantine.mjs report

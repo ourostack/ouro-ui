@@ -105,7 +105,8 @@ async function runOne(scenario, model, rep, commits) {
   execFileSync("git", ["-C", source, "worktree", "remove", "--force", checkout]);
   rmSync(join(dir, "home"), { recursive: true, force: true });
   const events = transcript(result.stdout);
-  const answer = events.filter((event) => event.message).at(-1)?.message ?? "";
+  // The answer is every message the agent wrote, in order, as the person reads it: a plan can end with a correction.
+  const answer = events.filter((event) => event.message).map((event) => event.message).join("\n\n");
   const record = { id, scenario: scenario.id, repo: scenario.repo, commit: commits[scenario.repo], model, rep, exit: result.code, seconds: Math.round((Date.now() - started) / 1000), prompt, events };
   writeFileSync(join(dir, "run.json"), JSON.stringify(record, null, 2));
   writeFileSync(join(dir, "answer.md"), answer);

@@ -76,9 +76,6 @@ afterEach(async () => {
   document.querySelector("[data-ouro-announcer]")?.remove();
   expect(error).not.toHaveBeenCalled();
   vi.restoreAllMocks();
-  // Most tests never touch media: resetMedia skips the round trip when it is already at rest, instead
-  // of paying one on every test regardless, which a loaded WebKit shard feels most.
-  await commands.resetMedia();
 });
 
 // The stage the tests use: 380 by 480, so a small picture is 160 by 100, and its corners are at

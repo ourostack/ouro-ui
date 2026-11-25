@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { FamilyBar } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { SkipLink } from "@/registry/ouro/components/ouro/skip-link/skip-link";
@@ -11,6 +11,7 @@ import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { HxLogo } from "../components/brand";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FAMILY, FAMILY_CURRENT } from "../family";
 import { GUTTERS } from "../gutters";
 import { href } from "../paths";
@@ -19,7 +20,9 @@ import { originOf, previewTheme, useLiveClock, useSiteTheme } from "./theme-stor
 import { ThemeDots } from "./theme-dots";
 import { PICKER_PRESETS } from "./theme-dots";
 import { ThemePicker as OuroThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
-import { sectionHref, SITE_SECTIONS, SiteMenu, SiteMenuFrame } from "./site-menu";
+import { SiteMenu, SiteMenuFrame } from "./site-menu";
+import { DocsPanel, loadDocsPanel, PartsPanel, PlatformsPanel, ProofPanel, sectionOf } from "./site-nav";
+import { normalizePath } from "../paths";
 import { setXray, useXray } from "./xray-store";
 
 /** Follow the device, or pin Surfaced (light) or Submerged (dark): the SegmentedControl's three segments. */
@@ -93,6 +96,13 @@ function SiteCommand({ open, setOpen }: { open: boolean; setOpen: Dispatch<SetSt
   }, [open, want]);
   return (
     <>
+      {/* On a phone the bar keeps search as an icon a thumb can reach. */}
+      <Button variant="plain" tone="secondary" aria-label="Search" aria-haspopup="dialog" onClick={() => setOpen(true)} onPointerDown={want} className="w-11 px-0 sm:hidden">
+        <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="size-5">
+          <circle cx="7" cy="7" r="4.25" />
+          <path d="m10.25 10.25 3 3" />
+        </svg>
+      </Button>
       <Button
         variant="outline"
         tone="secondary"
@@ -167,6 +177,25 @@ function XrayPill(): JSX.Element {
   );
 }
 
+/** Whether the page is being scrolled down (true) or up (false), past its first 40px. */
+function useScrollingDown(): boolean {
+  const [down, setDown] = useState(false);
+  useEffect(() => {
+    let last = scrollY;
+    const on = () => {
+      const now = scrollY;
+      if (Math.abs(now - last) < 6) return;
+      // While a panel is open the strip stays, so the bar the panel hangs from holds still.
+      if (document.querySelector('[data-ouro="navigation-menu-popup"]')) setDown(false);
+      else setDown(now > last && now > 40);
+      last = now;
+    };
+    addEventListener("scroll", on, { passive: true });
+    return () => removeEventListener("scroll", on);
+  }, []);
+  return down;
+}
+
 /**
  * The site's one header, on the voyage pages and the docs alike, built from Ouro HX: FamilyBar over Navbar, Popover,
  * RadioGroup, SegmentedControl, Switch, Command and Kbd. The family bar links the Ouro family's sites (family.ts), this
@@ -193,21 +222,49 @@ export function VoyageHeader({
   skipTo?: string | undefined;
 }): JSX.Element {
   const [searching, setSearching] = useCommandShortcut("mod+k");
+  // The family strip and the bar are one surface with one line under both. Where it sticks, scrolling down slides the
+  // strip away and leaves the bar; scrolling up brings it back.
+  const down = useScrollingDown();
+  const strip = useRef<HTMLDivElement>(null);
+  const [stripHeight, setStripHeight] = useState(0);
+  useLayoutEffect(() => {
+    const element = strip.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => setStripHeight(element.offsetHeight));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  // The Docs panel's lists come in when a pointer, a finger or focus first reaches the header, ahead of a hover's open
+  // delay or a press, so the panel has them when it opens; a page nobody navigates from never loads them.
+  const wantDocs = useCallback(() => void loadDocsPanel().catch(() => {}), []);
+  const current = normalizePath(page);
+  const section = sectionOf(current);
   return (
     <>
       <SkipLink target={skipTo} />
-      <FamilyBar
-        links={FAMILY}
-        current={FAMILY_CURRENT}
-        // Not on a phone: there the site's menu lists the family's sites, under the site's own.
-        className={`max-sm:hidden ${GUTTERS[gutters]}`}
-      />
+      <div
+        data-site-masthead=""
+        data-down={down ? "" : undefined}
+        onPointerOver={wantDocs}
+        onPointerDown={wantDocs}
+        onFocus={wantDocs}
+        style={{ ["--site-strip" as string]: `${stripHeight}px` }}
+        className={cn(
+          // It slides by its sticky top, not a transform: a transform would make it the box the popups' fixed focus guards are
+          // placed in, and Tab into a panel would scroll the page to reach one.
+          "z-40 bg-background transition-[top] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none",
+          gutters === "voyage" ? "sticky top-0 data-[down]:-top-(--site-strip)" : "relative max-sm:sticky max-sm:top-0 max-sm:data-[down]:-top-(--site-strip)",
+        )}
+      >
+      <div ref={strip}>
+        <FamilyBar links={FAMILY} current={FAMILY_CURRENT} label="Ouro family" className={GUTTERS[gutters]} />
+      </div>
       <Navbar
         label="Primary"
         // The links, and the Search and X-ray beside them, need more than a tablet's width: collapsing in the server HTML means the links never draw, then give way to the menu button, when the page measures them.
         collapseBelow="lg"
         // Sticky, but on the docs only on a phone: from 640px the docs sidebar sticks to the top itself, and would sit under it.
-        className={`${gutters === "voyage" ? "sticky top-0 z-40" : "relative z-40 max-sm:sticky max-sm:top-0"} ${GUTTERS[gutters]}`}
+        className={GUTTERS[gutters]}
         brand={
           <a
             href={href("/")}
@@ -219,10 +276,13 @@ export function VoyageHeader({
             Ouro UI
           </a>
         }
-        // The brand is the way home, so the bar starts at the Nautilus.
-        items={SITE_SECTIONS.slice(1).map((section) => ({ label: section.label, href: sectionHref(section.href) }))}
-        // On a page its own navigation marks (`pageNav`), a path under the section's: the bar marks the section you are in
-        // (aria-current="true") and a screen reader hears one current page.
+        // Two ways in, by platform and by part, then Proof and Docs: one panel each, which reshapes as you move between them.
+        items={[
+          { label: "Platforms", fit: true, current: section === "platforms", content: <PlatformsPanel current={current} /> },
+          { label: "Parts", fit: true, current: section === "parts", content: <PartsPanel current={current} /> },
+          { label: "Proof", fit: true, current: section === "proof", content: <ProofPanel current={current} /> },
+          { label: "Docs", fit: true, current: section === "docs", content: <DocsPanel current={current} /> },
+        ]}
         currentPath={href(pageNav ? `${path}~` : path)}
         menu={
           <SiteMenuFrame
@@ -264,6 +324,7 @@ export function VoyageHeader({
           </>
         }
       />
+      </div>
     </>
   );
 }

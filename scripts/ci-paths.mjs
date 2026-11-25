@@ -15,7 +15,7 @@
 export const scoped = [
   { pattern: /^scripts\/[^/]+\.test\.mjs$/, tiers: [], components: false, reason: "a Node script test (pnpm test:scripts)" },
   {
-    pattern: /^scripts\/(ceiling-ratchet|ci-budget|ci-fail-fast|ci-proof|ci-yield|docs-pin-release-check|fresh-main|main-green|required-checks|required-producers|cache-prune|patch-guard|quarantine|rerun-guard|size-budget|release-commit|release-note|release-wait|run-script-tests|script-tests)\.(mjs|sh)$|^scripts\/(required-ci|dispatch-required|scheduled-failure|sr-infra-issue|pages-clear|retry)\.sh$/,
+    pattern: /^scripts\/(ceiling-ratchet|ci-budget|ci-fail-fast|ci-proof|ci-yield|docs-pin-release-check|fresh-main|main-green|required-checks|required-producers|cache-prune|patch-guard|quarantine|repeat-red-quarantine|rerun-guard|size-budget|release-commit|release-note|release-wait|run-script-tests|script-tests|check-node-coverage|check-node-coverage-merge)\.(mjs|sh)$|^scripts\/(required-ci|dispatch-required|scheduled-failure|sr-infra-issue|pages-clear|retry)\.sh$/,
     tiers: [],
     components: false,
     reason: "a CI or release helper that only the workflows and the Node script tests run",
@@ -74,7 +74,7 @@ export const runsAll = {
     "install-fixture-themes/", "install-fixture-upgrade/", "install-fixture/", "mcp-app/", "motion.ts", "shadcn-stock.css", "slice-core.ts", "slice.ts", "stories.tsx",
     "story-axe.ts", "story-costs.json", "story-selection.ts", "theme-fixtures.ts", "theme-fixtures/", "themes/", "warm-stories.ts",
   ],
-  ".github": ["actions/", "copilot/", "dependabot.yml", "ouro-check.json", "ouro-current.json", "quarantine.json", "required-checks.json", "workflows/ci.yml", "workflows/screens.yml"],
+  ".github": ["actions/", "copilot/", "dependabot.yml", "ouro-check.json", "ouro-current.json", "quarantine.json", "repeat-red-quarantine.json", "required-checks.json", "workflows/ci.yml", "workflows/screens.yml"],
 };
 
 /** A shared suite over the stories: it can fail on any component, so a change to one runs them all. */

@@ -1,6 +1,14 @@
 import { commands, server } from "vitest/browser";
 import { expect, test, vi } from "vitest";
 
+test("projectDefaultViewport reads the page's own unconfigured viewport instead of a hardcoded guess", async () => {
+  // ouro-chromium and ouro-webkit (where this file runs) set no browser.viewport, so the
+  // project's default must come from the page's own real size, not a constant: this would fail
+  // against a guessed value that doesn't match what the browser actually launched at.
+  const state = await commands.viewportState();
+  expect(state).toEqual({ width: window.innerWidth, height: window.innerHeight });
+});
+
 test("emulateMedia switches reduced motion and color scheme", async () => {
   await commands.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
   expect(matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);

@@ -1,0 +1,108 @@
+{
+  "id": "cook-settings--claude-sonnet-5.5--2",
+  "scenario": "cook-settings",
+  "repo": "spoonjoy",
+  "commit": "1cfa7053915dad2f83678b89f0708a6ceaff7d0b",
+  "model": "claude-sonnet-5.5",
+  "rep": 2,
+  "exit": 0,
+  "seconds": 123,
+  "prompt": "Cooks have asked for settings in cook mode. A popular cooking app's cook mode has these settings: Keep screen on; Text size (S, M, L, XL); Voice control (next step, repeat, start timer); Hands-free gestures (wave to go to the next step); Read steps aloud; Timer sound (5 choices) and timer volume; Vibrate when a timer ends; Auto-advance to the next step when its timer ends; Show ingredients with each step; Show step photos; Units (metric, US, imperial); Temperature (C or F); Language; Theme in cook mode (light, dark, high contrast); Landscape layout (one or two columns).\n\nPlan cook mode settings for Spoonjoy's web app: what you'd build, and how it looks and works. Look at the code to see what cook mode does today.\n\nReply with your answer in this chat; don't change any files.",
+  "events": [
+    {
+      "message": "I'll look at the current cook mode code first."
+    },
+    {
+      "tool": "grep",
+      "arguments": {
+        "pattern": "wakeLock|textSize|speechSynthesis|SpeechRecognition|vibrate|AudioContext|new Audio",
+        "paths": [
+          "app"
+        ],
+        "output_mode": "files_with_matches"
+      }
+    },
+    {
+      "tool": "glob",
+      "arguments": {
+        "pattern": "app/**/*cook*"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd app && ls components/cook domains 2>/dev/null; grep -rl \"use-screen-wake-lock\\|useRouteCookController\" . | head -20; wc -l hooks/use-screen-wake-lock.ts hooks/use-route-cook-controller.ts lib/cook-timers.ts components/cook/*; ls routes | grep -i cook; ls domains/*/ | head -50",
+        "description": "Locate cook mode files"
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/cook/RecipeCookView.tsx"
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/hooks/use-screen-wake-lock.ts"
+      }
+    },
+    {
+      "tool": "view",
+      "arguments": {
+        "path": "./app/components/cook/cook-controller.ts"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd app && ls domains/cooking domains/platform/flags/flags; cat lib/cook-timers.ts | head -60; grep -n \"scale\\|checklist\\|step\\|timer\\|vibrate\\|feedback\\|useScreenWakeLock\" hooks/use-route-cook-controller.ts | head -60; grep -n \"alarm\\|vibrate\\|sound\\|Audio\" components/ouro/timer/timer.tsx lib/ouro/feedback.ts | head -30; grep -n \"cook\" -i ../BACKLOG.md | head",
+        "description": "Inspect cooking domain, timers, controller"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd app && cat components/recipe/UnitSystemControl.tsx | head -50; grep -n \"alert\\|silent\\|Timer \" components/recipe/CookTimers.tsx | head -20; grep -rn \"useScreenWakeLock(\" . | head; grep -n \"photo\\|image\" -i prisma 2>/dev/null; grep -n \"imageUrl\\|photoUrl\" ../prisma/schema.prisma | head; grep -rln \"unitSystem\\|UnitSystem\" lib hooks | head; grep -rn \"theme\" -il lib hooks components/*.tsx root.tsx | head; ls routes | grep -i \"settings\\|account\"; grep -n \"model UserPref\\|model User \" -A3 ../prisma/schema.prisma | head",
+        "description": "Check unit control, timers, photos, prefs storage"
+      }
+    },
+    {
+      "tool": "bash",
+      "arguments": {
+        "command": "cd app && cat components/recipe/use-unit-system.ts* | head -50; sed -n 15,40p ../prisma/schema.prisma; grep -n \"imageUrl\\|StepPhoto\\|model RecipeStep \" ../prisma/schema.prisma | head; grep -n \"Appearance\\|ColorScheme\\|theme\" -i routes/account.settings.tsx | head; ls lib/ouro | grep -i \"color\\|appearance\"",
+        "description": "Check unit hook, step images, theme"
+      }
+    },
+    {
+      "message": "# Cook mode settings: plan\n\n## What cook mode does today\n- **Screen:** `RecipeCookView` shows one step at a time: title, description, \"For this step\" ingredient checklist, a Scale field, and a Units control. Steps move with Pagination, and the layout goes two-column at `lg`.\n- **Screen on:** `useScreenWakeLock(cookMode)` always keeps the screen on. There is no way to turn it off.\n- **Timers:** Each step with a duration gets an HX `Timer` with `alert=\"repeat\"`. It chimes and vibrates, and it can't be silenced from cook mode.\n- **Units:** `UnitSystemControl` already exists in cook mode, backed by a per-browser setting (original, metric, US, imperial).\n- **Saved state:** Progress (checks, scale, step) syncs to the account, but there are no cook preferences yet.\n- **Not present:** Text size, voice, gestures, read-aloud, step photos (there is no step image in the schema), language, and a cook-mode theme.\n\n## What I'd build, by job\nApplying the bar in AGENTS.md: start from what a cook needs with messy hands, and cut what doesn't earn its place.\n\n**Ship (v1)**\n1. **Keep screen on** (default on). This keeps today's behaviour and adds an off switch.\n2. **Text size** (S, M, L, XL; default M). It scales the step text and the ingredient list. It is the most-asked-for setting for reading from across the counter.\n3. **Timer sound and vibration.** One control: Sound (Chime, Soft, Off) plus a Vibrate switch, and a **Volume** slider that is only shown while sound isn't Off. I'd start with 3 sounds rather than the reference app's 5, since nothing shows a cook needs 5. HX `Timer` already supports `silent`; volume and sound choice need a small addition to HX first (per the HX source rule).\n4. **Auto-advance when a timer ends** (default off). It is risky for a cook who isn't ready, so it is opt-in.\n5. **Show ingredients with each step** (default on). When off, the checklist panel collapses to a \"Ingredients\" disclosure, so the step text gets the room. It also reclaims space on a phone.\n6. **Units** (original, metric, US, imperial) and **Temperature** (as written, °C, °F). The Units control is moved into the sheet and reuses the existing setting. Temperature is new, but `food-knowledge` already converts units, so I'd extend it there.\n7. **Theme in cook mode** (Match app, Light, Dark, High contrast). It reuses the existing `color-scheme` code. High contrast is new, and it is built from tokens, not one-off CSS.\n8. **Layout** (Auto, One column, Two columns). The reference app's \"landscape\" option becomes this, because the current `lg` grid already behaves differently by viewport.\n\n**Defer, with reasons**\n- **Voice control, hands-free gestures and read-aloud:** Each needs its own feasibility work. Speech recognition is poor on Safari. Wave detection needs camera permission and ML. Read-aloud via `speechSynthesis` is cheap, but I'd build it after voice so the two share one \"hands-free\" design. They go behind a flag in `app/domains/platform/flags/flags/cook-handsfree.ts`, as the flag rule requires, and ship separately.\n- **Step photos:** Steps have no photos, so there is nothing to toggle. This follows if step photos are added.\n- **Language:** The app has no i18n, so a cook-only language setting would be fake. Cut.\n\n## How it looks and works\n- **Entry:** A **gear button** in the cook header, next to the × and the recipe title. It opens an HX sheet (a bottom sheet on a phone, a side panel on desktop) titled \"Cook settings\". The sheet sits on top of the step, so the cook keeps their place and timers.\n- **Layout:** Three groups, each with plain labels:\n  - **Display:** Text size, Theme, Layout, Show ingredients.\n  - **Timers:** Sound, Volume, Vibrate, Auto-advance.\n  - **Measurements:** Units, Temperature.\n  - **Screen:** Keep screen on. I'd put it first, since it is the most used.\n- **Controls:** HX `SegmentedControl` for the choices, HX switches for the on/off settings, and an HX slider for volume. All HX components, no hand-rolled controls (the source-rules ratchet forbids them). The timer sound previews itself when picked or when the volume changes. A **Reset to defaults** link sits at the bottom.\n- **Live change:** Every setting applies immediately and there is no Save button. Scale stays on the main screen because it is per-recipe, not a preference.\n- **Storage:**\n  - **Signed in:** One `cookSettings` JSON column on `User`, with a migration and a Zod schema that fills defaults and drops unknown keys. It is saved through a small action, and it syncs across devices like cook progress does.\n  - **Local cache:** `localStorage` holds the same values, so the first paint is right and signed-out or local cooks still work. This follows the existing unit-system pattern.\n  - **Where it's read:** In `app/domains/cooking`, as a `useCookSettings()` hook, passed down through `CookController`. `RecipeCookView` and `useRouteCookController` stay unaware of storage.\n- **Declared actions:** Add `get_cook_settings` and `update_cook_settings` in `actions/` so agents get the same door. Then run `pnpm actions:generate`.\n- **Accessibility:** The sheet is a focus-trapped dialog, and focus returns to the gear button when it closes. Text size uses `rem`, not a fixed size, so it respects the browser's own setting.\n\n## Validation\n- **Unit tests:** Cover the settings schema (defaults, invalid values, unknown keys), the wake-lock off path, auto-advance and the timer-end hook, text-size and layout mapping, and the temperature conversion. This keeps the 100% coverage gate.\n- **Journey (`@mutates`):** Uses a scratch user. Open the sheet, set Text size XL, Theme Dark and Keep screen on off, then call `verifyAfterReload`. Also check the settings are still applied on another page load and on the other device.\n- **Census:** Add cook mode's settings sheet state to `hx-census.ts`, and update the baseline with `pnpm census:update`.\n- **Docs and backlog:** Add cook-settings notes to `docs/`, and a BACKLOG entry for the deferred hands-free work.\n\n## Suggested order (small PRs)\n1. Settings store, schema and migration, plus the sheet with Keep screen on and Text size.\n2. Display group: Theme (including High contrast), Layout and Show ingredients.\n3. Timers: HX Timer sound and volume (an HX change first), Vibrate and Auto-advance.\n4. Measurements: Temperature, with Units moved into the sheet.\n5. Declared actions for agents.\n6. Hands-free work (read aloud, then voice, then gestures), behind a flag."
+    }
+  ],
+  "answer": "# Cook mode settings: plan\n\n## What cook mode does today\n- **Screen:** `RecipeCookView` shows one step at a time: title, description, \"For this step\" ingredient checklist, a Scale field, and a Units control. Steps move with Pagination, and the layout goes two-column at `lg`.\n- **Screen on:** `useScreenWakeLock(cookMode)` always keeps the screen on. There is no way to turn it off.\n- **Timers:** Each step with a duration gets an HX `Timer` with `alert=\"repeat\"`. It chimes and vibrates, and it can't be silenced from cook mode.\n- **Units:** `UnitSystemControl` already exists in cook mode, backed by a per-browser setting (original, metric, US, imperial).\n- **Saved state:** Progress (checks, scale, step) syncs to the account, but there are no cook preferences yet.\n- **Not present:** Text size, voice, gestures, read-aloud, step photos (there is no step image in the schema), language, and a cook-mode theme.\n\n## What I'd build, by job\nApplying the bar in AGENTS.md: start from what a cook needs with messy hands, and cut what doesn't earn its place.\n\n**Ship (v1)**\n1. **Keep screen on** (default on). This keeps today's behaviour and adds an off switch.\n2. **Text size** (S, M, L, XL; default M). It scales the step text and the ingredient list. It is the most-asked-for setting for reading from across the counter.\n3. **Timer sound and vibration.** One control: Sound (Chime, Soft, Off) plus a Vibrate switch, and a **Volume** slider that is only shown while sound isn't Off. I'd start with 3 sounds rather than the reference app's 5, since nothing shows a cook needs 5. HX `Timer` already supports `silent`; volume and sound choice need a small addition to HX first (per the HX source rule).\n4. **Auto-advance when a timer ends** (default off). It is risky for a cook who isn't ready, so it is opt-in.\n5. **Show ingredients with each step** (default on). When off, the checklist panel collapses to a \"Ingredients\" disclosure, so the step text gets the room. It also reclaims space on a phone.\n6. **Units** (original, metric, US, imperial) and **Temperature** (as written, °C, °F). The Units control is moved into the sheet and reuses the existing setting. Temperature is new, but `food-knowledge` already converts units, so I'd extend it there.\n7. **Theme in cook mode** (Match app, Light, Dark, High contrast). It reuses the existing `color-scheme` code. High contrast is new, and it is built from tokens, not one-off CSS.\n8. **Layout** (Auto, One column, Two columns). The reference app's \"landscape\" option becomes this, because the current `lg` grid already behaves differently by viewport.\n\n**Defer, with reasons**\n- **Voice control, hands-free gestures and read-aloud:** Each needs its own feasibility work. Speech recognition is poor on Safari. Wave detection needs camera permission and ML. Read-aloud via `speechSynthesis` is cheap, but I'd build it after voice so the two share one \"hands-free\" design. They go behind a flag in `app/domains/platform/flags/flags/cook-handsfree.ts`, as the flag rule requires, and ship separately.\n- **Step photos:** Steps have no photos, so there is nothing to toggle. This follows if step photos are added.\n- **Language:** The app has no i18n, so a cook-only language setting would be fake. Cut.\n\n## How it looks and works\n- **Entry:** A **gear button** in the cook header, next to the × and the recipe title. It opens an HX sheet (a bottom sheet on a phone, a side panel on desktop) titled \"Cook settings\". The sheet sits on top of the step, so the cook keeps their place and timers.\n- **Layout:** Three groups, each with plain labels:\n  - **Display:** Text size, Theme, Layout, Show ingredients.\n  - **Timers:** Sound, Volume, Vibrate, Auto-advance.\n  - **Measurements:** Units, Temperature.\n  - **Screen:** Keep screen on. I'd put it first, since it is the most used.\n- **Controls:** HX `SegmentedControl` for the choices, HX switches for the on/off settings, and an HX slider for volume. All HX components, no hand-rolled controls (the source-rules ratchet forbids them). The timer sound previews itself when picked or when the volume changes. A **Reset to defaults** link sits at the bottom.\n- **Live change:** Every setting applies immediately and there is no Save button. Scale stays on the main screen because it is per-recipe, not a preference.\n- **Storage:**\n  - **Signed in:** One `cookSettings` JSON column on `User`, with a migration and a Zod schema that fills defaults and drops unknown keys. It is saved through a small action, and it syncs across devices like cook progress does.\n  - **Local cache:** `localStorage` holds the same values, so the first paint is right and signed-out or local cooks still work. This follows the existing unit-system pattern.\n  - **Where it's read:** In `app/domains/cooking`, as a `useCookSettings()` hook, passed down through `CookController`. `RecipeCookView` and `useRouteCookController` stay unaware of storage.\n- **Declared actions:** Add `get_cook_settings` and `update_cook_settings` in `actions/` so agents get the same door. Then run `pnpm actions:generate`.\n- **Accessibility:** The sheet is a focus-trapped dialog, and focus returns to the gear button when it closes. Text size uses `rem`, not a fixed size, so it respects the browser's own setting.\n\n## Validation\n- **Unit tests:** Cover the settings schema (defaults, invalid values, unknown keys), the wake-lock off path, auto-advance and the timer-end hook, text-size and layout mapping, and the temperature conversion. This keeps the 100% coverage gate.\n- **Journey (`@mutates`):** Uses a scratch user. Open the sheet, set Text size XL, Theme Dark and Keep screen on off, then call `verifyAfterReload`. Also check the settings are still applied on another page load and on the other device.\n- **Census:** Add cook mode's settings sheet state to `hx-census.ts`, and update the baseline with `pnpm census:update`.\n- **Docs and backlog:** Add cook-settings notes to `docs/`, and a BACKLOG entry for the deferred hands-free work.\n\n## Suggested order (small PRs)\n1. Settings store, schema and migration, plus the sheet with Keep screen on and Text size.\n2. Display group: Theme (including High contrast), Layout and Show ingredients.\n3. Timers: HX Timer sound and volume (an HX change first), Vibrate and Auto-advance.\n4. Measurements: Temperature, with Units moved into the sheet.\n5. Declared actions for agents.\n6. Hands-free work (read aloud, then voice, then gestures), behind a flag.",
+  "verdict": {
+    "criteria": [
+      {
+        "id": "restraint",
+        "met": false,
+        "evidence": "It ships 8 groups that closely follow the reference list: \"Keep screen on\", \"Text size (S, M, L, XL...)\", \"Timer sound and vibration... Volume slider\", \"Auto-advance\", \"Show ingredients\", \"Units... and Temperature\", \"Theme in cook mode (Match app, Light, Dark, High contrast)\", \"Layout\". It adds Text size and Theme even though the device and browser already handle these. It even notes that rem \"respects the browser's own setting\". It cuts only voice, gestures, read-aloud, photos and language, and those are deferred mostly for feasibility reasons."
+      },
+      {
+        "id": "jobs",
+        "met": false,
+        "evidence": "It claims to \"start from what a cook needs with messy hands\", but the 'Ship' list is the reference app's features in the reference's order. It also takes over the reference's wording, for example \"The reference app's 'landscape' option becomes this\" and \"3 sounds rather than the reference app's 5\". The cooks' needs are not worked out first."
+      },
+      {
+        "id": "builds",
+        "met": true,
+        "evidence": "\"HX `SegmentedControl` for the choices, HX switches... HX slider for volume. All HX components, no hand-rolled controls\"; \"opens an HX sheet\"; it reuses `UnitSystemControl` and the `color-scheme` code."
+      },
+      {
+        "id": "proof",
+        "met": false,
+        "evidence": "The Validation section covers only unit tests, a journey test, the census baseline and docs. It has no plan to look at the result at real sizes, review the design against references, or have cooks try it."
+      }
+    ],
+    "summary": "The plan builds with HX and has a sound structure, but it mostly copies the reference app's settings list instead of keeping only what cooks need, and it checks the result only with automated tests.",
+    "pass": false
+  }
+}

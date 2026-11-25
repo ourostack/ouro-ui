@@ -226,7 +226,7 @@ test("a matrix job its if skipped, reported once under its unexpanded name, is m
 
 test("a skipped event-dependent matrix job, which GitHub reports with its expression normalised, is matched in the real ci.yml", () => {
   const graph = jobGraph(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"));
-  const skipped = ["design (${{ matrix.shard }}/${{ (((github.event_name == 'pull_request') && 12) || 6) }})", "install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ (((github.event_name == 'pull_request') && 6) || 3) }})"];
+  const skipped = ["design (${{ matrix.shard }}/${{ (((github.event_name == 'pull_request') && 24) || 6) }})", "install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ (((github.event_name == 'pull_request') && 6) || 3) }})"];
   const path = criticalPath([job("plan", 0, 0, 1), ...skipped.map((name) => job(name, 1, 1, 1, "skipped"))], graph);
   assert.deepEqual(path.unmatched, []);
 });

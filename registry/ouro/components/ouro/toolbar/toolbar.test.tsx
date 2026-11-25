@@ -692,6 +692,28 @@ describe("Toolbar overflow", () => {
     expect(view.more).toBeNull();
   });
 
+  it("keeps the More menu open on the same items when a font's loading re-measures a row that still fits as it did", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const { more } = await render(<Toolbar label="Formatting" size="sm" items={items} />, 160);
+    expect(more).not.toBeNull();
+    await userEvent.click(more!);
+    const menu = page.getByRole("menu");
+    await expect.element(menu).toBeVisible();
+    const menuElement = menu.element();
+    const itemElement = page.getByRole("menuitem").last().element();
+    // Nothing a person sees changes size; the loading face only asks the row to check its widths again.
+    await act(async () => {
+      document.fonts.dispatchEvent(new Event("loading"));
+      await document.fonts.ready;
+    });
+    await frames();
+    // The re-measure must not tear the open menu down and stand a new one up in its place: the same
+    // popup and the same item a person was pointing at stay in the page throughout.
+    expect(menu.element()).toBe(menuElement);
+    expect(itemElement.isConnected).toBe(true);
+    await expect.element(menu).toBeVisible();
+  });
+
   it("measures its entries again when any one of them changes size, not only when all do", async () => {
     const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
     const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);

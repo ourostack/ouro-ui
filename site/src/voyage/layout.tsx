@@ -7,6 +7,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FAMILY, FAMILY_CURRENT } from "../family";
 import { GUTTERS } from "../gutters";
 import { FOOTER_LINKS } from "../footer-links";
+import { MARKS_CREDIT } from "./site-nav";
 
 /** The grid's container: 1200px of content, 32px sides from 640px up and 16px below. */
 export function Container({ children, className }: { children: ReactNode; className?: string }): JSX.Element {
@@ -33,6 +34,7 @@ export function VoyageFooter(): JSX.Element {
               })}{" "}
               Our pictures are our own.
             </p>
+            <p className="m-0 text-xs text-muted-foreground">{MARKS_CREDIT}</p>
           </div>
           <nav aria-label="Ouro UI">
             <ul className="m-0 -ms-2.5 flex list-none flex-wrap gap-x-1 p-0 lg:-me-2.5">

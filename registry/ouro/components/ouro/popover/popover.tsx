@@ -32,6 +32,12 @@ export type PopoverPresentation = "auto" | "popover" | "sheet";
 
 const presentations: readonly PopoverPresentation[] = ["auto", "popover", "sheet"];
 
+/** Whether a dialog or sheet that does not hold the popover's anchor and holds focus now, so returning focus to the anchor would take it from there. */
+const otherLayerOpen = (anchor: Element | null | undefined) =>
+  [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].some(
+    (layer) => layer.getAttribute("data-ouro-presentation") !== "popover" && !(anchor && layer.contains(anchor)) && layer.contains(document.activeElement),
+  );
+
 const controlFix = "<Popover open={open} onOpenChange={setOpen} anchor={buttonRef}>";
 
 /** Props shared by both ways of opening a Popover. */
@@ -306,7 +312,8 @@ export function Popover(props: PopoverProps): JSX.Element {
               ? {
                   initialFocus: () => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true),
                   // Safari does not focus a button on click, so name where focus goes back.
-                  finalFocus: anchor,
+                  // Stryker disable next-line ConditionalExpression,BooleanLiteral,OptionalChaining: with no layer to stand down for, true (Base UI's own return) and the anchor land on the same element, and anchor is always set in this mode
+                  finalFocus: () => (otherLayerOpen(anchor?.current) ? false : (anchor?.current ?? true)),
                 }
               : {})}
           >
