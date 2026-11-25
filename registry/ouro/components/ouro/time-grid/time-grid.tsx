@@ -1295,7 +1295,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                       setDrag({ day: index, from: minutes, to: minutes });
                       try {
                         event.currentTarget.setPointerCapture(event.pointerId);
-                      } catch {}
+                      } catch {
+                        // A pointer that has already gone can't be captured; the drag still follows the moves it gets.
+                      }
                     }}
                     onPointerMove={(event: PointerEvent<HTMLDivElement>) => {
                       if (drag?.day === index) setDrag({ ...drag, to: slotAt(event) });
