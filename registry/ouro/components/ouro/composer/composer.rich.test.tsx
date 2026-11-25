@@ -1238,6 +1238,48 @@ describe("Composer rich mode highlights", () => {
     await expect.poll(() => boxes(host).length).toBeGreaterThan(0);
     expect(host.querySelector("code")!.textContent).toBe("npm test");
   });
+
+  it("marks a draft an agent sets from outside the editor, ending in bold-and-code (a second wrapper level), without throwing", async () => {
+    const draft = "Thanks! **Rerun** the build after the [lint fixes](https://example.com/builds/4521/lint) land:\n\n- fix the two warnings\n- then run **`npm test`**";
+    function Agent() {
+      const [value, setValue] = useState("");
+      return (
+        <>
+          <Composer label="Message Mia" format="rich" offsets="markdown" value={value} onValueChange={setValue} highlights={value ? [{ start: 0, end: value.length, label: "Agent" }] : []} onSend={() => {}} />
+          <button type="button" onClick={() => setValue(draft)}>
+            Agent sets draft
+          </button>
+        </>
+      );
+    }
+    const { host } = await render(<Agent />);
+    await act(async () => void [...host.querySelectorAll("button")].at(-1)!.click());
+    await expect.poll(() => boxes(host).length).toBeGreaterThan(0);
+    const code = host.querySelector("code")!;
+    expect(code.textContent).toBe("npm test");
+    expect(code.querySelector("strong")!.textContent).toBe("npm test");
+  });
+
+  it("marks a draft an agent sets from outside the editor, ending in a link around bold-and-code (three nested elements), without throwing", async () => {
+    const draft = "Thanks! **Rerun** the build after the [lint fixes](https://example.com/builds/4521/lint) land:\n\n- fix the two warnings\n- then run [**`npm test`**](https://example.com/builds/4521/log)";
+    function Agent() {
+      const [value, setValue] = useState("");
+      return (
+        <>
+          <Composer label="Message Mia" format="rich" offsets="markdown" value={value} onValueChange={setValue} highlights={value ? [{ start: 0, end: value.length, label: "Agent" }] : []} onSend={() => {}} />
+          <button type="button" onClick={() => setValue(draft)}>
+            Agent sets draft
+          </button>
+        </>
+      );
+    }
+    const { host } = await render(<Agent />);
+    await act(async () => void [...host.querySelectorAll("button")].at(-1)!.click());
+    await expect.poll(() => boxes(host).length).toBeGreaterThan(0);
+    const code = host.querySelector("code")!;
+    expect(code.textContent).toBe("npm test");
+    expect(code.closest("a")).not.toBeNull();
+  });
 });
 
 describe("Composer rich mode Escape", () => {
