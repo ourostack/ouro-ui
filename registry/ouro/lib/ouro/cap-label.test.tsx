@@ -21,4 +21,9 @@ describe("capLabel", () => {
     expect(renderToStaticMarkup(<Toggle label="Bold" />)).toContain(capLabelClass);
     expect(renderToStaticMarkup(<Toggle label="Bold" hideLabel />)).not.toContain(capLabelClass);
   });
+
+  it("unwraps a single child instead of returning a one-element array, which a render-weight budget would count as an extra component", () => {
+    expect(Array.isArray(capLabel("Save"))).toBe(false);
+    expect(Array.isArray(capLabel(["Save", "Cancel"]))).toBe(true);
+  });
 });

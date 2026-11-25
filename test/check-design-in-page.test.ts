@@ -1017,6 +1017,11 @@ describe("findDesignIssues: off-centre-text", () => {
     expect(of("off-centre-text")).toEqual([]);
   });
 
+  it("reads a capLabel-trimmed word by its own trimmed box, not a canvas-measured ascent stacked on top of it", () => {
+    render(`<p><button style="font:16px/24px system-ui, sans-serif;padding:8px 16px;border:1px solid #999;background:#fff"><span style="text-box:trim-both cap alphabetic">Save</span></button></p>`);
+    expect(of("off-centre-text")).toEqual([]);
+  });
+
   it("lets words sit further off when told a wider slack", () => {
     render(`<p><input placeholder="Search" style="font:16px/24px system-ui, sans-serif;padding:14px 12px 2px;border:1px solid #999"></p>`);
     expect(of("off-centre-text", { fieldSlackPx: 8 })).toEqual([]);

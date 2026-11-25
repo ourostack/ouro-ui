@@ -127,6 +127,34 @@ export const knownFindings: KnownFinding[] = [
       "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; the background events' plain <button> text reads up to ~1.7px off its cap height and doesn't use capLabel, unlike Ouro's own Button, so it falls outside the new tolerance until its layout is reworked to take the trim.",
   },
   {
+    story: "TimeGrid/BackgroundEventsDay",
+    rule: "off-centre-text",
+    issue: 3549,
+    reason:
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own background events read up to ~1.8px off their cap height for the same reason as TimeGrid/BackgroundEvents: the event <button> doesn't use capLabel.",
+  },
+  {
+    story: "TimeGrid/WithToolbar",
+    rule: "off-centre-text",
+    issue: 3549,
+    reason:
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read 1.5px off their cap height for the same reason as TimeGrid/BackgroundEvents: the event <button> doesn't use capLabel.",
+  },
+  {
+    story: "TimeGrid/Day",
+    rule: "off-centre-text",
+    issue: 3549,
+    reason:
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read 2.0px off their cap height for the same reason as TimeGrid/BackgroundEvents: the event <button> doesn't use capLabel.",
+  },
+  {
+    story: "ThemePicker/Described",
+    rule: "off-centre-text",
+    issue: 3561,
+    reason:
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; the swatch button's label reads 1.5px off its cap height and doesn't use capLabel, unlike Ouro's own Button, so it falls outside the new tolerance until its layout is reworked to take the trim.",
+  },
+  {
     story: "TimeGrid/Locales",
     rule: "lone-word",
     issue: 1955,
@@ -547,285 +575,229 @@ export const knownFindings: KnownFinding[] = [
       "The trigger button shows the chosen look's wordmark, whose own font-size-adjust and leading-none tuning sit a couple of pixels off the Button's usual middle once ouro-base's 2560px root step (125%) scales every length; the trigger should centre the wordmark on its own cap height instead of the Button's default centring.",
   },
   {
-    story: "AttentionCard/Actions",
-    rule: "off-centre-text",
-    issue: 3565,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "ThemePicker/Described",
-    rule: "off-centre-text",
-    issue: 3565,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "TimeGrid/Day",
-    rule: "off-centre-text",
-    issue: 3565,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
     story: "TimeGrid/Locales",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3549,
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read off their cap height for the same reason as TimeGrid/BackgroundEventsDay: the event <button> doesn't use capLabel.",
   },
   {
     story: "TimeGrid/NowAdornment",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3549,
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read off their cap height for the same reason as TimeGrid/BackgroundEventsDay: the event <button> doesn't use capLabel.",
   },
   {
     story: "TimeGrid/WorkWeek",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3549,
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Accordion/InContext",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Accordion/Multiple",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Accordion/Playground",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "AgentPresence/Compact",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "AgentPresence/OneAgent",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "AgentPresence/TwoAgents",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "AgentPresence/Unread",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read off their cap height for the same reason as TimeGrid/BackgroundEventsDay: the event <button> doesn't use capLabel.",
   },
   {
     story: "Attachment/OpensInApp",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "Its label isn't yet centred on its cap height under nova's metrics; #3565's rule fix (landed) found the rule itself read correctly-trimmed text as off-centre, but this finding persists after that fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
   },
   {
     story: "Breadcrumb/InContext",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "Its label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
   },
   {
     story: "Collapsible/InContext",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "Its trigger's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
   },
   {
     story: "Collapsible/Playground",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Composer/Rich",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "ConversationFind/LongConversation",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "Its trigger's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
   },
   {
     story: "ConversationList/Compact",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "ConversationList/RowMenu",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "ConversationList/Sections",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "MessageList/OpenedAtMessage",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "A row's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
   },
   {
     story: "Navbar/Groups",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "A nav item's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
   },
   {
     story: "NavigationMenu/Featured",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "A menu item's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
   },
   {
     story: "NavigationMenu/InContext",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "A menu item's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
   },
   {
     story: "NavigationMenu/Playground",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "A menu item's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
   },
   {
     story: "Pagination/Buttons",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Porthole/Action",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Porthole/ErrorItem",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Porthole/Narrow",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Porthole/NewsWithAction",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Porthole/Open",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Porthole/RestFreshWords",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "Porthole/States",
-    rule: "off-centre-text",
-    issue: 3565,
-    theme: "nova",
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "A page button's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
   },
   {
     story: "Sidebar/InContext",
     rule: "off-centre-text",
-    issue: 3565,
+    issue: 3364,
     theme: "nova",
     reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
+      "The collapse button's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
+  },
+  {
+    story: "TimeGrid/Playground",
+    rule: "off-centre-text",
+    issue: 3549,
+    reason:
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read up to ~1.8px off their cap height for the same reason as TimeGrid/BackgroundEventsDay: the event <button> doesn't use capLabel.",
+  },
+  {
+    story: "ThemePicker/Controlled",
+    rule: "off-centre-text",
+    issue: 3561,
+    reason:
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; the swatch buttons' labels read up to ~1.4px off their cap height, the same cause as ThemePicker/Described.",
+  },
+  {
+    story: "ThemePicker/Playground",
+    rule: "off-centre-text",
+    issue: 3561,
+    reason:
+      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; the swatch buttons' labels read up to ~1.4px off their cap height, the same cause as ThemePicker/Described.",
+  },
+  {
+    story: "EmojiPicker/ChoosingSkinTone",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the skin-tone option buttons' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "Sidebar/Items",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the sidebar's buttons' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "Sidebar/Playground",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the sidebar's collapse button's label isn't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "Sidebar/StatusBadges",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the sidebar's collapse button's label isn't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "SidebarLayout/InContext",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the sidebar's collapse button's label isn't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "SidebarLayout/Playground",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the sidebar's collapse button's label isn't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "SyncStatus/States",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the retry button's label isn't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "SyncStatus/WithQueue",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the queue rows' cancel buttons' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "Table/Sortable",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the sortable column headers' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "Table/SortableParts",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the sortable column headers' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "ToggleGroup/Modes",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the toggle options' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
+  },
+  {
+    story: "ToggleGroup/Playground",
+    rule: "off-centre-text",
+    issue: 3364,
+    theme: "nova",
+    reason:
+      "Under nova's metrics the toggle options' labels aren't yet centred on its cap height, by about a pixel; a real residual centring gap #3364 tracks across controls, not #3565's rule bug (fixed).",
   },
 ];

@@ -556,7 +556,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const placeholder = field ? !(el as HTMLInputElement).value : Boolean(value);
     const fs = field && placeholder ? getComputedStyle(el, "::placeholder") : placeholder ? before : s;
     context.font = `${fs.fontStyle} ${fs.fontWeight} ${fs.fontSize} ${fs.fontFamily}`;
-    const cap = context.measureText("H").actualBoundingBoxAscent;
+    let cap = context.measureText("H").actualBoundingBoxAscent;
     const m = context.measureText(value || "H");
     const lineHeight = s.lineHeight === "normal" ? m.fontBoundingBoxAscent + m.fontBoundingBoxDescent : px(s.lineHeight);
     // Boxes are read as drawn, and a scaled thumbnail draws everything smaller: lengths from styles are scaled to match.
@@ -601,7 +601,15 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       });
       if (stacked) continue;
       context.font = `${ts.fontStyle} ${ts.fontWeight} ${ts.fontSize} ${ts.fontFamily}`;
-      baseline = rects[0]!.top + context.measureText(first.textContent!).fontBoundingBoxAscent * scale;
+      // capLabel's text-box-trim already cuts the line box to [cap-top, alphabetic baseline]: that box's own edges
+      // are the reading, not a canvas-measured ascent stacked back onto a box already cut to the cap.
+      const trimmed = (ts as CSSStyleDeclaration & { textBoxTrim?: string }).textBoxTrim;
+      if (trimmed && trimmed !== "none") {
+        baseline = line.bottom;
+        cap = (line.bottom - line.top) / scale;
+      } else {
+        baseline = line.top + context.measureText(first.textContent!).fontBoundingBoxAscent * scale;
+      }
     }
     // A field with no frame or fill of its own, such as a composer's text area, is centred in the frame around it.
     const frame = !el.matches("input, textarea, [contenteditable]") || filled(el) ? el : [el.parentElement, el.parentElement?.parentElement, el.parentElement?.parentElement?.parentElement].find((a) => a && filled(a) && a.getBoundingClientRect().height <= 72 * scale) ?? el;
