@@ -249,12 +249,13 @@ export function OuroProvider({
     };
   }, [quiet]);
   // The capsule watcher loads in a chunk of its own, and only where the engine lacks corner-shape, so most first loads never carry it.
-  // Stryker disable next-line ArrayDeclaration: the effect reads only document, a stable reference, so any constant array runs it alike.
   useEffect(() => {
     if (CSS.supports("corner-shape", "squircle") || !CSS.supports("clip-path", "shape(from 0 0, close)")) return;
     const stop = import("@/registry/ouro/lib/ouro/squircle-capsules").then(({ installSquircleCapsules }) => installSquircleCapsules(document));
     return () => void stop.then((uninstall) => uninstall());
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: the effect reads only document, a stable reference, so any constant array runs it alike.
+  []);
   const tooltips = (
     <Tooltip.Provider>
       <TooltipsGrouped value>{children}</TooltipsGrouped>
