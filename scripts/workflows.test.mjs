@@ -3599,14 +3599,27 @@ test("Docs pin fails, and names the pull request, when GitHub will not turn auto
 test("Main green posts its status after each CI run on main, when a pull request into main changes, and by hand, with the pull request's number passed through env", () => {
   const text = workflow("main-green.yml");
   assert.match(text, /^on:\n {2}workflow_run:\n {4}workflows: \[CI\]\n {4}types: \[completed\]\n {4}branches: \[main\]\n {2}pull_request:\n {4}branches: \[main\]\n {4}types: \[opened, synchronize, reopened, labeled, unlabeled\]\n {2}workflow_dispatch:\npermissions:/m);
-  assert.match(text, /^permissions:\n {2}contents: read\n {2}pull-requests: read\n {2}actions: read\n {2}statuses: write\nconcurrency:/m);
+  assert.match(text, /^permissions:\n {2}contents: read\n {2}pull-requests: read\n {2}actions: read\n {2}statuses: write\n {2}issues: write.*\nconcurrency:/m);
   assert.match(text, /^ {10}PR_NUMBER: \$\{\{ github\.event\.pull_request\.number \}\}$/m);
-  assert.doesNotMatch(text.slice(text.indexOf("        run: |")), /\$\{\{/, "the run step names no expression: the number comes from PR_NUMBER");
+  const statusRunStep = text.slice(text.indexOf("        run: |"), text.indexOf("\n  report-signatures:"));
+  assert.doesNotMatch(statusRunStep, /\$\{\{/, "the run step names no expression: the number comes from PR_NUMBER");
   assert.match(text, /node scripts\/main-green\.mjs --pr "\$PR_NUMBER"/);
 });
 
 test("Main green is not a required check yet: the workflow lands, and posts its status, before the main ruleset asks for it", () => {
   assert.ok(!requiredChecks.includes("main green"));
+});
+
+test("Main green's report-signatures job logs the candidate main-red-signatures verdict only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-signatures:\n {4}name: Log the candidate main-red-signatures verdict\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/main-red-signatures\.mjs report/);
+});
+
+test("Main green's report-cascade-retrigger job logs the candidate cascade re-trigger plan only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-cascade-retrigger:\n {4}name: Log the candidate cascade re-trigger plan\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/cascade-retrigger\.mjs report/);
 });
 
 test("Docs pin's stale job reads the tags and whether the pin pull request is open, on each push to main, with pull-requests: read on that job only", () => {
