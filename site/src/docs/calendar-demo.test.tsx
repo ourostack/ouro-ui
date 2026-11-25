@@ -111,6 +111,39 @@ describe("the calendar page", () => {
     }
   });
 
+  it("keeps the Add a title message above the footer when the sheet is still moving as the message appears", async () => {
+    await page.viewport(550, 450);
+    document.documentElement.style.fontSize = "32px";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const move = document.createElement("style");
+    move.setAttribute("data-test-harness", "");
+    move.textContent = "[role=dialog] { transform: translateY(120px) !important; }";
+    try {
+      await renderPage("/docs/calendar-demo/");
+      await page.getByRole("radio", { name: "Empty week" }).click();
+      await page.getByRole("button", { name: "New event" }).click();
+      const dialog = page.getByRole("dialog", { name: "New event" });
+      await expect.element(dialog).toBeVisible();
+      document.head.append(move);
+      await dialog.getByRole("button", { name: "Create" }).click();
+      await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
+      for (let frame = 0; frame < 6; frame += 1) await new Promise((resolve) => requestAnimationFrame(resolve));
+      // The sheet settles into place with a transition, which resizes nothing.
+      move.textContent = "[role=dialog] { transition: transform 100ms !important; transform: none !important; }";
+      const clear = () => {
+        const message = [...document.querySelectorAll("[role=dialog] *")].find((el) => el.children.length === 0 && el.textContent === "Add a title");
+        const footer = document.querySelector("[data-ouro-footer]");
+        return !!message && !!footer && message.getBoundingClientRect().bottom <= footer.getBoundingClientRect().top;
+      };
+      await expect.poll(clear).toBe(true);
+    } finally {
+      move.remove();
+      warn.mockRestore();
+      document.documentElement.style.fontSize = "";
+      await page.viewport(1100, 900);
+    }
+  });
+
   it("puts a new event on the grid once it has a title", async () => {
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: "New event" }).click();

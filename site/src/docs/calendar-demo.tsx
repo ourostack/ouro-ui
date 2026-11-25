@@ -149,7 +149,12 @@ function Screen(): JSX.Element {
     if (popup) observer.observe(popup, { box: "border-box" });
     const footer = popup?.querySelector("[data-ouro-footer]");
     if (footer) observer.observe(footer, { box: "border-box" });
-    return () => observer.disconnect();
+    // A slide or scale moves the message without resizing anything, so a settle that ends later needs its own scroll.
+    popup?.addEventListener("transitionend", show);
+    return () => {
+      observer.disconnect();
+      popup?.removeEventListener("transitionend", show);
+    };
   }, [error, formId]);
 
   const shown = stage === "empty" ? [] : events;
