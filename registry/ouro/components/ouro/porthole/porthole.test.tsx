@@ -120,9 +120,6 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
-  // Most tests never touch media: resetMedia skips the round trip when it is already at rest, instead
-  // of paying one on every test regardless, which a loaded WebKit shard feels most.
-  await commands.resetMedia();
 });
 
 describe("Porthole", () => {

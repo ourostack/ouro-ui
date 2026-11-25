@@ -105,8 +105,6 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
-  await page.viewport(414, 896);
-  await commands.resetMedia();
 });
 
 const warnings = () => warn.mock.calls.map((call: unknown[]) => String(call[0]));

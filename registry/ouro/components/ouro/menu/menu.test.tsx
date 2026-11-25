@@ -98,7 +98,6 @@ afterEach(async () => {
   mounted = [];
   delete (navigator as { userAgentData?: unknown }).userAgentData;
   delete (navigator as { platform?: unknown }).platform;
-  await commands.resetMedia();
 });
 
 /** Pretends the browser runs on `platform`, through the modern API and the legacy one, so a shortcut's form is deterministic. */

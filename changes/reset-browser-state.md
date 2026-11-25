@@ -1,0 +1,1 @@
+- Fixed: the shared browser test setup resets the real viewport, not just media emulation, between test files, so a file that resizes the page or leaves media emulated (color scheme, reduced motion, forced colours, reduced transparency, contrast) no longer leaks that into whichever file a shard happens to run after it.
