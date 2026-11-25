@@ -120,13 +120,6 @@ export const knownFindings: KnownFinding[] = [
     reason: "The label that is longer than two lines is cut with an ellipsis on purpose, so its hidden lines end on a piece of a word; the story shows exactly that.",
   },
   {
-    story: "TimeGrid/BackgroundEvents",
-    rule: "off-centre-text",
-    issue: 3549,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; the background events' plain <button> text reads up to ~1.7px off its cap height and doesn't use capLabel, unlike Ouro's own Button, so it falls outside the new tolerance until its layout is reworked to take the trim.",
-  },
-  {
     story: "TimeGrid/Locales",
     rule: "lone-word",
     issue: 1955,
@@ -534,20 +527,6 @@ export const knownFindings: KnownFinding[] = [
   },
   {
     story: "AttentionCard/Actions",
-    rule: "off-centre-text",
-    issue: 3565,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "ThemePicker/Described",
-    rule: "off-centre-text",
-    issue: 3565,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this button's capLabel-trimmed text reads a little over a pixel off its cap height, the same pattern #3565 tracks across dozens of stories that use Ouro's own Button or Tabs: the rendering is likely fine, and it's the rule's own baseline math that needs reworking for a trimmed line box.",
-  },
-  {
-    story: "TimeGrid/Day",
     rule: "off-centre-text",
     issue: 3565,
     reason:
