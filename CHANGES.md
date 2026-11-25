@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: TimeGrid opens a little above its half-hour line, so the first hour line no longer sits against the header hairline and draws a double edge.
