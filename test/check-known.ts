@@ -120,41 +120,6 @@ export const knownFindings: KnownFinding[] = [
     reason: "The label that is longer than two lines is cut with an ellipsis on purpose, so its hidden lines end on a piece of a word; the story shows exactly that.",
   },
   {
-    story: "TimeGrid/BackgroundEvents",
-    rule: "off-centre-text",
-    issue: 3549,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; the background events' plain <button> text reads up to ~1.7px off its cap height and doesn't use capLabel, unlike Ouro's own Button, so it falls outside the new tolerance until its layout is reworked to take the trim.",
-  },
-  {
-    story: "TimeGrid/BackgroundEventsDay",
-    rule: "off-centre-text",
-    issue: 3549,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own background events read up to ~1.8px off their cap height for the same reason as TimeGrid/BackgroundEvents: the event <button> doesn't use capLabel.",
-  },
-  {
-    story: "TimeGrid/WithToolbar",
-    rule: "off-centre-text",
-    issue: 3549,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read 1.5px off their cap height for the same reason as TimeGrid/BackgroundEvents: the event <button> doesn't use capLabel.",
-  },
-  {
-    story: "TimeGrid/Day",
-    rule: "off-centre-text",
-    issue: 3549,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read 2.0px off their cap height for the same reason as TimeGrid/BackgroundEvents: the event <button> doesn't use capLabel.",
-  },
-  {
-    story: "ThemePicker/Described",
-    rule: "off-centre-text",
-    issue: 3561,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; the swatch button's label reads 1.5px off its cap height and doesn't use capLabel, unlike Ouro's own Button, so it falls outside the new tolerance until its layout is reworked to take the trim.",
-  },
-  {
     story: "TimeGrid/Locales",
     rule: "lone-word",
     issue: 1955,
@@ -561,27 +526,6 @@ export const knownFindings: KnownFinding[] = [
       "The trigger button shows the chosen look's wordmark, whose own font-size-adjust and leading-none tuning sit a couple of pixels off the Button's usual middle once ouro-base's 2560px root step (125%) scales every length; the trigger should centre the wordmark on its own cap height instead of the Button's default centring.",
   },
   {
-    story: "TimeGrid/Locales",
-    rule: "off-centre-text",
-    issue: 3549,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read off their cap height for the same reason as TimeGrid/BackgroundEventsDay: the event <button> doesn't use capLabel.",
-  },
-  {
-    story: "TimeGrid/NowAdornment",
-    rule: "off-centre-text",
-    issue: 3549,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read off their cap height for the same reason as TimeGrid/BackgroundEventsDay: the event <button> doesn't use capLabel.",
-  },
-  {
-    story: "TimeGrid/WorkWeek",
-    rule: "off-centre-text",
-    issue: 3549,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read off their cap height for the same reason as TimeGrid/BackgroundEventsDay: the event <button> doesn't use capLabel.",
-  },
-  {
     story: "Attachment/OpensInApp",
     rule: "off-centre-text",
     issue: 3364,
@@ -668,27 +612,6 @@ export const knownFindings: KnownFinding[] = [
     theme: "nova",
     reason:
       "The collapse button's label isn't yet centred on its cap height under nova's metrics; persists after #3565's rule fix, so it is a real residual centring gap #3364 tracks, not the rule bug.",
-  },
-  {
-    story: "TimeGrid/Playground",
-    rule: "off-centre-text",
-    issue: 3549,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; this story's own timed events read up to ~1.8px off their cap height for the same reason as TimeGrid/BackgroundEventsDay: the event <button> doesn't use capLabel.",
-  },
-  {
-    story: "ThemePicker/Controlled",
-    rule: "off-centre-text",
-    issue: 3561,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; the swatch buttons' labels read up to ~1.4px off their cap height, the same cause as ThemePicker/Described.",
-  },
-  {
-    story: "ThemePicker/Playground",
-    rule: "off-centre-text",
-    issue: 3561,
-    reason:
-      "#3527 tightens off-centre-text's button tolerance from 2.5px to 1px; the swatch buttons' labels read up to ~1.4px off their cap height, the same cause as ThemePicker/Described.",
   },
   {
     story: "EmojiPicker/ChoosingSkinTone",
