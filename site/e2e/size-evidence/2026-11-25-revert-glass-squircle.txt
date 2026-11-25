@@ -1,0 +1,10 @@
+ok   home CSS 54938 of 55296 gzip bytes
+ok   nautilus CSS 54938 of 55296 gzip bytes
+ok   docs CSS 55891 of 56320 gzip bytes
+ok   badge CSS 31990 of 36864 gzip bytes
+ok   docs-shell CSS 26558 of 26624 gzip bytes
+css-size-gate home CSS, gzip bytes: 54938 bytes, under its ceiling of 55296
+css-size-gate nautilus CSS, gzip bytes: 54938 bytes, under its ceiling of 55296
+css-size-gate docs CSS, gzip bytes: 55891 bytes, under its ceiling of 56320
+css-size-gate badge CSS, gzip bytes: 31990 bytes, under its ceiling of 36864
+css-size-gate docs-shell CSS, gzip bytes: 26558 bytes, under its ceiling of 26624
