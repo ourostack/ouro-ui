@@ -41,7 +41,7 @@ The test suites and lanes beyond a component's own tests: the conformance matrix
 
 ## End-to-end specs
 
-- End-to-end specs: `pnpm test:e2e` starts Storybook and runs `registry/ouro/e2e/` in Chromium and WebKit. The Skeleton frame comparison (`registry/ouro/e2e/probes/`, repository-only, `playwright.probes.config.ts`) runs as a daily and on-demand probe (`skeleton-frames.yml`) and files one issue when it fails; CI keeps only the check that no animation runs with `shimmer={false}`.[^a-skeleton-frames] The Route profile probe (`site/probes/`, `playwright.route-profile.config.ts`, `route-profile.yml`) runs on demand: it times four site routes in WebKit and uploads their Playwright traces.
+- End-to-end specs: `pnpm test:e2e` starts Storybook and runs `registry/ouro/e2e/` in Chromium and WebKit. The Skeleton frame comparison (`registry/ouro/e2e/probes/`, repository-only, `playwright.probes.config.ts`) runs as a daily and on-demand probe (`skeleton-frames.yml`) and files one issue when it fails; CI keeps only the check that no animation runs with `shimmer={false}`.[^a-skeleton-frames] The Route profile probe (`site/probes/`, `playwright.route-profile.config.ts`, `route-profile.yml`) is for profiling slow routes in WebKit and starts by hand.
 
 ## Screen-reader lane
 
