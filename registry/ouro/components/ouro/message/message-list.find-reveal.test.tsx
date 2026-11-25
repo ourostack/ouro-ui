@@ -203,7 +203,7 @@ describe("MessageList find in a windowed list", () => {
     const content = { current: host };
     await act(async () =>
       root.render(
-        <MessageFindLayer all={[]} keys={[]} find={{ query: "needle" }} hasOlder={false} scroller={{ current: host }} content={content} slot="data-slot-key" onFindMatches={undefined} onMarks={() => {}} request={request} />,
+        <MessageFindLayer all={[]} keys={[]} find={{ query: "needle" }} hasOlder={false} scroller={{ current: host }} content={content} slot="data-slot-key" onFindMatches={undefined} onMarks={() => {}} request={request} reserveJumpRoom={() => {}} />,
       ),
     );
     await frame();

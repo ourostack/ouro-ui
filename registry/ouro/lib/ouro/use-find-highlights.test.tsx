@@ -20,12 +20,12 @@ const rows = [
   { key: "c", text: "a last fox" },
 ];
 
-function Harness({ query, current, reduced = false, tall = false, roomy = false, none = false, stray = false, shortA = false, hideLast = false, fold, locale }: { hideLast?: boolean; stray?: boolean; shortA?: boolean; none?: boolean; fold?: "none" | "case" | "accents" | "all"; locale?: string; query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean }) {
+function Harness({ query, current, reduced = false, tall = false, roomy = false, none = false, stray = false, shortA = false, hideLast = false, fold, locale, reserveJumpRoom = () => {} }: { hideLast?: boolean; stray?: boolean; shortA?: boolean; none?: boolean; fold?: "none" | "case" | "accents" | "all"; locale?: string; query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean; reserveJumpRoom?: (scroller: HTMLElement, landingTop: number) => void }) {
   const scroller = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const find = { query, ...(fold ? { fold } : {}), ...(locale ? { locale } : {}) };
   const result = findInMessages(rows, find);
-  useFindHighlights({ scroller, content, slot: "data-key", find: none ? undefined : find, result, current, reduced });
+  useFindHighlights({ scroller, content, slot: "data-key", find: none ? undefined : find, result, current, reduced, reserveJumpRoom });
   return (
     <div ref={scroller} data-testid="scroller" style={{ height: roomy ? 300 : 80, overflow: "auto" }}>
       <div ref={content}>
@@ -180,6 +180,19 @@ describe("useFindHighlights", () => {
     await mount({ query: "last", current: 0, roomy: true });
     expect(drawn(CURRENT_MATCH)).toEqual(["last"]);
     expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("reserves the jump pill's room for the scroll to a match, the same as a reveal, and not where no scroll is needed", async () => {
+    const scrollTo = vi.spyOn(HTMLElement.prototype, "scrollTo").mockImplementation(() => undefined);
+    const reserveJumpRoom = vi.fn();
+    const { host } = await mount({ query: "last", current: 0, tall: true, reserveJumpRoom });
+    const view = host.querySelector<HTMLElement>("[data-testid=scroller]")!;
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    const [options] = scrollTo.mock.calls[0] as unknown as [ScrollToOptions];
+    expect(reserveJumpRoom).toHaveBeenCalledExactlyOnceWith(view, options.top);
+    reserveJumpRoom.mockClear();
+    await mount({ query: "last", current: 0, roomy: true, reserveJumpRoom });
+    expect(reserveJumpRoom).not.toHaveBeenCalled();
   });
 
   it("keeps owing the scroll to a match that was not drawn until it is in view, then stops owing it", async () => {

@@ -1194,6 +1194,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [jumpRoom, setJumpRoom] = useState(false);
   const jumpRoomRef = useRef<HTMLDivElement | null>(null);
   const jumpRef = useRef<HTMLButtonElement | null>(null);
+  // A reveal or a find's own scroll can land anywhere in the conversation, unlike the reader's own scrolling, which
+  // only ever uncovers history above the end: whatever already sits at the view's bottom edge there may be exactly
+  // where the floating pill sits too, with no arrival ahead to earn room for it the usual way. Reserve room at
+  // once, rather than wait for one, so the pill never opens over a message either placed there. Shared by bring()
+  // (the reveal path) and useFindHighlights's scrollToCurrent (the find path), which scrolls on its own.
+  const reserveJumpRoom = useRef((scroller: HTMLElement, landingTop: number) => {
+    if (Math.abs(scroller.scrollHeight - scroller.clientHeight - landingTop) > AT_BOTTOM) {
+      pinned.current = false;
+      setJumpRoom(true);
+    }
+  }).current;
   const [spoken, setSpoken] = useState<Spoken[]>([]);
   const nextId = useRef(0);
   // The newest label function, for the observer set up once below.
@@ -2253,14 +2264,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const centred = box.top - top - Math.max(0, (room - box.height) / 2);
       scroller.scrollTop += block === "center" ? centred : block === "start" || above ? box.top - top - EDGE : below ? box.bottom - top - room + EDGE : 0;
       springsRef.current?.moved(scroller.scrollTop - before);
-      // A reveal can land anywhere in the conversation, unlike the reader's own scrolling, which only ever
-      // uncovers history above the end: whatever already sits at the view's bottom edge there may be exactly
-      // where the floating pill sits too, with no arrival ahead to earn room for it the usual way. Reserve
-      // room at once, rather than wait for one, so the pill never opens over a message the reveal placed there.
-      if (Math.abs(scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop) > AT_BOTTOM) {
-        pinned.current = false;
-        setJumpRoom(true);
-      }
+      reserveJumpRoom(scroller, scroller.scrollTop);
     };
     windowSync.current = (scrolled) => {
       const { windowed, keys, indexes, measured, band, reach, sizeOf } = viewRef.current;
@@ -3173,7 +3177,21 @@ export function MessageList(props: MessageListProps): JSX.Element {
           </button>
         </div>
       )}
-      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} request={requestRef} /> : null}
+      {FindLayer && find ? (
+        <FindLayer
+          all={all}
+          keys={keys}
+          find={find}
+          hasOlder={hasOlder}
+          scroller={scrollerRef}
+          content={contentRef}
+          slot={SLOT}
+          onFindMatches={onFindMatches}
+          onMarks={setFindMarks}
+          request={requestRef}
+          reserveJumpRoom={reserveJumpRoom}
+        />
+      ) : null}
     </div>
   );
 }

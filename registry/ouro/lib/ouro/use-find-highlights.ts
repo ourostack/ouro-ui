@@ -29,16 +29,18 @@ function useFindHighlights(options: {
   result: MessageFindResult;
   current: number;
   reduced: boolean;
+  /** Reserves the "Jump to latest" pill's room if the scroll lands away from the true bottom, the same as a reveal's own scroll. */
+  reserveJumpRoom: (scroller: HTMLElement, landingTop: number) => void;
 }): void {
-  const { scroller, content, slot, find, result, current, reduced } = options;
+  const { scroller, content, slot, find, result, current, reduced, reserveJumpRoom } = options;
   const target = find === undefined ? null : locateMatch(result, current);
   const hasTarget = target !== null;
   const query = find?.query ?? "";
   const fold = find?.fold;
   const locale = find?.locale;
-  const latest = useRef({ result, target, reduced });
+  const latest = useRef({ result, target, reduced, reserveJumpRoom });
   useLayoutEffect(() => {
-    latest.current = { result, target, reduced };
+    latest.current = { result, target, reduced, reserveJumpRoom };
   });
 
   const signature = result.order.map((entry) => `${entry.key}:${entry.count}`).join("|");
@@ -51,7 +53,11 @@ function useFindHighlights(options: {
     const edge = view.getBoundingClientRect();
     const move = Math.min(0, match.top - edge.top - MARGIN) || Math.max(0, match.bottom - edge.bottom + MARGIN);
     if (move === 0) return true;
-    view.scrollTo({ top: view.scrollTop + move, behavior: latest.current.reduced ? "instant" : "smooth" });
+    const landingTop = view.scrollTop + move;
+    view.scrollTo({ top: landingTop, behavior: latest.current.reduced ? "instant" : "smooth" });
+    // A find's own scroll can land anywhere in the conversation, the same as a reveal, with no arrival ahead
+    // to earn the jump pill's room the usual way.
+    latest.current.reserveJumpRoom(view, landingTop);
     return false;
   };
   const scrollRef = useRef(scrollToCurrent);

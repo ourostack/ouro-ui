@@ -38,6 +38,7 @@ function MessageFindLayer({
   onFindMatches,
   onMarks,
   request,
+  reserveJumpRoom,
 }: {
   all: ReturnType<typeof Children.toArray>;
   keys: string[];
@@ -49,6 +50,7 @@ function MessageFindLayer({
   onFindMatches: ((report: MessageListFindReport) => void) | undefined;
   onMarks: (marks: string) => void;
   request: RefObject<(next: { key: string; id: null; child: boolean; forward: boolean; focus: boolean; block: "center" }) => void>;
+  reserveJumpRoom: (scroller: HTMLElement, landingTop: number) => void;
 }): null {
   useLayoutEffect(() => onMarks(findMarkClasses), [onMarks]);
   const reduced = useReducedMotion();
@@ -58,7 +60,7 @@ function MessageFindLayer({
     [all, keys, query, fold, locale],
   );
   const current = find.current ?? 0;
-  useFindHighlights({ scroller, content, slot, find: { query, fold, locale }, result: found, current, reduced });
+  useFindHighlights({ scroller, content, slot, find: { query, fold, locale }, result: found, current, reduced, reserveJumpRoom });
   const target = locateMatch(found, current);
   const reportRef = useRef(onFindMatches);
   useEffect(() => {
