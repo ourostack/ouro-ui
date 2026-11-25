@@ -772,7 +772,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     observer.observe(day);
     // Stryker disable next-line ArrowFunction: once the day is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
-  }, []);
+    // The day column is replaced when the dates change, so the observer follows it.
+  }, [days.join()]);
 
   const focusPiece = (key: string) => {
     setActive(key);
@@ -1056,7 +1057,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               data-ouro-part="more"
               data-ouro-event-key={key}
               tabIndex={key === tabStop ? 0 : -1}
-              aria-label={moreLabel(members.length)}
+              aria-label={`${moreLabel(members.length)} ${rangeText(formats.time, new Date(Math.min(...members.map((piece) => toInstant(piece.event.start)!.getTime()))), new Date(Math.max(...members.map((piece) => toInstant(piece.event.end!)!.getTime()))))}`}
               aria-current={members.some((piece) => piece.event.id === selectedId) ? "true" : undefined}
               onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => (event as typeof event & { preventBaseUIHandler: () => void }).preventBaseUIHandler()}
               onFocus={() => setActive(key)}

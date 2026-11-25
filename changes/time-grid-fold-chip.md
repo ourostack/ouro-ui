@@ -1,1 +1,2 @@
 - New: TimeGrid folds overlapping events that a narrow day (a phone, a work week, large text) has no room to read into a `+N` chip that opens their list; `moreLabel` sets its words.
+- Changed: a stack button of overlapping background events now carries an `aria-label` with its time range, so it keeps a name when its text has no room.

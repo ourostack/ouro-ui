@@ -9,6 +9,7 @@ import { TimeGrid, type TimeGridEvent, type TimeGridProps } from "@/registry/our
 import { TimeGridNav } from "@/registry/ouro/components/ouro/time-grid/time-grid-parts";
 import {
   allDayLanes,
+  foldsOf,
   layoutDay,
   lineCount,
   minuteClock,
@@ -94,6 +95,29 @@ const everyDay: TimeGridEvent[] = [
 const demo: TimeGridEvent = { id: "demo", title: "Demo day", start: at(13, "13:00"), end: at(13, "15:00"), tone: "success" };
 
 describe("TimeGrid date and layout math", () => {
+  it("folds the events a day has no room for, at the exact widths where each fold starts", () => {
+    const three = layoutDay([
+      { key: "a", start: 600, end: 660 },
+      { key: "b", start: 600, end: 660 },
+      { key: "c", start: 600, end: 660 },
+    ]);
+    const split = (width: number) => foldsOf(three, width).map((fold) => [fold.shown.map((placed) => placed.key), fold.folded.map((placed) => placed.key), fold.shown.map((placed) => placed.columns)]);
+    expect(split(10.5)).toEqual([]);
+    expect(split(10.49)).toEqual([[["a", "b"], ["c"], [2, 2]]]);
+    expect(split(9.5)).toEqual([[["a", "b"], ["c"], [2, 2]]]);
+    expect(split(9.49)).toEqual([[["a"], ["b", "c"], [1]]]);
+    expect(split(6.5)).toEqual([[["a"], ["b", "c"], [1]]]);
+    expect(split(6.49)).toEqual([[[], ["a", "b", "c"], []]]);
+    // A lone event is never folded, and an event's span stays inside the columns that show.
+    expect(foldsOf(layoutDay([{ key: "x", start: 0, end: 60 }]), 2)).toEqual([]);
+    const spread = layoutDay([
+      { key: "a", start: 0, end: 120 },
+      { key: "b", start: 60, end: 90 },
+      { key: "c", start: 60, end: 90 },
+    ]);
+    expect(foldsOf(spread, 9.5)[0]!.shown.map((placed) => [placed.key, placed.span, placed.columns])).toEqual([["a", 1, 2], ["b", 1, 2]]);
+  });
+
   it("lays overlapping events side by side, spreading each over the columns free beside it", () => {
     expect(
       layoutDay([
@@ -567,7 +591,8 @@ describe("TimeGrid", () => {
       const onEventSelect = vi.fn();
       await render({ view: "day", events: crowd(5), onEventSelect }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
       await expect.poll(shown).toEqual(["Event 0", "Event 1"]);
-      expect([plain(chip()!.textContent), chip()!.getAttribute("aria-label")]).toEqual(["+3", "+3 more events"]);
+      expect(plain(chip()!.textContent)).toBe("+3");
+      expect(chip()!.getAttribute("aria-label")).toMatch(/^\+3 more events \S/);
       // The chip is the folded events' Tab stop, after the shown ones.
       expect(chip()!.tabIndex).toBe(-1);
       await userEvent.click(chip()!);
@@ -585,6 +610,13 @@ describe("TimeGrid", () => {
       expect(plain(stack()!.textContent)).toContain("3 events");
       // Its text hides when the column is too narrow to draw it, so the name is set outright, with the time range.
       expect(stack()!.getAttribute("aria-label")).toMatch(/^3 events \S/);
+    });
+
+    it("gives the chip the Tab stop and the current mark when a folded event is selected, and names the time of the events it holds", async () => {
+      await render({ view: "day", events: crowd(5), selectedId: "c3" }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
+      await expect.poll(chip).not.toBeNull();
+      expect([chip()!.getAttribute("aria-current"), chip()!.tabIndex]).toEqual(["true", 0]);
+      expect(chip()!.getAttribute("aria-label")).toMatch(/^\+3 more events \S/);
     });
 
     it("folds at 200% text, where a day of about 8 rem is too narrow for three", async () => {
