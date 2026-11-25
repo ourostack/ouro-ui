@@ -1,0 +1,1 @@
+- Reverted: the calendar polish from #3743 (toolbar heights, the TimeGrid forced-colours cue and corner, the toast action touch target, the Menu forced-colours edge, the calendar demo and docs-shell layout at large text) is taken back to bring docs CSS under its ceiling; it returns within that budget.
