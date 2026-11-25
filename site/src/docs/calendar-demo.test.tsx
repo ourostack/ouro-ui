@@ -170,7 +170,8 @@ describe("the calendar page", () => {
   it("names a length that is not a preset with its unit, so an edited event never shows a bare number", async () => {
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
-    await page.getByRole("button", { name: /Weekly cross-team sync/ }).first().click();
+    await page.getByRole("button", { name: /more events/ }).first().click();
+    await page.getByRole("menuitem", { name: /Weekly cross-team sync/ }).click();
     page.getByRole("button", { name: "Edit" }).element().focus();
     await userEvent.keyboard("{Enter}");
     const dialog = page.getByRole("dialog", { name: "Edit event" });
