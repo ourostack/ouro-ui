@@ -102,6 +102,36 @@ describe("Attachment", () => {
     expect(attachment.querySelector("[data-ouro-attachment-size]")!.textContent).toBe("2 Ko");
   });
 
+  it("names the kind under the name when size is not a byte count", async () => {
+    const { host } = await render(
+      <>
+        <Attachment name="budget.xlsx" />
+        <Attachment name="menu.pdf" size={2048} />
+        <Attachment name="notes" kind="doc" kindLabel={(kind) => `Fichier ${kind}`} />
+      </>,
+    );
+    const [withoutSize, withSize, translated] = [...host.querySelectorAll('[data-ouro="attachment"]')];
+    expect(withoutSize!.querySelector("[data-ouro-attachment-kind]")!.textContent).toBe("Spreadsheet");
+    expect(withoutSize!.querySelector("[data-ouro-attachment-size]")).toBeNull();
+    expect(withSize!.querySelector("[data-ouro-attachment-kind]")).toBeNull();
+    expect(translated!.querySelector("[data-ouro-attachment-kind]")!.textContent).toBe("Fichier doc");
+  });
+
+  it.each([
+    ["doc", "Document"],
+    ["slides", "Slides"],
+    ["pdf", "PDF"],
+    ["image", "Image"],
+    ["video", "Video"],
+    ["audio", "Audio"],
+    ["zip", "Archive"],
+    ["code", "Code"],
+    ["file", "File"],
+  ] as const)("labels a %s with its default kind name %s, with no override", async (kind, label) => {
+    const { attachment } = await render(<Attachment name="item" kind={kind} />);
+    expect(attachment.querySelector("[data-ouro-attachment-kind]")!.textContent).toBe(label);
+  });
+
   it("opens the file from a link named by the file and its size", async () => {
     await render(<Attachment name="menu.pdf" size={2048} href="/files/menu.pdf" download />);
     const link = page.getByRole("link", { name: "menu.pdf 2 kB" });
@@ -242,7 +272,7 @@ describe("Attachment", () => {
     expect(slot.getAttribute("aria-hidden")).toBe("true");
     expect(slot.getAttribute("data-ouro-attachment-icon")).toBe("sheet");
     expect(own.getBoundingClientRect().width).toBe(20);
-    await expect.element(page.getByRole("link", { name: "budget.xlsx" })).toBeVisible();
+    await expect.element(page.getByRole("link", { name: "budget.xlsx Spreadsheet" })).toBeVisible();
     expect([...host.querySelectorAll("svg[data-ouro-attachment-icon]")].map((icon) => icon.getAttribute("data-ouro-attachment-icon"))).toEqual(["pdf", "doc"]);
   });
 
@@ -271,7 +301,7 @@ describe("Attachment", () => {
   it("opens a linked file in the app on a plain click, and leaves a new tab or window to the link", async () => {
     const onOpen = vi.fn();
     await render(<Attachment name="menu.pdf" href="#attachment-open" onOpen={onOpen} />);
-    const link = page.getByRole("link", { name: "menu.pdf" }).element() as HTMLAnchorElement;
+    const link = page.getByRole("link", { name: "menu.pdf PDF" }).element() as HTMLAnchorElement;
     await userEvent.click(link);
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(location.hash).not.toBe("#attachment-open");
@@ -292,7 +322,7 @@ describe("Attachment", () => {
 
   it("follows a link as usual without onOpen", async () => {
     await render(<Attachment name="menu.pdf" href="#attachment-plain" />);
-    const link = page.getByRole("link", { name: "menu.pdf" }).element() as HTMLAnchorElement;
+    const link = page.getByRole("link", { name: "menu.pdf PDF" }).element() as HTMLAnchorElement;
     let prevented: boolean | undefined;
     const watch = (event: Event) => {
       prevented = event.defaultPrevented;
@@ -321,7 +351,7 @@ describe("Attachment", () => {
   it("keeps the link and the remove button separate controls", async () => {
     const onRemove = vi.fn();
     await render(<Attachment name="menu.pdf" href="/files/menu.pdf" onRemove={onRemove} />);
-    const link = page.getByRole("link", { name: "menu.pdf" }).element();
+    const link = page.getByRole("link", { name: "menu.pdf PDF" }).element();
     const button = page.getByRole("button", { name: "Remove menu.pdf" }).element();
     expect(link.contains(button)).toBe(false);
     // Each takes focus on its own (Safari's Tab skips links and buttons by default, so focus directly).
@@ -331,6 +361,14 @@ describe("Attachment", () => {
     expect(document.activeElement).toBe(button);
     await userEvent.keyboard("{Enter}");
     expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it("sits on its message with a tint, not a hairline border, with a forced-colours border as a fallback", async () => {
+    const { attachment } = await render(<Attachment name="menu.pdf" size={2048} />);
+    const style = getComputedStyle(attachment);
+    expect(style.borderWidth).toBe("0px");
+    expect(attachment.className).toMatch(/\bforced-colors:border\b/);
+    expect(attachment.className).toMatch(/\bforced-colors:border-solid\b/);
   });
 
   it("truncates a long name instead of growing past its container", async () => {

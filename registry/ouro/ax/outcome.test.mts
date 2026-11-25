@@ -38,6 +38,12 @@ test("validateOutcome passes a checked, received send and rejects what is not an
   for (const v of [null, [], { ax: "other" }, { ax: "outcome/1", state: "maybe" }]) assert.match(validateOutcome(v).errors[0]!, /^not an outcome\/1 envelope/);
 });
 
+test("validateOutcome accepts a target whose also names another ref, and rejects a malformed also entry", () => {
+  const also = { kind: "conversation", id: "19:abc", name: "Design sync" };
+  assert.deepEqual(validateOutcome(sent({ target: { kind: "message", id: "m1", also: [also] } })), { ok: true, errors: [], warnings: [] });
+  assert.deepEqual(validateOutcome({ ...sent(), target: { kind: "message", id: "m1", also: [{ kind: "conversation" }] } } as unknown).errors, ["target is null or { kind, id }"]);
+});
+
 test("validateOutcome names every broken field", () => {
   const bad = { ...sent(), action: "", effect: "public", audience: { only: "no", who: "" }, target: { kind: "x" }, summary: " ", postcondition: { checked: true }, next: [{ command: "x" }], receipt: { id: "" }, error: { code: "" } } as unknown;
   assert.deepEqual(validateOutcome(bad).errors, [

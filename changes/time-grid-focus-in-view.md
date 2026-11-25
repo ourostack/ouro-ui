@@ -1,0 +1,1 @@
+- Fixed: `TimeGrid`'s slot cursor now starts on the first slot in view when the current time is above the hours the grid shows, so focusing the grid no longer scrolls it away from what the person was looking at.

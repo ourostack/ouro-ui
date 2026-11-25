@@ -57,6 +57,7 @@ A controlled Popover: you own `open`, update it in `onOpenChange`, and say what 
 | Prop | Type | Description |
 | --- | --- | --- |
 | `anchor` (required) | `RefObject<HTMLElement \| null>` | The element the popover points at, usually the button that toggles it: `anchor={buttonRef}`. While the popover holds the page, a press on it only closes the popover, as any press outside does. With `modal={false}` a press on it never counts as an outside press, so its own `onClick` can toggle `open`. |
+| `finalFocus` | `RefObject<HTMLElement \| null>` | Where focus goes when the popover closes, when that is not the anchor: `finalFocus={gridRef}`. Use it when the element the popover pointed at is gone by then, such as a deleted row. The ref is read as the popover closes, so it can name an element drawn after `open` became false. |
 | `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user dismisses the popover (Escape, outside press, the close button). |
 | `open` (required) | `boolean` | Whether the popover is open. After a touch or pen tap the popover focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. |
 

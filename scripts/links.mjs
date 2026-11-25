@@ -30,10 +30,10 @@ const fixedPages = ["", "ax/", "docs", "docs/", "docs/parts.md", "docs/switching
 const builtElsewhere = /^(storybook\/|r\/[a-z0-9-]+\.json$)/;
 
 /** Whether `path` (relative to `root`, with `/`) names a file or folder there in exactly that letter case. */
-export function existsExactly(root, path) {
+export function existsExactly(root, path, names = (dir) => new Set(readdirSync(dir))) {
   let dir = root;
   for (const part of path.split("/").filter((piece) => piece !== "" && piece !== ".")) {
-    if (!existsSync(dir) || !statSync(dir).isDirectory() || !readdirSync(dir).includes(part)) return false;
+    if (!existsSync(dir) || !statSync(dir).isDirectory() || !names(dir).has(part)) return false;
     dir = join(dir, part);
   }
   return true;
@@ -179,6 +179,16 @@ const REFRESH = /<meta\s+http-equiv="refresh"/i;
 
 export function builtProblems(dist, base = "/") {
   const problems = [];
+  const listings = new Map();
+  const names = (dir) => {
+    if (!listings.has(dir)) listings.set(dir, new Set(readdirSync(dir)));
+    return listings.get(dir);
+  };
+  const redirects = new Map();
+  const isRedirect = (file) => {
+    if (!redirects.has(file)) redirects.set(file, file.endsWith(".html") && REFRESH.test(readFileSync(join(dist, file), "utf8")));
+    return redirects.get(file);
+  };
   const check = (file, target) => {
     if (/^[a-z][a-z\d+.-]*:/i.test(target) && !target.startsWith(SITE)) return;
     if (target.startsWith("//") || target.startsWith("#") || target === "") return;
@@ -191,10 +201,10 @@ export function builtProblems(dist, base = "/") {
     if (builtElsewhere.test(path) || path === "r/registry.json" || /[<{]/.test(path)) return;
     const resolved = path === "" || path.endsWith("/") ? `${path}index.html` : path;
     // A redirect page (routes.ts) is for addresses typed or guessed; the site's own links name the page itself.
-    const redirect = (file) => file.endsWith(".html") && REFRESH.test(readFileSync(join(dist, file), "utf8"));
-    if (existsExactly(dist, resolved) && statSync(join(dist, resolved)).isFile()) return void (redirect(resolved) && problems.push(`${relative(dist, file)}: ${target} is a redirect page; link to the page it sends to`));
+    const redirect = isRedirect;
+    if (existsExactly(dist, resolved, names) && statSync(join(dist, resolved)).isFile()) return void (redirect(resolved) && problems.push(`${relative(dist, file)}: ${target} is a redirect page; link to the page it sends to`));
     // Pages redirects docs/button to docs/button/.
-    if (existsExactly(dist, `${path}/index.html`)) return void (redirect(`${path}/index.html`) && problems.push(`${relative(dist, file)}: ${target} is a redirect page; link to the page it sends to`));
+    if (existsExactly(dist, `${path}/index.html`, names)) return void (redirect(`${path}/index.html`) && problems.push(`${relative(dist, file)}: ${target} is a redirect page; link to the page it sends to`));
     problems.push(`${relative(dist, file)}: ${target} names no file in the built site${existsSync(join(dist, resolved)) ? " in that letter case" : ""}`);
   };
   for (const file of walk(dist)) {

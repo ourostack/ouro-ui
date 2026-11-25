@@ -140,7 +140,23 @@ test("a child that hangs fails after 10 seconds", async () => {
     const { err, io } = capture();
     const code = await run({ argv: args("config-fixture.json", baselineFile(dir, [])), io, root: here, childScript: join(fixtures, "child-hang.mts"), timeoutMs: 200 });
     equal(code, 1);
-    ok(err.includes("ax-census: the walkers didn't finish within 0.2 seconds"), err.join("\n"));
+    ok(err.join("\n").includes("ax-census: the walkers didn't finish within 0.2 seconds"), err.join("\n"));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a child that hangs names the walker in progress and the stderr tail", async () => {
+  const dir = scratch();
+  try {
+    const { err, io } = capture();
+    // A longer budget than the other timeout tests: the child's "start" line must cross the pipe to this
+    // process before the kill, which a loaded runner can delay past 200ms.
+    const code = await run({ argv: args("config-fixture.json", baselineFile(dir, [])), io, root: here, childScript: join(fixtures, "child-hang.mts"), timeoutMs: 2000 });
+    equal(code, 1);
+    const message = err.join("\n");
+    ok(message.includes("ax-census: the walkers didn't finish within 2 seconds (fixture was running)"), message);
+    ok(message.includes("ax-census: start fixture"), message);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -154,7 +170,7 @@ test("a child whose grandchild holds its pipes still fails at the timeout", asyn
     const code = await run({ argv: args("config-fixture.json", baselineFile(dir, [])), io, root: here, childScript: join(fixtures, "child-grandchild.mts"), timeoutMs: 500 });
     equal(code, 1);
     ok(Date.now() - started < 5000, `took ${Date.now() - started} ms`);
-    ok(err.includes("ax-census: the walkers didn't finish within 0.5 seconds"), err.join("\n"));
+    ok(err.join("\n").includes("ax-census: the walkers didn't finish within 0.5 seconds"), err.join("\n"));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

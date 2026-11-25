@@ -1,0 +1,1 @@
+- Fixed: TimeGrid's +N chip fills its whole strip, so its count stays on one line and it is a usable target.

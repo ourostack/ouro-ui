@@ -35,7 +35,11 @@ import type { PageIssue } from "./size-check.ts";
 //                      sits inside, a button or a switch, checkbox, radio or slider role: a control's own parts
 //                      (Switch's track and thumb, a custom checkbox's box and mark) are drawn as one piece. Nor is it
 //                      judged on an axis a scrolling ancestor between it and that surface scrolls: where it sits down
-//                      that axis is wherever it's scrolled to, not a design gap
+//                      that axis is wherever it's scrolled to, not a design gap. The same skip applies to two separate
+//                      surfaces: a floating one (fixed, sticky or absolutely positioned, such as a "Jump to latest"
+//                      button) paired with one that scrolls under it, on the axis their shared scrolling ancestor
+//                      scrolls, since that gap is the scroll position's, not the design's. Two that both scroll, or
+//                      both float, are still judged: only a floating-over-scrolling pair is skipped
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
 // do. `element` names the element by its words, the same at every size; `detail` has this size's numbers.
@@ -206,23 +210,18 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
   });
   const rects = new Map(surfaces.map((el) => [el, el.getBoundingClientRect()]));
   const axes = [
-    { start: "left", end: "right", sideStart: "top", sideEnd: "bottom" },
-    { start: "top", end: "bottom", sideStart: "left", sideEnd: "right" },
+    { axis: "x", start: "left", end: "right", sideStart: "top", sideEnd: "bottom" },
+    { axis: "y", start: "top", end: "bottom", sideStart: "left", sideEnd: "right" },
   ] as const;
-  const apart = (a: DOMRect, b: DOMRect) => {
-    for (const { start, end, sideStart, sideEnd } of axes) {
-      const gap = Math.max(a[start] - b[end], b[start] - a[end]);
-      const along = Math.min(a[sideEnd], b[sideEnd]) - Math.max(a[sideStart], b[sideStart]);
-      if (gap > touchPx && gap < gapMin && along >= Math.min(a[sideEnd] - a[sideStart], b[sideEnd] - b[sideStart]) / 2) return gap;
-    }
-    return 0;
+  // A scrolling ancestor the walk reaches before (or at) nearest: both els share an ancestor, so the walk from either
+  // one up always reaches the other's, and the loop always returns from inside it.
+  const nearestCommonAncestor = (a: Element, b: Element) => {
+    const ancestors = new Set<Element>();
+    for (let n: Element | null = a; n; n = n.parentElement) ancestors.add(n);
+    for (let n: Element | null = b; n; n = n.parentElement) if (ancestors.has(n)) return n;
+    /* istanbul ignore next @preserve -- both els are always under document.body, so the loop above always returns there or sooner */
+    return document.body;
   };
-  const groups = '[role=group], [role=radiogroup], [role=toolbar], [role=tablist], [data-ouro="toggle-group"], [data-ouro="button-group"], [data-ouro="segmented-control"], [data-ouro="tabs"], [data-ouro="radio-group"], [data-ouro="checkbox-group"], [data-ouro="pagination"], [data-ouro="otp-field"], [data-ouro="avatar-group"], [data-ouro="toolbar"]';
-  const sameGroup = (a: Element, b: Element) => {
-    const group = a.closest(groups);
-    return Boolean(group) && group === b.closest(groups);
-  };
-  const near: { a: Element; b: Element; gap: number }[] = [];
   // A surface's position against a scrolling ancestor is wherever it's scrolled to, not a design gap.
   const scrolls = (el: Element, axis: "x" | "y") => (axis === "x" ? /auto|scroll/.test(getComputedStyle(el).overflowX) && el.scrollWidth > el.clientWidth : /auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight);
   // container is always an ancestor of a (the caller only calls this with a container that contains a), so the walk
@@ -235,9 +234,35 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
       n = n.parentElement!;
     }
   };
+  const floats = (el: Element) => /fixed|sticky|absolute/.test(getComputedStyle(el).position);
+  // A pair where one sits over a scroll area the other scrolls in (a "Jump to latest" button, a header pill over a
+  // picture that scrolls under it): their gap depends on scroll position, not a design gap, like a surface's own
+  // scrolling container's edge.
+  const floatsOverScroll = (a: Element, b: Element, axis: "x" | "y") => {
+    const container = nearestCommonAncestor(a, b);
+    const aScrolls = container !== a && scrollsBetween(a, container, axis);
+    const bScrolls = container !== b && scrollsBetween(b, container, axis);
+    return (aScrolls && !bScrolls && floats(b)) || (bScrolls && !aScrolls && floats(a));
+  };
+  const apart = (a: Element, b: Element) => {
+    const ra = rects.get(a)!;
+    const rb = rects.get(b)!;
+    for (const { axis, start, end, sideStart, sideEnd } of axes) {
+      const gap = Math.max(ra[start] - rb[end], rb[start] - ra[end]);
+      const along = Math.min(ra[sideEnd], rb[sideEnd]) - Math.max(ra[sideStart], rb[sideStart]);
+      if (gap > touchPx && gap < gapMin && along >= Math.min(ra[sideEnd] - ra[sideStart], rb[sideEnd] - rb[sideStart]) / 2 && !floatsOverScroll(a, b, axis)) return gap;
+    }
+    return 0;
+  };
+  const groups = '[role=group], [role=radiogroup], [role=toolbar], [role=tablist], [data-ouro="toggle-group"], [data-ouro="button-group"], [data-ouro="segmented-control"], [data-ouro="tabs"], [data-ouro="radio-group"], [data-ouro="checkbox-group"], [data-ouro="pagination"], [data-ouro="otp-field"], [data-ouro="avatar-group"], [data-ouro="toolbar"]';
+  const sameGroup = (a: Element, b: Element) => {
+    const group = a.closest(groups);
+    return Boolean(group) && group === b.closest(groups);
+  };
+  const near: { a: Element; b: Element; gap: number }[] = [];
   surfaces.forEach((a, i) => {
     for (const b of surfaces.slice(i + 1)) {
-      const gap = a.contains(b) || b.contains(a) || sameGroup(a, b) ? 0 : apart(rects.get(a)!, rects.get(b)!);
+      const gap = a.contains(b) || b.contains(a) || sameGroup(a, b) ? 0 : apart(a, b);
       if (gap) near.push({ a, b, gap });
     }
     const container = surfaces.filter((c) => c !== a && c.contains(a)).pop();

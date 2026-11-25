@@ -471,23 +471,27 @@ async function previousRunWork({ repository, token, branch, runId }, key = "work
 /** How many of the latest runs the wall time's median and 90th percentile are taken over. */
 export const recentRuns = 20;
 
+/** Jobs per page: a page of 100 answers 502 on every try for a run of about 160 jobs (each carries its steps), so the check waited out all its retries; 30 answers at once. */
+export const jobsPerPage = 30;
+
 /** Every job of a run attempt, through the API's pages. */
 async function fetchJobs({ repository, runId, attempt, token }) {
   const jobs = [];
   for (let page = 1; ; page += 1) {
-    const body = await getJson(`https://api.github.com/repos/${repository}/actions/runs/${runId}/attempts/${attempt}/jobs?per_page=100&page=${page}`, token);
+    const body = await getJson(`https://api.github.com/repos/${repository}/actions/runs/${runId}/attempts/${attempt}/jobs?per_page=${jobsPerPage}&page=${page}`, token);
     jobs.push(...body.jobs);
     if (jobs.length >= body.total_count || body.jobs.length === 0) return jobs;
   }
 }
 
-/** What a run that GitHub would not answer for reports: a warning and a passing exit code, never a failure. Any other error is rethrown. */
-export function reportUnavailable(error, summaryPath, log = console.log) {
+/** What a run that GitHub would not answer for reports: on a pull request a failure, because an unjudged budget is a guard turned off; elsewhere a warning and a passing exit code. Any other error is rethrown. */
+export function reportUnavailable(error, summaryPath, log = console.log, event = "") {
   if (!(error instanceof ApiUnavailable)) throw error;
   const note = `Budget unavailable: GitHub's API would not answer, so this run's time was not judged (${error.message}).`;
-  log(`::warning::${note}`);
+  const failing = event === "pull_request";
+  log(`::${failing ? "error" : "warning"}::${note}`);
   if (summaryPath) appendFileSync(summaryPath, `## CI time\n\n${note}\n`);
-  return 0;
+  return failing ? 1 : 0;
 }
 
 async function judgeRun(argv) {
@@ -654,12 +658,12 @@ async function judgeRun(argv) {
   return laneVerdict.fail ? 1 : 0;
 }
 
-/** Judges the run; a phase GitHub will not answer for reports "Budget unavailable" and passes. */
+/** Judges the run; a phase GitHub will not answer reports "Budget unavailable", which fails a pull request's run and only warns elsewhere. */
 export async function main(argv) {
   try {
     return await judgeRun(argv);
   } catch (error) {
-    return reportUnavailable(error, process.env["GITHUB_STEP_SUMMARY"]);
+    return reportUnavailable(error, process.env["GITHUB_STEP_SUMMARY"], console.log, process.env["EVENT"]);
   }
 }
 

@@ -40,6 +40,7 @@ const waivers: Record<string, string> = {
   "tabs": "the indicator and the selected tab need their offsets and scroll sizes in the first frame, and Base UI's tabs list reads sizes and calls scrollIntoViewIfNeeded for the selected tab",
   "thread-layout": "it mounts a message list in its open rail, which pins the first frame to the newest message and needs scroll and client sizes to do so",
   "thread-rail": "it mounts a message list, which pins the first frame to the newest message and needs scroll and client sizes to do so",
+  "time-grid": "a day with events reads its own width and the root font size before paint to decide the +N fold, or the first frame would show every event and swap to the fold once a later measure arrived",
 };
 
 /** Demos that read at mount in WebKit alone, each with the reason; a demo here must read in WebKit and read nothing in Chromium. */

@@ -1,0 +1,1 @@
+- New: TimeGridNav takes `disabled`, which disables Today, Previous and Next while a grid's events load.
