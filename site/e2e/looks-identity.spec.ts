@@ -188,3 +188,37 @@ test("stagePaced returns at once while the stage is still offscreen, with no ver
   await stagePaced(page);
   expect(Date.now() - started, "an offscreen stage has no judge in flight: no need to wait it out").toBeLessThan(5_000);
 });
+
+// An instant scrollIntoView returns before the browser's paint and compositor pipeline has necessarily caught up: a
+// picture taken right then can show a frame still mid-repaint, with no Animation or Transition to mark it, so
+// settleMotion never sees the gap either (ourostack/ouro-ui#3693). picture() must let at least one real frame land
+// between the scroll and its screenshot, for every control it takes, not only one deep below the fold.
+test("picture lets a real frame land after scrollIntoView before taking its screenshot, so a scroll-triggered repaint has already landed (#3693)", async ({ page }) => {
+  await page.goto("./docs/");
+  await page.evaluate(() => {
+    document.body.innerHTML = '<main style="height:4000px"><button data-ouro-control="far" data-ouro-part="trigger" style="position:absolute;top:3000px;left:0;width:40px;height:40px">Far</button></main>';
+    const marks: string[] = [];
+    (window as unknown as { scrollPaintOrder: string[] }).scrollPaintOrder = marks;
+    const realRaf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback) => realRaf((time) => {
+      marks.push("frame");
+      callback(time);
+    });
+    const realScrollIntoView = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element, ...args: Parameters<typeof realScrollIntoView>) {
+      marks.push("scroll");
+      return realScrollIntoView.apply(this, args);
+    };
+  });
+  await loaded(page);
+  const { looks } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
+  const index = looks.findIndex((l) => l.size.includes("|Far"));
+  expect(index).toBeGreaterThanOrEqual(0);
+
+  const crop = await picture(page, index);
+  expect(crop, "far control is pictured").not.toBeNull();
+  const order = await page.evaluate(() => (window as unknown as { scrollPaintOrder: string[] }).scrollPaintOrder);
+  const scrollAt = order.indexOf("scroll");
+  expect(scrollAt, "picture scrolled the control into view").toBeGreaterThanOrEqual(0);
+  expect(order.slice(scrollAt + 1), "a real frame lands after the scroll and before the screenshot").toContain("frame");
+});

@@ -192,6 +192,19 @@ describe("Lightbox thumbnails", () => {
     expect(thumbnail.width / thumbnail.height).toBeCloseTo(4 / 3, 1);
   });
 
+  it("draws thumbnails edge to edge, with no hairline, when framed is false", async () => {
+    const framed = await render(lightbox());
+    const frameless = await render(lightbox({ framed: false }));
+    const framedThumbnail = thumbnails(framed.host)[0]!;
+    const framelessThumbnail = thumbnails(frameless.host)[0]!;
+    expect(framedThumbnail.className).toContain("border-border");
+    expect(framedThumbnail.className).toContain("rounded-ouro-lg");
+    expect(framelessThumbnail.className).not.toContain("border-border");
+    expect(framelessThumbnail.className).not.toContain("rounded-ouro-lg");
+    expect(framelessThumbnail.className).toContain("rounded-ouro-inner");
+    expect(framelessThumbnail.className).toContain("forced-colors:border");
+  });
+
   it("takes layout classes from className", async () => {
     const { host } = await render(lightbox({ className: "mt-6 max-w-2xl" }));
     const root = host.querySelector<HTMLElement>('[data-ouro="lightbox"]')!;

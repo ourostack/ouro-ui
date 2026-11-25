@@ -1,0 +1,1 @@
+- Fixed: TimeGrid's keyboard slot cursor stays on its slot when focus leaves the grid and returns, as after a dialog closes, instead of starting over at the current time.

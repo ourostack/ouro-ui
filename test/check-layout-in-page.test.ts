@@ -257,6 +257,23 @@ describe("findLayoutIssues: near-miss", () => {
     expect(found()).toEqual([]);
   });
 
+  it("passes a floating button paired with content that scrolls under it, where the gap is wherever the scroll lands, but still finds the same two elements as static siblings apart", () => {
+    render(`
+      <div id="scroller" style="position:fixed;left:10px;top:10px;width:200px;height:200px;overflow-y:auto;box-sizing:border-box;background:#eee">
+        <div style="height:300px"></div>
+        <div id="bubble" style="width:60px;height:30px;background:#cde"></div>
+        <div style="height:300px"></div>
+      </div>
+      <button id="jump" style="position:fixed;left:10px;top:170px;width:60px;height:30px;background:#cde;border:0">Jump to latest</button>`);
+    const scroller = host.querySelector("#scroller")!;
+    scroller.scrollTop = 174;
+    expect(found()).toEqual([]);
+    host.innerHTML = `
+      ${box("bubble2", 10, 136, 60, 30)}
+      ${box("jump2", 10, 170, 60, 30)}`;
+    expect(found()).toEqual([["div#bubble2 and div#jump2", "4px"]]);
+  });
+
   it("passes the parts of one control group, and finds two groups, or a group and a surface outside it, that nearly touch", () => {
     const part = (id: string, left: number) => `<div id="${id}" style="position:absolute;left:${left}px;top:0;width:60px;height:30px;background:#cde"></div>`;
     const group = (attrs: string, top: number, ...parts: string[]) => `<div ${attrs} style="position:fixed;left:10px;top:${top}px;width:300px;height:30px">${parts.join("")}</div>`;

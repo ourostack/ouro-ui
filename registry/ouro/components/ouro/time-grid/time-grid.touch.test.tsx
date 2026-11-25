@@ -1,5 +1,5 @@
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { TimeGrid } from "@/registry/ouro/components/ouro/time-grid/time-grid";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -72,4 +72,24 @@ it("gives a background event's thin bar a 44px touch target that leaves the pers
   expect(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)?.closest("[data-ouro-event-key]")).toBe(bar);
   const ownBox = own!.getBoundingClientRect();
   expect(document.elementFromPoint(ownBox.left + 2, ownBox.top + ownBox.height / 2)?.closest("[data-ouro-event-key]")).toBe(own);
+});
+
+it("gives the +N chip a 44px touch target that the chip itself answers", async () => {
+  const host = document.createElement("div");
+  host.style.width = "216px";
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  const events = Array.from({ length: 6 }, (_, index) => ({ id: `e${index}`, title: `Meeting ${index}`, start: "2026-03-12T10:00:00-04:00", end: "2026-03-12T12:00:00-04:00" }));
+  await act(async () => root!.render(<TimeGrid label="Team calendar" view="day" date="2026-03-12" timeZone="America/New_York" now="2026-03-12T08:00:00-04:00" events={events} />));
+  const chip = await vi.waitUntil(() => host.querySelector<HTMLElement>('[data-slot="time-grid-more"]'));
+  chip.scrollIntoView({ block: "center" });
+  const target = chip.querySelector("[data-ouro-touch-target]")!.getBoundingClientRect();
+  expect(target.width).toBeGreaterThanOrEqual(44);
+  expect(target.height).toBeGreaterThanOrEqual(44);
+  const box = chip.getBoundingClientRect();
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  for (const dy of [-21, 21]) expect(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2 + dy)?.closest("[data-slot=time-grid-more]")).toBe(chip);
+  // The fold counted the wider strip: a day this wide shows one event beside the chip, not two.
+  expect(host.querySelectorAll("[data-ouro-event-key]:not([data-slot=time-grid-more])")).toHaveLength(1);
 });

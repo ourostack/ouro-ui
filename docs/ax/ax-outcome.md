@@ -5,7 +5,7 @@
 The outcome of an action: what became of it, who can see it, whether that was checked, how to find it again and what to run next, in one shape over a CLI's `--json`, an HTTP route and an MCP tool.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-outcome#v1.3.553
+npx shadcn@latest add ourostack/ouro-ui/ax-outcome#v1.3.567
 ```
 
 It installs `lib/ouro/ax/outcome.ts`, with `ax-effects`, `ax-exit-codes`, `ax-precise-copy`, `ax-problem`. Its tests are `ax-outcome-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -14,13 +14,14 @@ It installs `lib/ouro/ax/outcome.ts`, with `ax-effects`, `ax-exit-codes`, `ax-pr
 
 ### `AxRef`
 
-A thing an agent holds a reference to: a conversation, a message, a meeting, a request. `id` is what the tool takes back.
+A thing an agent holds a reference to: a conversation, a message, a meeting, a request. `id` is what the tool takes back, and `kind` is its one name: use it, never a second field name for the same id elsewhere (`conversationId` in an event, `chatId` in a read's output). A feed item's ref is the exact ref its own read and action commands accept. When it also names something else a command can take instead, say so with `also`: a message's ref also names its conversation, so a read of the conversation and a reply to the thread both take the message's ref, not only the conversation's own id.
 
 ```ts
 interface AxRef {
   kind: string;
   id: string;
   name?: string;
+  also?: readonly AxRef[];
 }
 ```
 
@@ -30,6 +31,14 @@ The default: what was done, queued, planned or handed to the person exits `ok` (
 
 ```ts
 const DEFAULT_OUTCOME_EXITS: OutcomeExits
+```
+
+### `isAxRefShape`
+
+Whether a value is an `AxRef`'s shape: `kind` and `id` as text, and, when given, `also` as a list of the same shape. Shared by `validateOutcome` and `checkWorkEvent`, so a target is checked the same way in both.
+
+```ts
+function isAxRefShape(v: unknown): v is AxRef
 ```
 
 ### `isGenericAudience`

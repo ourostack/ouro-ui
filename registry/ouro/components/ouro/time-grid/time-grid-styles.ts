@@ -25,6 +25,7 @@ export {
   periodShift,
   stackMinWidth,
   todayOn,
+  foldsOf,
   stacksOf,
   statusClass,
   stepTo,
@@ -198,6 +199,28 @@ function stacksOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>): Array<Arra
     end = Math.max(end, placed.bottom);
   }
   return stacks;
+}
+
+/**
+ * Which of a day's overlapping events show, in a day `widthRem` wide, and which fold into a chip.
+ * A shown event keeps a step wide enough for a few characters of its title; a day that can't
+ * give the first event its minimum beside the chip's strip folds the whole stack into one.
+ */
+function foldsOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>, widthRem: number, strip = 2) {
+  const minStep = 3;
+  const minWidth = 4.5;
+  const folds: Array<{ shown: Array<DayPlacement<Key>>; folded: Array<DayPlacement<Key>> }> = [];
+  for (const stack of stacksOf(placements)) {
+    // A stack is one group of overlapping events, so its events share their column count.
+    const columns = stack[0]!.columns;
+    if (columns < 2 || widthRem >= minWidth + (columns - 1) * minStep) continue;
+    const visible = Math.floor((widthRem - strip - minWidth) / minStep) + 1;
+    folds.push({
+      shown: stack.filter((placed) => placed.column < visible).map((placed) => ({ ...placed, columns: visible, span: Math.min(placed.span, visible - placed.column) })),
+      folded: stack.filter((placed) => placed.column >= visible),
+    });
+  }
+  return folds;
 }
 
 /**

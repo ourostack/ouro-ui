@@ -1,0 +1,1 @@
+- New: TimeGrid's drag preview names its range, such as "10:00 AM – 12:30 PM", while a slot is dragged.

@@ -717,7 +717,12 @@ test("a self-scoped twin that does not check the owner fails ui.self-scope-refus
     { component: "Roster", kind: "action", id: "kick", effect: "private", twin: "call kick <listener> --agent <me>", scope: "self" },
     { component: "Roster", kind: "action", id: "leave-room", effect: "private", twin: "call unfollow <room> <listener> --agent <me>", scope: "self" },
   ];
-  const report = await call("call-owner", "owner", { inventory: callInventory("call-owner", ui) });
+  // Each run has its own state file, so the three run side by side.
+  const [report, unsafe, stateless] = await Promise.all([
+    call("call-owner", "owner", { inventory: callInventory("call-owner", ui) }),
+    call("call-owner-unsafe", "", { mock: undefined }),
+    call("call-owner-stateless", "", { state: [], inventory: callInventory("call-owner-stateless", [...callUi, ui.at(-1)]) }),
+  ]);
   const result = (surface: string) => report.results.find((r) => r.claim === "ui.self-scope-refuses" && r.surface === surface)!;
   // Any agent's call acts on research-agent's row: help gives the command no scope, and the state changes.
   assert.equal(result("AgentPresence action stop").verdict, "fail");
@@ -729,31 +734,51 @@ test("a self-scoped twin that does not check the owner fails ui.self-scope-refus
   assert.deepEqual([result("Roster action leave-room").verdict, result("Roster action leave-room").note], ["fail", '`call unfollow` does not check the owner: help --json gives it no scope: "self"']);
   assert.equal(report.conformant, false);
   // Unproven as a mock, nothing scoped runs.
-  const unsafe = await call("call-owner-unsafe", "", { mock: undefined });
   assert.match(unsafe.results.find((r) => r.claim === "ui.self-scope-refuses")!.note, /^not run: the target is not proven a mock/);
   assert.deepEqual(JSON.parse(readFileSync(join(scratch, "call-owner-unsafe-state.json"), "utf8")).listening.length, 2);
   // Without a state command, the refusal is judged by its answers alone; a placeholder with no sample is skipped.
-  const stateless = await call("call-stateless", "", { state: [], inventory: callInventory("call-stateless", [...callUi, ui.at(-1)]) });
   assert.equal(verdictOf(stateless, "ui.self-scope-refuses", "Roster action leave-room"), "skip");
   assert.equal(verdictOf(stateless, "ui.self-scope-refuses", "AgentPresence action stop"), "pass");
 });
 
 test("a listening read's follow, fields and cursor: ignored, missing, no lines, a follow that fails, no sample, no mock, no help", async () => {
-  const cursor = await call("call-cursor", "cursor");
-  assert.match(failingNotes(cursor, "cli.listening-cursor")[0]!, /^LiveCaptions read captions: `call captions m1 --cursor 2 --json` repeats a line it already gave: \{"at":"1"/);
-  const nocursor = await call("call-nocursor", "nocursor,fields");
-  assert.deepEqual(failingNotes(nocursor, "cli.listening-cursor"), ["LiveCaptions read captions: `call captions m1 --json` gives no cursor"]);
-  assert.deepEqual(failingNotes(nocursor, "ui.read-fields")[1], "LiveCaptions read captions: `call captions m1 --json` has no speaker");
-  const nolines = await call("call-nolines", "nolines");
-  assert.match(nolines.results.find((r) => r.claim === "cli.listening-cursor")!.note, /answered no lines to read past$/);
-  const follow = await call("call-follow", "follow");
-  assert.match(follow.results.find((r) => r.claim === "cli.listening-cursor")!.note, /^the follow failed: `call follow m1 --why/);
   const odd = [
     ...callUi,
     { component: "Captions", kind: "read", id: "questions", twin: "call events <meeting> --stream live-transcript --on question", consent: "listening", fields: ["text"] },
     ...["launch", "people", "next"].map((t) => ({ component: "Captions", kind: "read", id: t, twin: `call events <meeting> --stream live-transcript --on topic:${t}`, consent: "listening", fields: ["text"] })),
   ];
-  const strange = await call("call-strange", "state,extra,unlisted,hidden,pushextra,reason", { inventory: callInventory("call-strange", odd) });
+  const risky = [
+    ...callUi,
+    { component: "MediaTile", kind: "read", id: "pinned", twin: "call pin p1", consent: "none", fields: ["name"] },
+    { component: "Captions", kind: "read", id: "pinning", twin: "call pin p1", consent: "listening", fields: ["text"] },
+    { component: "Captions", kind: "read", id: "muting", twin: "call captions <meeting>", consent: "listening", fields: ["text"], push: "call mute <meeting>", trigger: "--on mention" },
+  ];
+  const sampleless = [
+    ...callUi,
+    { component: "Captions", kind: "read", id: "pushless", twin: "call captions <meeting>", consent: "listening", fields: ["text"], push: "call events <meeting>" },
+    { component: "Tile", kind: "read", id: "who", twin: "call participants <room>", consent: "none", fields: ["name"] },
+    { component: "Captions", kind: "read", id: "said", twin: "call captions <room>", consent: "listening", fields: ["text"], push: "call events <room> --stream live-transcript", trigger: "--on mention" },
+    { component: "Captions", kind: "read", id: "heard", twin: "call captions <meeting>", consent: "listening", fields: ["text"], push: "call events <room> --stream live-transcript", trigger: "--on mention" },
+  ];
+  const resumeless = [{ component: "Captions", kind: "read", id: "said", twin: "captions <meeting>", consent: "listening" }];
+  // Each run has its own state file and inventory, so they run side by side.
+  const [cursor, nocursor, nolines, follow, strange, resume, unsafe, missing, plainer, plain] = await Promise.all([
+    call("call-cursor", "cursor"),
+    call("call-nocursor", "nocursor,fields"),
+    call("call-nolines", "nolines"),
+    call("call-follow", "follow"),
+    call("call-strange", "state,extra,unlisted,hidden,pushextra,reason", { inventory: callInventory("call-strange", odd) }),
+    call("call-resume-room", "resume"),
+    call("call-unsafe", "", { mock: undefined, inventory: callInventory("call-unsafe", risky) }),
+    call("call-missing", "", { inventory: callInventory("call-missing", sampleless), state: [] }),
+    call("call-resume", "", { inventory: callInventory("call-resume", resumeless) }),
+    xray(base({ cli: fixture("plain-cli.mjs"), inventory: callInventory("plain-ui") })),
+  ]);
+  assert.match(failingNotes(cursor, "cli.listening-cursor")[0]!, /^LiveCaptions read captions: `call captions m1 --cursor 2 --json` repeats a line it already gave: \{"at":"1"/);
+  assert.deepEqual(failingNotes(nocursor, "cli.listening-cursor"), ["LiveCaptions read captions: `call captions m1 --json` gives no cursor"]);
+  assert.deepEqual(failingNotes(nocursor, "ui.read-fields")[1], "LiveCaptions read captions: `call captions m1 --json` has no speaker");
+  assert.match(nolines.results.find((r) => r.claim === "cli.listening-cursor")!.note, /answered no lines to read past$/);
+  assert.match(follow.results.find((r) => r.claim === "cli.listening-cursor")!.note, /^the follow failed: `call follow m1 --why/);
   assert.deepEqual(failingNotes(strange, "ui.listening-needs-yes").map((n) => n.replace(/^.*?\): /, "")), [
     "outcome in state done, not needs-human",
     "the outcome also carries lines",
@@ -764,15 +789,7 @@ test("a listening read's follow, fields and cursor: ignored, missing, no lines, 
   ]);
   assert.match(failingNotes(strange, "cli.listening-push-filtered")[0]!, /: the refusal also carries target, next$/);
   assert.ok(failingNotes(strange, "ui.person-only-refuses").every((n) => n.endsWith(`the refusal does not name the reason help gives ("You can't turn on the person's microphone, camera or screen; only they can")`)));
-  const resume = await call("call-resume-room", "resume");
   assert.equal(resume.results.find((r) => r.claim === "cli.listening-cursor")!.note, "no sample for <room> in the follow command");
-  const risky = [
-    ...callUi,
-    { component: "MediaTile", kind: "read", id: "pinned", twin: "call pin p1", consent: "none", fields: ["name"] },
-    { component: "Captions", kind: "read", id: "pinning", twin: "call pin p1", consent: "listening", fields: ["text"] },
-    { component: "Captions", kind: "read", id: "muting", twin: "call captions <meeting>", consent: "listening", fields: ["text"], push: "call mute <meeting>", trigger: "--on mention" },
-  ];
-  const unsafe = await call("call-unsafe", "", { mock: undefined, inventory: callInventory("call-unsafe", risky) });
   assert.deepEqual(unsafe.results.filter((r) => r.note.includes("is no private read")).map((r) => `${r.claim} ${r.surface}: ${r.note}`), [
     "ui.read-fields MediaTile read pinned: not run: `call pin p1` is no private read in help --json, and the target is not proven a mock",
     "ui.listening-needs-yes Captions read pinning: not run: `call pin p1` is no private read in help --json, and the target is not proven a mock",
@@ -781,14 +798,6 @@ test("a listening read's follow, fields and cursor: ignored, missing, no lines, 
   ]);
   assert.equal(JSON.parse(readFileSync(join(scratch, "call-unsafe-state.json"), "utf8")).pinned.length, 0);
   for (const id of ["ui.person-only-refuses", "ui.read-fields", "cli.listening-cursor"]) assert.ok(unsafe.results.filter((r) => r.claim === id).some((r) => r.verdict === "skip" && r.note.startsWith("not run: the target is not proven a mock")), id);
-  const sampleless = [
-    ...callUi,
-    { component: "Captions", kind: "read", id: "pushless", twin: "call captions <meeting>", consent: "listening", fields: ["text"], push: "call events <meeting>" },
-    { component: "Tile", kind: "read", id: "who", twin: "call participants <room>", consent: "none", fields: ["name"] },
-    { component: "Captions", kind: "read", id: "said", twin: "call captions <room>", consent: "listening", fields: ["text"], push: "call events <room> --stream live-transcript", trigger: "--on mention" },
-    { component: "Captions", kind: "read", id: "heard", twin: "call captions <meeting>", consent: "listening", fields: ["text"], push: "call events <room> --stream live-transcript", trigger: "--on mention" },
-  ];
-  const missing = await call("call-missing", "", { inventory: callInventory("call-missing", sampleless), state: [] });
   assert.equal(holds(missing, "ui.person-only-refuses"), true);
   assert.deepEqual(missing.results.filter((r) => r.verdict === "skip" && r.note.startsWith("no sample")).map((r) => `${r.claim} ${r.surface}`), [
     "ui.read-fields Tile read who",
@@ -797,10 +806,7 @@ test("a listening read's follow, fields and cursor: ignored, missing, no lines, 
     "cli.listening-push-filtered Captions read heard",
   ]);
   assert.match(missing.results.find((r) => r.claim === "cli.listening-cursor" && r.surface === "Captions read said")!.note, /gave no follow command/);
-  const resumeless = [{ component: "Captions", kind: "read", id: "said", twin: "captions <meeting>", consent: "listening" }];
-  const plainer = await call("call-resume", "", { inventory: callInventory("call-resume", resumeless) });
   assert.equal(holds(plainer, "cli.listening-cursor"), true);
-  const plain = await xray(base({ cli: fixture("plain-cli.mjs"), inventory: callInventory("plain-ui") }));
   assert.ok(failingNotes(plain, "ui.twin-exists").every((n) => n.endsWith("no help JSON to find the twin in")));
 });
 

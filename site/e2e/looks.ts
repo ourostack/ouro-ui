@@ -57,14 +57,20 @@ export function describe(arg: { selector: string; only?: number }): Described {
   const seenPictured = new Set<string>();
   const px = (v: string) => Math.round(parseFloat(v) || 0);
   const ctx = document.createElement("canvas").getContext("2d");
+  // The same few colours recur on every look, and each canvas read-back is a round trip through the engine's pixel buffer.
+  const converted = new Map<string, string>();
   const rgb = (v: string) => {
     if (!ctx || !v || v === "transparent") return v;
+    const known = converted.get(v);
+    if (known !== undefined) return known;
     ctx.clearRect(0, 0, 1, 1);
     ctx.fillStyle = "#000";
     ctx.fillStyle = v;
     ctx.fillRect(0, 0, 1, 1);
     const d = ctx.getImageData(0, 0, 1, 1).data;
-    return `${d[0]},${d[1]},${d[2]},${d[3]}`;
+    const result = `${d[0]},${d[1]},${d[2]},${d[3]}`;
+    converted.set(v, result);
+    return result;
   };
   // Components whose full-radius shape is the squircle on purpose; dots, lights, thumbs and pills are not.
   // A hover lift of up to 2px is layout settling, not a look: a translate-only transform that small reads as none.
@@ -337,8 +343,16 @@ export async function picture(page: Page, index: number, attributes?: string): P
   if (!handle) return null;
   // The site scrolls smoothly (html's scroll-behavior), so a plain scrollIntoView is still moving when the cover check reads
   // the element, and the picture was skipped (#1463).
-  await handle.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" })).catch(() => {});
-  const clear = await handle.evaluate((el) => {
+  // An instant scroll returns before the browser's own paint and compositor pipeline has necessarily caught up: a
+  // large jump (a control well below the fold) can leave part of the newly-visible area painted from its last
+  // frame for a tick or two, with no CSS Animation or Transition marking it, so settleMotion never sees it either.
+  // A picture taken in that gap shows the stale paint, and a retake taken once the page has had a moment longer
+  // disagrees with it even though nothing about the control itself changed (ourostack/ouro-ui#3693). Two real
+  // frames is enough to see the scroll's own repaint land before the clip rect and the screenshot are taken.
+  // The scroll, the two frames and the reads that follow them are one call into the page, not four: each call is a round trip.
+  const view = await handle.evaluate(async (el) => {
+    el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+    await new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())));
     const r = el.getBoundingClientRect();
     const points: [number, number][] = [
       [r.left + 2, r.top + 2],
@@ -347,23 +361,21 @@ export async function picture(page: Page, index: number, attributes?: string): P
       [r.right - 2, r.bottom - 2],
       [r.left + r.width / 2, r.top + r.height / 2],
     ];
-    return points.every(([x, y]) => {
+    const clear = points.every(([x, y]) => {
       const hit = document.elementFromPoint(x, y);
       return hit !== null && (el.contains(hit) || hit.contains(el));
     });
-  }).catch(() => false);
-  if (!clear) return null;
-  // WebKit spends about a second on an element's own screenshot however small it is, and far less on a clip of the page
-  // with the same pixels, so an element wholly inside the viewport is clipped, and any other is taken as an element.
-  const view = await handle.evaluate((el) => {
-    const r = el.getBoundingClientRect();
+    // WebKit spends about a second on an element's own screenshot however small it is, and far less on a clip of the page
+    // with the same pixels, so an element wholly inside the viewport is clipped, and any other is taken as an element.
     const x = Math.floor(r.left);
     const y = Math.floor(r.top);
     const fits = x >= 0 && y >= 0 && Math.ceil(r.right) <= window.innerWidth && Math.ceil(r.bottom) <= window.innerHeight;
-    return fits ? { x, y, width: Math.ceil(r.right) - x, height: Math.ceil(r.bottom) - y } : null;
+    return { clear, clip: fits ? { x, y, width: Math.ceil(r.right) - x, height: Math.ceil(r.bottom) - y } : null, scale: devicePixelRatio };
   }).catch(() => null);
+  if (!view?.clear) return null;
+  const clip = view.clip;
   const shot = { animations: "disabled", caret: "hide", timeout: 15_000 } as const;
-  const png = await (view && view.width > 0 && view.height > 0 ? page.screenshot({ clip: view, ...shot }) : handle.screenshot(shot)).catch(() => null);
+  const png = await (clip && clip.width > 0 && clip.height > 0 ? page.screenshot({ clip, ...shot }) : handle.screenshot(shot)).catch(() => null);
   if (!png) return null;
   // Scrolling it into view can wake the part of the page it is in (an island hydrates and an avatar's picture loads), so a
   // picture of an element whose attributes changed since it was described shows another state than its look's.
@@ -372,8 +384,109 @@ export async function picture(page: Page, index: number, attributes?: string): P
     if (now !== attributes) return null;
   }
   const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const scale = await page.evaluate(() => devicePixelRatio).catch(() => 1);
-  return { data, width: info.width, height: info.height, scale };
+  return { data, width: info.width, height: info.height, scale: view.scale };
+}
+
+/**
+ * The pictures of several looks, each cropped from one screenshot of the viewport instead of taken with a screenshot of
+ * its own: the screenshot call is most of a picture's time, and a page has up to a hundred. The first look still left is
+ * scrolled to the centre, and every other look that sits whole inside that viewport, clear of anything over it, is cropped
+ * from the same screenshot. A look that does not fit is taken by picture(). The crop is the clip's pixels, but a look that
+ * starts between two pixels can differ from a clip by one level, so pictures are compared only with each other.
+ */
+export async function pictureBatch(page: Page, looks: { index: number; attributes: string }[], moved: string[] = []): Promise<Map<number, Crop | null>> {
+  const out = new Map<number, Crop | null>();
+  let left = [...looks];
+  while (left.length > 0) {
+    const [lead, ...rest] = left;
+    const view = await page
+      .evaluate(
+        async ([first, others]) => {
+          const find = (i: number) => document.querySelector<HTMLElement>(`[data-sweep-look="${i}"]`);
+          const head = find(first);
+          if (!head) return null;
+          head.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+          await new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())));
+          const attributes = (el: Element) => [...el.attributes].filter((a) => !a.name.startsWith("data-sweep-")).map((a) => `${a.name}=${a.value}`).sort().join(" ");
+          const measure = (i: number) => {
+            const el = find(i);
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            const points: [number, number][] = [
+              [r.left + 2, r.top + 2],
+              [r.right - 2, r.top + 2],
+              [r.left + 2, r.bottom - 2],
+              [r.right - 2, r.bottom - 2],
+              [r.left + r.width / 2, r.top + r.height / 2],
+            ];
+            const clear = points.every(([x, y]) => {
+              const hit = document.elementFromPoint(x, y);
+              return hit !== null && (el.contains(hit) || hit.contains(el));
+            });
+            const x = Math.floor(r.left);
+            const y = Math.floor(r.top);
+            const width = Math.ceil(r.right) - x;
+            const height = Math.ceil(r.bottom) - y;
+            const fits = x >= 0 && y >= 0 && Math.ceil(r.right) <= window.innerWidth && Math.ceil(r.bottom) <= window.innerHeight && width > 0 && height > 0;
+            return { index: i, clear, fits, clip: { x, y, width, height }, attributes: attributes(el) };
+          };
+          return {
+            scale: devicePixelRatio,
+            items: [first, ...others].map(measure),
+          };
+        },
+        [lead!.index, rest.map((l) => l.index)] as const,
+      )
+      .catch(() => null);
+    const wanted = new Map(left.map((l) => [l.index, l.attributes]));
+    const found = (view?.items ?? []).filter((m): m is NonNullable<typeof m> => m !== null && m.fits);
+    // Only a look that is whole inside this viewport is cropped from it; the others wait for a viewport of their own.
+    const here = found.filter((m) => m.clear && m.attributes === wanted.get(m.index));
+    if (here.length < 2 || !view || found[0]?.index !== lead!.index || !here.some((m) => m.index === lead!.index)) {
+      out.set(lead!.index, await picture(page, lead!.index, lead!.attributes));
+      left = rest;
+      continue;
+    }
+    const sheet = await page.screenshot({ animations: "disabled", caret: "hide", timeout: 15_000 }).catch(() => null);
+    if (!sheet) {
+      out.set(lead!.index, await picture(page, lead!.index, lead!.attributes));
+      left = rest;
+      continue;
+    }
+    const raw = await sharp(sheet).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const scale = view.scale;
+    // Scrolling can wake the part of the page it reaches, so a look whose attributes changed or whose box moved during the screenshot is not cropped: it is taken with picture(), as a look that never fit is.
+    const after = await page
+      .evaluate((indexes) => indexes.map((i) => {
+        const el = document.querySelector<HTMLElement>(`[data-sweep-look="${i}"]`);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { attributes: [...el.attributes].filter((a) => !a.name.startsWith("data-sweep-")).map((a) => `${a.name}=${a.value}`).sort().join(" "), x: Math.floor(r.left), y: Math.floor(r.top), right: Math.ceil(r.right), bottom: Math.ceil(r.bottom) };
+      }), here.map((m) => m.index))
+      .catch(() => null);
+    for (const [n, m] of here.entries()) {
+      const now = after?.[n];
+      if (!now || now.attributes !== wanted.get(m.index)) {
+        out.set(m.index, null);
+        continue;
+      }
+      if (now.x !== m.clip.x || now.y !== m.clip.y || now.right !== m.clip.x + m.clip.width || now.bottom !== m.clip.y + m.clip.height) {
+        moved.push(`${wanted.get(m.index)} moved ${now.x - m.clip.x},${now.y - m.clip.y} (box ${m.clip.width}x${m.clip.height})`);
+        out.set(m.index, await picture(page, m.index, wanted.get(m.index)!));
+        continue;
+      }
+      const x = Math.round(m.clip.x * scale);
+      const y = Math.round(m.clip.y * scale);
+      const width = Math.min(Math.round(m.clip.width * scale), raw.info.width - x);
+      const height = Math.min(Math.round(m.clip.height * scale), raw.info.height - y);
+      const data = Buffer.alloc(width * height * 4);
+      for (let row = 0; row < height; row++) raw.data.copy(data, row * width * 4, ((y + row) * raw.info.width + x) * 4, ((y + row) * raw.info.width + x + width) * 4);
+      out.set(m.index, { data, width, height, scale });
+    }
+    const done = new Set(here.map((m) => m.index));
+    left = rest.filter((l) => !done.has(l.index));
+  }
+  return out;
 }
 
 /** An element's picture: its pixels, and how many of them make a CSS pixel. */
@@ -419,6 +532,25 @@ export class Looks {
     const taken = this.pictures.get(`${look.key}|${look.size}|${look.behind}`)?.length ?? 0;
     const first = this.groups.get(look.key)?.[0];
     return taken < 3 || (taken < 5 && first !== undefined && first.sig !== look.sig);
+  }
+
+  /** The looks wants() would pick from these, if every picture were taken, so a batch can take them together. */
+  plan(found: Look[]): Look[] {
+    const taken = new Map<string, number>();
+    const first = new Map<string, string>();
+    for (const [key, samples] of this.groups) if (samples[0]) first.set(key, samples[0].sig);
+    const picked: Look[] = [];
+    for (const look of found) {
+      if (!first.has(look.key)) first.set(look.key, look.sig);
+      if (!look.pictured) continue;
+      const id = `${look.key}|${look.size}|${look.behind}`;
+      const n = taken.get(id) ?? this.pictures.get(id)?.length ?? 0;
+      if (n < 3 || (n < 5 && first.get(look.key) !== look.sig)) {
+        picked.push(look);
+        taken.set(id, n + 1);
+      }
+    }
+    return picked;
   }
 
   /**
@@ -583,8 +715,10 @@ export async function loaded(page: Page): Promise<void> {
   }, [LOOK_SELECTOR] as const);
 }
 
-export async function settled(page: Page): Promise<void> {
+export async function settled(page: Page): Promise<{ ready: number; reads: number[] }> {
+  const asked = Date.now();
   await siteReady(page);
+  const ready = Date.now() - asked;
   let last = "";
   let before: Look[] = [];
   let after: Look[] = [];
@@ -599,12 +733,14 @@ export async function settled(page: Page): Promise<void> {
           reads.push(Date.now() - start);
           before = after;
           after = looks;
-          const now = JSON.stringify(after.map((l) => l.sig));
-          const same = now === last;
+          // An example still loading is not part of the page yet, and a list that follows its end moves its own scroll box after a late layout pass; neither changes what describe() reads of the looks around them.
+          const scrolls = await page.evaluate(() => [document.querySelectorAll("[data-site-demo-loading], [data-site-demo]:not([data-site-demo-ready])").length, document.fonts.status, ...[...document.querySelectorAll<HTMLElement>("[data-ouro]")].filter((el) => el.scrollTop !== 0 || el.scrollLeft !== 0).flatMap((el) => [el.scrollTop, el.scrollLeft])].join());
+          const now = JSON.stringify(after.map((l) => l.sig)) + scrolls;
+          const same = now === last && scrolls.startsWith("0,");
           last = now;
           return same;
         },
-        { timeout: SETTLE_MS },
+        { timeout: SETTLE_MS, intervals: [50] },
       )
       .toBe(true);
   } catch (error) {
@@ -613,6 +749,7 @@ export async function settled(page: Page): Promise<void> {
     (error as Error).message += `\n\nThe page never settled (ourostack/ouro-ui#2428): ${page.url()}\n${changedLooks(before, after)}\n${timing}`;
     throw error;
   }
+  return { ready, reads };
 }
 
 /**

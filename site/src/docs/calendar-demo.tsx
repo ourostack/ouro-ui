@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent, type JSX } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type JSX, type RefObject } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Calendar } from "@/registry/ouro/components/ouro/calendar/calendar";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
@@ -13,9 +13,10 @@ import { TimeGrid, type TimeGridEvent, type TimeGridSlot, type TimeGridView } fr
 import { TimeGridNav } from "@/registry/ouro/components/ouro/time-grid/time-grid-parts";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
+import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { CodeBlock } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
-import { TrayArt } from "./tray-art";
+import { SpotArt } from "./spot-art";
 
 // A whole calendar screen from Ouro's parts with made-up events, as an app would assemble it: a week on TimeGrid with a
 // Day, Work week and Week switch, a Calendar in a popover to jump to a date, a New event button and a press on an
@@ -53,7 +54,13 @@ const lengthLabel = (minutes: number) => {
   const minutePart = rest > 0 ? `${rest} minutes` : "";
   return [hourPart, minutePart].filter(Boolean).join(" ");
 };
-const lengthOptions = [15, 30, 60, 90, 120].map((minutes) => ({ value: String(minutes), label: lengthLabel(minutes) }));
+const presetLengths = [15, 30, 60, 90, 120];
+// A dragged range can be any length, so the Select lists it with the presets instead of showing a bare number.
+const lengthChoices = (current: number) =>
+  (presetLengths.includes(current) ? presetLengths : [...presetLengths, current].sort((a, b) => a - b)).map((minutes) => ({ value: String(minutes), label: lengthLabel(minutes) }));
+
+/** Weeks start on Monday in both the week view and the date picker, as the work week does. */
+const weekLocale = "en-US-u-fw-mon";
 
 /** A made-up week around the reader's today, so the now line shows. */
 function seed(today: string): Entry[] {
@@ -109,6 +116,8 @@ function Screen(): JSX.Element {
   const today = iso(new Date());
   const [date, setDate] = useState(today);
   const [view, setView] = useState<TimeGridView>(() => (window.matchMedia("(max-width: 639px)").matches ? "day" : "work-week"));
+  const phone = useMediaQuery("(max-width: 639px)", false);
+  const coarse = useMediaQuery("(pointer: coarse)", false);
   const [stage, setStage] = useState<Stage>("week");
   const [events, setEvents] = useState<Entry[]>(() => seed(today));
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -118,22 +127,20 @@ function Screen(): JSX.Element {
   const eventRef = useRef<HTMLElement | null>(null);
   const jumpRef = useRef<HTMLButtonElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const [refocus, setRefocus] = useState(0);
-  // The deleted event's popover has nothing to return focus to, so focus goes to the grid's event stop once the popover is gone.
-  useEffect(() => {
-    if (refocus === 0) return;
-    let frame = 0;
-    let tries = 0;
-    const settle = () => {
-      const target = rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]');
-      const lost = document.activeElement?.matches('body, div:not([tabindex])') ?? true;
-      if (target && lost) target.focus({ preventScroll: true });
-      if (++tries < 30) frame = requestAnimationFrame(settle);
-    };
-    frame = requestAnimationFrame(settle);
-    return () => cancelAnimationFrame(frame);
-  }, [refocus]);
+  // A delete, a save or a date pick hands focus to the grid's event stop as its overlay closes; any other close returns focus to where it was opened from.
+  const toGrid = useRef(false);
+  const stopOfGrid = () => rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]') ?? null;
+  const eventReturn = useMemo<RefObject<HTMLElement | null>>(() => ({ get current() { return toGrid.current ? stopOfGrid() : eventRef.current; } }), []);
+  const jumpReturn = useMemo<RefObject<HTMLElement | null>>(() => ({ get current() { return toGrid.current ? stopOfGrid() : jumpRef.current; } }), []);
   const formId = useId();
+  // At large text the message below the input sits past the scrolled body's edge, under the footer, so it scrolls in once it is drawn and again after the sheet settles.
+  useEffect(() => {
+    if (!error) return;
+    const show = () => document.getElementById(formId)?.querySelector("input")?.getAttribute("aria-describedby")?.split(" ").forEach((id) => document.getElementById(id)?.scrollIntoView({ block: "nearest" }));
+    show();
+    const frame = requestAnimationFrame(() => requestAnimationFrame(show));
+    return () => cancelAnimationFrame(frame);
+  }, [error, formId]);
 
   const shown = stage === "empty" ? [] : events;
   const current = events.find((candidate) => candidate.id === open) ?? null;
@@ -145,6 +152,7 @@ function Screen(): JSX.Element {
   }, []);
 
   const newEvent = () => {
+    toast.dismiss();
     const now = new Date();
     const upcoming = date === today ? Math.min(Math.ceil((minutesOf(now) + 1) / 30) * 30, 23 * 60) : 9 * 60;
     begin({ day: date, start: upcoming });
@@ -164,28 +172,57 @@ function Screen(): JSX.Element {
     const title = draft.title.trim();
     if (!title) {
       setError("Add a title");
+      const input = document.getElementById(formId)?.querySelector<HTMLElement>("input");
+      input?.focus();
       return;
     }
     const tone = kinds.find((candidate) => candidate.value === draft.kind)?.tone;
     const next: Entry = { id: draft.id ?? `new-${Date.now()}`, title, kind: draft.kind, tone, start: atTime(draft.day, draft.start), end: atTime(draft.day, draft.start + draft.length) };
     setEvents((now) => (draft.id ? now.map((candidate) => (candidate.id === draft.id ? { ...candidate, ...next } : candidate)) : [...now, next]));
     if (stage === "empty") setStage("week");
+    toast.dismiss();
     toast(draft.id ? "Event updated" : "Event created", { tone: "success", description: `${title}, ${clock(draft.start)}` });
+    toGrid.current = true;
     setDraft(null);
   };
 
+  const lastRemoved = useRef<{ entry: Entry; at: number } | null>(null);
+  const restore = (entry: Entry, at: number) => {
+    lastRemoved.current = null;
+    setEvents((now) => (now.some((candidate) => candidate.id === entry.id) ? now : [...now.slice(0, at), entry, ...now.slice(at)]));
+    setRestored({ id: entry.id });
+  };
+  const [restored, setRestored] = useState<{ id: string } | null>(null);
+  // The restored event is drawn on the next render, so focus waits for it.
+  useEffect(() => {
+    if (!restored) return;
+    let frame = 0;
+    let tries = 0;
+    const settle = () => {
+      const target = rootRef.current?.querySelector<HTMLElement>(`[data-ouro-event-key$=":${CSS.escape(restored.id)}"]`);
+      if (target) target.focus({ preventScroll: true });
+      else if (++tries < 30) frame = requestAnimationFrame(settle);
+    };
+    frame = requestAnimationFrame(settle);
+    return () => cancelAnimationFrame(frame);
+  }, [restored]);
+
   const remove = (entry: Entry) => {
     const at = events.findIndex((candidate) => candidate.id === entry.id);
+    lastRemoved.current = { entry, at };
+    // With the details open, its overlay hands focus to the grid as it closes; from the keyboard there is no overlay, so the grid takes it once the event is gone.
+    if (current === null) requestAnimationFrame(() => stopOfGrid()?.focus({ preventScroll: true }));
+    toGrid.current = current !== null;
     setOpen(null);
-    setRefocus((count) => count + 1);
     setEvents((now) => now.filter((candidate) => candidate.id !== entry.id));
-    // An Undo toast stays until dismissed, so a slow or screen-reader reader can reach it; the demo leaves room under the grid on a phone for it to rest.
+    // One toast at a time, so a second delete replaces the first. It lasts 8 s, longer than the default, and hovering or focusing it holds the countdown; the demo leaves room under the grid on a phone for it to rest.
+    toast.dismiss();
     toast("Event deleted", {
-      description: entry.title,
+      description: coarse ? entry.title : `${entry.title}. Ctrl or Cmd+Z also undoes it.`,
+      duration: 8000,
       action: {
         label: "Undo",
-        onClick: () =>
-          setEvents((now) => (now.some((candidate) => candidate.id === entry.id) ? now : [...now.slice(0, at), entry, ...now.slice(at)])),
+        onClick: () => restore(entry, at),
       },
     });
   };
@@ -194,8 +231,28 @@ function Screen(): JSX.Element {
   const label = "Calendar";
 
   return (
-    <div ref={rootRef} className="grid w-full grid-cols-1 gap-3 max-sm:pb-24" data-site-calendar-demo="">
-      <div className="min-w-0 overflow-x-auto">
+    <div
+      ref={rootRef}
+      className="grid w-full grid-cols-1 gap-3 max-sm:pb-24"
+      data-site-calendar-demo=""
+      onKeyDown={(event) => {
+        const target = event.target as HTMLElement;
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && lastRemoved.current && !target.closest("input, textarea")) {
+          event.preventDefault();
+          restore(lastRemoved.current.entry, lastRemoved.current.at);
+          return;
+        }
+        const key = target.dataset.ouroEventKey;
+        if ((event.key === "Delete" || event.key === "Backspace") && key && !target.matches('[data-ouro-part="more"]')) {
+          const entry = events.find((candidate) => candidate.id === key.slice(key.lastIndexOf(":") + 1));
+          if (entry) {
+            event.preventDefault();
+            remove(entry);
+          }
+        }
+      }}
+    >
+      <div className="min-w-0 overflow-x-auto" style={{ display: "grid", gridTemplateColumns: "minmax(min-content, max-content)" }}>
         <SegmentedControl
           label="State"
           value={stage}
@@ -208,14 +265,19 @@ function Screen(): JSX.Element {
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <TimeGridNav date={date} view={view} onDateChange={setDate} />
+        <TimeGridNav date={date} view={phone ? "day" : view} onDateChange={setDate} disabled={stage === "loading"} />
         <Heading level={2} size="md" className="me-auto min-w-0 max-sm:order-first max-sm:basis-full">
           {heading}
         </Heading>
-        <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => setJump(!jump)}>
+        <div className="flex flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
+        <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => {
+            toGrid.current = false;
+            toast.dismiss();
+            setJump(!jump);
+          }}>
           Go to date
         </Button>
-        <SegmentedControl
+        {phone ? null : <SegmentedControl
           label="View"
           hideLabel
           value={view}
@@ -225,32 +287,39 @@ function Screen(): JSX.Element {
             { value: "work-week", label: "Work week" },
             { value: "week", label: "Week" },
           ]}
-        />
+        />}
         <Button onClick={newEvent}>New event</Button>
+        </div>
       </div>
-      <Popover title="Go to date" open={jump} onOpenChange={setJump} anchor={jumpRef} presentation="auto">
+      <Popover title="Go to date" open={jump} onOpenChange={setJump} anchor={jumpRef} finalFocus={jumpReturn} presentation="auto">
         <Calendar
           label="Date to show"
+          locale={weekLocale}
           value={date}
           onValueChange={(next) => {
             setDate(next);
             setJump(false);
+            toGrid.current = true;
           }}
         />
       </Popover>
       {stage === "empty" ? (
-        <Moment kind="empty" art={<TrayArt />} title="Nothing on this week" description="Press an empty slot, or New event, to add something." />
+        <Moment kind="empty" size="hero" art={<SpotArt name="empty-week" />} title="Nothing on this week" description="Press an empty slot, or New event, to add something." />
       ) : null}
-      <div className="h-160 min-h-0 overflow-hidden">
+      <div className="h-160 min-h-0 overflow-hidden" style={{ overflowX: "auto" }}>
         {stage === "loading" ? (
           <div role="group" aria-label={label} aria-busy="true" className="flex h-full items-center justify-center p-4">
             <Moment kind="loading" announce title="Loading your week" />
           </div>
         ) : (
+          <div className="h-full" style={phone ? undefined : { minWidth: "36rem" }}>
           <TimeGrid
             label={label}
             date={date}
-            view={view}
+            view={phone ? "day" : view}
+            locale={weekLocale}
+            // An empty week has nothing to mark the time against, so the now line stays off it.
+            now={stage === "empty" ? "1970-01-01T00:00:00Z" : undefined}
             events={shown}
             workingHours={{ start: 8, end: 18 }}
             selectedId={open}
@@ -258,14 +327,16 @@ function Screen(): JSX.Element {
             onDateChange={setDate}
             onEventSelect={(event, details) => {
               eventRef.current = details.element;
+              toGrid.current = false;
               setOpen(event.id);
             }}
             onSlotSelect={slotPressed}
             className="h-full"
           />
+          </div>
         )}
       </div>
-      <Popover title={current?.title ?? "Event"} open={current !== null} onOpenChange={(next) => !next && setOpen(null)} anchor={eventRef} presentation="auto">
+      <Popover title={current?.title ?? "Event"} open={current !== null} onOpenChange={(next) => !next && setOpen(null)} anchor={eventRef} finalFocus={eventReturn} presentation="auto">
         {current ? (
           <div className="grid gap-3">
             <Text size="sm" tone="muted">
@@ -285,6 +356,11 @@ function Screen(): JSX.Element {
       <Dialog
         open={draft !== null}
         onOpenChange={(next) => !next && setDraft(null)}
+        onOpenChangeComplete={(next) => {
+          if (next || !toGrid.current) return;
+          toGrid.current = false;
+          stopOfGrid()?.focus({ preventScroll: true });
+        }}
         title={draft?.id ? "Edit event" : "New event"}
         description={draft ? new Date(`${draft.day}T12:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : undefined}
         footer={
@@ -302,7 +378,7 @@ function Screen(): JSX.Element {
           <form id={formId} noValidate onSubmit={save} className="grid gap-4">
             <TextField label="Title" required value={draft.title} error={error} onValueChange={(title) => { setError(undefined); setDraft({ ...draft, title }); }} />
             <Select label="Starts" value={String(draft.start)} options={startOptions} onValueChange={(value) => value && setDraft({ ...draft, start: Number(value) })} />
-            <Select label="Length" value={String(draft.length)} options={lengthOptions} onValueChange={(value) => value && setDraft({ ...draft, length: Number(value) })} />
+            <Select label="Length" value={String(draft.length)} options={lengthChoices(draft.length)} onValueChange={(value) => value && setDraft({ ...draft, length: Number(value) })} />
             <Select label="Calendar" value={draft.kind} options={kinds} onValueChange={(value) => value && setDraft({ ...draft, kind: value as Kind })} />
           </form>
         ) : null}

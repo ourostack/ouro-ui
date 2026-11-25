@@ -1087,16 +1087,25 @@ describe("Carousel motion", () => {
         {photos()}
       </Carousel>,
     );
+    const { viewport, slides } = screen;
+    const rect = viewport.getBoundingClientRect();
+    const shift = slides[2]!.getBoundingClientRect().left - rect.left;
+    // A real smooth scroll can reach its real target and fire its own genuine scrollend before
+    // this test dispatches the early one it means to test, settling the press for real and
+    // clearing the heading this test needs still pending: stubbing scrollTo keeps the viewport
+    // still for the press itself, so only the dispatch below can produce a scrollend here.
+    const scrollTo = vi.spyOn(viewport, "scrollTo").mockImplementation(() => {});
     await userEvent.click(screen.button("Next slide"));
     // A browser (WebKit) can dispatch scrollend for a scroll the press interrupted, at a slide
     // the press is not heading to. Here that scrollend reports the third slide at the start
     // edge while the press is still on its way to the second: it must settle on neither.
-    const { viewport, slides } = screen;
-    const rect = viewport.getBoundingClientRect();
-    const shift = slides[2]!.getBoundingClientRect().left - rect.left;
     const moved = vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ ...rect.toJSON(), x: rect.x + shift }));
     viewport.dispatchEvent(new Event("scrollend"));
     moved.mockRestore();
+    scrollTo.mockRestore();
+    // With the stub gone, drive the press's real scroll to where it was always heading: its own
+    // genuine scrollend, at a position this time unmocked and matching, settles for real.
+    viewport.scrollTo({ left: slides[1]!.offsetLeft - slides[0]!.offsetLeft, behavior: "instant" });
     await expect.poll(() => onIndexChange.mock.calls).toEqual([[1]]);
     expect(onIndexChange).toHaveBeenCalledTimes(1);
   });

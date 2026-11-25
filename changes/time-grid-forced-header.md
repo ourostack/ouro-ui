@@ -1,0 +1,1 @@
+- Fixed: TimeGrid's day header drops its blur under forced colours and draws on the system canvas.

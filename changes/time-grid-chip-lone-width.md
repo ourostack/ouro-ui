@@ -1,0 +1,1 @@
+- Fixed: a TimeGrid event that is the only one a narrow day shows beside its +N chip keeps its width, which was lost after a view change.

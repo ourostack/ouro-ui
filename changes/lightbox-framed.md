@@ -1,0 +1,1 @@
+- New: `Lightbox` takes `framed={false}` to draw its thumbnails edge to edge, matching a message bubble's own corner radius instead of drawing its own hairline frame.

@@ -1,0 +1,1 @@
+- Changed: TimeGrid's day header is a lighter glass over the hours scrolled beneath it, with a stronger blur, and its text and controls stay readable in light and dark.
