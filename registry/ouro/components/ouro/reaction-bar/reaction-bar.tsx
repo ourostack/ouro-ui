@@ -260,7 +260,10 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
         const reaction: Partial<Reaction> & ReactionOption = entry;
         const described = reaction.tooltip ? `${id}-${index}` : undefined;
         const counted = reaction.count !== undefined;
-        const look = reaction.mine ? ({ tone: "primary", variant: "soft" } as const) : counted ? ({ tone: "secondary", variant: "outline" } as const) : ({ tone: "secondary", variant: "soft" } as const);
+        // A counted reaction that is not the reader's own looks the same soft, borderless pill as a
+        // quick one: only the tint on `mine` sets a reaction apart, with an edge of its own under
+        // forced colours (`soft`'s own contrast-more:[--ouro-bd:currentColor]).
+        const look = reaction.mine ? ({ tone: "primary", variant: "soft" } as const) : ({ tone: "secondary", variant: "soft" } as const);
         // The emoji, then its name and count for screen readers, as siblings rather than fragments, so each draws no component of its own.
         const emoji = <span aria-hidden="true">{reaction.emoji}</span>;
         const name = <span className="sr-only">{counted ? `${reaction.label}, ` : reaction.label}</span>;
