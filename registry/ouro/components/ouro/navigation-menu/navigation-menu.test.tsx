@@ -502,8 +502,9 @@ describe("NavigationMenu panels and easing", () => {
     await render(<NavigationMenu label="Main" items={many} />);
     const widthOf = async (label: string) => {
       await userEvent.click(page.getByRole("button", { name: label, exact: true }));
-      await expect.poll(() => popup()).not.toBeNull();
-      await settled();
+      // Until its box holds still, not just until no animation is listed: WebKit can read none while the popup
+      // still has its starting style, at the 0.96 scale it opens from (645.12 for 672 on main, #3341's run).
+      await settledBox(popup);
       const width = popup()!.getBoundingClientRect().width;
       await userEvent.keyboard("{Escape}");
       await expect.poll(() => popup()).toBeNull();
