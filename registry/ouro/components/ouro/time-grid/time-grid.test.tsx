@@ -1242,7 +1242,7 @@ describe("TimeGrid", () => {
     const { grid, rerender } = await render({ view: "day", onSlotSelect: slot });
     const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
     expect(slots.getAttribute("aria-hidden")).toBe("true");
-    // the grid scrolls to now once its first resize is observed, so read the box at each use
+    // the grid scrolls once its first resize is observed, so read the box at each use
     const y = (minutes: number) => {
       const box = slots.getBoundingClientRect();
       return box.top + (box.height * minutes) / 1440;
@@ -1340,18 +1340,18 @@ describe("TimeGrid", () => {
     expect(warnings()).toEqual([]);
   });
 
-  it("opens at now when today shows, else half an hour before the working day", async () => {
+  it("opens half an hour before the working day's start, whether or not today shows", async () => {
     const { rerender } = await render();
     const hour = () => document.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!.offsetHeight / 24;
     // Browsers round scrollTop to whole pixels, or not.
     const near = async (expected: number) => expect.poll(() => Math.abs(viewport().scrollTop - expected)).toBeLessThan(1);
-    await near((hour() * (641 - 90)) / 60);
-    await rerender({ date: "2026-03-20" });
     await near(hour() * 7.5);
-    await rerender({ date: "2026-03-20", workingHours: { start: 0, end: 8 } });
+    await rerender({ date: "2026-03-20" });
     await near(hour() * 7.5);
     await rerender({ date: "2026-03-27", workingHours: { start: 0, end: 8 } });
     await near(0);
+    await rerender({ date: "2026-04-03", workingHours: { start: 10, end: 18 } });
+    await near(hour() * 9.5);
   });
 
   it("draws its day header as glass over the hours scrolled beneath it, with no mask on the scroller", async () => {
@@ -1411,7 +1411,7 @@ describe("TimeGrid", () => {
     }
   });
 
-  it("opens at today's first event when now is before it, rather than at empty hours before now", async () => {
+  it("opens before the earlier of the working day's start and the week's first event, not at now", async () => {
     // Where a grid opens, in hours from midnight.
     const opensAt = async (props: Partial<TimeGridProps>) => {
       const { grid } = await render(props);
@@ -1420,34 +1420,27 @@ describe("TimeGrid", () => {
       await expect.poll(() => scroller.scrollTop).toBeGreaterThan(0);
       return scroller.scrollTop / hour;
     };
-    const nine: TimeGridEvent = { id: "nine", title: "Nine o'clock", start: at(12, "09:00"), end: at(12, "09:30") };
-    // 3:30 in the morning, with the day's first event at 9: half an hour before it, as for the working day.
-    expect(await opensAt({ now: at(12, "03:30"), events: [forum, nine, standup] })).toBeCloseTo(8.5, 1);
-    // A day's view, where today is the first and only day, the same.
-    expect(await opensAt({ view: "day", now: at(12, "03:30"), events: [forum, nine] })).toBeCloseTo(8.5, 1);
-    // With now a few minutes before the first event, now stays in view.
-    expect(await opensAt({ now: at(12, "08:50"), events: [{ ...nine, start: at(12, "09:10") }] })).toBeCloseTo(8 + 40 / 60, 1);
-    // Past the day's first event, or with none today, it opens at now as before.
-    expect(await opensAt({ now: at(12, "10:41"), events: [forum] })).toBeCloseTo((641 - 90) / 60, 1);
-    expect(await opensAt({ now: at(12, "03:30"), events: [standup] })).toBeCloseTo(2, 1);
-    // An event that starts at now: now is not before it.
-    expect(await opensAt({ now: at(12, "09:00"), events: [nine] })).toBeCloseTo(7.5, 1);
-    // Events on other days shown that run across where the grid would open open whole: the grid opens at the earliest start.
-    const morning: TimeGridEvent = { id: "morning", title: "Onboarding", start: at(13, "08:30"), end: at(13, "09:30") };
-    expect(await opensAt({ now: at(12, "10:41"), events: [{ ...morning, id: "later", start: at(14, "09:00"), end: at(14, "10:00") }, morning] })).toBeCloseTo(8.5, 1);
-    // One that ends at that line, or starts at it, doesn't move it.
-    expect(await opensAt({ now: at(12, "10:41"), events: [{ ...morning, end: at(13, "09:11") }] })).toBeCloseTo((641 - 90) / 60, 1);
-    // Today's events fetched after the grid opened move it once, unless the reader has scrolled since.
-    const { grid, rerender } = await render({ now: at(12, "03:30"), events: [] });
+    const mk = (day: number, from: string, to: string): TimeGridEvent => ({ id: `${day}${from}`, title: "Event", start: at(day, from), end: at(day, to) });
+    // Now at 10:41 does not move it: the working day opens it at 7:30.
+    expect(await opensAt({ now: at(12, "10:41"), events: [forum] })).toBeCloseTo(7.5, 1);
+    expect(await opensAt({ now: at(12, "03:30"), events: [standup] })).toBeCloseTo(7.5, 1);
+    // An event before the working day, on any day shown, pulls it earlier: half an hour before that event.
+    expect(await opensAt({ now: at(12, "10:41"), events: [mk(14, "06:00", "06:45")] })).toBeCloseTo(5.5, 1);
+    // One after the working day's start doesn't push it later.
+    expect(await opensAt({ now: at(12, "10:41"), events: [mk(13, "14:00", "15:00")] })).toBeCloseTo(7.5, 1);
+    // An event that starts after the working day's start opens whole, half an hour before its start.
+    expect(await opensAt({ now: at(12, "10:41"), events: [mk(13, "07:10", "09:00")] })).toBeCloseTo(6 + 40 / 60, 1);
+    // Events fetched after the grid opened move it once, unless the reader has scrolled since.
+    const { grid, rerender } = await render({ now: at(12, "10:41"), events: [] });
     const scroller = grid.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const hour = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!.offsetHeight / 24;
-    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(2, 1);
-    await rerender({ now: at(12, "03:30"), events: [nine] });
-    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(8.5, 1);
-    await rerender({ now: at(12, "03:30"), events: [] });
-    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(2, 1);
+    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(7.5, 1);
+    await rerender({ now: at(12, "10:41"), events: [mk(12, "05:00", "06:00")] });
+    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(4.5, 1);
+    await rerender({ now: at(12, "10:41"), events: [] });
+    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(7.5, 1);
     scroller.scrollTop = hour * 12;
-    await rerender({ now: at(12, "03:30"), events: [nine] });
+    await rerender({ now: at(12, "10:41"), events: [mk(12, "05:00", "06:00")] });
     // The observer's first callback follows the frame's animation callbacks, so wait out two frames.
     for (let frame = 0; frame < 2; frame++) await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     expect(scroller.scrollTop / hour).toBeCloseTo(12, 1);
@@ -1639,13 +1632,11 @@ describe("TimeGrid", () => {
     });
     roots.push(root!);
     expect(errors).not.toHaveBeenCalled();
-    // 14:00 UTC is 23:00 in Tokyo. Once the browser knows it is 23:41, the grid opens 90 minutes before.
+    // 14:00 UTC is 23:00 in Tokyo. Once the browser knows it is 23:41, the now line is drawn, and the grid still opens at the working day.
     expect(hours(host.querySelector("[data-ouro-event-key]")!)).toEqual([23, 1]);
     expect(host.querySelector('[data-ouro-time-grid-now="today"]')).not.toBeNull();
     const scroller = host.querySelector<HTMLElement>("[data-scroll-viewport]")!;
-    // As far down as the area scrolls, short of 22:11.
-    await expect.poll(() => Math.abs(scroller.scrollTop - Math.min(((23 * 60 + 41 - 90) / 60) * 48, scroller.scrollHeight - scroller.clientHeight))).toBeLessThan(1);
-    expect(scroller.scrollTop).toBeGreaterThan(8 * 48);
+    await expect.poll(() => Math.abs(scroller.scrollTop - 7.5 * 48)).toBeLessThan(1);
   });
 
   it("hydrates without a mismatch when the server's engine spaced a time range differently from this browser's", async () => {
@@ -1824,7 +1815,7 @@ describe("TimeGrid", () => {
           '[ouro-ui] TimeGrid: defaultDate is not a prop; the app keeps the date. Fix: <TimeGrid date="2026-03-12">.',
           "[ouro-ui] TimeGrid: onSelectEvent is not a prop. Fix: <TimeGrid onEventSelect={(event) => open(event.id)}>.",
           "[ouro-ui] TimeGrid: onSelectSlot is not a prop. Fix: <TimeGrid onSlotSelect={({ start, end }) => create(start, end)}>.",
-          "[ouro-ui] TimeGrid: scrollToTime is not a prop; the grid opens at now or at the working day's start. Fix: <TimeGrid workingHours={{ start: 8, end: 17 }}>.",
+          "[ouro-ui] TimeGrid: scrollToTime is not a prop; the grid opens at the working day's start or the first event. Fix: <TimeGrid workingHours={{ start: 8, end: 17 }}>.",
           '[ouro-ui] TimeGrid: "bg-red-500" sets appearance, and className is for layout only. Fix: <TimeGrid className="h-[40rem]" />, and set colors in your theme\'s CSS variables, or tone on an event.',
         ]),
       );
@@ -2226,7 +2217,7 @@ describe("TimeGrid day summaries", () => {
 });
 
 describe("TimeGrid mount reads", () => {
-  it("forces no layout while it mounts, then scrolls to now and fills its room", async () => {
+  it("forces no layout while it mounts, then scrolls and fills its room", async () => {
     const host = document.createElement("div");
     host.style.cssText = "height: 400px; display: flex; flex-direction: column";
     document.body.append(host);

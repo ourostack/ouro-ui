@@ -208,8 +208,8 @@ export interface TimeGridOwnProps {
   now?: Date | string | number | undefined;
   /**
    * The working day, in hours from midnight (`{ start: 8.5, end: 17 }`). The hours outside it,
-   * and weekend days, are shaded, and the grid opens scrolled to its start unless today is
-   * shown, when it opens at now, or at today's first event when now is before it.
+   * and weekend days, are shaded, and the grid opens half an hour before the earlier of its
+   * start and the first event shown. The now line shows when it falls in that window.
    * @default { start: 8, end: 17 }
    * @claim "start: 8, end: 17" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /const defaultWorkingHours = \{ start: 8, end: 17 \}/)
    */
@@ -331,7 +331,7 @@ export interface TimeGridOwnProps {
   onSelectEvent?: { "Use onEventSelect={(event) => open(event.id)}": never };
   /** Not a prop. Ouro UI uses `onSlotSelect`, which gets `{ start, end }`. */
   onSelectSlot?: { "Use onSlotSelect={({ start, end }) => create(start, end)}": never };
-  /** Not a prop. The grid opens at the start of `workingHours`, or at now when today shows. */
+  /** Not a prop. The grid opens before the earlier of the start of `workingHours` and the first event shown. */
   scrollToTime?: { "Use workingHours={{ start: 8, end: 17 }}": never };
 }
 
@@ -404,8 +404,8 @@ const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${mi
  * stacks them, so the name holds what it shows and a speech-input user can say it to press it
  * (WCAG 2.5.3, Label in Name). The grid is one Tab stop: the arrow keys move through events in time
  * order (Up and Down) and across days (Left and Right), Home and End go to the first and the
- * last, and Enter opens one. It opens scrolled to now or to the working day (to today's first
- * event when now is before it), never with an event cut across its top, and a now line
+ * last, and Enter opens one. It opens half an hour before the working day or the first event
+ * shown, whichever is earlier, never with an event cut across its top, and a now line
  * runs across today, under events so it never crosses their text.
  *
  * Use `Calendar` instead to pick a date from a month, and `Table` or `ItemGroup` for an agenda
@@ -426,8 +426,7 @@ const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${mi
  * @claim "Each day has a column" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > draws a week of days from the locale's first day, each a list named by its date, today marked)
  * @claim "Its lines are separate words" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid label in name > shows each event's lines as words its name holds in order, on one line, two or three) verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid label in name > the same event with its lines run together fails the rule, so the check can fail)
  * @claim "Events that overlap sit side" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > shares a day's width between overlapping events)
- * @claim "It opens scrolled to now" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > runs the now line across today, under the events, with the time beside it)
- * @claim "It opens scrolled to now" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > opens at today's first event when now is before it, rather than at empty hours before now)
+ * @claim "It opens half an hour before the working day or the first event shown" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > opens before the earlier of the working day's start and the week's first event, not at now)
  */
 export function TimeGrid(props: TimeGridProps): JSX.Element {
   const {
@@ -640,7 +639,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           defaultDate !== undefined && ["defaultDate is not a prop; the app keeps the date", '<TimeGrid date="2026-03-12">'],
           onSelectEvent !== undefined && ["onSelectEvent is not a prop", "<TimeGrid onEventSelect={(event) => open(event.id)}>"],
           onSelectSlot !== undefined && ["onSelectSlot is not a prop", "<TimeGrid onSlotSelect={({ start, end }) => create(start, end)}>"],
-          scrollToTime !== undefined && ["scrollToTime is not a prop; the grid opens at now or at the working day's start", "<TimeGrid workingHours={{ start: 8, end: 17 }}>"],
+          scrollToTime !== undefined && ["scrollToTime is not a prop; the grid opens at the working day's start or the first event", "<TimeGrid workingHours={{ start: 8, end: 17 }}>"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
@@ -677,16 +676,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     if (ref) ref.current = element;
   };
 
-  // Open at now when today shows, else half an hour before the working day: once for each set
-  // of days, and again when today moves (the browser first knows the time, or midnight passes).
-  // Before today's first event, open at it instead, as at the working day, so the grid does not
-  // open on empty hours before now; now stays in view when the event is close.
+  // Open half an hour before the earlier of the working day's start and the first event of the days shown,
+  // so the grid never opens on empty hours and never hides an early event. Now is not the anchor: its line
+  // shows wherever it falls in the window, and a reader who wants it scrolls to it. Once for each set of
+  // days, and again when the earliest event changes (events fetched after mount), unless the reader has scrolled.
   // An event on any day shown that runs across that line opens whole: the grid opens at its start.
-  const scrollKey = `${days[0]}:${days.length}:${todayIndex}`;
-  // Where today's first event starts, in minutes, or -1 with none today, which is never after now.
-  const firstToday = todayIndex >= 0 && timed[todayIndex]!.length > 0 ? Math.min(...timed[todayIndex]!.map((placed) => placed.top)) : -1;
-  // Stryker disable next-line EqualityOperator,ConditionalExpression: any form of this flag changes exactly when today gains or loses its events, which is all the scroll reads it for.
-  const noneToday = firstToday < 0;
+  const scrollKey = `${days[0]}:${days.length}`;
+  // Where the first event of the days shown starts, in minutes, or the end of the day with none.
+  const firstEvent = Math.min(dayLength, ...timed.flatMap((day) => day.map((placed) => placed.top)));
   // Where the grid last opened, so today's events arriving after it opened (fetched after mount)
   // move it once more, unless the reader has scrolled since.
   const opened = useRef<{ key: string; top: number } | null>(null);
@@ -697,12 +694,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const open = () => {
       // Stryker disable next-line EqualityOperator: a scroll of exactly a pixel is a rounding either way.
       if (opened.current?.key === scrollKey && Math.abs(viewport.scrollTop - opened.current.top) > 1) return;
-      const line = todayIndex < 0 ? workingHours.start * 60 - 30 : firstToday > nowAt!.minutes ? Math.max(nowAt!.minutes - 90, firstToday - 30) : nowAt!.minutes - 90;
-      // An event across that line, on any day shown, would open cut in half under the header: open at its start.
-      // Stryker disable next-line EqualityOperator: an event that starts at the line opens at its start either way.
-      const across = timed.flat().filter((placed) => placed.top < line && placed.bottom > line);
-      const minutes = across.length ? Math.min(...across.map((placed) => placed.top)) : line;
-      viewport.scrollTop = (between(0, minutes, dayLength) / dayLength) * body.offsetHeight;
+      const line = Math.min(workingHours.start * 60, firstEvent) - 30;
+      // The line sits half an hour above every timed event, so no event is cut in half under the header.
+      viewport.scrollTop = (between(0, line, dayLength) / dayLength) * body.offsetHeight;
       opened.current = { key: scrollKey, top: viewport.scrollTop };
     };
     const observer = new ResizeObserver(() => {
@@ -713,9 +707,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     observer.observe(body);
     // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
-    // Only the days shown, whether today is among them, and whether today has events move the scroll.
+    // Only the days shown and the earliest event move the scroll.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollKey, noneToday]);
+  }, [scrollKey, firstEvent]);
 
   // In a grid taller than a day, the hours grow to share the room under the header, so the day
   // ends at the grid's foot rather than above it. Neither height depends on the hours'.
