@@ -41,6 +41,19 @@ describe("the calendar page", () => {
     await expect.poll(() => `${document.activeElement?.tagName}${document.activeElement?.getAttribute("aria-invalid")}`).toBe("INPUTtrue");
   });
 
+  it("fits the State control without a scrollbar at normal text on a narrow phone", async () => {
+    await page.viewport(372, 844);
+    try {
+      await renderPage("/docs/calendar-demo/");
+      const control = page.getByRole("radiogroup", { name: "State" });
+      await expect.element(control).toBeInTheDocument();
+      const wrap = control.element().closest(".overflow-x-auto") as HTMLElement;
+      await expect.poll(() => wrap.scrollWidth <= wrap.clientWidth).toBe(true);
+    } finally {
+      await page.viewport(1100, 900);
+    }
+  });
+
   it("puts a new event on the grid once it has a title", async () => {
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: "New event" }).click();

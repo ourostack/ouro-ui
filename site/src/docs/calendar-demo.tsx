@@ -253,7 +253,7 @@ function Screen(): JSX.Element {
         }
       }}
     >
-      <div className="min-w-0 overflow-x-auto" style={{ display: "grid", gridTemplateColumns: "max-content" }}>
+      <div className="min-w-0 overflow-x-auto" style={{ display: "grid", gridTemplateColumns: "minmax(min-content, max-content)" }}>
         <SegmentedControl
           label="State"
           value={stage}
