@@ -144,11 +144,22 @@ test("the family links are in the family's order, with its ids, labels and addre
     [
       ["ouro", "Ouro", "https://ouroboros.bot/"],
       ["ouro-ui", "Ouro UI", "https://ui.ouroboros.bot/"],
-      ["ouro-md", "Ouro MD", "https://ouroboros.bot/ouro-md/"],
-      ["desk", "Desk", "https://ouroboros.bot/desk/"],
-      ["apps", "Apps", "https://ouroboros.bot/apps/"],
+      ["spoonjoy", "Spoonjoy", "https://spoonjoy.app/"],
       ["ari", "Ari Mendelow", "https://mendelow.me/"],
       ["github", "GitHub (ourostack)", "https://github.com/ourostack"],
+    ],
+  );
+});
+
+test("the family's products are pages inside a site, each naming that site as its parent", () => {
+  assert.deepEqual(
+    JSON.parse(familyCopy).products.map((product) => [product.id, product.label, product.href, product.parent]),
+    [
+      ["ouro-md", "Ouro MD", "https://ouroboros.bot/ouro-md/", "ouro"],
+      ["desk", "Desk", "https://ouroboros.bot/desk/", "ouro"],
+      ["shepherd", "Shepherd", "https://ouroboros.bot/shepherd/", "ouro"],
+      ["apps", "All apps", "https://ouroboros.bot/apps/", "ouro"],
+      ["hackamore", "Hackamore", "https://github.com/ourostack/hackamore", "ouro-ui"],
     ],
   );
 });
