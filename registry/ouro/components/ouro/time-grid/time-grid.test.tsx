@@ -1661,6 +1661,29 @@ describe("TimeGrid", () => {
     expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
   });
 
+  it("draws no hovered-slot label over the dragged range, so only the range's own start and end are named", async () => {
+    const { grid } = await render({ view: "day", onSlotSelect: vi.fn() });
+    const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
+    const y = (minutes: number) => {
+      const box = slots.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
+    const fire = (type: string, minutes: number) => slots.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType: "mouse", button: 0, pointerId: 43 }));
+    const labels = () => [...grid.querySelectorAll("[data-ouro-time-grid-slot]")].map((node) => plain(node.textContent));
+    fire("pointermove", 605);
+    await act(async () => {});
+    expect(labels()).toEqual(["10:00 AM"]);
+    fire("pointerdown", 605);
+    await act(async () => {});
+    fire("pointermove", 725);
+    await act(async () => {});
+    expect(plain(grid.querySelector("[data-ouro-time-grid-drag]")!.textContent)).toBe("10:00 AM – 12:30 PM");
+    expect(labels()).toEqual([]);
+    fire("pointerup", 725);
+    await act(async () => {});
+    expect(labels()).toEqual(["12:00 PM"]);
+  });
+
   it("shows the dragged range as it grows, and only reads Escape while a drag is held", async () => {
     const slot = vi.fn();
     const { grid } = await render({ view: "day", onSlotSelect: slot });

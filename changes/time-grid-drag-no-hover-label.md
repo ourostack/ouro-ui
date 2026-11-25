@@ -1,0 +1,1 @@
+- Fixed: TimeGrid draws no hovered-slot label over a slot drag, so the dragged range's end is the only end it names.
