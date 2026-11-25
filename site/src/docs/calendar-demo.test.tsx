@@ -249,6 +249,8 @@ describe("the calendar page", () => {
       expect(document.body.textContent).not.toContain("Cmd+Z");
       await userEvent.click(page.getByRole("button", { name: "Go to date" }));
       await expect.poll(() => document.querySelector('[data-ouro-part="action"]')).not.toBeNull();
+      // The phone sheet rises from the bottom, so Undo hangs from the top while it is open.
+      await expect.poll(() => (document.querySelector('[data-ouro-part="action"]')?.getBoundingClientRect().bottom ?? Infinity) < innerHeight / 2).toBe(true);
     } finally {
       vi.unstubAllGlobals();
       await page.viewport(1100, 900);
