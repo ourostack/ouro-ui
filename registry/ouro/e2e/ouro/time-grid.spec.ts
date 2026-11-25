@@ -27,3 +27,13 @@ test("adds an event where an empty slot is pressed", async ({ page }) => {
   await page.mouse.click(box.x + box.width / 2, box.y + (box.height * 16.1) / 24);
   await expect(thursday.getByRole("button", { name: /^New event, / })).toHaveAccessibleName(/^New event, 4:00 PM – 4:30 PM, Thursday, tentative$/);
 });
+
+test("adds an event from the keyboard: arrows pick a slot, Enter creates it", async ({ page }) => {
+  await openStory(page, "data-timegrid--day");
+  const thursday = page.getByRole("list", { name: "Thursday, March 12" });
+  await page.getByRole("grid").focus();
+  await page.keyboard.press("PageDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(thursday.getByRole("button", { name: /^New event, .*, Thursday, tentative$/ })).toHaveCount(1);
+});
