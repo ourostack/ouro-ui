@@ -1,0 +1,14 @@
+# The bar evaluation: probe-v4-actions
+
+Judge: claude-opus-5.5. A run passes when the judge finds every criterion met.
+
+| Scenario | claude-sonnet-5.5 | gpt-6.2-sol |
+|---|---|---|
+| households | 0/2 | 0/2 |
+
+| Run | Pass | Criteria met | Missed |
+|---|---|---|---|
+| households--claude-sonnet-5.5--1 | no |  | jobs, restraint, craft, proof |
+| households--claude-sonnet-5.5--2 | no | proof | jobs, restraint, craft |
+| households--gpt-6.2-sol--1 | no | jobs, restraint, proof | craft |
+| households--gpt-6.2-sol--2 | no | jobs, proof | restraint, craft |
