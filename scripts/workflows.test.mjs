@@ -3622,6 +3622,12 @@ test("Main green's report-cascade-retrigger job logs the candidate cascade re-tr
   assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/cascade-retrigger\.mjs report/);
 });
 
+test("Main green's report-ceiling-fix-exempt job logs the candidate ceiling-fix-exempt verdict only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-ceiling-fix-exempt:\n {4}name: Log the candidate ceiling-fix-exempt verdict\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/ceiling-fix-exempt\.mjs report/);
+});
+
 test("Docs pin's stale job reads the tags and whether the pin pull request is open, on each push to main, with pull-requests: read on that job only", () => {
   const text = workflow("docs-pin.yml");
   const blockOf = (job) => text.split(`\n  ${job}:\n`)[1].split(/\n(?= {2}[\w-]+:\n)/)[0];

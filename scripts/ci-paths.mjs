@@ -15,7 +15,7 @@
 export const scoped = [
   { pattern: /^scripts\/[^/]+\.test\.mjs$/, tiers: [], components: false, reason: "a Node script test (pnpm test:scripts)" },
   {
-    pattern: /^scripts\/(ceiling-ratchet|ci-budget|ci-fail-fast|ci-proof|ci-yield|docs-pin-release-check|fresh-main|main-green|required-checks|required-producers|cache-prune|patch-guard|quarantine|repeat-red-quarantine|rerun-guard|size-budget|release-commit|release-note|release-wait|run-script-tests|script-tests|check-node-coverage|check-node-coverage-merge|main-red-signatures|cascade-retrigger)\.(mjs|sh)$|^scripts\/(required-ci|dispatch-required|scheduled-failure|sr-infra-issue|pages-clear|retry)\.sh$/,
+    pattern: /^scripts\/(ceiling-ratchet|ci-budget|ci-fail-fast|ci-proof|ci-yield|docs-pin-release-check|fresh-main|main-green|required-checks|required-producers|cache-prune|patch-guard|quarantine|repeat-red-quarantine|rerun-guard|size-budget|release-commit|release-note|release-wait|run-script-tests|script-tests|check-node-coverage|check-node-coverage-merge|main-red-signatures|cascade-retrigger|ceiling-fix-exempt)\.(mjs|sh)$|^scripts\/(required-ci|dispatch-required|scheduled-failure|sr-infra-issue|pages-clear|retry)\.sh$/,
     tiers: [],
     components: false,
     reason: "a CI or release helper that only the workflows and the Node script tests run",

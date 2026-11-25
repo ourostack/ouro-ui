@@ -15,6 +15,12 @@ name: Main green
 # on each red-to-green transition of main, which cancelled auto-merge pull request CI runs ci-fail-fast cancelled
 # only because fresh-main failed (never one cancelled for a real job failure) it would re-trigger, staggered to
 # at most 3 live. Report-only too: it names a plan but re-triggers nothing yet.
+#
+# A fourth job logs a candidate ceiling-fix-exempt verdict (scripts/ceiling-fix-exempt.mjs) on
+# ourostack/ouro-ui#3816: for each open, red-main-fix-labelled pull request whose fresh-main job failed a size
+# ceiling its base was already over, whether the candidate rule would report rather than fail it (its own
+# growth is zero or less). Report-only too: it never changes what fresh-main decides, and it never loosens a
+# ceiling.
 on:
   workflow_run:
     workflows: [CI]
@@ -29,7 +35,7 @@ permissions:
   pull-requests: read
   actions: read
   statuses: write
-  issues: write # candidate-verdict and candidate-retrigger-plan comments (report-signatures, report-cascade-retrigger jobs only)
+  issues: write # candidate-verdict, candidate-retrigger-plan and candidate-ceiling-fix-exempt comments (report-signatures, report-cascade-retrigger, report-ceiling-fix-exempt jobs only)
 concurrency:
   group: main-green-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -103,3 +109,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/cascade-retrigger.mjs report
+  report-ceiling-fix-exempt:
+    name: Log the candidate ceiling-fix-exempt verdict
+    if: ${{ github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      pull-requests: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - name: Logged the candidate verdict on #3816
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ceiling-fix-exempt.mjs report
