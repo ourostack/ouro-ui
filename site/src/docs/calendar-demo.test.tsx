@@ -27,7 +27,7 @@ describe("the calendar page", () => {
     await expect.element(dialog).toBeInTheDocument();
     await dialog.getByRole("button", { name: "Create" }).click();
     await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
-    await expect.poll(() => document.activeElement?.tagName + document.activeElement?.getAttribute("aria-invalid")).toBe("INPUTtrue");
+    await expect.poll(() => `${document.activeElement?.tagName}${document.activeElement?.getAttribute("aria-invalid")}`).toBe("INPUTtrue");
     await dialog.getByRole("textbox", { name: /Title/ }).fill("Garden club");
     await dialog.getByRole("button", { name: "Create" }).click();
     await expect.element(dialog).not.toBeInTheDocument();
@@ -67,6 +67,13 @@ describe("the calendar page", () => {
     await expect.poll(() => document.querySelector("[role=dialog] [role=columnheader], [role=dialog] th")?.textContent).toMatch(/^Mon/);
   });
 
+  it("shows one day on a phone, with no view switch, so every event keeps a readable width", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => document.querySelector("[data-site-calendar-demo] [data-ouro=time-grid]")).not.toBeNull();
+    expect(page.getByRole("radio", { name: /Work week/ }).query()).toBeNull();
+  });
+
   it("lands focus in the grid after a date is picked from Go to date", async () => {
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
@@ -93,7 +100,8 @@ describe("the calendar page", () => {
   it("opens on one day on a phone and on a work week on a laptop", async () => {
     await page.viewport(390, 844);
     await renderPage("/docs/calendar-demo/");
-    await expect.element(page.getByRole("radio", { name: "Day" })).toBeChecked();
+    await expect.poll(() => document.querySelector("[data-site-calendar-demo] [data-ouro=time-grid]")).not.toBeNull();
+    await expect.poll(() => document.querySelectorAll('[data-site-calendar-demo] [role=radio]').length).toBe(3);
     await cleanupPage();
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
@@ -128,12 +136,10 @@ describe("the calendar page", () => {
     await expect.poll(eventTitles).toBe(before);
   });
 
-  it.each(["light", "dark"] as const)("passes the accessibility scan in the week view on a phone in %s", async (scheme) => {
+  it.each(["light", "dark"] as const)("passes the accessibility scan in the day view on a phone in %s", async (scheme) => {
     setScheme(scheme);
     await page.viewport(390, 844);
     await renderPage("/docs/calendar-demo/");
-    await page.getByRole("radio", { name: /Work week/ }).click();
-    await expect.element(page.getByRole("radio", { name: /Work week/ })).toBeChecked();
     const violations = await scan();
     expect(violations, describeViolations(violations)).toEqual([]);
   }, pageScanTimeout);

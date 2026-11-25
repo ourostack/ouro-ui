@@ -13,6 +13,7 @@ import { TimeGrid, type TimeGridEvent, type TimeGridSlot, type TimeGridView } fr
 import { TimeGridNav } from "@/registry/ouro/components/ouro/time-grid/time-grid-parts";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
+import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { CodeBlock } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
 import { TrayArt } from "./tray-art";
@@ -112,6 +113,7 @@ function Screen(): JSX.Element {
   const today = iso(new Date());
   const [date, setDate] = useState(today);
   const [view, setView] = useState<TimeGridView>(() => (window.matchMedia("(max-width: 639px)").matches ? "day" : "work-week"));
+  const phone = useMediaQuery("(max-width: 639px)", false);
   const [stage, setStage] = useState<Stage>("week");
   const [events, setEvents] = useState<Entry[]>(() => seed(today));
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -131,11 +133,11 @@ function Screen(): JSX.Element {
     const settle = () => {
       const target = rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]');
       const lost = document.activeElement?.matches('body, div:not([tabindex])') ?? true;
-      if (target && (lost || forceFocus.current)) {
-        target.focus({ preventScroll: true });
-        forceFocus.current = false;
-      }
+      // The date picker's popover hands focus back to its button as it closes, a frame or two after the pick, so a forced move keeps landing the grid until then.
+      const forced = forceFocus.current && !target?.closest('[data-ouro="time-grid"]')?.contains(document.activeElement);
+      if (target && (lost || forced)) target.focus({ preventScroll: true });
       if (++tries < 30) frame = requestAnimationFrame(settle);
+      else forceFocus.current = false;
     };
     frame = requestAnimationFrame(settle);
     return () => cancelAnimationFrame(frame);
@@ -219,14 +221,14 @@ function Screen(): JSX.Element {
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <TimeGridNav date={date} view={view} onDateChange={setDate} disabled={stage === "loading"} />
+        <TimeGridNav date={date} view={phone ? "day" : view} onDateChange={setDate} disabled={stage === "loading"} />
         <Heading level={2} size="md" className="me-auto min-w-0 max-sm:order-first max-sm:basis-full">
           {heading}
         </Heading>
         <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => setJump(!jump)}>
           Go to date
         </Button>
-        <SegmentedControl
+        {phone ? null : <SegmentedControl
           label="View"
           hideLabel
           value={view}
@@ -236,7 +238,7 @@ function Screen(): JSX.Element {
             { value: "work-week", label: "Work week" },
             { value: "week", label: "Week" },
           ]}
-        />
+        />}
         <Button onClick={newEvent}>New event</Button>
       </div>
       <Popover title="Go to date" open={jump} onOpenChange={setJump} anchor={jumpRef} presentation="auto">
@@ -264,7 +266,7 @@ function Screen(): JSX.Element {
           <TimeGrid
             label={label}
             date={date}
-            view={view}
+            view={phone ? "day" : view}
             locale={weekLocale}
             // An empty week has nothing to mark the time against, so the now line stays off it.
             now={stage === "empty" ? "1970-01-01T00:00:00Z" : undefined}
