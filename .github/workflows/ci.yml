@@ -1810,7 +1810,7 @@ jobs:
           else
             node scripts/motion-coverage.mts --dir "$RUNNER_TEMP/motion" --expect "$MOTION_PARTITIONS"
           fi
-  themes:
+  themes-shard:
     # Every story passes axe under shadcn's nova and vega presets and Spoonjoy's cookbook theme
     # (test/theme-fixtures/), light and dark, closed and with each overlay open: the components
     # read only shadcn's standard tokens, so a third-party theme carries through. One fixture per
@@ -1914,6 +1914,20 @@ jobs:
           fi
           # The shipped contrast tests under cookbook, once, on the first shard.
           if [ "$SHARD" = 1 ]; then pnpm test:themes-contrast; fi
+  themes:
+    # The one check the rules require for the theme scans: it passes when every shard did, so the
+    # shard count can change without touching the ruleset.
+    needs: [plan, themes-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RESULT: ${{ needs.themes-shard.result }}
+    steps:
+      - name: Every shard passed
+        run: |
+          echo "The theme scan shards: $RESULT."
+          [ "$RESULT" = success ]
   conformance-shard:
     # The conformance matrix (test/conformance/, docs/guides/conformance.md): every story through
     # the checks that replace recurring review findings (focus after every action, announcements,

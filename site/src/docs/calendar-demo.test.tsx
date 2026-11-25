@@ -54,6 +54,31 @@ describe("the calendar page", () => {
     }
   });
 
+  it("keeps the Add a title message above the footer at large text on a short screen", async () => {
+    await page.viewport(550, 450);
+    document.documentElement.style.fontSize = "32px";
+    // The page's State switcher reports that it spills at this size; that is not what this test is about.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await renderPage("/docs/calendar-demo/");
+      await page.getByRole("radio", { name: "Empty week" }).click();
+      await page.getByRole("button", { name: "New event" }).click();
+      const dialog = page.getByRole("dialog", { name: "New event" });
+      await dialog.getByRole("button", { name: "Create" }).click();
+      await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
+      const clear = () => {
+        const message = [...document.querySelectorAll("[role=dialog] *")].find((el) => el.children.length === 0 && el.textContent === "Add a title");
+        const footer = document.querySelector("[data-ouro-footer]");
+        return !!message && !!footer && message.getBoundingClientRect().bottom <= footer.getBoundingClientRect().top;
+      };
+      await expect.poll(clear).toBe(true);
+    } finally {
+      warn.mockRestore();
+      document.documentElement.style.fontSize = "";
+      await page.viewport(1100, 900);
+    }
+  });
+
   it("puts a new event on the grid once it has a title", async () => {
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: "New event" }).click();
@@ -246,11 +271,44 @@ describe("the calendar page", () => {
     await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
     (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
     await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
-    page.getByRole("button", { name: "Delete" }).element().focus();
-    await userEvent.keyboard("{Enter}");
+    await userEvent.click(page.getByRole("button", { name: "Delete" }));
     await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
-    await expect.poll(() => document.activeElement === document.body).toBe(false);
-    await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
+    // The closing sheet takes focus back for a moment, so watch every frame, not just the first.
+    for (let frame = 0; frame < 90; frame += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    expect(document.activeElement?.closest('[data-ouro="time-grid"]')).not.toBeNull();
+  });
+
+  it("puts focus in the grid after Delete even when the sheet takes ages to close", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
+    (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
+    await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    // A sheet that takes a long while to leave, so focus is handed back well after the delete.
+    const slow = document.createElement("style");
+    slow.setAttribute("data-test-harness", "");
+    slow.textContent = '[data-ouro="sheet"], [data-ouro="sheet"] * { transition-duration: 1500ms !important; }';
+    document.head.append(slow);
+    try {
+      await userEvent.click(page.getByRole("button", { name: "Delete" }));
+      await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null, { timeout: 10_000 }).toBe(true);
+    } finally {
+      slow.remove();
+    }
+  });
+
+  it("returns focus to Go to date when its popover is dismissed without a pick", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    const jump = page.getByRole("button", { name: /Go to date/ });
+    const button = jump.element();
+    await userEvent.click(jump);
+    await expect.poll(() => button.getAttribute("aria-expanded")).toBe("true");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => button.getAttribute("aria-expanded")).toBe("false");
+    await expect.poll(() => document.activeElement === button).toBe(true);
   });
 
   it("keeps the slot cursor on the slot just created, so the keyboard does not start over", async () => {
