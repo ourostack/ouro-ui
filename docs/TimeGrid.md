@@ -54,7 +54,7 @@ Type: `TimeGridProps`.
 | `statusLabels` | `TimeGridStatusLabels` | { tentative: "tentative", free: "free", unanswered: "needs your answer", cancelled: "cancelled", away: "out of office" } | The words screen readers hear for each status, after the event's title. Translate them with your app. |
 | `timeZone` | `string` |  | The IANA time zone the grid's clock reads (`"Europe/Berlin"`): which day and hour each event falls on, where the now line is, and the times shown. Without it, the reader's own, once the page runs in the browser; the server writes UTC until then. |
 | `view` | `"day" \| "week" \| "work-week"` | `"week"` | `day`, `work-week` (the week without the locale's weekend) or `week`, from the locale's first day of the week. |
-| `workingHours` | `{ start: number; end: number }` | { start: 8, end: 17 } | The working day, in hours from midnight (`{ start: 8.5, end: 17 }`). The hours outside it, and weekend days, are shaded, and the grid opens scrolled to its start unless today is shown, when it opens at now, or at today's first event when now is before it. |
+| `workingHours` | `{ start: number; end: number }` | { start: 8, end: 17 } | The working day, in hours from midnight (`{ start: 8.5, end: 17 }`). The hours outside it, and weekend days, are shaded, and the grid opens half an hour before the earlier of its start and the first event shown. The now line shows when it falls in that window. |
 
 ## Native attributes
 
@@ -68,7 +68,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `defaultView`: Not a prop. The view is `view`: `<TimeGrid view="work-week">`, which your app keeps.
 - `onSelectEvent`: Not a prop. Ouro UI uses `onEventSelect`, which gets the event.
 - `onSelectSlot`: Not a prop. Ouro UI uses `onSlotSelect`, which gets `{ start, end }`.
-- `scrollToTime`: Not a prop. The grid opens at the start of `workingHours`, or at now when today shows.
+- `scrollToTime`: Not a prop. The grid opens before the earlier of the start of `workingHours` and the first event shown.
 
 ## `className` is for layout only
 

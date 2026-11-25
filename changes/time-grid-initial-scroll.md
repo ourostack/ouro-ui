@@ -1,0 +1,1 @@
+- Changed: TimeGrid opens half an hour before the earlier of the working day's start and the first event shown, and no longer scrolls to now; the now line still shows when it falls in that window.
