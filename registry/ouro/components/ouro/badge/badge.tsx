@@ -4,7 +4,6 @@ import { Button as BaseButton } from "@base-ui/react/button";
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentType, JSX, HTMLAttributes, MouseEventHandler, ReactNode, Ref, SVGProps } from "react";
 import { fontFor, radiusFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
-import { capLabel } from "@/registry/ouro/lib/ouro/cap-label";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
@@ -298,7 +297,7 @@ export function Badge(props: BadgeProps): JSX.Element {
         <TouchTarget />
         {statusDot}
         {icon}
-        {capLabel(children)}
+        {children}
       </RouterLink>
     );
   }
@@ -309,7 +308,7 @@ export function Badge(props: BadgeProps): JSX.Element {
         <TouchTarget />
         {statusDot}
         {icon}
-        {capLabel(children)}
+        {children}
       </BaseButton>
     );
   }
@@ -319,7 +318,7 @@ export function Badge(props: BadgeProps): JSX.Element {
     <span data-slot="badge" {...(spanProps as HTMLAttributes<HTMLSpanElement>)} ref={ref} data-ouro="badge" className={cn(base, look, className)}>
       {statusDot}
       {icon}
-      {capLabel(children)}
+      {children}
     </span>
   );
 }
