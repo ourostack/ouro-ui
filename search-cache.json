@@ -1,8 +1,8 @@
 {
   "spoonjoy/spoonjoy-v2": {
     "components/ouro/": {
-      "commit": "302d5ab685cf93be6dbc3222306e55f98c3168ef",
-      "at": "2026-11-25T06:28:07.762Z",
+      "commit": "efcc03d70e0540b13f51d49be0bb1fee29757d1e",
+      "at": "2026-11-25T07:17:23.618Z",
       "total": 624,
       "paths": [
         "app/components/ouro/inspector/inspector.stories.tsx",
@@ -106,6 +106,26 @@
         "app/components/ouro/spinner/spinner.tsx",
         "app/components/ouro/toggle/toggle-group.tsx"
       ]
+    },
+    "\"ouro-ui-core\"": {
+      "commit": "efcc03d70e0540b13f51d49be0bb1fee29757d1e",
+      "at": "2026-11-25T07:17:57.251Z",
+      "total": 13,
+      "paths": [
+        "README.md",
+        "tools/ouro-actions/README.md",
+        "scripts/sync-sj-tokens.mjs",
+        "actions/spoonjoy.actions.mts",
+        "app/styles/sj-tokens.css",
+        "app/styles/tailwind.css",
+        "claims-urls.json",
+        "tools/ouro-actions/actions.claims.json",
+        "test/styles/theme-css.ts",
+        "test/styles/sj-token-parity.test.ts",
+        "test/scripts/sync-sj-tokens.test.ts",
+        "test/components/recipe/CoverPlaceholder.test.tsx",
+        "test/lib/mcp/declared-actions.server.test.ts"
+      ]
     }
   },
   "spoonjoy/spoonjoy-apple": {
@@ -128,6 +148,14 @@
       "at": "2026-11-25T06:37:54.094Z",
       "total": 0,
       "paths": []
+    },
+    "OuroBanner": {
+      "commit": "5c7858357b55cd659587c0a7df8c09d7e12eb6fb",
+      "at": "2026-11-25T07:24:30.234Z",
+      "total": 1,
+      "paths": [
+        "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift"
+      ]
     }
   },
   "ourostack/ouro-md": {
