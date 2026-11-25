@@ -378,7 +378,9 @@ const frameClass =
   // --ouro-composer-inset needs no grow-start override either: animation-fill-mode both already
   // applies the reveal keyframe's own "from" (--ouro-composer-gap) the instant data-ouro-moving is
   // set, mid-flight reversal included, which the turned-round-mid-way tests below measure directly.
-  "motion-safe:[clip-path:inset(var(--ouro-composer-inset)_0_0_0_round_var(--ouro-composer-radius))] " +
+  // inset()'s 3-value shorthand (top, right/left, bottom) sets right and left to 0 at once, as the 4-value
+  // form's explicit third 0 did; one fewer "_0" in the compiled selector and declaration, net.
+  "motion-safe:[clip-path:inset(var(--ouro-composer-inset)_0_0_round_var(--ouro-composer-radius))] " +
   "data-[ouro-moving=grow]:motion-safe:animate-[ouro-composer-reveal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
   "data-[ouro-moving=shrink]:motion-safe:animate-[ouro-composer-conceal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] data-[ouro-moving=shrink]:justify-end";
 
