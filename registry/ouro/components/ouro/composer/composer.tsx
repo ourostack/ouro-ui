@@ -381,7 +381,7 @@ const toolbarClass =
   "flex min-w-0 flex-wrap items-center gap-0.5 border-0 border-b border-solid border-border px-1 py-1 " +
   "group-data-[ouro-moving=grow]/frame:motion-safe:animate-[ouro-composer-toolbar-in_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
   "group-data-[ouro-moving=grow]/frame:motion-reduce:animate-[ouro-composer-fade-in_var(--ouro-duration-fast)_ease_both] " +
-  "group-data-[ouro-moving=shrink]/frame:motion-safe:animate-[ouro-composer-toolbar-out_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both]";
+  "group-data-[ouro-moving=shrink]/frame:motion-safe:animate-[ouro-composer-toolbar-in_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both_reverse]";
 
 // The quote: a box on the muted surface with a hairline, which fades in when it appears after the
 // composer is on screen (not with reduced motion); a quote there at mount is drawn at once. Message's quote looks the same (message.tsx).
