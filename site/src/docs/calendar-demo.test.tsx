@@ -44,6 +44,28 @@ describe("the calendar page", () => {
     }
   });
 
+  it("leaves the now line off an empty week, and draws it on a week with events", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+    vi.setSystemTime(new Date(2026, 2, 11, 12, 0));
+    try {
+      await renderPage("/docs/calendar-demo/");
+      const line = () => document.querySelector("[data-site-calendar-demo] [data-ouro-time-grid-now-label]");
+      await page.getByRole("radio", { name: "Empty week" }).click();
+      await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
+      expect(line()).toBeNull();
+      await page.getByRole("radio", { name: "Full week" }).click();
+      await expect.poll(line).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("starts the date picker's weeks on Monday, as the work week does", async () => {
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: "Go to date" }).click();
+    await expect.poll(() => document.querySelector("[role=dialog] [role=columnheader], [role=dialog] th")?.textContent).toMatch(/^Mon/);
+  });
+
   it("shows a loading state from the State switcher", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {

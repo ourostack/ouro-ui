@@ -55,6 +55,9 @@ const lengthLabel = (minutes: number) => {
 };
 const lengthOptions = [15, 30, 60, 90, 120].map((minutes) => ({ value: String(minutes), label: lengthLabel(minutes) }));
 
+/** Weeks start on Monday in both the week view and the date picker, as the work week does. */
+const weekLocale = "en-US-u-fw-mon";
+
 /** A made-up week around the reader's today, so the now line shows. */
 function seed(today: string): Entry[] {
   const monday = atTime(today, 0);
@@ -231,6 +234,7 @@ function Screen(): JSX.Element {
       <Popover title="Go to date" open={jump} onOpenChange={setJump} anchor={jumpRef} presentation="auto">
         <Calendar
           label="Date to show"
+          locale={weekLocale}
           value={date}
           onValueChange={(next) => {
             setDate(next);
@@ -251,6 +255,9 @@ function Screen(): JSX.Element {
             label={label}
             date={date}
             view={view}
+            locale={weekLocale}
+            // An empty week has nothing to mark the time against, so the now line stays off it.
+            now={stage === "empty" ? "1970-01-01T00:00:00Z" : undefined}
             events={shown}
             workingHours={{ start: 8, end: 18 }}
             selectedId={open}
