@@ -18,7 +18,7 @@ function FindableChat(): JSX.Element {
   const [current, setCurrent] = useState<number | null>(2);
   const [report, setReport] = useState<MessageListFindReport>({ count: 0, current: null, partial: false });
   return (
-    <div style={{ display: "grid", gap: 8, maxWidth: 480, background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", padding: 8 }}>
+    <div style={{ display: "grid", gap: "var(--ouro-gap-min)", maxWidth: 480, background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", padding: "var(--ouro-gap-min)" }}>
       <ConversationFind
         label="Find in conversation"
         query={query}
@@ -48,7 +48,7 @@ function LongFindableChat(): JSX.Element {
   const [current, setCurrent] = useState(0);
   const [report, setReport] = useState<MessageListFindReport>({ count: 0, current: null, partial: false });
   return (
-    <div style={{ display: "grid", gap: 8, maxWidth: 480, background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", padding: 8 }}>
+    <div style={{ display: "grid", gap: "var(--ouro-gap-min)", maxWidth: 480, background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", padding: "var(--ouro-gap-min)" }}>
       <ConversationFind label="Find in conversation" query="lunch" onQueryChange={() => {}} count={report.count} current={report.current} partial={report.partial} onCurrentChange={setCurrent} onClose={() => {}} />
       <MessageList label="Chat" style={{ height: 240 }} find={{ query: "lunch", current }} onFindMatches={setReport}>
         {Array.from({ length: 300 }, (_, index) => (
