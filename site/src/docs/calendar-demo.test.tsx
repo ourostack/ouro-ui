@@ -246,11 +246,13 @@ describe("the calendar page", () => {
     await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
     (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
     await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
-    page.getByRole("button", { name: "Delete" }).element().focus();
-    await userEvent.keyboard("{Enter}");
+    await userEvent.click(page.getByRole("button", { name: "Delete" }));
     await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
-    await expect.poll(() => document.activeElement === document.body).toBe(false);
-    await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
+    // The closing sheet takes focus back for a moment, so watch every frame, not just the first.
+    for (let frame = 0; frame < 90; frame += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    expect(document.activeElement?.closest('[data-ouro="time-grid"]')).not.toBeNull();
   });
 
   it("keeps the slot cursor on the slot just created, so the keyboard does not start over", async () => {

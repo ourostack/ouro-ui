@@ -136,7 +136,8 @@ function Screen(): JSX.Element {
     let tries = 0;
     const settle = () => {
       const target = rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]');
-      const lost = document.activeElement?.matches('body, div:not([tabindex])') ?? true;
+      // A closing sheet or dialog takes focus back for a moment before it unmounts, so focus inside one counts as lost too.
+      const lost = document.activeElement?.matches('body, div:not([tabindex]), [role="dialog"], [role="dialog"] *') ?? true;
       // The date picker's popover hands focus back to its button as it closes, a frame or two after the pick, so a forced move keeps landing the grid until then.
       const forced = forceFocus.current && !target?.closest('[data-ouro="time-grid"]')?.contains(document.activeElement);
       if (target && (lost || forced)) target.focus({ preventScroll: true });
