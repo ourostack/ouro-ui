@@ -161,13 +161,20 @@ function OwnPost({ expose }: { expose: (set: (variant: "post" | "chat") => void)
   );
 }
 
-/** Waits until the list has settled: the scroll position, its height and the messages drawn read the same across two frames. */
+/**
+ * Waits until the list has settled: the scroll position, its height, the messages drawn, and the content's own carried offset
+ * (its `translate` and `margin-block-start`, which hold()'s carry()/pay() path writes when a wheel's momentum correction
+ * cannot land on scroller.scrollTop in full, #3785) read the same across two frames. A fingerprint of scrollTop, scrollHeight
+ * and the ids alone goes stable one beat before such a carried write lands, since none of those three change when content
+ * moves by its own translate instead of the scroller's own scroll position.
+ */
 async function settle(scroller: HTMLElement) {
+  const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]");
   let last = "";
   await expect
     .poll(async () => {
       await frame();
-      const now = `${scroller.scrollTop}|${scroller.scrollHeight}|${ids(scroller).join(",")}`;
+      const now = `${scroller.scrollTop}|${scroller.scrollHeight}|${ids(scroller).join(",")}|${content?.style.translate}|${content?.style.marginBlockStart}`;
       const same = now === last;
       last = now;
       return same;
@@ -336,6 +343,47 @@ describe("MessageList windowing", () => {
     } finally {
       vi.useRealTimers();
       vi.restoreAllMocks();
+    }
+  });
+
+  it("waits for content's own carried offset to stop moving too, not only for scrollTop, scrollHeight and the ids drawn (#3785)", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const scroller = document.createElement("div");
+    const content = document.createElement("div");
+    content.setAttribute("data-ouro-message-list-content", "");
+    const message = document.createElement("div");
+    message.dataset.ouro = "message";
+    message.id = "m1";
+    content.append(message);
+    scroller.append(content);
+    host.append(scroller);
+    try {
+      // scrollTop, scrollHeight and the ids drawn never change across this whole test: a fingerprint of those three alone
+      // goes stable from the very first poll. hold()'s pay() path, though, keeps landing a correction on content's own
+      // translate for several more frames, the way it carries a wheel's momentum across frames rather than all at once.
+      const landingFrames = 9;
+      let frame_ = 0;
+      let landing = true;
+      let counting = true;
+      const drive = () => {
+        frame_++;
+        if (landing) {
+          content.style.translate = `0 -${frame_ * 8}px`;
+          if (frame_ >= landingFrames) landing = false;
+        }
+        if (counting) requestAnimationFrame(drive);
+      };
+      requestAnimationFrame(drive);
+      onTestFinished(() => void (counting = false));
+      const settling = settle(scroller);
+      let translateAtResolve = "";
+      void settling.then(() => (translateAtResolve = content.style.translate));
+      await settling;
+      counting = false;
+      expect(translateAtResolve).toBe(`0px -${landingFrames * 8}px`);
+    } finally {
+      host.remove();
     }
   });
 
