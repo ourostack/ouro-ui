@@ -2253,6 +2253,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const centred = box.top - top - Math.max(0, (room - box.height) / 2);
       scroller.scrollTop += block === "center" ? centred : block === "start" || above ? box.top - top - EDGE : below ? box.bottom - top - room + EDGE : 0;
       springsRef.current?.moved(scroller.scrollTop - before);
+      // A reveal can land anywhere in the conversation, unlike the reader's own scrolling, which only ever
+      // uncovers history above the end: whatever already sits at the view's bottom edge there may be exactly
+      // where the floating pill sits too, with no arrival ahead to earn room for it the usual way. Reserve
+      // room at once, rather than wait for one, so the pill never opens over a message the reveal placed there.
+      if (Math.abs(scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop) > AT_BOTTOM) {
+        pinned.current = false;
+        setJumpRoom(true);
+      }
     };
     windowSync.current = (scrolled) => {
       const { windowed, keys, indexes, measured, band, reach, sizeOf } = viewRef.current;
