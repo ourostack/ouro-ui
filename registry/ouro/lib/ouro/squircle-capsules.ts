@@ -43,6 +43,7 @@ function installSquircleCapsules(doc: Document): () => void {
   });
   const watched = new Set<Element>();
   const watch = (root: ParentNode) => {
+    // Stryker disable next-line ArrayDeclaration: a stray starting entry is a syntactically valid, unmatched compound selector in the join, so it changes which elements match nothing.
     const selectors: string[] = [];
     for (const sheet of Array.from(doc.styleSheets)) {
       try {
@@ -64,6 +65,7 @@ function installSquircleCapsules(doc: Document): () => void {
   return () => {
     observer.disconnect();
     mutations.disconnect();
+    // Stryker disable next-line CallExpression: both observers are already disconnected, so nothing reads watched again; clearing it only frees the elements it held onto.
     watched.clear();
   };
 }
