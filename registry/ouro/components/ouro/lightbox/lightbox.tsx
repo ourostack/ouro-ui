@@ -34,6 +34,7 @@ import {
   mosaicCellClass,
   mosaicClass,
   mosaicFrameClass,
+  mosaicFramelessClass,
   mosaicImageClass,
   mosaicLayout,
   mosaicMoreClass,
@@ -41,6 +42,7 @@ import {
   popupClass,
   stageClass,
   thumbnailClass,
+  thumbnailFramelessClass,
   thumbnailImageClass,
   titleClass,
   zoomedImageClass,
@@ -172,6 +174,16 @@ export type LightboxWithThumbnailsProps = LightboxBaseProps & {
    * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > opens the viewer on the picture pressed, steps on past the four shown, and gives focus back to the last one shown)
    */
   layout?: "grid" | "mosaic" | (string & { 'Use "grid" or "mosaic"': never }) | undefined;
+  /**
+   * Draw the thumbnails with a hairline frame and rounded corners of their own, as a card around
+   * a picture. Pass `false` to draw them edge to edge instead, with no hairline, rounded to match
+   * whatever they sit in (through `rounded-ouro-inner`'s `--ouro-fr`/`--ouro-fi`, which a message
+   * bubble already sets): use that where the picture is the point, as in a chat message. A forced-
+   * colours edge stays either way. @default true
+   *
+   * @claim "Pass `false` to draw them edge to edge" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox thumbnails > draws thumbnails edge to edge, with no hairline, when framed is false)
+   */
+  framed?: boolean | undefined;
   /** Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout. */
   open?: never;
   /** Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout. */
@@ -219,6 +231,12 @@ export type LightboxControlledProps = LightboxBaseProps & {
    * @claim "a controlled Lightbox draws no thumbnails" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > draws no thumbnails, and opens on index when open)
    */
   layout?: never;
+  /**
+   * Not with `open`: a controlled Lightbox draws no thumbnails to frame.
+   *
+   * @claim "a controlled Lightbox draws no thumbnails" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox controlled > draws no thumbnails, and opens on index when open)
+   */
+  framed?: never;
 };
 
 /** Props for {@link Lightbox}: thumbnails of its own, or `open` with `onOpenChange` for the viewer alone. */
@@ -820,11 +838,13 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     fullScreen = false,
     fit = false,
     layout: layoutProp = "grid",
+    framed = true,
     // Guard props (hint types), dropped here so they never reach the DOM.
     slides,
     fullscreen,
   } = props as LightboxBaseProps & {
     layout?: string;
+    framed?: boolean;
     className?: string;
     open?: boolean;
     index?: number;
@@ -1013,7 +1033,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       }}
       data-ouro-allow={mosaic ? "near-miss" : undefined}
       data-ouro-allow-why={mosaic ? "A chat mosaic is one picture cut into tiles with a hairline between them, so the tiles sit close by design." : undefined}
-      className={mosaic ? mosaicThumbnailClass : thumbnailClass}
+      className={mosaic ? mosaicThumbnailClass : framed ? thumbnailClass : thumbnailFramelessClass}
       onClick={() => {
         setStart(position);
         arm();
@@ -1041,7 +1061,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     const shape = mosaicLayout(tiles.length, images[0]?.width, images[0]?.height);
     return (
       <div data-ouro="lightbox" data-layout="mosaic" className={cn(mosaicFrameClass, className)} style={{ "--ouro-lightbox-ratio": shape.ratio } as CSSProperties}>
-        <ul role="list" aria-label={label} className={cn(mosaicClass, shape.grid)} style={{ aspectRatio: shape.ratio }}>
+        <ul role="list" aria-label={label} className={cn(framed ? mosaicClass : mosaicFramelessClass, shape.grid)} style={{ aspectRatio: shape.ratio }}>
           {tiles.map((image, position) => (
             <li key={position} className={mosaicCellClass}>
               {thumbnail(image, position, position === tiles.length - 1 ? more : 0)}
