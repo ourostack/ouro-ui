@@ -191,6 +191,18 @@ describe("Tabs", () => {
     expect(tabs[1]!.getAttribute("aria-selected")).toBe("true");
   });
 
+  it("doesn't scroll the row on mount, and scrolls an overflowing row to the tab an arrow key focuses", async () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ value: `tab-${i}`, label: `Tab number ${i}`, content: <p>{i}</p> }));
+    const scrollTo = vi.spyOn(HTMLElement.prototype, "scrollTo");
+    const { tabs, host } = await render(<Tabs label="Many" items={many} />);
+    host.style.maxWidth = "200px";
+    expect(scrollTo).not.toHaveBeenCalled();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    tabs[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => scrollTo.mock.calls.length).toBeGreaterThan(0);
+  });
+
   it("moves to the next tab with ArrowLeft in a right-to-left page, where it sits on the left", async () => {
     document.documentElement.dir = "rtl";
     try {

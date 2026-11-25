@@ -23,6 +23,21 @@ import {
 
 const TabsContext = createContext(false);
 
+/**
+ * Base UI scrolls the highlighted tab into view whenever the tabs register, which reads the
+ * row's layout and so makes the browser lay the page out in the middle of the mount (about 11 ms
+ * on a Mac for the meeting sheet's tabs). A tab that has just mounted hides `scrollTo`, the
+ * method that scroll needs, for one frame; after it, the arrow keys scroll an overflowing row
+ * as before.
+ */
+function holdScrollOnMount(element: HTMLElement | null): void {
+  if (!element) return;
+  Object.defineProperty(element, "scrollTo", { value: undefined, configurable: true });
+  requestAnimationFrame(() => {
+    delete (element as { scrollTo?: unknown }).scrollTo;
+  });
+}
+
 /** Throws in development, with the JSX the part belongs in, unless it sits inside a TabsRoot. */
 function useTabsPart(part: string, inner: string): void {
   if (!useContext(TabsContext)) {
@@ -172,12 +187,14 @@ export function TabsTab(allProps: TabsTabProps): JSX.Element {
   useTabsPart("TabsTab", '<TabsTab value="…">…</TabsTab>');
   usePartClassName("TabsTab", className);
   const reason = useDisabledReason(allProps, props["aria-describedby"]);
+  const merged = useMergedRef(props.ref, holdScrollOnMount);
   const tab = (
     <BaseTabs.Tab
       data-ouro-control="tabs"
       data-ouro-part="tab"
       data-slot="tabs-trigger"
       {...props}
+      ref={merged}
       disabled={disabled && !reason.off}
       {...(reason.off
         ? {
