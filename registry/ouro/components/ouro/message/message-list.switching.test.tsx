@@ -39,15 +39,18 @@ const distanceFromBottom = (scroller: HTMLElement) => scroller.scrollHeight - sc
 async function settle(scroller: HTMLElement) {
   let last = -1;
   await expect
-    .poll(async () => {
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      const same = scroller.scrollTop === last;
-      last = scroller.scrollTop;
-      return same;
-    })
+    .poll(
+      async () => {
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const same = scroller.scrollTop === last;
+        last = scroller.scrollTop;
+        return same;
+      },
+      { interval: 0 },
+    )
     .toBe(true);
   // And the messages have come to rest from the springs, so where each is drawn is where it is laid out.
-  await expect.poll(() => scroller.querySelector("[data-ouro-settling]")).toBeNull();
+  await expect.poll(() => scroller.querySelector("[data-ouro-settling]"), { interval: 0 }).toBeNull();
 }
 
 beforeEach(() => {
