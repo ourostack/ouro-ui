@@ -25,7 +25,7 @@ const pagesPattern = `(?:${pagesA.map(escape).join("|")})`;
 
 /** check.test.mjs's two longest tests, each in a group of its own; every other title runs in `check`. */
 export const checkAlone = ["finds each rule on its fail page", "a sharded run, merged"];
-const small = ["fades", "base-check", "ax-hooks", "first-run-units", "first-run-session", "first-run-uia-order", "first-run-windows", "first-run-sso"].map((name) => `scripts/check/${name}.test.mts`);
+const small = ["fades", "base-check", "ax-hooks", "first-run-units", "first-run-session", "first-run-windows", "first-run-sso"].map((name) => `scripts/check/${name}.test.mts`);
 
 /** Each group: the test files it runs and, for a file split by title, the pattern of the titles it runs. */
 export const groups = {

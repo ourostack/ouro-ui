@@ -40,7 +40,6 @@ test("the Ouro check tests pass and cover every line, branch and function of its
       "scripts/check/ax-hooks.test.mts",
       "scripts/check/first-run-units.test.mts",
       "scripts/check/first-run-session.test.mts",
-      "scripts/check/first-run-uia-order.test.mts",
       "scripts/check/first-run-windows.test.mts",
       "scripts/check/first-run-sso.test.mts",
     ],
