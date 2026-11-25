@@ -1683,6 +1683,31 @@ test("a pull request someone else pushed to is left to them, never force-pushed 
   assert.equal(repo.fileAt(BRANCH, "test.mjs"), "assert(tag)");
 });
 
+test("a release held while the last push's checks still run moves the pull request once, after they finish (#3573)", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT });
+  const first = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  const pushed = repo.refs.get(BRANCH);
+
+  // A release that comes while the open pull request's checks are still running on the last one is held: pushing
+  // over them would restart those checks, so a repository whose checks are slower than the release cadence would
+  // never get a run that finishes.
+  const newer = { ...RELEASES, apple: { ...RELEASES.apple, tag: "v0.10.0", sha: "f".repeat(40) } };
+  const held = await keepRepo(repo.gh, "o/r", newer, { ciPending: async () => true });
+  assert.equal(held.pr.number, first.pr.number);
+  assert.equal(held.pr.pushed, false);
+  assert.equal(held.pr.held, true);
+  assert.match(held.pr.note, /checks running/);
+  assert.equal(repo.refs.get(BRANCH), pushed, "the branch keeps the last push while its checks run");
+
+  // Once nothing on that push is still queued or in progress, the next run moves the pull request straight to
+  // whatever is newest by then, in one push.
+  const moved = await keepRepo(repo.gh, "o/r", newer, { ciPending: async () => false });
+  assert.equal(moved.pr.number, first.pr.number);
+  assert.equal(moved.pr.pushed, true);
+  assert.notEqual(repo.refs.get(BRANCH), pushed, "the held release is pushed once its checks finished");
+  assert.match(moved.pr.title, /v0\.10\.0/);
+});
+
 test("an update pull request in a merge queue is left as it is, not failed, and updated once it leaves the queue (#1809)", async () => {
   let inQueue = false;
   const repo = fakeRepo({ "Package.swift": SWIFT }, { queued: () => inQueue });
@@ -2082,6 +2107,19 @@ test("ciCutShort names a check workflow whose run had a cancelled job, until a f
   assert.deepEqual(await sources.ciCutShort(client, "o/r", "abc"), [], "a full run was dispatched on the commit");
   const failing = { get: async () => { throw Object.assign(new Error("no"), { status: 403 }); } };
   assert.deepEqual(await createSources(failing).ciCutShort(failing, "o/r", "abc"), []);
+});
+
+test("ciPending finds a run still queued or in progress on a commit, and reads with the public token when the app's cannot", async () => {
+  let runs = [{ id: 1, status: "completed" }, { id: 2, status: "completed" }];
+  const client = { get: async (path) => (/actions\/runs\?head_sha=/.test(path) ? { workflow_runs: runs } : { workflow_runs: [] }) };
+  const sources = createSources(client);
+  assert.equal(await sources.ciPending(client, "o/r", "abc"), false, "nothing is still running");
+  runs = [...runs, { id: 3, status: "in_progress" }];
+  assert.equal(await sources.ciPending(client, "o/r", "abc"), true, "a run still in progress");
+  runs = [{ id: 4, status: "queued" }];
+  assert.equal(await sources.ciPending(client, "o/r", "abc"), true, "a run still queued");
+  const failing = { get: async () => { throw Object.assign(new Error("no"), { status: 403 }); } };
+  assert.equal(await createSources(failing).ciPending(failing, "o/r", "abc"), false, "a repository whose Actions neither token can read is never held on a guess");
 });
 
 test("ciReports reads a full run's reports by the commit its artifacts name, and no other commit's", async () => {
