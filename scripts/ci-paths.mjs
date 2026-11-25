@@ -26,6 +26,7 @@ export const scoped = [
     components: false,
     reason: "Ouro Current, which only the install test's current variant and the Node script tests run (install-check.mjs takes its stylesheet module); no browser shard, design shard or heavy job loads it",
   },
+  { pattern: /^\.agents\/skills\//, tiers: ["installs"], components: false, reason: "agents' skills, which only Ouro Current reads, to bring them to the repositories it keeps (scripts/current/agents.mjs)" },
   { pattern: /^scripts\/bar-eval\//, tiers: [], components: false, reason: "the bar evaluation, run by hand, which no workflow or test runs" },
   { pattern: /^scripts\/scroller-probe\.mjs$/, tiers: [], components: false, reason: "a probe run by hand for #2891, which no workflow or test runs" },
   { pattern: /^scripts\/chromium-floor-smoke\.mjs$/, tiers: [], components: false, reason: "the Chromium floor smoke test, which only the report-only chromium-floor-smoke.yml workflow runs" },

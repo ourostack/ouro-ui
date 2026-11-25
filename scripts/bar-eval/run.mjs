@@ -202,7 +202,7 @@ if (values["judge-only"]) {
 }
 const verdicts = await pool(records, Number(values.concurrency), (record) => judge(record, scenarios.find((s) => s.id === record.scenario)));
 
-const rows = records.map((record, i) => ({ id: record.id, scenario: record.scenario, model: record.model, rep: record.rep, commit: record.commit, seconds: record.seconds, calls: record.events.filter((e) => e.tool).length, pass: verdicts[i].pass, criteria: Object.fromEntries((verdicts[i].criteria ?? []).map((c) => [c.id, c.met])) }));
+const rows = records.map((record, i) => ({ id: record.id, scenario: record.scenario, model: record.model, rep: record.rep, commit: record.commit, seconds: record.seconds, calls: record.events.filter((e) => e.tool && !e.agent).length, pass: verdicts[i].pass, criteria: Object.fromEntries(scenarios.find((s) => s.id === record.scenario).criteria.map(({ id }) => [id, (verdicts[i].criteria ?? []).some((c) => c.id === id && c.met === true)])) }));
 writeFileSync(join(out, "results.json"), JSON.stringify({ phase: values.phase, judge: values.judge, models, rows }, null, 2));
 const table = [
   `# The bar evaluation: ${values.phase}`,
