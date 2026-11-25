@@ -1026,7 +1026,7 @@ jobs:
       env:
         OURO_SYSTEM_PACKAGES: image
     strategy:
-      fail-fast: ${{ github.event_name == 'pull_request' }}
+      fail-fast: false
       matrix:
         group: [pages-a, pages-b, rules-command, watch-small, check]
     name: check (node ${{ matrix.group }})
