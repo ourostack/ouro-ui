@@ -974,21 +974,25 @@ describe("Avatar presence", () => {
     }
   });
 
-  it("shows a state's glyph from 40px up, and only its colour below", async () => {
+  it("shows a marked state's glyph at every size, down to 8 and 9px, and never for busy", async () => {
     const { host } = await render(
       <>
         {sizes.map((size) => (
-          <Avatar key={size} name="Ana Lind" size={size} presence="away" presenceLabel="Away" />
+          <Avatar key={`away-${size}`} name="Ana Lind" size={size} presence="away" presenceLabel="Away" />
+        ))}
+        {sizes.map((size) => (
+          <Avatar key={`busy-${size}`} name="Ben Ito" size={size} presence="busy" presenceLabel="Busy" />
         ))}
       </>,
     );
-    const drawn = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => ({
-      size: avatar.getBoundingClientRect().width,
-      glyph: avatar.querySelector("[data-ouro-avatar-presence] path") !== null,
-    }));
-    expect(drawn.filter((one) => one.glyph).every((one) => one.size >= 40)).toBe(true);
-    expect(drawn.filter((one) => !one.glyph).every((one) => one.size < 40)).toBe(true);
-    expect(drawn.some((one) => one.glyph) && drawn.some((one) => !one.glyph)).toBe(true);
+    const glyphDrawn = (presence: "away" | "busy") =>
+      [...host.querySelectorAll<HTMLElement>(`[data-ouro="avatar"][data-presence="${presence}"]`)].map(
+        (avatar) => avatar.querySelector("[data-ouro-avatar-presence] path") !== null,
+      );
+    // Away's clock hand is a filled shape, so it stays crisp at the smallest dots (8 and 9px),
+    // where the old stroked line was hidden rather than left to blur; busy never has a mark.
+    expect(glyphDrawn("away").every(Boolean)).toBe(true);
+    expect(glyphDrawn("busy").some(Boolean)).toBe(false);
   });
 
   it("bites the dot out of the avatar's surface, so a non-plain background shows through the gap", async () => {
@@ -1097,13 +1101,20 @@ describe("Avatar presence", () => {
       const disc = circle.getBoundingClientRect();
       const frame = glyph.getBoundingClientRect();
       expect(disc.width).toBeGreaterThan(frame.width * (ring ? 0.8 : 0.95));
-      // The marks on it are rounded strokes in the tone's foreground (or the tone, on a ring), never filled.
+      // A ring's mark is still a rounded stroke in the tone; available, do not disturb and away
+      // cut theirs as a filled shape in the tone's foreground instead, so it stays crisp at 8 and
+      // 9px rather than blurring like a stroke that thin would.
       for (const mark of glyph.querySelectorAll("path")) {
         const line = getComputedStyle(mark);
-        expect(line.fill).toBe("none");
-        expect(line.strokeLinecap).toBe("round");
-        expect(line.strokeLinejoin).toBe("round");
-        expect(line.stroke).toBe(token(ring ? tone : `${tone}-foreground`));
+        if (ring) {
+          expect(line.fill).toBe("none");
+          expect(line.strokeLinecap).toBe("round");
+          expect(line.strokeLinejoin).toBe("round");
+          expect(line.stroke).toBe(token(tone));
+        } else {
+          expect(line.fill).toBe(token(`${tone}-foreground`));
+          expect(line.stroke).toBe("none");
+        }
         const drawn = mark.getBBox();
         expect(Math.max(drawn.width, drawn.height)).toBeGreaterThan(4);
       }

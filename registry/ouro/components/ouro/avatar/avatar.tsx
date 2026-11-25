@@ -464,13 +464,25 @@ function avatarHint(token: string): string {
 // orange) can re-point one state's color without changing every other use of that tone. Unset,
 // every dot draws exactly as it did before these existed.
 const available = "fill-(--ouro-presence-available,var(--success))";
-const availableInk = "stroke-(--ouro-presence-available-foreground,var(--success-foreground))";
+const availableInk = "fill-(--ouro-presence-available-foreground,var(--success-foreground))";
 const busy = "fill-(--ouro-presence-busy,var(--destructive))";
-const busyInk = "stroke-(--ouro-presence-busy-foreground,var(--destructive-foreground))";
+const busyInk = "fill-(--ouro-presence-busy-foreground,var(--destructive-foreground))";
 const away = "fill-(--ouro-presence-away,var(--warning))";
-const awayInk = "stroke-(--ouro-presence-away-foreground,var(--warning-foreground))";
+const awayInk = "fill-(--ouro-presence-away-foreground,var(--warning-foreground))";
 const offline = "stroke-(--ouro-presence-offline,var(--muted-foreground))";
 const outOfOffice = "stroke-(--ouro-presence-out-of-office,var(--primary))";
+
+// Available, do not disturb and away draw their mark as a filled shape cut to the same
+// outline Fluent's filled presence icons use (scaled from their 10px glyphs onto this 16-unit
+// circle), not a stroked line: a stroke that thin blurs away at the 8 and 9px dot sizes, where
+// a filled shape still anti-aliases to two crisp edges. Busy has no mark at any size, and
+// offline and out of office keep Fluent's own ring-and-stroke style, hidden below 40px as before.
+const checkMark =
+  "M11.366 6.566L7.766 10.166C7.453 10.478 6.947 10.478 6.634 10.166L5.034 8.566C4.722 8.253 4.722 7.747 5.034 7.434C5.347 7.122 5.853 7.122 6.166 7.434L7.2 8.469L10.234 5.434C10.547 5.122 11.053 5.122 11.366 5.434C11.678 5.747 11.678 6.253 11.366 6.566Z";
+const barMark =
+  "M5.6 7.2H10.4C10.842 7.2 11.2 7.558 11.2 8C11.2 8.442 10.842 8.8 10.4 8.8H5.6C5.158 8.8 4.8 8.442 4.8 8C4.8 7.558 5.158 7.2 5.6 7.2Z";
+const clockHandMark =
+  "M8 4.8V7.664L10.16 9.84C10.48 10.144 10.48 10.656 10.16 10.96C9.856 11.28 9.344 11.28 9.04 10.96L6.64 8.56C6.48 8.416 6.4 8.208 6.4 8V4.8C6.4 4.368 6.752 4 7.2 4C7.648 4 8 4.368 8 4.8Z";
 
 /** The presence dot's glyph: a shape per state, so color is not the only cue. */
 function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: boolean }): JSX.Element {
@@ -480,20 +492,20 @@ function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: b
       {presence === "available" && (
         <>
           <circle cx="8" cy="8" r="8" className={available} />
-          {!plain && <path d="M4.75 8.25 7 10.5l4.25-4.5" {...line} className={availableInk} />}
+          <path d={checkMark} className={availableInk} />
         </>
       )}
       {presence === "busy" && <circle cx="8" cy="8" r="8" className={busy} />}
       {presence === "do-not-disturb" && (
         <>
           <circle cx="8" cy="8" r="8" className={busy} />
-          {!plain && <path d="M4.5 8h7" {...line} className={busyInk} />}
+          <path d={barMark} className={busyInk} />
         </>
       )}
       {presence === "away" && (
         <>
           <circle cx="8" cy="8" r="8" className={away} />
-          {!plain && <path d="M8 4.5v3.75l2.5 1.5" {...line} className={awayInk} />}
+          <path d={clockHandMark} className={awayInk} />
         </>
       )}
       {presence === "offline" && (
