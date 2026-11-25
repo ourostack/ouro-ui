@@ -1128,6 +1128,32 @@ describe("TimeGrid", () => {
       expect(named(grid)).toBe("Saturday, March 14, 12:00 AM");
     });
 
+    it("starts at the slot holding now when today is the week's first day", async () => {
+      const { grid } = await open({ date: "2026-03-08", now: "2026-03-08T14:10:00-04:00", workingHours: { start: 9, end: 17 } });
+      expect(named(grid)).toBe("Sunday, March 8, 2:00 PM");
+    });
+
+    it("starts on the day's last slot when now is in its last minutes", async () => {
+      const { grid } = await open({ now: "2026-03-12T23:50:00-04:00" });
+      expect(named(grid)).toBe("Thursday, March 12, 11:30 PM");
+    });
+
+    it("moves back from the last day by one day, after pressing Right past it", async () => {
+      const { grid } = await open();
+      await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowLeft}");
+      expect(named(grid)).toBe("Friday, March 13, 10:30 AM");
+    });
+
+    it("draws the cursor at its slot's top, one slot tall", async () => {
+      const heights: number[] = [];
+      for (const slotMinutes of [30, 60]) {
+        const { grid } = await open({ slotMinutes });
+        heights.push(grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!.getBoundingClientRect().height);
+      }
+      expect(heights[0]).toBeGreaterThan(0);
+      expect(heights[1]).toBeCloseTo(heights[0] * 2, 0);
+    });
+
     it("draws no slots, and throws nothing, when the date is not a date", async () => {
       const { grid } = await render({ view: "week", date: "not a date", onSlotSelect: vi.fn() });
       expect(grid.querySelector('[role="grid"]')).toBeNull();

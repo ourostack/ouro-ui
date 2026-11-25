@@ -284,12 +284,10 @@ export interface TimeGridOwnProps {
    * Called when someone presses an empty part of a day, with the slot under the pointer, for a
    * new event there. A mouse shows the slot before the press.
    *
-   * With it, the grid adds one Tab stop for the keyboard's slots, ahead of the timed events
-   * (all-day events come before it). The events stay their own Tab stop, and the arrow keys move
-   * between events while focus is on an event, and between slots while it is on the slots: two
-   * separate groups. In the slots the arrow keys move one slot up or
-   * down and one day left or right (mirrored in right-to-left), Home and End go to the day's first
-   * and last slot, Page Up and Page Down move an hour, and Enter or Space calls `onSlotSelect`.
+   * With it, the slots take a Tab stop of their own, ahead of the timed events; the arrow keys move
+   * between slots there, and between events once an event has focus. In the slots the arrow keys
+   * move a slot up or down and a day left or right (mirrored in right-to-left), Home and End go to
+   * the day's first and last slot, Page Up and Page Down move an hour, and Enter or Space calls `onSlotSelect`.
    * A screen reader reads the slot, such as "Tuesday, 10:30 AM", as focus moves.
    */
   onSlotSelect?: ((slot: TimeGridSlot) => void) | undefined;
