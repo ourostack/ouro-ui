@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [TabBar keeps five tabs and its accessory at least 44px wide on a 320px phone](registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx "verify:testExists(registry/ouro/components/ouro/tab-bar/tab-bar.touch.test.tsx::fits five tabs and an accessory on a %ipx phone, each at least 44px, and a tap reaches the tab under the finger)"): below 360px its side room drops from 0.75rem to 0.5rem, where each tab used to come to 43.2px.
