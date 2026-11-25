@@ -484,13 +484,14 @@ async function fetchJobs({ repository, runId, attempt, token }) {
   }
 }
 
-/** What a run that GitHub would not answer for reports: a warning and a passing exit code, never a failure. Any other error is rethrown. */
-export function reportUnavailable(error, summaryPath, log = console.log) {
+/** What a run that GitHub would not answer for reports: on a pull request a failure, because an unjudged budget is a guard turned off; elsewhere a warning and a passing exit code. Any other error is rethrown. */
+export function reportUnavailable(error, summaryPath, log = console.log, event = "") {
   if (!(error instanceof ApiUnavailable)) throw error;
   const note = `Budget unavailable: GitHub's API would not answer, so this run's time was not judged (${error.message}).`;
-  log(`::warning::${note}`);
+  const failing = event === "pull_request";
+  log(`::${failing ? "error" : "warning"}::${note}`);
   if (summaryPath) appendFileSync(summaryPath, `## CI time\n\n${note}\n`);
-  return 0;
+  return failing ? 1 : 0;
 }
 
 async function judgeRun(argv) {
@@ -657,12 +658,12 @@ async function judgeRun(argv) {
   return laneVerdict.fail ? 1 : 0;
 }
 
-/** Judges the run; a phase GitHub will not answer for reports "Budget unavailable" and passes. */
+/** Judges the run; a phase GitHub will not answer reports "Budget unavailable", which fails a pull request's run and only warns elsewhere. */
 export async function main(argv) {
   try {
     return await judgeRun(argv);
   } catch (error) {
-    return reportUnavailable(error, process.env["GITHUB_STEP_SUMMARY"]);
+    return reportUnavailable(error, process.env["GITHUB_STEP_SUMMARY"], console.log, process.env["EVENT"]);
   }
 }
 
