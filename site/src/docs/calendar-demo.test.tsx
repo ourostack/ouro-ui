@@ -34,9 +34,14 @@ describe("the calendar page", () => {
   });
 
   it("shows an empty week from the State switcher", async () => {
-    await renderPage("/docs/calendar-demo/");
-    await page.getByRole("radio", { name: "Empty week" }).click();
-    await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      await renderPage("/docs/calendar-demo/");
+      await page.getByRole("radio", { name: "Empty week" }).click();
+      await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("shows a loading state from the State switcher", async () => {
