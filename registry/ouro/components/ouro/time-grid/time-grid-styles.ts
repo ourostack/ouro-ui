@@ -364,7 +364,7 @@ const eventClass =
  * @claim "a gap from the column's own line" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /start-2 end-2/)
  * @claim "doubled-line rule's line-gap threshold" registry/ouro/check/design-check.ts verify:fileLine(registry/ouro/check/design-check.ts, /lineGapPx = 6/)
  */
-const timedClass = "absolute inset-y-0 start-2 end-2 z-10 scroll-mt-(--ouro-time-grid-head) @container/event";
+const timedClass = "absolute inset-y-0 start-2 end-2 z-10 scroll-mt-(--ouro-time-grid-head) @container/event [padding-inline-end:calc(0.375rem+var(--ouro-time-grid-cover,0px))]";
 
 /**
  * A background event too narrow to label draws as a thin bar at its day's start, in a lane too

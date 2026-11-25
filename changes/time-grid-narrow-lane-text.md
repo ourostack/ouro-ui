@@ -1,0 +1,1 @@
+- Fixed: TimeGrid hides the text of a stepped event when its visible lane is very narrow.

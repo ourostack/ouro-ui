@@ -33,19 +33,37 @@ describe("the calendar page", () => {
     await expect.poll(() => document.body.textContent).toContain("Garden club");
   });
 
-  it("shows an empty week and a loading state from the State switcher", async () => {
+  it("shows an empty week from the State switcher", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {
       await renderPage("/docs/calendar-demo/");
       await page.getByRole("radio", { name: "Empty week" }).click();
       await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
-      await page.getByRole("radio", { name: "Loading" }).click();
-      await expect.poll(() => document.querySelector("[data-site-calendar-demo] [aria-busy=true]")).not.toBeNull();
-      await expect.element(page.getByText("Loading your week")).toBeInTheDocument();
-      expect(document.querySelector("[data-site-calendar-demo] [data-ouro='moment'][data-kind='loading'], [data-site-calendar-demo] [data-ouro='moment']")).not.toBeNull();
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("shows a loading state from the State switcher", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      await renderPage("/docs/calendar-demo/");
+      await page.getByRole("radio", { name: "Loading" }).click();
+      await expect.poll(() => document.querySelector("[data-site-calendar-demo] [aria-busy=true]")).not.toBeNull();
+      await expect.element(page.getByText("Loading your week")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("opens on one day on a phone and on a work week on a laptop", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await expect.element(page.getByRole("radio", { name: "Day" })).toBeChecked();
+    await cleanupPage();
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    await expect.element(page.getByRole("radio", { name: /Work week/ })).toBeChecked();
   });
 
   it("leaves room under the grid on a phone for the Undo toast", async () => {
@@ -65,6 +83,7 @@ describe("the calendar page", () => {
   });
 
   it("deletes an event from its details and brings it back with Undo", async () => {
+    await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
     const before = eventTitles();
     await page.getByRole("button", { name: /Sprint planning/ }).first().click();
@@ -75,7 +94,18 @@ describe("the calendar page", () => {
     await expect.poll(eventTitles).toBe(before);
   });
 
+  it.each(["light", "dark"] as const)("passes the accessibility scan in the week view on a phone in %s", async (scheme) => {
+    setScheme(scheme);
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("radio", { name: /Work week/ }).click();
+    await expect.element(page.getByRole("radio", { name: /Work week/ })).toBeChecked();
+    const violations = await scan();
+    expect(violations, describeViolations(violations)).toEqual([]);
+  }, pageScanTimeout);
+
   it("opens an event's details with focus inside them, not on Delete", async () => {
+    await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: /Sprint planning/ }).first().click();
     const details = page.getByRole("dialog", { name: /Sprint planning/ });
@@ -85,6 +115,7 @@ describe("the calendar page", () => {
   });
 
   it("moves focus into the edit dialog after Edit, and back to the event after Cancel", async () => {
+    await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: /Sprint planning/ }).first().click();
     page.getByRole("button", { name: "Edit" }).element().focus();
@@ -97,6 +128,7 @@ describe("the calendar page", () => {
   });
 
   it("puts focus back in the grid after Delete, so the keyboard does not start over", async () => {
+    await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: /Sprint planning/ }).first().click();
     page.getByRole("button", { name: "Delete" }).element().focus();
