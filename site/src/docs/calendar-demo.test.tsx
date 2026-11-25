@@ -67,6 +67,15 @@ describe("the calendar page", () => {
     await expect.poll(() => document.querySelector("[role=dialog] [role=columnheader], [role=dialog] th")?.textContent).toMatch(/^Mon/);
   });
 
+  it("lands focus in the grid after a date is picked from Go to date", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: "Go to date" }).click();
+    await expect.poll(() => document.querySelectorAll("[role=dialog] button[data-day], [role=dialog] [role=gridcell] button").length).toBeGreaterThan(20);
+    await userEvent.click(page.getByRole("dialog").getByRole("button", { name: /\b15\b/ }).first());
+    await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
+  });
+
   it("shows a loading state from the State switcher", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {

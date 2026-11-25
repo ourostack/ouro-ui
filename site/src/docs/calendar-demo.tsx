@@ -122,6 +122,7 @@ function Screen(): JSX.Element {
   const jumpRef = useRef<HTMLButtonElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [refocus, setRefocus] = useState(0);
+  const forceFocus = useRef(false);
   // The deleted event's popover has nothing to return focus to, so focus goes to the grid's event stop once the popover is gone.
   useEffect(() => {
     if (refocus === 0) return;
@@ -130,7 +131,10 @@ function Screen(): JSX.Element {
     const settle = () => {
       const target = rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]');
       const lost = document.activeElement?.matches('body, div:not([tabindex])') ?? true;
-      if (target && lost) target.focus({ preventScroll: true });
+      if (target && (lost || forceFocus.current)) {
+        target.focus({ preventScroll: true });
+        forceFocus.current = false;
+      }
       if (++tries < 30) frame = requestAnimationFrame(settle);
     };
     frame = requestAnimationFrame(settle);
@@ -243,6 +247,8 @@ function Screen(): JSX.Element {
           onValueChange={(next) => {
             setDate(next);
             setJump(false);
+            forceFocus.current = true;
+            setRefocus((count) => count + 1);
           }}
         />
       </Popover>
