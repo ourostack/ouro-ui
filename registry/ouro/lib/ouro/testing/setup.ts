@@ -35,26 +35,23 @@ const leaveEvent = () => new Promise<void>((resolve) => realSetTimeout(resolve, 
 // A face that finishes loading mid-test moves text, so every face the stylesheets declare loads before
 // the file's first test.
 beforeAll(async () => {
-  // Media and viewport resets are independent round trips, run together so this hook costs no
-  // more than the slower of the two.
-  await Promise.all([commands.resetMedia(), commands.resetViewport()]);
+  // One round trip resets both, rather than two independent ones.
+  await commands.resetEnvironment();
   await loadFonts();
   await leaveEvent();
 });
 
-let mediaBeforeTest: Awaited<ReturnType<typeof commands.mediaState>> | undefined;
-let viewportBeforeTest: Awaited<ReturnType<typeof commands.viewportState>> | undefined;
+let environmentBeforeTest: Awaited<ReturnType<typeof commands.snapshotEnvironment>> | undefined;
 beforeEach(async () => {
-  // Same reasoning: read both snapshots concurrently instead of doubling this hook's round trips.
-  [mediaBeforeTest, viewportBeforeTest] = await Promise.all([commands.mediaState(), commands.viewportState()]);
+  // One round trip reads both snapshots, rather than doubling this hook's dispatch per test.
+  environmentBeforeTest = await commands.snapshotEnvironment();
   await leaveEvent();
 });
 // Runs after the file's own afterEach, so a test that changed media or the viewport in its body or
 // a `beforeEach` is put back before the next test.
 afterEach(async () => {
-  await Promise.all([mediaBeforeTest && commands.restoreMedia(mediaBeforeTest), viewportBeforeTest && commands.restoreViewport(viewportBeforeTest)]);
-  viewportBeforeTest = undefined;
-  mediaBeforeTest = undefined;
+  if (environmentBeforeTest) await commands.restoreEnvironment(environmentBeforeTest);
+  environmentBeforeTest = undefined;
   await leaveEvent();
 });
 

@@ -151,6 +151,36 @@ export const resetViewport: BrowserCommand<[]> = async (ctx) => {
   await restoreViewport(ctx, projectDefaultViewport(ctx));
 };
 
+/** The media and real viewport `mediaState` and `viewportState` each read, in one round trip. */
+export interface EnvironmentState {
+  media: MediaState;
+  viewport: ViewportSize;
+}
+
+/**
+ * `mediaState` and `viewportState` together, in one round trip: every test's `beforeEach` reads
+ * both, so one call instead of two halves the dispatch per test this kit's cross-file reset
+ * (ourostack/ouro-ui#3300, #3319) added. A test or setup reads this before a change, to put both
+ * back with `restoreEnvironment`.
+ */
+export const snapshotEnvironment: BrowserCommand<[]> = async (ctx) => ({
+  media: currentMedia(ctx.page),
+  viewport: currentViewport(ctx),
+});
+
+/**
+ * `restoreMedia` and `restoreViewport` together, in one round trip, each still only acting on the
+ * feature that actually changed.
+ */
+export const restoreEnvironment: BrowserCommand<[EnvironmentState]> = async (ctx, state) => {
+  await Promise.all([restoreMedia(ctx, state.media), restoreViewport(ctx, state.viewport)]);
+};
+
+/** `resetMedia` and `resetViewport` together, in one round trip, for the start of a test file. */
+export const resetEnvironment: BrowserCommand<[]> = async (ctx) => {
+  await restoreEnvironment(ctx, { media: DEFAULT_MEDIA, viewport: projectDefaultViewport(ctx) });
+};
+
 async function applyMedia(ctx: Parameters<BrowserCommand<[]>>[0], options: EmulateMediaOptions): Promise<void> {
   await ctx.page.emulateMedia(options);
   emulatedMedia.set(ctx.page, { ...currentMedia(ctx.page), ...options });
@@ -1668,6 +1698,9 @@ export const commands = {
   viewportState,
   restoreViewport,
   resetViewport,
+  snapshotEnvironment,
+  restoreEnvironment,
+  resetEnvironment,
   doubleTap,
   drag,
   flick,
@@ -1692,6 +1725,9 @@ declare module "vitest/browser" {
     viewportState: () => Promise<ViewportSize>;
     restoreViewport: (size: ViewportSize) => Promise<void>;
     resetViewport: () => Promise<void>;
+    snapshotEnvironment: () => Promise<EnvironmentState>;
+    restoreEnvironment: (state: EnvironmentState) => Promise<void>;
+    resetEnvironment: () => Promise<void>;
     parkPointer: () => Promise<void>;
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;
