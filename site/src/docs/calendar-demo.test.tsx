@@ -242,10 +242,12 @@ describe("the calendar page", () => {
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
     const jump = page.getByRole("button", { name: /Go to date/ });
+    const button = jump.element();
     await userEvent.click(jump);
-    await expect.element(page.getByRole("dialog", { name: "Go to date" })).toBeInTheDocument();
+    await expect.poll(() => button.getAttribute("aria-expanded")).toBe("true");
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => document.activeElement === jump.element()).toBe(true);
+    await expect.poll(() => button.getAttribute("aria-expanded")).toBe("false");
+    await expect.poll(() => document.activeElement === button).toBe(true);
   });
 
   it("keeps the slot cursor on the slot just created, so the keyboard does not start over", async () => {
