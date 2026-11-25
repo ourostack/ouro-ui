@@ -106,5 +106,25 @@
   {
     "rule": "off-centre-text",
     "summary": "One line of words in a control (a button, a field's value or placeholder, an editor, or a bare text area inside its frame) whose cap height sits off the control's middle, as a composer's placeholder pushed low by a bottom-aligned row does."
+  },
+  {
+    "rule": "empty-panel",
+    "summary": "An open panel that isn't modal (a menu, a popover, or a data-ouro-panel) 120px or taller where under 60% of its inside has text, a control or a picture within 24px, as a wide panel with its links in one narrow column is."
+  },
+  {
+    "rule": "wrapped-short-line",
+    "summary": "In an open panel, words of 60 characters or fewer that wrap on a screen 1024px wide or wider (24 below it), as a one-line description in a narrow column does."
+  },
+  {
+    "rule": "boxed-blurb",
+    "summary": "In an open panel, a rounded box with a fill or a border on every side that holds words and nothing to press: a decorative card in a menu."
+  },
+  {
+    "rule": "panel-off-screen",
+    "summary": "An open panel whose bottom passes the bottom of the screen with nothing to scroll it into view; the fix is to cap its height and let its inside scroll."
+  },
+  {
+    "rule": "panel-clip",
+    "summary": "In a panel a press opens, words cut off by the box around them that hides its overflow; an ellipsis, a line clamp and a folded box pass."
   }
 ]

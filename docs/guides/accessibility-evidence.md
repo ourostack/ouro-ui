@@ -107,7 +107,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [route-progress](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/route-progress) | 2 | 0 | [route-progress.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/route-progress.sr.spec.ts): 1 test on `feedback-routeprogress--in-context` |
 | [scroll-area](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/scroll-area) | 2 | 0 | none yet |
 | [section-header](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/section-header) | 2 | 0 | none yet |
-| [segmented-control](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/segmented-control) | 5 | 0 | none yet |
+| [segmented-control](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/segmented-control) | 4 | 0 | none yet |
 | [select](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/select) | 7 | 0 | [select.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/select.sr.spec.ts): 1 test on `forms-select--playground` |
 | [separator](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/separator) | 4 | 0 | none yet |
 | [share-button](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/share-button) | 2 | 0 | none yet |

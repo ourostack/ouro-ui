@@ -13,6 +13,7 @@ import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorner
 import { findImageFades } from "./fade-check.ts";
 import { ALIASES, behindModal, boxOf, veiled, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { AUTO_PRESS, findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
+import { findPanelIssues } from "./panel-check.ts";
 import { findPopupJumps, watchPopups } from "./popup-check.ts";
 import { beginTrace, findTransitionFaults, stepTrace, TRANSITION_LIMITS } from "./transition-check.ts";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, type MotionReading } from "./motion-check.ts";
@@ -301,6 +302,11 @@ const LABELS: Record<string, string> = {
   "dark-art": "no dark art",
   "fragment-focus": "focus lost to a link's place",
   "popup-first-frame": "popup drawn away from where it settles",
+  "empty-panel": "mostly empty panel",
+  "wrapped-short-line": "short line wraps in a panel",
+  "boxed-blurb": "boxed blurb in a panel",
+  "panel-off-screen": "panel past the bottom of the screen",
+  "panel-clip": "panel cuts off its words",
   https: "no HTTPS",
 };
 const RULES = Object.keys(LABELS);
@@ -364,6 +370,11 @@ const HINTS: Record<string, string> = {
   "one-word-line": "balance it (text-wrap: balance), and give it the column's full width",
   "hard-break": "take out the <br> or the block-level line spans, and let text-wrap: balance break it",
   "popup-first-frame": "place the popup where it settles from its first frame: position: fixed for a popup measured against the viewport, and no layer further down the page between the popup and its anchor",
+  "empty-panel": "size the panel to what it holds, or lay its content out across it: a wide panel with its links in one narrow column is mostly empty",
+  "wrapped-short-line": "give the column room for its words (a wider column, or fewer columns), or say it shorter",
+  "boxed-blurb": "put the words in the panel as they are, or make the box the link it describes: a card of words in a menu is decoration a person reads past",
+  "panel-off-screen": "cap the panel's height at the screen's (max-height: 100dvh less its offset) and let its inside scroll (overflow-y: auto)",
+  "panel-clip": "let the box grow with its words, or let it scroll; cut words short on purpose only with an ellipsis or a line clamp",
   "fragment-focus": "add fragmentFocusScript() (the item lib-fragment-focus-script) as an inline script first in <body>, after every stylesheet",
   "narrow-heading": "take off the max-width, and let the heading span its column and balance",
   "dark-art": "give the picture a night twin for the dark theme, as Hero's picture={{ light, dark }} does",
@@ -705,6 +716,9 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   const sizeKeys = sizes.map(([w, h]) => `${w}x${h}`);
   const axeAt = new Set(sizeKeys.some((key) => AXE_SIZES.includes(key)) ? AXE_SIZES : [sizeKeys[0], sizeKeys.at(-1)]);
   const inpAt = `${sizeKeys.includes(INP_SIZE) ? INP_SIZE : sizeKeys.at(-1)} ${themes[0]}`;
+  // The panel rules open the page's popups at the narrowest size too, in the first theme; the walk opens them at inp's.
+  const [narrowest] = [...sizes].sort((a, b) => a[0] - b[0]);
+  const panelsAt = `${narrowest![0]}x${narrowest![1]} ${themes[0]}`;
   for (const dir of ["sheets/shots", "findings", "pairs/raw"]) await mkdir(join(out, dir), { recursive: true });
   // The earlier close-ups, read before this run writes its own, which take the same names when --out is the earlier
   // report's folder.
@@ -903,6 +917,35 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       return null;
     }
   };
+  // The panel rules on the panels open now, each finding once a page, size and theme: a panel open at rest is judged as
+  // the page loads, not again under each popup the runner opens.
+  const panelsSeen = new Set<string>();
+  const judgePanels = async (page: Page, target: Target, opener: string | null, width: number, height: number, theme: string) => {
+    let found = 0;
+    for (const issue of await page.evaluate(findPanelIssues, {})) {
+      const key = JSON.stringify([target.site, target.page, width, height, theme, issue.rule, issue.element]);
+      if (panelsSeen.has(key)) continue;
+      panelsSeen.add(key);
+      found++;
+      await record(page, target, opener ? { ...issue, element: `opening ${opener}: ${issue.element}` } : issue, width, height, theme);
+    }
+    return found;
+  };
+  // Opens each popup the walk would, at most WALK_EACH, and judges the panels it opens.
+  const openPanels = async (page: Page, target: Target, width: number, height: number, theme: string) => {
+    let found = 0;
+    for (const step of (await page.evaluate(markWalkables, { limit: WALK_EACH, never: NEVER_PRESS })).filter((w) => w.kind === "open")) {
+      await page.mouse.move(0, 0);
+      const point = await aim(page, step.ref);
+      if (!point) continue;
+      await page.mouse.click(point.x, point.y);
+      await page.waitForTimeout(400);
+      found += await judgePanels(page, target, step.element, width, height, theme);
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(400);
+    }
+    return found;
+  };
   const walk = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
     const jumped = new Set<string>();
@@ -935,6 +978,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
             found++;
             await record(page, target, issue, width, height, theme);
           }
+          // The panel rules on what it opened, once a step.
+          if (n === 0) found += await judgePanels(page, target, step.element, width, height, theme);
           await page.keyboard.press("Escape");
         } else if (step.kind === "pan") {
           await page.mouse.move(point.x, point.y);
@@ -1053,6 +1098,10 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       shown.push(...(await page.evaluate(findInteractionIssues)));
       shown.push(...(await page.evaluate(findDecisionIssues, decisionsFor(config, target.page, width))));
       shown.push(...(await page.evaluate(findWrapIssues, {})));
+      for (const issue of await page.evaluate(findPanelIssues, { clip: false })) {
+        panelsSeen.add(JSON.stringify([target.site, target.page, width, height, theme, issue.rule, issue.element]));
+        shown.push(issue);
+      }
       shown.push(...(await page.evaluate(findFirstRunIssues, config.firstRun ?? {})));
       // Last, as it scrolls the window to each linked card to hit-test it, and puts the scroll back.
       shown.push(...(await page.evaluate(findDeadZones)));
@@ -1102,11 +1151,13 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await moving.close();
     }
     let walked = 0;
+    // On the page as checked, after its picture: what a press opens there is judged, then put away.
+    if (measured && !failed && config.walk !== false && panelsAt === `${width}x${height} ${theme}` && panelsAt !== inpAt) walked += await openPanels(page, target, width, height, theme);
     if (measured && !failed && config.walk !== false && inpAt === `${width}x${height} ${theme}`) {
       const own = await contextFor(width, height, theme, "no-preference");
       const tab = await own.newPage();
       await reach(tab, target);
-      walked = await walk(tab, target, width, height, theme);
+      walked += await walk(tab, target, width, height, theme);
       await own.close();
     }
     const count = issues.length + pressed + walked;
