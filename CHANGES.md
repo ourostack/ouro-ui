@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: Message's chat bubble evens its inset around a `CodeBlock` that starts or ends the bubble, instead of leaving a near-miss gap narrower than the side inset ([test](registry/ouro/components/ouro/message/message.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > evens its inset around a code block that starts or ends the bubble, instead of the text inset)")).
