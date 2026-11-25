@@ -1,12 +1,14 @@
 "use client";
 
-import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Children, cloneElement, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
+import { Message, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
 import type { MessageFindLayer } from "@/registry/ouro/components/ouro/message/message-list-parts";
 import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { hasLazyType } from "@/registry/ouro/lib/ouro/server-element";
 import { halveShown } from "@/registry/ouro/lib/ouro/halve";
 import { createRowLayer, RowLayerContext, type RowLayer } from "@/registry/ouro/lib/ouro/row-hover";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
@@ -1236,6 +1238,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
   if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > OLDER_CHUNK ? edge.drawn : top });
   const shown = windowed ? all : all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
   const keys = useMemo(() => all.map((child, index) => String(keyOf(child) ?? index)), [all]);
+  // How many messages each child drawn holds: a child that starts the conversation holds none. Read here, before the
+  // keyboard's own effect, so a Message's position and the list's size are already right in its first render, from the
+  // counts the last sync found; the keyboard's marks below write nothing more for a row these did not change.
+  const counts = useRef(new Map<string, number>());
 
   // Find: loaded with the first list that has `find`; its layer counts the matches and draws them.
   const hasFind = find !== undefined;
@@ -1351,6 +1357,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
     if (height > 0) slots.push(<div key={`space:${keys[run!]}`} aria-hidden="true" data-ouro-message-list-space="" className="shrink-0" style={{ height: Math.max(0, height - (run! > 0 ? measured.gap : 0)) }} />);
     run = null;
   };
+  // Where each key starts counting from, among all of them, by the messages each held last sync (one, until counted
+  // otherwise): what a Message's own first render needs for its position, so the keyboard's marks below find it already
+  // right and write nothing more.
+  const before = new Map<string, number>();
+  let size = 0;
+  for (const key of keys) {
+    before.set(key, size);
+    size += counts.current.get(key) ?? 1;
+  }
   shown.forEach((child, at) => {
     const index = at + all.length - shown.length;
     if (!draws(index)) {
@@ -1358,9 +1373,26 @@ export function MessageList(props: MessageListProps): JSX.Element {
       return;
     }
     if (run !== null) space(index);
+    const key = keys[index]!;
+    // A Message takes its position and size in its own first render: the app's own aria-posinset, when it set one, stands.
+    // Across a Server Component boundary a Message's type is a lazy reference, never Message itself, so there it is known
+    // by its string `role` (every Message has one; nothing else visible across the boundary tells them apart).
+    const message = isValidElement<MessageProps>(child) && (child.type === Message || (hasLazyType(child) && typeof child.props.role === "string")) ? child : null;
+    const own = message?.props["aria-posinset"];
+    const drawn = message
+      ? cloneElement(
+          message,
+          {
+            tabIndex: -1,
+            "data-ouro-control": "message-list",
+            "data-ouro-part": "item",
+            ...(own === undefined && { "aria-posinset": String(before.get(key)! + 1), "aria-setsize": String(size) }),
+          } as Record<string, unknown>,
+        )
+      : child;
     slots.push(
-      <div key={keys[index]} {...{ [SLOT]: keys[index] }} className="contents">
-        {child}
+      <div key={key} {...{ [SLOT]: key }} className="contents">
+        {drawn}
       </div>,
     );
   });
@@ -2219,8 +2251,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const held = useRef(false);
   // Where each slot drawn sits in the content, and its size, as last measured.
   const tops = useRef(new Map<string, { top: number; size: number }>());
-  // How many messages each child drawn holds: a child that starts the conversation holds none.
-  const counts = useRef(new Map<string, number>());
   // Slots a resize observer has caught changing box since the list last read them fresh: read again, leaving the rest at
   // their cached size. Set from the observer's own callback, which also asks for a sync, so a slot's new size is read the
   // same frame the observer reports it, never a frame late; cleared once a sync reads it fresh.
@@ -2829,9 +2859,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
         const place = within.get(key) ?? 0;
         within.set(key, place + 1);
         const position = String(windowed ? before.get(key)! + place + 1 : index + 1);
-        // Only an article takes a position (ARIA allows it there), and one the app set stands.
+        // Only an article takes a position (ARIA allows it there), and one the app set stands; a Message's own first
+        // render already wrote this position, so it is the list's own, not an app override, the first time this reads it.
         const own = item.getAttribute("aria-posinset");
-        if (!item.matches('article:not([role]), [role="article"]') || (own !== null && own !== written.get(item))) return;
+        if (!item.matches('article:not([role]), [role="article"]') || (own !== null && own !== written.get(item) && own !== position)) return;
         written.set(item, position);
         mark(item, "aria-posinset", position);
         mark(item, "aria-setsize", String(size));
