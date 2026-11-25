@@ -118,10 +118,5 @@
     "test": "ouro-webkit (webkit) registry/ouro/components/ouro/popover/popover.test.tsx > Popover > keeps its fixed sizes at a compact --spacing: an 18rem panel",
     "reason": "ouro-webkit at 8.9s of 15s on a pull request run (#3341). The shared setup now reads and restores the real viewport and media state around every test, not just the ones that used to pay for it themselves, so every test in a changed file now carries two extra round trips (ourostack/ouro-ui#3300, #3319). Popover's own test body does no avoidable wait; the added cost is the correctness fix itself. Revisit if a shard measures it slow again with headroom to spare.",
     "owner": "drain-4"
-  },
-  {
-    "test": "* registry/ouro/components/ouro/menu/menu.test.tsx > Menu presentation > is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item",
-    "reason": "This pull request's global viewport reset (setup.ts beforeEach/afterEach now also captures and restores the real viewport, alongside the existing media capture, for every browser test) added a second concurrent round trip to every test's setup/teardown. A loaded shard measured this sheet-presentation test, which already drives a real viewport-dependent layout change, at 8.0 s against a 15 s budget (run 45503809077). No repeat round trip was found to cut in the test body itself; the added cost is the kit's own new reset, which #3341 needs file-wide to fix ourostack/ouro-ui#3300/#3319's shard-order flakiness. Revisit if a shard measures it slow again with headroom to spare.",
-    "owner": "drain-4"
   }
 ]
