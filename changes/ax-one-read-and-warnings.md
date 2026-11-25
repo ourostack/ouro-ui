@@ -1,0 +1,1 @@
+- New: [the Ouro AX guide says to answer an agent's "what's new for me?" with one read](docs/guides/ax.md "verify:fileLine(docs/guides/ax.md, /## Answer the question the agent asks/)"): one read that answers the agent's question beats several partial ones, and an agent relays a warning stated as a warning, first, but treats a timestamp as metadata.
