@@ -1,9 +1,9 @@
 {
   "spoonjoy/spoonjoy-v2": {
     "components/ouro/": {
-      "commit": "efcc03d70e0540b13f51d49be0bb1fee29757d1e",
-      "at": "2026-11-25T07:17:23.618Z",
-      "total": 624,
+      "commit": "12cd1466eb4cbb27290efef26eb5403b40da6b5e",
+      "at": "2026-11-25T08:20:13.898Z",
+      "total": 621,
       "paths": [
         "app/components/ouro/inspector/inspector.stories.tsx",
         ".storybook/main.ts",
@@ -108,8 +108,8 @@
       ]
     },
     "\"ouro-ui-core\"": {
-      "commit": "efcc03d70e0540b13f51d49be0bb1fee29757d1e",
-      "at": "2026-11-25T07:17:57.251Z",
+      "commit": "12cd1466eb4cbb27290efef26eb5403b40da6b5e",
+      "at": "2026-11-25T08:20:20.237Z",
       "total": 13,
       "paths": [
         "README.md",
@@ -125,6 +125,29 @@
         "test/scripts/sync-sj-tokens.test.ts",
         "test/components/recipe/CoverPlaceholder.test.tsx",
         "test/lib/mcp/declared-actions.server.test.ts"
+      ]
+    },
+    "defineCommand": {
+      "commit": "12cd1466eb4cbb27290efef26eb5403b40da6b5e",
+      "at": "2026-11-25T08:20:26.678Z",
+      "total": 5,
+      "paths": [
+        "app/lib/ouro/ax/ax-command.ts",
+        "scripts/ouro/ax/xray.kit.mts",
+        "scripts/ouro/ax/xray.ts",
+        "tools/ouro-actions/ouro-actions.mts",
+        "app/lib/ouro/ax/ax-moved.d.ts"
+      ]
+    },
+    "bindAx": {
+      "commit": "12cd1466eb4cbb27290efef26eb5403b40da6b5e",
+      "at": "2026-11-25T08:21:44.302Z",
+      "total": 4,
+      "paths": [
+        "app/lib/ouro/ax/component.ts",
+        "actions/generated/web.ts",
+        "scripts/ouro/ax/xray.ts",
+        "tools/ouro-actions/ouro-actions.mts"
       ]
     }
   },
@@ -156,6 +179,12 @@
       "paths": [
         "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift"
       ]
+    },
+    "OuroSheet": {
+      "commit": "5c7858357b55cd659587c0a7df8c09d7e12eb6fb",
+      "at": "2026-11-25T08:25:00.778Z",
+      "total": 0,
+      "paths": []
     }
   },
   "ourostack/ouro-md": {
@@ -249,40 +278,24 @@
         "Gatefold/Library/LibraryView.swift"
       ]
     },
-    "OuroSheet": {
-      "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
-      "at": "2026-11-24T08:32:06.584Z",
-      "total": 0,
-      "paths": []
-    },
-    "OuroEmptyState": {
-      "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
-      "at": "2026-11-24T08:32:13.115Z",
-      "total": 1,
-      "paths": [
-        "Gatefold/Library/LibraryView.swift"
-      ]
-    },
-    "OuroHX": {
-      "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
-      "at": "2026-11-24T08:32:44.113Z",
-      "total": 8,
-      "paths": [
-        "GatefoldTests/OuroThemeTests.swift",
-        "Gatefold/Design/OuroTheme+Gatefold.swift",
-        "project.yml",
-        "Gatefold/App/GatefoldApp.swift",
-        "Gatefold/Reader/ReaderChrome.swift",
-        "Gatefold/Reader/SettingsPanel.swift",
-        "Gatefold/Library/LibraryView.swift",
-        "GatefoldUITests/FeelReaderUITests.swift"
-      ]
-    },
     "\"import OuroAX\"": {
       "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
       "at": "2026-11-25T01:25:50.335Z",
       "total": 0,
       "paths": []
+    }
+  },
+  "ourostack/ouroboros": {
+    "components/ouro/": {
+      "commit": "a8d9c1d2dc36a349f5d7335b2fb1fe47e4ccbbc0",
+      "at": "2026-11-25T08:34:14.604Z",
+      "total": 4,
+      "paths": [
+        "deploy/eval/u/build/kit-config.mjs",
+        "deploy/eval/u/results/k1-package.json",
+        "deploy/eval/u/results/ouro-baseline-summary.json",
+        "deploy/eval/u/results/ouro-rewrite.json"
+      ]
     }
   }
 }
