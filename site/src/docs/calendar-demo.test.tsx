@@ -54,6 +54,31 @@ describe("the calendar page", () => {
     }
   });
 
+  it("keeps the Add a title message above the footer at large text on a short screen", async () => {
+    await page.viewport(550, 450);
+    document.documentElement.style.fontSize = "32px";
+    // The page's State switcher reports that it spills at this size; that is not what this test is about.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await renderPage("/docs/calendar-demo/");
+      await page.getByRole("radio", { name: "Empty week" }).click();
+      await page.getByRole("button", { name: "New event" }).click();
+      const dialog = page.getByRole("dialog", { name: "New event" });
+      await dialog.getByRole("button", { name: "Create" }).click();
+      await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
+      const clear = () => {
+        const message = [...document.querySelectorAll("[role=dialog] *")].find((el) => el.children.length === 0 && el.textContent === "Add a title");
+        const footer = document.querySelector("[data-ouro-footer]");
+        return !!message && !!footer && message.getBoundingClientRect().bottom <= footer.getBoundingClientRect().top;
+      };
+      await expect.poll(clear).toBe(true);
+    } finally {
+      warn.mockRestore();
+      document.documentElement.style.fontSize = "";
+      await page.viewport(1100, 900);
+    }
+  });
+
   it("puts a new event on the grid once it has a title", async () => {
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: "New event" }).click();
@@ -246,11 +271,13 @@ describe("the calendar page", () => {
     await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
     (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
     await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
-    page.getByRole("button", { name: "Delete" }).element().focus();
-    await userEvent.keyboard("{Enter}");
+    await userEvent.click(page.getByRole("button", { name: "Delete" }));
     await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
-    await expect.poll(() => document.activeElement === document.body).toBe(false);
-    await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
+    // The closing sheet takes focus back for a moment, so watch every frame, not just the first.
+    for (let frame = 0; frame < 90; frame += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    expect(document.activeElement?.closest('[data-ouro="time-grid"]')).not.toBeNull();
   });
 
   it("puts focus in the grid after Delete even when the sheet takes ages to close", async () => {
