@@ -1174,6 +1174,19 @@ describe("TimeGrid", () => {
     expect(gap(title)).toBeLessThan(event.getBoundingClientRect().width / 2);
   });
 
+  it.each([
+    ["week", 390, "none"],
+    ["day", 900, "inline"],
+  ] as const)("shows an event's whole time range only where it fits: a %s view at %ipx", async (view, width, display) => {
+    await render({ view, events: [{ id: "tall", title: "Planning", start: at(12, "10:00"), end: at(12, "12:00") }], locale: "en-US" }, (grid) => (
+      <div style={{ width, height: 600 }}>{grid}</div>
+    ));
+    const time = titled("Planning").querySelector<HTMLElement>("[data-slot='time-grid-event-time']")!;
+    const end = time.querySelector<HTMLElement>("[data-slot='time-grid-event-time-end']")!;
+    await expect.poll(() => getComputedStyle(end).display).toBe(display);
+    expect(time.textContent).toBe("10:00 AM – 12:00 PM");
+  });
+
   it("swaps Left and Right in a right-to-left page", async () => {
     await render({ events: [forum, standup], locale: "en-US" }, (grid) => <div dir="rtl">{grid}</div>);
     titled("Standup").focus();

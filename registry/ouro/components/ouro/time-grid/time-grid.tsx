@@ -366,6 +366,19 @@ const serverNow = () => 0;
 const mutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
 const mutedLineClass = "truncate text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
 
+// A time range as its start and the rest, so a narrow event can show only the start rather than cut the range
+// mid-word ("11:00 AM –…"); the full range stays in the text.
+function startAndRest(range: string) {
+  const split = /\s[–-]\s/.exec(range);
+  if (!split) return range;
+  return (
+    <>
+      {range.slice(0, split.index)}
+      <span data-slot="time-grid-event-time-end" className="@max-[7rem]/event:hidden">{range.slice(split.index)}</span>
+    </>
+  );
+}
+
 // The default for backgroundEvents: one array, so the layout is worked out again only when the events change.
 const noEvents: readonly TimeGridEvent[] = [];
 
@@ -946,7 +959,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             {event.title}
           </span>{" "}
           <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-end`}>
-            {rangeText(formats.time, start!, end!)}
+            {startAndRest(rangeText(formats.time, start!, end!))}
           </span>
           {lines >= 3 && event.description ? (
             <>
