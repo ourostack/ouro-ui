@@ -1012,6 +1012,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               data-ouro-event-key={key}
               data-background={background ? "" : undefined}
               tabIndex={key === tabStop ? 0 : -1}
+              aria-label={`${stackLabel(stack.length)} ${rangeText(formats.time, new Date(Math.min(...starts)), new Date(Math.max(...ends)))}`}
               aria-current={members.some((piece) => piece.event.id === selectedId) ? "true" : undefined}
               // The arrows move through the grid, as from any event; Enter and Space press it, which opens the list.
               onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => (event as typeof event & { preventBaseUIHandler: () => void }).preventBaseUIHandler()}

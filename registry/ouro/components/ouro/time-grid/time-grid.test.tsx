@@ -583,6 +583,8 @@ describe("TimeGrid", () => {
       expect([shown(), chip()]).toEqual([[], null]);
       expect(stack()!.hasAttribute("data-background")).toBe(false);
       expect(plain(stack()!.textContent)).toContain("3 events");
+      // Its text hides when the column is too narrow to draw it, so the name is set outright, with the time range.
+      expect(stack()!.getAttribute("aria-label")).toMatch(/^3 events \S/);
     });
 
     it("folds at 200% text, where a day of about 8 rem is too narrow for three", async () => {
