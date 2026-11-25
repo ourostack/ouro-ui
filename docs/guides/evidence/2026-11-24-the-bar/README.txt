@@ -71,7 +71,7 @@ Files:
 
 Finding:
 - Criteria met, of 76: baseline 21, after-statement 23, after-steps 32. Runs that met every criterion, of 20: 0, 0, 2,
-  both of them the counter-scenario. No run of the four tempting scenarios passes in any phase.
+  both of them the counter-scenario. No run of the four tempting scenarios passes in any of the three.
 - The paragraph didn't change what agents did. The steps did, in part: more answers name the jobs (cook-settings and
   menus, 0 to 2 of 4 each), plan the proof with fresh agents (households and files, 0 to 2 each), and give the
   counter-scenario a way in for people and one agent command (0 to 2), which made its two passes; no answer refused or
