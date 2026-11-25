@@ -236,9 +236,12 @@ export function installSpecShard(specs, shard, timings = readTimings("e2e")) {
 
 const sortedObject = (object) => Object.fromEntries(Object.entries(object).sort(([a], [b]) => (a < b ? -1 : 1)));
 
+/** Script tests that run as their own CI jobs, in pieces (scripts/check-node-coverage.mjs), so no scripts-browser shard runs them. */
+export const ownJobs = ["scripts/check.test.mjs"];
+
 function main([command, ...args]) {
   if (command === "scripts-browser") {
-    const files = scriptTestFiles().filter((file) => drivesBrowser(file));
+    const files = scriptTestFiles().filter((file) => drivesBrowser(file) && !ownJobs.includes(file));
     console.log((args[0] ? shardKeys(files, parseShard(args[0]), readTimings("scripts")) : files).join("\n"));
     return 0;
   }
