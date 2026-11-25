@@ -312,9 +312,11 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
     return new DOMRect(left, top, right - left, bottom - top);
   };
+  // A layer hidden from readers that takes no presses (a window's corner overlay) draws only its edge, never a box a heading sits below.
+  const decoration = (el: Element) => el.matches("[aria-hidden=true]") && getComputedStyle(el).pointerEvents === "none";
   const blocks = visible.filter((el) => {
     const r = drawnRect(el)!;
-    return r.width >= 48 && r.height >= 48 && filled(el) && !windowLayer(el);
+    return r.width >= 48 && r.height >= 48 && filled(el) && !windowLayer(el) && !decoration(el);
   });
   for (const heading of headings) {
     if (optedOut(heading, "cramped-heading")) continue;
