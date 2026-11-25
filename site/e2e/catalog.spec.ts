@@ -483,8 +483,9 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   for (const line of verdict.lines) console.log(`script-size-gate ${line}`);
   for (const tip of verdict.tips) console.log(`::warning title=Pull request tips a size ceiling::${tip}`);
   expect(verdict.failures, "each page's initial JavaScript, gzip bytes").toEqual([]);
-  // Each page's CSS is judged the same way: a pull request fails only for CSS it grew past budget, never because main's
-  // own ceiling breach, or another pull request's race, landed on the commit this branched from.
+  // Each page's CSS is judged the same way: a pull request fails for CSS it grew past budget, and also, whatever its
+  // base, when its CSS is over its ceiling — whether that is main's own breach, already there before this pull
+  // request branched, or another pull request's race landing it first.
   writeReport("page-css", cssSizes);
   const cssVerdict = judgeSizes(cssSizes, { mode: gateMode(), base: readBase("page-css") });
   for (const line of cssVerdict.lines) console.log(`css-size-gate ${line}`);
@@ -632,9 +633,9 @@ test("each docs page links the shared shell or the whole build, and inlines only
     });
     expect(reversed, `${name}: a page utility the build sorts before a shell utility it shares a property with`).toEqual([]);
   }
-  // Judged the same way as the pages' JavaScript closures: a pull request fails only for CSS it grew past budget, never
-  // because main's own ceiling breach, or another pull request's race, landed on the commit this branched from
-  // (scripts/size-gate.mjs); main's own breach is size-ceilings.yml's to report, with an issue, after CI on main.
+  // Judged the same way as the pages' JavaScript closures: a pull request fails for CSS it grew past budget, and also,
+  // whatever its base, when its CSS is over its ceiling (scripts/size-gate.mjs); main's own breach is still
+  // size-ceilings.yml's to report too, with an issue, after CI on main.
   writeReport("shell-css", cssSizes);
   const verdict = judgeSizes(cssSizes, { mode: gateMode(), base: readBase("shell-css") });
   for (const line of verdict.lines) console.log(`css-size-gate ${line}`);

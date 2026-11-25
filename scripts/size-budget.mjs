@@ -1,12 +1,13 @@
 // The gzip size of the stylesheets each built page links, and the <style> it inlines in its head, against the
 // ceilings site/e2e/catalog.spec.ts holds the loaded pages to (CSS_CEILINGS), read from a build with no
 // browser, so fresh-main.mjs can check them on a merge of two pull requests in seconds. Judged the same way as
-// site/e2e/catalog.spec.ts's own CSS sizes (scripts/size-gate.mjs): this pull request's CSS fails only for its own
+// site/e2e/catalog.spec.ts's own CSS sizes (scripts/size-gate.mjs): this pull request's CSS fails for its own
 // growth past budget over its base (fresh-main.mjs merges the newest main in first, so that growth includes any
-// commit that landed on main since this pull request's own e2e job measured its base); a ceiling main is already
-// over, or tips over only because another pull request raced this one to main, is neither's pull request to fail (it
-// is size-ceilings.yml's, with an issue, after CI on main). With no base report to compare with (no CI run has fetched
-// one, or this ran by hand), the ceiling alone decides, as size-gate.mjs's judgeSizes does everywhere else.
+// commit that landed on main since this pull request's own e2e job measured its base), and also, whatever its base,
+// when its CSS is over its ceiling: a ceiling main was already over before this pull request, or that another pull
+// request racing this one to main tips it over, still fails here, not only size-ceilings.yml's issue after CI on
+// main. With no base report to compare with (no CI run has fetched one, or this ran by hand), the ceiling alone
+// decides, as size-gate.mjs's judgeSizes does everywhere else.
 //
 //   node scripts/size-budget.mjs [site/dist]
 import { readFileSync } from "node:fs";
