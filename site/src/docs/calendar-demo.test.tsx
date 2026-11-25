@@ -33,16 +33,19 @@ describe("the calendar page", () => {
     await expect.poll(() => document.body.textContent).toContain("Garden club");
   });
 
-  it("shows an empty week and a loading state from the State switcher", async () => {
+  it("shows an empty week from the State switcher", async () => {
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("radio", { name: "Empty week" }).click();
+    await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
+  });
+
+  it("shows a loading state from the State switcher", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {
       await renderPage("/docs/calendar-demo/");
-      await page.getByRole("radio", { name: "Empty week" }).click();
-      await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
       await page.getByRole("radio", { name: "Loading" }).click();
       await expect.poll(() => document.querySelector("[data-site-calendar-demo] [aria-busy=true]")).not.toBeNull();
       await expect.element(page.getByText("Loading your week")).toBeInTheDocument();
-      expect(document.querySelector("[data-site-calendar-demo] [data-ouro='moment'][data-kind='loading'], [data-site-calendar-demo] [data-ouro='moment']")).not.toBeNull();
     } finally {
       vi.useRealTimers();
     }

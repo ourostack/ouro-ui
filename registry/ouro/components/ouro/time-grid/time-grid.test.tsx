@@ -551,6 +551,18 @@ describe("TimeGrid", () => {
     });
   }
 
+  it("hides the text of a stepped event whose visible lane is under 2rem, so none sits over the event that covers it", async () => {
+    const spans: Array<[string, string, string]> = [["Aa", "09:00", "12:00"], ["Bb", "09:00", "12:00"], ["Cc", "09:00", "12:00"], ["Dd", "09:00", "12:00"], ["Ee", "09:00", "12:00"]];
+    const { items, rem } = await placedBoxes(spans.map(([title, from, to]) => ({ id: title, title, start: at(12, from), end: at(12, to) })), "180px");
+    const lanes = items.map((item) => item.querySelector<HTMLElement>("span.flex-1")!);
+    await expect.poll(() => lanes.map((lane) => lane.getBoundingClientRect().width).join()).toBe(lanes.map((lane) => lane.getBoundingClientRect().width).join());
+    const narrow = lanes.filter((lane) => lane.getBoundingClientRect().width < 2 * rem);
+    const wide = lanes.filter((lane) => lane.getBoundingClientRect().width >= 2 * rem);
+    expect([narrow.length > 0, wide.length > 0]).toEqual([true, true]);
+    await expect.poll(() => narrow.every((lane) => [...lane.children].every((child) => getComputedStyle(child).visibility === "hidden"))).toBe(true);
+    expect(wide.every((lane) => [...lane.children].every((child) => getComputedStyle(child).visibility === "visible"))).toBe(true);
+  });
+
   it("covers an event only by a later column that overlaps it, and by the nearest such column", async () => {
     // Columns: a 0, b 1, c 2, d 0, e 1. d is overlapped by c and then e, and e is the nearer column; e only touches c.
     expect(

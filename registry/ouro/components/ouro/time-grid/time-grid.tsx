@@ -875,7 +875,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         {bar ? (
           <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, status === "away" ? awaySwatchClass : toneSwatchClass[tone], barStatusClass[status])} />
         ) : (
-          <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
+          <span className="@container/text flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden @max-[2rem]/text:*:invisible">{content}</span>
         )}
       </>
     );
@@ -979,7 +979,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "z-[9]")}
             >
               <TouchTarget />
-              <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <span className="@container/text flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden @max-[2rem]/text:*:invisible">
                 <span className="truncate font-medium">{stackLabel(stack.length)}</span>{" "}
                 <span className={mutedLineClass}>{rangeText(formats.time, new Date(Math.min(...starts)), new Date(Math.max(...ends)))}</span>
               </span>
