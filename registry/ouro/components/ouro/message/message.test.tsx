@@ -2844,6 +2844,23 @@ describe("Message in a list's layer", () => {
   });
 });
 
+describe("Message content identity", () => {
+  it("keeps the content box the same element as a message gains or loses its bar (#3792)", async () => {
+    const reply = { key: "reply", label: "Reply", icon: "↩", onClick: () => {} };
+    const node = (withBar: boolean) => (
+      <Message variant="chat" role="assistant" name="Mara Quill" actions={withBar ? [reply] : []}>
+        Morning!
+      </Message>
+    );
+    const { message, rerender } = await render(node(false));
+    const content = bubbleOf(message);
+    await rerender(node(true));
+    expect(bubbleOf(message)).toBe(content);
+    await rerender(node(false));
+    expect(bubbleOf(message)).toBe(content);
+  });
+});
+
 describe("Message not sent", () => {
   it("marks a post that did not send on its own line under the text, at the text's start", async () => {
     const { message } = await render(

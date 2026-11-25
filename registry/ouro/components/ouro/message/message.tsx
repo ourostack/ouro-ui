@@ -1151,14 +1151,12 @@ export function Message(props: MessageProps): JSX.Element {
         )}
       >
         {header}
-        {!post && !room && worded ? (
-          contentBox
-        ) : (
-          <div ref={post ? undefined : slot} className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
-            {contentBox}
-            {!post && bar}
-          </div>
-        )}
+        {/* Always the same wrapper around the content box, whether or not the message has a bar: swapping it in only when `room` is needed moved
+            the content box to a different depth across the transition, so React remounted it (and everything inside it) instead of keeping it. */}
+        <div ref={post ? undefined : slot} className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
+          {contentBox}
+          {!post && bar}
+        </div>
         {attachments !== undefined && attachments !== null && (
           <div data-ouro-message-attachments="" className={cn("flex w-full max-w-full min-w-0 flex-wrap gap-2", end && "justify-end", post && ["mt-1", postRow])}>
             {attachments}
