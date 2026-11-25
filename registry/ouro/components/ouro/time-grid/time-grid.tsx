@@ -1159,7 +1159,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       <li key={key} data-slot="time-grid-more-item" className="pointer-events-auto absolute end-0" style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)`, width: chipWidth }}>
         <Menu
           side="right"
-          className="max-w-xs"
+          className="max-w-xs forced-colors:border forced-colors:border-solid"
           trigger={
             <button
               type="button"

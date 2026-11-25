@@ -1,0 +1,1 @@
+- TimeGrid: under forced colours each tone draws its start bar in its own width, so calendars stay apart, and the +N menu has an edge.

@@ -1954,6 +1954,28 @@ describe("TimeGrid", () => {
     await expect.poll(() => getComputedStyle(head).backdropFilter).toBe("none");
   });
 
+  it("tells each tone's start bar apart under forced colours, where every colour becomes the system's", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    const tones = ["primary", "secondary", "success", "warning", "destructive"] as const;
+    await render({ view: "day", events: tones.map((tone, index) => ({ id: tone, title: tone, start: at(12, `${String(index + 8).padStart(2, "0")}:00`), end: at(12, `${String(index + 8).padStart(2, "0")}:30`), tone })) });
+    const bar = (tone: string) => {
+      const style = getComputedStyle(events().find((event) => event.getAttribute("aria-label")?.startsWith(tone))!);
+      return `${style.borderInlineStartWidth} ${style.borderInlineStartStyle}`;
+    };
+    await expect.poll(() => new Set(tones.map(bar)).size).toBe(tones.length);
+  });
+
+  it("gives the +N menu an edge under forced colours, where its shadow and ring vanish", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    const crowd = Array.from({ length: 3 }, (_, index) => ({ id: `c${index}`, title: `Event ${index}`, start: at(12, "09:00"), end: at(12, "12:00") }));
+    await render({ view: "day", events: crowd }, (grid) => <div style={{ width: "190px", height: "600px" }}>{grid}</div>);
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro-part="more"]')?.getBoundingClientRect().width).toBeGreaterThan(0);
+    await userEvent.click(document.querySelector<HTMLElement>('[data-ouro-part="more"]')!);
+    await expect.poll(() => page.getByRole("menuitem").elements().length).toBeGreaterThan(0);
+    const menu = page.getByRole("menuitem").elements()[0]!.closest<HTMLElement>('[data-ouro="menu"]')!;
+    expect(getComputedStyle(menu).borderTopWidth).not.toBe("0px");
+  });
+
   it.each(["light", "dark"])("keeps the glass day header's text legible over the busiest event beneath it (%s)", async (scheme) => {
     document.documentElement.classList.toggle("dark", scheme === "dark");
     try {
