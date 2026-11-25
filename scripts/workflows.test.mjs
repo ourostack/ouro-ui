@@ -1044,6 +1044,14 @@ const workflow = (file) => workflows.find((entry) => entry.file === file).text;
 const probe = workflow("skeleton-frames.yml");
 const probeOn = probe.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
 
+test("the route profile probe runs by hand only, in WebKit, and no CI shard runs it", () => {
+  const profile = workflow("route-profile.yml");
+  const on = profile.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
+  assert.deepEqual([...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["workflow_dispatch"]);
+  assert.match(profile, /playwright test --config playwright\.route-profile\.config\.ts/);
+  assert.doesNotMatch(workflow("ci.yml"), /route-profile/);
+});
+
 test("the skeleton frame probe runs daily and by hand, never on a pull request or a push", () => {
   assert.deepEqual([...probeOn.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["schedule", "workflow_dispatch"]);
   const cron = /^ {4}- cron: "(\d+) (\d+) \* \* \*"$/m.exec(probeOn);
