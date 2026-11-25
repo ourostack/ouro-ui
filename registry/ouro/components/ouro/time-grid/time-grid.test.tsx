@@ -621,6 +621,7 @@ describe("TimeGrid", () => {
       await render({ view: "day", events }, (grid) => <div style={{ width: "190px", height: "600px" }}>{grid}</div>);
       await expect.poll(() => chip()?.getBoundingClientRect().width).toBeGreaterThan(0);
       await userEvent.click(chip()!);
+      await expect.poll(() => page.getByRole("menuitem").elements().length).toBeGreaterThan(0);
       const items = page.getByRole("menuitem").elements();
       await expect.poll(() => items[0]!.closest<HTMLElement>('[data-ouro="menu"]')?.getBoundingClientRect().width ?? 999).toBeLessThanOrEqual(321);
       for (const item of items) {

@@ -1111,7 +1111,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       <li key={key} data-slot="time-grid-more-item" className="pointer-events-auto absolute end-0" style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)`, width: chipWidth }}>
         <Menu
           side="right"
-          className="max-w-[min(20rem,calc(100vw-2rem))]"
+          className="max-w-xs"
           trigger={
             <button
               type="button"
@@ -1124,7 +1124,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               aria-current={members.some((piece) => piece.event.id === selectedId) ? "true" : undefined}
               onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => (event as typeof event & { preventBaseUIHandler: () => void }).preventBaseUIHandler()}
               onFocus={() => setActive(key)}
-              className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "start-0 end-0 z-[9] items-start justify-center whitespace-nowrap px-0 text-center")}
+              className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "inset-x-0 z-[9] items-start justify-center whitespace-nowrap px-0 text-center")}
             >
               <TouchTarget />
               <span aria-hidden="true" data-slot="time-grid-more-count" className="min-w-0 font-medium">{`+${members.length}`}</span>
@@ -1133,8 +1133,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         >
           {members.map((piece) => (
             <MenuItem key={piece.key} href={piece.event.href} onClick={() => onEventSelect?.(piece.event, { element: element(), background: false })}>
-              <span dir="auto" className="min-w-0 flex-1 truncate">{piece.event.title}</span>
-              <span dir="ltr" data-slot="time-grid-menu-time" className={`${mutedClass} shrink-0 ps-3 [unicode-bidi:isolate]`}>{rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
+              <span dir="auto" data-slot="time-grid-menu-title" className="min-w-0 flex-1 truncate">{piece.event.title}</span>
+              <span dir="ltr" data-slot="time-grid-menu-time" className={`${mutedClass} shrink-0 ps-2 [unicode-bidi:isolate]`}>{rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
             </MenuItem>
           ))}
         </Menu>
