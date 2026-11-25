@@ -371,7 +371,11 @@ const frameClass =
   "relative box-border flex min-w-0 flex-col rounded-ouro-lg border border-solid border-input bg-card text-card-foreground " +
   "ouro-field-cue outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid has-[[data-ouro-composer-editor]:focus-visible]:outline-2 has-[[data-ouro-composer-editor]:focus-visible]:outline-solid " +
   "[&_textarea:focus-visible]:outline-0 group/frame " +
-  "data-[ouro-moving]:motion-safe:[clip-path:inset(var(--ouro-composer-inset)_0_0_0_round_var(--ouro-composer-radius))] data-[ouro-moving=grow]:motion-safe:[--ouro-composer-inset:var(--ouro-composer-gap)] " +
+  // No data-[ouro-moving] guard needed: idle, --ouro-composer-radius is unset, so the declaration
+  // is invalid at computed-value time and clip-path falls back to its own initial none; a move sets
+  // both properties inline, so this only ever clips while one runs. Reduced motion still needs its
+  // own gate, so a collapse's early return (above) still measures a clip-path of exactly none.
+  "motion-safe:[clip-path:inset(var(--ouro-composer-inset)_0_0_0_round_var(--ouro-composer-radius))] data-[ouro-moving=grow]:motion-safe:[--ouro-composer-inset:var(--ouro-composer-gap)] " +
   "data-[ouro-moving=grow]:motion-safe:animate-[ouro-composer-reveal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
   "data-[ouro-moving=shrink]:motion-safe:animate-[ouro-composer-conceal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] data-[ouro-moving=shrink]:justify-end";
 
