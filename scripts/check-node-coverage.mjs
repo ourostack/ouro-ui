@@ -17,7 +17,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 /** The source files whose coverage is held to 100%. */
 export const included = ["run", "serve", "fades", "base-check", "watch", "first-run-judges", "first-run-eyes", "first-run-machine", "first-run-network", "first-run-session", "first-run-detours", "first-run-system", "first-run-windows", "first-run-sso"].map((name) => `registry/ouro/check/${name}.ts`);
 
-/** Titles of check-pages' tests that run in the `pages-a` group; every other title runs in `pages-b`, so a new test is never dropped. */
+/** Titles of check-pages' tests that run in the `pages-a` group; every other title is skipped by `pages-a`'s complement `pages-b`, so a new test is never dropped. */
 export const pagesA = ["names a page by site", "draws a screen wider", "never waives a blurry", "names a picture's file", "dark-art:", "judges a page once", "leaves the page behind", "reads an open tooltip", "checks a state a page reaches", "photographs a finding", "checks long lines only"];
 
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -30,14 +30,19 @@ const small = ["fades", "base-check", "ax-hooks", "first-run-units", "first-run-
 /** Each group: the test files it runs and, for a file split by title, the pattern of the titles it runs. */
 export const groups = {
   "pages-a": { files: ["scripts/check/check-pages.test.mts"], pattern: pagesPattern },
-  "pages-b": { files: ["scripts/check/check-pages.test.mts"], pattern: `^(?!.*${pagesPattern})` },
+  "pages-b": { files: ["scripts/check/check-pages.test.mts"], skip: pagesPattern },
   "rules-command": { files: ["scripts/check/check-rules.test.mts", "scripts/check/check-command.test.mts"] },
   "watch-small": { files: ["scripts/check/check-watch.test.mts", ...small] },
   "check-rules": { files: ["scripts/check/check.test.mts"], pattern: escape(checkAlone[0]) },
   "check-shards": { files: ["scripts/check/check.test.mts"], pattern: escape(checkAlone[1]) },
-  check: { files: ["scripts/check/check.test.mts"], pattern: `^(?!.*(?:${checkAlone.map(escape).join("|")}))` },
+  check: { files: ["scripts/check/check.test.mts"], skip: `(?:${checkAlone.map(escape).join("|")})` },
 };
 
+
+/** The flags that pick which tests of a group's files run. A lookahead in --test-name-pattern still matches the describe's own name, which runs every test inside it; skipping by title does not. */
+export function selectionFlags(group) {
+  return [...(group.pattern ? [`--test-name-pattern=${group.pattern}`] : []), ...(group.skip ? [`--test-skip-pattern=${group.skip}`] : [])];
+}
 
 /** V8's raw coverage `report` with only the included files' scripts left, which is all the merged report reads. */
 export function onlyIncluded(report) {
@@ -60,7 +65,7 @@ function run(name) {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   const args = ["--test", "--test-reporter=tap", "--experimental-test-coverage", ...includeFlags];
-  if (group.pattern) args.push(`--test-name-pattern=${group.pattern}`);
+  args.push(...selectionFlags(group));
   const result = spawnSync(process.execPath, [...args, ...group.files], { cwd: root, stdio: "inherit", env: nodeEnv({ NODE_V8_COVERAGE: out }) });
   for (const file of readdirSync(out)) {
     const path = join(out, file);
