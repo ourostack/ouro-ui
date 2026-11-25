@@ -737,7 +737,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       if (opened.current?.key === scrollKey && Math.abs(viewport.scrollTop - opened.current.top) > 1) return;
       const line = Math.min(workingHours.start * 60, firstEvent) - 30;
       // The line sits half an hour above every timed event, so no event is cut in half under the header.
-      viewport.scrollTop = (between(0, line, dayLength) / dayLength) * body.offsetHeight;
+      const top = (between(0, line, dayLength) / dayLength) * body.offsetHeight;
+      // Opens a little above the line, so it sits clear of the header's own hairline instead of drawing a double edge against it. The browser clamps a negative scrollTop to the top.
+      viewport.scrollTop = top - 8;
       opened.current = { key: scrollKey, top: viewport.scrollTop };
     };
     const observer = new ResizeObserver(() => {
