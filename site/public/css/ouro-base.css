@@ -242,7 +242,7 @@
 @property --ouro-composer-inset {
   syntax: "<length>";
   inherits: false;
-  initial-value: 0px;
+  initial-value: 0;
 }
 
 @keyframes ouro-spin {
@@ -256,13 +256,13 @@
     --ouro-composer-inset: var(--ouro-composer-gap);
   }
   to {
-    --ouro-composer-inset: 0px;
+    --ouro-composer-inset: 0;
   }
 }
 
 @keyframes ouro-composer-conceal {
   from {
-    --ouro-composer-inset: 0px;
+    --ouro-composer-inset: 0;
   }
   to {
     --ouro-composer-inset: var(--ouro-composer-gap);
