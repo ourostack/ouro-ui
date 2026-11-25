@@ -167,6 +167,7 @@ function Screen(): JSX.Element {
     const title = draft.title.trim();
     if (!title) {
       setError("Add a title");
+      document.getElementById(formId)?.querySelector<HTMLElement>("input")?.focus();
       return;
     }
     const tone = kinds.find((candidate) => candidate.value === draft.kind)?.tone;
@@ -175,6 +176,7 @@ function Screen(): JSX.Element {
     if (stage === "empty") setStage("week");
     toast(draft.id ? "Event updated" : "Event created", { tone: "success", description: `${title}, ${clock(draft.start)}` });
     setDraft(null);
+    setRefocus((count) => count + 1);
   };
 
   const remove = (entry: Entry) => {
@@ -187,8 +189,10 @@ function Screen(): JSX.Element {
       description: entry.title,
       action: {
         label: "Undo",
-        onClick: () =>
-          setEvents((now) => (now.some((candidate) => candidate.id === entry.id) ? now : [...now.slice(0, at), entry, ...now.slice(at)])),
+        onClick: () => {
+          setEvents((now) => (now.some((candidate) => candidate.id === entry.id) ? now : [...now.slice(0, at), entry, ...now.slice(at)]));
+          setRefocus((count) => count + 1);
+        },
       },
     });
   };

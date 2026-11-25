@@ -27,6 +27,7 @@ describe("the calendar page", () => {
     await expect.element(dialog).toBeInTheDocument();
     await dialog.getByRole("button", { name: "Create" }).click();
     await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
+    await expect.poll(() => document.activeElement?.tagName + document.activeElement?.getAttribute("aria-invalid")).toBe("INPUTtrue");
     await dialog.getByRole("textbox", { name: /Title/ }).fill("Garden club");
     await dialog.getByRole("button", { name: "Create" }).click();
     await expect.element(dialog).not.toBeInTheDocument();
