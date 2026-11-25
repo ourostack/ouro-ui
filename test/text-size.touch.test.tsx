@@ -511,6 +511,30 @@ describe("the 16px detector", () => {
     expect((await scan(subject)).map((line) => line.replace(/ is 14px.*$/, ""))).toEqual(['Fixture/Slow with "Edit" open: input[type=text] "Name"']);
     expect(performance.now() - start).toBeLessThan(5_000);
   });
+
+  // demo/time-grid is this file's heaviest subject by a wide margin (hundreds of hairline gridline
+  // elements for its work-week view), so every overlay the scan opens on it renders that whole tree
+  // again, plus a real click round trip through Playwright. Two of its demo week's days once had
+  // events that overlapped just enough to fold into a "+N more" chip, each an aria-haspopup opener:
+  // that tripled this subject's render count and added two live click round trips on the single
+  // most expensive subject in the file, eating most of a CI shard's slack on an otherwise ordinary
+  // scan (ourostack/ouro-ui#2149). The chip's own fold behaviour is covered on its merits in
+  // time-grid.test.tsx; the docs demo does not need to exercise it too.
+  it("scans demo/time-grid with no overlay to open, so its heaviest subject renders only once", async () => {
+    const subject = subjects.find((candidate) => candidate.id === "demo/time-grid");
+    expect(subject).toBeDefined();
+    await rotate(390, 844);
+    const style = Object.assign(document.createElement("style"), { textContent: noMotion });
+    document.head.append(style);
+    try {
+      const host = await renderStory(subject!.Subject);
+      await settle();
+      expect(scanOpeners(subject!.id, [host], subject!.parameters, true).map((opener) => opener.name)).toEqual([]);
+    } finally {
+      style.remove();
+      await cleanupStories();
+    }
+  });
 });
 
 describe.each([

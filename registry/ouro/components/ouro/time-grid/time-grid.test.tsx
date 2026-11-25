@@ -111,6 +111,8 @@ describe("TimeGrid date and layout math", () => {
     expect(split(9.49)).toEqual([[["a"], ["b", "c"], [1]]]);
     expect(split(6.5)).toEqual([[["a"], ["b", "c"], [1]]]);
     expect(split(6.49)).toEqual([[[], ["a", "b", "c"], []]]);
+    // A wider chip strip, as a touch screen draws it, leaves a column fewer in the same width.
+    expect(foldsOf(three, 9.5, 2.75).map((fold) => fold.shown.map((placed) => placed.key))).toEqual([["a"]]);
     // A lone event is never folded, and an event's span stays inside the columns that show.
     expect(foldsOf(layoutDay([{ key: "x", start: 0, end: 60 }]), 2)).toEqual([]);
     const spread = layoutDay([
@@ -677,6 +679,49 @@ describe("TimeGrid", () => {
       expect(onEventSelect.mock.calls[0]![0].id).toBe("c3");
     });
 
+    it("folds by the day's width on the render that mounts, without waiting for a ResizeObserver notification", async () => {
+      // A stand-in that never calls back: if the fold depended only on the observer's own
+      // notification, dayWidth would stay 0 and every event would draw unfolded forever. Folding
+      // here proves the width is read once, synchronously, inside the layout effect itself, before
+      // the first paint, rather than only inside the observer's callback once it lands.
+      const RealResizeObserver = globalThis.ResizeObserver;
+      class SilentResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      globalThis.ResizeObserver = SilentResizeObserver as unknown as typeof ResizeObserver;
+      try {
+        await render({ view: "day", events: crowd(5) }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
+        expect(shown()).toEqual(["Event 0", "Event 1"]);
+        expect(plain(chip()!.textContent)).toBe("+3");
+      } finally {
+        globalThis.ResizeObserver = RealResizeObserver;
+      }
+    });
+
+    it("still folds at mount when only one of the week's days has events to fold", async () => {
+      // A work week with four empty days and one crowded one: the guard that decides whether to
+      // measure synchronously looks for any day with events to fold, not every day. A guard that
+      // required every day to have events would skip the synchronous measure here, since four of
+      // the five are empty, and the crowded day would draw unfolded until the observer's own
+      // notification arrived.
+      const RealResizeObserver = globalThis.ResizeObserver;
+      class SilentResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      globalThis.ResizeObserver = SilentResizeObserver as unknown as typeof ResizeObserver;
+      try {
+        await render({ view: "work-week", events: crowd(5) }, (grid) => <div style={{ width: "394px" }}>{grid}</div>);
+        expect([shown(), chip()]).toEqual([[], null]);
+        expect(stack()).not.toBeNull();
+      } finally {
+        globalThis.ResizeObserver = RealResizeObserver;
+      }
+    });
+
     it("keeps an arrow key on the +N chip for the grid's own movement, never opening its list", async () => {
       await render({ view: "day", events: crowd(5) }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
       await expect.poll(shown).toEqual(["Event 0", "Event 1"]);
@@ -755,6 +800,20 @@ describe("TimeGrid", () => {
       expect(shown()).toEqual([]);
     });
 
+    it("reads the chip's count as +N in a right-to-left page", async () => {
+      await render({ view: "day", events: mixed }, (grid) => <div dir="rtl" style={{ width: "260px" }}>{grid}</div>);
+      await expect.poll(chip).not.toBeNull();
+      const count = chip()!.querySelector<HTMLElement>('[data-slot="time-grid-more-count"]')!;
+      const text = count.firstChild as Text;
+      const sign = document.createRange();
+      sign.setStart(text, 0);
+      sign.setEnd(text, 1);
+      const digits = document.createRange();
+      digits.setStart(text, 1);
+      digits.setEnd(text, text.length);
+      expect(sign.getBoundingClientRect().left).toBeLessThan(digits.getBoundingClientRect().left);
+    });
+
     it("places overlapping events across the whole day, as a share of 100%", async () => {
       await render({ view: "day", events: crowd(2) }, (grid) => <div style={{ width: "240px" }}>{grid}</div>);
       await expect.poll(() => shown().length).toBe(2);
@@ -778,9 +837,9 @@ describe("TimeGrid", () => {
       for (const element of shown().map((_, index) => events()[index]!)) expect(element.getBoundingClientRect().right).toBeLessThanOrEqual(strip + 1);
       // A shown event that another covers keeps its text clear of the cover, within the day less the chip's strip.
       const cover = (events()[0]!.closest("li") as HTMLElement).style.getPropertyValue("--ouro-time-grid-cover");
-      expect(cover).toContain("max(0.75rem, min(0.5 * calc(100cqw - 2rem), (calc(100cqw - 2rem) - 4.5rem) / 1))");
+      expect(cover).toContain("max(0.75rem, min(0.5 * calc(100cqw - var(--ouro-time-grid-chip)), (calc(100cqw - var(--ouro-time-grid-chip)) - 4.5rem) / 1))");
       // And in the plain day, less the same strip.
-      expect(first.style.width).toContain("100% - 2rem");
+      expect(first.style.width).toContain("100% - var(--ouro-time-grid-chip)");
     });
 
     it("moves the Tab stop to the chip when it takes focus, and marks it current only when a folded event is selected", async () => {
@@ -1860,13 +1919,13 @@ describe("TimeGrid", () => {
     const hour = () => document.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!.offsetHeight / 24;
     // Browsers round scrollTop to whole pixels, or not.
     const near = async (expected: number) => expect.poll(() => Math.abs(viewport().scrollTop - expected)).toBeLessThan(1);
-    await near(hour() * 7.5);
+    await near(hour() * 7.5 - 8);
     await rerender({ date: "2026-03-20" });
-    await near(hour() * 7.5);
+    await near(hour() * 7.5 - 8);
     await rerender({ date: "2026-03-27", workingHours: { start: 0, end: 8 } });
     await near(0);
     await rerender({ date: "2026-04-03", workingHours: { start: 10, end: 18 } });
-    await near(hour() * 9.5);
+    await near(hour() * 9.5 - 8);
   });
 
   it("draws its day header as glass over the hours scrolled beneath it, with no mask on the scroller", async () => {
@@ -1946,23 +2005,23 @@ describe("TimeGrid", () => {
     };
     const mk = (day: number, from: string, to: string): TimeGridEvent => ({ id: `${day}${from}`, title: "Event", start: at(day, from), end: at(day, to) });
     // Now at 10:41 does not move it: the working day opens it at 7:30.
-    expect(await opensAt({ now: at(12, "10:41"), events: [forum] })).toBeCloseTo(7.5, 1);
-    expect(await opensAt({ now: at(12, "03:30"), events: [standup] })).toBeCloseTo(7.5, 1);
+    expect(await opensAt({ now: at(12, "10:41"), events: [forum] })).toBeCloseTo(7.5 - 8 / 48, 1);
+    expect(await opensAt({ now: at(12, "03:30"), events: [standup] })).toBeCloseTo(7.5 - 8 / 48, 1);
     // An event before the working day, on any day shown, pulls it earlier: half an hour before that event.
-    expect(await opensAt({ now: at(12, "10:41"), events: [mk(14, "06:00", "06:45")] })).toBeCloseTo(5.5, 1);
+    expect(await opensAt({ now: at(12, "10:41"), events: [mk(14, "06:00", "06:45")] })).toBeCloseTo(5.5 - 8 / 48, 1);
     // One after the working day's start doesn't push it later.
-    expect(await opensAt({ now: at(12, "10:41"), events: [mk(13, "14:00", "15:00")] })).toBeCloseTo(7.5, 1);
+    expect(await opensAt({ now: at(12, "10:41"), events: [mk(13, "14:00", "15:00")] })).toBeCloseTo(7.5 - 8 / 48, 1);
     // An event that starts after the working day's start opens whole, half an hour before its start.
-    expect(await opensAt({ now: at(12, "10:41"), events: [mk(13, "07:10", "09:00")] })).toBeCloseTo(6 + 40 / 60, 1);
+    expect(await opensAt({ now: at(12, "10:41"), events: [mk(13, "07:10", "09:00")] })).toBeCloseTo(6 + 40 / 60 - 8 / 48, 1);
     // Events fetched after the grid opened move it once, unless the reader has scrolled since.
     const { grid, rerender } = await render({ now: at(12, "10:41"), events: [] });
     const scroller = grid.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const hour = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!.offsetHeight / 24;
-    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(7.5, 1);
+    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(7.5 - 8 / 48, 1);
     await rerender({ now: at(12, "10:41"), events: [mk(12, "05:00", "06:00")] });
-    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(4.5, 1);
+    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(4.5 - 8 / 48, 1);
     await rerender({ now: at(12, "10:41"), events: [] });
-    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(7.5, 1);
+    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(7.5 - 8 / 48, 1);
     scroller.scrollTop = hour * 12;
     await rerender({ now: at(12, "10:41"), events: [mk(12, "05:00", "06:00")] });
     // The observer's first callback follows the frame's animation callbacks, so wait out two frames.
@@ -2160,7 +2219,14 @@ describe("TimeGrid", () => {
     expect(hours(host.querySelector("[data-ouro-event-key]")!)).toEqual([23, 1]);
     expect(host.querySelector('[data-ouro-time-grid-now="today"]')).not.toBeNull();
     const scroller = host.querySelector<HTMLElement>("[data-scroll-viewport]")!;
-    await expect.poll(() => Math.abs(scroller.scrollTop - 7.5 * 48)).toBeLessThan(1);
+    await expect.poll(() => Math.abs(scroller.scrollTop - (7.5 * 48 - 8))).toBeLessThan(1);
+  });
+
+  it("draws every overlapping event, with no chip, until the browser has measured a day", () => {
+    const events = Array.from({ length: 4 }, (_, index) => ({ id: `e${index}`, title: `Sync ${index}`, start: "2026-03-12T10:00:00Z", end: "2026-03-12T11:00:00Z" }));
+    const html = renderToString(<TimeGrid {...base} timeZone="UTC" view="day" events={events} />);
+    expect(html.match(/data-ouro-event-key/g)).toHaveLength(4);
+    expect(html).not.toContain("time-grid-more");
   });
 
   it("hydrates without a mismatch when the server's engine spaced a time range differently from this browser's", async () => {

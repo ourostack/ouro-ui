@@ -206,7 +206,28 @@ describe("the calendar page", () => {
       await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
     }
     await expect.poll(() => page.getByRole("button", { name: "Undo" }).elements().length).toBe(1);
-    expect(document.body.textContent).toContain("Press F6 to reach Undo.");
+    expect(document.body.textContent).toContain("Ctrl or Cmd+Z also undoes it.");
+  });
+
+  it("names no key on a touch screen, and clears the Undo toast when Go to date opens over it", async () => {
+    const real = window.matchMedia.bind(window);
+    vi.stubGlobal("matchMedia", (query: string) => (query === "(pointer: coarse)" ? ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real(query)));
+    try {
+      await page.viewport(390, 844);
+      await renderPage("/docs/calendar-demo/");
+      await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
+      (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
+      await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+      page.getByRole("button", { name: "Delete" }).element().focus();
+      await userEvent.keyboard("{Enter}");
+      await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+      expect(document.body.textContent).not.toContain("Cmd+Z");
+      await userEvent.click(page.getByRole("button", { name: "Go to date" }));
+      await expect.poll(() => page.getByRole("button", { name: "Undo" }).elements().length).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+      await page.viewport(1100, 900);
+    }
   });
 
   it("puts focus back in the grid after Delete, so the keyboard does not start over", async () => {

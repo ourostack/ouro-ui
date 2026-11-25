@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { describe, LOOK_SELECTOR, Looks, picture, quiet, routeGuard, routes, settled } from "./looks";
+import { describe, LOOK_SELECTOR, Looks, picture, pictureBatch, quiet, routeGuard, routes, settled } from "./looks";
 
 // A component looks the same wherever it appears. Every page of the build is opened, in each colour mode, in
 // each engine; every Ouro element is keyed by its item, part, element, variant and state, and what makes up
@@ -24,6 +24,7 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
     page.setDefaultTimeout(5_000);
     const spent = { navigate: 0, settle: 0, picture: 0, pictures: 0, ready: 0, reads: 0, read: 0, quiet: 0 };
     const perRoute: [string, number, string][] = [];
+    const moves: string[] = [];
     for (const path of pages) {
       const routeStart = Date.now();
       const before = { ...spent };
@@ -43,10 +44,14 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
         t = Date.now();
         const { looks: found, escapes: out } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
         escapes.push(...out.map((e) => `${path}: ${e}`));
+        const moved: string[] = [];
+        const batch = await pictureBatch(page, looks.plan(found).map((l) => ({ index: l.index, attributes: l.attributes })), moved);
+        moves.push(...moved.map((m) => `${path}: ${m}`));
         for (const look of found) {
           const wanted = look.pictured && looks.wants(look);
           if (wanted) spent.pictures += 1;
-          looks.add(path, look, wanted ? await picture(page, look.index, look.attributes) : null);
+          const taken = wanted ? (batch.has(look.index) ? batch.get(look.index)! : await picture(page, look.index, look.attributes)) : null;
+          looks.add(path, look, taken);
         }
         spent.picture += Date.now() - t;
       });
@@ -55,6 +60,8 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
     const slowest = perRoute.sort((a, b) => b[1] - a[1]).slice(0, 5).map(([path, ms, phases]) => `${path} ${ms} (${phases})`).join(", ");
     console.log(`TIMING ${browserName} ${mode} part ${part}: navigate ${spent.navigate} ms, settle ${spent.settle} ms (hydration ${spent.ready}, ${spent.reads} reads taking ${spent.read}, quiet ${spent.quiet}), describe and ${spent.pictures} pictures ${spent.picture} ms, over ${pages.length} routes; slowest: ${slowest}`);
     console.log(`${browserName} ${mode}: ${looks.keys} component states, ${looks.crops} pictures, over ${pages.length} pages`);
+    // A look that moved after settle means the page was not still when it was declared settled.
+    console.log(`MOVED ${browserName} ${mode} part ${part}: ${moves.length} looks moved after settle${moves.length ? `: ${moves.join("; ")}` : ""}`);
     for (const f of escapes) console.log(`FINDING ${browserName} ${mode}: ${f}`);
     // The looks are compared across every part by one job (scripts/sweeps-compare.mjs), so a route that moves a page to
     // another part cannot change what is compared and this part judges only what it sees alone.
