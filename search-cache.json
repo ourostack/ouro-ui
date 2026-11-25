@@ -1,8 +1,8 @@
 {
   "spoonjoy/spoonjoy-v2": {
     "defineCommand": {
-      "commit": "a061d6cb576e37f58ad76979a5e695154d13141c",
-      "at": "2026-11-25T00:39:40.551Z",
+      "commit": "c77bb91129471d13955bd71f0a545d7d7e241740",
+      "at": "2026-11-25T01:16:57.456Z",
       "total": 5,
       "paths": [
         "app/lib/ouro/ax/ax-command.ts",
@@ -13,8 +13,8 @@
       ]
     },
     "bindAx": {
-      "commit": "a061d6cb576e37f58ad76979a5e695154d13141c",
-      "at": "2026-11-25T00:39:46.986Z",
+      "commit": "c77bb91129471d13955bd71f0a545d7d7e241740",
+      "at": "2026-11-25T01:17:18.291Z",
       "total": 4,
       "paths": [
         "app/lib/ouro/ax/component.ts",
@@ -24,8 +24,8 @@
       ]
     },
     "ax-mcp": {
-      "commit": "a061d6cb576e37f58ad76979a5e695154d13141c",
-      "at": "2026-11-25T00:40:04.619Z",
+      "commit": "c77bb91129471d13955bd71f0a545d7d7e241740",
+      "at": "2026-11-25T01:18:57.815Z",
       "total": 1,
       "paths": [
         "app/lib/ouro/ax/ax-claims.ts"
@@ -34,8 +34,8 @@
   },
   "spoonjoy/spoonjoy-apple": {
     "OuroButton": {
-      "commit": "8dcaf621f30225ffe75474ac57fce96fcc981ee4",
-      "at": "2026-11-25T00:40:17.756Z",
+      "commit": "7d6d8c92774fde2713118df2bf2420ba6288836c",
+      "at": "2026-11-25T01:19:04.322Z",
       "total": 7,
       "paths": [
         "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift",
@@ -48,25 +48,88 @@
       ]
     },
     "OuroToast": {
-      "commit": "8dcaf621f30225ffe75474ac57fce96fcc981ee4",
-      "at": "2026-11-25T00:40:45.012Z",
+      "commit": "7d6d8c92774fde2713118df2bf2420ba6288836c",
+      "at": "2026-11-25T01:19:10.669Z",
       "total": 0,
       "paths": []
     },
     "OuroBanner": {
-      "commit": "8dcaf621f30225ffe75474ac57fce96fcc981ee4",
-      "at": "2026-11-25T00:41:03.394Z",
+      "commit": "7d6d8c92774fde2713118df2bf2420ba6288836c",
+      "at": "2026-11-25T01:19:17.260Z",
       "total": 1,
       "paths": [
         "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift"
       ]
     },
-    "\"import OuroAX\"": {
-      "commit": "8dcaf621f30225ffe75474ac57fce96fcc981ee4",
-      "at": "2026-11-25T00:44:44.723Z",
-      "total": 1,
+    "OuroSheet": {
+      "commit": "7d6d8c92774fde2713118df2bf2420ba6288836c",
+      "at": "2026-11-25T01:19:23.750Z",
+      "total": 0,
+      "paths": []
+    },
+    "OuroEmptyState": {
+      "commit": "7d6d8c92774fde2713118df2bf2420ba6288836c",
+      "at": "2026-11-25T01:19:30.297Z",
+      "total": 9,
       "paths": [
-        "Tests/SpoonjoyCoreTests/XrayExpectationTests.swift"
+        "Apps/Spoonjoy/Shared/Views/SearchView.swift",
+        "Apps/Spoonjoy/Shared/Views/RecipesView.swift",
+        "scripts/check-kitchen-recipe-surfaces.rb",
+        "Apps/Spoonjoy/Shared/Views/ProfileView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookbooksView.swift",
+        "Apps/Spoonjoy/Shared/Views/ShoppingListView.swift",
+        "Apps/Spoonjoy/Shared/Views/SpoonCookLogView.swift",
+        "Tests/SpoonjoyCoreTests/NativeMobileDesignContractTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenRecipesStructureContractTests.swift"
+      ]
+    },
+    "OuroHX": {
+      "commit": "7d6d8c92774fde2713118df2bf2420ba6288836c",
+      "at": "2026-11-25T01:19:36.831Z",
+      "total": 42,
+      "paths": [
+        "Package.swift",
+        "Sources/SpoonjoyCore/Design/KitchenMotion.swift",
+        "Apps/Spoonjoy/Shared/Design/SpoonjoyFonts.swift",
+        "Sources/SpoonjoyCore/Design/KitchenHaptics.swift",
+        "Apps/Spoonjoy/Shared/Components/KitchenCheckMark.swift",
+        "Apps/Spoonjoy/Shared/Design/KitchenMotion+SwiftUI.swift",
+        "Apps/Spoonjoy/Shared/Components/KitchenSafeControls.swift",
+        "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift",
+        "scripts/generate-xcode-project.rb",
+        "scripts/check-xcode-project-contract.rb",
+        "Apps/Spoonjoy/Shared/Moderation/ThirdPartyAIConsentSheet.swift",
+        "scripts/check-native-web-palette-contract.rb",
+        "Spoonjoy.xcodeproj/project.pbxproj",
+        "Sources/SpoonjoyCore/Design/KitchenTypeRole.swift",
+        "Apps/Spoonjoy/Shared/Views/AddRecipeSheet.swift",
+        "Apps/Spoonjoy/Shared/Design/KitchenTableTheme.swift",
+        "Apps/Spoonjoy/Shared/Views/SearchView.swift",
+        "Apps/Spoonjoy/Shared/Views/RecipesView.swift",
+        "Apps/Spoonjoy/Shared/Views/ProfileView.swift",
+        "Apps/Spoonjoy/Shared/Views/KitchenView.swift",
+        "Apps/Spoonjoy/Shared/Views/CaptureDraftView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookModeComponents.swift",
+        "Apps/Spoonjoy/Shared/Components/ReceiptListView.swift",
+        "Apps/Spoonjoy/Shared/Views/SettingsView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookbooksView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookModeView.swift",
+        "Apps/Spoonjoy/Shared/Moderation/ModerationViews.swift",
+        "Apps/Spoonjoy/Shared/Views/SpoonCookLogView.swift",
+        "Apps/Spoonjoy/Shared/Views/AccountDeletionSheet.swift",
+        "Apps/Spoonjoy/Shared/Views/ShoppingListView.swift",
+        "Apps/Spoonjoy/Shared/Views/RecipeDetailView.swift",
+        "Apps/Spoonjoy/Shared/Components/KitchenTableLoadingStateView.swift",
+        "Apps/Spoonjoy/Shared/AppShell/SpoonjoyRootView.swift",
+        "Apps/Spoonjoy/Shared/Views/NotificationAPNsSettingsView.swift",
+        "Tests/SpoonjoyCoreTests/KitchenMotionTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenHapticsTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenPaletteOuroTests.swift",
+        "scripts/test/no_design_hex_test.rb",
+        "Tests/SpoonjoyCoreTests/KitchenContrastTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenFontFilesTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenTypeRoleTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenComponentParityTests.swift"
       ]
     }
   },
@@ -77,48 +140,6 @@
       "total": 1,
       "paths": [
         "Sources/OuroMD/Sidebar.swift"
-      ]
-    },
-    "OuroToast": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-24T00:47:09.488Z",
-      "total": 0,
-      "paths": []
-    },
-    "OuroBanner": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-24T02:28:57.114Z",
-      "total": 1,
-      "paths": [
-        "Sources/OuroMD/Sidebar.swift"
-      ]
-    },
-    "OuroSheet": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-24T02:31:25.559Z",
-      "total": 0,
-      "paths": []
-    },
-    "OuroEmptyState": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-24T02:34:06.270Z",
-      "total": 1,
-      "paths": [
-        "Sources/OuroMD/Sidebar.swift"
-      ]
-    },
-    "OuroHX": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-24T02:35:03.316Z",
-      "total": 7,
-      "paths": [
-        "Package.swift",
-        "Sources/OuroMD/Themes.swift",
-        "Sources/OuroMD/Sidebar.swift",
-        "Sources/OuroMD/EditorWebView.swift",
-        "Sources/OuroMD/ChangeHighlightTest.swift",
-        "Tests/OuroMDTests/EditorWebViewTests.swift",
-        "Tests/OuroMDTests/NativeAccessibilityPreferenceTests.swift"
       ]
     },
     "\"import OuroAX\"": {
@@ -192,39 +213,21 @@
     },
     "\"import OuroAX\"": {
       "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
-      "at": "2026-11-24T01:25:01.167Z",
+      "at": "2026-11-25T01:25:50.335Z",
       "total": 0,
       "paths": []
     }
   },
   "ourostack/ouroboros": {
-    "defineCommand": {
-      "commit": "f4ce1e3e95005058418b63a5c919e0fd9a55a1c5",
-      "at": "2026-11-25T00:48:56.569Z",
-      "total": 10,
+    "components/ouro/": {
+      "commit": "98a445005d67b674d247c815e9ec75d758e2ce04",
+      "at": "2026-11-25T01:28:03.751Z",
+      "total": 4,
       "paths": [
-        "src/eval/interviews/guest/ax/ax-command.ts",
-        "lib/ouro-ui/registry/ouro/ax/ax-command.ts",
-        "lib/ouro-ui/registry/ouro/ax/xray.kit.mts",
-        "lib/ouro-ui/registry/ouro/ax/flows.kit.mts",
-        "lib/ouro-ui/registry/ouro/ax/example-cli.ts",
-        "src/eval/interviews/guest/arms.ts",
-        "lib/ouro-ui/registry/ouro/ax/lint.ts",
-        "lib/ouro-ui/registry/ouro/ax/flows.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "lib/ouro-ui/registry/ouro/ax/xray.ts"
-      ]
-    },
-    "bindAx": {
-      "commit": "f4ce1e3e95005058418b63a5c919e0fd9a55a1c5",
-      "at": "2026-11-25T00:49:02.469Z",
-      "total": 5,
-      "paths": [
-        "lib/ouro-ui/registry/ouro/ax/component.ts",
-        "actions/generated/web.ts",
-        "actions/generated/mailbox/web.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "lib/ouro-ui/registry/ouro/ax/xray.ts"
+        "deploy/eval/u/build/kit-config.mjs",
+        "deploy/eval/u/results/k1-package.json",
+        "deploy/eval/u/results/ouro-baseline-summary.json",
+        "deploy/eval/u/results/ouro-rewrite.json"
       ]
     }
   }
