@@ -726,7 +726,14 @@ describe("Combobox multiple allowCustomValue", () => {
     expect(onValueChange).toHaveBeenLastCalledWith([]);
   });
 
-  it("puts its first chips back when its form resets, and leaves a controlled field to the app", async () => {
+  /**
+   * Shared setup for the form-reset tests below: a form with an uncontrolled multiple Tags field
+   * (with a starting chip), an uncontrolled multiple Tools field (empty), a controlled multiple
+   * Moods field, and a single-select Herb field never typed into. One test drove all four fields
+   * in sequence (~4s of real typing unloaded); split so a contended shard never has to fit that
+   * much real work inside one test's budget (issue #3719).
+   */
+  const renderResetForm = async () => {
     const onHerb = vi.fn();
     function Fields() {
       const [value, setValue] = useState<string[]>(["Date night"]);
@@ -743,19 +750,42 @@ describe("Combobox multiple allowCustomValue", () => {
     const { host, button } = await render(<Fields />);
     const field = (name: string) => page.getByRole("combobox", { name, exact: true }).element() as HTMLInputElement;
     const chipsOf = (name: string) => chips(field(name).closest<HTMLElement>("[data-ouro-input-group]")!);
+    return { host, button, field, chipsOf, onHerb };
+  };
+
+  it("puts Tags' chips back when its form resets", async () => {
+    const { host, button, field, chipsOf } = await renderResetForm();
     await userEvent.click(button("Remove Vegan")!);
-    // Each field is already focused by its own click, so skipClick spares a loaded shard the
-    // round trip type() would otherwise spend re-focusing it.
+    // Tags is already focused by the click above, so skipClick spares a loaded shard the round
+    // trip type() would otherwise spend re-focusing it.
     await userEvent.click(field("Tags"));
     await userEvent.type(field("Tags"), "Picnic{Enter}{Escape}", { skipClick: true });
+    expect(chipsOf("Tags")).toEqual(["Weeknight", "Picnic"]);
+    await act(async () => host.querySelector("form")!.reset());
+    await expect.poll(() => chipsOf("Tags")).toEqual(["Weeknight", "Vegan"]);
+  });
+
+  it("puts Tools' chips back when its form resets", async () => {
+    const { host, field, chipsOf } = await renderResetForm();
     await userEvent.click(field("Tools"));
     await userEvent.type(field("Tools"), "Skillet{Enter}{Escape}", { skipClick: true });
+    expect(chipsOf("Tools")).toEqual(["Skillet"]);
+    await act(async () => host.querySelector("form")!.reset());
+    await expect.poll(() => chipsOf("Tools")).toEqual([]);
+  });
+
+  it("leaves Moods, a controlled field, to the app when its form resets", async () => {
+    const { host, field, chipsOf } = await renderResetForm();
     await userEvent.click(field("Moods"));
     await userEvent.type(field("Moods"), "Cozy{Enter}{Escape}", { skipClick: true });
-    expect([chipsOf("Tags"), chipsOf("Tools"), chipsOf("Moods")]).toEqual([["Weeknight", "Picnic"], ["Skillet"], ["Date night", "Cozy"]]);
+    expect(chipsOf("Moods")).toEqual(["Date night", "Cozy"]);
     await act(async () => host.querySelector("form")!.reset());
-    await expect.poll(() => [chipsOf("Tags"), chipsOf("Tools")]).toEqual([["Weeknight", "Vegan"], []]);
     expect(host.querySelector("output")!.textContent).toBe("Date night|Cozy");
+  });
+
+  it("never mistakes Herb, a single-select field, for a multi-select one when its form resets", async () => {
+    const { host, onHerb } = await renderResetForm();
+    await act(async () => host.querySelector("form")!.reset());
     expect(onHerb.mock.calls.some(([next]) => Array.isArray(next))).toBe(false);
   });
 
