@@ -912,9 +912,12 @@ describe("TimeGrid", () => {
     await render({ view: "day", events: [forum], locale: "en-US" }, (grid) => <div dir="rtl">{grid}</div>);
     const labels = [...document.querySelectorAll<HTMLElement>('[data-slot="time-grid-hour-label"]')];
     expect(labels.length).toBeGreaterThan(0);
+    const gutter = labels[0]!.parentElement!.getBoundingClientRect();
     for (const label of labels) {
-      expect(label.getAttribute("dir")).toBe("ltr");
-      expect(getComputedStyle(label).unicodeBidi).toBe("isolate");
+      const text = label.querySelector<HTMLElement>('bdi[dir="ltr"]')!;
+      expect(text).not.toBeNull();
+      expect(getComputedStyle(text).unicodeBidi).toBe("isolate");
+      expect(label.getBoundingClientRect().left - gutter.left).toBeLessThan(gutter.right - label.getBoundingClientRect().right);
     }
   });
 

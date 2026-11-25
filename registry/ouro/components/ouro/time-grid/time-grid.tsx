@@ -1078,8 +1078,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         <div data-ouro-time-grid-body="" className="relative grid" style={{ gridTemplateColumns: columns, height: minutesTall(dayLength) }}>
           <div aria-hidden="true" className="relative">
             {hourLabels.map((hour) => (
-              <span key={hour} dir="ltr" data-slot="time-grid-hour-label" className="[unicode-bidi:isolate] absolute end-2 -translate-y-1/2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums" style={{ top: minutesTall(hour * 60) }}>
-                {formats.hour.format(Date.UTC(2026, 0, 1, hour))}
+              <span key={hour} data-slot="time-grid-hour-label" className="absolute end-2 -translate-y-1/2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums" style={{ top: minutesTall(hour * 60) }}>
+                <bdi dir="ltr" data-slot="time-grid-hour-text">{formats.hour.format(Date.UTC(2026, 0, 1, hour))}</bdi>
               </span>
             ))}
             {nowAt && todayIndex >= 0 ? (
