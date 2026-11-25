@@ -6,6 +6,7 @@
 
 import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
+import { URL } from "node:url";
 
 export const AGENTS_PATH = "AGENTS.md";
 /** The byte budgets ourostack's agents-md-budget.mjs holds AGENTS.md to, which the block's bytes move with. */
