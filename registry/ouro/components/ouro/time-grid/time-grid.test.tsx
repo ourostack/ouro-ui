@@ -19,6 +19,7 @@ import {
   weekendDays,
   zonedClock,
 } from "@/registry/ouro/components/ouro/time-grid/time-grid-styles";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -2989,6 +2990,19 @@ describe("TimeGridNav", () => {
     const show = (view: "day" | "week") => act(async () => root.render(<TimeGridNav date="2026-03-12" view={view} timeZone={zone} onDateChange={onDateChange} />));
     return { onDateChange, root, show };
   };
+
+  it("draws Today with the quiet outline of a secondary button, not a tinted border", async () => {
+    const { show } = mountNav();
+    await show("week");
+    const probe = document.createElement("div");
+    document.body.append(probe);
+    mounted.push(probe);
+    const quiet = createRoot(probe);
+    roots.push(quiet);
+    await act(async () => quiet.render(<Button variant="outline" tone="secondary" size="sm">Quiet</Button>));
+    const border = (name: string) => getComputedStyle(Array.from(document.querySelectorAll("button")).find((button) => button.textContent === name)!).borderColor;
+    expect(border("Today")).toBe(border("Quiet"));
+  });
 
   it("draws Previous and Next as named chevron icons, each tooltip saying its words and its key", async () => {
     const { show } = mountNav();

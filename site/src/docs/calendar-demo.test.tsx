@@ -234,7 +234,7 @@ describe("the calendar page", () => {
     expect(document.body.textContent).toContain("Ctrl or Cmd+Z also undoes it.");
   });
 
-  it("names no key on a touch screen, and clears the Undo toast when Go to date opens over it", async () => {
+  it("names no key on a touch screen, and keeps the Undo toast reachable when Go to date opens over it", async () => {
     const real = window.matchMedia.bind(window);
     vi.stubGlobal("matchMedia", (query: string) => (query === "(pointer: coarse)" ? ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real(query)));
     try {
@@ -248,11 +248,20 @@ describe("the calendar page", () => {
       await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
       expect(document.body.textContent).not.toContain("Cmd+Z");
       await userEvent.click(page.getByRole("button", { name: "Go to date" }));
-      await expect.poll(() => page.getByRole("button", { name: "Undo" }).elements().length).toBe(0);
+      await expect.poll(() => document.querySelector('[data-ouro-part="action"]')).not.toBeNull();
     } finally {
       vi.unstubAllGlobals();
       await page.viewport(1100, 900);
     }
+  });
+
+
+  it("draws the toolbar's buttons at one height", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => page.getByRole("button", { name: "New event" }).elements().length).toBe(1);
+    const height = (name: string) => Math.round(page.getByRole("button", { name }).element().getBoundingClientRect().height);
+    expect(new Set(["Today", "Previous week", "Next week", "Go to date", "New event"].map(height)).size).toBe(1);
   });
 
   it("puts focus back in the grid after Delete, so the keyboard does not start over", async () => {

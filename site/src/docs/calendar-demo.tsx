@@ -270,7 +270,7 @@ function Screen(): JSX.Element {
           {heading}
         </Heading>
         <div className="flex flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
-        <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => {
+        <Button ref={jumpRef} variant="outline" tone="secondary" size="sm" aria-haspopup="dialog" aria-expanded={jump} onClick={() => {
             toGrid.current = false;
             toast.dismiss();
             setJump(!jump);
@@ -288,7 +288,7 @@ function Screen(): JSX.Element {
             { value: "week", label: "Week" },
           ]}
         />}
-        <Button onClick={newEvent}>New event</Button>
+        <Button size="sm" onClick={newEvent}>New event</Button>
         </div>
       </div>
       <Popover title="Go to date" open={jump} onOpenChange={setJump} anchor={jumpRef} finalFocus={jumpReturn} presentation="auto">
