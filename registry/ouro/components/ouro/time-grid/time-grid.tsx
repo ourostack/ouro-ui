@@ -824,7 +824,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           {start ? (
             <>
               {" "}
-              <span className={mutedClass}>{formats.time.format(start)}</span>
+              <span dir="ltr" data-slot="time-grid-event-time-inline" className={`${mutedClass} [unicode-bidi:isolate]`}>{formats.time.format(start)}</span>
             </>
           ) : null}
         </span>
@@ -985,7 +985,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               <TouchTarget />
               <span className="@container/text flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden @max-[2rem]/text:*:invisible">
                 <span className="truncate font-medium">{stackLabel(stack.length)}</span>{" "}
-                <span className={mutedLineClass}>{rangeText(formats.time, new Date(Math.min(...starts)), new Date(Math.max(...ends)))}</span>
+                <span dir="ltr" data-slot="time-grid-stack-time" className={`${mutedLineClass} [unicode-bidi:isolate]`}>{rangeText(formats.time, new Date(Math.min(...starts)), new Date(Math.max(...ends)))}</span>
               </span>
             </button>
           }
@@ -993,7 +993,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           {members.map((piece) => (
             <MenuItem key={piece.key} href={piece.event.href} onClick={() => onEventSelect?.(piece.event, { element: element(), background: true })}>
               <span dir="auto">{piece.event.title}</span>
-              <span className={mutedClass}> {rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
+              <span dir="ltr" data-slot="time-grid-menu-time" className={`${mutedClass} [unicode-bidi:isolate]`}> {rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
             </MenuItem>
           ))}
         </Menu>
@@ -1078,14 +1078,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         <div data-ouro-time-grid-body="" className="relative grid" style={{ gridTemplateColumns: columns, height: minutesTall(dayLength) }}>
           <div aria-hidden="true" className="relative">
             {hourLabels.map((hour) => (
-              <span key={hour} className="absolute end-2 -translate-y-1/2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums" style={{ top: minutesTall(hour * 60) }}>
-                {formats.hour.format(Date.UTC(2026, 0, 1, hour))}
+              <span key={hour} data-slot="time-grid-hour-label" className="absolute end-2 -translate-y-1/2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums" style={{ top: minutesTall(hour * 60) }}>
+                <bdi dir="ltr" data-slot="time-grid-hour-text">{formats.hour.format(Date.UTC(2026, 0, 1, hour))}</bdi>
               </span>
             ))}
             {nowAt && todayIndex >= 0 ? (
               <span data-ouro-time-grid-now-label="" className="absolute end-1 flex -translate-y-1/2 flex-col items-end gap-0.5" style={{ top: nowTop }}>
                 {nowAdornment ? <span className="absolute end-0 bottom-full mb-0.5">{nowAdornment}</span> : null}
-                <span className="rounded-ouro-sm bg-background px-0.5 text-[11px] leading-4 font-semibold whitespace-nowrap text-destructive tabular-nums">
+                <span dir="ltr" data-slot="time-grid-now-text" className="[unicode-bidi:isolate] rounded-ouro-sm bg-background px-0.5 text-[11px] leading-4 font-semibold whitespace-nowrap text-destructive tabular-nums">
                   {nowText}
                 </span>
               </span>
