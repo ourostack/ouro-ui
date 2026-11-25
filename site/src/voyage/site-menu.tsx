@@ -209,10 +209,12 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
         return spot.height > 0 && spot.top >= 0 && spot.bottom <= innerHeight;
       }
       // Crossfade sizes its box from a ResizeObserver callback a render after it mounts (#3628), so a fresh sheet's
-      // first frame can still have it at its starting (zero) height, and its own height transition then moves the
-      // links below it for a moment. Wait for that transition to end before measuring, rather than bake in a
-      // scroll target read mid-move.
-      if (list.current.getAnimations({ subtree: true }).some(isHeightMoving)) return false;
+      // first frame can still have it at its starting (zero, unset) height: no transition has started yet, so
+      // getAnimations() alone sees nothing and would let this commit against that still-zero layout. Wait for the
+      // observer's first height (the style attribute lands) as well as for any height transition it then starts,
+      // rather than bake in a scroll target read mid-move or before the move has even begun.
+      const crossfade = list.current.querySelector<HTMLElement>("[data-site-crossfade]");
+      if (crossfade && (crossfade.style.height === "" || crossfade.getAnimations().some(isHeightMoving))) return false;
       scroller.scrollTop = 0;
       const box = scroller.getBoundingClientRect();
       const spot = link.getBoundingClientRect();
