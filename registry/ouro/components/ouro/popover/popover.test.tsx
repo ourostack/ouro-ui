@@ -599,6 +599,26 @@ describe("controlled Popover", () => {
     await page.viewport(1280, 800);
   });
 
+  it("returns a sheet's focus to its trigger even when finalFocus is set", async () => {
+    await page.viewport(390, 844);
+    const other = createRef<HTMLButtonElement>();
+    await render(
+      <>
+        <button ref={other} type="button">Elsewhere</button>
+        <Popover title="Filters" presentation="auto" trigger={<button type="button">Open filters</button>} finalFocus={other}>
+          <p>Body</p>
+        </Popover>
+      </>,
+    );
+    const trigger = page.getByRole("button", { name: "Open filters" }).element() as HTMLElement;
+    await userEvent.click(trigger);
+    await settled();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger);
+    await page.viewport(1280, 800);
+  });
+
   it("returns focus to anchor after a mouse open, as a popover and as a sheet", async () => {
     // Safari does not focus a button on click, so focus must go back to anchor by name.
     for (const width of [1280, 390]) {
