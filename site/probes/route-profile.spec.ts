@@ -96,7 +96,7 @@ for (const path of ["/docs/card/", "/docs/a2ui-surface/"]) {
   });
 }
 
-// Cheaper ways to take the same picture, each judged by the time it takes and by whether its pixels equal the sweep's own.
+// Cheaper ways to take the same picture, each judged by the time it takes and by how its pixels differ from the sweep's own.
 for (const path of ["/docs/card/", "/docs/a2ui-surface/"]) {
   test(`which picture on ${path} costs least`, async ({ page }) => {
     await page.goto(path);
@@ -104,10 +104,8 @@ for (const path of ["/docs/card/", "/docs/a2ui-surface/"]) {
     await quiet(page);
     const { looks: found } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
     const looks = new Looks();
-    const spent = { sweep: 0, allowed: 0, clip: 0 };
-    const same = { allowed: 0, clip: 0 };
-    let compared = 0;
-    const raw = async (png: Buffer) => (await sharp(png).ensureAlpha().raw().toBuffer()).toString("base64");
+    const spent = { sweep: 0, rounded: 0 };
+    const result = { compared: 0, sameSize: 0, identical: 0, differingPixels: 0, examples: [] as string[] };
     for (const look of found) {
       if (!(look.pictured && looks.wants(look))) {
         looks.add(path, look, null);
@@ -119,24 +117,32 @@ for (const path of ["/docs/card/", "/docs/a2ui-surface/"]) {
       let t = Date.now();
       const base = await handle.screenshot({ animations: "disabled", caret: "hide", timeout: 15_000 }).catch(() => null);
       spent.sweep += Date.now() - t;
-      t = Date.now();
-      const allowed = await handle.screenshot({ animations: "allow", caret: "initial", timeout: 15_000 }).catch(() => null);
-      spent.allowed += Date.now() - t;
       const box = await handle.evaluate((el) => {
         const r = el.getBoundingClientRect();
         return { x: r.left, y: r.top, width: r.width, height: r.height };
       });
+      const x = Math.floor(box.x);
+      const y = Math.floor(box.y);
+      const clip = { x, y, width: Math.ceil(box.x + box.width) - x, height: Math.ceil(box.y + box.height) - y };
       t = Date.now();
-      const clip = await page.screenshot({ clip: box, animations: "allow", caret: "initial", timeout: 15_000 }).catch(() => null);
-      spent.clip += Date.now() - t;
-      if (!base || !allowed || !clip) continue;
-      compared += 1;
-      const b = await raw(base);
-      if (b === (await raw(allowed))) same.allowed += 1;
-      if (b === (await raw(clip))) same.clip += 1;
+      const rounded = await page.screenshot({ clip, animations: "allow", caret: "initial", timeout: 15_000 }).catch(() => null);
+      spent.rounded += Date.now() - t;
+      if (!base || !rounded) continue;
+      result.compared += 1;
+      const a = await sharp(base).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const b = await sharp(rounded).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      if (a.info.width !== b.info.width || a.info.height !== b.info.height) {
+        if (result.examples.length < 4) result.examples.push(`${look.key} sweep ${a.info.width}x${a.info.height} box ${JSON.stringify(box)} clip ${b.info.width}x${b.info.height}`);
+      } else {
+        result.sameSize += 1;
+        let diff = 0;
+        for (let i = 0; i < a.data.length; i += 4) if (a.data[i] !== b.data[i] || a.data[i + 1] !== b.data[i + 1] || a.data[i + 2] !== b.data[i + 2] || a.data[i + 3] !== b.data[i + 3]) diff += 1;
+        if (diff === 0) result.identical += 1;
+        result.differingPixels += diff;
+      }
       looks.add(path, look, { data: Buffer.alloc(0), width: 0, height: 0, scale: 1 });
     }
-    console.log(`PROFILE webkit variants ${path}: ${JSON.stringify({ compared, spentMs: spent, samePixels: same })}`);
-    expect(compared).toBeGreaterThan(0);
+    console.log(`PROFILE webkit variants ${path}: ${JSON.stringify({ ...result, spentMs: spent })}`);
+    expect(result.compared).toBeGreaterThan(0);
   });
 }
