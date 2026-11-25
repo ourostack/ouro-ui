@@ -43,8 +43,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # push the release branch and the tag, create the release
-      actions: read # main's CI runs and their jobs, and the pull request run that proved the commit's tree
+      actions: write # main's CI runs and their jobs, the pull request run that proved the commit's tree, and reruning a quarantined failure's jobs once (scripts/quarantine.mjs retry)
       pull-requests: read # the pull request merged as the commit (scripts/ci-proof.mjs)
+      issues: write # comments on a quarantined test's issue once its rerun has started (scripts/quarantine.mjs retry)
     # Waiting for none of main's runs: reading them, the install, the release commit and the
     # namespace checks, 20 minutes, and 1.5 times that 30 (scripts/workflows.test.mjs, which holds
     # the numbers). Pages is a later job with its own.
@@ -115,7 +116,18 @@ jobs:
             if [ -n "$proof" ]; then runs="$runs $proof"; fi
           fi
           # shellcheck disable=SC2086 # one argument per run
-          scripts/required-ci.sh $runs || { echo "::error::CI on main ($sha) did not pass the checks main's rules require"; exit 1; }
+          if ! scripts/required-ci.sh $runs; then
+            # A run failed only on quarantined tests with open issues retries once
+            # (scripts/quarantine.mjs retry); required-ci.sh then judges the reruns.
+            # shellcheck disable=SC2086 # one argument per run
+            if node scripts/quarantine.mjs retry $runs; then
+              # shellcheck disable=SC2086 # one argument per run
+              scripts/required-ci.sh $runs || { echo "::error::CI on main ($sha) did not pass the checks main's rules require, even after retrying its quarantined failures"; exit 1; }
+            else
+              echo "::error::CI on main ($sha) did not pass the checks main's rules require"
+              exit 1
+            fi
+          fi
           # install-github, the install a user runs today (`shadcn add` at the newest release tag), runs only in main's
           # own CI run (a push, or a dispatch on main), and the rules cannot require it: the queue's
           # run skips it. So when main has its own run on this commit, the newest must have passed it.

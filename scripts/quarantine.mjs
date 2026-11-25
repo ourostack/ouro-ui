@@ -1,17 +1,22 @@
 // The quarantine: tests known to fail now and then (.github/quarantine.json), each with the open
-// issue that tracks it and an owner. Release and its rehearsal, and nothing else, retry a CI run's
-// failed jobs once when every check they judge failed only because of quarantined tests: each
-// failed job either failed in one step only, a test step, whose Vitest run names only listed tests
-// (and the failed count it reports is exactly those), or is a gate (ci, install (variant, preset))
-// whose failing step only read the result of such jobs, none of them skipped, or is a job skipped
-// because a job it needs failed so. Any other failure, a listed test without an open issue, a run
-// already attempted more than once, or a second failure, is not retried, so the release still
-// stops on it. Each retry is written to the step summary and the log, and commented on the entry's
-// issue, once its rerun has started; Release repeats its rehearsal's retries in its own summary.
-// An entry whose issue is closed is stale: a warning asks to remove it.
+// issue that tracks it, an owner and a deadline (an ISO date) by when the test must be fixed and
+// brought back, or re-quarantined with a new deadline. Release and its rehearsal, and nothing
+// else, retry a CI run's failed jobs once when every check they judge failed only because of
+// quarantined tests: each failed job either failed in one step only, a test step, whose Vitest run
+// names only listed tests (and the failed count it reports is exactly those), or is a gate (ci,
+// install (variant, preset)) whose failing step only read the result of such jobs, none of them
+// skipped, or is a job skipped because a job it needs failed so. Any other failure, a listed test
+// without an open issue, a run already attempted more than once, or a second failure, is not
+// retried, so the release still stops on it. Each retry is written to the step summary and the
+// log, and commented on the entry's issue, once its rerun has started; Release repeats its
+// rehearsal's retries in its own summary. quarantine-watch.yml runs after every push to main and
+// reports, never fails: an entry whose issue is closed is stale, and one whose deadline has passed
+// is overdue; both ask for the entry to be fixed, re-quarantined or removed, and neither blocks a
+// push (contributing/ci.md, "Quarantine").
 //
 //   node scripts/quarantine.mjs check
-//       fails when an entry lacks its test (project, file, title), its issue URL or its owner
+//       fails when an entry lacks its test (project, file, title), its issue URL, its owner or a
+//       deadline (an ISO date, "YYYY-MM-DD")
 //   node scripts/quarantine.mjs retry [--also <check>]... <run id>...
 //       after scripts/required-ci.sh failed on these runs: exits 0 once it has started the retry
 //       (scripts/required-ci.sh then waits for it and judges again), 1 when nothing may be retried.
@@ -19,7 +24,8 @@
 //   node scripts/quarantine.mjs plan [--also <check>]... <run id>...
 //       says what retry would do for these runs, and does nothing
 //   node scripts/quarantine.mjs stale
-//       warns of each entry whose issue is closed (or cannot be read); never fails
+//       warns of each entry whose issue is closed (or cannot be read), and each whose deadline has
+//       passed; never fails
 //   node scripts/quarantine.mjs rehearsed <run id>
 //       repeats, in the log and the step summary, the retries a rehearsal run recorded
 import { spawnSync } from "node:child_process";
@@ -34,8 +40,16 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const quarantineFile = process.env.OURO_QUARANTINE_FILE ?? join(root, ".github/quarantine.json");
 
 const issuePattern = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+$/;
+const deadlinePattern = /^\d{4}-\d{2}-\d{2}$/;
 
-/** What is wrong with the quarantine's entries: each needs a project, a file, a title, an issue URL and an owner. */
+/** Whether this is a real calendar date written as "YYYY-MM-DD", with no rollover (no "2026-02-30"). */
+function validDeadline(deadline) {
+  if (typeof deadline !== "string" || !deadlinePattern.test(deadline)) return false;
+  const parsed = new Date(`${deadline}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === deadline;
+}
+
+/** What is wrong with the quarantine's entries: each needs a project, a file, a title, an issue URL, an owner and a deadline. */
 export function entryProblems(entries) {
   if (!Array.isArray(entries)) return ["the quarantine must be a JSON array of entries"];
   return entries.flatMap((entry, index) => {
@@ -45,6 +59,7 @@ export function entryProblems(entries) {
       if (typeof entry?.[key] !== "string" || entry[key].trim() === "") problems.push(`${label} has no ${key}`);
     }
     if (typeof entry?.issue !== "string" || !issuePattern.test(entry.issue)) problems.push(`${label} has no issue URL (https://github.com/<owner>/<repo>/issues/<number>)`);
+    if (!validDeadline(entry?.deadline)) problems.push(`${label} has no deadline (an ISO date, "YYYY-MM-DD", for when it must be fixed and brought back, or re-quarantined)`);
     return problems;
   });
 }
@@ -216,6 +231,15 @@ export const refused = ({ entry, test, job, url }, by) =>
 /** The warning for an entry whose issue is closed. */
 export const staleWarning = (entry) => `::warning title=Stale quarantine entry::${entry.issue} is closed: remove the quarantine entry for ${entry.project} ${entry.file} > ${entry.title}.`;
 
+/** Whether an entry's deadline to fix and bring back its test, or re-quarantine it, has passed. */
+export function expired(entry, now = new Date()) {
+  return Date.parse(entry.deadline) < now.getTime();
+}
+
+/** The warning for an entry whose deadline has passed. */
+export const deadlineWarning = (entry) =>
+  `::warning title=Quarantine deadline passed::${entry.deadline} has passed for ${entry.project} ${entry.file} > ${entry.title}: fix it and bring it back, or move the deadline on ${entry.issue}.`;
+
 /** Each entry's issue state: "OPEN", "CLOSED", or undefined when it cannot be read. Warns of each closed one. */
 function issueStates(entries, log = console.log) {
   return entries.map((entry) => {
@@ -348,7 +372,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     for (const problem of problems) console.error(`::error::.github/quarantine.json: ${problem}`);
     process.exit(problems.length > 0 ? 1 : 0);
   } else if (command === "stale") {
-    issueStates(JSON.parse(readFileSync(quarantineFile, "utf8")));
+    const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
+    issueStates(entries);
+    for (const entry of entries) if (expired(entry)) console.log(deadlineWarning(entry));
   } else if (command === "rehearsed" && args.length === 1) {
     process.exit(rehearsed(args[0]));
   } else if ((command === "retry" || command === "plan") && args.length > 0) {

@@ -1,0 +1,35 @@
+name: Quarantine watch
+# The repeat-red quarantine's report-only job (contributing/ci.md, "Quarantine"): after every push to main's CI
+# run, reports every quarantine entry whose test (project, file and title), issue, owner or deadline is missing
+# or malformed (scripts/quarantine.mjs check), and warns of one whose issue has closed or whose deadline has
+# passed (scripts/quarantine.mjs stale). Both run on every main build, so the signal stays, but neither can fail
+# the ci check or block release-auto: this workflow is not in .github/required-checks.json, and its one step is
+# continue-on-error, so a warning here never turns this job red.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+permissions:
+  contents: read
+  issues: read # gh issue view, to tell a closed issue from an open one (scripts/quarantine.mjs issueStates)
+concurrency:
+  group: quarantine-watch
+  cancel-in-progress: false
+jobs:
+  watch:
+    name: Report quarantine problems
+    if: ${{ github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Checked the quarantine for malformed entries, closed issues and passed deadlines
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/quarantine.mjs check && node scripts/quarantine.mjs stale

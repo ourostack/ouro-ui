@@ -10,7 +10,7 @@ import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { KITS } from "./kit-pin.mjs";
-import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
+import { deadlineWarning, entryProblems, expired, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -1223,6 +1223,14 @@ test("Release takes main's CI from main's runs on its commit: a push, a dispatch
   // again, when main's push run skipped what that run had passed.
   assert.match(release, /\n +GITHUB_OUTPUT="\$proof_out" node scripts\/ci-proof\.mjs "\$sha"\n +proof=\$\(sed -n 's\/\^proof-run=\/\/p' "\$proof_out"\)\n +if \[ -n "\$proof" \]; then runs="\$runs \$proof"; fi\n/);
   assert.ok(release.indexOf("node scripts/ci-proof.mjs") < release.indexOf("scripts/required-ci.sh $runs"));
+});
+
+test("Release retries a run's quarantined failures once before giving up on it, reusing scripts/quarantine.mjs retry, and judges the reruns the same way", () => {
+  const release = workflow("release.yml");
+  assert.match(
+    release,
+    /if ! scripts\/required-ci\.sh \$runs; then\n[\s\S]*?if node scripts\/quarantine\.mjs retry \$runs; then\n[\s\S]*?scripts\/required-ci\.sh \$runs \|\| \{ echo "::error::CI on main \(\$sha\) did not pass the checks main's rules require, even after retrying its quarantined failures"; exit 1; \}\n[\s\S]*?else\n[\s\S]*?echo "::error::CI on main \(\$sha\) did not pass the checks main's rules require"\n[\s\S]*?exit 1\n[\s\S]*?fi\n[\s\S]*?fi\n/,
+  );
 });
 
 
@@ -2815,8 +2823,9 @@ test("a release gives each job its own permissions, and none may write commit st
   const jobs = releaseJobs();
   assert.deepEqual(Object.keys(jobs), ["release", "pages", "publish", "finish", "next", "docs-pin", "attest"]);
   const permissions = permissionsOf;
-  // It reads main's CI runs and the pull request merged as the commit, whose run may prove its tree (scripts/ci-proof.mjs).
-  assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "read", "pull-requests": "read" });
+  // It reads main's CI runs and the pull request merged as the commit, whose run may prove its tree (scripts/ci-proof.mjs),
+  // and reruns and comments on a quarantined failure once (scripts/quarantine.mjs retry).
+  assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "write", "pull-requests": "read", issues: "write" });
   assert.deepEqual(permissions(jobs.pages), { actions: "write" });
   assert.deepEqual(permissions(jobs.publish), {});
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
@@ -3063,16 +3072,32 @@ test("every quarantined test names its test (project, file and title), an issue 
     assert.ok(readFileSync(join(root, entry.file), "utf8").includes(entry.title.split(" > ").at(-1)), `${entry.file} has no test "${entry.title}"`);
   }
   // Each part is required.
-  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone" };
+  const whole = {
+    project: "ouro-webkit",
+    file: "registry/ouro/components/ouro/calendar/calendar.test.tsx",
+    title: "Calendar > range > previews",
+    issue: "https://github.com/ourostack/ouro-ui/issues/1",
+    owner: "someone",
+    deadline: "2026-01-01",
+  };
   assert.deepEqual(entryProblems([whole]), []);
-  for (const key of ["project", "file", "title", "issue", "owner"]) {
+  for (const key of ["project", "file", "title", "issue", "owner", "deadline"]) {
     const without = { ...whole };
     delete without[key];
     assert.equal(entryProblems([without]).length, 1, key);
     assert.equal(entryProblems([{ ...whole, [key]: " " }]).length, 1, key);
   }
   assert.match(entryProblems([{ ...whole, issue: "#351" }])[0], /no issue URL/);
+  assert.match(entryProblems([{ ...whole, deadline: "01/01/2026" }])[0], /no deadline/);
+  assert.match(entryProblems([{ ...whole, deadline: "2026-02-30" }])[0], /no deadline/);
   assert.deepEqual(entryProblems({}), ["the quarantine must be a JSON array of entries"]);
+});
+
+test("a quarantine entry whose deadline has passed is reported, and brought back or re-quarantined before it does", () => {
+  const entry = { project: "ouro-webkit", file: "f.test.tsx", title: "t", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone", deadline: "2026-01-01" };
+  assert.equal(expired(entry, new Date("2025-12-31")), false);
+  assert.equal(expired(entry, new Date("2026-01-02")), true);
+  assert.match(deadlineWarning(entry), /^::warning title=Quarantine deadline passed::2026-01-01 has passed for ouro-webkit f\.test\.tsx > t: /);
 });
 
 // A job's log as `gh run view --job <id> --log` prints it (job, step, timestamp), from the two
@@ -3191,7 +3216,10 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   writeFileSync(join(bin, "calendar.log"), calendarLog);
   // The Calendar test, quarantined as it was before its fix.
   const list = join(bin, "quarantine.json");
-  writeFileSync(list, JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow" }]));
+  writeFileSync(
+    list,
+    JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow", deadline: "2099-01-01" }]),
+  );
   // A stand-in gh: run 5 failed install (shadcn@latest, nova) on the Calendar test, its issue is
   // $STATE, and a rerun moves the run to attempt 2.
   writeFileSync(
@@ -3801,3 +3829,20 @@ test("rerun-guard.yml starts on CI going in_progress (requested never fires for 
   assert.match(guard, /RUN_URL: \$\{\{ github\.event\.workflow_run\.html_url \}\}/);
   assert.match(guard, /RUN_ACTOR: \$\{\{ github\.event\.workflow_run\.triggering_actor\.login \}\}/);
 });
+
+test("quarantine-watch.yml reports a malformed entry, a closed issue or a passed deadline on every push to main, and can never fail ci or block release", () => {
+  const watch = workflow("quarantine-watch.yml");
+  assert.match(watch, /workflows: \[CI\]\n\s+types: \[completed\]/);
+  assert.match(watch, /^permissions:\n {2}contents: read\n {2}issues: read/m);
+  assert.match(watch, /^ {4}if: \$\{\{ github\.event\.workflow_run\.event == 'push' && github\.event\.workflow_run\.head_branch == 'main' \}\}$/m);
+  assert.match(watch, /uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+/);
+  assert.match(watch, /run: node scripts\/quarantine\.mjs check && node scripts\/quarantine\.mjs stale/);
+  // Its one step never fails the job, so a warning here never turns main's commit red.
+  assert.match(watch, /continue-on-error: true\n\s+env:[\s\S]*run: node scripts\/quarantine\.mjs check/);
+  // Structurally outside the required ci check and release's gate: no name here is a required check,
+  // and ci.yml and release.yml never reference this workflow's job.
+  assert.ok(!requiredChecks.includes("watch") && !requiredChecks.some((check) => check.toLowerCase().includes("quarantine")));
+  assert.doesNotMatch(workflow("ci.yml"), /quarantine-watch/);
+  assert.doesNotMatch(workflow("release.yml"), /quarantine-watch/);
+});
+

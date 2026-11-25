@@ -17,7 +17,7 @@ Words used here:
 
 - **Merge queue:** GitHub tests each queued pull request on top of the ones ahead of it, in a `merge_group` run, and merges it only if that run passes.
 - **Drop:** GitHub takes an entry out of the queue when a check fails or it stops merging cleanly.
-- **Quarantine:** a short, public list of tests known to fail now and then, kept beside their open issues and owners.
+- **Quarantine:** a short, public list of tests known to fail now and then, kept beside their open issues, owners and the deadlines to bring them back.
 
 ## Queue a pull request
 
@@ -68,7 +68,8 @@ The `latency` check presses each control on the voyage (the stage and Chapters I
 
 ## Quarantine a test, on the record
 
-- **Add a test only with an open issue and an owner,** in `.github/quarantine.json`. Nothing retries a failed run automatically.[^quarantine]
+- **Add a test only with an open issue, an owner and a deadline,** in `.github/quarantine.json`. The test keeps running and reporting; only Release retries, and only once, when every failure is a quarantined test with an open issue — any other failure still stops it.[^quarantine]
+- **Bring it back, or re-quarantine it with a new deadline, before the old one passes.** `quarantine-watch.yml` reports a stale or overdue entry after every push to main, without blocking it.[^quarantine-watch]
 - **Remove the entry in the pull request that fixes the test,** and close its issue.
 
 [^dst]: evidence:docs/guides/evidence/2026-11-01-dst-check-times.txt verify:fileLine(docs/guides/evidence/2026-11-01-dst-check-times.txt, /e2e \(3\/4\)\tsuccess\t2026-11-01T09:49:01Z\t2026-11-01T09:03:21Z/)
@@ -78,4 +79,5 @@ The `latency` check presses each control on the voyage (the stage and Chapters I
 [^traces]: evidence:site/e2e/latency-evidence/2026-11-01-museum-organ-traces.txt verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-traces.txt, /Chromium traces/)
 [^museum]: evidence:site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 museum main: p95 88 median 72 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 museum pr: p95 72 median 56 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 organ main: p95 80 median 64 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 organ pr: p95 64 median 48 samples 520/)
 [^release-commit]: .github/workflows/release.yml verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI passed, names the screen-reader lane that runs after, and runs no rehearsal)
-[^quarantine]: .github/quarantine.json; scripts/quarantine.mjs verify:testExists(scripts/workflows.test.mjs::every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test)
+[^quarantine]: .github/quarantine.json; scripts/quarantine.mjs; .github/workflows/release.yml verify:testExists(scripts/workflows.test.mjs::every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test) verify:testExists(scripts/workflows.test.mjs::Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them)
+[^quarantine-watch]: .github/workflows/quarantine-watch.yml verify:testExists(scripts/workflows.test.mjs::quarantine-watch.yml reports a malformed entry, a closed issue or a passed deadline on every push to main, and can never fail ci or block release) verify:testExists(scripts/workflows.test.mjs::a quarantine entry whose deadline has passed is reported, and brought back or re-quarantined before it does)
