@@ -95,3 +95,48 @@ for (const path of ["/docs/card/", "/docs/a2ui-surface/"]) {
     expect(pictures).toBeGreaterThan(0);
   });
 }
+
+// Cheaper ways to take the same picture, each judged by the time it takes and by whether its pixels equal the sweep's own.
+for (const path of ["/docs/card/", "/docs/a2ui-surface/"]) {
+  test(`which picture on ${path} costs least`, async ({ page }) => {
+    await page.goto(path);
+    await settled(page);
+    await quiet(page);
+    const { looks: found } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
+    const looks = new Looks();
+    const spent = { sweep: 0, allowed: 0, clip: 0 };
+    const same = { allowed: 0, clip: 0 };
+    let compared = 0;
+    const raw = async (png: Buffer) => (await sharp(png).ensureAlpha().raw().toBuffer()).toString("base64");
+    for (const look of found) {
+      if (!(look.pictured && looks.wants(look))) {
+        looks.add(path, look, null);
+        continue;
+      }
+      const handle = await page.locator(`[data-sweep-look="${look.index}"]`).elementHandle({ timeout: 2_000 }).catch(() => null);
+      if (!handle) continue;
+      await handle.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" })).catch(() => {});
+      let t = Date.now();
+      const base = await handle.screenshot({ animations: "disabled", caret: "hide", timeout: 15_000 }).catch(() => null);
+      spent.sweep += Date.now() - t;
+      t = Date.now();
+      const allowed = await handle.screenshot({ animations: "allow", caret: "initial", timeout: 15_000 }).catch(() => null);
+      spent.allowed += Date.now() - t;
+      const box = await handle.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left, y: r.top, width: r.width, height: r.height };
+      });
+      t = Date.now();
+      const clip = await page.screenshot({ clip: box, animations: "allow", caret: "initial", timeout: 15_000 }).catch(() => null);
+      spent.clip += Date.now() - t;
+      if (!base || !allowed || !clip) continue;
+      compared += 1;
+      const b = await raw(base);
+      if (b === (await raw(allowed))) same.allowed += 1;
+      if (b === (await raw(clip))) same.clip += 1;
+      looks.add(path, look, { data: Buffer.alloc(0), width: 0, height: 0, scale: 1 });
+    }
+    console.log(`PROFILE webkit variants ${path}: ${JSON.stringify({ compared, spentMs: spent, samePixels: same })}`);
+    expect(compared).toBeGreaterThan(0);
+  });
+}
