@@ -62,7 +62,7 @@ In an app with Tailwind CSS v4 and an `@/*` path alias, run shadcn's `init` once
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.550
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.552
 ```
 
 `ouro-base` is the only Ouro UI item that writes to your stylesheet (the file `components.json` names in `tailwind.css`), apart from the optional `ouro-theme` and `ouro-plain`. It adds what a shadcn theme lacks and the components need:
@@ -95,7 +95,7 @@ Ouro Current, which keeps an app's Ouro UI on the newest release, moves `ouro-ba
 Add [fragmentFocusScript](../fragmentFocusScript.md) once, too, first in `<body>`, so that Safari keeps a person's focus on a page whose address names a place on it (`/guide#install`).[^fragment-focus] Without it, Safari jumps back to that place and takes focus as later stylesheets load, once the page finished parsing, or a link to the place was followed, while a stylesheet was still loading, such as a route's CSS your script adds as the page starts (ourostack/ouro-ui#2224): an open menu closes, and a field loses the person mid-word. Other browsers don't, and the script leaves them alone. Ouro check names a page without it (`fragment-focus`).[^fragment-focus-rule]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/lib-fragment-focus-script#v1.3.550
+npx shadcn@latest add ourostack/ouro-ui/lib-fragment-focus-script#v1.3.552
 ```
 
 In Vite, from `vite.config.ts`'s plugins, as an inline script after the stylesheets:
@@ -116,7 +116,7 @@ In Next.js, in the root layout: `<body><script dangerouslySetInnerHTML={{ __html
 A page that builds rows and controls as strings, or prerenders them to read without a script, can't render Ouro's components there. For that markup, add `ouro-plain` once, after `ouro-base`: it gives the markup Ouro's states as classes, each drawn as its component draws it. No component installs it, so an app built only from components doesn't carry its CSS.[^plain-item] A page without Tailwind loads the plain stylesheet `ouro-plain.css` from [the static CSS](static-css.md) instead.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-plain#v1.3.550
+npx shadcn@latest add ourostack/ouro-ui/ouro-plain#v1.3.552
 ```
 
 - The focus ring and row states: `ouro-focus-ring` draws the ring the components draw on keyboard focus, `ouro-focus-ring-inset` draws it inside the box for a row or cell a scroller would clip, and `ouro-row` tints a row that opens something while a mouse rests on it and while it is pressed, as a linked `Item` does.[^plain-classes] The Ouro source rule counts these classes as Ouro's, and names them as the fix for a focus or press state written by hand.[^plain-classes-rule]
@@ -153,14 +153,14 @@ In an engine without native `corner-shape` (a WebKit web view), true squircles c
 ## Adding components
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.550
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.552
 ```
 
 A component installs its own files in `components/ouro/<component>/`, the components it renders, and only the helpers it imports, one file each in `lib/ouro/`.[^lands] Its install message names what came with it. It adds the npm packages it imports (`@base-ui/react`, `clsx`, `tailwind-merge`) and nothing for tests.
 
 A component that finds no `ouro-base` tokens still installs, type checks and builds, but renders without them: a `Sheet` with no backdrop, layer or spring, a field with no border.[^theme-check] In development, the first Ouro UI component to mount checks the page once and logs `[ouro-ui] theme: ouro-base is not in this page's CSS …` with the command to run. Production builds contain no such check.[^dev-strip]
 
-`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v1.3.550` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).[^v0.7.0]
+`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v1.3.552` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).[^v0.7.0]
 
 ## What an add changes in package.json
 
@@ -178,7 +178,7 @@ Change any component in your app whenever your app needs it: the copied files ar
 
 ## Updating
 
-List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.550 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]
+List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.552 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]
 
 ### Check that ouro-base has not drifted
 
