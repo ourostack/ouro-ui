@@ -1,0 +1,1 @@
+- Changed: `OuroProvider` loads the squircle capsule watcher in a chunk of its own, and only where the engine lacks `corner-shape`, so an app's first load is smaller.
