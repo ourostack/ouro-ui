@@ -483,6 +483,24 @@ describe("TimeGrid", () => {
     expect(plain(named("Thursday").getAttribute("aria-label"))).toBe("Architecture forum, 2:00 – 3:00 PM, Thursday, needs your answer, Main auditorium");
   });
 
+  it("lays a day out for the width it has now after the view changes without a remount", async () => {
+    const stack = [
+      { id: "a", title: "Design review", start: at(10, "11:00"), end: at(10, "12:00") },
+      { id: "b", title: "Pairing with Jo", start: at(10, "11:30"), end: at(10, "13:00") },
+      { id: "c", title: "Venue sync", start: at(10, "11:45"), end: at(10, "12:30") },
+    ];
+    const { rerender } = await render({ view: "week", events: stack }, (grid) => <div style={{ width: "700px" }}>{grid}</div>);
+    const width = () => titled("Design review").closest("li")!.getBoundingClientRect().width;
+    await rerender({ view: "work-week", events: stack });
+    let last = -1;
+    await expect.poll(() => { const stable = width() === last; last = width(); return stable && document.getAnimations().length === 0; }).toBe(true);
+    const switched = width();
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    mounted.pop()!.remove();
+    await render({ view: "work-week", events: stack }, (grid) => <div style={{ width: "700px" }}>{grid}</div>);
+    await expect.poll(() => width()).toBeCloseTo(switched, 0);
+  });
+
   it("shares a day's width between overlapping events", async () => {
     await render({ view: "day", events: [forum, focus] });
     const [first, second] = [forum, focus].map((event) => titled(event.title).closest("li")!.getBoundingClientRect()) as [DOMRect, DOMRect];
@@ -722,7 +740,7 @@ describe("TimeGrid", () => {
       for (const element of shown().map((_, index) => events()[index]!)) expect(element.getBoundingClientRect().right).toBeLessThanOrEqual(strip + 1);
       // A shown event that another covers keeps its text clear of the cover, within the day less the chip's strip.
       const cover = (events()[0]!.closest("li") as HTMLElement).style.getPropertyValue("--ouro-time-grid-cover");
-      expect(cover).toContain("max(0.75rem, min(0.5 * (100cqw - 2rem), ((100cqw - 2rem) - 4.5rem) / 1))");
+      expect(cover).toContain("max(0.75rem, min(0.5 * calc(100cqw - 2rem), (calc(100cqw - 2rem) - 4.5rem) / 1))");
       // And in the plain day, less the same strip.
       expect(first.style.width).toContain("100% - 2rem");
     });

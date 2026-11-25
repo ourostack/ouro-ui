@@ -1,0 +1,1 @@
+- Fixed: TimeGrid keeps an event's width beside a +N chip, which a browser dropped as invalid CSS, leaving the event a sliver until a reload.
