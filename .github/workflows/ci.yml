@@ -559,7 +559,11 @@ jobs:
             # The checkout is GitHub's merge of the pull request into its base, so the base is that merge's first
             # parent: main as the merge saw it. Main's tip can be newer (it moved since, or this is a re-run), and
             # its changes would then read as the pull request's.
-            git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
+            # A dropped TLS handshake (exit 128) gets one retry, as the pnpm install step already retries (#3428).
+            git fetch --no-tags --depth=2 origin "$GITHUB_SHA" || {
+              echo "::warning title=Claims fetch failed::git fetch exited 128, often a dropped TLS handshake (ourostack/ouro-ui#3428); fetching once more."
+              git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
+            }
             CLAIMS_BASE_REF="HEAD^1" node scripts/claims.mjs ratchet
             REAL_CLOCK_BASE_REF="HEAD^1" node scripts/real-clock-ratchet.mjs
             HEADROOM_BASE_REF="HEAD^1" node scripts/headroom-ratchet.mjs
