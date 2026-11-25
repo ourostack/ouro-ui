@@ -600,14 +600,16 @@ describe("controlled Popover", () => {
   });
 
   it("returns a sheet's focus to its trigger even when finalFocus is set", async () => {
+    // The types forbid both props together; this checks a plain-JS caller still gets the trigger.
     await page.viewport(390, 844);
     const other = createRef<HTMLButtonElement>();
+    const Loose = Popover as unknown as (props: Record<string, unknown>) => ReactNode;
     await render(
       <>
         <button ref={other} type="button">Elsewhere</button>
-        <Popover title="Filters" presentation="auto" trigger={<button type="button">Open filters</button>} finalFocus={other}>
+        <Loose title="Filters" presentation="auto" trigger={<button type="button">Open filters</button>} finalFocus={other}>
           <p>Body</p>
-        </Popover>
+        </Loose>
       </>,
     );
     const trigger = page.getByRole("button", { name: "Open filters" }).element() as HTMLElement;
