@@ -1078,6 +1078,15 @@ describe("TimeGrid", () => {
       expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T11:00:00-04:00"), end: new Date("2026-03-12T12:00:00-04:00") });
     });
 
+    it("keeps Enter and Space from scrolling the page or pressing a button while they select a slot", async () => {
+      const { focus } = await open();
+      for (const key of ["Enter", " "]) {
+        const press = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+        await act(async () => void focus.dispatchEvent(press));
+        expect(press.defaultPrevented).toBe(true);
+      }
+    });
+
     it("moves an hour with Page Down on the slots, and leaves the period to Alt+Down, and drops the cursor on blur", async () => {
       const onDateChange = vi.fn();
       const { grid } = await open({ onDateChange });

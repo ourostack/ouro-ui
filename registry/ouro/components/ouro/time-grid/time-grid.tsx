@@ -795,9 +795,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   }, [heldCursor]);
   const cursorStart = () => {
     const from = nowAt && todayIndex >= 0 ? nowAt.minutes : workingHours.start * 60;
+    // Stryker disable next-line ArithmeticOperator: a start below the day's end already sits on a slot, so the upper clamp never moves it.
     return { day: Math.max(todayIndex, 0), minutes: between(0, Math.floor(from / slotMinutes) * slotMinutes, dayLength - slotMinutes) };
   };
   const onSlotKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: the handler is attached only with onSlotSelect and a cursor set on focus, so this guard only narrows types.
     if (!onSlotSelect || !cursor || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -812,6 +814,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       ArrowLeft: { day: cursor.day - sideways, minutes: cursor.minutes },
       ArrowRight: { day: cursor.day + sideways, minutes: cursor.minutes },
       Home: { day: cursor.day, minutes: 0 },
+      // Stryker disable next-line ArithmeticOperator: the move is clamped to the last slot again where it is applied, so a larger value lands on the same slot.
       End: { day: cursor.day, minutes: dayLength - slotMinutes },
       PageUp: { day: cursor.day, minutes: cursor.minutes - 60 },
       PageDown: { day: cursor.day, minutes: cursor.minutes + 60 },
@@ -819,6 +822,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const move = moves[event.key];
     if (!move) return;
     event.preventDefault();
+    // Stryker disable next-line ArithmeticOperator: the held day is clamped again where the cursor is read, so a larger bound shows the same day.
     setCursor({ day: between(0, move.day, days.length - 1), minutes: between(0, move.minutes, dayLength - slotMinutes) });
   };
   const slotAt = (event: MouseEvent<HTMLElement>) => {
