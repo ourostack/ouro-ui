@@ -551,7 +551,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
   );
 });
 
-/** The "…" button beside a row or a section header, which opens its menu. */
+/** The more button, drawn as dots, beside a row or a section header, which opens its menu. */
 function MoreButton({ rowKey, name, moreLabel, onMore, className }: { rowKey: string; name: string; moreLabel: string; onMore: (key: string, anchor: HTMLElement) => void; className: string }): JSX.Element {
   return (
     <button
@@ -578,7 +578,12 @@ function MoreButton({ rowKey, name, moreLabel, onMore, className }: { rowKey: st
       )}
     >
       <TouchTarget />
-      <span aria-hidden="true">…</span>
+      {/* Three dots drawn about the button's middle: a typed "…" would rest on the text's baseline, low in the button. */}
+      <svg aria-hidden="true" viewBox="0 0 16 16" className="size-ouro-4" fill="currentColor">
+        <circle cx="3" cy="8" r="1.25" />
+        <circle cx="8" cy="8" r="1.25" />
+        <circle cx="13" cy="8" r="1.25" />
+      </svg>
       <span className="sr-only">
         {moreLabel} {name}
       </span>
