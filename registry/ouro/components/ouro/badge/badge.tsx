@@ -1,6 +1,7 @@
 "use client";
 
 import { Button as BaseButton } from "@base-ui/react/button";
+import { Children, isValidElement } from "react";
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentType, JSX, HTMLAttributes, MouseEventHandler, ReactNode, Ref, SVGProps } from "react";
 import { fontFor, radiusFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -135,6 +136,11 @@ export type BadgeButtonProps = BadgeCommonProps & BadgeButtonModeProps;
 
 /** Props for {@link Badge}: `href` makes it a link, `onClick` a button, and neither a `<span>`. */
 export type BadgeProps = BadgeCommonProps & (BadgeLinkModeProps | BadgeButtonModeProps);
+
+/** Whether a badge's children draw a label a person sees: anything but nothing and a name kept for screen readers (`sr-only`). */
+function seenLabel(children: ReactNode): boolean {
+  return Children.toArray(children).some((child) => !(isValidElement<{ className?: unknown }>(child) && typeof child.props.className === "string" && child.props.className.split(/\s+/).includes("sr-only")));
+}
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 const base =
@@ -287,7 +293,9 @@ export function Badge(props: BadgeProps): JSX.Element {
 
   const look = cn(looks[variant][tone], count && countClass, count && overlay && countOverlayClass);
   // The icon and the label go in as siblings of the surface, not in a fragment, which would be a component of its own.
-  const icon = Icon && <Icon aria-hidden="true" className="relative -ms-0.5 size-ouro-3_5 shrink-0" />;
+  // The icon tucks toward its edge to balance a label after it; with no label to see (an icon alone, or a name only
+  // screen readers hear) it stays in the badge's middle.
+  const icon = Icon && <Icon aria-hidden="true" className={cn("relative size-ouro-3_5 shrink-0", seenLabel(children) && "-ms-0.5")} />;
   const statusDot = dot && <span data-slot="badge-dot" data-ouro-dot="" aria-hidden="true" className="relative size-ouro-1_5 shrink-0 rounded-full bg-current" />;
 
   if (rest.href !== undefined) {
