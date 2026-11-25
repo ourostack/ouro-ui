@@ -64,7 +64,7 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ### `ThreadReplier`
 
-Someone who replied in a thread: their name, and their picture if there is one.
+Someone who replied in a thread: their name, their picture if there is one, and their id for colour.
 
 ```ts
 interface ThreadReplier {
@@ -72,6 +72,11 @@ interface ThreadReplier {
   name: string;
   /** Their picture's URL. Without it the avatar shows initials. */
   src?: string | undefined;
+  /**
+   * Their id, so their face takes the same colour here as it does elsewhere (Avatar's `idForColor`).
+   * Without it the colour comes from `name`, so a renamed person's face changes colour.
+   */
+  idForColor?: string | undefined;
 }
 ```
 

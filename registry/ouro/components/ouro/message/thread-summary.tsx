@@ -7,12 +7,19 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
-/** Someone who replied in a thread: their name, and their picture if there is one. */
+/** Someone who replied in a thread: their name, their picture if there is one, and their id for colour. */
 export interface ThreadReplier {
   /** Their name, for the avatar's initials and for screen readers. */
   name: string;
   /** Their picture's URL. Without it the avatar shows initials. */
   src?: string | undefined;
+  /**
+   * Their id, so their face takes the same colour here as it does elsewhere (Avatar's `idForColor`).
+   * Without it the colour comes from `name`, so a renamed person's face changes colour.
+   *
+   * @claim "so their face takes the same" registry/ouro/components/ouro/message/thread-summary.test.tsx verify:testExists(registry/ouro/components/ouro/message/thread-summary.test.tsx::ThreadSummary > colours a replier's face by idForColor, matching the same id elsewhere, not by name)
+   */
+  idForColor?: string | undefined;
 }
 
 /** The props ThreadSummary adds to the `<div>` attributes it passes through. */
@@ -167,7 +174,13 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
         <AvatarGroup label={repliersLabel} size="xs">
           {/* Two letters at this size are noise: one initial, on the person's own colour, or their picture. */}
           {repliers.slice(0, 3).map((replier, index) => (
-            <Avatar key={`${replier.name}-${index}`} name={replier.name} src={replier.src} initials={[...replier.name.trim()][0]} />
+            <Avatar
+              key={`${replier.name}-${index}`}
+              name={replier.name}
+              src={replier.src}
+              idForColor={replier.idForColor}
+              initials={[...replier.name.trim()][0]}
+            />
           ))}
         </AvatarGroup>
       )}
