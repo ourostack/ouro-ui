@@ -1,1 +1,1 @@
-- TimeGrid: under forced colours each tone draws its start bar in its own width, so calendars stay apart.
+- TimeGrid: under forced colours a calendar's start bar draws in a width of its own, so calendars stay apart.

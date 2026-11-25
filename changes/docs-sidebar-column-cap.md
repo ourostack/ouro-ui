@@ -1,1 +1,1 @@
-- Fixed: the docs sidebar takes at most two fifths of the window, so large type on a narrow window leaves the page a usable column.
+- Fixed: the docs sidebar stays narrow on a small window, so large type leaves the page a usable column.
