@@ -1,0 +1,1 @@
+- Fixed: TimeGrid draws the keyboard's slot as an empty dashed outline, so a focused slot after a delete no longer looks like a new event.
