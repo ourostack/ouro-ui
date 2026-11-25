@@ -387,8 +387,9 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     if (host === null) return;
     if (slot !== null) {
       if (host.parentNode !== slot) slot.appendChild(host);
-    } else if (shown === null || parked || !host.parentNode?.isConnected) {
-      host.parentNode?.removeChild(host);
+    } else {
+      // Stryker disable next-line ConditionalExpression,OptionalChaining: shown is null only before the first show, when host has never had a parent, so host.parentNode is null exactly when shown is; once shown, parked stays true from the moment this call clears host until the next real hover reattaches it, so host.parentNode is never null while parked is false.
+      if (shown === null || parked || !host.parentNode?.isConnected) host.parentNode?.removeChild(host);
     }
     // The portal renders the bar in the same commit shown first holds data (the render above corrects shown synchronously
     // before any commit), so a slot (which needs on, which needs shown to already match) never finds the host without a
