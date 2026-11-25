@@ -42,7 +42,7 @@ test("the groups run every file scripts/check.test.mjs runs, and every check-pag
   const titles = [...readFileSync(new URL("./check/check-pages.test.mts", import.meta.url), "utf8").matchAll(/^ {2}test\((["`])(.*?)\1, /gm)].map((match) => match[2]);
   assert.ok(titles.length >= 20);
   const inA = (title) => new RegExp(groups["pages-a"].pattern).test(`Ouro check > ${title}`);
-  const inB = (title) => new RegExp(groups["pages-b"].pattern).test(`Ouro check > ${title}`);
+  const inB = (title) => !new RegExp(groups["pages-b"].skip).test(`Ouro check > ${title}`);
   for (const title of titles) assert.notEqual(inA(title), inB(title), title);
   assert.equal(titles.filter(inA).length, pagesA.length);
 });
@@ -51,6 +51,7 @@ test("every check.test.mts test falls in exactly one of its three groups", () =>
   const titles = [...readFileSync(new URL("./check/check.test.mts", import.meta.url), "utf8").matchAll(/^ {2}test\((["`])(.*?)\1, /gm)].map((match) => match[2]);
   assert.ok(titles.length >= 16);
   const names = ["check-rules", "check-shards", "check"];
-  for (const title of titles) assert.equal(names.filter((name) => new RegExp(groups[name].pattern).test(`Ouro check > ${title}`)).length, 1, title);
-  for (const [index, name] of checkAlone.entries()) assert.equal(titles.filter((title) => new RegExp(groups[names[index]].pattern).test(`Ouro check > ${title}`)).length, 1, name);
+  const runs = (name, title) => { const g = groups[name]; const full = `Ouro check > ${title}`; return g.pattern ? new RegExp(g.pattern).test(full) : !new RegExp(g.skip).test(full); };
+  for (const title of titles) assert.equal(names.filter((name) => runs(name, title)).length, 1, title);
+  for (const [index, name] of checkAlone.entries()) assert.equal(titles.filter((title) => runs(names[index], title)).length, 1, name);
 });
