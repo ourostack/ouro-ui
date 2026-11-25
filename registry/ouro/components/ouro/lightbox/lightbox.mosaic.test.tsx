@@ -82,6 +82,19 @@ afterEach(async () => {
 });
 
 describe("Lightbox mosaic", () => {
+  it("draws edge to edge, with no hairline, when framed is false", async () => {
+    const framed = await render(mosaic([offsite[0]!]));
+    const frameless = await render(mosaic([offsite[0]!], { framed: false }));
+    expect(list(framed.host).className).toContain("border-border");
+    expect(list(framed.host).className).toContain("rounded-ouro-lg");
+    expect(list(frameless.host).className).not.toContain("border-border");
+    expect(list(frameless.host).className).not.toContain("rounded-ouro-lg");
+    expect(list(frameless.host).className).toContain("rounded-ouro-inner");
+    expect(list(frameless.host).className).toContain("forced-colors:border");
+    // The card colour still fills the gaps between pictures either way.
+    expect(list(frameless.host).className).toContain("bg-card");
+  });
+
   it("is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width", async () => {
     const size = (host: Element) => {
       const rect = list(host).getBoundingClientRect();
