@@ -820,6 +820,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const [hover, setHover] = useState<{ day: number; minutes: number } | null>(null);
   // The keyboard's slot is virtual: the grid below owns focus and names this slot through aria-activedescendant.
   const [heldCursor, setCursor] = useState<{ day: number; minutes: number } | null>(null);
+  // Leaving the grid (a dialog opens, a popover closes) keeps the slot, so focus returns to where the person was.
+  const leftCursor = useRef<{ day: number; minutes: number } | null>(null);
   // The days can shrink under a focused grid (a controlled `view` changes), so the cursor stays on a day that exists.
   const cursor = heldCursor ? { ...heldCursor, day: Math.min(heldCursor.day, days.length - 1) } : null;
   const cursorBase = useId();
@@ -1126,6 +1128,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       <li key={key} data-slot="time-grid-more-item" className="pointer-events-auto absolute end-0" style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)`, width: chipWidth }}>
         <Menu
           side="right"
+          className="max-w-xs"
           trigger={
             <button
               type="button"
@@ -1138,7 +1141,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               aria-current={members.some((piece) => piece.event.id === selectedId) ? "true" : undefined}
               onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => (event as typeof event & { preventBaseUIHandler: () => void }).preventBaseUIHandler()}
               onFocus={() => setActive(key)}
-              className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "z-[9] items-start justify-center px-0 text-center")}
+              className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "inset-x-0 z-[9] items-start justify-center whitespace-nowrap px-0 text-center")}
             >
               <TouchTarget />
               <span aria-hidden="true" data-slot="time-grid-more-count" className="min-w-0 font-medium">{`+${members.length}`}</span>
@@ -1147,8 +1150,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         >
           {members.map((piece) => (
             <MenuItem key={piece.key} href={piece.event.href} onClick={() => onEventSelect?.(piece.event, { element: element(), background: false })}>
-              <span dir="auto">{piece.event.title}</span>
-              <span dir="ltr" data-slot="time-grid-menu-time" className={`${mutedClass} [unicode-bidi:isolate]`}> {rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
+              <span dir="auto" data-slot="time-grid-menu-title" className="min-w-0 flex-1 truncate">{piece.event.title}</span>
+              <span dir="ltr" data-slot="time-grid-menu-time" className={`${mutedClass} shrink-0 ps-2 [unicode-bidi:isolate]`}>{rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
             </MenuItem>
           ))}
         </Menu>
@@ -1241,8 +1244,16 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               data-ouro-part="slots"
               data-slot="time-grid-slots"
               className="pointer-events-none absolute inset-0 outline-ring -outline-offset-2 focus-visible:outline-2"
-              onFocus={() => setCursor((now) => now ?? cursorStart())}
-              onBlur={() => setCursor(null)}
+              onFocus={() =>
+                setCursor((now) => {
+                  const left = leftCursor.current;
+                  return now ?? (left ?? cursorStart());
+                })
+              }
+              onBlur={() => {
+                leftCursor.current = heldCursor;
+                setCursor(null);
+              }}
               onKeyDown={onSlotKeyDown}
             >
               <div role="row" data-slot="time-grid-slots-row">
@@ -1354,9 +1365,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                       <span
                         data-ouro-time-grid-drag=""
                         data-slot="time-grid-drag"
-                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border border-solid border-primary bg-primary/10"
+                        className="pointer-events-none absolute inset-x-0.5 box-border overflow-hidden rounded-ouro-md border border-solid border-primary bg-primary/10 px-1.5 text-[11px] leading-4 text-foreground"
                         style={{ top: minutesTall(Math.min(drag.from, drag.to)), height: minutesTall(Math.abs(drag.to - drag.from) + slotMinutes) }}
-                      />
+                      >
+                        {`${formats.time.format(formats.clock.instant(day, Math.min(drag.from, drag.to)))} – ${formats.time.format(formats.clock.instant(day, Math.max(drag.from, drag.to) + slotMinutes))}`}
+                      </span>
                     ) : null}
                     {hover?.day === index && !coveredAt(index, hover.minutes) ? (
                       <span

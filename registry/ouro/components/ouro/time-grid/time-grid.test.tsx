@@ -624,6 +624,41 @@ describe("TimeGrid", () => {
       expect([chip(), stack()]).toEqual([null, null]);
     });
 
+    it("keeps a width on the one event a narrow day shows beside its chip", async () => {
+      await render({ view: "day", events: crowd(3) }, (grid) => <div style={{ width: "190px", height: "600px" }}>{grid}</div>);
+      await expect.poll(() => chip()?.getBoundingClientRect().width).toBeGreaterThan(0);
+      await expect.poll(shown).toEqual(["Event 0"]);
+      const lone = events().find((element) => element.getAttribute("data-ouro-part") !== "more")!.closest("li")!;
+      expect(lone.style.width).not.toBe("");
+      expect(lone.getBoundingClientRect().width).toBeGreaterThan(48);
+    });
+
+    it("lists the folded events in a popup no wider than 20 rem, each title cut short before its time", async () => {
+      const long = "A very long meeting title that would otherwise stretch the popup across the whole screen and over its neighbours";
+      const events = [0, 1, 2].map((index) => ({ id: `l${index}`, title: `${long} ${index}`, start: at(12, "09:00"), end: at(12, "12:00") }));
+      await render({ view: "day", events }, (grid) => <div style={{ width: "190px", height: "600px" }}>{grid}</div>);
+      await expect.poll(() => chip()?.getBoundingClientRect().width).toBeGreaterThan(0);
+      await userEvent.click(chip()!);
+      await expect.poll(() => page.getByRole("menuitem").elements().length).toBeGreaterThan(0);
+      const items = page.getByRole("menuitem").elements();
+      await expect.poll(() => items[0]!.closest<HTMLElement>('[data-ouro="menu"]')?.getBoundingClientRect().width ?? 999).toBeLessThanOrEqual(321);
+      for (const item of items) {
+        const title = item.querySelector<HTMLElement>("[dir=auto]")!;
+        expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
+      }
+    });
+
+    it("fills its whole strip, with its count on one line", async () => {
+      await render({ view: "day", events: crowd(5) }, (grid) => <div style={{ width: "260px", height: "600px" }}>{grid}</div>);
+      await expect.poll(() => chip()?.getBoundingClientRect().width).toBeGreaterThan(0);
+      const strip = chip()!.closest("li")!.getBoundingClientRect();
+      const box = chip()!.getBoundingClientRect();
+      expect(box.width).toBeCloseTo(strip.width, 0);
+      expect(box.height).toBeCloseTo(strip.height, 0);
+      const count = chip()!.querySelector("[data-slot=time-grid-more-count]")!.getBoundingClientRect();
+      expect(count.height).toBeLessThan(20);
+    });
+
     it("shows the first events and folds the rest into a +N chip that lists them, in a day about 12 rem wide", async () => {
       const onEventSelect = vi.fn();
       await render({ view: "day", events: crowd(5), onEventSelect }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
@@ -634,7 +669,7 @@ describe("TimeGrid", () => {
       expect(chip()!.tabIndex).toBe(-1);
       await userEvent.click(chip()!);
       await expect.element(page.getByRole("menuitem", { name: /Event 3/ })).toBeVisible();
-      expect(page.getByRole("menuitem").elements().map((element) => plain(element.textContent).split(" 9")[0])).toEqual(["Event 2", "Event 3", "Event 4"]);
+      expect(page.getByRole("menuitem").elements().map((element) => plain(element.querySelector("[dir=auto]")!.textContent))).toEqual(["Event 2", "Event 3", "Event 4"]);
       await userEvent.click(page.getByRole("menuitem", { name: /Event 3/ }).element());
       expect(onEventSelect.mock.calls[0]![0].id).toBe("c3");
     });
@@ -1270,6 +1305,33 @@ describe("TimeGrid", () => {
       expect(focus.getAttribute("tabindex")).toBe("0");
     });
 
+    it("returns to the slot it was on when focus leaves the grid and comes back, as after a dialog closes", async () => {
+      const { grid, focus } = await open();
+      await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowRight}");
+      const was = named(grid);
+      await act(async () => focus.blur());
+      expect(focus.getAttribute("aria-activedescendant")).toBeNull();
+      await act(async () => focus.focus());
+      expect(named(grid)).toBe(was);
+    });
+
+    it("returns to the last slot of the last day exactly, and to the last day left when the view shows fewer", async () => {
+      const onSlotSelect = vi.fn();
+      const { grid, rerender } = await render({ view: "week", onSlotSelect });
+      const focus = grid.querySelector<HTMLElement>('[role="grid"]')!;
+      await act(async () => focus.focus());
+      await userEvent.keyboard("{End}{ArrowRight}{ArrowRight}{ArrowRight}");
+      const was = named(grid);
+      expect(was).toBe("Saturday, March 14, 11:30 PM");
+      await act(async () => focus.blur());
+      await act(async () => focus.focus());
+      expect(named(grid)).toBe(was);
+      await act(async () => focus.blur());
+      await rerender({ view: "day", onSlotSelect });
+      await act(async () => grid.querySelector<HTMLElement>('[role="grid"]')!.focus());
+      expect(named(grid)).toBe("Thursday, March 12, 11:30 PM");
+    });
+
     it("moves a slot with Up and Down, an hour with Page Up and Page Down, and to the day's ends with Home and End", async () => {
       const { grid } = await open();
       await userEvent.keyboard("{ArrowDown}");
@@ -1473,6 +1535,7 @@ describe("TimeGrid", () => {
     fire("pointermove", 725);
     await act(async () => {});
     expect(grid.querySelector("[data-ouro-time-grid-drag]")).not.toBeNull();
+    expect(plain(grid.querySelector("[data-ouro-time-grid-drag]")!.textContent)).toBe("10:00 AM – 12:30 PM");
     fire("pointerup", 725);
     slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(725) }));
     await act(async () => {});

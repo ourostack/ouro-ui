@@ -27,3 +27,18 @@ test("squircle corners: keyframes, nested rules, slash radii, longhands and var 
   assert.match(await run(".g{border-radius:4px 8px 12px}"), /--sq-tr:8px;--sq-br:12px;--sq-bl:8px/);
   assert.doesNotMatch(await run(".h{.i{border-radius:4px}}"), /--sq/);
 });
+
+test("squircle corners: two rules in the same place that round to the same radii share one fallback sibling, written once", async () => {
+  const out = await run("@layer utilities{.a{border-radius:8px}.b{color:red}.c{border-radius:8px}}");
+  const sibling = /\.a,\.c\{--sq-tl:8px;--sq-tr:8px;--sq-br:8px;--sq-bl:8px;border-radius:calc\(8px \* 0\.543\)[^}]*\}/;
+  assert.match(out, sibling);
+  // written once: no second, separate .a{...} or .c{...} fallback sibling remains
+  assert.equal((out.match(/--sq-tl:8px/g) ?? []).length, 1);
+});
+
+test("squircle corners: the same radii in different places (a media query, a different layer) keep their own fallback siblings", async () => {
+  const out = await run("@layer utilities{.a{border-radius:8px}@media (width>=40rem){.b{border-radius:8px}}}");
+  assert.match(out, /@media \(width>=40rem\)\{\.b\{border-radius:8px\}@supports[^{]*\{\.b\{--sq-tl:8px/);
+  assert.match(out, /@supports[^{]*\{\.a\{--sq-tl:8px/);
+  assert.equal((out.match(/--sq-tl:8px/g) ?? []).length, 2);
+});

@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.555 ourostack/ouro-ui/ouro-source-rules#v1.3.555
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.557 ourostack/ouro-ui/ouro-source-rules#v1.3.557
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -263,7 +263,7 @@ The check measures the boxes the browser drew for layout that reads as broken: c
 | `off-screen` | Text or a control the screen cuts off at its left or right edge by more than 2px, where nothing scrolls to it, measured as drawn: a box around it that hides overflow cuts it first, so an ellipsis inside the screen is `clipped-text`'s.[^check-layout-limits] A box wholly off the screen, such as a closed drawer, and visually hidden text pass.[^check-layout] |
 | `duplicate-control` | Two controls in view with the same role and name in one place (the same section, group, nav, header, aside, form or dialog), such as two Close buttons on a panel.[^check-layout] Controls in repeated items (a list's rows, a table's cells, articles) each have their own, and pass; so do two links to the same place, and toggles that each open their own panel (`aria-controls`).[^check-layout-pass] |
 | `stray-scrollbar` | A region, or the page, that scrolls by 1 to 8px down, or 2 to 8px across: a scrollbar for almost nothing, often a margin, a border or a rounding that spills over.[^check-layout-limits] Text that doesn't wrap (code, a nowrap row) and a list's region (rows, messages, options) overflow by however long their content runs, and pass.[^check-layout-pass] |
-| `near-miss` | Two separate surfaces (a filled box, a framed one, a picture) that don't touch, facing each other across a gap that is more than 0 and under the page's `--ouro-gap-min`, or a surface that sits that close inside the edge of the one around it: neither touching nor clearly apart.[^check-near-miss] Surfaces that touch, overlap, nest or are a gap apart pass.[^check-near-miss-pass] So do the parts of one control group (siblings under one `group`, `radiogroup`, `toolbar` or `tablist`, or one Ouro group root such as ToggleGroup), and a small surface centred in a control's frame that is too small to hold the minimum gap on both sides, such as a Kbd inside its field; two separate groups, or a group and a surface outside it, still fail.[^check-near-miss-group] |
+| `near-miss` | Two separate surfaces (a filled box, a framed one, a picture) that don't touch, facing each other across a gap that is more than 0 and under the page's `--ouro-gap-min`, or a surface that sits that close inside the edge of the one around it: neither touching nor clearly apart.[^check-near-miss] Surfaces that touch, overlap, nest or are a gap apart pass.[^check-near-miss-pass] So do the parts of one control group (siblings under one `group`, `radiogroup`, `toolbar` or `tablist`, or one Ouro group root such as ToggleGroup), and a small surface centred in a control's frame that is too small to hold the minimum gap on both sides, such as a Kbd inside its field; two separate groups, or a group and a surface outside it, still fail.[^check-near-miss-group] A floating surface (fixed, sticky or absolutely positioned, such as a "Jump to latest" button) paired with one that scrolls under it also passes, since that gap is wherever the scroll lands, not a design gap; the same two elements as static siblings still fail.[^check-near-miss-scroll] |
 
 Line length stays opt-in ([Long lines are opt-in](#long-lines-are-opt-in)); contrast is axe's. To keep a finding on purpose, mark it with `data-ouro-allow` and a reason, as below.
 
@@ -368,7 +368,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.555
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.557
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -452,7 +452,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.555
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.557
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -462,7 +462,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.555
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.557
         with:
           merge: "true"
 ```
@@ -482,7 +482,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.555
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.557
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -560,7 +560,7 @@ Fix the findings that fail first, so a session is spent on the task and not on a
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.555
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.557
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -774,6 +774,7 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-interaction-pass]: test:test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > passes a reason tied to it or its fieldset, a busy control (aria-busy), a control moving one way at its end, one waiting for an empty field, enabled, hidden and allowed controls; test:test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > counts a field only in the control's own form or a box up to three out, short of the page, and an allow only with its reason verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > passes a reason tied to it or its fieldset, a busy control (aria-busy), a control moving one way at its end, one waiting for an empty field, enabled, hidden and allowed controls) verify:testExists(test/check-interaction-in-page.test.ts::findInteractionIssues: disabled-no-reason > counts a field only in the control's own form or a box up to three out, short of the page, and an allow only with its reason)
 [^check-near-miss]: test:test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > finds two surfaces a few pixels apart, across and down, and a surface a few pixels inside the one around it verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > finds two surfaces a few pixels apart, across and down, and a surface a few pixels inside the one around it)
 [^check-near-miss-group]: test:test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > passes the parts of one control group, and finds two groups, or a group and a surface outside it, that nearly touch verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > passes the parts of one control group, and finds two groups, or a group and a surface outside it, that nearly touch) verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > passes a small surface centred in a control's frame, and finds one that is off centre, in a frame with room, or in no control)
+[^check-near-miss-scroll]: test:test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > passes a floating button paired with content that scrolls under it, where the gap is wherever the scroll lands, but still finds the same two elements as static siblings apart verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > passes a floating button paired with content that scrolls under it, where the gap is wherever the scroll lands, but still finds the same two elements as static siblings apart)
 [^check-near-miss-pass]: test:test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > passes surfaces that touch, are a gap apart, overlap or nest, small and unfilled boxes, and the opted out verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > passes surfaces that touch, are a gap apart, overlap or nest, small and unfilled boxes, and the opted out)
 [^check-layout-limits]: registry/ouro/check/layout-check.ts verify:fileLine(registry/ouro/check/layout-check.ts, /cutPx = 2, minScroll = 1, maxScroll = 8/)
 [^hand-drawn-hero]: test:scripts/kits/source-rules.test.mjs::hand-drawn hero > flags a section or header classed as a hero, naming the registry Hero; test:scripts/kits/source-rules.test.mjs::hand-drawn hero > passes a registry Hero, other sections and a component given a hero class verify:testExists(scripts/kits/source-rules.test.mjs::hand-drawn hero > flags a section or header classed as a hero, naming the registry Hero) verify:testExists(scripts/kits/source-rules.test.mjs::hand-drawn hero > passes a registry Hero, other sections and a component given a hero class)

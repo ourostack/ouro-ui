@@ -1,0 +1,1 @@
+- Fixed: TimeGrid's +N chip list stays compact, with long titles cut short before their times, instead of stretching across the screen.
