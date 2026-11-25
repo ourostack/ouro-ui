@@ -46,6 +46,8 @@ async function render(props: Partial<TimeGridProps> = {}, wrap: (grid: ReactNode
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(wrap(<TimeGrid {...base} {...props} />)));
+  // The grid opens scrolled in a resize callback, which runs before the next frame paints.
+  await new Promise((done) => requestAnimationFrame(done));
   return {
     host,
     grid: host.querySelector<HTMLElement>('[data-ouro="time-grid"]')!,
@@ -1498,6 +1500,22 @@ describe("TimeGrid", () => {
     it("starts at the slot holding now when today is the week's first day", async () => {
       const { grid } = await open({ date: "2026-03-08", now: "2026-03-08T14:10:00-04:00", workingHours: { start: 9, end: 17 } });
       expect(named(grid)).toBe("Sunday, March 8, 2:00 PM");
+    });
+
+    it("lands on a slot in view, leaving the scroll alone, when now is hours above what the grid shows", async () => {
+      const slot = vi.fn();
+      const { grid } = await render({ view: "week", onSlotSelect: slot, now: "2026-03-12T04:10:00-04:00", workingHours: { start: 8, end: 17 } }, (grid) => <div style={{ width: "1000px", height: "400px" }}>{grid}</div>);
+      const viewport = grid.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+      await expect.poll(() => viewport.scrollTop).toBeGreaterThan(0);
+      const before = viewport.scrollTop;
+      await act(async () => grid.querySelector<HTMLElement>('[role="grid"]')!.focus());
+      await expect.poll(() => viewport.scrollTop).toBe(before);
+      const body = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
+      const cell = plain(document.getElementById(grid.querySelector('[role="grid"]')!.getAttribute("aria-activedescendant")!)!.textContent);
+      const minutes = (/(\d+):(\d+) (AM|PM)/.exec(cell) ?? []).slice(1);
+      const at = (((Number(minutes[0]) % 12) + (minutes[2] === "PM" ? 12 : 0)) * 60 + Number(minutes[1])) / 1440 * body.offsetHeight;
+      expect(at).toBeGreaterThanOrEqual(before - 1);
+      expect(at).toBeLessThan(before + body.offsetHeight / 24);
     });
 
     it("starts on the day's last slot when now is in its last minutes", async () => {
