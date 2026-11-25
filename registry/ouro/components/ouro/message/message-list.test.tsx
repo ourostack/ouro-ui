@@ -2824,6 +2824,24 @@ describe("MessageList keyboard", () => {
     expect(getComputedStyle(document.getElementById("plain-item")!).borderTopLeftRadius).toBe("0px");
   });
 
+  it("tracks a plain item's aria-posinset once it starts equal to the list's own count, instead of freezing it there as an app's override", async () => {
+    // Its own aria-posinset starts equal to its place among the others, so the list recognizes it as its own
+    // count, not an app's override, and keeps it in step when an earlier message shifts its place.
+    const plain = (posinset: number) => (
+      <article key="plain" id="matches-own-count" data-ouro-message-list-item="" data-role="assistant" aria-posinset={posinset}>
+        <span data-ouro-message-author="">Grace</span>
+        <p data-ouro-message-content="">A plain item</p>
+      </article>
+    );
+    const { rerender } = await render(<Channel>{[...posts(2), plain(3)]}</Channel>);
+    expect(document.getElementById("matches-own-count")!.getAttribute("aria-posinset")).toBe("3");
+    expect(document.getElementById("matches-own-count")!.getAttribute("aria-setsize")).toBe("3");
+    // An earlier message arrives, shifting every later message's place, this one included.
+    await rerender(<Channel>{[...posts(3), plain(3)]}</Channel>);
+    expect(document.getElementById("matches-own-count")!.getAttribute("aria-posinset")).toBe("4");
+    expect(document.getElementById("matches-own-count")!.getAttribute("aria-setsize")).toBe("4");
+  });
+
   it("counts a message that arrives inside a group already there, such as today's messages, and takes it out of the Tab order", async () => {
     const day = (count: number) => (
       <MessageList label="Channel" style={{ height: 300 }}>
@@ -2923,6 +2941,43 @@ describe("MessageList keyboard", () => {
     expect(added.getAttribute("aria-setsize")).toBe("2");
     // No sync after its own render wrote any of these again.
     expect(mutated).toEqual([]);
+  });
+
+  it("does not take a lazy-typed child for a Message when its role prop is not a string, so the legacy sync gives it its place instead", async () => {
+    // Same lazy wrapper as a Server-Component-passed Message, but with a role no Message ever has: nothing
+    // tells it apart from any other lazy-typed element, so its own first render must not treat it as one.
+    const lazyMessage = (id: string, role: unknown) =>
+      createElement(
+        { $$typeof: Symbol.for("react.lazy"), _payload: Message, _init: (payload: unknown) => payload } as unknown as ComponentType,
+        { role, name: "Ana", id } as object,
+        "A lazy child",
+      );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { scroller, rerender } = await render(<Channel>{lazyMessage("lazy-role-0", "user")}</Channel>);
+    const mutated: Element[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === "attributes" && record.target instanceof Element && record.target.id === "lazy-role-1") mutated.push(record.target);
+      }
+    });
+    observer.observe(scroller, { subtree: true, attributes: true, attributeFilter: ["data-ouro-control", "data-ouro-part", "aria-posinset", "aria-setsize"] });
+    await rerender(
+      <Channel>
+        {lazyMessage("lazy-role-0", "user")}
+        {lazyMessage("lazy-role-1", 42)}
+      </Channel>,
+    );
+    await settle(scroller);
+    observer.disconnect();
+    const added = document.getElementById("lazy-role-1")!;
+    // It still ends up with the list's place and size, and Message's own control and part, but only because
+    // the legacy sync caught it after mount: its own first render left it undetected and untouched.
+    expect(added.getAttribute("data-ouro-control")).toBe("message-list");
+    expect(added.getAttribute("data-ouro-part")).toBe("item");
+    expect(added.getAttribute("aria-posinset")).toBe("2");
+    expect(added.getAttribute("aria-setsize")).toBe("2");
+    expect(mutated.length).toBeGreaterThan(0);
+    warn.mockRestore();
   });
 
   it("keeps a list inside a message to its own messages", async () => {
