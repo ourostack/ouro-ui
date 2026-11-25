@@ -666,6 +666,35 @@ describe("TimeGrid", () => {
       { id: "c3", title: "Event 3", start: at(12, "10:00"), end: at(12, "13:00") },
     ];
 
+    it("keeps a folded stack the whole day wide where no background event sits behind it", async () => {
+      const plainStack = () => stack()!.closest("li")!;
+      await render({ view: "day", events: crowd(3) }, (grid) => <div style={{ width: "130px" }}>{grid}</div>);
+      await expect.poll(stack).not.toBeNull();
+      expect(plainStack().style.insetInlineStart).toBe("");
+    });
+
+    it("keeps a folded stack out of the background lane where one sits behind it", async () => {
+      const plainStack = () => stack()!.closest("li")!;
+      const behind = [{ id: "bg", title: "Focus time", start: at(12, "08:00"), end: at(12, "13:00") }];
+      await render({ view: "day", events: crowd(3), backgroundEvents: behind }, (grid) => <div style={{ width: "130px" }}>{grid}</div>);
+      await expect.poll(() => plainStack().style.insetInlineStart).toBe("var(--ouro-time-grid-lane)");
+    });
+
+    it("measures the day again when the dates change and replace its column", async () => {
+      const { rerender } = await render({ view: "day", events: crowd(3) }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
+      await expect.poll(() => shown().length).toBe(3);
+      await rerender({ view: "week", events: crowd(3) });
+      await expect.poll(stack).not.toBeNull();
+      expect(shown()).toEqual([]);
+    });
+
+    it("places overlapping events across the whole day, as a share of 100%", async () => {
+      await render({ view: "day", events: crowd(2) }, (grid) => <div style={{ width: "240px" }}>{grid}</div>);
+      await expect.poll(() => shown().length).toBe(2);
+      const second = events()[1]!.closest("li") as HTMLElement;
+      expect(second.getAttribute("style")).toMatch(/100% - 4\.5rem/);
+    });
+
     it("puts the chip over the time of the events it holds, in a strip the shown events stay out of", async () => {
       await render({ view: "day", events: mixed }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
       await expect.poll(chip).not.toBeNull();
@@ -2216,6 +2245,7 @@ describe("TimeGrid background events", () => {
     await rerender({ ...narrow, view: "day" });
     await expect.poll(stack).not.toBeNull();
     expect(plain(stack()!.textContent)).toBe("4 crowd 9:00 – 10:20 AM");
+    expect(stack()!.getAttribute("data-background")).toBe("");
     // From the first one's start to the last one's end.
     expect(hours(stack()!)).toEqual([9, 80 / 60]);
     // The block holds the selected event, so it says so; it is the Tab stop, as the first event in time.
