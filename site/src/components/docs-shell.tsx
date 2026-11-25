@@ -31,7 +31,7 @@ const DocsHeader = lazy(() => import("./docs-header"));
  */
 // From 640px a narrower sidebar, so a tablet's page column is no narrower than a phone's; the full one from 768px. Neither takes
 // more than two fifths of the window, so large type on a narrow window leaves the page a column.
-const COLUMNS = "sm:grid sm:grid-cols-[min(16rem,40vw)_minmax(0,1fr)] sm:gap-8 lg:gap-12";
+const COLUMNS = "sm:grid sm:grid-cols-[min(16rem,40vw)_minmax(0,1fr)] gap-8";
 
 /**
  * The page's column, which the picture fills: the window less its gutters, and from 640px less the sidebar too (narrower until 768px), until the
