@@ -1507,6 +1507,13 @@ describe("TimeGrid", () => {
       expect(slot).toHaveBeenCalledTimes(1);
     });
 
+    it("draws the keyboard's slot as an empty dashed outline, not a filled card that reads as an event", async () => {
+      const { grid } = await open();
+      const style = getComputedStyle(grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!);
+      expect(style.borderStyle).toBe("dashed");
+      expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    });
+
     it("scrolls a slot clear of the sticky day header", async () => {
       const { grid } = await open();
       const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;

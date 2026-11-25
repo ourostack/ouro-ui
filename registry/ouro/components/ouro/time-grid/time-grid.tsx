@@ -1386,7 +1386,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                         data-slot="time-grid-cursor"
                         data-ouro-time-grid-slot=""
                         data-ouro-time-grid-cursor=""
-                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border-2 border-solid border-primary bg-primary/10 px-1.5 text-[11px] leading-4 text-foreground forced-colors:border-[Highlight]"
+                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border-2 border-dashed border-primary px-1.5 text-[11px] leading-4 text-muted-foreground forced-colors:border-[Highlight]"
                         style={{ top: minutesTall(cursor.minutes), height: minutesTall(slotMinutes) }}
                       >
                         {formats.time.format(formats.clock.instant(day, cursor.minutes))}
