@@ -983,7 +983,7 @@ describe("Composer quote", () => {
     expect(remove!.disabled).toBe(true);
   });
 
-  it("looks as Message's quote does once the reply is sent", async () => {
+  it("matches Message's quote in its author and excerpt once the reply is sent", async () => {
     const { host } = await render(
       <>
         <Composer label="Reply to Ana" quote={quoteOf()} onSend={() => {}} />
@@ -998,8 +998,6 @@ describe("Composer quote", () => {
     const same = (a: Element, b: Element, properties: string[]) => {
       for (const property of properties) expect(getComputedStyle(a).getPropertyValue(property), property).toBe(getComputedStyle(b).getPropertyValue(property));
     };
-    same(composer, sent, ["background-color", "border-radius", "box-shadow"]);
-    same(composer.querySelector("[data-ouro-composer-quote-bar]")!, sent.querySelector("[data-ouro-message-quote-bar]")!, ["width", "background-color", "border-radius"]);
     same(composer.querySelector("[data-ouro-composer-quote-author]")!, sent.querySelector("[data-ouro-message-quote-author]")!, ["font-size", "font-weight", "color"]);
     same(composer.querySelector("[data-ouro-composer-quote-excerpt]")!, sent.querySelector("[data-ouro-message-quote-excerpt]")!, ["font-size", "color", "text-overflow", "white-space"]);
   });

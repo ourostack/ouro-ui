@@ -58,7 +58,7 @@ The props the modes share. Type: `MessageProps`.
 | `pendingSince` | `number` |  | When the pending send started, as `Date.now()` gave it. A `MessageList` draws a long conversation's messages again as the reader scrolls; with this, a pending message drawn again after its second shows its clock at once and says nothing again. |
 | `quickReactions` | `readonly MessageAction[]` |  | Reactions at the top of the message's menu, as a row of emoji: each an action whose `icon` is the emoji and whose `label` names it ("Like"). Left and right move along the row. Put one that opens a picker of every reaction last ("More reactions"). |
 | `quickReactionsLabel` | `string` | `"Reactions"` | What screen readers hear for the row of reactions in the menu, for other languages. |
-| `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or post, above the text: a bar, the author and a line of what they wrote, as Composer's `quote` shows it before the reply is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a button, to show the quoted message. |
+| `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or post, above the text: a bar, the author and a line of what they wrote, drawn with no box. Screen readers hear it first, as "Reply to Ana, Mar 3: …". With `onActivate` it is a button, to show the quoted message. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `retryLabel` | `string` | `"Retry"` | The name of a `failed` message's retry button, for other languages. |
 | `role` (required) | `"user" \| "assistant" \| "system"` |  | Who wrote it. `user` is the person using the app: their messages sit at the end, in the primary color. `assistant` is anyone else, such as an agent, at the start. `system` is the app's own note ("Ana joined"), centered and quiet. |
@@ -430,8 +430,7 @@ interface MessageOwnProps {
   context?: ReactNode | undefined;
   /**
    * The message this one replies to, at the top of the bubble or post, above the text: a bar,
-   * the author and a line of what they wrote, as Composer's `quote` shows it before the reply
-   * is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a
+   * the author and a line of what they wrote, drawn with no box. Screen readers hear it first, as "Reply to Ana, Mar 3: …". With `onActivate` it is a
    * button, to show the quoted message.
    */
   quote?: MessageQuote | undefined;
@@ -626,7 +625,19 @@ interface MessageQuote {
    * have drawn a message far up a long conversation, call its `actionsRef.current.reveal(id, { focus: true })`.
    */
   onActivate?: (() => void) | undefined;
-  /** What screen readers hear in place of the author's name, before the excerpt. @default `Quoting ${author}` */
+  /**
+   * When the quoted message was sent, a `Date`, an ISO string or milliseconds. Drawn after the author as
+   * a `LocalDate` in the reader's time zone, and read as "Reply to Ana, Mar 3". Use `atText` for the app's own wording.
+   */
+  at?: Date | string | number | undefined;
+  /** The app's own wording for the day of `at` ("Yesterday"), drawn in a `<time dateTime>` in place of the `LocalDate`. Needs `at`. */
+  atText?: string | undefined;
+  /**
+   * A line above the quote, such as "Replied in thread: " and a `Link` or `Button` with the thread's title. It
+   * is outside the quote, so the link is its own control even when the quote has `onActivate`.
+   */
+  context?: ReactNode | undefined;
+  /** What screen readers hear in place of "Reply to" and the author's name, before the excerpt. @default `Reply to ${author}, ${day}` */
   label?: string | undefined;
 }
 ```

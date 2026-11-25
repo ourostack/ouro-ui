@@ -1,0 +1,1 @@
+- Message `quote` is drawn with no box now: a thin rule, the author and one line of the excerpt; it takes `at`, `atText` and a `context` line above it, and screen readers hear it as "Reply to <author>, <day>" in place of "Quoting <author>".

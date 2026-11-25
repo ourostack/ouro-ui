@@ -383,7 +383,7 @@ const toolbarClass =
   "group-data-[ouro-moving=shrink]/frame:motion-safe:animate-[ouro-composer-toolbar-out_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both]";
 
 // The quote: a box on the muted surface with a hairline, which fades in when it appears after the
-// composer is on screen (not with reduced motion); a quote there at mount is drawn at once. Message's quote looks the same (message.tsx).
+// composer is on screen (not with reduced motion); a quote there at mount is drawn at once.
 const quoteBoxClass =
   "flex min-w-0 items-center gap-2 rounded-ouro-inner [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-muted pe-1 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid " +
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none";

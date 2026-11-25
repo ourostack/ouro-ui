@@ -5,6 +5,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
@@ -707,7 +708,9 @@ describe("Message quote", () => {
       const author = quote.querySelector<HTMLElement>("[data-ouro-message-quote-author]")!;
       const excerpt = quote.querySelector<HTMLElement>("[data-ouro-message-quote-excerpt]")!;
       expect(bar.getAttribute("aria-hidden"), variant).toBe("true");
-      expect(bar.getBoundingClientRect().width, variant).toBe(4);
+      expect(bar.getBoundingClientRect().width, variant).toBe(2);
+      expect(getComputedStyle(quote).backgroundColor, variant).toBe("rgba(0, 0, 0, 0)");
+      expect(getComputedStyle(quote).boxShadow, variant).toBe("none");
       expect(getComputedStyle(author).fontWeight, variant).toBe("600");
       expect(author.textContent, variant).toBe("Ana Lind");
       expect(getComputedStyle(excerpt).textOverflow, variant).toBe("ellipsis");
@@ -725,8 +728,8 @@ describe("Message quote", () => {
     );
     const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
     expect(quote.querySelector("[data-ouro-message-quote-author]")!.getAttribute("aria-hidden")).toBe("true");
-    expect(quote.querySelector(".sr-only")!.textContent).toBe("Quoting Ana Lind: ");
-    expect(bubbleOf(message).textContent).toBe("Quoting Ana Lind: Ana LindLunch on Friday?Count me in.");
+    expect(quote.querySelector(".sr-only")!.textContent).toBe("Reply to Ana Lind: ");
+    expect(bubbleOf(message).textContent).toBe("Reply to Ana Lind: Ana LindLunch on Friday?Count me in.");
   });
 
   it("reads label for other languages, and shows the author's avatar before the name", async () => {
@@ -749,7 +752,7 @@ describe("Message quote", () => {
         Count me in.
       </Message>,
     );
-    const button = page.getByRole("button", { name: "Quoting Ana Lind: Lunch on Friday?" });
+    const button = page.getByRole("button", { name: "Reply to Ana Lind: Lunch on Friday?" });
     await userEvent.click(button);
     expect(onActivate).toHaveBeenCalledTimes(1);
     const element = button.element() as HTMLButtonElement;
@@ -757,12 +760,60 @@ describe("Message quote", () => {
     expect(element.getAttribute("data-ouro-control")).toBe("message");
     expect(element.getAttribute("data-ouro-part")).toBe("quote");
     expect(element.hasAttribute("data-ouro-message-quote")).toBe(true);
-    expect(bubbleOf(message).firstElementChild).toBe(element);
+    expect(bubbleOf(message).firstElementChild).toBe(element.parentElement);
     await tabFromTop();
     expect(document.activeElement).toBe(element);
     await userEvent.keyboard("{Enter}");
     expect(onActivate).toHaveBeenCalledTimes(2);
     expect(element.getBoundingClientRect().width).toBeCloseTo(bubbleOf(message).getBoundingClientRect().width - 2 * parseFloat(getComputedStyle(bubbleOf(message)).paddingInlineStart), 0);
+  });
+
+  it("reads the day with the author, drawn as a LocalDate or as the app's own words in a time element", async () => {
+    const at = Date.UTC(2026, 2, 3, 12);
+    const { message } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", at }}>
+          One
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", at, atText: "Yesterday" }}>
+          Two
+        </Message>
+      </>,
+    );
+    const quotes = [...message.parentElement!.querySelectorAll<HTMLElement>("[data-ouro-message-quote]")];
+    const times = quotes.map((quote) => quote.querySelector<HTMLElement>("[data-ouro-message-quote-day] time")!);
+    expect(times[0]!.getAttribute("datetime")).toBe(new Date(at).toISOString());
+    expect(times[1]!.textContent).toBe("Yesterday");
+    expect(times[1]!.getAttribute("datetime")).toBe(new Date(at).toISOString());
+    expect(quotes[1]!.querySelector(".sr-only")!.textContent).toBe("Reply to Ana Lind, Yesterday: ");
+    expect(quotes[0]!.querySelector(".sr-only")!.textContent).toMatch(/^Reply to Ana Lind, .+: $/);
+  });
+
+  it("draws no day for an at that is not a date", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", at: "never", atText: "Yesterday" }}>
+        Hi
+      </Message>,
+    );
+    expect(message.querySelector("[data-ouro-message-quote-day]")).toBeNull();
+    expect(message.querySelector(".sr-only")!.textContent).toBe("Reply to Ana Lind: ");
+  });
+
+  it("puts a quote's context above it, outside the button, so its link is its own control", async () => {
+    const onActivate = vi.fn();
+    const onOpen = vi.fn();
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", onActivate, context: <>Replied in thread: <Button size="inline" variant="plain" onClick={onOpen}>Friday plans</Button></> }}>
+        Hi
+      </Message>,
+    );
+    const context = message.querySelector<HTMLElement>("[data-ouro-message-quote-context]")!;
+    const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
+    expect(quote.contains(context)).toBe(false);
+    expect(context.compareDocumentPosition(quote) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await userEvent.click(page.getByRole("button", { name: "Friday plans" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onActivate).not.toHaveBeenCalled();
   });
 
   it("shows no quote without one", async () => {
@@ -800,7 +851,7 @@ describe("Message context", () => {
         Count me in.
       </Message>,
     );
-    expect(bubbleOf(message).textContent).toBe("Replied in threadQuoting Ana Lind: Ana LindLunch on Friday?Count me in.");
+    expect(bubbleOf(message).textContent).toBe("Replied in threadReply to Ana Lind: Ana LindLunch on Friday?Count me in.");
   });
 
   it.each([undefined, null, false, ""])("renders no context for %j", async (context) => {
