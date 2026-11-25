@@ -464,7 +464,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-checks", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "subsets", "sweep-shard", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "check-node", "check-node-merge", "conformance-shard", "design", "e2e-shard", "install-checks", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "subsets", "sweep-shard", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -482,9 +482,12 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   // The script tests that drive a browser run in the image; the others need none.
   assert.doesNotMatch(jobs.scripts, /container:|playwright-browsers/);
   assert.match(jobs["scripts-browser"], /\$\(node scripts\/shard\.mjs scripts-browser "\$SHARD"\)/);
-  assert.match(jobs.ci, /needs: \[plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, coverage, browser-fallback, screen-reader\]/);
+  assert.match(jobs.ci, /needs: \[plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, check-node, check-node-merge, coverage, browser-fallback, screen-reader\]/);
   assert.match(jobs.ci, /"design=\$DESIGN"/);
   assert.match(jobs.ci, /"scripts-browser=\$SCRIPTS_BROWSER"/);
+  assert.match(jobs.ci, /"check-node=\$CHECK_NODE" "check-node-merge=\$CHECK_NODE_MERGE"/);
+  assert.match(jobs["check-node"], /node scripts\/check-node-coverage\.mjs run "\$GROUP"/);
+  assert.match(jobs["check-node-merge"], /node scripts\/check-node-coverage\.mjs merge \.tmp\/check-coverage/);
 });
 
 test("the browser action restores, downloads only what is missing with retries, saves on a miss, then installs system packages from their own cache", () => {
@@ -1902,7 +1905,7 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   // The ci check counts their skip as a pass only when the plan asked for it.
   assert.match(jobs.ci, /^ {6}DESIGN_RUN: \$\{\{ needs\.plan\.outputs\.design != 'false' \}\}$/m);
   const parts = stepScript(jobs.ci, "Every part passed");
-  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "skipped", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "" };
+  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "skipped", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", CHECK_NODE: "success", CHECK_NODE_MERGE: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "" };
   assert.equal(runStep(parts, { ...ok, DESIGN_RUN: "false" }).status, 0);
   for (const [run, result] of [["true", "skipped"], ["false", "failure"], ["false", "cancelled"]]) assert.equal(runStep(parts, { ...ok, DESIGN_RUN: run, DESIGN: result }).status, 1, `${run} ${result}`);
   // Each waiver gives its reason.
@@ -1914,12 +1917,12 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
 test("the ci check passes only when its parts passed and the browser shards' merged coverage reaches 100%, or the full suite decides", () => {
   const jobs = ciJobs();
   const block = jobs.ci;
-  assert.match(block, /^ {4}needs: \[plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, coverage, browser-fallback, screen-reader\]$/m);
+  assert.match(block, /^ {4}needs: \[plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, check-node, check-node-merge, coverage, browser-fallback, screen-reader\]$/m);
   const parts = stepScript(block, "Every part passed");
-  const passed = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "false" };
+  const passed = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", CHECK_NODE: "success", CHECK_NODE_MERGE: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "false" };
   assert.equal(runStep(parts, passed).status, 0);
   assert.equal(runStep(parts, { ...passed, FALLBACK: "true", BROWSER_FALLBACK: "success" }).status, 0);
-  for (const failed of [{ BROWSER: "failure" }, { SUBSETS: "failure" }, { SUBSETS: "skipped" }, { CHECKS: "cancelled" }, { ATTRIBUTION: "failure" }, { ATTRIBUTION: "skipped" }, { DESIGN: "failure" }, { DESIGN: "skipped" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }, { COVERAGE: "failure" }, { SCREEN_READER: "failure" }, { SCREEN_READER_RUN: "true", SCREEN_READER: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "cancelled" }]) {    const result = runStep(parts, { ...passed, ...failed });
+  for (const failed of [{ BROWSER: "failure" }, { SUBSETS: "failure" }, { SUBSETS: "skipped" }, { CHECKS: "cancelled" }, { ATTRIBUTION: "failure" }, { ATTRIBUTION: "skipped" }, { DESIGN: "failure" }, { DESIGN: "skipped" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }, { CHECK_NODE: "failure" }, { CHECK_NODE_MERGE: "failure" }, { CHECK_NODE_MERGE: "skipped" }, { COVERAGE: "failure" }, { SCREEN_READER: "failure" }, { SCREEN_READER_RUN: "true", SCREEN_READER: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "cancelled" }]) {    const result = runStep(parts, { ...passed, ...failed });
     assert.equal(result.status, 1, JSON.stringify(failed));
     assert.match(result.stdout, /^::error::The [\w-]+ jobs did not pass/m);
   }
@@ -2559,7 +2562,7 @@ test("ci.yml calls the lane for a pull request from this repository only, with i
   assert.deepEqual(failed.output, { screen_reader: "all", screen_reader_specs: "all" });
   // The ci check passes the lane's skip only when the plan selected no spec, and counts every other result.
   const parts = stepScript(ci.ci, "Every part passed");
-  const passing = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false" };
+  const passing = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", CHECK_NODE: "success", CHECK_NODE_MERGE: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false" };
   assert.match(ci.ci, /^ {6}SCREEN_READER_RUN: \$\{\{ needs\.plan\.outputs\.screen_reader != 'none' \}\}$/m);
   assert.equal(runStep(parts, passing).status, 0);
   assert.equal(runStep(parts, { ...passing, SCREEN_READER_RUN: "true" }).status, 1, "a selected lane that was skipped fails ci");
@@ -2960,7 +2963,7 @@ test("a pull request that changes nothing the browser tests read skips the brows
   assert.match(jobs.ci, /^ {6}browser: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   assert.match(jobs.ci, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   const parts = stepScript(jobs.ci, "Every part passed");
-  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "skipped", SUBSETS: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "" };
+  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "skipped", SUBSETS: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", CHECK_NODE: "success", CHECK_NODE_MERGE: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "" };
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false" }).status, 0);
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "true" }).status, 1);
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false", BROWSER: "failure" }).status, 1);

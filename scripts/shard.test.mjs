@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, browserBalance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, browserBalance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, ownJobs, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
@@ -123,8 +123,8 @@ test("every script test file the runner finds runs in exactly one scripts shard,
   const cli = (...args) => spawnSync(process.execPath, [join(root, "scripts/shard.mjs"), ...args], { cwd: root, encoding: "utf8" }).stdout.trim().split("\n");
   // CI runs three script shards side by side; scripts-browser runs the files that drive a browser.
   const ran = [cli("scripts", "1/3"), cli("scripts", "2/3"), cli("scripts", "3/3"), cli("scripts-browser")].flat();
-  // Sorted and compared whole, so a file in two shards, or a file no shard runs, fails.
-  assert.deepEqual(ran.sort(), found);
+  // Sorted and compared whole, so a file in two shards, or a file no shard runs, fails. The files that run as their own jobs are the only ones left out.
+  assert.deepEqual([...ran, ...ownJobs].sort(), found);
 });
 
 /** A test file as Vitest's sequencer sees it. */

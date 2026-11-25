@@ -1016,6 +1016,149 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
+  check-node:
+    # Ouro check's Node tests (scripts/check/*.test.mts), in the pieces of scripts/check-node-coverage.mjs, in
+    # Playwright's image. Each piece keeps V8's raw coverage; check-node-merge holds the merge to 100%. Part of
+    # the ci check.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [pages-a, pages-b, rules-command, watch-small, check]
+    name: check (node ${{ matrix.group }})
+    env:
+      GROUP: ${{ matrix.group }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-tarball
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
+      - name: Ouro check's Node tests, one piece
+        run: node scripts/check-node-coverage.mjs run "$GROUP"
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: check-coverage-${{ matrix.group }}
+          path: .tmp/check-coverage/${{ matrix.group }}
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+  check-node-merge:
+    # Whether the pieces' raw coverage, merged by Node's own test runner, reaches 100% of the lines, branches and
+    # functions the single run of all twelve files was held to. Same image and workspace path as the pieces, since
+    # V8's coverage names files by absolute path. Part of the ci check.
+    needs: [plan, check-node]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    name: check (node coverage)
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-tarball
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: check-coverage-*
+          path: .tmp/check-coverage-all
+      - name: Merge and hold to 100%
+        run: |
+          mkdir -p .tmp/check-coverage
+          for dir in .tmp/check-coverage-all/check-coverage-*; do mv "$dir" ".tmp/check-coverage/${dir##*/check-coverage-}"; done
+          node scripts/check-node-coverage.mjs merge .tmp/check-coverage
   coverage:
     # Whether the browser shards' merged coverage reaches 100% (scripts/coverage-merge.mjs). On a
     # reduced pull request that falls short, a line may be covered only by another component's
@@ -1459,7 +1602,7 @@ jobs:
     # when the plan skipped the browser shards, the design shards or the screen-reader lane because nothing they read changed,
     # without them. Its
     # outputs tell motion-coverage which shards' motion evidence to read, if any.
-    needs: [plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, coverage, browser-fallback, screen-reader]
+    needs: [plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, check-node, check-node-merge, coverage, browser-fallback, screen-reader]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1484,6 +1627,8 @@ jobs:
           SUBSETS: ${{ needs.subsets.result }}
           SCRIPTS: ${{ needs.scripts.result }}
           SCRIPTS_BROWSER: ${{ needs.scripts-browser.result }}
+          CHECK_NODE: ${{ needs.check-node.result }}
+          CHECK_NODE_MERGE: ${{ needs.check-node-merge.result }}
           COVERAGE: ${{ needs.coverage.result }}
           BROWSER_FALLBACK: ${{ needs.browser-fallback.result }}
           SCREEN_READER: ${{ needs.screen-reader.result }}
@@ -1496,7 +1641,7 @@ jobs:
           if [ "$DESIGN_RUN" = false ] && [ "$DESIGN" = skipped ]; then DESIGN=success; fi
           # And the screen-reader lane, which the plan skipped when no screen-reader spec can see the change, or for a fork.
           if [ "$SCREEN_READER_RUN" = false ] && [ "$SCREEN_READER" = skipped ]; then SCREEN_READER=success; fi
-          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "subsets=$SUBSETS" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE" "screen-reader=$SCREEN_READER"; do
+          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "subsets=$SUBSETS" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "check-node=$CHECK_NODE" "check-node-merge=$CHECK_NODE_MERGE" "coverage=$COVERAGE" "screen-reader=$SCREEN_READER"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
               failed=1
