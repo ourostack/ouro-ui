@@ -12,7 +12,15 @@ export const CEILINGS = {
 const raised = before.replace("86_430", "87_000");
 const reworded = before.replace('"dashboard-page"', '"dashboard-page" /* renamed */');
 
-test("declaredSum sums every integer literal in a named const's statement, underscores and all", () => {
+const ceilings = `
+const CSS_CEILINGS = { voyage: 55 * 1024, docs: 56 * 1024 } as const;
+`;
+// A docs ceiling that rose a KiB while voyage fell a KiB in the same edit: a real, unjustified raise of
+// docs, but the two moves are the same size, so any sum of the whole declaration — digit or evaluated —
+// holds unchanged. Only an anchor read with declaredSum's own `key` can see it.
+const swapped = ceilings.replace("voyage: 55 * 1024", "voyage: 54 * 1024").replace("docs: 56 * 1024", "docs: 57 * 1024");
+
+test("declaredSum evaluates every + or * arithmetic run in a named const's statement, underscores and all", () => {
   assert.equal(declaredSum(before, "CEILINGS"), 86_430 + 1024 + 10_598 + 512);
 });
 
@@ -23,6 +31,27 @@ test("declaredSum returns null when the name is not declared, and ignores number
 
 test("declaredSum holds across a reword that touches no number", () => {
   assert.equal(declaredSum(reworded, "CEILINGS"), declaredSum(before, "CEILINGS"));
+});
+
+test("declaredSum evaluates a `*` run by its real product, not its digit sum, so a KiB ceiling reads in bytes", () => {
+  assert.equal(declaredSum(ceilings, "CSS_CEILINGS"), 55 * 1024 + 56 * 1024);
+  assert.notEqual(declaredSum(ceilings, "CSS_CEILINGS"), 55 + 1024 + 56 + 1024); // not the raw digit sum (2159)
+});
+
+test("declaredSum reads one key's own run with `key`, catching a raise that an equal-sized fall elsewhere in the same object hides from the whole-declaration sum", () => {
+  // The whole-object sum (evaluated or digit-summed) is unchanged, voyage and docs moved by the same KiB:
+  assert.equal(declaredSum(swapped, "CSS_CEILINGS"), declaredSum(ceilings, "CSS_CEILINGS"));
+  // declaredSum(text, name, key) still sees docs rise on its own, so an anchor naming key: "docs" catches it.
+  assert.equal(declaredSum(ceilings, "CSS_CEILINGS", "docs"), 56 * 1024);
+  assert.equal(declaredSum(swapped, "CSS_CEILINGS", "docs"), 57 * 1024);
+  assert.ok(declaredSum(swapped, "CSS_CEILINGS", "docs") > declaredSum(ceilings, "CSS_CEILINGS", "docs"));
+});
+
+test("declaredSum's key reads docs on its own, never matching docsShell or docsPage", () => {
+  const shaped = `const CSS_CEILINGS = { docs: 56 * 1024, docsShell: 28 * 1024, docsPage: 38 * 1024 } as const;`;
+  assert.equal(declaredSum(shaped, "CSS_CEILINGS", "docs"), 56 * 1024);
+  assert.equal(declaredSum(shaped, "CSS_CEILINGS", "docsShell"), 28 * 1024);
+  assert.equal(declaredSum(shaped, "CSS_CEILINGS", "docsPage"), 38 * 1024);
 });
 
 test("ceilingRatchetProblems flags an anchor whose sum rose, naming it and the fix", () => {
