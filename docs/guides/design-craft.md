@@ -78,6 +78,22 @@ How an Ouro app runs the loop: start the app on made-up data with hot reload and
 
 Give a door agents use the same loop, with fresh agents in the person's seat: whoever owns the thing gives a fresh agent a real task, reads the transcript, makes one small change and runs it again. Add what that teaches to Ouro AX as a claim with its evaluation ([how a claim enters `must`](ax-standard.md#how-a-claim-enters-must)), so every door gets it.
 
+## Approve once, machines check the rest
+
+Reviews should grow with the number of design decisions a screen makes, not with screens × states × themes × platforms. One question needs the person: "is this what I want?" The rest is a check.
+
+- **Show the real production build.** Open the mock on made-up data in the renderer the person actually uses: the app's own production build, in its real WebView, never a dev-only page. A build that only looks right in a browser's dev server hasn't been judged.
+- **Save what was approved.** When the person approves a surface, save its captures with their words, in light and dark, so the next round has something to hold the work to.
+- **Let the Ouro check catch what a person shouldn't have to.** Run [Ouro check](guardrails.md#the-screen-check) for the invariants that hold at every width and state: nothing overlaps, text fits, badges clear their labels, spacing stays on the [4-point scale](guardrails.md#design-rules). Where the app ships on more than one renderer (WebKit, Chromium, WebView2, Android's WebView), compare their screenshots and treat a difference as a bug to fix, not a question for the person: see the [cross-renderer comparison](#cross-renderer-comparison) below.
+- **Ask jobs of a reference, not items.** Follow [the bar](#the-bar): take a reference's reasons and jobs, not its items.
+- **Ask the person again only when an approved picture would change, or a surface has none.** Bring the surfaces that need a look into one sheet, beside their reference, instead of a stream of separate asks.
+- **Turn each "no" into a check.** Record the person's decision as a `decisions` entry in `ouro-check.json` ([keep a decision as a check](guardrails.md#keep-a-decision-as-a-check)), so the same kind of finding never needs a person's eyes again and each round's review load falls.
+- **Run screen work only on a machine nobody is using.** Don't drive the person's own screen to capture or check it: run a second, headless instance ([watch it while you iterate](guardrails.md#watch-it-while-you-iterate)).
+
+### Cross-renderer comparison
+
+A corner, a shadow or a fallback that one engine draws differently from another is a bug, not a design question: fix it without asking anyone. `test/screenshots.visual.test.tsx` already runs this comparison for Ouro HX: a component that opts in with `parameters.screenshot.webkit` gets its story captured in both Chromium and WebKit, compared against committed baselines (`test/__screenshots__/**/*-linux.png`), so a renderer-only regression, such as a squircle fallback that draws square corners in one engine, fails before it reaches a person.
+
 ## Steal, don't copy
 
 Desk's [evidence discipline](https://github.com/ourostack/desk/blob/main/plugins/desk/skills/evidence-discipline/SKILL.md) holds the general rule: work out why prior art works for the people who use it, and make that reason yours. For a screen or a door:
