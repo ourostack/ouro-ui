@@ -353,7 +353,17 @@ export async function picture(page: Page, index: number, attributes?: string): P
     });
   }).catch(() => false);
   if (!clear) return null;
-  const png = await handle.screenshot({ animations: "disabled", caret: "hide", timeout: 15_000 }).catch(() => null);
+  // WebKit spends about a second on an element's own screenshot however small it is, and far less on a clip of the page
+  // with the same pixels, so an element wholly inside the viewport is clipped, and any other is taken as an element.
+  const view = await handle.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const x = Math.floor(r.left);
+    const y = Math.floor(r.top);
+    const fits = x >= 0 && y >= 0 && Math.ceil(r.right) <= window.innerWidth && Math.ceil(r.bottom) <= window.innerHeight;
+    return fits ? { x, y, width: Math.ceil(r.right) - x, height: Math.ceil(r.bottom) - y } : null;
+  }).catch(() => null);
+  const shot = { animations: "disabled", caret: "hide", timeout: 15_000 } as const;
+  const png = await (view && view.width > 0 && view.height > 0 ? page.screenshot({ clip: view, ...shot }) : handle.screenshot(shot)).catch(() => null);
   if (!png) return null;
   // Scrolling it into view can wake the part of the page it is in (an island hydrates and an avatar's picture loads), so a
   // picture of an element whose attributes changed since it was described shows another state than its look's.
