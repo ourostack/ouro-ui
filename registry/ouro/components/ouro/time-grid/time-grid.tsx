@@ -1018,7 +1018,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       // A day too narrow to give each of its overlapping events a readable width lets them overlap in steps, each later one on top of the last, instead of splitting the width into slivers.
       const step = `max(0.75rem, min(${share / 100} * ${whole}, (${whole} - ${overlapMinWidth}) / ${Math.max(placed.columns - 1, 1)}))`;
       const startAt = !stepped ? `${placed.column * share}%` : placed.columns > 1 ? `calc(${step} * ${placed.column})` : "0%";
-      const widthAt = !stepped ? `${placed.span * share}%` : placed.columns > 1 ? `min(max(${(placed.span * share) / 100} * ${whole}, ${overlapMinWidth}), ${whole} - ${startAt})` : whole;
+      const widthAt = !stepped ? `${placed.span * share}%` : placed.columns > 1 ? `min(max(${(placed.span * share) / 100} * ${whole}, ${overlapMinWidth}), ${whole} - ${startAt})` : reserved.has(placed.key) ? `calc${whole}` : whole;
       // The text of an event a later one steps over ends where that one starts, so it is never drawn under another event.
       // Stryker disable next-line EqualityOperator: a freed column is reused, so an event in a later column never merely touches this one, so no filter operand, and no single-column or filter-less case, changes which event covers this one, and < against <= and > against >= place the same events. The stepped test below pins the rest.
       const coveredBy = stepped ? placements.filter((other) => other.column > placed.column && other.top < placed.bottom && other.bottom > placed.top).sort((one, two) => one.column - two.column)[0] : undefined;

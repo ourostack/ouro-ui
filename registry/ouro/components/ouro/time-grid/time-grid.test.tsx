@@ -606,6 +606,15 @@ describe("TimeGrid", () => {
       expect([chip(), stack()]).toEqual([null, null]);
     });
 
+    it("keeps a width on the one event a narrow day shows beside its chip", async () => {
+      await render({ view: "day", events: crowd(3) }, (grid) => <div style={{ width: "190px", height: "600px" }}>{grid}</div>);
+      await expect.poll(() => chip()?.getBoundingClientRect().width).toBeGreaterThan(0);
+      await expect.poll(shown).toEqual(["Event 0"]);
+      const lone = events().find((element) => element.getAttribute("data-ouro-part") !== "more")!.closest("li")!;
+      expect(lone.style.width).not.toBe("");
+      expect(lone.getBoundingClientRect().width).toBeGreaterThan(48);
+    });
+
     it("fills its whole strip, with its count on one line", async () => {
       await render({ view: "day", events: crowd(5) }, (grid) => <div style={{ width: "260px", height: "600px" }}>{grid}</div>);
       await expect.poll(() => chip()?.getBoundingClientRect().width).toBeGreaterThan(0);
