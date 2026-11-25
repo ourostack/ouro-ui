@@ -1954,6 +1954,12 @@ describe("TimeGrid", () => {
     await expect.poll(() => getComputedStyle(head).backdropFilter).toBe("none");
   });
 
+  it("covers the hour labels with an opaque corner cell where they scroll under the glass header", async () => {
+    await render();
+    const corner = viewport().querySelector<HTMLElement>('[data-slot="time-grid-corner"]')!;
+    expect(getComputedStyle(corner).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  });
+
   it("tells each tone's start bar apart under forced colours, where every colour becomes the system's", async () => {
     await commands.emulateMedia({ forcedColors: "active" });
     const tones = ["primary", "secondary", "success", "warning", "destructive"] as const;
