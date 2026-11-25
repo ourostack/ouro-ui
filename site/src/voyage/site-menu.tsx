@@ -193,6 +193,12 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
   useSheetShown(list, (on) => {
     cancelAnimationFrame(frame.current);
     if (!on) return;
+    // Above the link, Crossfade's own height (site-nav.tsx) can still be settling a frame after a fresh mount: its
+    // ResizeObserver reports asynchronously, not in this same commit, so the box above the link it sits in can grow
+    // after this first frame. Wait for the geometry to read the same twice running before scrolling to it, so a
+    // still-settling layout above the link does not bake in a stale position (#3628 follow-up, webkit: #3684).
+    let lastTop: number | undefined;
+    let lastBottom: number | undefined;
     const reveal = (): boolean => {
       if (!list.current) return true;
       const link = list.current.querySelector<HTMLElement>('[aria-current="page"]:not([inert] *)');
@@ -207,6 +213,10 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
       const box = scroller.getBoundingClientRect();
       const spot = link.getBoundingClientRect();
       const top = box.top + (scroller.querySelector<HTMLElement>("[data-site-menu-pinned]")?.offsetHeight ?? 0);
+      const settled = lastTop === top && lastBottom === spot.bottom;
+      lastTop = top;
+      lastBottom = spot.bottom;
+      if (!settled) return false;
       if (spot.bottom > box.bottom - 16) {
         const third = spot.top - top - (box.bottom - top) / 3;
         const heading = (link.closest("[data-site-menu-group]")?.getBoundingClientRect().top ?? -Infinity) - top - 8;
