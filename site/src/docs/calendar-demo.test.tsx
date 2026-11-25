@@ -50,7 +50,9 @@ describe("the calendar page", () => {
       await renderPage("/docs/calendar-demo/");
       await page.getByRole("radio", { name: "Loading" }).click();
       await expect.poll(() => document.querySelector("[data-site-calendar-demo] [aria-busy=true]")).not.toBeNull();
-      await expect.element(page.getByText("Loading your week")).toBeInTheDocument();
+      // Moment's `announce` prop also speaks this title to the shared live region, so a plain
+      // text query can match twice; scope to the heading, as Moment's own tests do.
+      await expect.element(page.getByRole("heading", { level: 3, name: "Loading your week" })).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
