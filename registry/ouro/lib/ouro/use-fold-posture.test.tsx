@@ -90,6 +90,63 @@ describe("isFoldHostInput", () => {
     const bad = { frame: null, isActive: true };
     expect(isFoldHostInput({ hinge: { kind: "none" }, regions: [good, bad] })).toBe(false);
   });
+
+  it("rejects a region whose frame is a function carrying numeric x, y, width and height properties", () => {
+    // A function is neither an object (by typeof) nor null, so only the "is this an object" check rejects it;
+    // proof that check runs, not just the null check, since a function can carry arbitrary own properties that
+    // would otherwise read as a well-formed frame once destructured.
+    const frame = Object.assign(() => {}, { x: 0, y: 0, width: 1, height: 1 });
+    expect(isFoldHostInput({ hinge: { kind: "none" }, regions: [{ frame, isActive: true }] })).toBe(false);
+  });
+
+  it("rejects a detail that is a function carrying hinge and regions properties", () => {
+    // Same proof as the frame case above, one level up: a function is neither an object nor null, so only the
+    // "is this an object" check rejects it, even though it can carry a well-formed hinge and regions.
+    const detail = Object.assign(() => {}, { hinge: { kind: "none" }, regions: [] });
+    expect(isFoldHostInput(detail)).toBe(false);
+  });
+
+  it("rejects a hinge that is a function carrying a well-formed kind", () => {
+    // Same proof as the detail and frame cases above, for isFoldHinge's own "is this an object" check: a
+    // function is neither an object nor null, so only that check rejects it, even though it can carry a kind
+    // that would otherwise read as well-formed once destructured.
+    const hinge = Object.assign(() => {}, { kind: "none" });
+    expect(isFoldHostInput({ hinge, regions: [] })).toBe(false);
+  });
+
+  it("rejects a region that is a function carrying a well-formed frame and isActive", () => {
+    // Same proof again, for isFoldRegion's own "is this an object" check on the region itself, as distinct
+    // from the nested check on its frame covered above.
+    const region = Object.assign(() => {}, { frame: { x: 0, y: 0, width: 1, height: 1 }, isActive: true });
+    expect(isFoldHostInput({ hinge: { kind: "none" }, regions: [region] })).toBe(false);
+  });
+
+  it("rejects a hinge with an unknown kind even when it also carries a numeric angleDegrees", () => {
+    // Proves the kind check runs before the partiallyOpen/angleDegrees check: a numeric angleDegrees alone
+    // isn't enough to accept a hinge whose kind isn't "partiallyOpen".
+    expect(isFoldHostInput({ hinge: { kind: "sideways", angleDegrees: 100 }, regions: [] })).toBe(false);
+  });
+});
+
+describe("useFoldPosture before any host has ever reported", () => {
+  // No earlier test in this file ever mounts a component (every test above only calls the pure isFoldHostInput
+  // directly), so the module's one host-input record is still genuinely null here, not just reset to a
+  // none/empty shape: the only place in the whole file that exercises the hinge and regions fallbacks for real.
+  it("resolves to single on the no-rules branch", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe width={400} height={800} />));
+    expect(container.textContent).toBe("single");
+    await act(async () => root.unmount());
+  });
+
+  it("resolves to single on the with-rules branch", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<RulesProbe width={400} height={800} rules={{ minimumPaneLength: 260, foldMargin: 24, tabletopAngles: [60, 150] }} />));
+    expect(container.textContent).toBe("single");
+    await act(async () => root.unmount());
+  });
 });
 
 describe("useFoldHostInput", () => {
@@ -120,8 +177,13 @@ describe("useFoldHostInput", () => {
     const container = document.body.appendChild(document.createElement("div"));
     const root = createRoot(container);
     await act(async () => root.render(<HostInputProbe />));
-    // Dispatched by its literal name, independent of the imported constant, so a change to that constant's value
-    // cannot make this test pass by accident.
+    // Reset through the real constant first, so a leaked report from an earlier test cannot already read
+    // "fullyOpen" by coincidence once this test's own dispatch below is checked.
+    await act(async () => reportFoldInput({ hinge: { kind: "none" }, regions: [] }));
+    expect(container.textContent).toBe("none");
+    // Dispatched by its literal name, independent of the imported constant: if the constant's own value were
+    // wrong, the listener would subscribe to that wrong name and this dispatch would silently do nothing,
+    // leaving the "none" set above in place instead of advancing to "fullyOpen".
     await act(
       async () =>
         void window.dispatchEvent(new CustomEvent("ouro-fold-input", { detail: { hinge: { kind: "fullyOpen" }, regions: [] } })),
@@ -154,10 +216,51 @@ describe("useFoldPosture", () => {
     await act(async () => root.unmount());
   });
 
+  it("picks up the host's hinge over the fallback, once one is reported, on the no-rules branch", async () => {
+    // Isolates the hinge fallback from the regions one: an inactive region only splits the screen when the
+    // hinge is bent, so a "tabletop" result here can only come from the real reported hinge reaching
+    // resolveFoldPosture, not the { kind: "none" } fallback (which is never bent).
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe width={400} height={800} />));
+    // A prior test's report lands on this one: start from an empty report, taken only once this probe's
+    // listener is attached, so the leftover state below is the only one a later test can inherit.
+    await act(async () => reportFoldInput({ hinge: { kind: "none" }, regions: [] }));
+    await act(async () =>
+      reportFoldInput({
+        hinge: { kind: "partiallyOpen", angleDegrees: 100 },
+        regions: [{ frame: { x: 0, y: 390, width: 400, height: 20 }, isActive: false }],
+      }),
+    );
+    expect(container.textContent).toBe("tabletop");
+    await act(async () => root.unmount());
+  });
+
+  it("picks up the host's regions over the fallback, once some are reported, on the no-rules branch", async () => {
+    // Isolates the regions fallback from the hinge one: with a hinge that is never bent, only an active region
+    // the real report carries can split the screen, so "tabletop" here can only come from the real regions
+    // reaching resolveFoldPosture, not the [] fallback.
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe width={400} height={800} />));
+    await act(async () => reportFoldInput({ hinge: { kind: "none" }, regions: [] }));
+    await act(async () =>
+      reportFoldInput({
+        hinge: { kind: "none" },
+        regions: [{ frame: { x: 0, y: 390, width: 400, height: 20 }, isActive: true }],
+      }),
+    );
+    expect(container.textContent).toBe("tabletop");
+    await act(async () => root.unmount());
+  });
+
   it("resolves again as the host's report changes", async () => {
     const container = document.body.appendChild(document.createElement("div"));
     const root = createRoot(container);
     await act(async () => root.render(<Probe width={400} height={800} />));
+    // A prior test's report lands on this one: start from an empty report, taken only once this probe's
+    // listener is attached.
+    await act(async () => reportFoldInput({ hinge: { kind: "none" }, regions: [] }));
     expect(container.textContent).toBe("single");
     await act(async () =>
       reportFoldInput({
@@ -178,6 +281,42 @@ describe("useFoldPosture", () => {
     // from an empty report, taken only once this probe's listener is attached.
     await act(async () => reportFoldInput({ hinge: { kind: "none" }, regions: [] }));
     expect(container.textContent).toBe("single");
+    await act(async () => root.unmount());
+  });
+
+  it("picks up the host's hinge over the fallback, once one is reported, on the custom-rules branch", async () => {
+    // Same proof as the no-rules hinge test above, with a rules argument supplied, so it exercises the other of
+    // the two duplicated hinge-and-regions object literals.
+    const rules: OuroFoldRules = { minimumPaneLength: 260, foldMargin: 24, tabletopAngles: [60, 150] };
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<RulesProbe width={400} height={800} rules={rules} />));
+    await act(async () => reportFoldInput({ hinge: { kind: "none" }, regions: [] }));
+    await act(async () =>
+      reportFoldInput({
+        hinge: { kind: "partiallyOpen", angleDegrees: 100 },
+        regions: [{ frame: { x: 0, y: 390, width: 400, height: 20 }, isActive: false }],
+      }),
+    );
+    expect(container.textContent).toBe("tabletop");
+    await act(async () => root.unmount());
+  });
+
+  it("picks up the host's regions over the fallback, once some are reported, on the custom-rules branch", async () => {
+    // Same proof as the no-rules regions test above, with a rules argument supplied, so it exercises the other
+    // of the two duplicated hinge-and-regions object literals.
+    const rules: OuroFoldRules = { minimumPaneLength: 260, foldMargin: 24, tabletopAngles: [60, 150] };
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<RulesProbe width={400} height={800} rules={rules} />));
+    await act(async () => reportFoldInput({ hinge: { kind: "none" }, regions: [] }));
+    await act(async () =>
+      reportFoldInput({
+        hinge: { kind: "none" },
+        regions: [{ frame: { x: 0, y: 390, width: 400, height: 20 }, isActive: true }],
+      }),
+    );
+    expect(container.textContent).toBe("tabletop");
     await act(async () => root.unmount());
   });
 

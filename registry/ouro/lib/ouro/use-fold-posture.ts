@@ -85,9 +85,26 @@ function useFoldPosture(size: { width: number; height: number }, rules?: OuroFol
   return useMemo(
     () =>
       resolveFoldPosture(
+        // Stryker disable next-line ConditionalExpression: resolveFoldPosture destructures rules with a default
+        // value (`rules = standardFoldRules`), which falls back for an explicit `rules: undefined` exactly as it
+        // does for the key's absence; always taking the branch below changes nothing when rules is undefined.
         rules === undefined
-          ? { size, hinge: input?.hinge ?? { kind: "none" }, regions: input?.regions ?? [] }
-          : { size, hinge: input?.hinge ?? { kind: "none" }, regions: input?.regions ?? [], rules },
+          ? {
+              size,
+              // Stryker disable next-line ObjectLiteral,StringLiteral: this fallback only ever applies once
+              // useFoldHostInput's input is null, at which point its regions fallback below is always empty
+              // too, so resolveFoldPosture's hinge.kind checks never see an active region to split on; { kind:
+              // "none" } and {} (or "none" and "") always resolve to the same single posture here.
+              hinge: input?.hinge ?? { kind: "none" },
+              regions: input?.regions ?? [],
+            }
+          : {
+              size,
+              // Stryker disable next-line ObjectLiteral,StringLiteral: same as the no-rules branch above.
+              hinge: input?.hinge ?? { kind: "none" },
+              regions: input?.regions ?? [],
+              rules,
+            },
       ),
     [size, input, rules],
   );
