@@ -675,6 +675,49 @@ describe("TimeGrid", () => {
       expect(onEventSelect.mock.calls[0]![0].id).toBe("c3");
     });
 
+    it("folds by the day's width on the render that mounts, without waiting for a ResizeObserver notification", async () => {
+      // A stand-in that never calls back: if the fold depended only on the observer's own
+      // notification, dayWidth would stay 0 and every event would draw unfolded forever. Folding
+      // here proves the width is read once, synchronously, inside the layout effect itself, before
+      // the first paint, rather than only inside the observer's callback once it lands.
+      const RealResizeObserver = globalThis.ResizeObserver;
+      class SilentResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      globalThis.ResizeObserver = SilentResizeObserver as unknown as typeof ResizeObserver;
+      try {
+        await render({ view: "day", events: crowd(5) }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
+        expect(shown()).toEqual(["Event 0", "Event 1"]);
+        expect(plain(chip()!.textContent)).toBe("+3");
+      } finally {
+        globalThis.ResizeObserver = RealResizeObserver;
+      }
+    });
+
+    it("still folds at mount when only one of the week's days has events to fold", async () => {
+      // A work week with four empty days and one crowded one: the guard that decides whether to
+      // measure synchronously looks for any day with events to fold, not every day. A guard that
+      // required every day to have events would skip the synchronous measure here, since four of
+      // the five are empty, and the crowded day would draw unfolded until the observer's own
+      // notification arrived.
+      const RealResizeObserver = globalThis.ResizeObserver;
+      class SilentResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      globalThis.ResizeObserver = SilentResizeObserver as unknown as typeof ResizeObserver;
+      try {
+        await render({ view: "work-week", events: crowd(5) }, (grid) => <div style={{ width: "394px" }}>{grid}</div>);
+        expect([shown(), chip()]).toEqual([[], null]);
+        expect(stack()).not.toBeNull();
+      } finally {
+        globalThis.ResizeObserver = RealResizeObserver;
+      }
+    });
+
     it("keeps an arrow key on the +N chip for the grid's own movement, never opening its list", async () => {
       await render({ view: "day", events: crowd(5) }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
       await expect.poll(shown).toEqual(["Event 0", "Event 1"]);
