@@ -249,6 +249,7 @@ export function OuroProvider({
       if (quietProviders === 0) document.documentElement.removeAttribute("data-ouro-quiet");
     };
   }, [quiet]);
+  // Stryker disable next-line ArrayDeclaration: installSquircleCapsules takes only document, a stable reference, so any constant array runs this effect alike.
   useEffect(() => installSquircleCapsules(document), []);
   const tooltips = (
     <Tooltip.Provider>
