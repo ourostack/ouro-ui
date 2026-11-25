@@ -126,6 +126,18 @@ describe("home page", () => {
     });
   });
 
+  it("leaves a docs page's column wide enough to use when type is doubled on a narrow window", async () => {
+    await page.viewport(700, 900);
+    document.documentElement.style.fontSize = "200%";
+    try {
+      await renderPage("/docs/calendar-demo/");
+      const column = document.querySelector<HTMLElement>("[data-site-calendar-demo]")!.closest("main")!;
+      await expect.poll(() => column.getBoundingClientRect().width).toBeGreaterThanOrEqual(0.3 * 700);
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
   it("opens on the Nautilus hero, and Come aboard goes to the Nautilus's page", async () => {
     await renderPage("/");
     const heading = page.getByRole("heading", { level: 1 });
