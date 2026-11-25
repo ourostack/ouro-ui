@@ -397,8 +397,8 @@
   },
   "ourostack/ouroboros": {
     "components/ouro/": {
-      "commit": "983bf5b15549c44b39373be7eeabb81a6295ec99",
-      "at": "2026-11-25T13:19:26.898Z",
+      "commit": "296dd7540dccc430e11658e5243465d93e97fd50",
+      "at": "2026-11-25T14:17:49.654Z",
       "total": 4,
       "paths": [
         "deploy/eval/u/build/kit-config.mjs",
@@ -406,6 +406,14 @@
         "deploy/eval/u/results/ouro-baseline-summary.json",
         "deploy/eval/u/results/ouro-rewrite.json"
       ]
+    }
+  },
+  "ourostack/factory": {
+    "components/ouro/": {
+      "commit": "7a0510faa56dd81e26798c089e6e6f08d99904c0",
+      "at": "2026-11-25T14:28:44.753Z",
+      "total": 0,
+      "paths": []
     }
   }
 }
