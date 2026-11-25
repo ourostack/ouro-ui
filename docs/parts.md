@@ -355,7 +355,7 @@ import {
 
 | Part | What it is |
 | --- | --- |
-| `TimeGridNav` | Today, Previous and Next for a `TimeGrid`: three buttons that move its `date` by its view's day or week, each with its keyboard shortcut in its tooltip. The grid takes the same keys while focus is in it, with `onDateChange`: Page Up and ⌥↑ (Alt+↑) the period before, Page Down and ⌥↓ the next, ⌥⇧Y (Alt+Shift+Y) today. Use your own buttons instead when the toolbar picks a month or a date as well; give the grid `onDateChange` for its keys either way. |
+| `TimeGridNav` | Today, Previous and Next for a `TimeGrid`: buttons that move its `date` by its view's day or week, each with its keyboard shortcut in its tooltip. The grid takes the same keys while focus is in it, with `onDateChange`: Page Up and ⌥↑ (Alt+↑) the period before, Page Down and ⌥↓ the next, ⌥⇧Y (Alt+Shift+Y) today. Use your own buttons instead when the toolbar picks a month or a date as well; give the grid `onDateChange` for its keys either way. |
 
 [^field-nesting]: test:registry/ouro/components/ouro/field/field.test.tsx::Field parts > %s throws outside FieldRoot with the JSX shape verify:testExists(registry/ouro/components/ouro/field/field.test.tsx::Field parts > %s throws outside FieldRoot with the JSX shape)
 [^select-nesting]: test:registry/ouro/components/ouro/select/select.test.tsx::Select development messages > throws with the JSX shape when a part is outside Select verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select development messages > throws with the JSX shape when a part is outside Select)
