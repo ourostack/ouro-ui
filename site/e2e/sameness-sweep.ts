@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { describe, LOOK_SELECTOR, Looks, picture, quiet, routeGuard, routes, settled } from "./looks";
+import { describe, LOOK_SELECTOR, Looks, picture, pictureBatch, quiet, routeGuard, routes, settled } from "./looks";
 
 // A component looks the same wherever it appears. Every page of the build is opened, in each colour mode, in
 // each engine; every Ouro element is keyed by its item, part, element, variant and state, and what makes up
@@ -43,10 +43,12 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
         t = Date.now();
         const { looks: found, escapes: out } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
         escapes.push(...out.map((e) => `${path}: ${e}`));
+        const batch = await pictureBatch(page, looks.plan(found).map((l) => ({ index: l.index, attributes: l.attributes })));
         for (const look of found) {
           const wanted = look.pictured && looks.wants(look);
           if (wanted) spent.pictures += 1;
-          looks.add(path, look, wanted ? await picture(page, look.index, look.attributes) : null);
+          const taken = wanted ? (batch.has(look.index) ? batch.get(look.index)! : await picture(page, look.index, look.attributes)) : null;
+          looks.add(path, look, taken);
         }
         spent.picture += Date.now() - t;
       });
