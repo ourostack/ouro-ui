@@ -1,1 +1,1 @@
-- Fixed: a NavigationMenu or Navbar panel now opens 8px below the bar's bottom edge, not below its shorter trigger, so it no longer straddles the bar's bottom hairline.
+- Fixed: a NavigationMenu or Navbar panel now opens a clear gap below the bar's bottom edge, not below its shorter trigger, so it no longer straddles the bar's bottom hairline.
