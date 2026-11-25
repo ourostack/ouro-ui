@@ -1310,6 +1310,36 @@ describe("Popover handing focus to a layer opened from inside it", () => {
     await expect.poll(() => document.activeElement).toBe(anchor);
   });
 
+  it("returns focus to its anchor while a closing or hidden dialog elsewhere on the page holds none", async () => {
+    function App() {
+      const anchor = useRef<HTMLButtonElement>(null);
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <div role="dialog" aria-label="Closing" data-ending-style="">
+            <button type="button">Closing action</button>
+          </div>
+          <div hidden>
+            <div role="dialog" aria-label="Hidden">
+              <button type="button">Hidden action</button>
+            </div>
+          </div>
+          <button ref={anchor} type="button" onClick={() => setOpen(true)}>Anchor</button>
+          <Popover title="Details" presentation="popover" open={open} onOpenChange={setOpen} anchor={anchor}>
+            <Button>Inside</Button>
+          </Popover>
+        </>
+      );
+    }
+    await render(<App />);
+    const anchor = [...document.querySelectorAll("button")].find((button) => button.textContent === "Anchor")!;
+    await act(async () => anchor.click());
+    await expect.poll(() => document.querySelector("[data-ouro-popover-content]")?.contains(document.activeElement)).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector("[data-ouro-popover-content]")).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(anchor);
+  });
+
   it("returns focus to the button that opened it when its anchor ref holds no element", async () => {
     function App() {
       const [open, setOpen] = useState(false);
