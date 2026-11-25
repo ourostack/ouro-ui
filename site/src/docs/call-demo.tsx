@@ -16,7 +16,7 @@ import { Timer } from "@/registry/ouro/components/ouro/timer/timer";
 import { Toolbar, type ToolbarEntry } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 import { CodeBlock } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
-import { TrayArt } from "./tray-art";
+import { SpotArt } from "./spot-art";
 
 // A whole call window from Ouro's call components with made-up people and no real media, as an app would assemble it:
 // a tile grid that reflows from one person to six, the speaking ring, muted and camera-off tiles, captions, the control
@@ -357,7 +357,7 @@ function CallDemo(): JSX.Element {
   } else if (stage === "waiting") {
     body = (
       <div className="grid h-full place-items-center">
-        <Moment kind="empty" art={<TrayArt />} title="Waiting for others to join" description="You're the first one here. Share the link and they can join." action={<Button variant="outline" tone="secondary" onClick={copyInvite}>Copy invite link</Button>} />
+        <Moment kind="empty" size="hero" art={<SpotArt name="empty-call" />} title="Waiting for others to join" description="You're the first one here. Share the link and they can join." action={<Button variant="outline" tone="secondary" onClick={copyInvite}>Copy invite link</Button>} />
       </div>
     );
   } else if (stage === "left") {

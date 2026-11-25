@@ -12,7 +12,7 @@ import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 import { ReadReceipt } from "@/registry/ouro/components/ouro/read-receipt/read-receipt";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
-import { TrayArt } from "./tray-art";
+import { SpotArt } from "./spot-art";
 import { ThreadLayout } from "@/registry/ouro/components/ouro/thread-layout/thread-layout";
 import { ThreadRail } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
 import { TypingIndicator } from "@/registry/ouro/components/ouro/typing-indicator/typing-indicator";
@@ -288,7 +288,7 @@ function ChatDemo(): JSX.Element {
           <ConversationList className="grid h-full place-items-center" label="Conversations" items={[]} empty="Conversations appear here" onSelect={() => {}} />
         </div>
         <div className="grid place-items-center">
-          <Moment kind="empty" art={<TrayArt />} title="Nothing here yet" description="Messages you send and receive show up here." action={<Button onClick={() => { started.current = true; setStage("ready"); }}>Start a conversation</Button>} />
+          <Moment kind="empty" size="hero" art={<SpotArt name="empty-chat" />} title="Nothing here yet" description="Messages you send and receive show up here." action={<Button onClick={() => { started.current = true; setStage("ready"); }}>Start a conversation</Button>} />
         </div>
       </div>
     ) : (
