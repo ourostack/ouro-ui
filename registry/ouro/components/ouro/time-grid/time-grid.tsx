@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -290,7 +291,8 @@ export interface TimeGridOwnProps {
   markedDays?: Readonly<Record<string, TimeGridMark>> | undefined;
   /**
    * Called when someone presses an empty part of a day, with the slot under the pointer, for a
-   * new event there. A mouse shows the slot before the press.
+   * new event there. A mouse shows the slot before the press, and dragging down or up a day's
+   * column gives the range from the first slot to the end of the last.
    *
    * With it, the slots take a Tab stop of their own, ahead of the timed events; the arrow keys move
    * between slots there, and between events once an event has focus. In the slots the arrow keys
@@ -863,6 +865,19 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // Stryker disable next-line ArithmeticOperator: the held day is clamped again where the cursor is read, so a larger bound shows the same day.
     setCursor({ day: between(0, move.day, days.length - 1), minutes: between(0, move.minutes, dayLength - slotMinutes) });
   };
+  const [drag, setDrag] = useState<{ day: number; from: number; to: number } | null>(null);
+  const dragged = useRef(false);
+  const dragging = drag !== null;
+  useEffect(() => {
+    if (!dragging) return;
+    const cancel = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      dragged.current = true;
+      setDrag(null);
+    };
+    document.addEventListener("keydown", cancel);
+    return () => document.removeEventListener("keydown", cancel);
+  }, [dragging]);
   const slotAt = (event: MouseEvent<HTMLElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     const minutes = Math.floor((((event.clientY - box.top) / box.height) * dayLength) / slotMinutes) * slotMinutes;
@@ -1010,8 +1025,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     placements.map((placed) => {
       const share = 100 / placed.columns;
       // Beside a chip that folds the events it has no room for, the day is that much narrower.
-      const whole = reserved.has(placed.key) ? `(100% - ${chipWidth})` : "100%";
-      const wholeQ = reserved.has(placed.key) ? `(100cqw - ${chipWidth})` : "100cqw";
+      const whole = reserved.has(placed.key) ? `calc(100% - ${chipWidth})` : "100%";
+      const wholeQ = reserved.has(placed.key) ? `calc(100cqw - ${chipWidth})` : "100cqw";
       const cleared = clearOfLane?.has(placed.key);
       // Where a background event shares its time, the event is placed in what the lane leaves free.
       const free = "(100% - var(--ouro-time-grid-lane))";
@@ -1285,10 +1300,40 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                   <div
                     aria-hidden="true"
                     data-ouro-time-grid-slots=""
-                    className="absolute inset-0 cursor-cell"
-                    onPointerMove={(event: PointerEvent<HTMLDivElement>) => setHover(event.pointerType === "mouse" ? { day: index, minutes: slotAt(event) } : null)}
+                    className="absolute inset-0 cursor-cell select-none"
+                    onPointerDown={(event: PointerEvent<HTMLDivElement>) => {
+                      // A drag that ended outside the layer leaves no click to clear this, so every press does.
+                      dragged.current = false;
+                      if (event.pointerType !== "mouse" || event.button !== 0) return;
+                      const minutes = slotAt(event);
+                      setDrag({ day: index, from: minutes, to: minutes });
+                      try {
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                      } catch {
+                        // A pointer that has already gone can't be captured; the drag still follows the moves it gets.
+                      }
+                    }}
+                    onPointerMove={(event: PointerEvent<HTMLDivElement>) => {
+                      if (drag?.day === index) setDrag({ ...drag, to: slotAt(event) });
+                      setHover(event.pointerType === "mouse" ? { day: index, minutes: slotAt(event) } : null);
+                    }}
+                    onPointerUp={(event: PointerEvent<HTMLDivElement>) => {
+                      if (drag?.day !== index) return;
+                      const to = slotAt(event);
+                      setDrag(null);
+                      if (to === drag.from) return;
+                      dragged.current = true;
+                      const first = Math.min(drag.from, to);
+                      const last = Math.max(drag.from, to) + slotMinutes;
+                      onSlotSelect({ start: formats.clock.instant(day, first), end: formats.clock.instant(day, last) });
+                    }}
+                    onPointerCancel={() => setDrag(null)}
                     onPointerLeave={() => setHover(null)}
                     onClick={(event) => {
+                      if (dragged.current) {
+                        dragged.current = false;
+                        return;
+                      }
                       const minutes = slotAt(event);
                       onSlotSelect({ start: formats.clock.instant(day, minutes), end: formats.clock.instant(day, minutes + slotMinutes) });
                     }}
@@ -1305,6 +1350,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                       >
                         {formats.time.format(formats.clock.instant(day, cursor.minutes))}
                       </span>
+                    ) : null}
+                    {drag?.day === index && drag.to !== drag.from ? (
+                      <span
+                        data-ouro-time-grid-drag=""
+                        data-slot="time-grid-drag"
+                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border border-solid border-primary bg-primary/10"
+                        style={{ top: minutesTall(Math.min(drag.from, drag.to)), height: minutesTall(Math.abs(drag.to - drag.from) + slotMinutes) }}
+                      />
                     ) : null}
                     {hover?.day === index && !coveredAt(index, hover.minutes) ? (
                       <span

@@ -62,7 +62,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
     const looks = new Looks();
     const taken = new Map<string, number>();
     const guard = routeGuard(context, page);
-    const spent = { load: 0, motion: 0, reads: 0, picture: 0 };
+    const spent = { goto: 0, settled: 0, quiet: 0, loaded: 0, ready: 0, rounds: 0, inventory: 0, motion: 0, reads: 0, picture: 0 };
     const timed = async <T>(bucket: keyof typeof spent, work: () => Promise<T>) => {
       const t = Date.now();
       try {
@@ -73,13 +73,13 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
     };
     for (const path of routes().filter((_, n) => n % CHUNKS === chunk)) {
       await guard.visit(path, async (page) => {
-        const { looks: rest } = await timed("load", async () => {
-          await page.goto(path);
-          await settled(page);
-          await quiet(page);
-          await loaded(page);
-          return page.evaluate(describe, { selector: LOOK_SELECTOR });
-        });
+        await timed("goto", () => page.goto(path));
+        const waited = await timed("settled", () => settled(page));
+        spent.ready += waited.ready;
+        spent.rounds += waited.reads.length;
+        await timed("quiet", () => quiet(page));
+        await timed("loaded", () => loaded(page));
+        const { looks: rest } = await timed("inventory", () => page.evaluate(describe, { selector: LOOK_SELECTOR }));
         const candidates = await page.evaluate(
           ([all, control]) =>
             [...document.querySelectorAll<HTMLElement>(all as string)].flatMap((el, i) => {
@@ -177,7 +177,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
         }
       });
     }
-    console.log(`TIMING ${browserName} ${mode} part ${chunk + 1}: page load ${spent.load} ms, motion settles ${spent.motion} ms, look reads ${spent.reads} ms, pictures ${spent.picture} ms, over ${looks.keys} control states`);
+    console.log(`TIMING ${browserName} ${mode} part ${chunk + 1}: goto ${spent.goto} ms, settled ${spent.settled} ms (page ready ${spent.ready} ms, ${spent.rounds} reads), quiet ${spent.quiet} ms, loaded ${spent.loaded} ms, inventory ${spent.inventory} ms, motion settles ${spent.motion} ms, look reads ${spent.reads} ms, pictures ${spent.picture} ms, over ${looks.keys} control states`);
     console.log(`${browserName} ${mode}: ${looks.keys} control states, ${looks.crops} pictures`);
     for (const f of [...new Set(found), ...looks.differences(), ...looks.pixelDifferences()]) console.log(`FINDING ${browserName} ${mode}: ${typeof f === "string" ? f : JSON.stringify(f)}`);
     for (const side of looks.sides()) console.log(`SIDES ${browserName} ${mode}: ${side}`);

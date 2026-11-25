@@ -606,7 +606,7 @@ export async function settled(page: Page): Promise<{ ready: number; reads: numbe
           last = now;
           return same;
         },
-        { timeout: SETTLE_MS },
+        { timeout: SETTLE_MS, intervals: [50] },
       )
       .toBe(true);
   } catch (error) {

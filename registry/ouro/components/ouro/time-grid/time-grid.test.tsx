@@ -483,6 +483,24 @@ describe("TimeGrid", () => {
     expect(plain(named("Thursday").getAttribute("aria-label"))).toBe("Architecture forum, 2:00 – 3:00 PM, Thursday, needs your answer, Main auditorium");
   });
 
+  it("lays a day out for the width it has now after the view changes without a remount", async () => {
+    const stack = [
+      { id: "a", title: "Design review", start: at(10, "11:00"), end: at(10, "12:00") },
+      { id: "b", title: "Pairing with Jo", start: at(10, "11:30"), end: at(10, "13:00") },
+      { id: "c", title: "Venue sync", start: at(10, "11:45"), end: at(10, "12:30") },
+    ];
+    const { rerender } = await render({ view: "week", events: stack }, (grid) => <div style={{ width: "700px" }}>{grid}</div>);
+    const width = () => titled("Design review").closest("li")!.getBoundingClientRect().width;
+    await rerender({ view: "work-week", events: stack });
+    let last = -1;
+    await expect.poll(() => { const stable = width() === last; last = width(); return stable && document.getAnimations().length === 0; }).toBe(true);
+    const switched = width();
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    mounted.pop()!.remove();
+    await render({ view: "work-week", events: stack }, (grid) => <div style={{ width: "700px" }}>{grid}</div>);
+    await expect.poll(() => width()).toBeCloseTo(switched, 0);
+  });
+
   it("shares a day's width between overlapping events", async () => {
     await render({ view: "day", events: [forum, focus] });
     const [first, second] = [forum, focus].map((event) => titled(event.title).closest("li")!.getBoundingClientRect()) as [DOMRect, DOMRect];
@@ -757,7 +775,7 @@ describe("TimeGrid", () => {
       for (const element of shown().map((_, index) => events()[index]!)) expect(element.getBoundingClientRect().right).toBeLessThanOrEqual(strip + 1);
       // A shown event that another covers keeps its text clear of the cover, within the day less the chip's strip.
       const cover = (events()[0]!.closest("li") as HTMLElement).style.getPropertyValue("--ouro-time-grid-cover");
-      expect(cover).toContain("max(0.75rem, min(0.5 * (100cqw - 2rem), ((100cqw - 2rem) - 4.5rem) / 1))");
+      expect(cover).toContain("max(0.75rem, min(0.5 * calc(100cqw - 2rem), (calc(100cqw - 2rem) - 4.5rem) / 1))");
       // And in the plain day, less the same strip.
       expect(first.style.width).toContain("100% - 2rem");
     });
@@ -1474,6 +1492,179 @@ describe("TimeGrid", () => {
       expect(plainGrid.querySelector('[role="grid"]')).toBeNull();
       expect(plainGrid.querySelector("[data-ouro-time-grid-cursor]")).toBeNull();
     });
+  });
+
+  it("gives onSlotSelect the dragged range, from the first slot to the end of the last, whichever way it is dragged", async () => {
+    const slot = vi.fn();
+    const { grid } = await render({ view: "day", onSlotSelect: slot });
+    const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
+    const y = (minutes: number) => {
+      const box = slots.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
+    const fire = (type: string, minutes: number) => slots.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType: "mouse", button: 0, pointerId: 41 }));
+    fire("pointerdown", 605);
+    await act(async () => {});
+    fire("pointermove", 725);
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).not.toBeNull();
+    fire("pointerup", 725);
+    slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(725) }));
+    await act(async () => {});
+    expect(slot).toHaveBeenCalledTimes(1);
+    expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T10:00:00-04:00"), end: new Date("2026-03-12T12:30:00-04:00") });
+    fire("pointerdown", 725);
+    await act(async () => {});
+    fire("pointermove", 605);
+    await act(async () => {});
+    fire("pointerup", 605);
+    expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T10:00:00-04:00"), end: new Date("2026-03-12T12:30:00-04:00") });
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
+  });
+
+  it("shows the dragged range as it grows, and only reads Escape while a drag is held", async () => {
+    const slot = vi.fn();
+    const { grid } = await render({ view: "day", onSlotSelect: slot });
+    const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
+    const y = (minutes: number) => {
+      const box = slots.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
+    const fire = (type: string, minutes: number) => slots.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType: "mouse", button: 0, pointerId: 45 }));
+    const click = (minutes: number) => slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(minutes) }));
+    const preview = () => grid.querySelector<HTMLElement>("[data-ouro-time-grid-drag]");
+    const key = (name: string) => document.dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true }));
+    // An Escape with no drag held swallows nothing.
+    key("Escape");
+    click(605);
+    expect(slot).toHaveBeenCalledTimes(1);
+    // A press shows no range until it moves to another slot, and a zero-length drag gives none.
+    fire("pointerdown", 605);
+    await act(async () => {});
+    expect(preview()).toBeNull();
+    fire("pointerup", 605);
+    expect(slot).toHaveBeenCalledTimes(1);
+    click(605);
+    expect(slot).toHaveBeenCalledTimes(2);
+    // Dragged up from 12:05 to 10:05, the range covers 10:00 to 12:30; another key leaves it held.
+    fire("pointerdown", 725);
+    await act(async () => {});
+    fire("pointermove", 605);
+    await act(async () => {});
+    key("a");
+    await act(async () => {});
+    await expect
+      .poll(() => {
+        const box = preview()!.getBoundingClientRect();
+        const slotsBox = slots.getBoundingClientRect();
+        return [Math.round(((box.top - slotsBox.top) / slotsBox.height) * 1440), Math.round((box.height / slotsBox.height) * 1440)];
+      })
+      .toEqual([600, 150]);
+    fire("pointercancel", 605);
+    await act(async () => {});
+    expect(preview()).toBeNull();
+    // Once the drag has ended, Escape is no longer listened to, so the next click still selects.
+    key("Escape");
+    click(905);
+    expect(slot).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps a drag to the day it began in, and swallows only the click that ends it", async () => {
+    const slot = vi.fn();
+    const { grid } = await render({ view: "work-week", onSlotSelect: slot });
+    const [first, second] = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-slots]")];
+    const y = (minutes: number) => {
+      const box = first!.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
+    const fire = (target: HTMLElement, type: string, minutes: number) => target.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType: "mouse", button: 0, pointerId: 47 }));
+    fire(first!, "pointerdown", 605);
+    await act(async () => {});
+    fire(second!, "pointermove", 725);
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
+    fire(first!, "pointermove", 725);
+    await act(async () => {});
+    fire(first!, "pointerup", 725);
+    first!.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(725) }));
+    expect(slot).toHaveBeenCalledTimes(1);
+    first!.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(905) }));
+    expect(slot).toHaveBeenCalledTimes(2);
+  });
+
+  it("starts a drag only from the primary mouse button, and captures the pointer so the drag follows it out of the column", async () => {
+    const slot = vi.fn();
+    const { grid } = await render({ view: "day", onSlotSelect: slot });
+    const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
+    const box = slots.getBoundingClientRect();
+    const y = (minutes: number) => box.top + (box.height * minutes) / 1440;
+    const fire = (type: string, minutes: number, pointerType: string, button: number) =>
+      slots.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType, button, pointerId: 46 }));
+    const capture = vi.spyOn(slots, "setPointerCapture").mockImplementation(() => {});
+    const preview = () => grid.querySelector("[data-ouro-time-grid-drag]");
+    for (const [pointerType, button] of [["touch", 0], ["mouse", 2], ["pen", 0]] as const) {
+      fire("pointerdown", 605, pointerType, button);
+      await act(async () => {});
+      fire("pointermove", 725, pointerType, button);
+      await act(async () => {});
+      expect(preview()).toBeNull();
+    }
+    expect(capture).not.toHaveBeenCalled();
+    fire("pointerdown", 605, "mouse", 0);
+    await act(async () => {});
+    expect(capture).toHaveBeenCalledWith(46);
+    fire("pointermove", 725, "mouse", 0);
+    await act(async () => {});
+    expect(preview()).not.toBeNull();
+  });
+
+  it("ends a drag without a range on Escape or a cancelled pointer, and a touch or a drag back to its start still gives one slot", async () => {
+    const slot = vi.fn();
+    const { grid } = await render({ view: "day", onSlotSelect: slot });
+    const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
+    const y = (minutes: number) => {
+      const box = slots.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
+    const fire = (type: string, minutes: number, pointerType = "mouse") => slots.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType, button: 0, pointerId: 43 }));
+    const click = (minutes: number) => slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(minutes) }));
+    expect(getComputedStyle(slots).userSelect).toBe("none");
+    fire("pointerdown", 605);
+    await act(async () => {});
+    fire("pointermove", 725);
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).not.toBeNull();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
+    fire("pointerup", 725);
+    click(725);
+    expect(slot).not.toHaveBeenCalled();
+    fire("pointerdown", 605);
+    await act(async () => {});
+    fire("pointermove", 725);
+    await act(async () => {});
+    fire("pointercancel", 725);
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
+    expect(slot).not.toHaveBeenCalled();
+    // The click a cancelled drag swallowed does not outlive the next press: a touch tap still selects its slot.
+    fire("pointerdown", 905, "touch");
+    click(905);
+    expect(slot).toHaveBeenCalledTimes(1);
+    expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T15:00:00-04:00"), end: new Date("2026-03-12T15:30:00-04:00") });
+    fire("pointerdown", 605);
+    await act(async () => {});
+    await act(async () => {});
+    fire("pointermove", 725);
+    await act(async () => {});
+    fire("pointermove", 605);
+    await act(async () => {});
+    fire("pointerup", 605);
+    click(605);
+    expect(slot).toHaveBeenCalledTimes(2);
+    expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T10:00:00-04:00"), end: new Date("2026-03-12T10:30:00-04:00") });
   });
 
   it("presses an empty slot with onSlotSelect, and shows a mouse the slot first", async () => {
