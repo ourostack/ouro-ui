@@ -2222,6 +2222,13 @@ describe("TimeGrid", () => {
     await expect.poll(() => Math.abs(scroller.scrollTop - 7.5 * 48)).toBeLessThan(1);
   });
 
+  it("draws every overlapping event, with no chip, until the browser has measured a day", () => {
+    const events = Array.from({ length: 4 }, (_, index) => ({ id: `e${index}`, title: `Sync ${index}`, start: "2026-03-12T10:00:00Z", end: "2026-03-12T11:00:00Z" }));
+    const html = renderToString(<TimeGrid {...base} timeZone="UTC" view="day" events={events} />);
+    expect(html.match(/data-ouro-event-key/g)).toHaveLength(4);
+    expect(html).not.toContain("time-grid-more");
+  });
+
   it("hydrates without a mismatch when the server's engine spaced a time range differently from this browser's", async () => {
     const props = {
       ...base,
