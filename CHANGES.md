@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [a controlled Popover's close no longer pulls focus back from a dialog opened in the same handler](registry/ouro/components/ouro/popover/popover.test.tsx "verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::controlled Popover > leaves focus in a dialog opened while it closes, instead of pulling it back to anchor (#3612))"), the same guard #2675 gave Dialog and Sheet but had not reached Popover's anchor-named `finalFocus`.
