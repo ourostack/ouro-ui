@@ -1,0 +1,1 @@
+- Fixed: `squircleCorners()` no longer emits a duplicate `@supports` fallback sibling rule per matching selector; rules in the same context with identical computed radii now share one combined-selector fallback, cutting duplicated CSS.
