@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-25T02:56:12.972Z",
+  "generatedAt": "2026-11-25T03:31:46.612Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -68,7 +68,7 @@
     },
     {
       "repo": "ourostack/desk",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "plugins/desk/mcp/src/lib/ouro-actions/dist-manifest.json",
@@ -80,22 +80,19 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 151f542",
+          "current": "commit d2eb5cd",
           "latest": "v1.3.540",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 151f542",
+          "current": "commit d2eb5cd",
           "latest": "v1.3.540",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1741,
-        "url": "https://github.com/ourostack/desk/pull/1741"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/factory",
@@ -110,8 +107,8 @@
         }
       ],
       "pr": {
-        "number": 1254,
-        "url": "https://github.com/ourostack/factory/pull/1254"
+        "number": 1255,
+        "url": "https://github.com/ourostack/factory/pull/1255"
       }
     },
     {
@@ -368,20 +365,17 @@
     },
     {
       "repo": "ourostack/ouroboros-website",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.536",
+          "current": "v1.3.540",
           "latest": "v1.3.540",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 598,
-        "url": "https://github.com/ourostack/ouroboros-website/pull/598"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/shepherd",
