@@ -1256,3 +1256,36 @@ describe("Popover under forced colours", () => {
     }
   });
 });
+
+describe("Popover handing focus to a layer opened from inside it", () => {
+  it("leaves focus in the dialog the popover's own button opened, a second later", async () => {
+    function App() {
+      const [popover, setPopover] = useState(true);
+      const [dialog, setDialog] = useState(false);
+      const anchor = useRef<HTMLButtonElement>(null);
+      return (
+        <>
+          <button ref={anchor} type="button">Event</button>
+          <Popover title="Details" open={popover} onOpenChange={setPopover} anchor={anchor}>
+            <Button
+              onClick={() => {
+                setPopover(false);
+                setDialog(true);
+              }}
+            >
+              Edit
+            </Button>
+          </Popover>
+          <Dialog title="Edit event" open={dialog} onOpenChange={setDialog} presentation="dialog">
+            <input aria-label="Title" />
+          </Dialog>
+        </>
+      );
+    }
+    await render(<App />);
+    await act(async () => document.querySelector<HTMLElement>('[data-ouro-popover-content] button')!.click());
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Title");
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // real clock: a late focus return is the bug, and it lands after Base UI's own frames
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Title");
+  });
+});
