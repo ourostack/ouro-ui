@@ -225,19 +225,27 @@ describe("the calendar page", () => {
     await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
     (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
     await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
-    // A stand-in for a sheet that is slow to close: it keeps a dialog on the page, takes focus late and then leaves.
-    const slow = document.createElement("div");
-    slow.setAttribute("role", "dialog");
-    slow.tabIndex = -1;
+    // A sheet that takes a long while to leave, so focus is handed back well after the delete.
+    const slow = document.createElement("style");
     slow.setAttribute("data-test-harness", "");
-    document.body.append(slow);
-    await userEvent.click(page.getByRole("button", { name: "Delete" }));
-    for (let frame = 0; frame < 40; frame += 1) await new Promise((resolve) => requestAnimationFrame(resolve));
-    slow.focus();
-    for (let frame = 0; frame < 5; frame += 1) await new Promise((resolve) => requestAnimationFrame(resolve));
-    slow.remove();
-    document.body.focus();
-    await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
+    slow.textContent = '[data-ouro="sheet"], [data-ouro="sheet"] * { transition-duration: 1500ms !important; }';
+    document.head.append(slow);
+    try {
+      await userEvent.click(page.getByRole("button", { name: "Delete" }));
+      await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null, { timeout: 10_000 }).toBe(true);
+    } finally {
+      slow.remove();
+    }
+  });
+
+  it("returns focus to Go to date when its popover is dismissed without a pick", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    const jump = page.getByRole("button", { name: /Go to date/ });
+    await userEvent.click(jump);
+    await expect.element(page.getByRole("dialog", { name: "Go to date" })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement === jump.element()).toBe(true);
   });
 
   it("keeps the slot cursor on the slot just created, so the keyboard does not start over", async () => {

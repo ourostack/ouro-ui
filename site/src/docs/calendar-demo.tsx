@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent, type JSX } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type JSX, type RefObject } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Calendar } from "@/registry/ouro/components/ouro/calendar/calendar";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
@@ -126,27 +126,11 @@ function Screen(): JSX.Element {
   const eventRef = useRef<HTMLElement | null>(null);
   const jumpRef = useRef<HTMLButtonElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const [refocus, setRefocus] = useState(0);
-  const forceFocus = useRef(false);
-  // The deleted event's popover has nothing to return focus to, so focus goes to the grid's event stop once the popover is gone.
-  useEffect(() => {
-    if (refocus === 0) return;
-    let frame = 0;
-    let tries = 0;
-    const settle = () => {
-      const target = rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]');
-      const lost = document.activeElement?.matches('body, div:not([tabindex])') ?? true;
-      // The date picker's popover hands focus back to its button as it closes, a frame or two after the pick, so a forced move keeps landing the grid until then.
-      const forced = forceFocus.current && !target?.closest('[data-ouro="time-grid"]')?.contains(document.activeElement);
-      if (target && (lost || forced)) target.focus({ preventScroll: true });
-      // A slow runner can close the sheet well after the first thirty frames, so keep watching while a dialog is still there.
-      const closing = document.querySelector('[role="dialog"]') !== null;
-      if (++tries < (closing ? 600 : 30)) frame = requestAnimationFrame(settle);
-      else forceFocus.current = false;
-    };
-    frame = requestAnimationFrame(settle);
-    return () => cancelAnimationFrame(frame);
-  }, [refocus]);
+  // A delete, a save or a date pick hands focus to the grid's event stop as its overlay closes; any other close returns focus to where it was opened from.
+  const toGrid = useRef(false);
+  const stopOfGrid = () => rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]') ?? null;
+  const eventReturn = useMemo<RefObject<HTMLElement | null>>(() => ({ get current() { return toGrid.current ? stopOfGrid() : eventRef.current; } }), []);
+  const jumpReturn = useMemo<RefObject<HTMLElement | null>>(() => ({ get current() { return toGrid.current ? stopOfGrid() : jumpRef.current; } }), []);
   const formId = useId();
 
   const shown = stage === "empty" ? [] : events;
@@ -187,8 +171,8 @@ function Screen(): JSX.Element {
     if (stage === "empty") setStage("week");
     toast.dismiss();
     toast(draft.id ? "Event updated" : "Event created", { tone: "success", description: `${title}, ${clock(draft.start)}` });
+    toGrid.current = true;
     setDraft(null);
-    setRefocus((count) => count + 1);
   };
 
   const lastRemoved = useRef<{ entry: Entry; at: number } | null>(null);
@@ -215,8 +199,10 @@ function Screen(): JSX.Element {
   const remove = (entry: Entry) => {
     const at = events.findIndex((candidate) => candidate.id === entry.id);
     lastRemoved.current = { entry, at };
+    // With the details open, its overlay hands focus to the grid as it closes; from the keyboard there is no overlay, so the grid takes it once the event is gone.
+    if (current === null) requestAnimationFrame(() => stopOfGrid()?.focus({ preventScroll: true }));
+    toGrid.current = current !== null;
     setOpen(null);
-    setRefocus((count) => count + 1);
     setEvents((now) => now.filter((candidate) => candidate.id !== entry.id));
     // One toast at a time, so a second delete replaces the first. It lasts 8 s, longer than the default, and hovering or focusing it holds the countdown; the demo leaves room under the grid on a phone for it to rest.
     toast.dismiss();
@@ -273,7 +259,10 @@ function Screen(): JSX.Element {
           {heading}
         </Heading>
         <div className="flex flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
-        <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => setJump(!jump)}>
+        <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => {
+            toGrid.current = false;
+            setJump(!jump);
+          }}>
           Go to date
         </Button>
         {phone ? null : <SegmentedControl
@@ -290,7 +279,7 @@ function Screen(): JSX.Element {
         <Button onClick={newEvent}>New event</Button>
         </div>
       </div>
-      <Popover title="Go to date" open={jump} onOpenChange={setJump} anchor={jumpRef} presentation="auto">
+      <Popover title="Go to date" open={jump} onOpenChange={setJump} anchor={jumpRef} finalFocus={jumpReturn} presentation="auto">
         <Calendar
           label="Date to show"
           locale={weekLocale}
@@ -298,8 +287,7 @@ function Screen(): JSX.Element {
           onValueChange={(next) => {
             setDate(next);
             setJump(false);
-            forceFocus.current = true;
-            setRefocus((count) => count + 1);
+            toGrid.current = true;
           }}
         />
       </Popover>
@@ -326,6 +314,7 @@ function Screen(): JSX.Element {
             onDateChange={setDate}
             onEventSelect={(event, details) => {
               eventRef.current = details.element;
+              toGrid.current = false;
               setOpen(event.id);
             }}
             onSlotSelect={slotPressed}
@@ -333,7 +322,7 @@ function Screen(): JSX.Element {
           />
         )}
       </div>
-      <Popover title={current?.title ?? "Event"} open={current !== null} onOpenChange={(next) => !next && setOpen(null)} anchor={eventRef} presentation="auto">
+      <Popover title={current?.title ?? "Event"} open={current !== null} onOpenChange={(next) => !next && setOpen(null)} anchor={eventRef} finalFocus={eventReturn} presentation="auto">
         {current ? (
           <div className="grid gap-3">
             <Text size="sm" tone="muted">
@@ -353,6 +342,11 @@ function Screen(): JSX.Element {
       <Dialog
         open={draft !== null}
         onOpenChange={(next) => !next && setDraft(null)}
+        onOpenChangeComplete={(next) => {
+          if (next || !toGrid.current) return;
+          toGrid.current = false;
+          stopOfGrid()?.focus({ preventScroll: true });
+        }}
         title={draft?.id ? "Edit event" : "New event"}
         description={draft ? new Date(`${draft.day}T12:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : undefined}
         footer={

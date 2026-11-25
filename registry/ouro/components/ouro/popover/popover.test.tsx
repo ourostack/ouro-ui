@@ -570,6 +570,35 @@ describe("controlled Popover", () => {
     await expect.poll(() => document.activeElement).toBe(popup());
   });
 
+  it("returns focus to the element finalFocus names, drawn after the popover closed, as a popover and as a sheet", async () => {
+    function Elsewhere({ label }: { label: string }) {
+      const [open, setOpen] = useState(false);
+      const [later, setLater] = useState(false);
+      const anchor = useRef<HTMLButtonElement>(null);
+      const target = useRef<HTMLButtonElement>(null);
+      return (
+        <>
+          <button ref={anchor} type="button" onClick={() => setOpen(true)}>
+            {label}
+          </button>
+          {later ? <button ref={target} type="button">Landing</button> : null}
+          <Popover title={label} presentation="auto" open={open} onOpenChange={setOpen} anchor={anchor} finalFocus={target}>
+            <button type="button" onClick={() => { setOpen(false); setLater(true); }}>Apply</button>
+          </Popover>
+        </>
+      );
+    }
+    for (const width of [1280, 390]) {
+      await page.viewport(width, 800);
+      await render(<Elsewhere label={`Filters ${width}`} />);
+      await userEvent.click(page.getByRole("button", { name: `Filters ${width}`, exact: true }));
+      await settled();
+      await userEvent.click(page.getByRole("button", { name: "Apply" }).last());
+      await expect.poll(() => document.activeElement?.textContent).toBe("Landing");
+    }
+    await page.viewport(1280, 800);
+  });
+
   it("returns focus to anchor after a mouse open, as a popover and as a sheet", async () => {
     // Safari does not focus a button on click, so focus must go back to anchor by name.
     for (const width of [1280, 390]) {
