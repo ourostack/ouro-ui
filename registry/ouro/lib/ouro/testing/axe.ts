@@ -712,11 +712,15 @@ async function painted(): Promise<void> {
 }
 
 // Waits for the page's running CSS transitions, such as the colors easing after a switch to dark,
-// so text is measured as it rests. Gives up after 3 seconds.
+// so text is measured as it rests. Gives up after 3 seconds. A transition's finished promise is a
+// microtask, which the spec guarantees fires before the browser's next paint, so the compositor can
+// still be a frame behind the end state once it resolves; wait for the paint after it too
+// (ourostack/ouro-ui#3361).
 async function settleTransitions(): Promise<void> {
   const running = document.getAnimations().filter((animation) => animation instanceof CSSTransition && animation.playState === "running");
   const finished = Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
   await Promise.race([finished, new Promise((resolve) => setTimeout(resolve, 3000))]);
+  await painted();
 }
 
 // Whether an element shows, with an area, and its box stays where it is over a frame. As Playwright

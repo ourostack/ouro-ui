@@ -309,6 +309,18 @@ describe("audit", () => {
     expect(await measureTextContrast(text, 4.5)).toEqual({ pass: true });
   });
 
+  it("waits two more frames before measuring, since .finished resolves as a microtask that can land a frame before the compositor paints it", async () => {
+    mountPage('<p id="plain" style="margin:0;padding:8px;color:#111;background:#fff">Plain text</p>');
+    const text = document.querySelector<HTMLElement>("#plain")!;
+    const frames = vi.spyOn(window, "requestAnimationFrame");
+    expect(await measureTextContrast(text, 4.5)).toEqual({ pass: true });
+    const count = frames.mock.calls.length;
+    frames.mockRestore();
+    // Every measurement already waits a couple of frames to let a held page put its scroll back
+    // (ourostack/ouro-ui#535); this margin adds two more, paid even with nothing moving.
+    expect(count).toBeGreaterThanOrEqual(6);
+  });
+
   it("scans the page as first painted: a scrolling region a resize report makes a tab stop passes, one that never becomes one fails", async () => {
     // A ResizeObserver's first report comes in the frame before the first paint, after a test's render has returned.
     const long = `<p>${"Text that runs past the bottom of its box. ".repeat(40)}</p>`;
