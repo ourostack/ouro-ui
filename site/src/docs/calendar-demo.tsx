@@ -219,7 +219,7 @@ function Screen(): JSX.Element {
     // One toast at a time, so a second delete replaces the first. It lasts 8 s, longer than the default, and hovering or focusing it holds the countdown; the demo leaves room under the grid on a phone for it to rest.
     toast.dismiss();
     toast("Event deleted", {
-      description: `${entry.title}. Press F6 to reach Undo.`,
+      description: `${entry.title}. Ctrl or Cmd+Z also undoes it.`,
       duration: 8000,
       action: {
         label: "Undo",

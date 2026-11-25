@@ -193,7 +193,7 @@ describe("the calendar page", () => {
       await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
     }
     await expect.poll(() => page.getByRole("button", { name: "Undo" }).elements().length).toBe(1);
-    expect(document.body.textContent).toContain("Press F6 to reach Undo.");
+    expect(document.body.textContent).toContain("Ctrl or Cmd+Z also undoes it.");
   });
 
   it("puts focus back in the grid after Delete, so the keyboard does not start over", async () => {
