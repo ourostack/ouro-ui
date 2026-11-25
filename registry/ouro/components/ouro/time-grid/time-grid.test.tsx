@@ -1473,6 +1473,7 @@ describe("TimeGrid", () => {
     fire("pointermove", 725);
     await act(async () => {});
     expect(grid.querySelector("[data-ouro-time-grid-drag]")).not.toBeNull();
+    expect(plain(grid.querySelector("[data-ouro-time-grid-drag]")!.textContent)).toBe("10:00 AM – 12:30 PM");
     fire("pointerup", 725);
     slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(725) }));
     await act(async () => {});
