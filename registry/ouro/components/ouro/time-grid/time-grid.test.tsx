@@ -1117,6 +1117,17 @@ describe("TimeGrid", () => {
       expect(parseFloat(cursor.style.scrollMarginTop)).toBeCloseTo(head.getBoundingClientRect().height, 0);
     });
 
+    it("names a different cell as the active descendant after each arrow, so a screen reader announces the move", async () => {
+      const { focus } = await open();
+      const seen = [focus.getAttribute("aria-activedescendant")];
+      for (const key of ["{ArrowDown}", "{ArrowRight}", "{ArrowUp}"]) {
+        await userEvent.keyboard(key);
+        seen.push(focus.getAttribute("aria-activedescendant"));
+      }
+      expect(new Set(seen).size).toBe(seen.length);
+      expect(document.getElementById(seen.at(-1)!)!.getAttribute("role")).toBe("gridcell");
+    });
+
     it("scrolls the slot into view only as far as needed", async () => {
       const scroll = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
       try {

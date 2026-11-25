@@ -784,7 +784,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const [heldCursor, setCursor] = useState<{ day: number; minutes: number } | null>(null);
   // The days can shrink under a focused grid (a controlled `view` changes), so the cursor stays on a day that exists.
   const cursor = heldCursor ? { ...heldCursor, day: Math.min(heldCursor.day, days.length - 1) } : null;
-  const cursorId = useId();
+  const cursorBase = useId();
+  // Each slot is its own cell with its own id: a screen reader announces a move only when the active descendant changes, not when one cell's text does.
+  const cursorId = cursor ? `${cursorBase}-${cursor.day}-${cursor.minutes}` : undefined;
   const cursorRef = useRef<HTMLSpanElement | null>(null);
   useLayoutEffect(() => {
     const slot = cursorRef.current;
@@ -1136,7 +1138,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               role="grid"
               tabIndex={0}
               aria-label={slotsLabel}
-              aria-activedescendant={cursor ? cursorId : undefined}
+              aria-activedescendant={cursorId}
               data-ouro-control="time-grid"
               data-ouro-part="slots"
               data-slot="time-grid-slots"
@@ -1147,7 +1149,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             >
               <div role="row" data-slot="time-grid-slots-row">
                 {cursor ? (
-                  <div role="gridcell" id={cursorId} data-slot="time-grid-slots-cell" className="sr-only">
+                  <div role="gridcell" key={cursorId} id={cursorId} data-slot="time-grid-slots-cell" className="sr-only">
                     {`${formats.fullDay.format(utcDate(days[cursor.day]!))}, ${formats.time.format(formats.clock.instant(days[cursor.day]!, cursor.minutes))}`}
                   </div>
                 ) : (
