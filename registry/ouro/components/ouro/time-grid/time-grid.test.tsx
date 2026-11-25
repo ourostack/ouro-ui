@@ -1280,6 +1280,23 @@ describe("TimeGrid", () => {
       expect(named(grid)).toBe(was);
     });
 
+    it("returns to the last slot of the last day exactly, and to the last day left when the view shows fewer", async () => {
+      const onSlotSelect = vi.fn();
+      const { grid, rerender } = await render({ view: "week", onSlotSelect });
+      const focus = grid.querySelector<HTMLElement>('[role="grid"]')!;
+      await act(async () => focus.focus());
+      await userEvent.keyboard("{End}{ArrowRight}{ArrowRight}{ArrowRight}");
+      const was = named(grid);
+      expect(was).toBe("Saturday, March 14, 11:30 PM");
+      await act(async () => focus.blur());
+      await act(async () => focus.focus());
+      expect(named(grid)).toBe(was);
+      await act(async () => focus.blur());
+      await rerender({ view: "day", onSlotSelect });
+      await act(async () => grid.querySelector<HTMLElement>('[role="grid"]')!.focus());
+      expect(named(grid)).toBe("Thursday, March 12, 11:30 PM");
+    });
+
     it("moves a slot with Up and Down, an hour with Page Up and Page Down, and to the day's ends with Home and End", async () => {
       const { grid } = await open();
       await userEvent.keyboard("{ArrowDown}");

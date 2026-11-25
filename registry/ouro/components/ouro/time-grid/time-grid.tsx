@@ -1246,7 +1246,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               onFocus={() =>
                 setCursor((now) => {
                   const left = leftCursor.current;
-                  return now ?? (left ? { day: between(0, left.day, days.length - 1), minutes: between(0, left.minutes, dayLength - slotMinutes) } : cursorStart());
+                  return now ?? (left ? { day: Math.min(left.day, days.length - 1), minutes: left.minutes } : cursorStart());
                 })
               }
               onBlur={() => {
