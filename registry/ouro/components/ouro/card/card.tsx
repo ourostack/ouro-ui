@@ -468,7 +468,12 @@ export function Card(props: CardProps): JSX.Element {
     rise && (
       <div data-slot="card-rise" className={cn("grid overflow-hidden", mediaPull[variant][size])}>
         <div data-slot="card-rise-media" className={cn("relative overflow-hidden [grid-area:1/1]", zoom && zoomMediaClass)}>{media}</div>
-        <div data-slot="card-rise-band" className={riseBandClass}>
+        <div
+          data-slot="card-rise-band"
+          data-ouro-allow="overlap"
+          data-ouro-allow-why="the title and description rise onto their own glass band over the media; the band's grid row always matches their height"
+          className={riseBandClass}
+        >
           <div aria-hidden="true" data-slot="card-rise-glass" data-card-glass="" className={riseGlassClass} />
           {titleBlock("z-2 py-3 [grid-area:1/1]")}
         </div>
