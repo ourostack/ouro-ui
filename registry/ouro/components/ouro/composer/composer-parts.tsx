@@ -395,14 +395,16 @@ function $nodesFromHtml(html: string): LexicalNode[][] {
 }
 
 // ⌘K: takes a link off a selection that holds one, makes a selected web address a link to itself, and otherwise gives back
-// the selection, for the editor to ask for the address in its own popover.
+// the selection, for the editor to ask for the address in its own popover; with just the caret, it still asks, and the
+// typed address becomes the new link's own text.
 function toggleLinkOfSelection(): RangeSelection | null {
   const selection = $getSelection();
-  if (!$isRangeSelection(selection) || selection.isCollapsed()) return null;
+  if (!$isRangeSelection(selection)) return null;
   if (selection.getNodes().some((node) => $isLinkNode(node) || $isLinkNode(node.getParent()))) {
     $toggleLink(null);
     return null;
   }
+  if (selection.isCollapsed()) return selection.clone();
   const href = safeHref(selection.getTextContent());
   if (!href) return selection.clone();
   $toggleLink(href);
@@ -646,14 +648,25 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   // ⌘K over words that aren't an address asks for one in the editor's own popover: the selection it links, and the address typed.
   const [linking, setLinking] = useState<{ selection: RangeSelection; address: string } | null>(null);
   const linkHref = linking ? safeHref(linking.address) : undefined;
-  // Back to the words with the caret where it was, the link added or not.
+  // Back to the words with the caret where it was, the link added or not. With no words to wrap (the caret alone asked),
+  // the typed address becomes the new link's own text instead.
   const endLinking = (href: string | undefined) => {
     const selection = linking!.selection;
+    const collapsed = selection.isCollapsed();
     setLinking(null);
     editorRef.current!.update(() => {
       // Stryker disable next-line CallExpression: a test's popover never moves the real document selection away from the editor, so skipping the restore reads the same selection either way; a person who tabbed to the popover's own field would lose their place without it.
       $setSelection(selection.clone());
-      if (href) $toggleLink(href);
+      if (!href) return;
+      if (!collapsed) {
+        $toggleLink(href);
+        return;
+      }
+      const current = $getSelection();
+      if (!$isRangeSelection(current)) return;
+      const link = $createLinkNode(href);
+      link.append($createTextNode(href));
+      current.insertNodes([link]);
     },
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: discrete only forces this update's DOM reconciliation to flush before the function returns; a test that reads the result afterwards, as every one here does, cannot tell a flushed render from a microtask-later one apart.
     { discrete: true });
