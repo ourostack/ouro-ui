@@ -1117,6 +1117,17 @@ describe("TimeGrid", () => {
       expect(parseFloat(cursor.style.scrollMarginTop)).toBeCloseTo(head.getBoundingClientRect().height, 0);
     });
 
+    it("scrolls the slot into view only as far as needed", async () => {
+      const scroll = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+      try {
+        await open();
+        const cursorCalls = scroll.mock.calls.filter((_, i) => (scroll.mock.contexts[i] as HTMLElement).hasAttribute("data-ouro-time-grid-cursor"));
+        expect(cursorCalls.at(-1)).toEqual([{ block: "nearest", inline: "nearest" }]);
+      } finally {
+        scroll.mockRestore();
+      }
+    });
+
     it("starts on the first day at the working day's start when now is outside the week the grid shows", async () => {
       const { grid } = await open({ now: "2026-03-20T15:10:00-04:00", workingHours: { start: 9, end: 17 } });
       expect(named(grid)).toBe("Sunday, March 8, 9:00 AM");
