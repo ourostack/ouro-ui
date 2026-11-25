@@ -15,8 +15,11 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 // reached the import at all. squircle-capsules.ts repeats the same corner-shape/clip-path check inside
 // installSquircleCapsules itself, so watching only its effects (a MutationObserver) can't tell a provider
 // that skipped the import apart from one that imported it and let the inner check bail.
-vi.mock("@/registry/ouro/lib/ouro/squircle-capsules", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/registry/ouro/lib/ouro/squircle-capsules")>();
+// Mocks via a real import() expression (vi.mock's typed-path form), not a bare string: shadcn's install-time
+// rewriter only rewrites import declarations and import() calls, so a string literal here would be left
+// pointing at "@/registry/..." after install, no longer matching the path OuroProvider's own import() resolves to.
+vi.mock(import("@/registry/ouro/lib/ouro/squircle-capsules"), async (importOriginal) => {
+  const actual = await importOriginal();
   return { ...actual, installSquircleCapsules: vi.fn(actual.installSquircleCapsules) };
 });
 
