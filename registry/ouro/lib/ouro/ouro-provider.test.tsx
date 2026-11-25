@@ -114,6 +114,7 @@ describe("OuroProvider and useOuro", () => {
     const mutationObserve = vi.spyOn(MutationObserver.prototype, "observe");
     const mutationDisconnect = vi.spyOn(MutationObserver.prototype, "disconnect");
     await mount(<OuroProvider>content</OuroProvider>);
+    await expect.poll(() => mutationObserve.mock.calls.length).toBe(1);
     expect(mutationObserve).toHaveBeenCalledExactlyOnceWith(document.documentElement, { childList: true, subtree: true });
     const root = roots.at(-1)!;
     await act(async () => root.render(<OuroProvider>content changed</OuroProvider>));
@@ -422,5 +423,13 @@ describe("OuroProvider quiet", () => {
       await act(async () => root.unmount());
       style.remove();
     }
+  });
+
+  it("loads no capsule watcher where corner-shape is drawn", async () => {
+    const mutationObserve = vi.spyOn(MutationObserver.prototype, "observe");
+    vi.spyOn(CSS, "supports").mockReturnValue(true);
+    await mount(<OuroProvider>content</OuroProvider>);
+    await import("@/registry/ouro/lib/ouro/squircle-capsules");
+    expect(mutationObserve).not.toHaveBeenCalled();
   });
 });
