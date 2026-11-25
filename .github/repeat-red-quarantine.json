@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "project": "ouro-chromium",
+    "file": "registry/ouro/components/ouro/message/message-list.windowing.test.tsx",
+    "title": "MessageList windowing > opens with no more rows than fill the window, and draws the rows past the view's edges only after the first paint",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3314",
+    "owner": "drain-redcheck",
+    "quarantinedAt": "2026-11-25T02:56:17Z",
+    "cause": "infra: the host stops scheduling the browser renderer process (the #2149/#671/#3221 hang class - CPU samples there read near-zero renderer CPU during the stall, ruling out a busy loop), cascading every subsequent screenshot in the shard into a timeout; not a product bug in MessageList or its test."
+  }
+]
+
