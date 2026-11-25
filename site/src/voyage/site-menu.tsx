@@ -88,7 +88,8 @@ const row =
 function Here(): JSX.Element {
   return (
     <span className="ms-auto inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground" aria-hidden="true">
-      you’re here
+      {/* Below sm, "you're here" crowds a short title into wrapping in the flex row (#3556); the dot alone still says it, since this whole mark is decorative (aria-current carries the meaning for assistive tech). */}
+      <span className="hidden sm:inline">you’re here</span>
       <span className="relative inline-flex size-2.5">
         <span className="absolute inset-0 animate-ping rounded-full bg-primary/50 [animation-iteration-count:2] motion-reduce:hidden" />
         <span className="relative size-2.5 rounded-full border-2 border-solid border-primary bg-primary/30" />

@@ -354,6 +354,16 @@ test("on a phone the menu opens on the section you are in, its row just under th
   expect(row.y - (under.y + under.height)).toBeLessThanOrEqual(24);
 });
 
+test("on a phone the page you are on keeps its own short title on one line, with the mark beside it (#3556)", async ({ page }) => {
+  await open(page, "docs/ax-adopt/");
+  await openMenu(page);
+  const current = sheet(page).locator('a[aria-current="page"]');
+  const label = current.locator("> span").first();
+  // One line of text at this size is ~20px tall (leading-5); two lines, which crowded the "you're here" mark into
+  // the row used to force, come to about double that.
+  expect((await label.boundingBox())!.height).toBeLessThan(28);
+});
+
 /** Opens the theme picker with one press, as `openMenu` opens the menu: a retried press could close it again (#681). */
 async function openPicker(page: Page) {
   const picker = page.getByRole("dialog", { name: "Theme" });
