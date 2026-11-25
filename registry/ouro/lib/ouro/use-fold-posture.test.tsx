@@ -1,8 +1,32 @@
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isFoldHostInput, useFoldHostInput, useFoldPosture, FOLD_INPUT_EVENT } from "@/registry/ouro/lib/ouro/use-fold-posture";
+import {
+  foldInputFromSegments,
+  isFoldHostInput,
+  useFoldHostInput,
+  useFoldPosture,
+  useViewportSegments,
+  FOLD_INPUT_EVENT,
+} from "@/registry/ouro/lib/ouro/use-fold-posture";
 import type { OuroFoldRules } from "@/registry/ouro/lib/ouro/fold-posture";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+const restoreSegments: Array<() => void> = [];
+
+/** Stubs `window.visualViewport.segments` for the rest of the test, as the Viewport Segments API would report it. */
+function stubSegments(segments: ReadonlyArray<{ x: number; y: number; width: number; height: number }> | undefined) {
+  const viewport = window.visualViewport!;
+  const own = Object.getOwnPropertyDescriptor(viewport, "segments");
+  Object.defineProperty(viewport, "segments", { configurable: true, get: () => segments });
+  restoreSegments.push(() => {
+    if (own) Object.defineProperty(viewport, "segments", own);
+    else delete (viewport as unknown as Record<string, unknown>).segments;
+  });
+}
+
+function reportViewportResize() {
+  window.visualViewport!.dispatchEvent(new Event("resize"));
+}
 
 function Probe({ width, height }: { width: number; height: number }) {
   const posture = useFoldPosture({ width, height });
@@ -19,6 +43,11 @@ function HostInputProbe() {
   return <span data-testid="probe">{input === null ? "none" : input.hinge.kind}</span>;
 }
 
+function SegmentsProbe() {
+  const segments = useViewportSegments();
+  return <span data-testid="probe">{segments === undefined ? "none" : String(segments.length)}</span>;
+}
+
 function reportFoldInput(detail: unknown) {
   window.dispatchEvent(new CustomEvent(FOLD_INPUT_EVENT, { detail }));
 }
@@ -26,6 +55,7 @@ function reportFoldInput(detail: unknown) {
 afterEach(() => {
   reportFoldInput({ hinge: { kind: "none" }, regions: [] });
   document.body.replaceChildren();
+  for (const undo of restoreSegments.splice(0).reverse()) undo();
 });
 
 describe("isFoldHostInput", () => {
@@ -337,6 +367,166 @@ describe("useFoldPosture", () => {
       }),
     );
     expect(container.textContent).toBe("single");
+    await act(async () => root.unmount());
+  });
+});
+
+describe("foldInputFromSegments", () => {
+  it("returns null with no segments reported", () => {
+    expect(foldInputFromSegments(undefined)).toBeNull();
+  });
+
+  it("returns null with only one segment (no fold to report)", () => {
+    expect(foldInputFromSegments([{ x: 0, y: 0, width: 800, height: 800 }])).toBeNull();
+  });
+
+  it("returns null with three segments, which it has no pairing rule for", () => {
+    expect(
+      foldInputFromSegments([
+        { x: 0, y: 0, width: 200, height: 800 },
+        { x: 220, y: 0, width: 200, height: 800 },
+        { x: 440, y: 0, width: 200, height: 800 },
+      ]),
+    ).toBeNull();
+  });
+
+  it("returns null for two segments that share neither a row nor a column", () => {
+    expect(
+      foldInputFromSegments([
+        { x: 0, y: 0, width: 200, height: 200 },
+        { x: 220, y: 220, width: 200, height: 200 },
+      ]),
+    ).toBeNull();
+  });
+
+  it("turns two side-by-side segments into a fullyOpen hinge with the vertical gap between them as the region", () => {
+    expect(
+      foldInputFromSegments([
+        { x: 0, y: 0, width: 400, height: 800 },
+        { x: 420, y: 0, width: 400, height: 800 },
+      ]),
+    ).toEqual({
+      hinge: { kind: "fullyOpen" },
+      regions: [{ frame: { x: 400, y: 0, width: 20, height: 800 }, isActive: true }],
+    });
+  });
+
+  it("turns two stacked segments into a fullyOpen hinge with the horizontal gap between them as the region", () => {
+    expect(
+      foldInputFromSegments([
+        { x: 0, y: 0, width: 800, height: 390 },
+        { x: 0, y: 410, width: 800, height: 390 },
+      ]),
+    ).toEqual({
+      hinge: { kind: "fullyOpen" },
+      regions: [{ frame: { x: 0, y: 390, width: 800, height: 20 }, isActive: true }],
+    });
+  });
+
+  it("pairs two side-by-side segments regardless of the order they're reported in", () => {
+    expect(
+      foldInputFromSegments([
+        { x: 420, y: 0, width: 400, height: 800 },
+        { x: 0, y: 0, width: 400, height: 800 },
+      ]),
+    ).toEqual({
+      hinge: { kind: "fullyOpen" },
+      regions: [{ frame: { x: 400, y: 0, width: 20, height: 800 }, isActive: true }],
+    });
+  });
+});
+
+describe("useViewportSegments", () => {
+  it("reads undefined where the browser reports no segments", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<SegmentsProbe />));
+    expect(container.textContent).toBe("none");
+    await act(async () => root.unmount());
+  });
+
+  it("reads the segments the browser reports, and again as they change", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<SegmentsProbe />));
+    expect(container.textContent).toBe("none");
+    stubSegments([
+      { x: 0, y: 0, width: 400, height: 800 },
+      { x: 420, y: 0, width: 400, height: 800 },
+    ]);
+    await act(reportViewportResize);
+    expect(container.textContent).toBe("2");
+    await act(async () => root.unmount());
+  });
+
+  it("subscribes to the visual viewport's resize event once on mount and unsubscribes once on unmount", async () => {
+    const viewport = window.visualViewport!;
+    const addSpy = vi.spyOn(viewport, "addEventListener");
+    const removeSpy = vi.spyOn(viewport, "removeEventListener");
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<SegmentsProbe />));
+    expect(addSpy).toHaveBeenCalledWith("resize", expect.any(Function));
+    const [, listener] = addSpy.mock.calls.find(([type]) => type === "resize")!;
+    await act(async () => root.unmount());
+    expect(removeSpy).toHaveBeenCalledWith("resize", listener);
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+});
+
+describe("useFoldPosture reads the Viewport Segments API ahead of a native host's report", () => {
+  it("resolves a book posture from reported segments, with no native host reporting anything", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe width={820} height={800} />));
+    expect(container.textContent).toBe("single");
+    stubSegments([
+      { x: 0, y: 0, width: 400, height: 800 },
+      { x: 420, y: 0, width: 400, height: 800 },
+    ]);
+    await act(reportViewportResize);
+    expect(container.textContent).toBe("book");
+    await act(async () => root.unmount());
+  });
+
+  it("prefers the segments it reads over whatever a native host has reported", async () => {
+    // A native host reporting fullyOpen with no regions would resolve to single on its own (no region to
+    // split on); if the segments-derived region reached resolveFoldPosture too, the result is book instead.
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe width={820} height={800} />));
+    await act(async () => reportFoldInput({ hinge: { kind: "fullyOpen" }, regions: [] }));
+    expect(container.textContent).toBe("single");
+    stubSegments([
+      { x: 0, y: 0, width: 400, height: 800 },
+      { x: 420, y: 0, width: 400, height: 800 },
+    ]);
+    await act(reportViewportResize);
+    expect(container.textContent).toBe("book");
+    await act(async () => root.unmount());
+  });
+
+  it("falls back to the native host's report once the browser stops reporting segments", async () => {
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe width={800} height={820} />));
+    stubSegments([
+      { x: 0, y: 0, width: 800, height: 390 },
+      { x: 0, y: 410, width: 800, height: 390 },
+    ]);
+    await act(reportViewportResize);
+    expect(container.textContent).toBe("tabletop");
+    stubSegments(undefined);
+    await act(reportViewportResize);
+    expect(container.textContent).toBe("single");
+    await act(async () =>
+      reportFoldInput({
+        hinge: { kind: "partiallyOpen", angleDegrees: 100 },
+        regions: [{ frame: { x: 0, y: 400, width: 800, height: 20 }, isActive: true }],
+      }),
+    );
+    expect(container.textContent).toBe("tabletop");
     await act(async () => root.unmount());
   });
 });
