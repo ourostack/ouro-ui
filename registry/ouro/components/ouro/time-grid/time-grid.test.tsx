@@ -1428,7 +1428,7 @@ describe("TimeGrid", () => {
     expect(await opensAt({ now: at(12, "10:41"), events: [mk(14, "06:00", "06:45")] })).toBeCloseTo(5.5, 1);
     // One after the working day's start doesn't push it later.
     expect(await opensAt({ now: at(12, "10:41"), events: [mk(13, "14:00", "15:00")] })).toBeCloseTo(7.5, 1);
-    // An event that runs across the line opens whole: the grid opens half an hour before its start.
+    // An event that starts after the working day's start opens whole, half an hour before its start.
     expect(await opensAt({ now: at(12, "10:41"), events: [mk(13, "07:10", "09:00")] })).toBeCloseTo(6 + 40 / 60, 1);
     // Events fetched after the grid opened move it once, unless the reader has scrolled since.
     const { grid, rerender } = await render({ now: at(12, "10:41"), events: [] });

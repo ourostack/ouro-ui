@@ -695,11 +695,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       // Stryker disable next-line EqualityOperator: a scroll of exactly a pixel is a rounding either way.
       if (opened.current?.key === scrollKey && Math.abs(viewport.scrollTop - opened.current.top) > 1) return;
       const line = Math.min(workingHours.start * 60, firstEvent) - 30;
-      // An event across that line, on any day shown, would open cut in half under the header: open at its start.
-      // Stryker disable next-line EqualityOperator: an event that starts at the line opens at its start either way.
-      const across = timed.flat().filter((placed) => placed.top < line && placed.bottom > line);
-      const minutes = across.length ? Math.min(...across.map((placed) => placed.top)) : line;
-      viewport.scrollTop = (between(0, minutes, dayLength) / dayLength) * body.offsetHeight;
+      // The line sits half an hour above every timed event, so no event is cut in half under the header.
+      viewport.scrollTop = (between(0, line, dayLength) / dayLength) * body.offsetHeight;
       opened.current = { key: scrollKey, top: viewport.scrollTop };
     };
     const observer = new ResizeObserver(() => {
