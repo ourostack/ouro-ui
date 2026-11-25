@@ -101,6 +101,15 @@ describe("resolveFoldPosture", () => {
     expect(resolveFoldPosture({ size: wide, hinge: { kind: "fullyOpen" }, regions: [region(399, 600.5, 2, 600, true)] })).toEqual({ kind: "single" });
   });
 
+  it("ignores a region on the x-boundary even when it is otherwise wide enough to stand a tabletop up", () => {
+    // Unlike the pair above, this region is horizontal, active and wide enough (width >= size.width / 2) to
+    // stand a tabletop up if intersects() counted it at all, so the x-axis boundary comparisons it exercises
+    // are the only thing that can keep it out: a loosened "<=" (or a clause forced true) would wrongly include
+    // it and report "tabletop" here instead.
+    expect(resolveFoldPosture({ size: tall, hinge: { kind: "fullyOpen" }, regions: [region(-300.5, 382, 300, 20, true)] })).toEqual({ kind: "single" });
+    expect(resolveFoldPosture({ size: tall, hinge: { kind: "fullyOpen" }, regions: [region(600.5, 382, 300, 20, true)] })).toEqual({ kind: "single" });
+  });
+
   it("requires a vertical fold's own pane to reach halfway before standing a book up", () => {
     // Vertical, but short of size.height / 2: a wide-enough split would still succeed if the height guard were
     // skipped, so this isolates the guard rather than the split succeeding or failing on its own.
