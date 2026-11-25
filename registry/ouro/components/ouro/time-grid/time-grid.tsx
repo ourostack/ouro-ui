@@ -395,8 +395,8 @@ const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${mi
  * stacks them, so the name holds what it shows and a speech-input user can say it to press it
  * (WCAG 2.5.3, Label in Name). The grid is one Tab stop: the arrow keys move through events in time
  * order (Up and Down) and across days (Left and Right), Home and End go to the first and the
- * last, and Enter opens one. It opens scrolled to now or to the working day (to today's first
- * event when now is before it), never with an event cut across its top, and a now line
+ * last, and Enter opens one. It opens half an hour before the working day or the first event
+ * shown, whichever is earlier, never with an event cut across its top, and a now line
  * runs across today, under events so it never crosses their text.
  *
  * Use `Calendar` instead to pick a date from a month, and `Table` or `ItemGroup` for an agenda
@@ -417,8 +417,7 @@ const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${mi
  * @claim "Each day has a column" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > draws a week of days from the locale's first day, each a list named by its date, today marked)
  * @claim "Its lines are separate words" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid label in name > shows each event's lines as words its name holds in order, on one line, two or three) verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid label in name > the same event with its lines run together fails the rule, so the check can fail)
  * @claim "Events that overlap sit side" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > shares a day's width between overlapping events)
- * @claim "It opens scrolled to now" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > runs the now line across today, under the events, with the time beside it)
- * @claim "It opens scrolled to now" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > opens at today's first event when now is before it, rather than at empty hours before now)
+ * @claim "It opens half an hour before the working day or the first event shown" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > opens before the earlier of the working day's start and the week's first event, not at now)
  */
 export function TimeGrid(props: TimeGridProps): JSX.Element {
   const {

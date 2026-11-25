@@ -1020,7 +1020,7 @@ describe("TimeGrid", () => {
     const { grid, rerender } = await render({ view: "day", onSlotSelect: slot });
     const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
     expect(slots.getAttribute("aria-hidden")).toBe("true");
-    // the grid scrolls to now once its first resize is observed, so read the box at each use
+    // the grid scrolls once its first resize is observed, so read the box at each use
     const y = (minutes: number) => {
       const box = slots.getBoundingClientRect();
       return box.top + (box.height * minutes) / 1440;
@@ -1954,7 +1954,7 @@ describe("TimeGrid day summaries", () => {
 });
 
 describe("TimeGrid mount reads", () => {
-  it("forces no layout while it mounts, then scrolls to now and fills its room", async () => {
+  it("forces no layout while it mounts, then scrolls and fills its room", async () => {
     const host = document.createElement("div");
     host.style.cssText = "height: 400px; display: flex; flex-direction: column";
     document.body.append(host);
