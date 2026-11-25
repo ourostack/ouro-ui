@@ -688,6 +688,17 @@ describe("TimeGrid", () => {
       expect(shown()).toEqual([]);
     });
 
+    it("follows the day's width after the date changes and a new column replaces it", async () => {
+      const onThirteenth = crowd(3).map((event) => ({ ...event, start: event.start.replace("-12T", "-13T"), end: event.end.replace("-12T", "-13T") }));
+      const { rerender } = await render({ view: "day", events: crowd(3) }, (grid) => <div data-test-harness="" id="narrowing" style={{ width: "260px" }}>{grid}</div>);
+      await expect.poll(() => shown().length).toBe(3);
+      await rerender({ view: "day", date: "2026-03-13", events: onThirteenth });
+      await expect.poll(() => shown().length).toBe(3);
+      document.getElementById("narrowing")!.style.width = "130px";
+      await expect.poll(stack).not.toBeNull();
+      expect(shown()).toEqual([]);
+    });
+
     it("places overlapping events across the whole day, as a share of 100%", async () => {
       await render({ view: "day", events: crowd(2) }, (grid) => <div style={{ width: "240px" }}>{grid}</div>);
       await expect.poll(() => shown().length).toBe(2);
@@ -712,6 +723,8 @@ describe("TimeGrid", () => {
       // A shown event that another covers keeps its text clear of the cover, within the day less the chip's strip.
       const cover = (events()[0]!.closest("li") as HTMLElement).style.getPropertyValue("--ouro-time-grid-cover");
       expect(cover).toContain("max(0.75rem, min(0.5 * (100cqw - 2rem), ((100cqw - 2rem) - 4.5rem) / 1))");
+      // And in the plain day, less the same strip.
+      expect(first.style.width).toContain("100% - 2rem");
     });
 
     it("moves the Tab stop to the chip when it takes focus, and marks it current only when a folded event is selected", async () => {
@@ -2246,6 +2259,8 @@ describe("TimeGrid background events", () => {
     await expect.poll(stack).not.toBeNull();
     expect(plain(stack()!.textContent)).toBe("4 crowd 9:00 – 10:20 AM");
     expect(stack()!.getAttribute("data-background")).toBe("");
+    // No background event sits behind a background stack, so it spans the day.
+    expect(stack()!.closest("li")!.style.insetInlineStart).toBe("");
     // From the first one's start to the last one's end.
     expect(hours(stack()!)).toEqual([9, 80 / 60]);
     // The block holds the selected event, so it says so; it is the Tab stop, as the first event in time.
