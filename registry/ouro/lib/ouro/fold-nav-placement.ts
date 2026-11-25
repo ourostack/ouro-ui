@@ -10,22 +10,36 @@ import type { OuroFoldPosture } from "@/registry/ouro/lib/ouro/fold-posture";
  * under the thumb that is already holding the device), and the Duo open or a tablet in tabletop
  * or book puts them on the pane the posture's own JSDoc calls "controls" (tabletop) or the
  * leading, facing-pages pane (book).
+ *
+ * @claim "its `closed` posture has no room to fold, so a bar would sit at the very bottom edge" registry/ouro/lib/ouro/fold-nav-placement.test.ts verify:testExists(registry/ouro/lib/ouro/fold-nav-placement.test.ts::resolveFoldNavPlacement > puts a closed posture's (the Duo's front screen) places in a side rail even when narrow)
  */
 type OuroFoldNavPlacement =
   | { nav: "bar" }
   | { nav: "rail" }
   | { nav: "rail"; pane: "first" | "second" };
 
-/** How wide a `single` posture (an ordinary screen, no fold) must be before its places move from a bottom bar to a side rail. */
+/**
+ * How wide a `single` posture (an ordinary screen, no fold) must be before its places move from a
+ * bottom bar to a side rail.
+ *
+ * @claim "an ordinary screen, no fold" registry/ouro/lib/ouro/fold-posture.ts verify:fileLine(registry/ouro/lib/ouro/fold-posture.ts, /single/)
+ */
 type OuroFoldNavRules = { railFromWidth: number };
 
-/** The width Ouro HX's own bottom-bar/side-rail pattern switches at today: Tailwind's `sm` breakpoint, 640px. */
+/**
+ * The width Ouro HX's own bottom-bar/side-rail pattern switches at today: Tailwind's `sm`
+ * breakpoint, 640px.
+ *
+ * @claim "Tailwind's `sm` breakpoint, 640px" registry/ouro/lib/ouro/use-sheet-presentation.ts verify:fileLine(registry/ouro/lib/ouro/use-sheet-presentation.ts, /\(min-width: 640px\)/)
+ */
 const standardFoldNavRules: OuroFoldNavRules = { railFromWidth: 640 };
 
 /**
  * Decides where an app's places (its top-level destinations) belong for a given fold posture and
  * screen size, so a bottom bar and a side rail never drift out of step with each other's own
  * breakpoint.
+ *
+ * @claim "never drift out of step with each other's own breakpoint" registry/ouro/lib/ouro/fold-nav-placement.test.ts verify:testExists(registry/ouro/lib/ouro/fold-nav-placement.test.ts::resolveFoldNavPlacement > honors a custom railFromWidth rule for a single posture)
  *
  * @example
  * ```ts
