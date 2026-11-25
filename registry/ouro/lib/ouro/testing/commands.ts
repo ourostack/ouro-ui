@@ -151,17 +151,16 @@ export const resetViewport: BrowserCommand<[]> = async (ctx) => {
   await restoreViewport(ctx, projectDefaultViewport(ctx));
 };
 
-/** The media and real viewport `mediaState` and `viewportState` each read, in one round trip. */
+/** What `mediaState` and `viewportState` read together, in one round trip. */
 export interface EnvironmentState {
   media: MediaState;
   viewport: ViewportSize;
 }
 
 /**
- * `mediaState` and `viewportState` together, in one round trip: every test's `beforeEach` reads
- * both, so one call instead of two halves the dispatch per test this kit's cross-file reset
- * (ourostack/ouro-ui#3300, #3319) added. A test or setup reads this before a change, to put both
- * back with `restoreEnvironment`.
+ * `mediaState` and `viewportState` together, in one round trip, for `beforeEach` to read before a
+ * change this kit's cross-file reset (ourostack/ouro-ui#3300, #3319) added. Put both back with
+ * `restoreEnvironment`.
  */
 export const snapshotEnvironment: BrowserCommand<[]> = async (ctx) => ({
   media: currentMedia(ctx.page),
@@ -169,8 +168,8 @@ export const snapshotEnvironment: BrowserCommand<[]> = async (ctx) => ({
 });
 
 /**
- * `restoreMedia` and `restoreViewport` together, in one round trip, each still only acting on the
- * feature that actually changed.
+ * `restoreMedia` and `restoreViewport` together, in one round trip; only the feature that actually
+ * changed is touched.
  */
 export const restoreEnvironment: BrowserCommand<[EnvironmentState]> = async (ctx, state) => {
   await Promise.all([restoreMedia(ctx, state.media), restoreViewport(ctx, state.viewport)]);
