@@ -1,4 +1,5 @@
 import { expect, test } from "../ouro-fixtures";
+import { classifyPaintedFrames } from "./painted-frames";
 import { openStory } from "./story";
 
 test("a composer sends on Enter, starts a new line on Shift+Enter, and clears after sending", async ({ page }) => {
@@ -264,19 +265,13 @@ test("under a backdrop-filter, the box opens and closes in painted frames with o
       // CDP's screencast can deliver a bad frame two ways: splicing two different paints into one
       // image (more than one run in a column that never shows more than one outline), or sending
       // a whole frame out of order — a stale, already-superseded paint arriving between two frames
-      // that have both already moved past it. Both are capture glitches, not a real size the box
-      // passes through twice; tolerate at most one of either kind per run, and no more.
-      const torn = new Set(body.flatMap((row, index) => (row.runs !== 1 ? [index] : [])));
-      const stale = new Set(
-        body.flatMap((row, index) => {
-          if (torn.has(index) || index === 0 || index === body.length - 1) return [];
-          const prev = body[index - 1]!.height;
-          const next = body[index + 1]!.height;
-          return (row.height - prev) * sign < -3 && (row.height - next) * sign < -3 ? [index] : [];
-        }),
-      );
+      // that have both already moved past it, or (just as possible the other way) a frame ahead of
+      // where it belongs arriving between two that have not yet caught up to it. All three are
+      // capture glitches, not a real size the box passes through twice; tolerate at most one of any
+      // kind per run, and no more. classifyPaintedFrames carries the actual sorting, so it can be
+      // proven against synthetic frames on its own, without a browser.
+      const { torn, stale, sound } = classifyPaintedFrames(body, sign);
       expect(torn.size + stale.size, "every captured frame but at most one capture glitch paints the box's real, one-outline size").toBeLessThanOrEqual(1);
-      const sound = body.filter((_, index) => !torn.has(index) && !stale.has(index));
       expect(Math.abs(sound[0]!.height - from), "the first painted frame is the old size").toBeLessThanOrEqual(Math.abs(to - from) * 0.4 + 3);
       for (let index = 1; index < sound.length; index++) expect((sound[index]!.height - sound[index - 1]!.height) * sign).toBeGreaterThanOrEqual(-3);
       expect(Math.abs(sound.at(-1)!.height - to)).toBeLessThanOrEqual(3);

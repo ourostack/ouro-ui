@@ -451,7 +451,9 @@ export function itemForFile(path: string): string | null {
     return "ouro-images";
   } else if (path.startsWith(feelDir)) {
     return "ouro-feel-probe";
-  } else if (path.startsWith(testingDir) || path === `${e2eDir}story.ts`) {
+  } else if (path.startsWith(testingDir) || (path.startsWith(e2eDir) && !file.endsWith(".spec.ts"))) {
+    // A non-spec file directly under e2e/ouro/ is a shared helper (story.ts, painted-frames.ts):
+    // it ships with every -tests item, the same as story.ts always has.
     return "ouro-testing";
   } else if (path.startsWith(libDir) && !path.slice(libDir.length).includes("/")) {
     return libItem(file);
