@@ -37,41 +37,65 @@ const sites: FamilyLink[] = [
 ];
 
 describe("FamilyBar and FamilyFooter on a phone", () => {
-  it("keeps each link's 44px floor at a compact --spacing", async () => {
+  it("keeps a FamilyBar link's 44px target at a compact --spacing, a two-letter name too, in a strip that stays 32px", async () => {
     const host = await render(<FamilyBar links={sites} current="docs" />);
-    const link = () => getComputedStyle(host.querySelector<HTMLElement>('[data-ouro-part="link"]')!);
-    expect([link().minHeight, link().minWidth]).toEqual(["44px", "44px"]);
+    // "Go", the shortest name: its target is 44px each way, wider than the link.
+    const go = [...host.querySelectorAll<HTMLElement>('[data-ouro-part="link"]')].find((link) => link.textContent === "Go")!;
+    expect(go.getBoundingClientRect().width).toBeLessThan(44);
+    const target = () => go.querySelector("[data-ouro-touch-target]")!.getBoundingClientRect();
+    expect([target().height, target().width]).toEqual([44, 44]);
     host.style.setProperty("--spacing", "0.2rem");
-    expect([link().minHeight, link().minWidth]).toEqual(["44px", "44px"]);
+    expect([target().height, target().width]).toEqual([44, 44]);
+    expect(host.querySelector('[data-ouro="family-bar"]')!.getBoundingClientRect().height).toBe(32);
   });
-  it("keep 44px targets with 16px text, a two-letter name too, also in landscape, and the page never scrolls sideways", async () => {
+
+  it("give every link a 44px target, a two-letter name too, also in landscape, and the page never scrolls sideways", async () => {
     const host = await render(
       <>
         <FamilyBar links={sites} current="blog" />
         <FamilyFooter links={sites} current="blog" />
       </>,
     );
+    // Room above the strip, so a target edge that reaches past it is still on screen.
+    host.style.paddingBlock = "24px";
     expect(matchMedia("(pointer: coarse)").matches).toBe(true);
-    for (const [width, height] of [
-      [390, 844],
-      [844, 390],
+    const bar = host.querySelector<HTMLElement>('[data-ouro="family-bar"]')!;
+    const row = bar.querySelector<HTMLElement>("[data-ouro-family-row]")!;
+    for (const [width, height, strip] of [
+      [390, 844, 32],
+      [844, 390, 28],
     ] as const) {
       await rotate(width, height);
       await expect.poll(() => innerWidth).toBe(width);
-      const targets = [...host.querySelectorAll<HTMLElement>("a")];
-      expect(targets.length).toBe(sites.length * 2);
-      for (const target of targets) {
-        expect(target.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
-        expect(target.getBoundingClientRect().width).toBeGreaterThanOrEqual(44);
-        expect(parseFloat(getComputedStyle(target).fontSize)).toBeGreaterThanOrEqual(16);
+      expect(bar.getBoundingClientRect().height).toBe(strip);
+      const links = [...bar.querySelectorAll<HTMLElement>("a")];
+      expect(links.length).toBe(sites.length);
+      for (const link of links) {
+        row.scrollLeft = 0;
+        link.scrollIntoView({ inline: "center", block: "nearest" });
+        const target = link.querySelector("[data-ouro-touch-target]")!.getBoundingClientRect();
+        expect(target.height).toBeGreaterThanOrEqual(44);
+        expect(target.width).toBeGreaterThanOrEqual(44);
+        // The row is tall enough that it clips none of the target: a tap at its top and bottom edges lands on the link.
+        const x = target.left + target.width / 2;
+        expect(link.contains(document.elementFromPoint(x, target.top + 1))).toBe(true);
+        expect(link.contains(document.elementFromPoint(x, target.bottom - 1))).toBe(true);
+      }
+      for (const link of host.querySelectorAll<HTMLElement>('[data-ouro="family-footer"] a')) {
+        expect(link.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+        expect(link.getBoundingClientRect().width).toBeGreaterThanOrEqual(44);
+        expect(parseFloat(getComputedStyle(link).fontSize)).toBeGreaterThanOrEqual(16);
       }
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
     }
   });
 
-  it("hides the FamilyBar row's scroll bar from a finger, which swipes it, and rests a swipe on a whole link", async () => {
+  it("keeps the FamilyBar on a phone as one row that scrolls with no scroll bar, and rests a swipe on a whole link", async () => {
     const host = await render(<FamilyBar links={sites} current="blog" />);
-    const row = host.querySelector("[data-ouro-family-row]")!;
+    const row = host.querySelector<HTMLElement>("[data-ouro-family-row]")!;
+    expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
+    const tops = new Set([...row.querySelectorAll("a")].map((a) => Math.round(a.getBoundingClientRect().top)));
+    expect(tops.size).toBe(1);
     expect(getComputedStyle(row).scrollbarWidth).toBe("none");
     expect(getComputedStyle(row).scrollSnapType).toBe("x");
     expect(getComputedStyle(row.querySelector("li")!).scrollSnapAlign).toBe("start");

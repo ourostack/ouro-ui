@@ -645,10 +645,17 @@ function InspectorLayer({
       // and nothing tells X-ray when the style catches up.
       const now = moving(own);
       if (now || moved) schedule();
+      // Outside an animation (a scroll, a resize, a mutation) the reposition above is a synchronous
+      // write with no Animation object, so nothing but this attribute tells a test it happened (#3361).
+      else own.removeAttribute("data-ouro-settling");
       moved = now;
     };
     const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(update);
+      if (!frame) {
+        // Stryker disable next-line StringLiteral: a test reads only whether the attribute is set, never its value.
+        own.setAttribute("data-ouro-settling", "");
+        frame = requestAnimationFrame(update);
+      }
     };
     // X-ray's own writes (each outline's position) are no change to the page.
     const mutations = new MutationObserver((records) => {
@@ -662,6 +669,10 @@ function InspectorLayer({
     schedule();
     return () => {
       cancelAnimationFrame(frame);
+      // Stryker disable next-line StringLiteral: `own` is this layer's own element, coming down with
+      // it (X-ray closes by unmounting), so clearing an attribute on an element about to leave the
+      // page changes nothing a test, or anything else, can observe.
+      own.removeAttribute("data-ouro-settling");
       mutations.disconnect();
       resizes.disconnect();
       removeEventListener("scroll", schedule, { capture: true });

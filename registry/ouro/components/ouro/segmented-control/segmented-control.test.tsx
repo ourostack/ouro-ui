@@ -414,6 +414,13 @@ describe("SegmentedControl", () => {
     const { root, host } = await render(<SegmentedControl label="View" items={items} fullWidth hideLabel />);
     const group = root.querySelector('[role="radiogroup"]')!;
     expect(Math.round(group.getBoundingClientRect().width)).toBe(Math.round(host.getBoundingClientRect().width - 48));
+    expect(group.className.split(" ")).toEqual(expect.arrayContaining(["grid", "w-full"]));
+  });
+
+  it("leaves the group's own grid-flow columns without fullWidth", async () => {
+    const { root } = await render(<SegmentedControl label="View" items={items} hideLabel />);
+    const group = root.querySelector('[role="radiogroup"]')!;
+    expect(group.className.split(" ")).not.toEqual(expect.arrayContaining(["w-full"]));
   });
 
   it("stretches its label across with fullWidth, and keeps it to its text without", async () => {

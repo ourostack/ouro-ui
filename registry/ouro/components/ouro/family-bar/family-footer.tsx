@@ -12,7 +12,7 @@ import { familyExtrasClass, familyFooterClass, familyFooterLinkClass, familyFoot
 export interface FamilyFooterProps {
   /** The family's sites, in order: the list the site's `FamilyBar` takes. */
   links: readonly FamilyLink[];
-  /** The `id` of the site being shown, marked as in the `FamilyBar`: `aria-current="true"`, the text colour and a primary underline. */
+  /** The `id` of the site being shown, marked `aria-current="true"`, in the text colour with a primary underline. */
   current?: string | undefined;
   /** Names the footer's navigation for screen readers, apart from the bar's. It is not shown. @default "All sites" */
   label?: string | undefined;

@@ -345,6 +345,7 @@ const defaultStatusLabels: Record<TimeGridStatus, string> = { busy: "", tentativ
 /** `value` when it is one of `list`, else `fallback`. */
 const oneOf = <Name extends string>(list: readonly Name[], value: string | undefined, fallback: Name): Name => ((list as readonly (string | undefined)[]).includes(value) ? (value as Name) : fallback);
 const defaultWorkingHours = { start: 8, end: 17 };
+const overlapMinWidth = "4.5rem";
 
 const clock = minuteClock();
 // Stryker disable next-line ArrowFunction: the server's time only has to be no time, which 0 and undefined both are
@@ -929,7 +930,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         {bar ? (
           <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, status === "away" ? awaySwatchClass : toneSwatchClass[tone], barStatusClass[status])} />
         ) : (
-          <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
+          <span className="@container/text flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden @max-[2rem]/text:*:invisible">{content}</span>
         )}
       </>
     );
@@ -965,12 +966,24 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   };
 
   // One day's events, each in its place among those it overlaps.
-  const placedItems = (placements: ReadonlyArray<DayPlacement<string>>, clearOfLane?: ReadonlySet<string>) =>
+  const placedItems = (placements: ReadonlyArray<DayPlacement<string>>, clearOfLane?: ReadonlySet<string>, stepped = true) =>
     placements.map((placed) => {
       const share = 100 / placed.columns;
       const cleared = clearOfLane?.has(placed.key);
       // Where a background event shares its time, the event is placed in what the lane leaves free.
       const free = "(100% - var(--ouro-time-grid-lane))";
+      // A day too narrow to give each of its overlapping events a readable width lets them overlap in steps, each later one on top of the last, instead of splitting the width into slivers.
+      const step = `max(0.75rem, min(${share}%, (100% - ${overlapMinWidth}) / ${Math.max(placed.columns - 1, 1)}))`;
+      const startAt = !stepped ? `${placed.column * share}%` : placed.columns > 1 ? `calc(${step} * ${placed.column})` : "0%";
+      const widthAt = !stepped ? `${placed.span * share}%` : placed.columns > 1 ? `min(max(${placed.span * share}%, ${overlapMinWidth}), 100% - ${startAt})` : "100%";
+      // The text of an event a later one steps over ends where that one starts, so it is never drawn under another event.
+      // Stryker disable next-line EqualityOperator: a freed column is reused, so an event in a later column never merely touches this one, so no filter operand, and no single-column or filter-less case, changes which event covers this one, and < against <= and > against >= place the same events. The stepped test below pins the rest.
+      const coveredBy = stepped ? placements.filter((other) => other.column > placed.column && other.top < placed.bottom && other.bottom > placed.top).sort((one, two) => one.column - two.column)[0] : undefined;
+      const unit = `max(0.75rem, min(${share}cqw, (100cqw - ${overlapMinWidth}) / ${placed.columns - 1}))`;
+      // Stryker disable next-line ArithmeticOperator: width only feeds the cover, and a covered event has an overlapping later column, which stops its span at 1, so span * share and span / share agree.
+      const width = `min(max(${placed.span * share}cqw, ${overlapMinWidth}), 100cqw - ${unit} * ${placed.column})`;
+      // Padding and borders must still fit the button, or it would spill out of its place.
+      const cover = coveredBy ? `max(0px, min(${width} - ${unit} * ${coveredBy.column - placed.column} - 0.875rem, ${width} - 2rem))` : undefined;
       return (
         <li
           key={placed.key}
@@ -980,8 +993,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           style={{
             top: minutesTall(placed.top),
             height: `calc(${minutesTall(placed.bottom - placed.top)} - 1px)`,
-            insetInlineStart: cleared ? `calc(var(--ouro-time-grid-lane) + ${free} * ${placed.column / placed.columns})` : `${placed.column * share}%`,
-            width: cleared ? `calc(${free} * ${placed.span / placed.columns})` : `${placed.span * share}%`,
+            ...(cover ? { "--ouro-time-grid-cover": cover } : {}),
+            insetInlineStart: cleared ? `calc(var(--ouro-time-grid-lane) + ${free} * ${placed.column / placed.columns})` : startAt,
+            width: cleared ? `calc(${free} * ${placed.span / placed.columns})` : widthAt,
           }}
         >
           {renderEvent(pieces.find((piece) => piece.key === placed.key)!, placed)}
@@ -1022,7 +1036,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "z-[9]")}
             >
               <TouchTarget />
-              <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <span className="@container/text flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden @max-[2rem]/text:*:invisible">
                 <span className="truncate font-medium">{stackLabel(stack.length)}</span>{" "}
                 <span className={mutedLineClass}>{rangeText(formats.time, new Date(Math.min(...starts)), new Date(Math.max(...ends)))}</span>
               </span>
@@ -1160,7 +1174,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           {days.map((day, index) => {
             const off = weekend.includes(utcDate(day).getUTCDay());
             return (
-              <div key={day} className="relative min-w-0 border-0 border-s border-solid border-border">
+              <div key={day} className="relative @container/col min-w-0 border-0 border-s border-solid border-border">
                 <div aria-hidden="true" data-slot="time-grid-lines" className="pointer-events-none absolute inset-0">
                   {hourLines.map((line) => (
                     <span key={line.at} data-slot="time-grid-line" className={line.half ? halfHourLineClass : hourLineClass} style={{ top: minutesTall(line.at) }} />
@@ -1248,7 +1262,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                     data-ouro-time-grid-background=""
                     className="pointer-events-none absolute inset-y-0 start-0 m-0 box-border w-(--ouro-time-grid-lane) list-none p-0"
                   >
-                    {placedItems(behind[index]!.filter((placed) => !stackOf.has(placed.key)))}
+                    {placedItems(behind[index]!.filter((placed) => !stackOf.has(placed.key)), undefined, false)}
                     {stacks[index]!.map(stackItem)}
                   </ul>
                 ) : null}

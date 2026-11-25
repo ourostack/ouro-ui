@@ -443,8 +443,142 @@ describe("TimeGrid", () => {
 
   it("shares a day's width between overlapping events", async () => {
     await render({ view: "day", events: [forum, focus] });
-    expect([forum, focus].map((event) => titled(event.title).closest("li")!.style.insetInlineStart)).toEqual(["0%", "50%"]);
-    expect([forum, focus].map((event) => titled(event.title).closest("li")!.style.width)).toEqual(["50%", "50%"]);
+    const [first, second] = [forum, focus].map((event) => titled(event.title).closest("li")!.getBoundingClientRect()) as [DOMRect, DOMRect];
+    expect(second.left - first.left).toBeCloseTo(first.width, 0);
+    expect(second.width).toBeCloseTo(first.width, 0);
+  });
+
+  it("steps overlapping events over one another in a day too narrow to split, so each keeps a readable width", async () => {
+    const third = { id: "third", title: "Third", start: at(12, "10:15"), end: at(12, "11:15") };
+    await render({ view: "day", events: [forum, focus, third] }, (grid) => <div style={{ width: "240px" }}>{grid}</div>);
+    const widths = () => [forum, focus, third].map((event) => titled(event.title).closest("li")!.getBoundingClientRect().width);
+    let last: number[] = [];
+    await expect
+      .poll(() => {
+        const stable = widths().every((width, index) => width === last[index]);
+        last = widths();
+        return stable;
+      })
+      .toBe(true);
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    for (const width of widths()) expect(width).toBeGreaterThanOrEqual(4.5 * rem - 1);
+    const day = titled(forum.title).closest("ul")!.getBoundingClientRect();
+    for (const event of [forum, focus, third]) expect(titled(event.title).closest("li")!.getBoundingClientRect().right).toBeLessThanOrEqual(day.right + 1);
+    // An event's words end where the next one steps over it, so they are never drawn beneath it.
+    const items = [forum, focus, third].map((event) => titled(event.title).closest("li")!);
+    for (const item of items) {
+      const left = item.getBoundingClientRect().left;
+      const next = Math.min(...items.map((other) => other.getBoundingClientRect().left).filter((other) => other > left + 1));
+      if (next === Infinity) continue;
+      const words = item.querySelector<HTMLElement>("span.flex-1")!;
+      const content = words.getBoundingClientRect().right;
+      expect(content).toBeLessThanOrEqual(next + 1);
+    }
+  });
+
+  async function placedBoxes(events: TimeGridEvent[], width: string) {
+    await render({ view: "day", events }, (grid) => <div style={{ width }}>{grid}</div>);
+    const items = () => events.map((event) => titled(event.title).closest("li")!);
+    const read = () => items().map((item) => item.getBoundingClientRect());
+    let last: DOMRect[] = [];
+    await expect
+      .poll(() => {
+        const next = read();
+        const stable = next.every((box, index) => box.left === last[index]?.left && box.width === last[index]?.width);
+        last = next;
+        return stable;
+      })
+      .toBe(true);
+    const day = items()[0]!.closest("ul")!.getBoundingClientRect();
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    return { boxes: read(), items: items(), day, rem };
+  }
+
+  it("gives each stepped event a left offset and width from the day's width, in the order of its column", async () => {
+    const third = { id: "third", title: "Third", start: at(12, "10:15"), end: at(12, "11:15") };
+    const { boxes, day, rem } = await placedBoxes([forum, third, focus], "240px");
+    const step = Math.max(0.75 * rem, Math.min(day.width / 3, (day.width - 4.5 * rem) / 2));
+    boxes.forEach((box, column) => {
+      expect(box.left - day.left).toBeCloseTo(step * column, 0);
+      expect(box.width).toBeCloseTo(Math.min(Math.max(day.width / 3, 4.5 * rem), day.width - step * column), 0);
+    });
+  });
+
+  it("splits a day's width evenly between two overlapping events when there is room", async () => {
+    const { boxes, day } = await placedBoxes([forum, focus], "1000px");
+    expect(boxes[0]!.left - day.left).toBeCloseTo(0, 0);
+    expect(boxes[0]!.width).toBeCloseTo(day.width / 2, 0);
+    expect(boxes[1]!.left - day.left).toBeCloseTo(day.width / 2, 0);
+    expect(boxes[1]!.width).toBeCloseTo(day.width / 2, 0);
+  });
+
+  it("gives events that only touch the whole day each, and no room kept for a later one", async () => {
+    const after = { id: "after", title: "After", start: at(12, "11:00"), end: at(12, "12:00") };
+    const { boxes, items, day } = await placedBoxes([forum, after], "400px");
+    for (const box of boxes) {
+      expect(box.left - day.left).toBeCloseTo(0, 0);
+      expect(box.width).toBeCloseTo(day.width, 0);
+    }
+    for (const item of items) expect(item.style.getPropertyValue("--ouro-time-grid-cover")).toBe("");
+  });
+
+  it("gives an event that reaches past its column the width of the free columns beside it", async () => {
+    const tall = { id: "tall", title: "Tall", start: at(12, "10:00"), end: at(12, "12:00") };
+    const early = { id: "early", title: "Early", start: at(12, "10:00"), end: at(12, "11:00") };
+    const early2 = { id: "early2", title: "Early two", start: at(12, "10:00"), end: at(12, "11:00") };
+    const late = { id: "late", title: "Late", start: at(12, "11:00"), end: at(12, "12:00") };
+    const { boxes, day } = await placedBoxes([tall, early, early2, late], "1000px");
+    expect(boxes[3]!.width).toBeCloseTo((day.width * 2) / 3, 0);
+    expect(boxes[3]!.left - day.left).toBeCloseTo(day.width / 3, 0);
+  });
+
+  it("ends the words of a stepped event where the nearest event over it begins", async () => {
+    const third = { id: "third", title: "Third", start: at(12, "10:15"), end: at(12, "11:15") };
+    const { boxes, items } = await placedBoxes([forum, third, focus], "240px");
+    const words = items[0]!.querySelector<HTMLElement>("span.flex-1")!.getBoundingClientRect();
+    expect(words.right).toBeLessThanOrEqual(boxes[1]!.left + 1);
+    expect(words.right).toBeGreaterThan(boxes[1]!.left - 0.875 * parseFloat(getComputedStyle(document.documentElement).fontSize) - 2);
+    expect(items[0]!.style.getPropertyValue("--ouro-time-grid-cover")).not.toBe("");
+    expect(items[2]!.style.getPropertyValue("--ouro-time-grid-cover")).toBe("");
+  });
+
+  // The columns between an event and the nearest later-column event that overlaps it in time, or null when none does.
+  async function coverSteps(spans: Array<[string, string, string]>) {
+    const events = spans.map(([title, from, to]) => ({ id: title, title, start: at(12, from), end: at(12, to) }));
+    const { items } = await placedBoxes(events, "240px");
+    return items.map((item) => {
+      const cover = item.style.getPropertyValue("--ouro-time-grid-cover");
+      return cover === "" ? null : Number(/\* (\d+) - 0\.875rem/.exec(cover)![1]);
+    });
+  }
+
+  it("hides the text of a stepped event whose visible lane is under 2rem, so none sits over the event that covers it", async () => {
+    const spans: Array<[string, string, string]> = [["Aa", "09:00", "12:00"], ["Bb", "09:00", "12:00"], ["Cc", "09:00", "12:00"], ["Dd", "09:00", "12:00"], ["Ee", "09:00", "12:00"]];
+    const { items, rem } = await placedBoxes(spans.map(([title, from, to]) => ({ id: title, title, start: at(12, from), end: at(12, to) })), "180px");
+    const lanes = items.map((item) => item.querySelector<HTMLElement>("span.flex-1")!);
+    await expect.poll(() => lanes.map((lane) => lane.getBoundingClientRect().width).join()).toBe(lanes.map((lane) => lane.getBoundingClientRect().width).join());
+    const narrow = lanes.filter((lane) => lane.getBoundingClientRect().width < 2 * rem);
+    const wide = lanes.filter((lane) => lane.getBoundingClientRect().width >= 2 * rem);
+    expect([narrow.length > 0, wide.length > 0]).toEqual([true, true]);
+    await expect.poll(() => narrow.every((lane) => [...lane.children].every((child) => getComputedStyle(child).visibility === "hidden"))).toBe(true);
+    expect(wide.every((lane) => [...lane.children].every((child) => getComputedStyle(child).visibility === "visible"))).toBe(true);
+  });
+
+  it("covers an event only by a later column that overlaps it, and by the nearest such column", async () => {
+    // Columns: a 0, b 1, c 2, d 0, e 1. d is overlapped by c and then e, and e is the nearer column; e only touches c.
+    expect(
+      await coverSteps([["Aa", "09:00", "10:30"], ["Bb", "09:00", "10:00"], ["Cc", "09:30", "11:30"], ["Dd", "10:30", "12:00"], ["Ee", "11:30", "14:00"]]),
+    ).toEqual([1, 1, null, 1, null]);
+  });
+
+  it("does not cover an event by a later column that starts after it ends", async () => {
+    // Columns: p 0, r 1, q 1, y 2. y starts after r ends.
+    expect(await coverSteps([["Pp", "09:00", "12:00"], ["Rr", "09:00", "10:00"], ["Qq", "10:00", "12:00"], ["Yy", "10:30", "11:00"]])).toEqual([1, null, 1, null]);
+  });
+
+  it("does not cover an event by a later column that ends before it starts", async () => {
+    // Columns: p 0, r 1, q 1, y 2. y ends before q starts.
+    expect(await coverSteps([["Pp", "09:00", "12:00"], ["Rr", "09:00", "10:00"], ["Qq", "10:00", "12:00"], ["Yy", "09:30", "10:00"]])).toEqual([1, 1, null, null]);
   });
 
   it("names each event by the words it shows first, its title and its time, then its day, its status and its description", async () => {
@@ -1754,6 +1888,13 @@ describe("TimeGrid background events", () => {
     expect(box("First").left - body.left).toBeCloseTo(lane + 9, 0);
     expect(Math.abs(box("Second").left - body.left - (lane + half + 9))).toBeLessThan(2.5);
     expect(Math.abs(box("Second").width - (half - 16))).toBeLessThan(2.5);
+  });
+
+  it("leaves the text of overlapping background events uncovered, since they split the width rather than step", async () => {
+    const back = (id: string, from: string, to: string): TimeGridEvent => ({ id, title: id, start: at(12, from), end: at(12, to) });
+    await render({ view: "day", events: [], backgroundEvents: [back("Room one", "10:00", "11:00"), back("Room two", "10:30", "11:30")] });
+    const items = [...document.querySelectorAll<HTMLElement>("[data-ouro-time-grid-background] li, li")].filter((item) => item.style.getPropertyValue("--ouro-time-grid-cover") !== "");
+    expect(items).toEqual([]);
   });
 
   it("names a week's thin bars in a tooltip, and labels them in a day", async () => {

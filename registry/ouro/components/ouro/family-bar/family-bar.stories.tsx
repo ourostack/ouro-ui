@@ -48,7 +48,7 @@ const meta = {
   title: "Navigation/FamilyBar",
   component: FamilyBar,
   parameters: { layout: "padded" },
-  args: { links, current: "docs" },
+  args: { links, current: "docs", heading: "Lantern family" },
 } satisfies Meta<typeof FamilyBar>;
 export default meta;
 
@@ -57,7 +57,7 @@ type Story = StoryObj<typeof meta>;
 /** Try every prop. Narrow the window to see the row scroll inside itself. */
 export const Playground: Story = {};
 
-/** Above a site's own header: the family's sites, this one marked, then the site's own navigation and page. */
+/** Above a site's own header, on its surface: the family's sites, this one marked, then the site's own bar, which draws the one line under both, and the page. */
 export const InContext: Story = {
   parameters: { screenshot: { name: "family-bar" } },
   render: (args) => (
@@ -85,7 +85,7 @@ export const InContext: Story = {
   ),
 };
 
-/** A site far along the row: on a phone the row starts with its link in view, in the middle once the page has loaded. */
+/** A site far along the row: on a phone the row starts with its link in view, in the middle once the page has loaded, and fades at its end while more is cut off. */
 export const FarAlong: Story = {
   // Each site at its own address, as a real family's are: an in-page link scrolled out of the row reads to axe as a
   // skip link with no target.

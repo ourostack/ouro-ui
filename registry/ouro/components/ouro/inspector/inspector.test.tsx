@@ -119,8 +119,10 @@ const hidden = (target: Element) => {
   return !!tag && getComputedStyle(tag).visibility === "hidden";
 };
 
-/** Waits until nothing on the page is moving: a transition WebKit still lists as finished counts too (ourostack/ouro-ui#3361). */
-const settled = () => expect.poll(() => document.getAnimations().some(isMoving)).toBe(false);
+/** Waits until nothing on the page is moving: a transition WebKit still lists as finished counts too, and a
+ * reposition X-ray made with no Animation object (a scroll, say) counts until it clears data-ouro-settling too
+ * (ourostack/ouro-ui#3361). */
+const settled = () => expect.poll(() => document.getAnimations().some(isMoving) || !!layer()?.hasAttribute("data-ouro-settling")).toBe(false);
 
 /** The page's own component roots, in document order, as X-ray should see them. */
 const pageRoots = (host: HTMLElement) => [...host.querySelectorAll('[data-ouro]:not([data-ouro$="-portal"])')];
@@ -631,6 +633,54 @@ describe("Inspector", () => {
     // not resolve the instant nothing is "running", only once the finished entry is gone too, as a
     // measurement taken in between would read the page before WebKit's paint caught up to it (#3361: a
     // ratio of 2.49:1 measured against an outline WebKit had not yet finished drawing).
+    expect(performance.now() - before).toBeGreaterThanOrEqual(200);
+  });
+
+  it("marks data-ouro-settling while a scroll repositions its outlines, with no Animation object to tell settled() apart (#3361)", async () => {
+    // A scroll's reposition is a plain style write (place(), no CSS transition), so document.getAnimations()
+    // never lists it: only this attribute tells a test the outlines have not caught up to the scroll yet.
+    const { host } = await render(<Page />);
+    const components = pageRoots(host);
+    await drawn(components.length);
+    const own = layer()!;
+    const starts: boolean[] = [];
+    const observer = new MutationObserver(() => starts.push(own.hasAttribute("data-ouro-settling")));
+    observer.observe(own, { attributes: true, attributeFilter: ["data-ouro-settling"] });
+    try {
+      scrollBy(0, 200);
+      await expect.poll(() => outlines().every((outline, index) => onTarget(outline, components[index]!))).toBe(true);
+      await settled();
+      expect(starts, "data-ouro-settling toggled true at least once while the scroll's reposition was pending").toContain(true);
+      expect(own.hasAttribute("data-ouro-settling"), "cleared once the reposition is drawn and settled() may resolve").toBe(false);
+    } finally {
+      observer.disconnect();
+    }
+  });
+
+  it("clears data-ouro-settling itself on unmount, even though a reference to the layer root can outlive the component", async () => {
+    // A reposition can still be pending (the attribute set) the instant X-ray closes: its own next frame,
+    // which would otherwise clear it, never comes once the component unmounts and cancels that frame. The
+    // cleanup must clear the attribute itself, since this held reference to the now-detached root still
+    // shows whatever it left behind.
+    const { host } = await render(<Page />);
+    await drawn(pageRoots(host).length);
+    const own = layer()!;
+    own.setAttribute("data-ouro-settling", "");
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(own.hasAttribute("data-ouro-settling"), "cleanup clears it, rather than leaving it for the cancelled frame").toBe(false);
+  });
+
+  it("does not measure contrast while a scroll-triggered reposition is still pending, with no Animation to catch it (#3361)", async () => {
+    await render(<Page />);
+    await settled();
+    const own = layer()!;
+    own.setAttribute("data-ouro-settling", "");
+    setTimeout(() => own.removeAttribute("data-ouro-settling"), 200);
+    const before = performance.now();
+    await settled();
+    // A loaded runner can take longer than 200ms to reach this poll, but never less: settled() must wait
+    // out a reposition with no Animation object (a scroll, say) exactly as it waits out a transition, since
+    // measureTextContrast's own settleTransitions() waits on the very same attribute (#3361).
     expect(performance.now() - before).toBeGreaterThanOrEqual(200);
   });
 

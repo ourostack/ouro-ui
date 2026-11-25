@@ -3,6 +3,7 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { useEffect, useId, useRef, useState, type CSSProperties, type JSX, type KeyboardEvent, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { capLabelTruncateClass } from "@/registry/ouro/lib/ouro/cap-label";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useDisabledReason } from "@/registry/ouro/lib/ouro/disabled-reason";
@@ -127,7 +128,7 @@ function Segment(props: {
       }}
     >
       <TouchTarget />
-      <span className="relative min-w-0 truncate">{item.label}</span>
+      <span className={cn("relative min-w-0", capLabelTruncateClass)}>{item.label}</span>
       {reason.note}
     </Toggle>
   );
@@ -330,7 +331,6 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
           // It also ends what the person asked for here: a check the app makes after this is its own.
           if (!event.currentTarget.contains(event.relatedTarget)) asked.current.clear();
         }}
-        // Stryker disable next-line ConditionalExpression,LogicalOperator: fullWidth is tested on the plain group
         className={cn(groupClass, fullWidth && "grid w-full")}
       >
         <span aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={thumbStyle} />

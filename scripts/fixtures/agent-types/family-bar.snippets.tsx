@@ -6,4 +6,6 @@ const sites = [{ id: "home", label: "Lantern", href: "https://example.com/" }, {
 export const familyBar01 = <FamilyBar links={sites} currentPath="/docs" />;
 export const familyBar02 = <FamilyBar links={sites} items={sites} />;
 export const familyBar03 = <FamilyBar links={sites}>Docs</FamilyBar>;
-export const familyBarOk01 = <FamilyBar links={sites} current="docs" label="Sites" brand={<span>Lantern</span>} className="sticky top-0" />;
+export const familyBar04 = <FamilyBar links={sites} title="Lantern family" />;
+export const familyBarOk01 = <FamilyBar links={sites} current="docs" heading="Lantern family" label="Lantern sites" brand={<span>Lantern</span>} className="sticky top-0" />;
+export const familyBarOk02 = <FamilyBar links={sites} heading={null} />;

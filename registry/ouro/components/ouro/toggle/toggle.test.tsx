@@ -110,6 +110,20 @@ describe("Toggle", () => {
     expect(toggle.textContent).toBe("Bold");
   });
 
+  it("keeps its label span above the touch target with position: relative", async () => {
+    const { toggle } = await render(<Toggle label="Bold" />);
+    const label = [...toggle.querySelectorAll("span")].find((span) => span.textContent === "Bold")!;
+    expect(getComputedStyle(label).position).toBe("relative");
+  });
+
+  it("keeps the icon and label above the pressed fill, which paints before them", async () => {
+    const { toggle } = await render(<Toggle label="Bold" icon={BoldIcon} />);
+    const icon = toggle.querySelector("svg")!;
+    const label = Array.from(toggle.querySelectorAll("span")).find((span) => span.textContent === "Bold")!;
+    expect(icon.className.baseVal).toContain("relative");
+    expect(label.className).toContain("relative");
+  });
+
   it("with hideLabel shows only the icon, in a square, and keeps the label as the name", async () => {
     const { toggle, host } = await render(
       <>
