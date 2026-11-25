@@ -402,7 +402,7 @@ function Screen(): JSX.Element {
         ) : null}
       </Dialog>
       {/* The Go to date sheet fills the phone's lower half, so the toast hangs from the top while it is open and Undo stays visible and clear of the date rows. */}
-      <Toaster className={jump ? "max-sm:top-4 max-sm:bottom-auto" : undefined} />
+      <Toaster className={jump && phone ? "top-4 bottom-auto" : undefined} />
     </div>
   );
 }
