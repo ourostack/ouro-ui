@@ -21,6 +21,7 @@ import {
 } from "@/registry/ouro/components/ouro/time-grid/time-grid-styles";
 import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 // Runs in Chromium and WebKit. The grid's clock reads New York, where March 12, 2026 is a
@@ -1077,6 +1078,227 @@ describe("TimeGrid", () => {
     expect(select).toHaveBeenCalledWith(expect.objectContaining({ id: "forum" }), { element: link, background: false });
   });
 
+  describe("keyboard slots", () => {
+    const named = (grid: HTMLElement) => {
+      const focus = grid.querySelector<HTMLElement>('[role="grid"]')!;
+      const id = focus.getAttribute("aria-activedescendant");
+      return plain(id ? document.getElementById(id)!.textContent : null);
+    };
+    const open = async (props: Partial<TimeGridProps> = {}, wrap?: (grid: ReactNode) => ReactNode) => {
+      const slot = vi.fn();
+      const { grid } = await render({ view: "week", onSlotSelect: slot, ...props }, wrap);
+      const focus = grid.querySelector<HTMLElement>('[role="grid"]')!;
+      await act(async () => focus.focus());
+      return { grid, focus, slot };
+    };
+
+    it("is a Tab stop named by the app's label, and names the slot it lands on at now", async () => {
+      const { grid, focus } = await open();
+      expect(focus.getAttribute("aria-label")).toBe("Time slots");
+      expect(document.activeElement).toBe(focus);
+      expect(named(grid)).toBe("Thursday, March 12, 10:30 AM");
+    });
+
+    it("leaves the slots with Tab and Shift+Tab, never holding focus, and is one stop ahead of the events", async () => {
+      const { grid, focus } = await open();
+      await pressTab();
+      expect(document.activeElement).not.toBe(focus);
+      expect(grid.querySelectorAll('[role="grid"][tabindex="0"]')).toHaveLength(1);
+      expect(focus.getAttribute("aria-activedescendant")).toBeNull();
+      await pressTab({ shift: true });
+      expect(document.activeElement).toBe(focus);
+      expect(focus.getAttribute("tabindex")).toBe("0");
+    });
+
+    it("moves a slot with Up and Down, an hour with Page Up and Page Down, and to the day's ends with Home and End", async () => {
+      const { grid } = await open();
+      await userEvent.keyboard("{ArrowDown}");
+      expect(named(grid)).toBe("Thursday, March 12, 11:00 AM");
+      await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+      expect(named(grid)).toBe("Thursday, March 12, 10:00 AM");
+      await userEvent.keyboard("{PageDown}");
+      expect(named(grid)).toBe("Thursday, March 12, 11:00 AM");
+      await userEvent.keyboard("{PageUp}{PageUp}");
+      expect(named(grid)).toBe("Thursday, March 12, 9:00 AM");
+      await userEvent.keyboard("{Home}");
+      expect(named(grid)).toBe("Thursday, March 12, 12:00 AM");
+      await userEvent.keyboard("{End}");
+      expect(named(grid)).toBe("Thursday, March 12, 11:30 PM");
+    });
+
+    it("keeps Home, End, Page Up and Page Down the same in right-to-left", async () => {
+      const { grid } = await open({}, (node) => <div dir="rtl">{node}</div>);
+      await userEvent.keyboard("{Home}");
+      expect(named(grid)).toBe("Thursday, March 12, 12:00 AM");
+      await userEvent.keyboard("{End}");
+      expect(named(grid)).toBe("Thursday, March 12, 11:30 PM");
+      await userEvent.keyboard("{PageUp}");
+      expect(named(grid)).toBe("Thursday, March 12, 10:30 PM");
+    });
+
+    it("moves a day with Left and Right, mirrored in right-to-left, and stops at the edges", async () => {
+      const { grid } = await open();
+      await userEvent.keyboard("{ArrowRight}");
+      expect(named(grid)).toBe("Friday, March 13, 10:30 AM");
+      await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
+      expect(named(grid)).toBe("Wednesday, March 11, 10:30 AM");
+      await userEvent.keyboard("{ArrowLeft}{ArrowLeft}{ArrowLeft}{ArrowLeft}{ArrowLeft}");
+      expect(named(grid)).toBe("Sunday, March 8, 10:30 AM");
+    });
+
+    it("mirrors Left and Right in right-to-left", async () => {
+      const { grid } = await open({}, (inner) => <div dir="rtl">{inner}</div>);
+      await userEvent.keyboard("{ArrowLeft}");
+      expect(named(grid)).toBe("Friday, March 13, 10:30 AM");
+    });
+
+    it("selects the slot with Enter or Space, for the grid's slot length", async () => {
+      const { slot } = await open({ slotMinutes: 60 });
+      await userEvent.keyboard("{Enter}");
+      expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T10:00:00-04:00"), end: new Date("2026-03-12T11:00:00-04:00") });
+      await userEvent.keyboard("{ArrowDown} ");
+      expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T11:00:00-04:00"), end: new Date("2026-03-12T12:00:00-04:00") });
+    });
+
+    it("keeps Enter and Space from scrolling the page or pressing a button while they select a slot", async () => {
+      const { focus } = await open();
+      for (const key of ["Enter", " "]) {
+        const press = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+        await act(async () => void focus.dispatchEvent(press));
+        expect(press.defaultPrevented).toBe(true);
+      }
+    });
+
+    it("moves an hour with Page Down on the slots, and leaves the period to Alt+Down, and drops the cursor on blur", async () => {
+      const onDateChange = vi.fn();
+      const { grid } = await open({ onDateChange });
+      await userEvent.keyboard("{PageDown}");
+      expect(onDateChange).not.toHaveBeenCalled();
+      await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
+      expect(onDateChange).toHaveBeenCalledTimes(1);
+      await act(async () => (grid.querySelector<HTMLElement>('[role="grid"]')!).blur());
+      expect(grid.querySelector("[data-ouro-time-grid-cursor]")).toBeNull();
+    });
+
+    it("keeps a cursor on a day that exists when the view shrinks under a focused grid", async () => {
+      const slot = vi.fn();
+      const { grid, rerender } = await render({ view: "week", onSlotSelect: slot });
+      await act(async () => grid.querySelector<HTMLElement>('[role="grid"]')!.focus());
+      await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}");
+      await rerender({ view: "day", onSlotSelect: slot });
+      expect(named(grid)).toBe("Thursday, March 12, 10:30 AM");
+      await userEvent.keyboard("{Enter}");
+      expect(slot).toHaveBeenCalledTimes(1);
+    });
+
+    it("scrolls a slot clear of the sticky day header", async () => {
+      const { grid } = await open();
+      const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
+      const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+      expect(head.getBoundingClientRect().height).toBeGreaterThan(0);
+      expect(parseFloat(cursor.style.scrollMarginTop)).toBeCloseTo(head.getBoundingClientRect().height, 0);
+    });
+
+    it("names a different cell as the active descendant after each arrow, so a screen reader announces the move", async () => {
+      const { focus } = await open();
+      const seen = [focus.getAttribute("aria-activedescendant")];
+      for (const key of ["{ArrowDown}", "{ArrowRight}", "{ArrowUp}"]) {
+        await userEvent.keyboard(key);
+        seen.push(focus.getAttribute("aria-activedescendant"));
+      }
+      expect(new Set(seen).size).toBe(seen.length);
+      expect(document.getElementById(seen.at(-1)!)!.getAttribute("role")).toBe("gridcell");
+    });
+
+    it("scrolls the slot into view only as far as needed", async () => {
+      const scroll = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+      try {
+        await open();
+        const cursorCalls = scroll.mock.calls.filter((_, i) => (scroll.mock.contexts[i] as HTMLElement).hasAttribute("data-ouro-time-grid-cursor"));
+        expect(cursorCalls.at(-1)).toEqual([{ block: "nearest", inline: "nearest" }]);
+      } finally {
+        scroll.mockRestore();
+      }
+    });
+
+    it("starts on the first day at the working day's start when now is outside the week the grid shows", async () => {
+      const { grid } = await open({ now: "2026-03-20T15:10:00-04:00", workingHours: { start: 9, end: 17 } });
+      expect(named(grid)).toBe("Sunday, March 8, 9:00 AM");
+    });
+
+    it("starts on today, at the slot holding now, even when the working day starts earlier", async () => {
+      const { grid } = await open({ workingHours: { start: 8, end: 17 }, slotMinutes: 60 });
+      expect(named(grid)).toBe("Thursday, March 12, 10:00 AM");
+    });
+
+    it("stops at the last day, and at the last slot whatever its length", async () => {
+      const { grid } = await open({ slotMinutes: 60 });
+      await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
+      expect(named(grid)).toBe("Saturday, March 14, 10:00 AM");
+      await userEvent.keyboard("{End}{ArrowDown}{PageDown}");
+      expect(named(grid)).toBe("Saturday, March 14, 11:00 PM");
+      await userEvent.keyboard("{Home}{ArrowUp}{PageUp}");
+      expect(named(grid)).toBe("Saturday, March 14, 12:00 AM");
+    });
+
+    it("starts at the slot holding now when today is the week's first day", async () => {
+      const { grid } = await open({ date: "2026-03-08", now: "2026-03-08T14:10:00-04:00", workingHours: { start: 9, end: 17 } });
+      expect(named(grid)).toBe("Sunday, March 8, 2:00 PM");
+    });
+
+    it("starts on the day's last slot when now is in its last minutes", async () => {
+      const { grid } = await open({ now: "2026-03-12T23:50:00-04:00" });
+      expect(named(grid)).toBe("Thursday, March 12, 11:30 PM");
+    });
+
+    it("moves back from the last day by one day, after pressing Right past it", async () => {
+      const { grid } = await open();
+      await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowLeft}");
+      expect(named(grid)).toBe("Friday, March 13, 10:30 AM");
+    });
+
+    it("draws the cursor at its slot's top, one slot tall", async () => {
+      const heights: number[] = [];
+      for (const slotMinutes of [30, 60] as const) {
+        const { grid } = await open({ slotMinutes });
+        heights.push(grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!.getBoundingClientRect().height);
+      }
+      const [short, tall] = heights as [number, number];
+      expect(short).toBeGreaterThan(0);
+      expect(tall).toBeCloseTo(short * 2, 0);
+    });
+
+    it("draws no slots, and throws nothing, when the date is not a date", async () => {
+      const { grid } = await render({ view: "week", date: "not a date", onSlotSelect: vi.fn() });
+      expect(grid.querySelector('[role="grid"]')).toBeNull();
+    });
+
+    it("scrolls the slot below the sticky day header, from either end of the day", async () => {
+      const { grid } = await open({ className: "h-[20rem]" });
+      const clear = () => {
+        const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!.getBoundingClientRect();
+        const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!.getBoundingClientRect();
+        const area = viewport().getBoundingClientRect();
+        return [cursor.top >= head.bottom - 1, cursor.bottom <= area.bottom + 1];
+      };
+      await userEvent.keyboard("{End}");
+      await expect.poll(() => clear()[0]).toBe(true);
+      await userEvent.keyboard("{Home}");
+      await expect.poll(() => clear()[0]).toBe(true);
+      await expect.poll(() => clear()[1]).toBe(true);
+    });
+
+    it("draws the slot with an outline-weight border that forced colours keep, and adds nothing without onSlotSelect", async () => {
+      const { grid } = await open();
+      const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
+      expect(cursor.className).toContain("forced-colors:border-[Highlight]");
+      expect(getComputedStyle(cursor).borderTopWidth).toBe("2px");
+      const plainGrid = (await render({ view: "week" })).grid;
+      expect(plainGrid.querySelector('[role="grid"]')).toBeNull();
+      expect(plainGrid.querySelector("[data-ouro-time-grid-cursor]")).toBeNull();
+    });
+  });
+
   it("presses an empty slot with onSlotSelect, and shows a mouse the slot first", async () => {
     // WebKit sends a mouse move of its own when the page changes under a resting pointer, so the
     // pointer an earlier press left over the grid would show a slot of its own.
@@ -1215,6 +1437,47 @@ describe("TimeGrid", () => {
     await expect.poll(() => getComputedStyle(head).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     await expect.poll(() => getComputedStyle(head).borderBottomColor).toBe("rgba(0, 0, 0, 0)");
     expect(warnings()).toEqual([]);
+  });
+
+  it.each(["light", "dark"])("keeps the glass day header's text legible over the busiest event beneath it (%s)", async (scheme) => {
+    document.documentElement.classList.toggle("dark", scheme === "dark");
+    try {
+      await render();
+      await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(true);
+      const head = viewport().querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+      const rgba = (css: string) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 1;
+        const context = canvas.getContext("2d", { willReadFrequently: true })!;
+        context.fillStyle = css;
+        context.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data as unknown as number[];
+        return [r!, g!, b!, a! / 255] as const;
+      };
+      const luminance = ([r, g, b]: readonly number[]) => {
+        const [lr, lg, lb] = [r!, g!, b!].map((value) => (value / 255 <= 0.04045 ? value / 255 / 12.92 : ((value / 255 + 0.055) / 1.055) ** 2.4));
+        return 0.2126 * lr! + 0.7152 * lg! + 0.0722 * lb!;
+      };
+      const ratio = (a: readonly number[], b: readonly number[]) => {
+        const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (hi! + 0.05) / (lo! + 0.05);
+      };
+      await expect.poll(() => rgba(getComputedStyle(head).backgroundColor)[3] > 0.5 && head.getAnimations({ subtree: true }).length === 0).toBe(true);
+      const tint = rgba(getComputedStyle(head).backgroundColor);
+      // The worst thing that can scroll under the glass is the page's foreground colour, unblurred.
+      const probe = head.appendChild(document.createElement("span"));
+      probe.className = "text-foreground";
+      const worst = rgba(getComputedStyle(probe).color);
+      probe.remove();
+      const over = [0, 1, 2].map((channel) => tint[channel]! * tint[3] + worst[channel]! * (1 - tint[3]));
+      const labels = [...head.querySelectorAll<HTMLElement>("*")].filter((element) => rgba(getComputedStyle(element).backgroundColor)[3] === 0 && [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.textContent!.trim() !== ""));
+      expect(labels.length).toBeGreaterThan(0);
+      for (const label of labels) {
+        expect(ratio(rgba(getComputedStyle(label).color), over), label.textContent!).toBeGreaterThanOrEqual(4.5);
+      }
+    } finally {
+      document.documentElement.classList.remove("dark");
+    }
   });
 
   it("opens before the earlier of the working day's start and the week's first event, not at now", async () => {

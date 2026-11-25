@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -225,7 +226,8 @@ export interface TimeGridOwnProps {
   /**
    * Called with the ISO date to show when a key moves the days while focus is in the grid: Page
    * Down and ⌥↓ (Alt+↓) the next day or week, Page Up and ⌥↑ the one before, and ⌥⇧Y
-   * (Alt+Shift+Y) today, as in Teams. Set `date` to it. `TimeGridNav` gives the same moves as
+   * (Alt+Shift+Y) today, as in Teams. With `onSlotSelect` set, Page Up and Page Down on the
+   * slots move an hour instead, so use ⌥↑ and ⌥↓ there. Set `date` to it. `TimeGridNav` gives the same moves as
    * buttons, with these keys in their tooltips.
    * @claim "Called with the ISO date to show when a key moves the days" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > moves to the next or previous period with Page Down and Page Up, or Alt with the arrows, and to today with Alt+Shift+Y)
    */
@@ -288,8 +290,13 @@ export interface TimeGridOwnProps {
   markedDays?: Readonly<Record<string, TimeGridMark>> | undefined;
   /**
    * Called when someone presses an empty part of a day, with the slot under the pointer, for a
-   * new event there. A mouse shows the slot before the press. Slots answer a pointer only, so
-   * give keyboards a New event button of your own as well.
+   * new event there. A mouse shows the slot before the press.
+   *
+   * With it, the slots take a Tab stop of their own, ahead of the timed events; the arrow keys move
+   * between slots there, and between events once an event has focus. In the slots the arrow keys
+   * move a slot up or down and a day left or right (mirrored in right-to-left), Home and End go to
+   * the day's first and last slot, Page Up and Page Down move an hour, and Enter or Space calls `onSlotSelect`.
+   * A screen reader reads the slot, such as "Tuesday, 10:30 AM", as focus moves.
    */
   onSlotSelect?: ((slot: TimeGridSlot) => void) | undefined;
   /**
@@ -304,6 +311,8 @@ export interface TimeGridOwnProps {
    * @claim "The all-day row's name" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > writes day names, hours and times in the locale)
    */
   allDayLabel?: string | undefined;
+  /** The keyboard's slots' name, heard when focus enters them. Translate it with your app. @default "Time slots" */
+  slotsLabel?: string | undefined;
   /**
    * The words screen readers hear for each status, after the event's title. Translate them with
    * your app.
@@ -451,6 +460,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     onSlotSelect,
     slotMinutes: slotProp = 30,
     allDayLabel = "All day",
+    slotsLabel = "Time slots",
     statusLabels,
     nowAdornment,
     className,
@@ -804,6 +814,53 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   };
 
   const [hover, setHover] = useState<{ day: number; minutes: number } | null>(null);
+  // The keyboard's slot is virtual: the grid below owns focus and names this slot through aria-activedescendant.
+  const [heldCursor, setCursor] = useState<{ day: number; minutes: number } | null>(null);
+  // The days can shrink under a focused grid (a controlled `view` changes), so the cursor stays on a day that exists.
+  const cursor = heldCursor ? { ...heldCursor, day: Math.min(heldCursor.day, days.length - 1) } : null;
+  const cursorBase = useId();
+  // Each slot is its own cell with its own id: a screen reader announces a move only when the active descendant changes, not when one cell's text does.
+  const cursorId = cursor ? `${cursorBase}-${cursor.day}-${cursor.minutes}` : undefined;
+  const cursorRef = useRef<HTMLSpanElement | null>(null);
+  useLayoutEffect(() => {
+    const slot = cursorRef.current;
+    if (!slot) return;
+    // The sticky day header covers the top of the scrolling area, so a slot scrolled "into view" would sit behind it.
+    slot.style.scrollMarginTop = `${rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!.offsetHeight}px`;
+    slot.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [heldCursor]);
+  const cursorStart = () => {
+    const from = nowAt && todayIndex >= 0 ? nowAt.minutes : workingHours.start * 60;
+    // Stryker disable next-line ArithmeticOperator: a start below the day's end already sits on a slot, so the upper clamp never moves it.
+    return { day: Math.max(todayIndex, 0), minutes: between(0, Math.floor(from / slotMinutes) * slotMinutes, dayLength - slotMinutes) };
+  };
+  const onSlotKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: the handler is attached only with onSlotSelect and a cursor set on focus, so this guard only narrows types.
+    if (!onSlotSelect || !cursor || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      const day = days[cursor.day]!;
+      onSlotSelect({ start: formats.clock.instant(day, cursor.minutes), end: formats.clock.instant(day, cursor.minutes + slotMinutes) });
+      return;
+    }
+    const sideways = getComputedStyle(event.currentTarget).direction === "rtl" ? -1 : 1;
+    const moves: Record<string, { day: number; minutes: number }> = {
+      ArrowUp: { day: cursor.day, minutes: cursor.minutes - slotMinutes },
+      ArrowDown: { day: cursor.day, minutes: cursor.minutes + slotMinutes },
+      ArrowLeft: { day: cursor.day - sideways, minutes: cursor.minutes },
+      ArrowRight: { day: cursor.day + sideways, minutes: cursor.minutes },
+      Home: { day: cursor.day, minutes: 0 },
+      // Stryker disable next-line ArithmeticOperator: the move is clamped to the last slot again where it is applied, so a larger value lands on the same slot.
+      End: { day: cursor.day, minutes: dayLength - slotMinutes },
+      PageUp: { day: cursor.day, minutes: cursor.minutes - 60 },
+      PageDown: { day: cursor.day, minutes: cursor.minutes + 60 },
+    };
+    const move = moves[event.key];
+    if (!move) return;
+    event.preventDefault();
+    // Stryker disable next-line ArithmeticOperator: the held day is clamped again where the cursor is read, so a larger bound shows the same day.
+    setCursor({ day: between(0, move.day, days.length - 1), minutes: between(0, move.minutes, dayLength - slotMinutes) });
+  };
   const slotAt = (event: MouseEvent<HTMLElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     const minutes = Math.floor((((event.clientY - box.top) / box.height) * dayLength) / slotMinutes) * slotMinutes;
@@ -1100,7 +1157,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       onKeyDown={onKeyDown}
     >
       <ScrollArea label={label} className="min-h-0 flex-1">
-        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/80 [[data-overflow-y-start]_&]:backdrop-blur-md [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
+        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/95 [[data-overflow-y-start]_&]:backdrop-blur-lg [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
           <div aria-hidden="true" />
           {days.map((day, index) => (
             <div
@@ -1133,7 +1190,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               ))}
             </>
           ) : null}
-          <div aria-hidden="true" className="flex items-start justify-end py-1 pe-2 text-[11px] leading-5 text-muted-foreground">
+          <div aria-hidden="true" className="flex items-start justify-end py-1 pe-2 text-[11px] leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
             {allDayLabel}
           </div>
           {allDay.length > 0 ? (
@@ -1154,6 +1211,33 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           )}
         </div>
         <div data-ouro-time-grid-body="" className="relative grid" style={{ gridTemplateColumns: columns, height: minutesTall(dayLength) }}>
+          {onSlotSelect && days.length > 0 ? (
+            <div
+              role="grid"
+              tabIndex={0}
+              aria-label={slotsLabel}
+              aria-activedescendant={cursorId}
+              data-ouro-control="time-grid"
+              data-ouro-part="slots"
+              data-slot="time-grid-slots"
+              className="pointer-events-none absolute inset-0 outline-ring -outline-offset-2 focus-visible:outline-2"
+              onFocus={() => setCursor((now) => now ?? cursorStart())}
+              onBlur={() => setCursor(null)}
+              onKeyDown={onSlotKeyDown}
+            >
+              <div role="row" data-slot="time-grid-slots-row">
+                {cursor ? (
+                  <div role="gridcell" key={cursorId} id={cursorId} data-slot="time-grid-slots-cell" className="sr-only">
+                    {`${formats.fullDay.format(utcDate(days[cursor.day]!))}, ${formats.time.format(formats.clock.instant(days[cursor.day]!, cursor.minutes))}`}
+                  </div>
+                ) : (
+                  <div role="gridcell" data-slot="time-grid-slots-cell" className="sr-only">
+                    {slotsLabel}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
           <div aria-hidden="true" className="relative">
             {hourLabels.map((hour) => (
               <span key={hour} data-slot="time-grid-hour-label" className="absolute end-2 -translate-y-1/2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums" style={{ top: minutesTall(hour * 60) }}>
@@ -1203,6 +1287,19 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                       onSlotSelect({ start: formats.clock.instant(day, minutes), end: formats.clock.instant(day, minutes + slotMinutes) });
                     }}
                   >
+                    {cursor?.day === index ? (
+                      <span
+                        ref={cursorRef}
+                        aria-hidden="true"
+                        data-slot="time-grid-cursor"
+                        data-ouro-time-grid-slot=""
+                        data-ouro-time-grid-cursor=""
+                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border-2 border-solid border-primary bg-primary/10 px-1.5 text-[11px] leading-4 text-foreground forced-colors:border-[Highlight]"
+                        style={{ top: minutesTall(cursor.minutes), height: minutesTall(slotMinutes) }}
+                      >
+                        {formats.time.format(formats.clock.instant(day, cursor.minutes))}
+                      </span>
+                    ) : null}
                     {hover?.day === index && !coveredAt(index, hover.minutes) ? (
                       <span
                         data-ouro-time-grid-slot=""
