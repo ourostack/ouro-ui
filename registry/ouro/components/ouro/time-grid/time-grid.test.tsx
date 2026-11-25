@@ -908,6 +908,16 @@ describe("TimeGrid", () => {
     expect(getComputedStyle(range).textAlign).toBe("end");
   });
 
+  it("keeps the hour labels in reading order in a right-to-left page", async () => {
+    await render({ view: "day", events: [forum], locale: "en-US" }, (grid) => <div dir="rtl">{grid}</div>);
+    const labels = [...document.querySelectorAll<HTMLElement>('[data-slot="time-grid-hour-label"]')];
+    expect(labels.length).toBeGreaterThan(0);
+    for (const label of labels) {
+      expect(label.getAttribute("dir")).toBe("ltr");
+      expect(getComputedStyle(label).unicodeBidi).toBe("isolate");
+    }
+  });
+
   it("gives a short event and an all-day one a hit area at least 24px tall, without drawing them taller", async () => {
     await render({ view: "day", events: [{ ...standup, start: at(12, "09:30"), end: at(12, "09:45") }, { id: "closed", title: "Office closed", start: "2026-03-12" }] });
     for (const title of ["Standup", "Office closed"]) {

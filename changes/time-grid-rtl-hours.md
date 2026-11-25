@@ -1,0 +1,1 @@
+- Fixed: TimeGrid keeps its hour labels, now-line time and the times inside events in reading order in a right-to-left page.
