@@ -583,8 +583,10 @@ export async function loaded(page: Page): Promise<void> {
   }, [LOOK_SELECTOR] as const);
 }
 
-export async function settled(page: Page): Promise<void> {
+export async function settled(page: Page): Promise<{ ready: number; reads: number[] }> {
+  const asked = Date.now();
   await siteReady(page);
+  const ready = Date.now() - asked;
   let last = "";
   let before: Look[] = [];
   let after: Look[] = [];
@@ -613,6 +615,7 @@ export async function settled(page: Page): Promise<void> {
     (error as Error).message += `\n\nThe page never settled (ourostack/ouro-ui#2428): ${page.url()}\n${changedLooks(before, after)}\n${timing}`;
     throw error;
   }
+  return { ready, reads };
 }
 
 /**
