@@ -49,16 +49,16 @@ const prefix = "ourostack/ouro-ui/";
 // list-detail-page's CSS ceiling raised 2026-11-24 (#3490): Badge's count look (a fixed-size red pill with its own
 // figure style and an optional overlay position) is new CSS in every page that renders a Badge. Measured by CI over this
 // pull request's tree (scripts 3/3): 10,405 bytes of CSS.
-// Every ceiling raised again 2026-11-24 (SegmentedControl's glass look, after Button's and ButtonGroup's): the glass
-// classes and the item's icon and count parts are new in every page that renders a SegmentedControl directly, and are
-// also now reachable from every page through ColorSchemeToggle, which already depends on SegmentedControl for its own
-// look. Measured over a clean install of this pull request's tree against the same main (cfdf0347b) with no ceiling
-// change of its own: dashboard-page 86,508 and 11,202; list-detail-page 86,872 and 10,877; settings-page 105,464 and
-// 14,581.
+// dashboard-page's and settings-page's CSS ceilings and list-detail-page's JavaScript ceiling raised 2026-11-25 (the
+// SegmentedControl glass look, re-landed after #3566): its glass capsule, in-segment icon and count pill are new
+// classes in every page that renders a SegmentedControl. The glass tokens reuse the ones ButtonGroup's glass ships, the
+// segment's own classes were cut to what the toolbar needs, and no cheaper cut was found. Measured over this pull
+// request's tree with scripts/pattern-size.mjs: 11,127 bytes of CSS in dashboard-page, 86,889 of JavaScript in
+// list-detail-page, 14,586 of CSS in settings-page, each ceiling set 256 above (1 KiB below the usual margin).
 export const CEILINGS = {
-  "dashboard-page": { js: 86_508 + 1024, css: 11_202 + 512 },
-  "list-detail-page": { js: 86_872 + 1024, css: 10_877 + 512 },
-  "settings-page": { js: 105_464 + 1024, css: 14_581 + 512 },
+  "dashboard-page": { js: 86_430 + 1024, css: 11_127 + 256 },
+  "list-detail-page": { js: 86_889 + 256, css: 10_405 + 512 },
+  "settings-page": { js: 105_063 + 1024, css: 14_586 + 256 },
 };
 
 /**
