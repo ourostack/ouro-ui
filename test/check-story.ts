@@ -5,6 +5,7 @@ import { findImageFades } from "@/registry/ouro/check/fade-check";
 import { findInteractionIssues } from "@/registry/ouro/check/interaction-check";
 import { findLayoutIssues } from "@/registry/ouro/check/layout-check";
 import { findOverlaps } from "@/registry/ouro/check/overlap-check";
+import { findPanelIssues } from "@/registry/ouro/check/panel-check";
 import { decodeImages } from "@/registry/ouro/check/in-page";
 import { findSizeIssues, type PageIssue } from "@/registry/ouro/check/size-check";
 import { findTextIssues } from "@/registry/ouro/check/text-check";
@@ -34,6 +35,7 @@ export async function checkStory(Story: ComponentType, layout: string = "centere
     ...(await findOffThemeIssues({ maxIssues: 100000 })),
     ...(await findInteractionIssues()),
     ...(await findWrapIssues({})),
+    ...(await findPanelIssues({ clip: false })),
     ...(await findFirstRunIssues()),
   ];
 }

@@ -16,7 +16,8 @@
       "off-curve": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
       "opacity-step": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
       "label-clip": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
-      "off-centre-text": "A rule new on this site: it reports without failing while its first findings are fixed (ourostack/ouro-ui#3257)."
+      "off-centre-text": "A rule new on this site: it reports without failing while its first findings are fixed (ourostack/ouro-ui#3257).",
+      "wrapped-short-line": "A rule new on this site: short page titles wrap in the docs menu on a phone, and it reports without failing while they are fixed (ourostack/ouro-ui#3556)."
     },
     "/docs/patterns/": {
       "failed-request": "The pattern previews are frames of Storybook, which Pages serves at /storybook/ beside the site; the check serves only the site's build, so each frame's address answers 404 here and 200 on the live site. A renamed or removed story is caught by the site test that points each preview at a story that exists (site/src/site.test.tsx)."

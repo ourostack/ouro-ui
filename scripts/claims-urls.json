@@ -239,6 +239,14 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://github.com/ourostack/ouro-ui-android/blob/284491d755f35bd1b07643df619b86fffd341094/.github/workflows/ci.yml#L37-L48": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
+  "https://github.com/ourostack/ouro-ui-android/blob/284491d755f35bd1b07643df619b86fffd341094/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-24"
+  },
   "https://github.com/ourostack/ouro-ui-android/blob/6e86472264bfabb0c56af8e0dc77055dfb558b75/README.md": {
     "status": 200,
     "checked": "2026-11-20"
@@ -311,14 +319,6 @@
     "status": 200,
     "checked": "2026-11-21"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/f27522bb0dc12193f1051e1a31f3b94e7efa16fc/.github/workflows/ci.yml#L37-L48": {
-    "status": 200,
-    "checked": "2026-11-21"
-  },
-  "https://github.com/ourostack/ouro-ui-android/blob/f27522bb0dc12193f1051e1a31f3b94e7efa16fc/core-provenance.json": {
-    "status": 200,
-    "checked": "2026-11-21"
-  },
   "https://github.com/ourostack/ouro-ui-android/issues/3": {
     "status": 200,
     "checked": "2026-11-18"
@@ -331,9 +331,9 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/releases/tag/v0.12.0": {
+  "https://github.com/ourostack/ouro-ui-android/releases/tag/v0.12.1": {
     "status": 200,
-    "checked": "2026-11-21"
+    "checked": "2026-11-24"
   },
   "https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0": {
     "status": 200,
