@@ -1368,7 +1368,9 @@ describe("Popover handing focus to a layer opened from inside it", () => {
     }
     await render(<App />);
     const anchor = [...document.querySelectorAll("button")].find((button) => button.textContent === "First anchor")!;
-    const closeFirst = await vi.waitFor(() => [...document.querySelectorAll("button")].find((button) => button.textContent === "Close first")!);
+    const findClose = () => [...document.querySelectorAll("button")].find((button) => button.textContent === "Close first");
+    await expect.poll(findClose).toBeDefined();
+    const closeFirst = findClose()!;
     await act(async () => closeFirst.focus());
     await act(async () => closeFirst.click());
     await expect.poll(() => [...document.querySelectorAll("[data-ouro-popover-content]")].some((panel) => panel.textContent?.includes("First inside"))).toBe(false);
