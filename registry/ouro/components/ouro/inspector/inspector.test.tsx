@@ -657,6 +657,19 @@ describe("Inspector", () => {
     }
   });
 
+  it("clears data-ouro-settling itself on unmount, even though a reference to the layer root can outlive the component", async () => {
+    // A reposition can still be pending (the attribute set) the instant X-ray closes: its own next frame,
+    // which would otherwise clear it, never comes once the component unmounts and cancels that frame. The
+    // cleanup must clear the attribute itself, since this held reference to the now-detached root still
+    // shows whatever it left behind.
+    const { host } = await render(<Page />);
+    await drawn(pageRoots(host).length);
+    const own = layer()!;
+    own.setAttribute("data-ouro-settling", "");
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(own.hasAttribute("data-ouro-settling"), "cleanup clears it, rather than leaving it for the cancelled frame").toBe(false);
+  });
+
   it("does not measure contrast while a scroll-triggered reposition is still pending, with no Animation to catch it (#3361)", async () => {
     await render(<Page />);
     await settled();
