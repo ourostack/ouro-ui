@@ -163,6 +163,14 @@ Prior art:
 - [GOV.UK's error message component](https://design-system.service.gov.uk/components/error-message/ "verify:urlOk(https://design-system.service.gov.uk/components/error-message/)"): borrow. Its wording rules are for form fields, but its stance carries over: say what happened and how to fix it, in place of "an error occurred".
 - [Apple's Human Interface Guidelines on alerts](https://developer.apple.com/design/human-interface-guidelines/alerts "verify:urlOk(https://developer.apple.com/design/human-interface-guidelines/alerts)"): watch. It governs when an alert appears and how its buttons read, more than what a failure says.
 
+## Answer the question the agent asks
+
+A fresh agent asked "what's new for me?" by a consuming app often reaches for several partial commands in turn, rather than the one command built to answer that question directly, and then has to reconcile their separate counts and timestamps by hand.
+
+**One read that answers the agent's question beats several partial ones.** Give the question its own command, one whose single answer already holds everything a "what's new" question needs — the unread items, the mentions, the invites, and what's happening now — each counted from the same lists the answer reports, so nothing in it can disagree with itself. A fresh agent should reach for that command first, from its own `--help`, rather than assembling the same picture from several narrower list commands and reconciling their counts by hand.
+
+**An agent relays a warning stated as a warning, first, and treats a timestamp as metadata.** When the answer is current, say nothing extra: a plain freshness timestamp changes nothing for the person reading it. When the app could not refresh its view, lead the answer with that warning, its cause and its age, before anything else. Don't put an instruction to the agent inside the answer ("Tell the person…"): it is copy that earns no place when nothing is wrong.
+
 ## When a page asks to open an app
 
 A surface that drives a browser for an agent meets pages that try to open a desktop app. Zoom, Teams, Slack, Figma and Spotify point the page at an app address such as `zoomus:` and offer a web option for when that fails. The app is the person's to open, so refuse the launch the same way on any site, and keep the agent moving:

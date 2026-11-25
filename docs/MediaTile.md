@@ -241,7 +241,10 @@ interface AvatarPresenceProps {
    * too, shows through the gap. The dot lies over the corner and takes no room, so
    * the initials, icon or picture stay in the middle with or without it, and the dot stays
    * below the letters at every size. `"unknown"` keeps the dot in the tree but draws neither it
-   * nor the bite, for a face whose presence has not loaded yet.
+   * nor the bite, for a face whose presence has not loaded yet. Each state's color is also its
+   * own `--ouro-presence-<state>` custom property (and `-foreground` for the mark on a filled
+   * dot), read before the named tone above, so a Teams-themed app can draw Away as amber without
+   * changing every other use of the warning tone: `:root { --ouro-presence-away: #c19c00; }`.
    */
   presence: AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never });
   /**

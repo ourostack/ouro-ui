@@ -133,13 +133,28 @@ function Screen(): JSX.Element {
   const eventReturn = useMemo<RefObject<HTMLElement | null>>(() => ({ get current() { return toGrid.current ? stopOfGrid() : eventRef.current; } }), []);
   const jumpReturn = useMemo<RefObject<HTMLElement | null>>(() => ({ get current() { return toGrid.current ? stopOfGrid() : jumpRef.current; } }), []);
   const formId = useId();
-  // At large text the message below the input sits past the scrolled body's edge, under the footer, so it scrolls in once it is drawn and again after the sheet settles.
+  // At large text the message below the input sits past the scrolled body's edge, under the footer, so it scrolls in once it is drawn and again whenever the sheet or its footer changes size, as they do while the sheet settles.
   useEffect(() => {
     if (!error) return;
-    const show = () => document.getElementById(formId)?.querySelector("input")?.getAttribute("aria-describedby")?.split(" ").forEach((id) => document.getElementById(id)?.scrollIntoView({ block: "nearest" }));
+    const form = document.getElementById(formId);
+    const show = () => form?.querySelector("input")?.getAttribute("aria-describedby")?.split(" ").forEach((id) => {
+      const message = document.getElementById(id);
+      // A whole pixel of margin, because scrolling stops on whole pixels and a fractional line height would leave the last sliver under the footer.
+      if (message) message.style.scrollMarginBlockEnd = "1px";
+      message?.scrollIntoView({ block: "nearest" });
+    });
     show();
-    const frame = requestAnimationFrame(() => requestAnimationFrame(show));
-    return () => cancelAnimationFrame(frame);
+    const observer = new ResizeObserver(show);
+    const popup = form?.closest("[role=dialog]");
+    if (popup) observer.observe(popup, { box: "border-box" });
+    const footer = popup?.querySelector("[data-ouro-footer]");
+    if (footer) observer.observe(footer, { box: "border-box" });
+    // A slide or scale moves the message without resizing anything, so a settle that ends later needs its own scroll.
+    popup?.addEventListener("transitionend", show);
+    return () => {
+      observer.disconnect();
+      popup?.removeEventListener("transitionend", show);
+    };
   }, [error, formId]);
 
   const shown = stage === "empty" ? [] : events;
