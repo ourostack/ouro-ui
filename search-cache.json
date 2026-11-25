@@ -149,6 +149,14 @@
         "scripts/ouro/ax/xray.ts",
         "tools/ouro-actions/ouro-actions.mts"
       ]
+    },
+    "ax-mcp": {
+      "commit": "12cd1466eb4cbb27290efef26eb5403b40da6b5e",
+      "at": "2026-11-25T09:19:11.288Z",
+      "total": 1,
+      "paths": [
+        "app/lib/ouro/ax/ax-claims.ts"
+      ]
     }
   },
   "spoonjoy/spoonjoy-apple": {
@@ -185,6 +193,71 @@
       "at": "2026-11-25T08:25:00.778Z",
       "total": 0,
       "paths": []
+    },
+    "OuroEmptyState": {
+      "commit": "5c7858357b55cd659587c0a7df8c09d7e12eb6fb",
+      "at": "2026-11-25T09:22:49.400Z",
+      "total": 9,
+      "paths": [
+        "Apps/Spoonjoy/Shared/Views/SearchView.swift",
+        "Apps/Spoonjoy/Shared/Views/RecipesView.swift",
+        "scripts/check-kitchen-recipe-surfaces.rb",
+        "Apps/Spoonjoy/Shared/Views/ProfileView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookbooksView.swift",
+        "Apps/Spoonjoy/Shared/Views/ShoppingListView.swift",
+        "Apps/Spoonjoy/Shared/Views/SpoonCookLogView.swift",
+        "Tests/SpoonjoyCoreTests/NativeMobileDesignContractTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenRecipesStructureContractTests.swift"
+      ]
+    },
+    "OuroHX": {
+      "commit": "5c7858357b55cd659587c0a7df8c09d7e12eb6fb",
+      "at": "2026-11-25T09:23:41.135Z",
+      "total": 42,
+      "paths": [
+        "Package.swift",
+        "Sources/SpoonjoyCore/Design/KitchenMotion.swift",
+        "Apps/Spoonjoy/Shared/Design/SpoonjoyFonts.swift",
+        "Sources/SpoonjoyCore/Design/KitchenHaptics.swift",
+        "Apps/Spoonjoy/Shared/Components/KitchenCheckMark.swift",
+        "Apps/Spoonjoy/Shared/Design/KitchenMotion+SwiftUI.swift",
+        "Apps/Spoonjoy/Shared/Components/KitchenSafeControls.swift",
+        "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift",
+        "scripts/generate-xcode-project.rb",
+        "scripts/check-xcode-project-contract.rb",
+        "Apps/Spoonjoy/Shared/Moderation/ThirdPartyAIConsentSheet.swift",
+        "scripts/check-native-web-palette-contract.rb",
+        "Spoonjoy.xcodeproj/project.pbxproj",
+        "Sources/SpoonjoyCore/Design/KitchenTypeRole.swift",
+        "Apps/Spoonjoy/Shared/Views/AddRecipeSheet.swift",
+        "Apps/Spoonjoy/Shared/Design/KitchenTableTheme.swift",
+        "Apps/Spoonjoy/Shared/Views/SearchView.swift",
+        "Apps/Spoonjoy/Shared/Views/RecipesView.swift",
+        "Apps/Spoonjoy/Shared/Views/ProfileView.swift",
+        "Apps/Spoonjoy/Shared/Views/KitchenView.swift",
+        "Apps/Spoonjoy/Shared/Views/CaptureDraftView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookModeComponents.swift",
+        "Apps/Spoonjoy/Shared/Components/ReceiptListView.swift",
+        "Apps/Spoonjoy/Shared/Views/SettingsView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookbooksView.swift",
+        "Apps/Spoonjoy/Shared/Views/CookModeView.swift",
+        "Apps/Spoonjoy/Shared/Moderation/ModerationViews.swift",
+        "Apps/Spoonjoy/Shared/Views/SpoonCookLogView.swift",
+        "Apps/Spoonjoy/Shared/Views/AccountDeletionSheet.swift",
+        "Apps/Spoonjoy/Shared/Views/ShoppingListView.swift",
+        "Apps/Spoonjoy/Shared/Views/RecipeDetailView.swift",
+        "Apps/Spoonjoy/Shared/Components/KitchenTableLoadingStateView.swift",
+        "Apps/Spoonjoy/Shared/AppShell/SpoonjoyRootView.swift",
+        "Apps/Spoonjoy/Shared/Views/NotificationAPNsSettingsView.swift",
+        "Tests/SpoonjoyCoreTests/KitchenMotionTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenHapticsTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenPaletteOuroTests.swift",
+        "scripts/test/no_design_hex_test.rb",
+        "Tests/SpoonjoyCoreTests/KitchenContrastTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenFontFilesTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenTypeRoleTests.swift",
+        "Tests/SpoonjoyCoreTests/KitchenComponentParityTests.swift"
+      ]
     }
   },
   "ourostack/ouro-md": {
@@ -278,24 +351,17 @@
         "Gatefold/Library/LibraryView.swift"
       ]
     },
+    "OuroSheet": {
+      "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
+      "at": "2026-11-25T09:29:22.262Z",
+      "total": 0,
+      "paths": []
+    },
     "\"import OuroAX\"": {
       "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
       "at": "2026-11-25T01:25:50.335Z",
       "total": 0,
       "paths": []
-    }
-  },
-  "ourostack/ouroboros": {
-    "components/ouro/": {
-      "commit": "a8d9c1d2dc36a349f5d7335b2fb1fe47e4ccbbc0",
-      "at": "2026-11-25T08:34:14.604Z",
-      "total": 4,
-      "paths": [
-        "deploy/eval/u/build/kit-config.mjs",
-        "deploy/eval/u/results/k1-package.json",
-        "deploy/eval/u/results/ouro-baseline-summary.json",
-        "deploy/eval/u/results/ouro-rewrite.json"
-      ]
     }
   }
 }
