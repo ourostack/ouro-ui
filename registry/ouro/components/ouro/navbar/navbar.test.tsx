@@ -658,6 +658,25 @@ describe("Navbar at tablet widths and with groups", () => {
     await expect.element(sheet.getByRole("link", { name: "Cookbooks" })).toBeVisible();
   });
 
+  it("opens a group's own content as its panel, marks the group current, and shows the content under its name in the sheet", async () => {
+    const items = [
+      { label: "Platforms", current: true, fit: true, content: <a href="/apple/">Apple</a> },
+      { label: "Pricing", href: "/pricing" },
+    ];
+    await render(<Navbar label="Main" items={items} currentPath="/apple/" />);
+    const nav = page.getByRole("navigation", { name: "Main" });
+    const button = nav.getByRole("button", { name: "Platforms" });
+    expect(button.element().hasAttribute("data-current")).toBe(true);
+    await userEvent.click(button);
+    await expect.element(page.getByRole("link", { name: "Apple" })).toBeVisible();
+    await page.viewport(390, 844);
+    await userEvent.keyboard("{Escape}");
+    const menu = page.getByRole("button", { name: "Menu" });
+    await expect.element(menu).toBeVisible();
+    await userEvent.click(menu);
+    await expect.element(page.getByRole("dialog", { name: "Menu" }).getByRole("link", { name: "Apple" })).toBeVisible();
+  });
+
   it("puts a group's button and the bar's links in the server HTML", () => {
     const html = renderToString(<Navbar label="Main" items={grouped} currentPath="/cookbooks" />);
     expect(html).toMatch(/<button[^>]*>Recipes/);

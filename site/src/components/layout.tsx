@@ -5,6 +5,7 @@ import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FAMILY, FAMILY_CURRENT } from "../family";
 import { FOOTER_LINKS } from "../footer-links";
+import { MARKS_CREDIT } from "../voyage/site-nav";
 import { GUTTERS } from "../gutters";
 
 /** Page width and side gutters: 16px on phones, as the house layout rule says. */
@@ -21,10 +22,11 @@ export function SiteFooter(): JSX.Element {
     <footer className="mt-24">
       <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} className={`pt-6 pb-10 ${GUTTERS.docs}`}>
         <div className="flex basis-full flex-col gap-6 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="m-0 flex items-center gap-2 text-sm text-muted-foreground">
+          <p className="m-0 flex flex-col gap-1 text-sm text-muted-foreground">
             <span>
               Ouro UI: delightful interfaces, {FOR_EVERYONE} Part of Ouro. MIT license.
             </span>
+            <span className="text-xs">{MARKS_CREDIT}</span>
           </p>
           <nav aria-label="Ouro UI">
             <ul className="m-0 -ms-2.5 flex list-none flex-wrap gap-x-1 gap-y-0 p-0 sm:ms-0 sm:-me-2.5">

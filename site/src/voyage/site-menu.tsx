@@ -1,13 +1,12 @@
 import { useEffectEvent, useId, useLayoutEffect, useRef, type JSX, type ReactNode, type RefObject } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { FAMILY, FAMILY_CURRENT } from "../family";
-import { APPLE_PAGES, GITHUB, href, normalizePath } from "../paths";
+import { GITHUB, href, normalizePath } from "../paths";
+import { NAV_PLATFORMS, PhoneNav } from "./site-nav";
 
 /*
- * The site's one menu, in the header's sheet whenever the bar's links do not fit: every section, a line on what is
- * there, and the section's own pages under it, with the page you are on marked, then the Ouro family's sites. The
- * Apple pages' row, the docs sidebar and the family bar's row scroll or hide on a phone, so this is the menu there
- * (site/e2e/site-menu.spec.ts).
+ * The site's sections as data (the search palette and the docs menu's search read them), and the header's sheet whenever
+ * the bar's panels do not fit: the phone's menu (site-nav.tsx), by platform or by part, then Proof and Docs, with the page
+ * you are on marked (site/e2e/site-menu.spec.ts). The Ouro family's sites are in the strip over the bar at every width.
  */
 
 /** A page under a section, or a heading over some of them (`links`). */
@@ -34,16 +33,24 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
     label: "Ouro HX",
     href: "/hx/",
     hint: "Components for people's screens: web, Apple, Windows, Android",
-    pages: [
-      { label: "For Apple", links: APPLE_PAGES.map((page) => ({ label: page.path === "/apple/" ? "Ouro UI for Apple" : page.label, href: page.path })) },
-      { label: "Ouro UI for Windows", href: "/windows/" },
-      { label: "Ouro UI for Android", href: "/android/" },
-    ],
+    pages: NAV_PLATFORMS.flatMap((platform) => [
+      { label: `Ouro UI for ${platform.name}`, href: platform.pages[0].path },
+      { label: `Ouro HX for ${platform.name}`, href: platform.pages[1].path },
+    ]),
   },
-  { label: "Ouro AX", href: "/ax/", hint: "Doors for agents: CLI, MCP, App Intents and more" },
+  { label: "Ouro AX", href: "/ax/", hint: "Doors for agents: CLI, MCP, App Intents and more", pages: NAV_PLATFORMS.map((platform) => ({ label: `Ouro AX for ${platform.name}`, href: platform.pages[2].path })) },
   { label: "Actions", href: "/actions/", hint: "One declaration, a button and a tool, with consent" },
   { label: "Composed UI", href: "/composed-ui/", hint: "Cards your agent sends, drawn natively" },
-  { label: "X-ray", href: "/xray/", hint: "See inside screens and doors", pages: [{ label: "Hackamore", href: "/hackamore/" }] },
+  {
+    label: "X-ray",
+    href: "/xray/",
+    hint: "See inside screens and doors",
+    pages: [
+      { label: "Ouro Feel", href: "/apple/feel/" },
+      { label: "Ouro Reins", href: "/apple/reins/" },
+      { label: "Hackamore", href: "/hackamore/" },
+    ],
+  },
   {
     label: "Proof",
     href: "/proof/",
@@ -173,136 +180,47 @@ export function useSheetShown(ref: RefObject<HTMLElement | null>, shown: (on: bo
 }
 
 /**
- * The menu: each section with its line, then its pages. `more` adds to a section by its label (the docs pages add
- * their guides under Guides and every component under Ouro HX). It opens scrolled to the page you are on.
+ * The menu: the phone's navigation (site-nav.tsx). `more` adds to a part or to Docs by its label (the docs pages add their
+ * guides under Docs and Ouro AX's parts under Ouro AX). It opens scrolled to the page you are on.
  */
 export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<string, ReactNode>> | undefined }): JSX.Element {
   const current = normalizePath(page);
-  const list = useRef<HTMLOListElement>(null);
-  const id = useId();
+  const list = useRef<HTMLDivElement>(null);
   // Below the sheet's fold, the page you are on scrolls up into view each time the sheet opens, without moving the page
   // behind. Navbar builds its kept sheet afresh after each close, so each open starts from the sheet's top.
   const frame = useRef(0);
   useSheetShown(list, (on) => {
     cancelAnimationFrame(frame.current);
     if (!on) return;
-    // True once there is nothing to do: no mark, or the mark in view. Until the sheet has its height nothing in it
-    // scrolls, so it tries again on the next frames.
     const reveal = (): boolean => {
       if (!list.current) return true;
-      const link = list.current.querySelector<HTMLElement>('[aria-current="page"]');
+      const link = list.current.querySelector<HTMLElement>('[aria-current="page"]:not([inert] *)');
       let scroller = list.current.parentElement;
-      // The nearest box that scrolls: one that overflows and lets you scroll it, not one whose overflow just shows.
       while (scroller && (scroller.scrollHeight <= scroller.clientHeight || !/auto|scroll/.test(getComputedStyle(scroller).overflowY))) scroller = scroller.parentElement;
       if (!link) return true;
-      // Nothing scrolls: either it all fits, or the sheet has no height yet (then a later frame looks again).
       if (!scroller || scroller === document.scrollingElement || scroller === document.body) {
         const spot = link.getBoundingClientRect();
         return spot.height > 0 && spot.top >= 0 && spot.bottom <= innerHeight;
       }
-      // From the top each time, so the menu lands at the same place whatever it was scrolled to: on each open, and when
-      // the docs' search clears and brings the menu back.
       scroller.scrollTop = 0;
       const box = scroller.getBoundingClientRect();
       const spot = link.getBoundingClientRect();
-      // What stays pinned at the top of the sheet (the docs' search) covers the rows under it.
       const top = box.top + (scroller.querySelector<HTMLElement>("[data-site-menu-pinned]")?.offsetHeight ?? 0);
       if (spot.bottom > box.bottom - 16) {
-        // The page's group from its heading at the top, when that leaves the page in the top 60%; otherwise the page a third of the way down.
         const third = spot.top - top - (box.bottom - top) / 3;
         const heading = (link.closest("[data-site-menu-group]")?.getBoundingClientRect().top ?? -Infinity) - top - 8;
         scroller.scrollTop += heading >= spot.top - top - (box.bottom - top) * 0.6 ? heading : third;
       }
       return true;
     };
-    // In the frame that first draws the sheet, not as the press's work ends: the sheet's own setup there (its focus,
-    // its height, the page's scroll lock) restyles the sheet between reads, so reading here as well cost the press a
-    // third restyle of the whole sheet. The frame's callbacks still run before it paints, so nothing shows unscrolled.
     let tries = 0;
     frame.current = requestAnimationFrame(function again() {
       if (!reveal() && ++tries < 30) frame.current = requestAnimationFrame(again);
     });
   });
   return (
-    <>
-      <FamilyLinks />
-      <ol ref={list} className="m-0 grid list-none gap-2 p-0">
-        {SITE_SECTIONS.map((section, index) => {
-          const here = section.href === current;
-          const away = !section.href.startsWith("/");
-          return (
-            // A group the menu opens on: the section, or inside it a folded list (the docs menu's).
-            <li key={section.label} data-site-menu-group="" className="grid gap-0.5">
-              <a
-                href={sectionHref(section.href)}
-                aria-current={here ? "page" : undefined}
-                onClick={here ? stay : undefined}
-                aria-describedby={`${id}${index}`}
-                className={cn(row, "py-1.5")}
-              >
-                <span className="grid min-w-0 flex-1 gap-0.5">
-                  <span className="flex items-center gap-2 font-[family-name:var(--font-heading)] text-lg leading-6 font-semibold tracking-[-0.01em] text-foreground">
-                    <span>
-                      {section.label}
-                      {away && (
-                        <span aria-hidden="true" className="ms-1 text-muted-foreground">
-                          ↗
-                        </span>
-                      )}
-                    </span>
-                    {here && <Here />}
-                  </span>
-                  {/* Heard as the link's description, not its name. */}
-                  <span id={`${id}${index}`} aria-hidden="true" className="text-sm leading-5 text-muted-foreground">
-                    {section.hint}
-                  </span>
-                </span>
-              </a>
-              {section.pages && <MenuPages pages={section.pages} current={current} />}
-              {more?.[section.label]}
-            </li>
-          );
-        })}
-      </ol>
-    </>
-  );
-}
-
-/**
- * The Ouro family's sites, as the family bar lists them, with this one marked and the others marked as leaving the site:
- * first in the menu below 640px, where the bar is hidden, and gone from 640px up, where the bar shows them.
- */
-function FamilyLinks(): JSX.Element {
-  const id = useId();
-  return (
-    <div data-site-menu-family="" className="mt-2 mb-4 grid gap-0.5 border-0 border-b border-solid border-border pb-3 sm:hidden">
-      <h2 id={id} className="m-0 px-3 py-1 text-xs leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase">
-        Ouro family
-      </h2>
-      <ul aria-labelledby={id} className="m-0 grid list-none gap-0.5 p-0">
-        {FAMILY.map((site) => {
-          const here = site.id === FAMILY_CURRENT;
-          return (
-            <li key={site.id}>
-              <a
-                href={site.href}
-                aria-current={here ? "true" : undefined}
-                className={cn(row, "py-2 text-base leading-5 text-muted-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground")}
-              >
-                <span>
-                  {site.label}
-                  {!here && (
-                    <span aria-hidden="true" className="ms-1 text-muted-foreground">
-                      ↗
-                    </span>
-                  )}
-                </span>
-                {here && <Here />}
-              </a>
-            </li>
-          );
-        })}
-      </ul>
+    <div ref={list} className="pt-2">
+      <PhoneNav current={current} more={more} />
     </div>
   );
 }
@@ -310,7 +228,7 @@ function FamilyLinks(): JSX.Element {
 /**
  * Around the menu, in the sheet: a close button a thumb can see, beside the sheet's title (the sheet's own Close,
  * which a keyboard and a screen reader reach, shows only on focus, so this one is for pointers and stays out of the
- * tab order), a hairline under the title that rows scroll away beneath, and on a phone, beside the
+ * tab order), a strip under the title that rows scroll away beneath, and on a phone, beside the
  * close button, the header's `tools` its bar has no room for.
  */
 export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?: ReactNode }): JSX.Element {
@@ -331,7 +249,7 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
   });
   return (
     <>
-      <div ref={edge} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-2 border-0 border-b border-solid border-border bg-popover" />
+      <div ref={edge} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-2 bg-popover" />
       {/* Placed from the box around the sheet's body (SheetContent), which starts under the sheet's 48px title row: 42px up
           puts the 44px pills 6px from the sheet's top, centred on its close button (12px down, 32px tall). */}
       {tools && <div className="absolute end-15 -top-10.5 z-3 flex gap-1 sm:hidden">{tools}</div>}

@@ -72,19 +72,28 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ### `NavbarGroup`
 
-A group of links in a Navbar: a button that opens a panel in the bar, and a labelled group in the sheet.
+A group in a Navbar: a button that opens a panel in the bar, and a labelled group in the sheet. The panel holds its `links`, or its own `content` (a grid of platforms, groups side by side), or both, content first.
 
 ```ts
-interface NavbarGroup {
-  /** The group's name, the button's text: "Recipes". */
-  label: string;
-  /**
-   * The group's links, each with an optional `description`.
-   */
-  links: readonly NavbarLink[];
-  /** Not with `links`. To link the section's own page, make it the group's first link. */
-  href?: never;
-}
+type NavbarGroup = NavbarGroupBase &
+  (
+    | {
+        /**
+         * The group's links, each with an optional `description`.
+         */
+        links: readonly NavbarLink[];
+        /** Anything else in the panel, before its links. */
+        content?: ReactNode;
+      }
+    | {
+        links?: undefined;
+        /**
+         * The panel's own content, in place of a list of links. Its links close the panel when followed. In the sheet it
+         * shows under the group's name; give the Navbar a `menu` to lay the sheet out yourself.
+         */
+        content: ReactNode;
+      }
+  );
 ```
 
 ### `NavbarItem`
