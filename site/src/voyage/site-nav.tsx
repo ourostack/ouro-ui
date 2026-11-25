@@ -395,7 +395,12 @@ function Crossfade({ shown, panes }: { shown: string; panes: ReadonlyArray<{ id:
     return () => observer.disconnect();
   }, [shown]);
   return (
-    <div ref={box} style={{ height }} className="relative overflow-hidden motion-safe:transition-[height] motion-safe:duration-(--ouro-duration-base) motion-safe:ease-(--ouro-ease-out)">
+    <div
+      ref={box}
+      data-site-crossfade=""
+      style={{ height }}
+      className="relative overflow-hidden motion-safe:transition-[height] motion-safe:duration-(--ouro-duration-base) motion-safe:ease-(--ouro-ease-out)"
+    >
       {panes.map((pane) => {
         const on = pane.id === shown;
         return (
