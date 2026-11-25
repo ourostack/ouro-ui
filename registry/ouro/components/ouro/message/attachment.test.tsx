@@ -117,6 +117,21 @@ describe("Attachment", () => {
     expect(translated!.querySelector("[data-ouro-attachment-kind]")!.textContent).toBe("Fichier doc");
   });
 
+  it.each([
+    ["doc", "Document"],
+    ["slides", "Slides"],
+    ["pdf", "PDF"],
+    ["image", "Image"],
+    ["video", "Video"],
+    ["audio", "Audio"],
+    ["zip", "Archive"],
+    ["code", "Code"],
+    ["file", "File"],
+  ] as const)("labels a %s with its default kind name %s, with no override", async (kind, label) => {
+    const { attachment } = await render(<Attachment name="item" kind={kind} />);
+    expect(attachment.querySelector("[data-ouro-attachment-kind]")!.textContent).toBe(label);
+  });
+
   it("opens the file from a link named by the file and its size", async () => {
     await render(<Attachment name="menu.pdf" size={2048} href="/files/menu.pdf" download />);
     const link = page.getByRole("link", { name: "menu.pdf 2 kB" });
