@@ -1304,8 +1304,9 @@ describe("Popover handing focus to a layer opened from inside it", () => {
     await render(<App />);
     const anchor = [...document.querySelectorAll("button")].find((button) => button.textContent === "Anchor")!;
     await act(async () => anchor.click());
-    await expect.poll(() => document.querySelector('[data-ouro-popover-content]')).not.toBeNull();
+    await expect.poll(() => document.querySelector('[data-ouro-popover-content]')?.contains(document.activeElement)).toBe(true);
     await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector('[data-ouro-popover-content]')).toBeNull();
     await expect.poll(() => document.activeElement).toBe(anchor);
   });
 
