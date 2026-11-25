@@ -232,6 +232,23 @@ describe("the calendar page", () => {
     expect(slots.getAttribute("aria-activedescendant")).toBe(was);
   });
 
+  it("scrolls the week inside its frame at large text instead of squeezing the days or the page", async () => {
+    await page.viewport(700, 900);
+    document.documentElement.style.fontSize = "200%";
+    try {
+      await renderPage("/docs/calendar-demo/");
+      const frame = () => document.querySelector<HTMLElement>('[data-site-calendar-demo] [data-ouro="time-grid"]')!.parentElement!.parentElement!;
+      const sizes = () => `${frame().scrollWidth}:${frame().clientWidth}:${document.documentElement.scrollWidth}`;
+      let last = "";
+      await expect.poll(() => { const now = sizes(); const same = now === last; last = now; return same; }).toBe(true);
+      expect(frame().scrollWidth).toBeGreaterThan(frame().clientWidth);
+      const grid = document.querySelector<HTMLElement>('[data-site-calendar-demo] [data-ouro="time-grid"]')!;
+      expect(grid.getBoundingClientRect().width).toBeGreaterThanOrEqual(36 * parseFloat(getComputedStyle(document.documentElement).fontSize));
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
   it("marks Go to date as opening a dialog", async () => {
     await renderPage("/docs/calendar-demo/");
     expect(page.getByRole("button", { name: "Go to date" }).element().getAttribute("aria-haspopup")).toBe("dialog");

@@ -214,7 +214,7 @@ function Screen(): JSX.Element {
 
   return (
     <div ref={rootRef} className="grid w-full grid-cols-1 gap-3 max-sm:pb-24" data-site-calendar-demo="">
-      <div className="min-w-0 overflow-x-auto">
+      <div className="min-w-0 overflow-x-auto" style={{ display: "grid", gridTemplateColumns: "max-content" }}>
         <SegmentedControl
           label="State"
           value={stage}
@@ -265,12 +265,13 @@ function Screen(): JSX.Element {
       {stage === "empty" ? (
         <Moment kind="empty" art={<TrayArt />} title="Nothing on this week" description="Press an empty slot, or New event, to add something." />
       ) : null}
-      <div className="h-160 min-h-0 overflow-hidden">
+      <div className="h-160 min-h-0 overflow-hidden" style={{ overflowX: "auto" }}>
         {stage === "loading" ? (
           <div role="group" aria-label={label} aria-busy="true" className="flex h-full items-center justify-center p-4">
             <Moment kind="loading" announce title="Loading your week" />
           </div>
         ) : (
+          <div className="h-full" style={phone ? undefined : { minWidth: "36rem" }}>
           <TimeGrid
             label={label}
             date={date}
@@ -290,6 +291,7 @@ function Screen(): JSX.Element {
             onSlotSelect={slotPressed}
             className="h-full"
           />
+          </div>
         )}
       </div>
       <Popover title={current?.title ?? "Event"} open={current !== null} onOpenChange={(next) => !next && setOpen(null)} anchor={eventRef} presentation="auto">
