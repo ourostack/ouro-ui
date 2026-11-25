@@ -8,6 +8,7 @@ import type { MessageFindLayer } from "@/registry/ouro/components/ouro/message/m
 import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { hasLazyType } from "@/registry/ouro/lib/ouro/server-element";
 import { halveShown } from "@/registry/ouro/lib/ouro/halve";
 import { createRowLayer, RowLayerContext, type RowLayer } from "@/registry/ouro/lib/ouro/row-hover";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
@@ -1374,7 +1375,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     if (run !== null) space(index);
     const key = keys[index]!;
     // A Message takes its position and size in its own first render: the app's own aria-posinset, when it set one, stands.
-    const message = isValidElement<MessageProps>(child) && child.type === Message ? child : null;
+    // Across a Server Component boundary a Message's type is a lazy reference, never Message itself, so there it is known
+    // by its string `role` (every Message has one; nothing else visible across the boundary tells them apart).
+    const message = isValidElement<MessageProps>(child) && (child.type === Message || (hasLazyType(child) && typeof child.props.role === "string")) ? child : null;
     const own = message?.props["aria-posinset"];
     const drawn = message
       ? cloneElement(
