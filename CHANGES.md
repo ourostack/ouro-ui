@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [Composer's rich editor asks for a link's address in its own popover, never the browser's prompt](registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx::Composer rich paste > asks for an address in its own popover, never the browser's prompt, and links the words it was asked over)"), so ⌘K over words that aren't an address works where a host shows no prompt (#3537).
