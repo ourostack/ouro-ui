@@ -1025,8 +1025,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     placements.map((placed) => {
       const share = 100 / placed.columns;
       // Beside a chip that folds the events it has no room for, the day is that much narrower.
-      const whole = reserved.has(placed.key) ? `(100% - ${chipWidth})` : "100%";
-      const wholeQ = reserved.has(placed.key) ? `(100cqw - ${chipWidth})` : "100cqw";
+      const whole = reserved.has(placed.key) ? `calc(100% - ${chipWidth})` : "100%";
+      const wholeQ = reserved.has(placed.key) ? `calc(100cqw - ${chipWidth})` : "100cqw";
       const cleared = clearOfLane?.has(placed.key);
       // Where a background event shares its time, the event is placed in what the lane leaves free.
       const free = "(100% - var(--ouro-time-grid-lane))";

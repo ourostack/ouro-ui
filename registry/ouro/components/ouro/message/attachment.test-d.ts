@@ -14,6 +14,7 @@ expectTypeOf<{
   onRemove: () => void;
   removeLabel: (name: string) => string;
   formatSize: (bytes: number) => string;
+  kindLabel: (kind: AttachmentKind) => string;
   kind: "sheet";
   icon: null;
   onOpen: (event: MouseEvent<HTMLElement>) => void;

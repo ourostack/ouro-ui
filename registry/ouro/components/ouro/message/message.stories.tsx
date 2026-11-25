@@ -370,7 +370,14 @@ function ChannelPosts() {
           subject="Settings mockups"
           actions={actions}
           menu={menu}
-          attachments={<Lightbox label="Settings mockups, from Mara Quill" layout="mosaic" images={[{ src: mockup, alt: "The settings page mockup: Appearance, with light, dark and system themes", width: 1600, height: 1000 }]} />}
+          attachments={
+            <Lightbox
+              label="Settings mockups, from Mara Quill"
+              layout="mosaic"
+              framed={false}
+              images={[{ src: mockup, alt: "The settings page mockup: Appearance, with light, dark and system themes", width: 1600, height: 1000 }]}
+            />
+          }
           thread={
             <ThreadSummary
               count={2}
@@ -472,7 +479,7 @@ function FlatChannelMessages() {
           time="9:05 AM"
           dateTime="2026-05-04T09:05"
           continued
-          attachments={<Lightbox label="Photo from Mara Quill" layout="mosaic" images={[{ src: lake, alt: "The lake beside the venue at dusk", width: 1200, height: 800 }]} />}
+          attachments={<Lightbox label="Photo from Mara Quill" layout="mosaic" framed={false} images={[{ src: lake, alt: "The lake beside the venue at dusk", width: 1200, height: 800 }]} />}
           thread={
             <ThreadSummary count={2} repliers={repliers.slice(1)} lastReply="9:20 AM" label="2 replies to Mara Quill's photo" onOpen={() => setOpened("Opened the thread under Mara Quill's photo")} />
           }

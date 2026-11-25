@@ -53,6 +53,13 @@ test("checkWorkEvent accepts every kind, and names the first problem with its fi
   }
 });
 
+test("checkWorkEvent rejects a malformed target the same way validateOutcome does, also included", () => {
+  assert.ok(checkWorkEvent(ev("action", 0, { target: { kind: "message", id: "m1", also: [{ kind: "conversation", id: "c1" }] } })).ok);
+  const r = checkWorkEvent({ ...ev("action", 0), target: { kind: "message", id: "m1", also: [{ kind: "conversation" }] } } as unknown);
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.match(r.problem, /target is not/);
+});
+
 test("workEventOf: an action or handoff from an outcome, attributed; nothing for a plan or a refusal", () => {
   const done = outcome({ action: "message.send", effect: "others", audience: { only: false, who: "everyone" }, target: { kind: "conversation", id: "c1" }, state: "done", summary: "Sent.", receipt: { id: "r1", at: at(3), by: "agent:planner", why: "Riley asked" } });
   assert.deepEqual(workEventOf(done, { id: "e1", actor: "agent:planner", onBehalfOf: "Dana", correlation: "plan#7" }), {
