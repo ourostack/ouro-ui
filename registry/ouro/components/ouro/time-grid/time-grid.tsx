@@ -773,6 +773,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     return () => observer.disconnect();
   }, [hasLane]);
 
+  const dayKey = days.join();
   // One day's width, which the days share, and the size of a rem at the current text size.
   useLayoutEffect(() => {
     const day = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-day]");
@@ -783,7 +784,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // Stryker disable next-line ArrowFunction: once the day is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
     // The day column is replaced when the dates change, so the observer follows it.
-  }, [days.join()]);
+  }, [dayKey]);
 
   const focusPiece = (key: string) => {
     setActive(key);

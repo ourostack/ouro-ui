@@ -203,7 +203,7 @@ function stacksOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>): Array<Arra
 
 /**
  * Which of a day's overlapping events show, in a day `widthRem` wide, and which fold into a chip.
- * Each shown event keeps a step wide enough for a few characters of its title; a day that can't
+ * A shown event keeps a step wide enough for a few characters of its title; a day that can't
  * give the first event its minimum beside the chip's strip folds the whole stack into one.
  */
 function foldsOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>, widthRem: number) {
