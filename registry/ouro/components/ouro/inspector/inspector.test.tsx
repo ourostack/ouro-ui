@@ -574,7 +574,11 @@ describe("Inspector", () => {
 
   it("leaves every line of the page's text as readable as it was, in light and dark: outlines step around text, and tags sit clear of text and of each other", async () => {
     // A dense page: text right against the edges of the components above and below it, where a
-    // tag above a component's corner would land on the line before.
+    // tag above a component's corner would land on the line before. Narrow enough that the
+    // page's maxWidth: 420 grid wraps its text: this used to come from the file's own afterEach
+    // leaving the viewport at 414x896, which the kit's own reset (to the project's default, not
+    // this file's) no longer does, so the test sets it itself.
+    await page.viewport(414, 896);
     const { host } = await render(
       <Page>
         <div style={{ display: "grid", gap: 2 }}>
