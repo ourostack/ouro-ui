@@ -235,6 +235,22 @@ describe("TextArea autoGrow", () => {
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
   });
 
+  it("does not mutate the textarea's children on a keystroke, so no :has() rule above it restyles", async () => {
+    function Controlled() {
+      const [value, setValue] = useState("one");
+      return <TextArea label="Notes" value={value} onValueChange={setValue} />;
+    }
+    const { textarea } = await render(<Controlled />);
+    textarea.focus();
+    textarea.setSelectionRange(3, 3);
+    const observer = new MutationObserver(() => {});
+    observer.observe(textarea, { childList: true, characterData: true, subtree: true });
+    await userEvent.keyboard("abc");
+    expect(observer.takeRecords()).toHaveLength(0);
+    observer.disconnect();
+    expect(textarea.value).toBe("oneabc");
+  });
+
   it("measures once per change of its text, and not on a render that changes nothing it fits", async () => {
     /** How many times the textarea's style was read: each fit reads it once, and lays out the page. */
     const reads = (textarea: HTMLTextAreaElement) => {

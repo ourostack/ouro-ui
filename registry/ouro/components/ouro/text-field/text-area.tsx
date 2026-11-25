@@ -304,6 +304,17 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // autoGrow, measure nothing: the inline height is the user's resize handle. Turning autoGrow
   // off once clears the height autoGrow set, so `rows` applies again.
   const controlled = rest.value !== undefined;
+  // A controlled field gives the textarea no `value` prop: React would write `defaultValue` on every update, and Chrome counts
+  // that as a child-list mutation on the textarea, which restyles everything a `:has()` rule can reach, on every key. The text
+  // is set here instead, once it differs.
+  const initial = useRef(rest.value);
+  const text = controlled ? String(rest.value) : undefined;
+  const latest = useRef(text);
+  latest.current = text;
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current!;
+    if (text !== undefined && textarea.value !== text) textarea.value = text;
+  }, [text]);
   const grew = useRef(false);
   const native = autoGrow && supportsFieldSizing();
   const watched = native ? undefined : rest.value;
@@ -355,6 +366,13 @@ export function TextArea(props: TextAreaProps): JSX.Element {
       if (moved) onHighlightsChange?.(moved);
     }
     onChange?.(event);
+    if (controlled) {
+      // The app kept its own text over the key (a rejected character): put that back.
+      const textarea = event.currentTarget;
+      queueMicrotask(() => {
+        if (textareaRef.current === textarea && textarea.value !== latest.current) textarea.value = latest.current!;
+      });
+    }
   };
   // The text rewraps when the width changes (a rotated phone, a resized window). The refit
   // runs in the next frame, never inside the observer's callback: a height set there is a new
@@ -404,10 +422,11 @@ export function TextArea(props: TextAreaProps): JSX.Element {
           ref={setRef as Ref<HTMLInputElement>}
           onChange={handleChange as unknown as FieldControlProps["onChange"]}
           render={(controlProps) => {
-            const { style, ...textareaProps } = controlProps as TextareaHTMLAttributes<HTMLTextAreaElement>;
+            const { style, value: ownValue, defaultValue: ownDefault, ...textareaProps } = controlProps as TextareaHTMLAttributes<HTMLTextAreaElement>;
             const textarea = (
               <textarea
                 {...textareaProps}
+                {...(controlled ? { defaultValue: String(initial.current) } : { value: ownValue, defaultValue: ownDefault })}
                 style={autoGrow ? { ...autoGrowBounds(rows, maxRows), ...style } : style}
                 rows={rows}
                 data-ouro-control="text-area"
