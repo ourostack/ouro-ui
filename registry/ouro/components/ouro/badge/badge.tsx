@@ -159,9 +159,12 @@ const interactive =
   "disabled:cursor-not-allowed disabled:opacity-50 data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
 // A toolbar count: a pill whose fill is the theme's --ouro-count, so it stays red in dark where --destructive is pale.
-// text-box trims the line to the cap height so the numeral sits in the middle of the pill.
+// text-box trims the line to the cap height so the numeral sits in the middle of the pill. Sized and typeset with the
+// same tokens navigation-rail's own count pill already carries into every page's build (h-ouro-4, min-w-ouro-4,
+// text-[0.625rem], leading-none), so this feature's CSS costs nothing on a page that already renders either pill, and
+// tabular-nums alone already sets font-variant-numeric: a second, bracketed copy of the same property was dead weight.
 const countClass =
-  "h-[16px] min-w-[16px] justify-center gap-0 rounded-full px-[3px] text-[10px]/none font-semibold tabular-nums [font-variant-numeric:tabular-nums] [text-box:trim-both_cap_alphabetic] " +
+  "h-ouro-4 min-w-ouro-4 justify-center gap-0 rounded-full px-[3px] text-[0.625rem] leading-none font-semibold tabular-nums [text-box:trim-both_cap_alphabetic] " +
   "[--ouro-bd:transparent] [--ouro-bg:var(--ouro-count,#c50f1f)] text-white contrast-more:[--ouro-bd:currentColor]";
 const countOverlayClass = "absolute end-(--ouro-count-x,-6px) top-(--ouro-count-y,-4px) z-10";
 

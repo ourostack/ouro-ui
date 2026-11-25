@@ -108,6 +108,21 @@ describe("OuroProvider and useOuro", () => {
     );
     expect(html).toBe('<a href="/recipes" class="mt-2">Recipes</a>');
   });
+
+  it("installs the squircle capsule watcher once on mount, and stops it on unmount", async () => {
+    vi.spyOn(CSS, "supports").mockImplementation((prop: string) => prop === "clip-path");
+    const mutationObserve = vi.spyOn(MutationObserver.prototype, "observe");
+    const mutationDisconnect = vi.spyOn(MutationObserver.prototype, "disconnect");
+    await mount(<OuroProvider>content</OuroProvider>);
+    expect(mutationObserve).toHaveBeenCalledExactlyOnceWith(document.documentElement, { childList: true, subtree: true });
+    const root = roots.at(-1)!;
+    await act(async () => root.render(<OuroProvider>content changed</OuroProvider>));
+    // A re-render does not install the watcher again.
+    expect(mutationObserve).toHaveBeenCalledOnce();
+    expect(mutationDisconnect).not.toHaveBeenCalled();
+    await act(async () => roots.pop()!.unmount());
+    expect(mutationDisconnect).toHaveBeenCalledOnce();
+  });
 });
 
 describe("OuroProvider motion", () => {

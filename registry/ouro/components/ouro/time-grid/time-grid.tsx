@@ -887,8 +887,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           <span dir="auto" className="line-clamp-(--ouro-lines) font-medium @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
             {event.title}
           </span>{" "}
-          <span className={mutedLineClass}>
-            <bdi dir="ltr">{rangeText(formats.time, start!, end!)}</bdi>
+          <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-end`}>
+            {rangeText(formats.time, start!, end!)}
           </span>
           {lines >= 3 && event.description ? (
             <>
@@ -949,7 +949,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         content={
           <>
             <span className="block tabular-nums">
-              <bdi dir="ltr">{rangeText(formats.time, start!, end!)}</bdi>
+              <span dir="ltr" data-slot="time-grid-event-time-tip" className="[unicode-bidi:isolate]">{rangeText(formats.time, start!, end!)}</span>
             </span>
             <span dir="auto" className="block font-medium">
               {event.title}
@@ -1123,18 +1123,19 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               aria-activedescendant={cursor ? cursorId : undefined}
               data-ouro-control="time-grid"
               data-ouro-part="slots"
+              data-slot="time-grid-slots"
               className="pointer-events-none absolute inset-0 outline-ring -outline-offset-2 focus-visible:outline-2"
               onFocus={() => setCursor((now) => now ?? cursorStart())}
               onBlur={() => setCursor(null)}
               onKeyDown={onSlotKeyDown}
             >
-              <div role="row">
+              <div role="row" data-slot="time-grid-slots-row">
                 {cursor ? (
-                  <div role="gridcell" id={cursorId} className="sr-only">
+                  <div role="gridcell" id={cursorId} data-slot="time-grid-slots-cell" className="sr-only">
                     {`${formats.fullDay.format(utcDate(days[cursor.day]!))}, ${formats.time.format(formats.clock.instant(days[cursor.day]!, cursor.minutes))}`}
                   </div>
                 ) : (
-                  <div role="gridcell" className="sr-only">
+                  <div role="gridcell" data-slot="time-grid-slots-cell" className="sr-only">
                     {slotsLabel}
                   </div>
                 )}
@@ -1194,6 +1195,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                       <span
                         ref={cursorRef}
                         aria-hidden="true"
+                        data-slot="time-grid-cursor"
                         data-ouro-time-grid-slot=""
                         data-ouro-time-grid-cursor=""
                         className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border-2 border-solid border-primary bg-primary/10 px-1.5 text-[11px] leading-4 text-foreground forced-colors:border-[Highlight]"

@@ -385,10 +385,13 @@ const HINTS: Record<string, string> = {
 // jank's budget is the longest frame of a step, the median of its runs, from Ouro Feel; a step also fails when every run
 // forces more than MAX_FORCED layouts or moves the page by more than MAX_STEP_SHIFT.
 const BUDGETS: Budgets = Object.freeze({ inp: 200, "layout-shift": 0.1, "first-content": 2500, jank: 250 });
-// dropped-frames reads a real wall-clock gap between animation frames, so two such readings at once (another tab's
-// press, or another check() racing this one) can borrow each other's CPU and read a longer gap than either page alone
-// would have. This serializes the measuring window only, across every call in this process, so unrelated work
-// (loading, screenshots) still runs side by side.
+// dropped-frames and jank both read a real wall-clock gap between animation frames, so two such readings at once
+// (another tab's press or walk step, or another check() racing this one) can borrow each other's CPU and read a
+// longer gap than either page alone would have: jank's own median of runs forgives one slow run, but
+// dropped-frames' single unaveraged sample does not, so a run racing a sibling's walk() step was enough to make an
+// extra dropped-frames finding recur (#3503) even after press-against-press alone was serialized. This serializes
+// the measuring window only, across every live reading in this process, so unrelated work (loading, screenshots)
+// still runs side by side.
 let motionQueue: Promise<unknown> = Promise.resolve();
 const measureMotion = <T,>(task: () => Promise<T>): Promise<T> => {
   const run = motionQueue.then(task);
@@ -964,34 +967,38 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         await page.evaluate("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))");
         const point = step.page ? { x: width / 2, y: height / 2 } : await aim(page, step.ref);
         if (!point) break;
-        await page.evaluate(resetMotion);
-        // Straight to the target in one move, so the pointer's path hovers nothing else on the way.
-        if (step.kind === "hover") await page.mouse.move(point.x, point.y);
-        else if (step.kind === "open") {
-          await page.evaluate(watchPopups);
-          await page.mouse.click(point.x, point.y);
-          await settle();
-          // One finding a step: the same jump in each run is the same finding.
-          for (const issue of await page.evaluate(findPopupJumps)) {
-            if (n > 0 || jumped.has(step.ref)) continue;
-            jumped.add(step.ref);
-            found++;
-            await record(page, target, issue, width, height, theme);
+        // Shares measureMotion's queue with dropped-frames' own live reading (#3503): a walk step racing a sibling
+        // tab's press, or another walk step, can skew either one's longest-frame gap just as two presses can.
+        runs.push(await measureMotion(async () => {
+          await page.evaluate(resetMotion);
+          // Straight to the target in one move, so the pointer's path hovers nothing else on the way.
+          if (step.kind === "hover") await page.mouse.move(point.x, point.y);
+          else if (step.kind === "open") {
+            await page.evaluate(watchPopups);
+            await page.mouse.click(point.x, point.y);
+            await settle();
+            // One finding a step: the same jump in each run is the same finding.
+            for (const issue of await page.evaluate(findPopupJumps)) {
+              if (n > 0 || jumped.has(step.ref)) continue;
+              jumped.add(step.ref);
+              found++;
+              await record(page, target, issue, width, height, theme);
+            }
+            // The panel rules on what it opened, once a step.
+            if (n === 0) found += await judgePanels(page, target, step.element, width, height, theme);
+            await page.keyboard.press("Escape");
+          } else if (step.kind === "pan") {
+            await page.mouse.move(point.x, point.y);
+            await page.mouse.down();
+            await page.mouse.move(point.x - 160, point.y - 80, { steps: 12 });
+            await page.mouse.up();
+          } else {
+            await page.mouse.move(point.x, point.y);
+            for (let w = 0; w < 6; w++) await page.mouse.wheel(step.axis === "x" ? 120 : 0, step.axis === "x" ? 0 : 120);
           }
-          // The panel rules on what it opened, once a step.
-          if (n === 0) found += await judgePanels(page, target, step.element, width, height, theme);
-          await page.keyboard.press("Escape");
-        } else if (step.kind === "pan") {
-          await page.mouse.move(point.x, point.y);
-          await page.mouse.down();
-          await page.mouse.move(point.x - 160, point.y - 80, { steps: 12 });
-          await page.mouse.up();
-        } else {
-          await page.mouse.move(point.x, point.y);
-          for (let w = 0; w < 6; w++) await page.mouse.wheel(step.axis === "x" ? 120 : 0, step.axis === "x" ? 0 : 120);
-        }
-        await settle();
-        runs.push(await page.evaluate(readMotion));
+          await settle();
+          return page.evaluate(readMotion);
+        }));
       }
       if (runs.length < WALK_RUNS) continue;
       const frame = [...runs.map((r) => r.longestFrameMs)].sort((a, b) => a - b)[Math.floor(runs.length / 2)]!;
