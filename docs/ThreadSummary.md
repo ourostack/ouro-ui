@@ -28,8 +28,9 @@ Type: `ThreadSummaryProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `alwaysShown` | `boolean` | `false` | Keeps the quiet Reply button visible in a post with no replies, where a mouse points, instead of showing it only on hover or focus. Pass it for a channel's posts, where a reader scanning must see which posts nobody has answered; leave it off for a chat message, where hover-only stays the default. Reply's place, size and style don't change: only whether it starts shown. |
 | `className` | `string` |  | Layout only: margins (`mt-1`). Appearance classes warn in development. |
-| `count` (required) | `number` |  | How many replies the thread has. With none, the summary is a single small "Reply" button that opens the thread to write the first one. As a post's `thread`, that button sits at the end of the post's line of name and time, so it adds no row. Where a mouse or trackpad points, it shows only while the pointer is over the post or focus is in it; on a touch screen it always shows, in the same place. |
+| `count` (required) | `number` |  | How many replies the thread has. With none, the summary is a single small "Reply" button that opens the thread to write the first one. As a post's `thread`, that button sits at the end of the post's line of name and time, so it adds no row. Where a mouse or trackpad points, it shows only while the pointer is over the post or focus is in it, unless `alwaysShown` is set; on a touch screen it always shows, in the same place. |
 | `label` | `string` |  | What screen readers hear for the button, when its words alone ("2 replies") would repeat from post to post: "2 replies to Riley's post Settings mockups". Start it with the words the button shows, so speech input that says them still finds it (WCAG's label in name). |
 | `lastReply` | `string` |  | When the last reply came, already formatted for the reader ("7:44 AM"). |
 | `lastReplyDateTime` | `string` |  | The same moment for machines, as an ISO date: the `<time>` element's `dateTime`. |
