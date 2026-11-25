@@ -820,6 +820,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const [hover, setHover] = useState<{ day: number; minutes: number } | null>(null);
   // The keyboard's slot is virtual: the grid below owns focus and names this slot through aria-activedescendant.
   const [heldCursor, setCursor] = useState<{ day: number; minutes: number } | null>(null);
+  // Leaving the grid (a dialog opens, a popover closes) keeps the slot, so focus returns to where the person was.
+  const leftCursor = useRef<{ day: number; minutes: number } | null>(null);
   // The days can shrink under a focused grid (a controlled `view` changes), so the cursor stays on a day that exists.
   const cursor = heldCursor ? { ...heldCursor, day: Math.min(heldCursor.day, days.length - 1) } : null;
   const cursorBase = useId();
@@ -1241,8 +1243,16 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               data-ouro-part="slots"
               data-slot="time-grid-slots"
               className="pointer-events-none absolute inset-0 outline-ring -outline-offset-2 focus-visible:outline-2"
-              onFocus={() => setCursor((now) => now ?? cursorStart())}
-              onBlur={() => setCursor(null)}
+              onFocus={() =>
+                setCursor((now) => {
+                  const left = leftCursor.current;
+                  return now ?? (left ? { day: between(0, left.day, days.length - 1), minutes: between(0, left.minutes, dayLength - slotMinutes) } : cursorStart());
+                })
+              }
+              onBlur={() => {
+                leftCursor.current = heldCursor;
+                setCursor(null);
+              }}
               onKeyDown={onSlotKeyDown}
             >
               <div role="row" data-slot="time-grid-slots-row">

@@ -1270,6 +1270,16 @@ describe("TimeGrid", () => {
       expect(focus.getAttribute("tabindex")).toBe("0");
     });
 
+    it("returns to the slot it was on when focus leaves the grid and comes back, as after a dialog closes", async () => {
+      const { grid, focus } = await open();
+      await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowRight}");
+      const was = named(grid);
+      await act(async () => focus.blur());
+      expect(focus.getAttribute("aria-activedescendant")).toBeNull();
+      await act(async () => focus.focus());
+      expect(named(grid)).toBe(was);
+    });
+
     it("moves a slot with Up and Down, an hour with Page Up and Page Down, and to the day's ends with Home and End", async () => {
       const { grid } = await open();
       await userEvent.keyboard("{ArrowDown}");
