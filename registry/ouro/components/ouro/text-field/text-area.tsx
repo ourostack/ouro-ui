@@ -200,46 +200,6 @@ export type TextAreaProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, ke
 const owner = { name: "TextArea", data: "text-area" };
 
 /**
- * A labeled multi-line text field on the Field contract, a native `<textarea>`: pass
- * `label`, and `error` from your server action or client check. `autoGrow` makes it grow
- * with the text from `rows` lines up to `maxRows`.
- *
- * `variant="plain"` draws no frame, for a textarea inside a box your app draws, and
- * `size="lg"` sets 20px text. `highlights` marks ranges of the text in place, each with a
- * tone and a label screen readers hear, and the marks follow their words as the person edits.
- *
- * Use `TextField` instead for one line, `Composer` for a chat message box with its send
- * button, and `Field` with `FieldControl` for a control that is not text.
- *
- * @group Forms
- * @see https://ui.ouroboros.bot/docs/text-area
- *
- * @example
- * <TextArea label="Notes" name="notes" description="Only you see these." />
- * <TextArea label="Message" name="message" autoGrow rows={2} maxRows={8} required error={errors?.message} />
- *
- * @example
- * // Words an assistant suggested, marked in the person's draft; the marks follow edits.
- * <TextArea
- *   label="Reply"
- *   value={text}
- *   onValueChange={setText}
- *   highlights={[{ start: 0, end: 22, label: "Suggested by your assistant" }]}
- *   onHighlightsChange={setHighlights}
- * />
- *
- * @example
- * // A chat composer: the box is the app's, and the textarea inside it has no frame.
- * <form className="flex items-end gap-2 rounded-ouro-xl border border-border p-2 focus-within:border-ring">
- *   <TextArea label="Message" hideLabel name="message" placeholder="Ask anything" variant="plain" autoGrow rows={1} maxRows={8} className="flex-1" />
- *   <Button type="submit">Send</Button>
- * </form>
- * @claim "marks ranges of the text in place" registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx::TextArea highlights > describes the marks after the field's own description: each label once, with the words it marks)
- * @claim "marks ranges of the text in place" registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx::TextArea highlights as the person edits > never marks what the person types, before, after or inside a mark, and splits a mark they type inside)
- * @claim "` draws no frame, for a textarea inside" registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > sets 20px text on 28px lines with size lg, at phone and desktop widths)
- * @claim "` draws no frame, for a textarea inside" registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > draws no frame of its own with variant plain, and still outlines on keyboard focus)
- */
-/**
  * Wraps every `on*` handler and the `ref` Base UI's FieldControl rebuilds on each render in a
  * stable-identity function that always calls the latest version, reusing one wrapper per key
  * across renders. The memoized native textarea below can then bail out of a commit a typed
@@ -279,6 +239,46 @@ const RawTextarea = memo(function RawTextarea(props: TextareaHTMLAttributes<HTML
   return <textarea {...props} />;
 });
 
+/**
+ * A labeled multi-line text field on the Field contract, a native `<textarea>`: pass
+ * `label`, and `error` from your server action or client check. `autoGrow` makes it grow
+ * with the text from `rows` lines up to `maxRows`.
+ *
+ * `variant="plain"` draws no frame, for a textarea inside a box your app draws, and
+ * `size="lg"` sets 20px text. `highlights` marks ranges of the text in place, each with a
+ * tone and a label screen readers hear, and the marks follow their words as the person edits.
+ *
+ * Use `TextField` instead for one line, `Composer` for a chat message box with its send
+ * button, and `Field` with `FieldControl` for a control that is not text.
+ *
+ * @group Forms
+ * @see https://ui.ouroboros.bot/docs/text-area
+ *
+ * @example
+ * <TextArea label="Notes" name="notes" description="Only you see these." />
+ * <TextArea label="Message" name="message" autoGrow rows={2} maxRows={8} required error={errors?.message} />
+ *
+ * @example
+ * // Words an assistant suggested, marked in the person's draft; the marks follow edits.
+ * <TextArea
+ *   label="Reply"
+ *   value={text}
+ *   onValueChange={setText}
+ *   highlights={[{ start: 0, end: 22, label: "Suggested by your assistant" }]}
+ *   onHighlightsChange={setHighlights}
+ * />
+ *
+ * @example
+ * // A chat composer: the box is the app's, and the textarea inside it has no frame.
+ * <form className="flex items-end gap-2 rounded-ouro-xl border border-border p-2 focus-within:border-ring">
+ *   <TextArea label="Message" hideLabel name="message" placeholder="Ask anything" variant="plain" autoGrow rows={1} maxRows={8} className="flex-1" />
+ *   <Button type="submit">Send</Button>
+ * </form>
+ * @claim "marks ranges of the text in place" registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx::TextArea highlights > describes the marks after the field's own description: each label once, with the words it marks)
+ * @claim "marks ranges of the text in place" registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx::TextArea highlights as the person edits > never marks what the person types, before, after or inside a mark, and splits a mark they type inside)
+ * @claim "` draws no frame, for a textarea inside" registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > sets 20px text on 28px lines with size lg, at phone and desktop widths)
+ * @claim "` draws no frame, for a textarea inside" registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > draws no frame of its own with variant plain, and still outlines on keyboard focus)
+ */
 export function TextArea(props: TextAreaProps): JSX.Element {
   const {
     label,
