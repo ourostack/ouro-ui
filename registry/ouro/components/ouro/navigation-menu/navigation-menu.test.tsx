@@ -307,22 +307,20 @@ describe("NavigationMenu", () => {
     await settled();
     const first = popup()!;
     const before = first.getBoundingClientRect().width;
-    const widths: number[] = [];
-    let sampling = true;
-    requestAnimationFrame(function sample() {
-      if (popup()) widths.push(popup()!.getBoundingClientRect().width);
-      if (sampling) requestAnimationFrame(sample);
+    // The size change runs as a CSS transition on the popup itself; a frame-by-frame sample of its width misses the
+    // frames in between on a loaded WebKit runner, so the test records the transitions the browser starts.
+    const resized = new Set<string>();
+    first.addEventListener("transitionrun", (event) => {
+      if (event.target === first) resized.add(event.propertyName);
     });
     await userEvent.hover(page.getByRole("button", { name: "Large" }));
     await expect.poll(() => popup()?.getBoundingClientRect().width ?? 0).toBeGreaterThan(before + 300);
     // Between panels it slides along the bar, never up or down, so a page that scrolls never leaves it behind.
     expect(getComputedStyle(popup()!.parentElement!).transitionProperty).toBe("left, right");
     await settled();
-    sampling = false;
-    const after = popup()!.getBoundingClientRect().width;
-    // The same element throughout, never closed and opened again, and some frames between the two sizes.
+    // The same element throughout, never closed and opened again, and its width and height transitioned, not set.
     expect(popup()).toBe(first);
-    expect(widths.some((width) => width > before + 2 && width < after - 2)).toBe(true);
+    expect([...resized].sort()).toEqual(expect.arrayContaining(["height", "width"]));
   });
 
   it("does not animate when the keyboard opens and closes it", async () => {

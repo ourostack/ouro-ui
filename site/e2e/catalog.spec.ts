@@ -168,8 +168,15 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * of main's own. FamilyBar is in every voyage page's first script, and the strip adds a heading, a measure of whether
  * more of the row is cut off (a ResizeObserver and a scroll listener), each link's touch target and the classes for
  * the end fade and the 44px row on a coarse pointer.
+ *
+ * The voyage's set again 2026-11-25 at 303,169 bytes and the docs' at 202,898, measured by this test on a build of #3580
+ * merged with main at c89526998, about 5,500 and 5,100 over their bases, for the Compass nav (#3534; Ari, 2026-11-24:
+ * "on the nav, approved"): every page's header now carries the four panels (Platforms, Parts, Proof and Docs), the
+ * phone menu's two ways in, and the real Apple, Windows and Android marks Ari asked for ("yeah, lets use real platform
+ * marks"), about 1,700 of it. The Docs panel's lists, which read the docs' generated index, load on their own when a
+ * pointer or focus first reaches the header (site/src/voyage/docs-panel.tsx), so no page pays for them up front.
  */
-const MEASURED = { voyage: 297_697, docs: 197_793 } as const;
+const MEASURED = { voyage: 303_169, docs: 202_898 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
@@ -242,10 +249,11 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // (/composed-ui/): ComposedSurface draws Card, Alert, DescriptionList, NumberField and the other composed components,
 // which no voyage page rendered before, and the voyage's pages share one stylesheet. A build of the card's own failed:
 // a second Tailwind build repeats utilities the shared one has, and its later copies override responsive classes.
-// Raised voyage, docs and docsPage a KiB and docsShell two (CI run 45526629206, merged with main at c89526998: home 56,142,
-// docs 57,155, badge 33,138 and the docs shell 27,693 bytes, each about 1,150 more than its base) for the Compass nav
+// Raised voyage and docs a KiB, docsPage two and docsShell two (CI run 45526629206, merged with main at c89526998: home 56,142,
+// docs 57,155, badge 33,138 and the docs shell 27,693 bytes, each about 1,150 more than its base, and the Composed UI
+// docs page 37,939 measured by catalog.spec.ts) for the Compass nav
 // (#3534): the panels, the platform marks and the phone menu's switch in every page's header, beside the slim family strip.
-const CSS_CEILINGS = { voyage: 55 * 1024, docs: 56 * 1024, docsShell: 28 * 1024, docsPage: 37 * 1024 } as const;
+const CSS_CEILINGS = { voyage: 55 * 1024, docs: 56 * 1024, docsShell: 28 * 1024, docsPage: 38 * 1024 } as const;
 /**
  * How much one pull request may add to a page's CSS before its ceiling is raised: judged the same way as a page's
  * JavaScript closure (MARGIN above), by growth over the pull request's own base, so a ceiling main is already over,

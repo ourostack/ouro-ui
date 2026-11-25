@@ -21,7 +21,7 @@ import { ThemeDots } from "./theme-dots";
 import { PICKER_PRESETS } from "./theme-dots";
 import { ThemePicker as OuroThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { SiteMenu, SiteMenuFrame } from "./site-menu";
-import { DocsPanel, PartsPanel, PlatformsPanel, ProofPanel, sectionOf } from "./site-nav";
+import { DocsPanel, loadDocsPanel, PartsPanel, PlatformsPanel, ProofPanel, sectionOf } from "./site-nav";
 import { normalizePath } from "../paths";
 import { setXray, useXray } from "./xray-store";
 
@@ -234,6 +234,9 @@ export function VoyageHeader({
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+  // The Docs panel's lists come in when a pointer, a finger or focus first reaches the header, ahead of a hover's open
+  // delay or a press, so the panel has them when it opens; a page nobody navigates from never loads them.
+  const wantDocs = useCallback(() => void loadDocsPanel().catch(() => {}), []);
   const current = normalizePath(page);
   const section = sectionOf(current);
   return (
@@ -242,6 +245,9 @@ export function VoyageHeader({
       <div
         data-site-masthead=""
         data-down={down ? "" : undefined}
+        onPointerOver={wantDocs}
+        onPointerDown={wantDocs}
+        onFocus={wantDocs}
         style={{ ["--site-strip" as string]: `${stripHeight}px` }}
         className={cn(
           // It slides by its sticky top, not a transform: a transform would make it the box the popups' fixed focus guards are
