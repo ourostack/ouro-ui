@@ -199,6 +199,19 @@ describe("the calendar page", () => {
     await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
   });
 
+  it("puts focus in the grid after Delete on a phone, not on the page body", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
+    (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
+    await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    page.getByRole("button", { name: "Delete" }).element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    await expect.poll(() => document.activeElement === document.body).toBe(false);
+    await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
+  });
+
   it("marks Go to date as opening a dialog", async () => {
     await renderPage("/docs/calendar-demo/");
     expect(page.getByRole("button", { name: "Go to date" }).element().getAttribute("aria-haspopup")).toBe("dialog");
