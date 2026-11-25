@@ -136,7 +136,8 @@ function Screen(): JSX.Element {
     let tries = 0;
     const settle = () => {
       const target = rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]');
-      const lost = document.activeElement?.matches('body, div:not([tabindex])') ?? true;
+      // A closing sheet or dialog takes focus back for a moment before it unmounts, so focus inside one counts as lost too.
+      const lost = document.activeElement?.matches('body, div:not([tabindex]), [role="dialog"], [role="dialog"] *') ?? true;
       // The date picker's popover hands focus back to its button as it closes, a frame or two after the pick, so a forced move keeps landing the grid until then.
       const forced = forceFocus.current && !target?.closest('[data-ouro="time-grid"]')?.contains(document.activeElement);
       if (target && (lost || forced)) target.focus({ preventScroll: true });
@@ -147,6 +148,14 @@ function Screen(): JSX.Element {
     return () => cancelAnimationFrame(frame);
   }, [refocus]);
   const formId = useId();
+  // At large text the message below the input sits past the scrolled body's edge, under the footer, so it scrolls in once it is drawn and again after the sheet settles.
+  useEffect(() => {
+    if (!error) return;
+    const show = () => document.getElementById(formId)?.querySelector("input")?.getAttribute("aria-describedby")?.split(" ").forEach((id) => document.getElementById(id)?.scrollIntoView({ block: "nearest" }));
+    show();
+    const frame = requestAnimationFrame(() => requestAnimationFrame(show));
+    return () => cancelAnimationFrame(frame);
+  }, [error, formId]);
 
   const shown = stage === "empty" ? [] : events;
   const current = events.find((candidate) => candidate.id === open) ?? null;
@@ -178,7 +187,8 @@ function Screen(): JSX.Element {
     const title = draft.title.trim();
     if (!title) {
       setError("Add a title");
-      document.getElementById(formId)?.querySelector<HTMLElement>("input")?.focus();
+      const input = document.getElementById(formId)?.querySelector<HTMLElement>("input");
+      input?.focus();
       return;
     }
     const tone = kinds.find((candidate) => candidate.value === draft.kind)?.tone;
