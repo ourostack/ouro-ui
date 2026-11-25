@@ -1470,6 +1470,53 @@ describe("TimeGrid", () => {
     expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
   });
 
+  it("shows the dragged range as it grows, and only reads Escape while a drag is held", async () => {
+    const slot = vi.fn();
+    const { grid } = await render({ view: "day", onSlotSelect: slot });
+    const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
+    const y = (minutes: number) => {
+      const box = slots.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
+    const fire = (type: string, minutes: number) => slots.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType: "mouse", button: 0, pointerId: 45 }));
+    const click = (minutes: number) => slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(minutes) }));
+    const preview = () => grid.querySelector<HTMLElement>("[data-ouro-time-grid-drag]");
+    const key = (name: string) => document.dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true }));
+    // An Escape with no drag held swallows nothing.
+    key("Escape");
+    click(605);
+    expect(slot).toHaveBeenCalledTimes(1);
+    // A press shows no range until it moves to another slot, and a zero-length drag gives none.
+    fire("pointerdown", 605);
+    await act(async () => {});
+    expect(preview()).toBeNull();
+    fire("pointerup", 605);
+    expect(slot).toHaveBeenCalledTimes(1);
+    click(605);
+    expect(slot).toHaveBeenCalledTimes(2);
+    // Dragged up from 12:05 to 10:05, the range covers 10:00 to 12:30; another key leaves it held.
+    fire("pointerdown", 725);
+    await act(async () => {});
+    fire("pointermove", 605);
+    await act(async () => {});
+    key("a");
+    await act(async () => {});
+    await expect
+      .poll(() => {
+        const box = preview()!.getBoundingClientRect();
+        const slotsBox = slots.getBoundingClientRect();
+        return [Math.round(((box.top - slotsBox.top) / slotsBox.height) * 1440), Math.round((box.height / slotsBox.height) * 1440)];
+      })
+      .toEqual([600, 150]);
+    fire("pointercancel", 605);
+    await act(async () => {});
+    expect(preview()).toBeNull();
+    // Once the drag has ended, Escape is no longer listened to, so the next click still selects.
+    key("Escape");
+    click(905);
+    expect(slot).toHaveBeenCalledTimes(3);
+  });
+
   it("ends a drag without a range on Escape or a cancelled pointer, and a touch or a drag back to its start still gives one slot", async () => {
     const slot = vi.fn();
     const { grid } = await render({ view: "day", onSlotSelect: slot });
