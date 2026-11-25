@@ -1,0 +1,1 @@
+- Fixed: TimeGrid's +N chip list is at most 20 rem wide, with each title cut short before its time, instead of stretching across the screen.

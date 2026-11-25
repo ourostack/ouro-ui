@@ -615,6 +615,20 @@ describe("TimeGrid", () => {
       expect(lone.getBoundingClientRect().width).toBeGreaterThan(48);
     });
 
+    it("lists the folded events in a popup no wider than 20 rem, each title cut short before its time", async () => {
+      const long = "A very long meeting title that would otherwise stretch the popup across the whole screen and over its neighbours";
+      const events = [0, 1, 2].map((index) => ({ id: `l${index}`, title: `${long} ${index}`, start: at(12, "09:00"), end: at(12, "12:00") }));
+      await render({ view: "day", events }, (grid) => <div style={{ width: "190px", height: "600px" }}>{grid}</div>);
+      await expect.poll(() => chip()?.getBoundingClientRect().width).toBeGreaterThan(0);
+      await userEvent.click(chip()!);
+      const items = page.getByRole("menuitem").elements();
+      await expect.poll(() => items[0]!.closest<HTMLElement>('[data-ouro="menu"]')?.getBoundingClientRect().width ?? 999).toBeLessThanOrEqual(321);
+      for (const item of items) {
+        const title = item.querySelector<HTMLElement>("[dir=auto]")!;
+        expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
+      }
+    });
+
     it("fills its whole strip, with its count on one line", async () => {
       await render({ view: "day", events: crowd(5) }, (grid) => <div style={{ width: "260px", height: "600px" }}>{grid}</div>);
       await expect.poll(() => chip()?.getBoundingClientRect().width).toBeGreaterThan(0);
@@ -636,7 +650,7 @@ describe("TimeGrid", () => {
       expect(chip()!.tabIndex).toBe(-1);
       await userEvent.click(chip()!);
       await expect.element(page.getByRole("menuitem", { name: /Event 3/ })).toBeVisible();
-      expect(page.getByRole("menuitem").elements().map((element) => plain(element.textContent).split(" 9")[0])).toEqual(["Event 2", "Event 3", "Event 4"]);
+      expect(page.getByRole("menuitem").elements().map((element) => plain(element.querySelector("[dir=auto]")!.textContent))).toEqual(["Event 2", "Event 3", "Event 4"]);
       await userEvent.click(page.getByRole("menuitem", { name: /Event 3/ }).element());
       expect(onEventSelect.mock.calls[0]![0].id).toBe("c3");
     });
