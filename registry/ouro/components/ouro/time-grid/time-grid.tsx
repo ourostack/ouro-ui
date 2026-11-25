@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -866,6 +867,17 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   };
   const [drag, setDrag] = useState<{ day: number; from: number; to: number } | null>(null);
   const dragged = useRef(false);
+  const dragging = drag !== null;
+  useEffect(() => {
+    if (!dragging) return;
+    const cancel = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      dragged.current = true;
+      setDrag(null);
+    };
+    document.addEventListener("keydown", cancel);
+    return () => document.removeEventListener("keydown", cancel);
+  }, [dragging]);
   const slotAt = (event: MouseEvent<HTMLElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     const minutes = Math.floor((((event.clientY - box.top) / box.height) * dayLength) / slotMinutes) * slotMinutes;
@@ -1287,11 +1299,12 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                   <div
                     aria-hidden="true"
                     data-ouro-time-grid-slots=""
-                    className="absolute inset-0 cursor-cell"
+                    className="absolute inset-0 cursor-cell select-none"
                     onPointerDown={(event: PointerEvent<HTMLDivElement>) => {
+                      // A drag that ended outside the layer leaves no click to clear this, so every press does.
+                      dragged.current = false;
                       if (event.pointerType !== "mouse" || event.button !== 0) return;
                       const minutes = slotAt(event);
-                      dragged.current = false;
                       setDrag({ day: index, from: minutes, to: minutes });
                       try {
                         event.currentTarget.setPointerCapture(event.pointerId);

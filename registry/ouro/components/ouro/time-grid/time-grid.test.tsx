@@ -1470,6 +1470,54 @@ describe("TimeGrid", () => {
     expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
   });
 
+  it("ends a drag without a range on Escape or a cancelled pointer, and a touch or a drag back to its start still gives one slot", async () => {
+    const slot = vi.fn();
+    const { grid } = await render({ view: "day", onSlotSelect: slot });
+    const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
+    const y = (minutes: number) => {
+      const box = slots.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
+    const fire = (type: string, minutes: number, pointerType = "mouse") => slots.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType, button: 0, pointerId: 43 }));
+    const click = (minutes: number) => slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(minutes) }));
+    expect(getComputedStyle(slots).userSelect).toBe("none");
+    fire("pointerdown", 605);
+    await act(async () => {});
+    fire("pointermove", 725);
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).not.toBeNull();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
+    fire("pointerup", 725);
+    click(725);
+    expect(slot).not.toHaveBeenCalled();
+    fire("pointerdown", 605);
+    await act(async () => {});
+    fire("pointermove", 725);
+    await act(async () => {});
+    fire("pointercancel", 725);
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
+    expect(slot).not.toHaveBeenCalled();
+    // The click a cancelled drag swallowed does not outlive the next press: a touch tap still selects its slot.
+    fire("pointerdown", 905, "touch");
+    click(905);
+    expect(slot).toHaveBeenCalledTimes(1);
+    expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T15:00:00-04:00"), end: new Date("2026-03-12T15:30:00-04:00") });
+    fire("pointerdown", 605);
+    await act(async () => {});
+    await act(async () => {});
+    fire("pointermove", 725);
+    await act(async () => {});
+    fire("pointermove", 605);
+    await act(async () => {});
+    fire("pointerup", 605);
+    click(605);
+    expect(slot).toHaveBeenCalledTimes(2);
+    expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T10:00:00-04:00"), end: new Date("2026-03-12T10:30:00-04:00") });
+  });
+
   it("presses an empty slot with onSlotSelect, and shows a mouse the slot first", async () => {
     // WebKit sends a mouse move of its own when the page changes under a resting pointer, so the
     // pointer an earlier press left over the grid would show a slot of its own.
