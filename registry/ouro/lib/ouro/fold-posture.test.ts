@@ -81,6 +81,15 @@ describe("resolveFoldPosture", () => {
     ).toEqual({ kind: "single" });
   });
 
+  it("stays one page for a square container, on the tabletop side's guard too", () => {
+    // A horizontal, active region wide and centred enough to stand up as a tabletop if the container's own
+    // height-vs-width guard read ">=" (or were forced true) at the boundary; real code must never enter that
+    // branch for a square container.
+    expect(
+      resolveFoldPosture({ size: { width: 700, height: 700 }, hinge: { kind: "fullyOpen" }, regions: [region(150, 345, 400, 10, true)] }),
+    ).toEqual({ kind: "single" });
+  });
+
   it("ignores a region that only touches the container's edge, on each side", () => {
     // Each region sits exactly on the boundary the padded intersects() check draws on the axis that does not
     // drive the resulting split, so inclusion is the only thing that can change the outcome; a hair further in
