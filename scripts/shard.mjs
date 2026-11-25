@@ -109,6 +109,7 @@ export function browserBalance(count, extra = [], file = timingsFile) {
   const vitest = readTimings("vitest", file);
   const timings = vitest;
   const shards = balance(Object.keys(vitest).filter((key) => !isSliced(key)), count, timings, projectOf);
+  apartFromWindowing(shards, timings);
   const fallback = median(Object.values(timings).filter((value) => typeof value === "number"));
   for (const key of [...new Set(extra)].filter((key) => !(key in timings)).sort()) {
     const lightest = shards.reduce((best, shard) => (shard.weight < best.weight ? shard : best), shards[0]);
@@ -116,6 +117,31 @@ export function browserBalance(count, extra = [], file = timingsFile) {
     lightest.weight += fallback;
   }
   return shards;
+}
+
+const isWindowing = (key) => key.includes(".windowing.test");
+const isHeavySite = (timings) => (key) => key.startsWith("site ") && timings[key] > 60_000;
+
+/**
+ * A windowing test reads frames and times out on a loaded runner, so no shard runs one beside a site suite over a minute:
+ * the suite swaps places with the closest-timed file of a shard that has no windowing test.
+ */
+function apartFromWindowing(shards, timings) {
+  const heavy = isHeavySite(timings);
+  for (const shard of shards) {
+    if (!shard.keys.some(isWindowing)) continue;
+    for (const suite of shard.keys.filter(heavy)) {
+      const others = shards.filter((other) => other !== shard && !other.keys.some(isWindowing));
+      const candidates = others.flatMap((other) => other.keys.filter((key) => !heavy(key) && !isWindowing(key)).map((key) => ({ other, key })));
+      const pick = candidates.sort((a, b) => Math.abs(timings[a.key] - timings[suite]) - Math.abs(timings[b.key] - timings[suite]))[0];
+      if (!pick || Math.abs(timings[pick.key] - timings[suite]) > 10_000) continue;
+      shard.keys.splice(shard.keys.indexOf(suite), 1, pick.key);
+      pick.other.keys.splice(pick.other.keys.indexOf(pick.key), 1, suite);
+      shard.weight += timings[pick.key] - timings[suite];
+      pick.other.weight += timings[suite] - timings[pick.key];
+    }
+  }
+  for (const shard of shards) shard.keys.sort();
 }
 
 /** A Vitest timing key's project, as Vitest names it: `ouro-touch (chromium)` of `ouro-touch (chromium) <path>`. */
