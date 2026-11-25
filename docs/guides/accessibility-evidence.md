@@ -17,7 +17,7 @@ Some specs pass a step through a fallback or only log it, and the lane's advisor
 
 ## Per component
 
-Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 20 of 117 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
+Stories are counted as the `export const` entries of each component's `*.stories.tsx` files. Every one goes through the axe and conformance checks above. A screen-reader spec exists for 21 of 117 component folders; the rest are covered by axe and the conformance matrix only, and say so below.
 
 | Component | Stories | Conformance declarations | Screen-reader spec (VoiceOver and NVDA) |
 | --- | --- | --- | --- |
@@ -130,7 +130,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [theme-picker](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/theme-picker) | 4 | 0 | [theme-picker.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/theme-picker.sr.spec.ts): 1 test on `actions-themepicker--playground` |
 | [thread-layout](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/thread-layout) | 3 | 0 | none yet |
 | [thread-rail](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/thread-rail) | 2 | 0 | none yet |
-| [time-grid](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/time-grid) | 10 | 0 | none yet |
+| [time-grid](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/time-grid) | 10 | 0 | [time-grid.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/time-grid.sr.spec.ts): 1 test on `data-timegrid--day` |
 | [timer](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/timer) | 10 | 0 | [timer.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/timer.sr.spec.ts): 1 test on `feedback-timer--short` |
 | [toast](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/toast) | 6 | 2 | [toast.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/toast.sr.spec.ts): 1 test on `feedback-toast--playground` |
 | [toggle](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/toggle) | 8 | 0 | none yet |
@@ -186,6 +186,8 @@ The test titles, in the words of the specs, so a reader sees the claim before op
   - TextField's error from a submit is announced as focus moves to the field
 - **theme-picker**
   - ThemePicker is announced as a list of looks: each one's name, its place in the list, and the one chosen with Enter as selected
+- **time-grid**
+  - TimeGrid reads each slot the arrow keys reach, then each event Tab reaches
 - **timer**
   - Timer's Start is heard in its named group, and the time being up is announced once
 - **toast**
