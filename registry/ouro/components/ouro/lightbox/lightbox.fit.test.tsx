@@ -168,7 +168,7 @@ describe("Lightbox fit", () => {
     expect(getComputedStyle(popup()!).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
   });
 
-  it("gives the title a quiet look and the header buttons a plain look, only with fit", async () => {
+  it("hides the title from sight and makes the header buttons glass, only with fit", async () => {
     // Large enough that the dialog draws it smaller than its own size, so the zoom button renders too.
     const bigImage: LightboxImage = { src: picture(2400, 1600, "#59a"), alt: "A big picture", href: "https://example.com/full.jpg" };
     const withHref = [bigImage, images[1]!];
@@ -186,13 +186,17 @@ describe("Lightbox fit", () => {
       const zoom = dialog.querySelector<HTMLElement>('[data-ouro-part="zoom"]')!;
       const close = dialog.querySelector<HTMLElement>('[data-ouro-part="close"]')!;
       if (fit) {
-        expect(getComputedStyle(title).fontWeight).toBe("400");
+        // Named for screen readers, not drawn: the picture is the viewer.
+        expect(title.closest("[data-ouro-lightbox-header] > div")!.getBoundingClientRect().width).toBeLessThanOrEqual(1);
         for (const button of [original, zoom, close]) {
-          expect(getComputedStyle(button).borderColor).toBe("rgba(0, 0, 0, 0)");
-          // Beyond the border, which an unrecognised variant falling back to "solid" would also
-          // leave transparent for tone="secondary": a filled background tells plain from solid.
-          expect(getComputedStyle(button).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+          const style = getComputedStyle(button);
+          expect(style.backdropFilter || style.getPropertyValue("-webkit-backdrop-filter")).toMatch(/blur/);
+          expect(style.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
         }
+        // An icon's glass is a circle, not a box.
+        const box = close.getBoundingClientRect();
+        expect(Math.round(box.width)).toBe(Math.round(box.height));
+        expect(Number.parseFloat(getComputedStyle(close).borderTopLeftRadius)).toBeGreaterThanOrEqual(box.height / 2);
       } else {
         expect(getComputedStyle(title).fontWeight).toBe("600");
         for (const button of [original, zoom, close]) {
@@ -202,5 +206,54 @@ describe("Lightbox fit", () => {
       await userEvent.click(close);
       await expect.poll(popup).toBeNull();
     }
+  });
+  it("draws a picture smaller than the screen as large as fits, at its own shape, with its caption under it", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const img = popup()!.querySelector<HTMLImageElement>("[data-ouro-lightbox-figure] > img")!;
+    await expect.poll(() => img.getBoundingClientRect().width).toBeGreaterThan(900);
+    const pic = img.getBoundingClientRect();
+    expect(pic.width / pic.height).toBeCloseTo(900 / 600, 2);
+    const figure = img.parentElement!.getBoundingClientRect();
+    const caption = popup()!.querySelector("figcaption")!.getBoundingClientRect();
+    // Height-bound at 1280 by 800: the picture and its caption take the figure's whole height.
+    expect(caption.bottom).toBeGreaterThan(figure.bottom - 2);
+    expect(caption.top).toBeGreaterThan(pic.bottom);
+    expect(pic.top).toBeLessThan(figure.top + 2);
+    // A picture drawn past its own size has nothing more to zoom into.
+    expect(popup()!.querySelector('[data-ouro-part="zoom"]')).toBeNull();
+  });
+
+  it("keeps the buttons on the shown picture's top-end corner, set in from it, after the picture changes", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const dialog = popup()!;
+    const corner = () => {
+      const pics = dialog.querySelectorAll<HTMLImageElement>("[data-ouro-lightbox-figure] > img");
+      const shownPic = [...pics].find((p) => {
+        const r = p.getBoundingClientRect();
+        return r.left >= 0 && r.right <= innerWidth;
+      })!.getBoundingClientRect();
+      const close = dialog.querySelector('[data-ouro-part="close"]')!.getBoundingClientRect();
+      // 12px in from each edge, to the pixel: the picture's own edges fall between pixels.
+      return { right: Math.abs(shownPic.right - close.right - 12) <= 1, top: Math.abs(close.top - shownPic.top - 12) <= 1 };
+    };
+    await expect.poll(corner).toEqual({ right: true, top: true });
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => dialog.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("2 of 2");
+    await expect.poll(corner).toEqual({ right: true, top: true });
+  });
+
+  it("stays open for a press on the buttons' cluster that misses a button, as on the picture", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const header = popup()!.querySelector<HTMLElement>("[data-ouro-lightbox-header]")!;
+    await userEvent.click(header.querySelector("[data-ouro-lightbox-position]")!);
+    header.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(popup()).not.toBeNull();
   });
 });

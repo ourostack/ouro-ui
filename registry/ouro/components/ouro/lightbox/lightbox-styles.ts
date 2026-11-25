@@ -13,7 +13,10 @@ export {
   figureClass,
   fitClass,
   fitFrom,
+  fitCounterClass,
+  fitHeaderClass,
   fitQuietTitleClass,
+  fitStageClass,
   gridClass,
   headerClass,
   imageClass,
@@ -120,6 +123,23 @@ const fitClass =
 /** With `fit`, the gallery's name in the bar is a quiet line, not a heading. @internal */
 const fitQuietTitleClass =
   "[&_[data-ouro-dialog-title]]:text-sm [&_[data-ouro-dialog-title]]:font-normal [&_[data-ouro-dialog-title]]:text-muted-foreground";
+
+/**
+ * With `fit`, the buttons are the picture's own: a cluster of glass on its top-end corner, set in
+ * from it (the viewer places it as the picture is drawn), as a picture viewer's close sits on the
+ * picture rather than at the screen's edge. The gallery's name is kept for screen readers only. @internal
+ */
+const fitHeaderClass = "absolute top-0 end-0 z-1 flex items-center gap-2 [&>:first-child]:sr-only";
+
+/** With `fit`, "2 of 4" is a glass capsule beside the buttons, as tall as a small Button. @internal */
+const fitCounterClass =
+  "inline-flex h-9 sm:h-8 items-center rounded-full [corner-shape:superellipse(1.05)] border border-(--ouro-glass-rim) px-3 text-foreground " +
+  "bg-[color-mix(in_oklab,var(--ouro-glass)_var(--ouro-glass-tint),transparent)] shadow-(--shadow-sm) backdrop-blur-xl " +
+  "[@media(prefers-reduced-transparency:reduce)]:bg-(--ouro-glass-solid) [@media(prefers-reduced-transparency:reduce)]:border-(--ouro-glass-edge) [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
+  "contrast-more:bg-(--ouro-glass-solid) contrast-more:border-current contrast-more:backdrop-blur-none";
+
+/** With `fit`, the picture keeps the same margin above it as below and beside it, with no bar over it. @internal */
+const fitStageClass = "pt-3 sm:pt-5";
 
 /**
  * Around a mosaic: as wide as its column, at most 25rem, and no wider than keeps it 17.5rem tall at
@@ -282,9 +302,7 @@ function zoomOrigin(thumbnail: Element, popup: HTMLElement): string {
   return `${Math.round(x)}px ${Math.round(y)}px`;
 }
 
-/** The height of the bar above the image, which the fitted image sits under. */
-const barHeight = 56;
-/** The margin around the fitted image, at the sides and under it. */
+/** The margin around the fitted image, on every side. */
 const margin = 20;
 
 /**
@@ -296,17 +314,14 @@ function fitFrom(thumbnail: Element, popup: HTMLElement, shape?: { width?: numbe
   const rect = thumbnail.getBoundingClientRect();
   const picture = thumbnail.querySelector("img");
   const [w, h] = shape?.width && shape.height ? [shape.width, shape.height] : picture?.naturalWidth && picture.naturalHeight ? [picture.naturalWidth, picture.naturalHeight] : [rect.width, rect.height];
-  const room = { width: popup.offsetWidth - 2 * margin, height: popup.offsetHeight - barHeight - margin };
+  const room = { width: popup.offsetWidth - 2 * margin, height: popup.offsetHeight - 2 * margin };
   const drawn = Math.min(room.width, (room.height * w) / h);
   const scale = Math.min(1, Math.max(0.05, rect.width / drawn));
   const box = popup.getBoundingClientRect();
-  const centre = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
-  // The image sits centred on the popup's own horizontal centre, so only its vertical offset
-  // (the bar's height, pushing the room down) ever differs from centre; x needs no such term.
-  const imageY = box.top + barHeight + room.height / 2;
+  // The image sits on the popup's own centre, which the popup scales from.
   return {
     scale,
-    x: rect.left + rect.width / 2 - centre.x,
-    y: rect.top + rect.height / 2 - centre.y - scale * (imageY - centre.y),
+    x: rect.left + rect.width / 2 - (box.left + box.width / 2),
+    y: rect.top + rect.height / 2 - (box.top + box.height / 2),
   };
 }
