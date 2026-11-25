@@ -1,0 +1,1 @@
+- New: [`resolveFoldPosture`](registry/ouro/lib/ouro/fold-posture.ts "verify:fileLine(registry/ouro/lib/ouro/fold-posture.ts, /export function resolveFoldPosture/)") brings Ouro HX for Apple's fold-posture rules to the web: book, tabletop, closed or one page, from a container's size, hinge and fold regions (#3546).
