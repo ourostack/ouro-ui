@@ -88,6 +88,8 @@ describe("FamilyBar", () => {
     const heading = () => nav.querySelector<HTMLElement>("[data-ouro-family-heading]");
     expect(heading()!.textContent).toBe("Ouro family");
     expect(getComputedStyle(heading()!).textTransform).toBe("uppercase");
+    // The links' size, so the strip adds one text size to a page, not two.
+    expect(getComputedStyle(heading()!).fontSize).toBe("12px");
     expect(heading()!.getAttribute("aria-hidden")).toBe("true");
     expect(nav.getAttribute("aria-label")).toBe("Ouro family");
     expect(row.firstElementChild).toBe(heading());
@@ -112,12 +114,14 @@ describe("FamilyBar", () => {
     await expect.poll(() => nav.getBoundingClientRect().height).toBe(32);
   });
 
-  it("keeps the current site's weight under forced colours, which drop colour", async () => {
+  it("underlines the current site under forced colours, which drop colour, and keeps its weight", async () => {
     const { link } = await render(<FamilyBar links={sites} current="docs" />);
     await commands.emulateMedia({ forcedColors: "active" });
     try {
       expect(getComputedStyle(link("Docs")).fontWeight).toBe("600");
+      expect(getComputedStyle(link("Docs")).textDecorationLine).toBe("underline");
       expect(getComputedStyle(link("Guides")).fontWeight).toBe("400");
+      expect(getComputedStyle(link("Guides")).textDecorationLine).toBe("none");
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
     }

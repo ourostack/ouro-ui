@@ -23,8 +23,8 @@ const familyLinkClass =
 
 /**
  * A link in a FamilyBar: small, regular weight, in the muted foreground, so the family's strip never outweighs the site's
- * own bar under it. The current site's link is semibold in the foreground, a mark forced colours keep, since they keep
- * weight. It is as tall as the strip; on a coarse pointer its TouchTarget makes it a 44px target each way without growing
+ * own bar under it. The current site's link is semibold in the foreground; under forced colours, which drop colour, it
+ * is also underlined. It is as tall as the strip; on a coarse pointer its TouchTarget makes it a 44px target each way without growing
  * the strip. The focus outline is inset, inside the row that scrolls.
  *
  * @claim "so the family's strip never outweighs the site's own bar under it" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > renders a labelled nav of the family's links in order, small and muted, the current site marked with aria-current, semibold and in the text colour)
@@ -36,16 +36,19 @@ const familyBarLinkClass =
   "relative m-0 box-border inline-flex h-full items-center rounded-ouro-sm px-1 whitespace-nowrap no-underline select-none touch-manipulation " +
   "text-xs leading-4 font-normal text-muted-foreground [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:text-foreground active:text-foreground " +
-  "aria-[current=true]:font-semibold aria-[current=true]:text-foreground " +
+  "aria-[current=true]:font-semibold aria-[current=true]:text-foreground forced-colors:aria-[current=true]:underline forced-colors:aria-[current=true]:underline-offset-4 " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 /**
- * The FamilyBar's visible heading, before the links: small capitals in the muted foreground that say what the strip is.
+ * The FamilyBar's visible heading, before the links: capitals at the links' size in the muted foreground that say what
+ * the strip is. At the links' size, the strip adds one text size to a page's type scale, not two.
+ *
+ * @claim "At the links' size, the strip adds one text size to a page's type scale, not two." registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > shows a small heading before the links, which names the nav for screen readers and is not read again)
  *
  * @internal
  */
 const familyHeadingClass =
-  "m-0 flex shrink-0 items-center ps-1 text-[0.6875rem] leading-4 font-semibold tracking-[0.08em] whitespace-nowrap text-muted-foreground uppercase";
+  "m-0 flex shrink-0 items-center ps-1 text-xs leading-4 font-semibold tracking-[0.08em] whitespace-nowrap text-muted-foreground uppercase";
 
 /**
  * The FamilyBar's strip: one slim row, 32px on a phone and 28px from 640px, with no surface and no line of its own. It

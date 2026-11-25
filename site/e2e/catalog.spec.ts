@@ -162,8 +162,14 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * the bundler moving its runtime helpers into a shared chunk of their own (430 bytes) once five islands joined, which
  * lengthens each of some 40 shared chunks' import lines by about 20 bytes. The two new scenes' night alts were dropped
  * (the day alts name no time of day) and the routes' descriptions shortened before this was set.
+ *
+ * The voyage's set again 2026-11-24 at 297,697 bytes, what CI measured on #3552 (run 45509219057, e2e job 2/8) for the
+ * slim family strip (Ari, 2026-11-24: "on the nav, approved"), 642 over its base at 553c3c3, which includes one commit
+ * of main's own. FamilyBar is in every voyage page's first script, and the strip adds a heading, a measure of whether
+ * more of the row is cut off (a ResizeObserver and a scroll listener), each link's touch target and the classes for
+ * the end fade and the 44px row on a coarse pointer.
  */
-const MEASURED = { voyage: 295_904, docs: 197_793 } as const;
+const MEASURED = { voyage: 297_697, docs: 197_793 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
