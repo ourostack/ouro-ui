@@ -265,6 +265,11 @@ interface MenuSubmenuEntry {
   type: "submenu";
   label: string;
   items: readonly MenuEntry[];
+  /**
+   * An icon before the label, as an item's `icon`, so the words line up with the items beside it:
+   * an `<svg>` drawn at 16px in the item's color, which screen readers skip.
+   */
+  icon?: ReactNode;
   disabled?: boolean | undefined;
   /** The text of the item that goes back from the submenu in the phone sheet. Default "Back". */
   backLabel?: string | undefined;

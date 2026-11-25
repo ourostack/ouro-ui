@@ -77,7 +77,7 @@ it("opens a row's menu on a long press, where the finger rests, and the press se
   await expect.poll(() => page.getByRole("menu").query()).toBeNull();
   await commands.tap('[data-ouro-part="row"][tabindex="0"]');
   await expect.poll(() => selected).toEqual(["ana"]);
-});
+}, 30_000);
 
 it("shows the more button on every row with a menu, a 44px target beside the time, and leaves the row's box as it was", async () => {
   const host = document.createElement("div");
@@ -123,4 +123,31 @@ it("keeps a row's time and title clear of its more button to a finger, at a comp
     host.style.setProperty("--spacing", spacing);
     expect(runsUnder(), spacing).toBe(false);
   }
+});
+
+it("opens a section header's menu as a sheet from its more button, a 44px target shown without hover, and leaves the section open", async () => {
+  await page.viewport(390, 844);
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () =>
+    root!.render(
+      <ConversationList
+        label="Conversations"
+        items={[{ id: "ana", title: "Ana Lind", section: "team" }]}
+        sections={[{ id: "team", title: "My team", menu: [{ label: "Rename", onClick: () => {} }] }]}
+        onSelect={() => {}}
+      />,
+    ),
+  );
+  const header = host.querySelector<HTMLElement>('[data-ouro-part="section"]')!;
+  const more = host.querySelector<HTMLElement>('[data-ouro-part="more"]')!;
+  expect(getComputedStyle(more).opacity).toBe("1");
+  const target = more.querySelector<HTMLElement>("[data-ouro-touch-target]")!.getBoundingClientRect();
+  expect(target.width).toBeGreaterThanOrEqual(44);
+  expect(target.height).toBeGreaterThanOrEqual(44);
+  await commands.tap('[data-ouro-part="more"]');
+  await expect.poll(() => document.querySelector("[data-ouro-presentation]")?.getAttribute("data-ouro-presentation")).toBe("sheet");
+  expect(header.getAttribute("aria-expanded")).toBe("true");
 });

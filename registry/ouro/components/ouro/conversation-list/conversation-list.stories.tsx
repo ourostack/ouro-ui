@@ -327,3 +327,32 @@ export const RowMenu: Story = {
   },
 };
 
+
+/** A section header's own menu, open from its "…" button: Rename and Delete for a section the person made. */
+export const SectionMenu: Story = {
+  render: () => (
+    <Surface>
+      <ConversationList
+        label="Conversations"
+        sections={[
+          { id: "team", title: "My team", menu: [{ label: "Rename", onClick: () => {} }, { label: "Delete", tone: "destructive", onClick: () => {} }] },
+          { id: "recent", title: "Recent" },
+        ]}
+        items={[
+          { id: "trail", title: "Trail crew", preview: "Meet at the north gate at eight.", time: "9:41", section: "team" },
+          { id: "ana", title: "Ana Lind", preview: "The engine notes are attached.", time: "8:15", section: "recent" },
+        ]}
+        selectedId="trail"
+        onSelect={() => {}}
+      />
+    </Surface>
+  ),
+  play: async ({ canvasElement }) => {
+    const more = canvasElement.querySelector<HTMLElement>('[data-ouro-part="more"]')!;
+    more.click();
+    await new Promise<void>((resolve) => {
+      const check = () => (document.querySelector('[role="menu"]') ? resolve() : requestAnimationFrame(check));
+      check();
+    });
+  },
+};

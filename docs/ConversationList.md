@@ -200,6 +200,13 @@ interface ConversationListSection {
   defaultOpen?: boolean | undefined;
   /** Whether the section is open, when the app keeps the state with `onSectionOpenChange`. */
   open?: boolean | undefined;
+  /**
+   * The header's menu, opened as a row's is: a right-click, a long press, Shift+F10 or the Menu key on the header, or its
+   * "…" button. Pressing the header itself still opens and closes the section. A header without one is unchanged.
+   * @example
+   * { id: "team", title: "My team", menu: [{ label: "Rename" }, { label: "Delete", tone: "destructive" }] }
+   */
+  menu?: readonly MenuEntry[] | undefined;
 }
 ```
 
@@ -333,6 +340,11 @@ interface MenuSubmenuEntry {
   type: "submenu";
   label: string;
   items: readonly MenuEntry[];
+  /**
+   * An icon before the label, as an item's `icon`, so the words line up with the items beside it:
+   * an `<svg>` drawn at 16px in the item's color, which screen readers skip.
+   */
+  icon?: ReactNode;
   disabled?: boolean | undefined;
   /** The text of the item that goes back from the submenu in the phone sheet. Default "Back". */
   backLabel?: string | undefined;
