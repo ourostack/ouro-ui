@@ -43,6 +43,7 @@ let hostInput: OuroFoldHostInput | null = null;
 function subscribeHostInput(onChange: () => void) {
   // Stryker disable next-line ConditionalExpression,StringLiteral: every test runs in a browser-like environment
   // with window defined; only a real server, which has no window to subscribe on, takes this branch.
+  /* istanbul ignore if @preserve -- server only, which has no window to subscribe on */
   if (typeof window === "undefined") return () => {};
   const listener = (event: Event) => {
     const detail = (event as CustomEvent<unknown>).detail;
@@ -68,6 +69,7 @@ function useFoldHostInput(): OuroFoldHostInput | null {
     () => hostInput,
     // Stryker disable next-line ArrowFunction: React calls this only on a real server render, which no test
     // performs; every test hydrates or renders in a browser-like environment, never through this snapshot.
+    /* istanbul ignore next @preserve -- the server snapshot never runs in a browser test */
     () => null,
   );
 }
