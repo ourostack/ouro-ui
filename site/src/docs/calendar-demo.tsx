@@ -54,7 +54,10 @@ const lengthLabel = (minutes: number) => {
   const minutePart = rest > 0 ? `${rest} minutes` : "";
   return [hourPart, minutePart].filter(Boolean).join(" ");
 };
-const lengthOptions = [15, 30, 60, 90, 120].map((minutes) => ({ value: String(minutes), label: lengthLabel(minutes) }));
+const presetLengths = [15, 30, 60, 90, 120];
+// A dragged range can be any length, so the Select lists it with the presets instead of showing a bare number.
+const lengthChoices = (current: number) =>
+  (presetLengths.includes(current) ? presetLengths : [...presetLengths, current].sort((a, b) => a - b)).map((minutes) => ({ value: String(minutes), label: lengthLabel(minutes) }));
 
 /** Weeks start on Monday in both the week view and the date picker, as the work week does. */
 const weekLocale = "en-US-u-fw-mon";
@@ -326,7 +329,7 @@ function Screen(): JSX.Element {
           <form id={formId} noValidate onSubmit={save} className="grid gap-4">
             <TextField label="Title" required value={draft.title} error={error} onValueChange={(title) => { setError(undefined); setDraft({ ...draft, title }); }} />
             <Select label="Starts" value={String(draft.start)} options={startOptions} onValueChange={(value) => value && setDraft({ ...draft, start: Number(value) })} />
-            <Select label="Length" value={String(draft.length)} options={lengthOptions} onValueChange={(value) => value && setDraft({ ...draft, length: Number(value) })} />
+            <Select label="Length" value={String(draft.length)} options={lengthChoices(draft.length)} onValueChange={(value) => value && setDraft({ ...draft, length: Number(value) })} />
             <Select label="Calendar" value={draft.kind} options={kinds} onValueChange={(value) => value && setDraft({ ...draft, kind: value as Kind })} />
           </form>
         ) : null}

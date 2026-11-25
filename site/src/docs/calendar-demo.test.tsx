@@ -167,6 +167,16 @@ describe("the calendar page", () => {
     await expect.element(dialog).not.toBeInTheDocument();
   });
 
+  it("names a length that is not a preset with its unit, so an edited event never shows a bare number", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: /Weekly cross-team sync/ }).first().click();
+    page.getByRole("button", { name: "Edit" }).element().focus();
+    await userEvent.keyboard("{Enter}");
+    const dialog = page.getByRole("dialog", { name: "Edit event" });
+    await expect.element(dialog.getByRole("combobox", { name: "Length" })).toHaveTextContent("45 minutes");
+  });
+
   it("shows one Undo toast at a time, and says how to reach it", async () => {
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
