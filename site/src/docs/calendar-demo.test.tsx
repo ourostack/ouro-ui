@@ -41,6 +41,19 @@ describe("the calendar page", () => {
     await expect.poll(() => `${document.activeElement?.tagName}${document.activeElement?.getAttribute("aria-invalid")}`).toBe("INPUTtrue");
   });
 
+  it("fits the State control without a scrollbar at normal text on a narrow phone", async () => {
+    await page.viewport(372, 844);
+    try {
+      await renderPage("/docs/calendar-demo/");
+      const control = page.getByRole("radiogroup", { name: "State" });
+      await expect.element(control).toBeInTheDocument();
+      const wrap = control.element().closest(".overflow-x-auto") as HTMLElement;
+      await expect.poll(() => wrap.scrollWidth <= wrap.clientWidth).toBe(true);
+    } finally {
+      await page.viewport(1100, 900);
+    }
+  });
+
   it("puts a new event on the grid once it has a title", async () => {
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: "New event" }).click();
@@ -196,6 +209,27 @@ describe("the calendar page", () => {
     expect(document.body.textContent).toContain("Ctrl or Cmd+Z also undoes it.");
   });
 
+  it("names no key on a touch screen, and clears the Undo toast when Go to date opens over it", async () => {
+    const real = window.matchMedia.bind(window);
+    vi.stubGlobal("matchMedia", (query: string) => (query === "(pointer: coarse)" ? ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real(query)));
+    try {
+      await page.viewport(390, 844);
+      await renderPage("/docs/calendar-demo/");
+      await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
+      (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
+      await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+      page.getByRole("button", { name: "Delete" }).element().focus();
+      await userEvent.keyboard("{Enter}");
+      await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+      expect(document.body.textContent).not.toContain("Cmd+Z");
+      await userEvent.click(page.getByRole("button", { name: "Go to date" }));
+      await expect.poll(() => page.getByRole("button", { name: "Undo" }).elements().length).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+      await page.viewport(1100, 900);
+    }
+  });
+
   it("puts focus back in the grid after Delete, so the keyboard does not start over", async () => {
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
@@ -267,6 +301,23 @@ describe("the calendar page", () => {
     await expect.element(dialog).not.toBeInTheDocument();
     await expect.poll(() => document.activeElement === slots).toBe(true);
     expect(slots.getAttribute("aria-activedescendant")).toBe(was);
+  });
+
+  it("scrolls the week inside its frame at large text instead of squeezing the days or the page", async () => {
+    await page.viewport(700, 900);
+    document.documentElement.style.fontSize = "200%";
+    try {
+      await renderPage("/docs/calendar-demo/");
+      const frame = () => document.querySelector<HTMLElement>('[data-site-calendar-demo] [data-ouro="time-grid"]')!.parentElement!.parentElement!;
+      const sizes = () => `${frame().scrollWidth}:${frame().clientWidth}:${document.documentElement.scrollWidth}`;
+      let last = "";
+      await expect.poll(() => { const now = sizes(); const same = now === last; last = now; return same; }).toBe(true);
+      expect(frame().scrollWidth).toBeGreaterThan(frame().clientWidth);
+      const grid = document.querySelector<HTMLElement>('[data-site-calendar-demo] [data-ouro="time-grid"]')!;
+      expect(grid.getBoundingClientRect().width).toBeGreaterThanOrEqual(36 * parseFloat(getComputedStyle(document.documentElement).fontSize));
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
   });
 
   it("deletes a focused event with the Delete key, and Ctrl+Z brings it back with focus on it", async () => {

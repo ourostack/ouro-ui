@@ -117,6 +117,7 @@ function Screen(): JSX.Element {
   const [date, setDate] = useState(today);
   const [view, setView] = useState<TimeGridView>(() => (window.matchMedia("(max-width: 639px)").matches ? "day" : "work-week"));
   const phone = useMediaQuery("(max-width: 639px)", false);
+  const coarse = useMediaQuery("(pointer: coarse)", false);
   const [stage, setStage] = useState<Stage>("week");
   const [events, setEvents] = useState<Entry[]>(() => seed(today));
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -143,6 +144,7 @@ function Screen(): JSX.Element {
   }, []);
 
   const newEvent = () => {
+    toast.dismiss();
     const now = new Date();
     const upcoming = date === today ? Math.min(Math.ceil((minutesOf(now) + 1) / 30) * 30, 23 * 60) : 9 * 60;
     begin({ day: date, start: upcoming });
@@ -207,7 +209,7 @@ function Screen(): JSX.Element {
     // One toast at a time, so a second delete replaces the first. It lasts 8 s, longer than the default, and hovering or focusing it holds the countdown; the demo leaves room under the grid on a phone for it to rest.
     toast.dismiss();
     toast("Event deleted", {
-      description: `${entry.title}. Ctrl or Cmd+Z also undoes it.`,
+      description: coarse ? entry.title : `${entry.title}. Ctrl or Cmd+Z also undoes it.`,
       duration: 8000,
       action: {
         label: "Undo",
@@ -241,7 +243,7 @@ function Screen(): JSX.Element {
         }
       }}
     >
-      <div className="min-w-0 overflow-x-auto">
+      <div className="min-w-0 overflow-x-auto" style={{ display: "grid", gridTemplateColumns: "minmax(min-content, max-content)" }}>
         <SegmentedControl
           label="State"
           value={stage}
@@ -261,6 +263,7 @@ function Screen(): JSX.Element {
         <div className="flex flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
         <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => {
             toGrid.current = false;
+            toast.dismiss();
             setJump(!jump);
           }}>
           Go to date
@@ -294,12 +297,13 @@ function Screen(): JSX.Element {
       {stage === "empty" ? (
         <Moment kind="empty" size="hero" art={<SpotArt name="empty-week" />} title="Nothing on this week" description="Press an empty slot, or New event, to add something." />
       ) : null}
-      <div className="h-160 min-h-0 overflow-hidden">
+      <div className="h-160 min-h-0 overflow-hidden" style={{ overflowX: "auto" }}>
         {stage === "loading" ? (
           <div role="group" aria-label={label} aria-busy="true" className="flex h-full items-center justify-center p-4">
             <Moment kind="loading" announce title="Loading your week" />
           </div>
         ) : (
+          <div className="h-full" style={phone ? undefined : { minWidth: "36rem" }}>
           <TimeGrid
             label={label}
             date={date}
@@ -320,6 +324,7 @@ function Screen(): JSX.Element {
             onSlotSelect={slotPressed}
             className="h-full"
           />
+          </div>
         )}
       </div>
       <Popover title={current?.title ?? "Event"} open={current !== null} onOpenChange={(next) => !next && setOpen(null)} anchor={eventRef} finalFocus={eventReturn} presentation="auto">
