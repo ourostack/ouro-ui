@@ -1032,7 +1032,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [pages-a, pages-b, rules-command, watch-small, check]
+        group: [pages-a, pages-b, rules-command, watch-small, check-rules, check-shards, check]
     name: check (node ${{ matrix.group }})
     env:
       GROUP: ${{ matrix.group }}

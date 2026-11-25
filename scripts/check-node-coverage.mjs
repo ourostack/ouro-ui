@@ -23,6 +23,8 @@ export const pagesA = ["names a page by site", "draws a screen wider", "never wa
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const pagesPattern = `(?:${pagesA.map(escape).join("|")})`;
 
+/** check.test.mjs's two longest tests, each in a group of its own; every other title runs in `check`. */
+export const checkAlone = ["finds each rule on its fail page", "a sharded run, merged"];
 const small = ["fades", "base-check", "ax-hooks", "first-run-units", "first-run-session", "first-run-windows", "first-run-sso"].map((name) => `scripts/check/${name}.test.mts`);
 
 /** Each group: the test files it runs and, for a file split by title, the pattern of the titles it runs. */
@@ -31,7 +33,9 @@ export const groups = {
   "pages-b": { files: ["scripts/check/check-pages.test.mts"], pattern: `^(?!.*${pagesPattern})` },
   "rules-command": { files: ["scripts/check/check-rules.test.mts", "scripts/check/check-command.test.mts"] },
   "watch-small": { files: ["scripts/check/check-watch.test.mts", ...small] },
-  check: { files: ["scripts/check/check.test.mts"] },
+  "check-rules": { files: ["scripts/check/check.test.mts"], pattern: escape(checkAlone[0]) },
+  "check-shards": { files: ["scripts/check/check.test.mts"], pattern: escape(checkAlone[1]) },
+  check: { files: ["scripts/check/check.test.mts"], pattern: `^(?!.*(?:${checkAlone.map(escape).join("|")}))` },
 };
 
 
