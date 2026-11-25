@@ -942,7 +942,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         // A space between the lines, which a column doesn't draw, keeps them separate words in the
         // event's visible text, as its name says them (WCAG 2.5.3, Label in Name).
         <>
-          <span dir="auto" className="line-clamp-(--ouro-lines) font-medium @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
+          <span className="line-clamp-(--ouro-lines) font-medium [unicode-bidi:isolate] @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
             {event.title}
           </span>{" "}
           <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-end`}>
@@ -1180,7 +1180,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       onKeyDown={onKeyDown}
     >
       <ScrollArea label={label} className="min-h-0 flex-1">
-        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/88 [[data-overflow-y-start]_&]:backdrop-blur-xl [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
+        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/88 [[data-overflow-y-start]_&]:backdrop-blur-xl [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none [[data-overflow-y-start]_&]:forced-colors:bg-[Canvas] [[data-overflow-y-start]_&]:forced-colors:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
           <div aria-hidden="true" />
           {days.map((day, index) => (
             <div

@@ -4,7 +4,7 @@ import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { TimeGrid, type TimeGridEvent, type TimeGridProps } from "@/registry/ouro/components/ouro/time-grid/time-grid";
 import { TimeGridNav } from "@/registry/ouro/components/ouro/time-grid/time-grid-parts";
 import {
@@ -1156,6 +1156,24 @@ describe("TimeGrid", () => {
     expect(events().filter((element) => element.tabIndex === 0)).toEqual([titled("Architecture forum")]);
   });
 
+  it("lines an event's title and time up on the same side in a right-to-left page", async () => {
+    await render({ view: "day", events: [{ id: "tall", title: "Planning", start: at(12, "10:00"), end: at(12, "12:00") }], locale: "en-US" }, (grid) => (
+      <div dir="rtl" style={{ width: 600 }}>
+        {grid}
+      </div>
+    ));
+    const event = titled("Planning");
+    const time = event.querySelector<HTMLElement>("[data-slot='time-grid-event-time']")!;
+    const title = [...event.querySelectorAll<HTMLElement>("span")].find((span) => span.textContent === "Planning")!;
+    const gap = (element: HTMLElement) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return event.getBoundingClientRect().right - range.getBoundingClientRect().right;
+    };
+    await expect.poll(() => Math.abs(gap(title) - gap(time)) < 1).toBe(true);
+    expect(gap(title)).toBeLessThan(event.getBoundingClientRect().width / 2);
+  });
+
   it("swaps Left and Right in a right-to-left page", async () => {
     await render({ events: [forum, standup], locale: "en-US" }, (grid) => <div dir="rtl">{grid}</div>);
     titled("Standup").focus();
@@ -1834,6 +1852,14 @@ describe("TimeGrid", () => {
     await expect.poll(() => getComputedStyle(head).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     await expect.poll(() => getComputedStyle(head).borderBottomColor).toBe("rgba(0, 0, 0, 0)");
     expect(warnings()).toEqual([]);
+  });
+
+  it("draws the day header without the blur under forced colours, where the system draws the surface", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    await render();
+    await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(true);
+    const head = viewport().querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    await expect.poll(() => getComputedStyle(head).backdropFilter).toBe("none");
   });
 
   it.each(["light", "dark"])("keeps the glass day header's text legible over the busiest event beneath it (%s)", async (scheme) => {
