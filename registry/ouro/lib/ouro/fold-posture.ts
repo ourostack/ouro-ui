@@ -123,15 +123,21 @@ function resolveFoldPosture(options: {
   const inside = regions.filter((region) =>
     intersects(bounds, { x: region.frame.x - 0.5, y: region.frame.y - 0.5, width: region.frame.width + 1, height: region.frame.height + 1 }),
   );
+  // Stryker disable next-line MethodExpression: .find() below returns the first match by identity, so whether
+  // an already-active region also appears again in this second list changes nothing it can find.
   const ordered = [...inside.filter((region) => region.isActive), ...inside.filter((region) => !region.isActive)];
 
   if (size.width > size.height) {
     const fold = ordered.find((region) => isVertical(region) && region.frame.height >= size.height / 2);
     if (fold) {
+      // Stryker disable next-line StringLiteral: split() only ever compares this literal to "horizontal"; any
+      // other string, including "", takes the same branch, so no test can tell them apart.
       const result = split(bounds, "vertical", fold.frame.x + fold.frame.width / 2, fold.frame.width, "hardware", rules);
       return result ? { kind: "book", split: result } : { kind: "single" };
     }
   } else if (size.height > size.width) {
+    // Stryker disable next-line ConditionalExpression: forcing this clause true changes nothing for any hinge
+    // other than partiallyOpen, since inTabletopAngles(undefined, ...) is false regardless of its left operand.
     const bent = hinge.kind === "partiallyOpen" && inTabletopAngles(hinge.angleDegrees, rules.tabletopAngles);
     // Bent, the fold's real position wins even when the region is inactive (the Duo reports it inactive whether
     // flat or half open). Not bent, only an active fold splits the screen.
