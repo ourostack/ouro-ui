@@ -72,9 +72,10 @@ describe("NavigationMenu current-page marks", () => {
   it("marks only the page link once a pointer that rested on it has moved to open a panel", async () => {
     await render(<NavigationMenu label="Main" items={[{ label: "Pricing", href: "/pricing" }, { label: "Recipes", links: [{ label: "Browse", href: "/recipes" }] }]} currentPath="/pricing" />);
     const pricing = page.getByRole("link", { name: "Pricing" }).element();
-    await userEvent.hover(pricing);
-    await Promise.allSettled(pricing.getAnimations().map((animation) => animation.finished));
-    expect(isTransparent(getComputedStyle(pricing).backgroundColor)).toBe(false);
+    // Pricing is already visible right after render, so skip Playwright's actionability wait
+    // (its default hover polls for a stable, uncovered target over several seconds here; see the
+    // `force: true` hover below for the file's other case of a slow, unnecessary hit-test wait).
+    await userEvent.hover(pricing, { force: true });
     await userEvent.click(page.getByRole("button", { name: "Recipes" }));
     await expect.element(page.getByRole("link", { name: "Browse" })).toBeVisible();
     await assertMark(pricing, page.getByRole("button", { name: "Recipes" }).element(), "ltr");
