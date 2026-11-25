@@ -212,6 +212,25 @@ describe("the calendar page", () => {
     await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
   });
 
+  it("keeps the slot cursor on the slot just created, so the keyboard does not start over", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [role="grid"]')).not.toBeNull();
+    const slots = document.querySelector<HTMLElement>('[data-ouro="time-grid"] [role="grid"]')!;
+    slots.focus();
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowRight}");
+    const was = slots.getAttribute("aria-activedescendant");
+    expect(was).not.toBeNull();
+    await userEvent.keyboard("{Enter}");
+    const dialog = page.getByRole("dialog", { name: "New event" });
+    await expect.element(dialog).toBeInTheDocument();
+    await dialog.getByRole("textbox", { name: /Title/ }).fill("Qwe");
+    await dialog.getByRole("button", { name: "Create" }).click();
+    await expect.element(dialog).not.toBeInTheDocument();
+    await expect.poll(() => document.activeElement === slots).toBe(true);
+    expect(slots.getAttribute("aria-activedescendant")).toBe(was);
+  });
+
   it("marks Go to date as opening a dialog", async () => {
     await renderPage("/docs/calendar-demo/");
     expect(page.getByRole("button", { name: "Go to date" }).element().getAttribute("aria-haspopup")).toBe("dialog");
