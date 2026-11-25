@@ -490,6 +490,44 @@ describe("NavigationMenu panels and easing", () => {
     expect(popup()).not.toBeNull();
   });
 
+  it("sizes a panel to its links, wider with content or two columns, and to its content with fit", async () => {
+    await page.viewport(1440, 900);
+    const wide = (id: string) => <div data-testid={id} style={{ width: 900, height: 20 }} />;
+    const long = "Everything you have saved, and every recipe a friend has shared with you.";
+    const many = [
+      { label: "Links", links: [{ label: "Browse", href: "/recipes", description: long }] },
+      { label: "Content", content: wide("content") },
+      { label: "Columns", columns: 2 as const, links: [{ label: "Browse", href: "/recipes", description: long }, { label: "Drafts", href: "/drafts", description: long }] },
+      { label: "Fit", fit: true, content: wide("fit") },
+      { label: "Fit columns", fit: true, columns: 2 as const, links: [{ label: "Browse", href: "/recipes" }] },
+    ];
+    await render(<NavigationMenu label="Main" items={many} />);
+    const widthOf = async (label: string) => {
+      await userEvent.click(page.getByRole("button", { name: label, exact: true }));
+      await expect.poll(() => popup()).not.toBeNull();
+      await settled();
+      const width = popup()!.getBoundingClientRect().width;
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => popup()).toBeNull();
+      return width;
+    };
+    // 28rem for links alone, 42rem with content or two columns.
+    expect(await widthOf("Links")).toBeLessThanOrEqual(448);
+    expect(await widthOf("Content")).toBe(672);
+    expect(await widthOf("Columns")).toBe(672);
+    // With fit, as wide as the content, and a short panel only as wide as its links.
+    expect(await widthOf("Fit")).toBeGreaterThanOrEqual(900);
+    expect(await widthOf("Fit columns")).toBeLessThan(448);
+  });
+
+  it("marks a panel's button as the page's section with current", async () => {
+    await render(<NavigationMenu label="Main" items={[{ label: "Platforms", current: true, content: <p>Web</p> }, { label: "Docs", content: <p>Guides</p> }]} />);
+    await expect.element(page.getByRole("button", { name: "Platforms" })).toHaveAttribute("data-current");
+    await expect.element(page.getByRole("button", { name: "Docs" })).not.toHaveAttribute("data-current");
+    const style = (name: string) => getComputedStyle(page.getByRole("button", { name }).element());
+    expect(style("Platforms").color).not.toBe(style("Docs").color);
+  });
+
   it("stacks the content above the links on a phone", async () => {
     await page.viewport(390, 844);
     await render(<NavigationMenu label="Main" items={featured} />);

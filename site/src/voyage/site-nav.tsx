@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
+import { startTransition, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { href } from "../paths";
@@ -327,8 +327,6 @@ function GuideList({ label, pages, current }: { label: string; pages: readonly N
   );
 }
 
-const asPage = ({ path, label }: { path: string; label: string }): NavPage => ({ path, label });
-
 /** The guides, in the groups a reader would look in, each from the docs' own list. */
 function guideGroups(): Array<{ label: string; pages: NavPage[] }> {
   // A title's footnote marker ("[^range]") is the page's, not the menu's.
@@ -390,7 +388,11 @@ function WaySwitch<T extends string>({ label, items, value, onChange }: { label:
   const id = useId();
   // The thumb follows the press at once; the view under it follows as the next render allows.
   const [mine, setMine] = useState(value);
-  useEffect(() => setMine(value), [value]);
+  const [given, setGiven] = useState(value);
+  if (value !== given) {
+    setGiven(value);
+    setMine(value);
+  }
   const at = items.findIndex((item) => item.value === mine);
   const choose = (next: T) => {
     setMine(next);

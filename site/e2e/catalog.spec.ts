@@ -242,7 +242,10 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // (/composed-ui/): ComposedSurface draws Card, Alert, DescriptionList, NumberField and the other composed components,
 // which no voyage page rendered before, and the voyage's pages share one stylesheet. A build of the card's own failed:
 // a second Tailwind build repeats utilities the shared one has, and its later copies override responsive classes.
-const CSS_CEILINGS = { voyage: 54 * 1024, docs: 55 * 1024, docsShell: 26 * 1024, docsPage: 36 * 1024 } as const;
+// Raised voyage, docs and docsPage a KiB and docsShell two (CI run 45526629206, merged with main at c89526998: home 56,142,
+// docs 57,155, badge 33,138 and the docs shell 27,693 bytes, each about 1,150 more than its base) for the Compass nav
+// (#3534): the panels, the platform marks and the phone menu's switch in every page's header, beside the slim family strip.
+const CSS_CEILINGS = { voyage: 55 * 1024, docs: 56 * 1024, docsShell: 28 * 1024, docsPage: 37 * 1024 } as const;
 /**
  * How much one pull request may add to a page's CSS before its ceiling is raised: judged the same way as a page's
  * JavaScript closure (MARGIN above), by growth over the pull request's own base, so a ceiling main is already over,

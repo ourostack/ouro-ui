@@ -350,7 +350,13 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
         {items.map((item, index) =>
           isPanel(item) ? (
             <BaseNavigationMenu.Item key={index} value={index}>
-              <BaseNavigationMenu.Trigger data-current={item.current || item.links?.some(isCurrent) ? "" : undefined} data-ouro-control="navigation-menu" data-ouro-part="trigger" className={rowItem}>
+              <BaseNavigationMenu.Trigger
+                // Stryker disable next-line StringLiteral: CSS matches data-current by its presence, not its value.
+                data-current={item.current || item.links?.some(isCurrent) ? "" : undefined}
+                data-ouro-control="navigation-menu"
+                data-ouro-part="trigger"
+                className={rowItem}
+              >
                 {item.label}
                 <BaseNavigationMenu.Icon data-ouro-instant={instant ? "" : undefined} className={chevron}>
                   <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-ouro-3_5">
@@ -360,7 +366,9 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
               </BaseNavigationMenu.Trigger>
               <BaseNavigationMenu.Content
                 data-ouro-instant={instant ? "" : undefined}
+                // Stryker disable next-line StringLiteral: CSS matches data-wide by its presence, not its value.
                 data-wide={!item.fit && (item.content !== undefined || item.columns === 2) ? "" : undefined}
+                // Stryker disable next-line StringLiteral: CSS matches data-fit by its presence, not its value.
                 data-fit={item.fit ? "" : undefined}
                 className={panel}
               >
