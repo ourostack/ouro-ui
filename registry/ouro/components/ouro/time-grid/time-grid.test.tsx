@@ -1517,6 +1517,29 @@ describe("TimeGrid", () => {
     expect(slot).toHaveBeenCalledTimes(3);
   });
 
+  it("keeps a drag to the day it began in, and swallows only the click that ends it", async () => {
+    const slot = vi.fn();
+    const { grid } = await render({ view: "work-week", onSlotSelect: slot });
+    const [first, second] = [...grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-slots]")];
+    const y = (minutes: number) => {
+      const box = first!.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
+    const fire = (target: HTMLElement, type: string, minutes: number) => target.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType: "mouse", button: 0, pointerId: 47 }));
+    fire(first!, "pointerdown", 605);
+    await act(async () => {});
+    fire(second!, "pointermove", 725);
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
+    fire(first!, "pointermove", 725);
+    await act(async () => {});
+    fire(first!, "pointerup", 725);
+    first!.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(725) }));
+    expect(slot).toHaveBeenCalledTimes(1);
+    first!.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(905) }));
+    expect(slot).toHaveBeenCalledTimes(2);
+  });
+
   it("ends a drag without a range on Escape or a cancelled pointer, and a touch or a drag back to its start still gives one slot", async () => {
     const slot = vi.fn();
     const { grid } = await render({ view: "day", onSlotSelect: slot });
