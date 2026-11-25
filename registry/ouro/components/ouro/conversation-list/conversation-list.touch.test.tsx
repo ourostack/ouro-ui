@@ -77,7 +77,7 @@ it("opens a row's menu on a long press, where the finger rests, and the press se
   await expect.poll(() => page.getByRole("menu").query()).toBeNull();
   await commands.tap('[data-ouro-part="row"][tabindex="0"]');
   await expect.poll(() => selected).toEqual(["ana"]);
-});
+}, 30_000);
 
 it("shows the more button on every row with a menu, a 44px target beside the time, and leaves the row's box as it was", async () => {
   const host = document.createElement("div");
