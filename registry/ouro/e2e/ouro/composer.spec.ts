@@ -119,24 +119,22 @@ test("under a backdrop-filter, the box opens and closes in painted frames with o
     shots.push(event.data);
     void cdp.send("Page.screencastFrameAck", { sessionId: event.sessionId }).catch(() => {});
   });
+  let recording = false;
   const settle = async () => {
     await expect.poll(() => frame.getAttribute("data-ouro-moving")).toBeNull();
-    // A screencast frame can arrive well after the paint that produced it once CDP's ack round
-    // trip queues up under CI's own load: wait for shots.length to hold still across a real idle
-    // window on the wall clock, not a single requestAnimationFrame gap, and give that more room
-    // than the default poll.
-    let seen = -1;
-    let quietSince = Date.now();
-    await expect
-      .poll(() => {
-        const now = shots.length;
-        if (now !== seen) {
-          seen = now;
-          quietSince = Date.now();
-        }
-        return Date.now() - quietSince;
-      }, { timeout: 20_000 })
-      .toBeGreaterThan(300);
+    if (!recording) return;
+    // Composer's own move lifecycle (composer.tsx's useLayoutEffect) already waits for every
+    // animation on the frame's subtree to finish, and one more requestAnimationFrame, before it
+    // clears data-ouro-moving, so the DOM is already static by the read above. Under this story's
+    // backdrop-filter, Chromium keeps delivering screencast frames of a page that has stopped
+    // changing rather than ever falling idle (a 20s wait for a 300ms-quiet window never once saw
+    // one here), so wait for new captures to arrive instead of for the stream to go quiet: once a
+    // second new frame lands after the DOM is already static, the first of the two can only be the
+    // final paint, not one still in flight when the DOM settled.
+    const start = shots.length;
+    await expect.poll(() => shots.length).toBeGreaterThan(start);
+    const afterFirst = shots.length;
+    await expect.poll(() => shots.length).toBeGreaterThan(afterFirst);
   };
   const measure = (images: string[], box: { x: number; y: number; width: number; height: number }, card: number[]) =>
     page.evaluate(
@@ -175,11 +173,12 @@ test("under a backdrop-filter, the box opens and closes in painted frames with o
   const tall = box.height;
   // The Expand button keeps focus (and the caret) in the text, by design, so a user can keep
   // typing through a press. Under this story's backdrop-filter, Chromium's compositor treats the
-  // caret's own blink as an ongoing repaint of the whole blurred layer, which keeps the screencast
-  // from ever going quiet. Only this geometry assertion cares about painted frames, not focus, so
-  // blur once before recording to remove that unrelated repaint source at the cause.
+  // caret's own blink as an ongoing repaint of the whole blurred layer: one fewer unrelated source
+  // of repaint to tell apart from the move itself. Only this geometry assertion cares about
+  // painted frames, not focus, so blur once before recording.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await cdp.send("Page.startScreencast", { format: "png", everyNthFrame: 1 });
+  recording = true;
   try {
     await expect.poll(() => shots.length).toBeGreaterThan(0);
     const card = await page.evaluate(() => {
