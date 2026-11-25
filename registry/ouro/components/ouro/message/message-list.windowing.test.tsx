@@ -103,7 +103,26 @@ async function render(node: ReactNode) {
 const messages = (scroller: HTMLElement) => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
 const ids = (scroller: HTMLElement) => messages(scroller).map((message) => Number(message.id.slice(1)));
 const distanceFromBottom = (scroller: HTMLElement) => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
-const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+// Counts the times frame()'s own bail fires, so a test can prove the path ran rather than inferring it from timing alone.
+let frameBails = 0;
+/**
+ * Waits two frames, as the reader's wheel and the list's own repaint do. Bounded: a renderer that stops compositing (seen in CI as
+ * a sibling Chromium project's load wedges this one, #3314) must fail this one call fast, with its own clear error, instead of
+ * hanging forever and dragging every later test in the file into the same unresolved wait.
+ */
+const frame = () =>
+  new Promise<void>((resolve, reject) => {
+    const bail = setTimeout(() => {
+      frameBails++;
+      reject(new Error("frame(): requestAnimationFrame did not fire within 5000ms; the renderer looks stalled"));
+    }, 5000);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        clearTimeout(bail);
+        resolve();
+      }),
+    );
+  });
 
 /** A post the app's own component draws, its variant set by the component's own state, not by the list's render. */
 function OwnPost({ expose }: { expose: (set: (variant: "post" | "chat") => void) => void }) {
@@ -250,6 +269,27 @@ function recordAnnouncements(live: HTMLElement): string[] {
 }
 
 describe("MessageList windowing", () => {
+  it("fails frame() fast, with its own error, when the renderer stops producing frames instead of hanging past the test's own timeout (#3314)", async () => {
+    frameBails = 0;
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // A renderer that never composites a frame again: requestAnimationFrame is called but its callback never runs, as CI's
+      // two concurrent Chromium browsers (ouro-chromium and ouro-touch, #3314) were seen to wedge one another's compositor.
+      vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+      const waiting = frame().then(
+        () => "resolved" as const,
+        () => "rejected" as const,
+      );
+      // Advance past frame()'s own bail, then give its rejection a turn to settle the race before reading it.
+      await vi.advanceTimersByTimeAsync(5000);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(await waiting).toBe("rejected");
+      expect(frameBails).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("draws only the messages near the view of a long conversation, in a list as tall as all of them", async () => {
     const items = conversation(500);
     const { scroller } = await render(<Chat items={items} />);
