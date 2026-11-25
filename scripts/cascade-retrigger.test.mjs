@@ -119,7 +119,7 @@ test("report logs the candidate re-trigger plan on #3802 once per green sha, nam
   assert.equal(posts.length, 1, "the same green sha is logged only once");
 });
 
-test("report fails open and never throws when main's runs or the issue cannot be read", async () => {
+test("cascade-retrigger's report fails open and never throws when main's runs or the issue cannot be read", async () => {
   const brokenRuns = await report({ env: { GITHUB_REPOSITORY: "o/r" }, api: () => { throw new Error("HTTP 500"); }, log() {} });
   assert.deepEqual(brokenRuns, { posted: false });
   const pushRuns = [run({ head_sha: "green1", conclusion: "success" }), run({ head_sha: "red1", conclusion: "failure" })];
