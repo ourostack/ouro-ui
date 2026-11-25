@@ -139,7 +139,9 @@ function Screen(): JSX.Element {
       // The date picker's popover hands focus back to its button as it closes, a frame or two after the pick, so a forced move keeps landing the grid until then.
       const forced = forceFocus.current && !target?.closest('[data-ouro="time-grid"]')?.contains(document.activeElement);
       if (target && (lost || forced)) target.focus({ preventScroll: true });
-      if (++tries < 30) frame = requestAnimationFrame(settle);
+      // A slow runner can close the sheet well after the first thirty frames, so keep watching while a dialog is still there.
+      const closing = document.querySelector('[role="dialog"]') !== null;
+      if (++tries < (closing ? 600 : 30)) frame = requestAnimationFrame(settle);
       else forceFocus.current = false;
     };
     frame = requestAnimationFrame(settle);

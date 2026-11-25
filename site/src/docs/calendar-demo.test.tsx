@@ -219,6 +219,27 @@ describe("the calendar page", () => {
     await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
   });
 
+  it("puts focus in the grid after Delete even when the sheet takes ages to close", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
+    (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
+    await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    // A stand-in for a sheet that is slow to close: it keeps a dialog on the page, takes focus late and then leaves.
+    const slow = document.createElement("div");
+    slow.setAttribute("role", "dialog");
+    slow.tabIndex = -1;
+    slow.setAttribute("data-test-harness", "");
+    document.body.append(slow);
+    await userEvent.click(page.getByRole("button", { name: "Delete" }));
+    for (let frame = 0; frame < 40; frame += 1) await new Promise((resolve) => requestAnimationFrame(resolve));
+    slow.focus();
+    for (let frame = 0; frame < 5; frame += 1) await new Promise((resolve) => requestAnimationFrame(resolve));
+    slow.remove();
+    document.body.focus();
+    await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
+  });
+
   it("keeps the slot cursor on the slot just created, so the keyboard does not start over", async () => {
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
