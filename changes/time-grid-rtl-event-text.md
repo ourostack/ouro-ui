@@ -1,0 +1,1 @@
+- Fixed: in a right-to-left page, TimeGrid draws an event's title and its time on the same side, where the title used to sit at the left.

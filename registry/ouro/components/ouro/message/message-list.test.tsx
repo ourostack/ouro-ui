@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { createElement, useState, type ComponentType, type ReactNode } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -2824,6 +2824,24 @@ describe("MessageList keyboard", () => {
     expect(getComputedStyle(document.getElementById("plain-item")!).borderTopLeftRadius).toBe("0px");
   });
 
+  it("tracks a plain item's aria-posinset once it starts equal to the list's own count, instead of freezing it there as an app's override", async () => {
+    // Its own aria-posinset starts equal to its place among the others, so the list recognizes it as its own
+    // count, not an app's override, and keeps it in step when an earlier message shifts its place.
+    const plain = (posinset: number) => (
+      <article key="plain" id="matches-own-count" data-ouro-message-list-item="" data-role="assistant" aria-posinset={posinset}>
+        <span data-ouro-message-author="">Grace</span>
+        <p data-ouro-message-content="">A plain item</p>
+      </article>
+    );
+    const { rerender } = await render(<Channel>{[...posts(2), plain(3)]}</Channel>);
+    expect(document.getElementById("matches-own-count")!.getAttribute("aria-posinset")).toBe("3");
+    expect(document.getElementById("matches-own-count")!.getAttribute("aria-setsize")).toBe("3");
+    // An earlier message arrives, shifting every later message's place, this one included.
+    await rerender(<Channel>{[...posts(3), plain(3)]}</Channel>);
+    expect(document.getElementById("matches-own-count")!.getAttribute("aria-posinset")).toBe("4");
+    expect(document.getElementById("matches-own-count")!.getAttribute("aria-setsize")).toBe("4");
+  });
+
   it("counts a message that arrives inside a group already there, such as today's messages, and takes it out of the Tab order", async () => {
     const day = (count: number) => (
       <MessageList label="Channel" style={{ height: 300 }}>
@@ -2835,6 +2853,131 @@ describe("MessageList keyboard", () => {
     expect(document.getElementById("post-2")!.getAttribute("aria-posinset")).toBe("3");
     expect(document.getElementById("post-0")!.getAttribute("aria-setsize")).toBe("3");
     expect(document.getElementById("post-2")!.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("gives a Message its control, part, position and size in its own first render, so none is written again once it mounts", async () => {
+    const { scroller, rerender } = await render(<Channel>{posts(10)}</Channel>);
+    const seen = new Set<Element>();
+    const mutated: Element[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === "childList") {
+          for (const node of record.addedNodes) {
+            if (!(node instanceof Element)) continue;
+            if (node.matches('[data-ouro="message"]')) seen.add(node);
+            for (const message of node.querySelectorAll('[data-ouro="message"]')) seen.add(message);
+          }
+        } else if (record.type === "attributes" && record.target instanceof Element && seen.has(record.target)) {
+          mutated.push(record.target);
+        }
+      }
+    });
+    observer.observe(scroller, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-ouro-control", "data-ouro-part", "aria-posinset", "aria-setsize"],
+    });
+    // The newest always draws, so appending one scrolls the list to it: a row mounted during a scroll, as the issue reports.
+    await rerender(<Channel>{posts(11)}</Channel>);
+    await settle(scroller);
+    observer.disconnect();
+    const added = document.getElementById("post-10")!;
+    expect(seen.has(added)).toBe(true);
+    expect(added.getAttribute("data-ouro-control")).toBe("message-list");
+    expect(added.getAttribute("data-ouro-part")).toBe("item");
+    expect(added.getAttribute("aria-posinset")).toBe("11");
+    expect(added.getAttribute("aria-setsize")).toBe("11");
+    // The newest just sent becomes the Tab stop; tabindex itself is excluded from the attributes watched above,
+    // since the roving Tab stop moving to it is its own, separate concern.
+    expect(added.getAttribute("tabindex")).toBe("0");
+    // No sync after its own render wrote any of these again.
+    expect(mutated).toEqual([]);
+  });
+
+  it("keeps a Message's own aria-posinset and aria-setsize in its first render, instead of the list's computed ones", async () => {
+    const { host } = await render(
+      <Channel>
+        {posts(2)}
+        <Message role="user" name="Ana" id="own-position" aria-posinset={40} aria-setsize={200}>
+          Already placed
+        </Message>
+      </Channel>,
+    );
+    const own = host.querySelector<HTMLElement>("#own-position")!;
+    expect(own.getAttribute("aria-posinset")).toBe("40");
+    expect(own.getAttribute("aria-setsize")).toBe("200");
+  });
+
+  it("gives a Server-Component-passed Message its control and part too, in its own first render, when its type is a lazy reference and not Message itself", async () => {
+    // A Next.js build sends a client Message this way: the element itself, but with `type` a lazy
+    // reference to the component, never `Message` directly, so it cannot be told apart by `type === Message`.
+    const lazyMessage = (id: string) =>
+      createElement(
+        { $$typeof: Symbol.for("react.lazy"), _payload: Message, _init: (payload: unknown) => payload } as unknown as ComponentType,
+        { role: "user", name: "Ana", id } as object,
+        "A lazy post",
+      );
+    const { scroller, rerender } = await render(<Channel>{lazyMessage("lazy-post-0")}</Channel>);
+    const mutated: Element[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === "attributes" && record.target instanceof Element && record.target.id === "lazy-post-1") mutated.push(record.target);
+      }
+    });
+    observer.observe(scroller, { subtree: true, attributes: true, attributeFilter: ["data-ouro-control", "data-ouro-part", "aria-posinset", "aria-setsize"] });
+    await rerender(
+      <Channel>
+        {lazyMessage("lazy-post-0")}
+        {lazyMessage("lazy-post-1")}
+      </Channel>,
+    );
+    await settle(scroller);
+    observer.disconnect();
+    const added = document.getElementById("lazy-post-1")!;
+    expect(added.getAttribute("data-ouro-control")).toBe("message-list");
+    expect(added.getAttribute("data-ouro-part")).toBe("item");
+    expect(added.getAttribute("aria-posinset")).toBe("2");
+    expect(added.getAttribute("aria-setsize")).toBe("2");
+    // No sync after its own render wrote any of these again.
+    expect(mutated).toEqual([]);
+  });
+
+  it("does not take a lazy-typed child for a Message when its role prop is not a string, so the legacy sync gives it its place instead", async () => {
+    // Same lazy wrapper as a Server-Component-passed Message, but with a role no Message ever has: nothing
+    // tells it apart from any other lazy-typed element, so its own first render must not treat it as one.
+    const lazyMessage = (id: string, role: unknown) =>
+      createElement(
+        { $$typeof: Symbol.for("react.lazy"), _payload: Message, _init: (payload: unknown) => payload } as unknown as ComponentType,
+        { role, name: "Ana", id } as object,
+        "A lazy child",
+      );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { scroller, rerender } = await render(<Channel>{lazyMessage("lazy-role-0", "user")}</Channel>);
+    const mutated: Element[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === "attributes" && record.target instanceof Element && record.target.id === "lazy-role-1") mutated.push(record.target);
+      }
+    });
+    observer.observe(scroller, { subtree: true, attributes: true, attributeFilter: ["data-ouro-control", "data-ouro-part", "aria-posinset", "aria-setsize"] });
+    await rerender(
+      <Channel>
+        {lazyMessage("lazy-role-0", "user")}
+        {lazyMessage("lazy-role-1", 42)}
+      </Channel>,
+    );
+    await settle(scroller);
+    observer.disconnect();
+    const added = document.getElementById("lazy-role-1")!;
+    // It still ends up with the list's place and size, and Message's own control and part, but only because
+    // the legacy sync caught it after mount: its own first render left it undetected and untouched.
+    expect(added.getAttribute("data-ouro-control")).toBe("message-list");
+    expect(added.getAttribute("data-ouro-part")).toBe("item");
+    expect(added.getAttribute("aria-posinset")).toBe("2");
+    expect(added.getAttribute("aria-setsize")).toBe("2");
+    expect(mutated.length).toBeGreaterThan(0);
+    warn.mockRestore();
   });
 
   it("keeps a list inside a message to its own messages", async () => {

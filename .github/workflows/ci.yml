@@ -1810,7 +1810,7 @@ jobs:
           else
             node scripts/motion-coverage.mts --dir "$RUNNER_TEMP/motion" --expect "$MOTION_PARTITIONS"
           fi
-  themes:
+  themes-shard:
     # Every story passes axe under shadcn's nova and vega presets and Spoonjoy's cookbook theme
     # (test/theme-fixtures/), light and dark, closed and with each overlay open: the components
     # read only shadcn's standard tokens, so a third-party theme carries through. One fixture per
@@ -1914,6 +1914,20 @@ jobs:
           fi
           # The shipped contrast tests under cookbook, once, on the first shard.
           if [ "$SHARD" = 1 ]; then pnpm test:themes-contrast; fi
+  themes:
+    # The one check the rules require for the theme scans: it passes when every shard did, so the
+    # shard count can change without touching the ruleset.
+    needs: [plan, themes-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RESULT: ${{ needs.themes-shard.result }}
+    steps:
+      - name: Every shard passed
+        run: |
+          echo "The theme scan shards: $RESULT."
+          [ "$RESULT" = success ]
   conformance-shard:
     # The conformance matrix (test/conformance/, docs/guides/conformance.md): every story through
     # the checks that replace recurring review findings (focus after every action, announcements,
@@ -2978,14 +2992,14 @@ jobs:
             site/theme-install/playwright-report/
           if-no-files-found: ignore
   latency-shard:
-    name: latency (${{ matrix.shard }}/4)
+    name: latency (${{ matrix.shard }}/6)
     # Each voyage stage control answers within budget on a 4x slower CPU: of 20 presses after two
     # warm-ups, the 19th (p95) within 100 ms and the median within its ceiling from the control's CI
     # baseline, or of 40 when the first 20 call for 20 more (site/e2e/latency.ts,
     # site/e2e/stage.latency.spec.ts), measured alone so no other
     # test shares the CPU. The stage's switch to still water draws no long frame, in Chromium and
     # WebKit (site/e2e/stage-switch.latency.spec.ts). The page patterns paint first within their ceilings on a phone
-    # (site/e2e/patterns.latency.spec.ts). Four shards on runners of their own, each
+    # (site/e2e/patterns.latency.spec.ts). Six shards on runners of their own, each
     # the spec files whose measured times add up to its share (scripts/latency-shards.mjs), every
     # sample, budget, baseline and throttle unchanged; the latency check passes when all did.
     needs: [plan]
@@ -2995,7 +3009,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     # In Playwright's image (see the note above jobs:).
     container:
       image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble

@@ -355,7 +355,7 @@ const oneOf = <Name extends string>(list: readonly Name[], value: string | undef
 const defaultWorkingHours = { start: 8, end: 17 };
 const overlapMinWidth = "4.5rem";
 // The strip a day gives the chip that folds the overlapping events it has no room for.
-const chipWidth = "2rem";
+const chipWidth = "var(--ouro-time-grid-chip)";
 
 const clock = minuteClock();
 // Stryker disable next-line ArrowFunction: the server's time only has to be no time, which 0 and undefined both are
@@ -365,6 +365,19 @@ const serverNow = () => 0;
 // plain muted surface, because a dark theme colour tints the fill under it.
 const mutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
 const mutedLineClass = "truncate text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
+
+// A time range as its start and the rest, so a narrow event can show only the start rather than cut the range
+// mid-word ("11:00 AM –…"); the full range stays in the text.
+function startAndRest(range: string) {
+  const split = /\s[–-]\s/.exec(range);
+  if (!split) return range;
+  return (
+    <>
+      {range.slice(0, split.index)}
+      <span data-slot="time-grid-event-time-end" className="@max-[6rem]/event:hidden">{range.slice(split.index)}</span>
+    </>
+  );
+}
 
 // The default for backgroundEvents: one array, so the layout is worked out again only when the events change.
 const noEvents: readonly TimeGridEvent[] = [];
@@ -679,8 +692,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // server HTML and the first render draw them all, in steps, until a measure.
   const [dayWidth, setDayWidth] = useState(0);
   const [dayRem, setDayRem] = useState(16);
+  const [chipRem, setChipRem] = useState(2);
   const { shown, folds, reserved, stackOf } = useMemo(() => {
-    const folds = timed.map((placements) => (dayWidth > 0 ? foldsOf(placements, dayWidth / dayRem) : []));
+    const folds = timed.map((placements) => (dayWidth > 0 ? foldsOf(placements, dayWidth / dayRem, chipRem) : []));
     const folded = new Set(folds.flat().flatMap((fold) => fold.folded.map((placed) => placed.key)));
     const shown = timed.map((placements, index) => {
       const adjust = new Map(folds[index]!.flatMap((fold) => fold.shown.map((placed) => [placed.key, placed] as const)));
@@ -689,7 +703,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const members = new Map(folds.flat().flatMap((fold) => fold.folded.map((placed) => [placed.key, fold.folded] as const)));
     const reserved = new Set(folds.flat().flatMap((fold) => fold.shown.map((placed) => placed.key)));
     return { shown, folds, reserved, stackOf: new Map([...stackOfBackground, ...members]) };
-  }, [timed, dayWidth, dayRem, stackOfBackground]);
+  }, [timed, dayWidth, dayRem, chipRem, stackOfBackground]);
   const reachable = pieces.filter((piece) => (stackOf.get(piece.key)?.[0]!.key ?? piece.key) === piece.key);
 
   // The event with the Tab stop: the last one moved to, else the selected one, else the first.
@@ -724,7 +738,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       if (opened.current?.key === scrollKey && Math.abs(viewport.scrollTop - opened.current.top) > 1) return;
       const line = Math.min(workingHours.start * 60, firstEvent) - 30;
       // The line sits half an hour above every timed event, so no event is cut in half under the header.
-      viewport.scrollTop = (between(0, line, dayLength) / dayLength) * body.offsetHeight;
+      const top = (between(0, line, dayLength) / dayLength) * body.offsetHeight;
+      // Opens a little above the line, so it sits clear of the header's own hairline instead of drawing a double edge against it. The browser clamps a negative scrollTop to the top.
+      viewport.scrollTop = top - 8;
       opened.current = { key: scrollKey, top: viewport.scrollTop };
     };
     const observer = new ResizeObserver(() => {
@@ -781,12 +797,21 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const measure = () => {
       setDayWidth(day.getBoundingClientRect().width);
       setDayRem(parseFloat(getComputedStyle(document.documentElement).fontSize));
+      setChipRem(parseFloat(getComputedStyle(day).getPropertyValue("--ouro-time-grid-chip")));
     };
+    // Measured here, not only in the observer's callback, but only when a day has events that
+    // might fold: the observer's first notification runs after the layout effect's commit paints,
+    // which would draw every event unfolded for a frame before the fold replaced them. Measuring
+    // now decides the fold before that paint. A grid with no events has nothing to fold, so it
+    // keeps forcing no layout while it mounts.
+    if (timed.some((placements) => placements.length > 0)) measure();
     const observer = new ResizeObserver(measure);
     observer.observe(day);
     // Stryker disable next-line ArrowFunction: once the day is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
-    // The day column is replaced when the dates change, so the observer follows it.
+    // The day column is replaced when the dates change, so the observer follows it; a change to the
+    // events alone still measures, once the ResizeObserver's own notification lands.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayKey]);
 
   const focusPiece = (key: string) => {
@@ -836,7 +861,13 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     slot.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [heldCursor]);
   const cursorStart = () => {
-    const from = nowAt && todayIndex >= 0 ? nowAt.minutes : workingHours.start * 60;
+    const wanted = nowAt && todayIndex >= 0 ? nowAt.minutes : workingHours.start * 60;
+    // Focus never scrolls the grid away from what the person is looking at: a start above the visible hours moves to the first visible slot.
+    const viewport = rootRef.current!.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+    const body = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
+    // A body with no height yet reads as one pixel, so the division never yields NaN.
+    const firstSeen = Math.ceil((viewport.scrollTop * dayLength) / Math.max(1, body.offsetHeight) / slotMinutes) * slotMinutes;
+    const from = Math.max(firstSeen, wanted);
     // Stryker disable next-line ArithmeticOperator: a start below the day's end already sits on a slot, so the upper clamp never moves it.
     return { day: Math.max(todayIndex, 0), minutes: between(0, Math.floor(from / slotMinutes) * slotMinutes, dayLength - slotMinutes) };
   };
@@ -942,11 +973,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         // A space between the lines, which a column doesn't draw, keeps them separate words in the
         // event's visible text, as its name says them (WCAG 2.5.3, Label in Name).
         <>
-          <span dir="auto" className="line-clamp-(--ouro-lines) font-medium @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
+          <span className="line-clamp-(--ouro-lines) font-medium [unicode-bidi:isolate] @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
             {event.title}
           </span>{" "}
           <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-end`}>
-            {rangeText(formats.time, start!, end!)}
+            {startAndRest(rangeText(formats.time, start!, end!))}
           </span>
           {lines >= 3 && event.description ? (
             <>
@@ -1144,7 +1175,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "inset-x-0 z-[9] items-start justify-center whitespace-nowrap px-0 text-center")}
             >
               <TouchTarget />
-              <span aria-hidden="true" data-slot="time-grid-more-count" className="min-w-0 font-medium">{`+${members.length}`}</span>
+              <span aria-hidden="true" dir="ltr" data-slot="time-grid-more-count" className="min-w-0 font-medium [unicode-bidi:isolate]">{`+${members.length}`}</span>
             </button>
           }
         >
@@ -1167,7 +1198,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       data-view={view}
       className={cn(
         "relative box-border flex h-ouro-144 min-h-0 min-w-0 flex-col text-foreground",
-        "[--ouro-time-grid-gutter:4rem] [--ouro-time-grid-hour:max(3rem,var(--ouro-time-grid-fill,0px))] [--ouro-time-grid-tint:14%] pointer-coarse:[--ouro-time-grid-hour:max(3.5rem,var(--ouro-time-grid-fill,0px))] dark:[--ouro-time-grid-tint:24%]",
+        "[--ouro-time-grid-gutter:4rem] [--ouro-time-grid-hour:max(3rem,var(--ouro-time-grid-fill,0px))] [--ouro-time-grid-tint:14%] [--ouro-time-grid-chip:2rem] pointer-coarse:[--ouro-time-grid-chip:2.75rem] pointer-coarse:[--ouro-time-grid-hour:max(3.5rem,var(--ouro-time-grid-fill,0px))] dark:[--ouro-time-grid-tint:24%]",
         className,
       )}
       style={
@@ -1180,7 +1211,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       onKeyDown={onKeyDown}
     >
       <ScrollArea label={label} className="min-h-0 flex-1">
-        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/95 [[data-overflow-y-start]_&]:backdrop-blur-lg [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
+        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/88 [[data-overflow-y-start]_&]:backdrop-blur-xl [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none [[data-overflow-y-start]_&]:forced-colors:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
           <div aria-hidden="true" />
           {days.map((day, index) => (
             <div
@@ -1213,10 +1244,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               ))}
             </>
           ) : null}
+          {allDay.length > 0 ? (
+            <>
           <div aria-hidden="true" className="flex items-start justify-end py-1 pe-2 text-[11px] leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
             {allDayLabel}
           </div>
-          {allDay.length > 0 ? (
             <ul
               role="list"
               aria-label={allDayLabel}
@@ -1229,9 +1261,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                 </li>
               ))}
             </ul>
-          ) : (
-            <div aria-hidden="true" style={{ minHeight: "2rem" }} />
-          )}
+            </>
+          ) : null}
         </div>
         <div data-ouro-time-grid-body="" className="relative grid" style={{ gridTemplateColumns: columns, height: minutesTall(dayLength) }}>
           {onSlotSelect && days.length > 0 ? (

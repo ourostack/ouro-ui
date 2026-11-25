@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@108675e318b7c14471e55394ba4305774de71792:brand/",
+  "origin": "ourostack/.github@24ea5878da0bdf57648b7286d38154ceebdbd7b7:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -3194,6 +3194,30 @@
     {
       "file": "phone/xray-dark-1536.avif",
       "sha256": "c2ac9277822f39edacede6e83f76197594a888df30364b7d5c7f08a9ae31fa7f"
+    },
+    {
+      "file": "spot/empty-call.webp",
+      "sha256": "25d015d0d5d91698ea44e6806c44f9ee69ec315043a74858e2f7637cc473d79a"
+    },
+    {
+      "file": "spot/empty-call-dark.webp",
+      "sha256": "0a997b8d4a176b89838638273741cb4bca829999c81c587e5a9aec2fc64e6aa9"
+    },
+    {
+      "file": "spot/empty-chat.webp",
+      "sha256": "645b2a93efed1370900739c64958012d8c244a8e7d2f635d7ecb9ac2987ec016"
+    },
+    {
+      "file": "spot/empty-chat-dark.webp",
+      "sha256": "7c345734c3d633407f7be061d9bf5e1661f3a366ab2ea34591c8ad6b22560f0c"
+    },
+    {
+      "file": "spot/empty-week.webp",
+      "sha256": "641be9c2970ef92655c5da3a93f0f907ae77aa3175ad6c635997bf93d004ded2"
+    },
+    {
+      "file": "spot/empty-week-dark.webp",
+      "sha256": "5477b5eeca8879c3ee56b312ae660aa90e3392ea865cd956195a26b51a79813c"
     }
   ]
 }

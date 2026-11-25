@@ -1,0 +1,1 @@
+- Popover takes `finalFocus`, a ref to the element that gets focus when it closes, as a popover or as a sheet.

@@ -103,7 +103,26 @@ async function render(node: ReactNode) {
 const messages = (scroller: HTMLElement) => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
 const ids = (scroller: HTMLElement) => messages(scroller).map((message) => Number(message.id.slice(1)));
 const distanceFromBottom = (scroller: HTMLElement) => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
-const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+// Counts the times frame()'s own bail fires, so a test can prove the path ran rather than inferring it from timing alone.
+let frameBails = 0;
+/**
+ * Waits two frames, as the reader's wheel and the list's own repaint do. Bounded: a renderer that stops compositing (seen in CI as
+ * a sibling Chromium project's load wedges this one, #3314) must fail this one call fast, with its own clear error, instead of
+ * hanging forever and dragging every later test in the file into the same unresolved wait.
+ */
+const frame = () =>
+  new Promise<void>((resolve, reject) => {
+    const bail = setTimeout(() => {
+      frameBails++;
+      reject(new Error("frame(): requestAnimationFrame did not fire within 5000ms; the renderer looks stalled"));
+    }, 5000);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        clearTimeout(bail);
+        resolve();
+      }),
+    );
+  });
 
 /** A post the app's own component draws, its variant set by the component's own state, not by the list's render. */
 function OwnPost({ expose }: { expose: (set: (variant: "post" | "chat") => void) => void }) {
@@ -250,6 +269,27 @@ function recordAnnouncements(live: HTMLElement): string[] {
 }
 
 describe("MessageList windowing", () => {
+  it("fails frame() fast, with its own error, when the renderer stops producing frames instead of hanging past the test's own timeout (#3314)", async () => {
+    frameBails = 0;
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // A renderer that never composites a frame again: requestAnimationFrame is called but its callback never runs, as CI's
+      // two concurrent Chromium browsers (ouro-chromium and ouro-touch, #3314) were seen to wedge one another's compositor.
+      vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+      const waiting = frame().then(
+        () => "resolved" as const,
+        () => "rejected" as const,
+      );
+      // Advance past frame()'s own bail, then give its rejection a turn to settle the race before reading it.
+      await vi.advanceTimersByTimeAsync(5000);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(await waiting).toBe("rejected");
+      expect(frameBails).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("draws only the messages near the view of a long conversation, in a list as tall as all of them", async () => {
     const items = conversation(500);
     const { scroller } = await render(<Chat items={items} />);
@@ -1296,20 +1336,15 @@ describe("MessageList windowing", () => {
     expect(Math.abs(resting.message.getBoundingClientRect().top - resting.top)).toBeLessThanOrEqual(1);
   });
 
-  it("keeps the space above the first message while the reader is in it once the wheel rests, and lets it go without moving anything as they scroll past it", async () => {
+  it("lets the space above the first message go once the wheel rests at the top, with no need to scroll past it, so the first message sits right under the list's padding (#3733)", async () => {
     const { scroller, content, clock } = await wheelToTheTop();
     await frame();
     const space = content.offsetTop;
     expect(space).toBeGreaterThan(1);
     await restWheel(scroller, clock);
-    // At the top, the space shows: letting it go there would move the content up under the reader.
+    // At the top, nothing on screen needs holding: the step that reached it replaced the view, so the space goes at once.
     expect(scroller.scrollTop).toBe(0);
-    expect(content.offsetTop).toBe(space);
-    const reading = firstVisible(scroller);
-    await scrollTo(scroller, space + 100);
     expect(content.offsetTop).toBe(0);
-    // Only the reader's scroll moved the row.
-    expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top - space - 100))).toBeLessThanOrEqual(1);
   });
 
   /**
@@ -1408,7 +1443,9 @@ describe("MessageList windowing", () => {
 
   it("keeps the scroll range to the content's end, below the space above the first message, while the wheel turns, so a row above that comes in shorter never pulls the scroll position", async () => {
     const { scroller, content, clock, space, change } = await spaceAboveWhole();
-    // The wheel rests at the top, so the hold on the range goes, and turns again.
+    // The reader scrolls partway into the space, short of its very top: letting it go there would move what they can see.
+    await scrollTo(scroller, Math.floor(space / 2));
+    // The wheel rests, so the hold on the range goes, and turns again.
     await restWheel(scroller, clock);
     expect(content.offsetTop).toBe(space);
     // Down to the end and 20px back up, without resting: the space stays.
