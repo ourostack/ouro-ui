@@ -119,6 +119,7 @@
 @source not "call-demo.tsx";
 @source not "chat-demo.tsx";
 @source not "demos";
+@source not "spot-art.tsx";
 @source not "tray-art.tsx";
 @source not "../entry-server.tsx";
 @source not "../generated";
