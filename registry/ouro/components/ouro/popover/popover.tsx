@@ -32,10 +32,10 @@ export type PopoverPresentation = "auto" | "popover" | "sheet";
 
 const presentations: readonly PopoverPresentation[] = ["auto", "popover", "sheet"];
 
-/** Whether a dialog or sheet that is open, does not hold the popover's anchor and holds focus now, so returning focus to the anchor would take it from there. */
+/** Whether a dialog or sheet that does not hold the popover's anchor and holds focus now, so returning focus to the anchor would take it from there. */
 const otherLayerOpen = (anchor: Element | null | undefined) =>
   [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].some(
-    (layer) => layer.getAttribute("data-ouro-presentation") !== "popover" && !layer.hasAttribute("data-ending-style") && !layer.closest("[hidden]") && !(anchor && layer.contains(anchor)) && layer.contains(document.activeElement),
+    (layer) => layer.getAttribute("data-ouro-presentation") !== "popover" && !(anchor && layer.contains(anchor)) && layer.contains(document.activeElement),
   );
 
 const controlFix = "<Popover open={open} onOpenChange={setOpen} anchor={buttonRef}>";
