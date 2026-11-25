@@ -167,6 +167,18 @@ describe("the calendar page", () => {
     await expect.element(dialog).not.toBeInTheDocument();
   });
 
+  it("shows one Undo toast at a time, and says how to reach it", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    for (const name of [/Sprint planning/, /Design review/]) {
+      await page.getByRole("button", { name }).first().click();
+      await userEvent.click(page.getByRole("button", { name: "Delete" }));
+      await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    }
+    await expect.poll(() => page.getByRole("button", { name: "Undo" }).elements().length).toBe(1);
+    expect(document.body.textContent).toContain("Press F6 to reach Undo.");
+  });
+
   it("puts focus back in the grid after Delete, so the keyboard does not start over", async () => {
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");

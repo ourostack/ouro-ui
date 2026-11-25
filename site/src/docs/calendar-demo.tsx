@@ -180,6 +180,7 @@ function Screen(): JSX.Element {
     const next: Entry = { id: draft.id ?? `new-${Date.now()}`, title, kind: draft.kind, tone, start: atTime(draft.day, draft.start), end: atTime(draft.day, draft.start + draft.length) };
     setEvents((now) => (draft.id ? now.map((candidate) => (candidate.id === draft.id ? { ...candidate, ...next } : candidate)) : [...now, next]));
     if (stage === "empty") setStage("week");
+    toast.dismiss();
     toast(draft.id ? "Event updated" : "Event created", { tone: "success", description: `${title}, ${clock(draft.start)}` });
     setDraft(null);
     setRefocus((count) => count + 1);
@@ -190,9 +191,11 @@ function Screen(): JSX.Element {
     setOpen(null);
     setRefocus((count) => count + 1);
     setEvents((now) => now.filter((candidate) => candidate.id !== entry.id));
-    // An Undo toast stays until dismissed, so a slow or screen-reader reader can reach it; the demo leaves room under the grid on a phone for it to rest.
+    // One toast at a time, so a second delete replaces the first. It lasts 8 s, longer than the default, and hovering or focusing it holds the countdown; the demo leaves room under the grid on a phone for it to rest.
+    toast.dismiss();
     toast("Event deleted", {
-      description: entry.title,
+      description: `${entry.title}. Press F6 to reach Undo.`,
+      duration: 8000,
       action: {
         label: "Undo",
         onClick: () => {
