@@ -432,6 +432,11 @@
   inherits: false;
   initial-value: 0;
 }
+/* An arbitrary-value Tailwind class repeats this clip-path as its own escaped selector on
+   every page that links it; a shared utility writes it once (ouro-fade-end's comment above). */
+@utility ouro-composer-clip {
+  clip-path: inset(var(--ouro-composer-inset) 0 0 round var(--ouro-composer-radius));
+}
 @keyframes ouro-composer-reveal {
   from {
     --ouro-composer-inset: var(--ouro-composer-gap);

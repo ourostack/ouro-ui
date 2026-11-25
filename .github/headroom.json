@@ -103,5 +103,10 @@
     "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command motion > fades and scales in from 0.96 on the Dialog's slow token, and only fades with reduced motion",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* registry/ouro/components/ouro/composer/composer.test.tsx > Composer conversation > starts an uncontrolled draft over when conversation changes, and keeps it while it stays",
+    "reason": "Measured at 8.6 s against a 15 s budget on a loaded browser shard (CI run 45654909418, shard 3/22), brought into this pull request's HEADROOM_CHANGED scope only because it edits composer.test.tsx elsewhere in the same file. The test itself is a plain userEvent.type() of 14 characters into a textarea plus two rerenders, with no redundant setup; its cost reads as real browser-automation keystroke dispatch under CI-shard load, the same pattern as this file's other entries, not a cost this pull request added or can cut.",
+    "owner": "ouro-ui-composer-backdrop-takeover"
   }
 ]

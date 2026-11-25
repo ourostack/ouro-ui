@@ -3,6 +3,7 @@
 import "@/registry/ouro/lib/ouro/last-input";
 import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { ClipboardEvent, FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { RichEditor, RichEditorHandle } from "@/registry/ouro/components/ouro/composer/composer-parts";
 import { composerDrafts, composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
@@ -377,9 +378,9 @@ const frameClass =
   // No data-[ouro-moving] guard needed on the clip-path itself: idle, --ouro-composer-radius is
   // unset, so the declaration is invalid at computed-value time and clip-path falls back to its
   // own initial none; a move sets both properties inline, so this only ever clips while one runs.
-  // inset()'s 3-value shorthand (top, right/left, bottom) sets right and left to 0 at once, as the
-  // 4-value form's explicit third 0 did; one fewer "_0" in the compiled selector and declaration.
-  "motion-safe:[clip-path:inset(var(--ouro-composer-inset)_0_0_round_var(--ouro-composer-radius))] " +
+  // ouro-composer-clip (ouro-base.css) is a shared @utility, not an arbitrary-value class: the
+  // latter would repeat this clip-path as its own escaped selector, as ouro-fade-end's comment notes.
+  "motion-safe:ouro-composer-clip " +
   "data-[ouro-moving=grow]:motion-safe:animate-[ouro-composer-reveal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
   "data-[ouro-moving=shrink]:motion-safe:animate-[ouro-composer-conceal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] data-[ouro-moving=shrink]:justify-end";
 
@@ -611,7 +612,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   // The frame, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
   const frameRef = useRef<HTMLDivElement | null>(null);
   const height = useRef<{ expanded: boolean; px: number } | null>(null);
-  const move = useRef<{ end: () => void; full: number } | null>(null);
+  const move = useRef<{ end: (duringEffect?: boolean) => void; full: number } | null>(null);
   // A collapse keeps the toolbar on screen while it fades out; the render that collapses sets this.
   const [wasExpanded, setWasExpanded] = useState(expanded);
   const [leaving, setLeaving] = useState(false);
@@ -773,7 +774,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression,OptionalChaining: a render that changes nothing during a move and one that restarts it with the same result differ only in frames a test cannot sample.
     if (running && height.current?.expanded === expanded) return;
     const shown = running ? running.full - clipTop(frame) : frame.offsetHeight;
-    running?.end();
+    running?.end(true);
     const toolbarElement = frame.querySelector<HTMLElement>("[data-ouro-composer-toolbar]");
     // Stryker disable next-line ConditionalExpression,LogicalOperator,StringLiteral: the hidden toolbar only changes the short height by the toolbar row, which the sampled browser tests cover but a mutant run cannot tell from the long one.
     if (toolbarElement && leaving) toolbarElement.style.display = "none";
@@ -800,11 +801,26 @@ export function Composer(props: ComposerProps): JSX.Element {
     const playing = new Promise<void>((resolve) => (finish = resolve));
     let frames = 0;
     let ended = false;
-    const end = () => {
+    const end = (duringEffect = false) => {
       if (ended) return;
       ended = true;
       // Stryker disable next-line all: cancelling the pending frame only stops a callback that the ended guard already ignores.
       cancelAnimationFrame(frames);
+      // A collapse's toolbar unmounts here (leaving turns false), and that has to land before the two
+      // lines below it: clearing data-ouro-moving lets --ouro-composer-inset, a registered property,
+      // snap back to its own initial value (0, unclipped) on this same paint, and clearing minHeight
+      // lets the frame take its natural height on that same paint too. Left to its own schedule, the
+      // toolbar's unmount is a React commit the browser can paint after both of those, showing the
+      // frame at its full natural height with the toolbar still mounted for one frame before it goes.
+      // flushSync forces that commit now, while the frame is still clipped and pinned, so the
+      // toolbar is already gone by the time either property is cleared. The two callers that pass
+      // duringEffect run from inside a React lifecycle already — a move interrupted by another
+      // render (running?.end() above) runs from this very layout effect, and a move cut short by
+      // the box unmounting runs from a useEffect's own cleanup — where a plain setLeaving already
+      // lands before the next paint on its own; flushSync there, from inside React's own render
+      // or teardown, is the call React warns against.
+      if (duringEffect) setLeaving(false);
+      else flushSync(() => setLeaving(false));
       frame.removeAttribute("data-ouro-moving");
       frame.style.minHeight = "";
       frame.style.removeProperty("--ouro-composer-gap");
@@ -812,7 +828,6 @@ export function Composer(props: ComposerProps): JSX.Element {
       // Stryker disable next-line StringLiteral: clearing the paused state or writing any other value plays the animation the same.
       for (const element of elements) element.style.animationPlayState = "";
       move.current = null;
-      setLeaving(false);
       finish();
     };
     move.current = { end, full: expanded ? px : Math.max(from, px) };
@@ -822,14 +837,14 @@ export function Composer(props: ComposerProps): JSX.Element {
         for (const element of elements) element.style.animationPlayState = "";
         void Promise.allSettled(frame.getAnimations({ subtree: true }).map((animation) => animation.finished)).then(() => {
           // One more frame, so the browser reports the animations' ends before they are removed.
-          frames = requestAnimationFrame(end);
+          frames = requestAnimationFrame(() => end());
         });
       });
     });
     frame.dispatchEvent(new CustomEvent<ComposerMove>("ouro-composer-move", { bubbles: true, detail: { from, to: px, playing } }));
   });
   // Stryker disable next-line ArrowFunction,ArrayDeclaration: the cleanup only settles a move an unmount cut short, which leaves nothing a test can read.
-  useEffect(() => () => move.current?.end(), []);
+  useEffect(() => () => move.current?.end(true), []);
   // Changes the text as the browser's own editing does, so Undo and Redo step through them; never in a read-only box.
   const edit = (change: (textarea: HTMLTextAreaElement) => void) => {
     const textarea = textareaRef.current!;

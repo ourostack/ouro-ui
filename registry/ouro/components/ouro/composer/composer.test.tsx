@@ -1409,6 +1409,29 @@ describe("Composer expanded motion", () => {
     expect(frameOf(root).hasAttribute("data-ouro-moving")).toBe(false);
   });
 
+  it("takes the collapsing toolbar out of the DOM in the same commit that clears data-ouro-moving, with no frame showing the full-height box and the toolbar together", async () => {
+    const { root } = await render(<Composer label="Reply" defaultExpanded toolbar={<span>Tools</span>} onSend={() => {}} />);
+    const frame = frameOf(root);
+    const toolbar = () => root.querySelector('[data-ouro-part="toolbar"]');
+    await act(async () => expandButton()!.click());
+    expect(frame.hasAttribute("data-ouro-moving")).toBe(true);
+    // flushSync forces the toolbar's unmount to commit before data-ouro-moving clears (see the comment
+    // on `end` in composer.tsx); without it, the unmount is a later, separately scheduled React commit,
+    // so a MutationObserver callback woken by the attribute clearing (a microtask, ahead of that
+    // scheduled commit) would still see the toolbar in the DOM.
+    let toolbarGoneWhenMovingCleared: boolean | null = null;
+    const observer = new MutationObserver(() => {
+      if (toolbarGoneWhenMovingCleared === null && !frame.hasAttribute("data-ouro-moving")) toolbarGoneWhenMovingCleared = toolbar() === null;
+    });
+    observer.observe(frame, { attributes: true, attributeFilter: ["data-ouro-moving"] });
+    try {
+      await expect.poll(() => toolbarGoneWhenMovingCleared).not.toBeNull();
+      expect(toolbarGoneWhenMovingCleared).toBe(true);
+    } finally {
+      observer.disconnect();
+    }
+  });
+
   it("takes the toolbar away at once when motion is reduced", async () => {
     const { root } = await render(<Composer label="Reply" defaultExpanded toolbar={<span>Tools</span>} onSend={() => {}} />);
     try {
