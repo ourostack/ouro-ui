@@ -71,7 +71,7 @@ describe("the chat app page", () => {
     await page.getByRole("radio", { name: "Empty" }).click();
     const empty = document.querySelector<HTMLElement>('[data-ouro="moment"][data-moment="empty"]')!;
     expect(empty.querySelector("[data-moment-art]")).not.toBeNull();
-    expect(empty.querySelector("svg")).not.toBeNull();
+    expect(empty.querySelector("[data-moment-art] img")).not.toBeNull();
     const pane = empty.parentElement!.getBoundingClientRect();
     const box = empty.getBoundingClientRect();
     expect(Math.abs(box.top - pane.top - (pane.bottom - box.bottom))).toBeLessThan(2);

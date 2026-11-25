@@ -16,7 +16,7 @@ import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { CodeBlock } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
-import { TrayArt } from "./tray-art";
+import { SpotArt } from "./spot-art";
 
 // A whole calendar screen from Ouro's parts with made-up events, as an app would assemble it: a week on TimeGrid with a
 // Day, Work week and Week switch, a Calendar in a popover to jump to a date, a New event button and a press on an
@@ -302,7 +302,7 @@ function Screen(): JSX.Element {
         />
       </Popover>
       {stage === "empty" ? (
-        <Moment kind="empty" art={<TrayArt />} title="Nothing on this week" description="Press an empty slot, or New event, to add something." />
+        <Moment kind="empty" size="hero" art={<SpotArt name="empty-week" />} title="Nothing on this week" description="Press an empty slot, or New event, to add something." />
       ) : null}
       <div className="h-160 min-h-0 overflow-hidden">
         {stage === "loading" ? (
