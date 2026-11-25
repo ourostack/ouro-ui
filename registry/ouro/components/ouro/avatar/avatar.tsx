@@ -167,10 +167,14 @@ export interface AvatarPresenceProps {
    * too, shows through the gap. The dot lies over the corner and takes no room, so
    * the initials, icon or picture stay in the middle with or without it, and the dot stays
    * below the letters at every size. `"unknown"` keeps the dot in the tree but draws neither it
-   * nor the bite, for a face whose presence has not loaded yet.
+   * nor the bite, for a face whose presence has not loaded yet. Each state's color is also its
+   * own `--ouro-presence-<state>` custom property (and `-foreground` for the mark on a filled
+   * dot), read before the named tone above, so a Teams-themed app can draw Away as amber without
+   * changing every other use of the warning tone: `:root { --ouro-presence-away: #c19c00; }`.
    * @claim "The dot lies over the corner" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > keeps the initials in the middle with or without a dot, and the dot off them (%s))
    * @claim "The dot lies over the corner" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > keeps an icon and a picture in the middle with a dot, as without one)
    * @claim "Each state has its own shape" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > draws each state in its own shape and tone)
+   * @claim "own `--ouro-presence-<state>` custom property" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar presence > reads --ouro-presence-<state> before the named tone, so an app can re-point one state alone)
    */
   presence: AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never });
   /**
@@ -455,6 +459,19 @@ function avatarHint(token: string): string {
   return `remove "${token}"; Avatar colors its initials from the name, or pass color="neutral"`;
 }
 
+// Each state's dot reads its own --ouro-presence-* custom property before the general tone it
+// shipped with, so an app (a Teams-themed one, drawing Away as amber rather than Ouro's warning
+// orange) can re-point one state's color without changing every other use of that tone. Unset,
+// every dot draws exactly as it did before these existed.
+const available = "fill-(--ouro-presence-available,var(--success))";
+const availableInk = "stroke-(--ouro-presence-available-foreground,var(--success-foreground))";
+const busy = "fill-(--ouro-presence-busy,var(--destructive))";
+const busyInk = "stroke-(--ouro-presence-busy-foreground,var(--destructive-foreground))";
+const away = "fill-(--ouro-presence-away,var(--warning))";
+const awayInk = "stroke-(--ouro-presence-away-foreground,var(--warning-foreground))";
+const offline = "stroke-(--ouro-presence-offline,var(--muted-foreground))";
+const outOfOffice = "stroke-(--ouro-presence-out-of-office,var(--primary))";
+
 /** The presence dot's glyph: a shape per state, so color is not the only cue. */
 function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: boolean }): JSX.Element {
   const line = { fill: "none", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round" } as const;
@@ -462,33 +479,33 @@ function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: b
     <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className="block size-full">
       {presence === "available" && (
         <>
-          <circle cx="8" cy="8" r="8" className="fill-success" />
-          {!plain && <path d="M4.75 8.25 7 10.5l4.25-4.5" {...line} className="stroke-success-foreground" />}
+          <circle cx="8" cy="8" r="8" className={available} />
+          {!plain && <path d="M4.75 8.25 7 10.5l4.25-4.5" {...line} className={availableInk} />}
         </>
       )}
-      {presence === "busy" && <circle cx="8" cy="8" r="8" className="fill-destructive" />}
+      {presence === "busy" && <circle cx="8" cy="8" r="8" className={busy} />}
       {presence === "do-not-disturb" && (
         <>
-          <circle cx="8" cy="8" r="8" className="fill-destructive" />
-          {!plain && <path d="M4.5 8h7" {...line} className="stroke-destructive-foreground" />}
+          <circle cx="8" cy="8" r="8" className={busy} />
+          {!plain && <path d="M4.5 8h7" {...line} className={busyInk} />}
         </>
       )}
       {presence === "away" && (
         <>
-          <circle cx="8" cy="8" r="8" className="fill-warning" />
-          {!plain && <path d="M8 4.5v3.75l2.5 1.5" {...line} className="stroke-warning-foreground" />}
+          <circle cx="8" cy="8" r="8" className={away} />
+          {!plain && <path d="M8 4.5v3.75l2.5 1.5" {...line} className={awayInk} />}
         </>
       )}
       {presence === "offline" && (
         <>
-          <circle cx="8" cy="8" r="7" {...line} strokeWidth={2} className="stroke-muted-foreground" />
-          {!plain && <path d="m5.75 5.75 4.5 4.5m0-4.5-4.5 4.5" {...line} className="stroke-muted-foreground" />}
+          <circle cx="8" cy="8" r="7" {...line} strokeWidth={2} className={offline} />
+          {!plain && <path d="m5.75 5.75 4.5 4.5m0-4.5-4.5 4.5" {...line} className={offline} />}
         </>
       )}
       {presence === "out-of-office" && (
         <>
-          <circle cx="8" cy="8" r="7" {...line} strokeWidth={2} className="stroke-primary" />
-          {!plain && <path d="M11 8H5.25M7.5 5.5 5 8l2.5 2.5" {...line} className="stroke-primary" />}
+          <circle cx="8" cy="8" r="7" {...line} strokeWidth={2} className={outOfOffice} />
+          {!plain && <path d="M11 8H5.25M7.5 5.5 5 8l2.5 2.5" {...line} className={outOfOffice} />}
         </>
       )}
     </svg>
