@@ -2294,7 +2294,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   const mySpecs = installSpecShard(specs.slice(0, 3), { index: 2, count: 2 });
   assert.ok(mine.length > 0 && mySpecs.length > 0);
   const escaped = (paths) => paths.join(" ").replace(/[.]/g, "\\.");
-  assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=2 ${escaped(mine)}$`, "m"));
+  assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=1 ${escaped(mine)}$`, "m"));
   assert.match(shard.stdout, new RegExp(`^npx playwright test --fully-parallel --reporter=list ${escaped(mySpecs)}$`, "m"));
   const empty = run({ OURO_SHARD: "2/2" });
   assert.equal(empty.status, 1);
@@ -2343,11 +2343,11 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   // In CI a shard's run adds the stall reporter, so a hang in the installed app fails in minutes and names what hung (#671).
   const watched = run({ CI: "1", OURO_SYSTEM_PACKAGES: "image", OURO_SHARD: "2/2" }, [...shipped, ...specs]);
   assert.equal(watched.status, 0, watched.stderr);
-  assert.match(watched.stdout, new RegExp(`^npx vitest run --maxWorkers=2 --reporter=default --reporter=${escaped([join(root, "scripts/stall-reporter-default.mts")])} ${escaped(mine)}$`, "m"));
+  assert.match(watched.stdout, new RegExp(`^npx vitest run --maxWorkers=1 --reporter=default --reporter=${escaped([join(root, "scripts/stall-reporter-default.mts")])} ${escaped(mine)}$`, "m"));
   assert.doesNotMatch(all.stdout + shard.stdout, /stall-reporter/);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
-  assert.match(some.stdout, /^npx vitest run --maxWorkers=2 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
+  assert.match(some.stdout, /^npx vitest run --maxWorkers=1 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
   assert.match(some.stdout, /^npx playwright test --fully-parallel --reporter=list --pass-with-no-tests --shard=1\/3 e2e\/ouro\/checkbox\.spec\.ts e2e\/ouro\/checkbox-group\.spec\.ts$/m);
 });
 
