@@ -394,7 +394,7 @@ export async function picture(page: Page, index: number, attributes?: string): P
  * from the same screenshot. A look that does not fit is taken by picture(). The crop is the clip's pixels, but a look that
  * starts between two pixels can differ from a clip by one level, so pictures are compared only with each other.
  */
-export async function pictureBatch(page: Page, looks: { index: number; attributes: string }[]): Promise<Map<number, Crop | null>> {
+export async function pictureBatch(page: Page, looks: { index: number; attributes: string }[], moved: string[] = []): Promise<Map<number, Crop | null>> {
   const out = new Map<number, Crop | null>();
   let left = [...looks];
   while (left.length > 0) {
@@ -471,6 +471,7 @@ export async function pictureBatch(page: Page, looks: { index: number; attribute
         continue;
       }
       if (now.x !== m.clip.x || now.y !== m.clip.y || now.right !== m.clip.x + m.clip.width || now.bottom !== m.clip.y + m.clip.height) {
+        moved.push(`${wanted.get(m.index)} moved ${now.x - m.clip.x},${now.y - m.clip.y} (box ${m.clip.width}x${m.clip.height})`);
         out.set(m.index, await picture(page, m.index, wanted.get(m.index)!));
         continue;
       }
@@ -732,8 +733,10 @@ export async function settled(page: Page): Promise<{ ready: number; reads: numbe
           reads.push(Date.now() - start);
           before = after;
           after = looks;
-          const now = JSON.stringify(after.map((l) => l.sig));
-          const same = now === last;
+          // An example still loading is not part of the page yet, and a list that follows its end moves its own scroll box after a late layout pass; neither changes what describe() reads of the looks around them.
+          const scrolls = await page.evaluate(() => [document.querySelectorAll("[data-site-demo-loading], [data-site-demo]:not([data-site-demo-ready])").length, document.fonts.status, ...[...document.querySelectorAll<HTMLElement>("[data-ouro]")].filter((el) => el.scrollTop !== 0 || el.scrollLeft !== 0).flatMap((el) => [el.scrollTop, el.scrollLeft])].join());
+          const now = JSON.stringify(after.map((l) => l.sig)) + scrolls;
+          const same = now === last && scrolls.startsWith("0,");
           last = now;
           return same;
         },
