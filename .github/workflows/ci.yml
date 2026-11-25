@@ -1527,8 +1527,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8,9,10,11,12]' || '[1,2,3,4,5,6]') }}
-    name: design (${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 12 || 6 }})
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]' || '[1,2,3,4,5,6]') }}
+    name: design (${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 24 || 6 }})
     steps:
       # Its checkout needs the base commit (HEAD^1), which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -1588,7 +1588,7 @@ jobs:
         with:
           targets: site/dist
           sizes: 390x844,1440x900,3840x2160
-          shard: ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 12 || 6 }}
+          shard: ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 24 || 6 }}
           script: registry/ouro/check/check.ts
           config: .github/ouro-check.json
           artifact: design-check

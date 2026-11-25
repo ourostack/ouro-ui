@@ -1883,10 +1883,10 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   const jobs = ciJobs();
   const block = jobs.design;
   assert.match(block, /^ {4}needs: \[plan\]$/m);
-  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 12 \|\| 6 \}\}\)$/m);
-  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12\]' \|\| '\[1,2,3,4,5,6\]'\) \}\}$/m);
+  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 24 \|\| 6 \}\}\)$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\]' \|\| '\[1,2,3,4,5,6\]'\) \}\}$/m);
   // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
-  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 12 \|\| 6 \}\}\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
+  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 24 \|\| 6 \}\}\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
   assert.doesNotMatch(block, /continue-on-error/);
   assert.match(block, /^ {6}- run: pnpm site:build$/m);
   // The plan decides whether its runners start at all (scripts/ci-relevance.mjs screens): off a pull request (the
