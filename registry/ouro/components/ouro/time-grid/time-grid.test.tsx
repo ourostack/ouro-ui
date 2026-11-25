@@ -974,6 +974,46 @@ describe("TimeGrid", () => {
       expect(parseFloat(cursor.style.scrollMarginTop)).toBeCloseTo(head.getBoundingClientRect().height, 0);
     });
 
+    it("starts on the first day at the working day's start when now is outside the week the grid shows", async () => {
+      const { grid } = await open({ now: "2026-03-20T15:10:00-04:00", workingHours: { start: 9, end: 17 } });
+      expect(named(grid)).toBe("Sunday, March 8, 9:00 AM");
+    });
+
+    it("starts on today, at the slot holding now, even when the working day starts earlier", async () => {
+      const { grid } = await open({ workingHours: { start: 8, end: 17 }, slotMinutes: 60 });
+      expect(named(grid)).toBe("Thursday, March 12, 10:00 AM");
+    });
+
+    it("stops at the last day, and at the last slot whatever its length", async () => {
+      const { grid } = await open({ slotMinutes: 60 });
+      await userEvent.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
+      expect(named(grid)).toBe("Saturday, March 14, 10:00 AM");
+      await userEvent.keyboard("{End}{ArrowDown}{PageDown}");
+      expect(named(grid)).toBe("Saturday, March 14, 11:00 PM");
+      await userEvent.keyboard("{Home}{ArrowUp}{PageUp}");
+      expect(named(grid)).toBe("Saturday, March 14, 12:00 AM");
+    });
+
+    it("draws no slots, and throws nothing, when the date is not a date", async () => {
+      const { grid } = await render({ view: "week", date: "not a date", onSlotSelect: vi.fn() });
+      expect(grid.querySelector('[role="grid"]')).toBeNull();
+    });
+
+    it("scrolls the slot below the sticky day header, from either end of the day", async () => {
+      const { grid } = await open({ className: "h-[20rem]" });
+      const clear = () => {
+        const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!.getBoundingClientRect();
+        const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!.getBoundingClientRect();
+        const area = viewport().getBoundingClientRect();
+        return [cursor.top >= head.bottom - 1, cursor.bottom <= area.bottom + 1];
+      };
+      await userEvent.keyboard("{End}");
+      await expect.poll(() => clear()[0]).toBe(true);
+      await userEvent.keyboard("{Home}");
+      await expect.poll(() => clear()[0]).toBe(true);
+      await expect.poll(() => clear()[1]).toBe(true);
+    });
+
     it("draws the slot with an outline-weight border that forced colours keep, and adds nothing without onSlotSelect", async () => {
       const { grid } = await open();
       const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
