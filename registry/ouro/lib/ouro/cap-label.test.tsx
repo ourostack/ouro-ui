@@ -21,4 +21,8 @@ describe("capLabel", () => {
     expect(renderToStaticMarkup(<Toggle label="Bold" />)).toContain(capLabelClass);
     expect(renderToStaticMarkup(<Toggle label="Bold" hideLabel />)).not.toContain(capLabelClass);
   });
+
+  it("unwraps a single text child instead of returning a one-element array", () => {
+    expect(Array.isArray(capLabel("Save"))).toBe(false);
+  });
 });
