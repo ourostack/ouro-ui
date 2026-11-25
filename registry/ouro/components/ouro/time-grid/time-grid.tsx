@@ -1226,10 +1226,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               ))}
             </>
           ) : null}
+          {allDay.length > 0 ? (
+            <>
           <div aria-hidden="true" className="flex items-start justify-end py-1 pe-2 text-[11px] leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
             {allDayLabel}
           </div>
-          {allDay.length > 0 ? (
             <ul
               role="list"
               aria-label={allDayLabel}
@@ -1242,9 +1243,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                 </li>
               ))}
             </ul>
-          ) : (
-            <div aria-hidden="true" style={{ minHeight: "2rem" }} />
-          )}
+            </>
+          ) : null}
         </div>
         <div data-ouro-time-grid-body="" className="relative grid" style={{ gridTemplateColumns: columns, height: minutesTall(dayLength) }}>
           {onSlotSelect && days.length > 0 ? (

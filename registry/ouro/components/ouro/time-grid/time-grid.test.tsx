@@ -433,12 +433,13 @@ describe("TimeGrid", () => {
   });
 
   it("writes day names, hours and times in the locale", async () => {
-    const { grid } = await render({ locale: "de-DE", view: "day", events: [forum], allDayLabel: "Ganztägig" });
+    const { grid, rerender } = await render({ locale: "de-DE", view: "day", events: [forum], allDayLabel: "Ganztägig" });
     expect(dayLists()[0]!.getAttribute("aria-label")).toBe("Donnerstag, 12. März");
     expect(plain(grid.querySelector("[data-ouro-time-grid-body] > [aria-hidden] span")!.textContent)).toBe("01 Uhr");
     const shownRange = new Intl.DateTimeFormat("de-DE", { hour: "numeric", minute: "2-digit", timeZone: zone }).formatRange(new Date(forum.start), new Date(forum.end!));
     expect(plain(named("Donnerstag").getAttribute("aria-label"))).toBe(plain(`Architecture forum, ${shownRange}, Donnerstag, needs your answer, Main auditorium`));
     expect(plain(grid.querySelector("[data-ouro-time-grid-now-label]")!.textContent)).toBe("10:41");
+    await rerender({ locale: "de-DE", view: "day", events: [forum, { id: "free", title: "Feiertag", start: "2026-03-12", end: "2026-03-13" }], allDayLabel: "Ganztägig" });
     expect(grid.querySelector("[data-ouro-time-grid-head]")!.textContent).toContain("Ganztägig");
     // The now label drops AM and PM, before the time or after it.
     await render({ locale: "ko-KR", view: "day" });
@@ -922,7 +923,7 @@ describe("TimeGrid", () => {
     const lines = (title: string) => titled(title).querySelector<HTMLElement>(":scope > span > span[style]")!.style.getPropertyValue("--ouro-lines");
     expect([lines("Design review"), lines("Launch rehearsal"), lines("Writing")]).toEqual(["1", "2", "3"]);
     expect(parts("Workshop")).toEqual(["Workshop", "7:00 – 8:15 PM", "Lab"]);
-    expect(titled("Workshop").querySelectorAll('[dir="auto"]')).toHaveLength(2);
+    expect(titled("Workshop").querySelectorAll('[dir="auto"]')).toHaveLength(1);
     expect(plain(titled("Check-in").getAttribute("aria-label"))).toBe("Check-in, 9:00 – 9:45 PM, Thursday");
     // Each name starts with the words its event shows, in the order it shows them; the end of a one-line event's time comes after.
     expect(plain(titled("Standup").getAttribute("aria-label"))).toBe("Standup, 9:30 AM – 9:45 AM, Thursday");
@@ -965,7 +966,7 @@ describe("TimeGrid", () => {
     const { grid } = await render({ view: "work-week", events: [{ id: "sat", title: "Hike", start: "2026-03-14", end: "2026-03-15" }] });
     expect(events()).toEqual([]);
     expect(grid.querySelectorAll("ul")).toHaveLength(0);
-    expect(grid.querySelector<HTMLElement>("[data-ouro-time-grid-head] > div:last-child")!.style.minHeight).toBe("2rem");
+    expect(grid.querySelector("[data-ouro-time-grid-head]")!.textContent).not.toContain("All day");
   });
 
   it("puts a timed event of a day or more in the all-day row, and cuts one across midnight into each day", async () => {

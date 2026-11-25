@@ -1,0 +1,1 @@
+- Changed: TimeGrid draws the All day row only when an event fills it, so an empty week no longer keeps a blank strip under the day names.
