@@ -33,6 +33,7 @@ Type: `AttachmentProps`.
 | `href` | `string` |  | Where the file opens or downloads. With it, the attachment is a link named by the file and its size. |
 | `icon` | `ReactNode` |  | An icon to show instead of the one for the file's kind, such as the app's own file-type icons. |
 | `kind` | `"audio" \| "code" \| "video" \| "image" \| "sheet" \| "doc" \| "slides" \| "pdf" \| "zip" \| "file"` | from `contentType`, then the name's extension, else "file" | The kind of file, for its icon, when the type and the name do not say: a document, a spreadsheet, slides, a PDF, an image, a video, audio, an archive, code, or any other file. |
+| `kindLabel` | `((kind: AttachmentKind) => string)` | `"Document"`, "Spreadsheet", "Slides", "PDF", "Image", "Video", "Audio", "Archive", "Code", "File" | Writes the kind under the name when `size` is not a byte count, for other languages: "Document", "Spreadsheet". |
 | `name` (required) | `string` |  | The file's name, as the user sees it: "menu.pdf". Required, so every file has a name. |
 | `onOpen` | `((event: MouseEvent<HTMLElement>) => void)` |  | Opens the file in the app, for example in a `Lightbox`. Without `href` the attachment is a button that calls it. With `href` it stays a link: a plain click calls it instead of following the link, and a click with a modifier key (a new tab, a new window) or the middle button follows the link as usual. |
 | `onRemove` | `(() => void)` |  | Shows a remove button, which calls this. Use it while composing a message, before it is sent. |
@@ -61,5 +62,15 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your cl
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `AttachmentKind`
+
+What kind of file an attachment is, which picks its icon.
+
+```ts
+type AttachmentKind = "doc" | "sheet" | "slides" | "pdf" | "image" | "video" | "audio" | "zip" | "code" | "file";
+```
 
 [^layout-classes]: test:registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > forwards a ref and lets app layout classes win verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > forwards a ref and lets app layout classes win)
