@@ -50,7 +50,7 @@ async function settle(scroller: HTMLElement) {
     )
     .toBe(true);
   // And the messages have come to rest from the springs, so where each is drawn is where it is laid out.
-  await expect.poll(() => scroller.querySelector("[data-ouro-settling]"), { interval: 0 }).toBeNull();
+  await expect.poll(() => scroller.querySelector("[data-ouro-settling]"), { interval: 16 }).toBeNull();
 }
 
 beforeEach(() => {
