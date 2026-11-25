@@ -423,6 +423,18 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     /* istanbul ignore next @preserve -- body always carries an opaque bg-background fill (app.css's base layer), so the loop above always returns there or sooner */
     return true;
   };
+  // Whether `el` is positioned at (x, y) on paper but a scrollable ancestor's overflow cuts it off there, so nothing of
+  // `el` is actually painted at that point: a hit test there lands on whatever else is on the page, not a cover of
+  // `el`, and that unrelated element's own opacity says nothing about whether `el` can be seen through it.
+  const clippedAway = (el: Element, x: number, y: number): boolean => {
+    for (let n = el.parentElement; n; n = n.parentElement) {
+      const s = getComputedStyle(n);
+      if (!/hidden|auto|scroll|clip/.test(s.overflow + s.overflowX + s.overflowY)) continue;
+      const r = n.getBoundingClientRect();
+      if (x < r.left || x >= r.right || y < r.top || y >= r.bottom) return true;
+    }
+    return false;
+  };
   // A hairline under 2px is too thin for `visible`, which wants a box a person can see whole, so it is found on its own.
   const thin = all.filter((el) => {
     const r = el.getBoundingClientRect();
@@ -484,13 +496,13 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
               const r = bar.getBoundingClientRect();
               return !bar.contains(l.el) && x > r.left && x < r.right && y >= r.top && y < r.bottom;
             });
-            if (under) return !opaqueCover(under);
+            if (under) return !clippedAway(l.el, x, y) && !opaqueCover(under);
             const offScreen = x < 0 || y < 0 || x >= innerWidth || y >= innerHeight;
             return (
               offScreen ||
               tries.some(([hx, hy]) => {
                 const hit = document.elementFromPoint(hx, hy);
-                return hit !== null && (l.el.contains(hit) || !opaqueCover(hit));
+                return hit !== null && (l.el.contains(hit) || (!clippedAway(l.el, hx, hy) && !opaqueCover(hit)));
               })
             );
           });

@@ -930,6 +930,11 @@ describe("findDesignIssues: doubled-line", () => {
     expect(of("doubled-line").map(({ detail }) => detail)).toEqual([line(0)]);
   });
 
+  it("passes a pair of hairline fills a scrollable ancestor clips away, even where an unrelated translucent box paints over their on-paper position", () => {
+    render(`<div style="height:40px;overflow-y:auto;width:320px"><div style="position:relative;height:400px"><span style="position:absolute;inset-inline:0;top:200px;height:1px;background:#bbb"></span><span style="position:absolute;inset-inline:0;top:205px;height:1px;background:#bbb"></span></div></div><div style="width:320px;height:300px;background:rgb(255 255 255 / 0.6)"></div>`);
+    expect(of("doubled-line")).toEqual([]);
+  });
+
   it("treats a cover with no fill of its own as resting on the page's own opaque background", () => {
     render(`<div style="border-bottom:1px solid #bbb;width:300px;height:20px"></div><div style="border-top:1px solid #bbb;width:300px;height:20px"></div><div style="position:fixed;inset:0;z-index:5"></div>`);
     expect(of("doubled-line")).toEqual([]);
