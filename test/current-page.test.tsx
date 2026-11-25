@@ -54,7 +54,7 @@ function expectCurrentMark(current: Element, other: Element, direction: "ltr" | 
 }
 
 /**
- * Navbar's and NavigationMenu's mark, FamilyBar's too: the current page underlined in the primary colour, 2px, on
+ * Navbar's and NavigationMenu's mark: the current page underlined in the primary colour, 2px, on
  * `mark` (the link, or a panel link's label), and no underline on `other`.
  */
 function expectUnderline(current: Element, other: Element, mark: Element = current) {

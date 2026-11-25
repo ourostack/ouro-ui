@@ -16,7 +16,7 @@ const escapeForRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\
 
 /**
  * Every kind of page, with the navigation landmarks it shows on a phone besides the header's (hidden) one: the page's
- * own, then the family footer's ("All sites") and the site's. The family bar ("Sites") is hidden on a phone, where the
+ * own, then the family footer's ("All sites") and the site's. The family bar ("Ouro family") is hidden on a phone, where the
  * menu lists the family's sites.
  */
 const framed = (...own: string[]) => [...own, "All sites", "Ouro UI"];

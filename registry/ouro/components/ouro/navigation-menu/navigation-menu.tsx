@@ -129,8 +129,8 @@ export interface NavigationMenuProps {
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
 // A row item, link or button: 44px with 16px text on a coarse pointer at every width, 36px
-// with 14px text with a fine one. The current page, or the section it is in, is underlined in the primary colour, as in
-// FamilyBar; forced colours keep the underline.
+// with 14px text with a fine one. The current page, or the section it is in, is underlined in the primary colour; forced
+// colours keep the underline.
 const rowItem =
   "press relative m-0 box-border inline-flex h-ouro-11 min-w-ouro-11 pointer-fine:h-9 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap " +
   "rounded-ouro-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-muted-foreground no-underline " +

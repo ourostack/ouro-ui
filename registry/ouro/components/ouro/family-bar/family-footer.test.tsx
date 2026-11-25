@@ -66,7 +66,7 @@ describe("FamilyFooter", () => {
     }
   });
 
-  it("renders the family's links in order in a labelled nav, the current site marked as in the bar, and the site's extras after them", async () => {
+  it("renders the family's links in order in a labelled nav, the current site marked with aria-current and a primary underline, and the site's extras after them", async () => {
     const { footer, link } = await render(
       <FamilyFooter links={sites} current="docs">
         <a href="/privacy">Privacy</a>
@@ -78,7 +78,7 @@ describe("FamilyFooter", () => {
     expect([...footer.querySelectorAll("[aria-current]")]).toEqual([link("Docs")]);
     expect(link("Docs").getAttribute("aria-current")).toBe("true");
     expect(getComputedStyle(link("Docs")).color).not.toBe(getComputedStyle(link("Guides")).color);
-    // A link at rest is underlined in the border colour, 1px; the current one in the primary colour, 2px, as in the bar.
+    // A link at rest is underlined in the border colour, 1px; the current one in the primary colour, 2px.
     expect(getComputedStyle(link("Guides")).textDecorationLine).toBe("underline");
     expect(getComputedStyle(link("Guides")).textDecorationThickness).toBe("1px");
     expect(getComputedStyle(link("Docs")).textDecorationLine).toBe("underline");
@@ -125,7 +125,7 @@ describe("FamilyFooter", () => {
     for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(44);
   });
 
-  it("keeps only the current site's underline under forced colours, which drop colour, as the bar does", async () => {
+  it("keeps only the current site's underline under forced colours, which drop colour", async () => {
     const { link } = await render(<FamilyFooter links={sites} current="docs" />);
     await commands.emulateMedia({ forcedColors: "active" });
     try {

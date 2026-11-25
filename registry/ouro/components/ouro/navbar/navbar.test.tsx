@@ -84,7 +84,7 @@ describe("Navbar current-page marks", () => {
   });
 
   for (const direction of ["ltr", "rtl"] as const) {
-    it(`underlines the current page in its ${direction} bar, as FamilyBar marks the current site`, async () => {
+    it(`underlines the current page in its ${direction} bar`, async () => {
       document.documentElement.dir = direction;
       await render(<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }, { label: "Cookbooks", href: "/cookbooks" }]} currentPath="/recipes" />);
       assertMark();
@@ -364,6 +364,7 @@ describe("Navbar", () => {
     });
   }
 
+  // Opens and closes the sheet three times, each a full slide; a loaded WebKit shard took 7.6 s.
   it("opens afresh after each close: the menu prop's state and the sheet's scroll as the first open had them", async () => {
     function Filter() {
       const [text, setText] = useState("");
@@ -396,7 +397,7 @@ describe("Navbar", () => {
       await userEvent.keyboard("{Escape}");
       await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden).toBe(true);
     }
-  });
+  }, 30_000);
 
   it("builds no sheet where the links fit the bar", async () => {
     await page.viewport(1024, 768);

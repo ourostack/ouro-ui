@@ -8,7 +8,8 @@ const links = [{ id: "home", label: "Lantern", href: "https://example.com/" }, {
 
 expectTypeOf<ComponentProps<typeof FamilyBar>>().toEqualTypeOf<FamilyBarProps>();
 expectTypeOf<{ links: typeof links }>().toExtend<FamilyBarProps>();
-expectTypeOf<{ links: typeof links; current: "docs"; label: "Sites"; brand: "Lantern"; className: "sticky top-0" }>().toExtend<FamilyBarProps>();
+expectTypeOf<{ links: typeof links; current: "docs"; heading: "Lantern family"; label: "Sites"; brand: "Lantern"; className: "sticky top-0" }>().toExtend<FamilyBarProps>();
+expectTypeOf<{ links: typeof links; heading: null }>().toExtend<FamilyBarProps>();
 expectTypeOf<{ id: "docs"; label: "Docs"; href: "/" }>().toExtend<FamilyLink>();
 
 // links is required, a link needs its id, label and href, and the guessed props name the fix.
@@ -19,6 +20,7 @@ expectTypeOf<{ id: "docs"; label: "Docs" }>().not.toExtend<FamilyLink>();
 expectTypeOf<{ links: typeof links; items: typeof links }>().not.toExtend<FamilyBarProps>();
 expectTypeOf<{ links: typeof links; currentPath: "/docs" }>().not.toExtend<FamilyBarProps>();
 expectTypeOf<{ links: typeof links; children: "Docs" }>().not.toExtend<FamilyBarProps>();
+expectTypeOf<{ links: typeof links; title: "Lantern family" }>().not.toExtend<FamilyBarProps>();
 
 // @ts-expect-error links is required.
 createElement(FamilyBar, {});

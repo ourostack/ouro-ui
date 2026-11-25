@@ -21,7 +21,8 @@ export const agentCases: AgentCase[] = [
     dev: fix,
     names: ["tsc", "dev"],
   },
+  { id: "familyBar04", habit: "a title for the visible heading", tsc: [hint("string", 'Use <FamilyBar heading="Lantern family">')], dev: '<FamilyBar heading="Lantern family">', names: ["tsc", "dev"] },
 ];
 
 /** Valid family-bar snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["familyBarOk01"];
+export const validSnippets: string[] = ["familyBarOk01", "familyBarOk02"];

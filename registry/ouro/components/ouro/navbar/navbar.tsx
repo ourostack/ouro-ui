@@ -136,8 +136,8 @@ const bar =
   "ps-[max(1rem,env(safe-area-inset-left,0px))] pe-[max(1rem,env(safe-area-inset-right,0px))]";
 
 // A link: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
-// fine one. The current page, or the section it is in, is underlined in the primary colour as in the bar's row and in
-// FamilyBar, not given a hover highlight; forced colours keep the underline.
+// fine one. The current page, or the section it is in, is underlined in the primary colour as in the bar's row,
+// not given a hover highlight; forced colours keep the underline.
 const link_ =
   "relative m-0 box-border items-center rounded-ouro-md px-3 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
   "text-base pointer-fine:text-sm leading-5 [-webkit-tap-highlight-color:transparent] " +
@@ -152,7 +152,7 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
 
 /**
  * The bar across the top of an app: your brand, the main links and a few controls, with
- * the current page marked `aria-current="page"`, and the link of the section it is in `aria-current="true"`, both underlined in the primary colour as in `FamilyBar`, distinct from hover and press highlights. A group of links (`{ label, links }`)
+ * the current page marked `aria-current="page"`, and the link of the section it is in `aria-current="true"`, both underlined in the primary colour, distinct from hover and press highlights. A group of links (`{ label, links }`)
  * opens a panel, as in `NavigationMenu`. Whenever the links do not fit, below the `collapseBelow` breakpoint and
  * wherever they overflow the bar, they collapse behind a menu button into a `Sheet` that slides in from
  * the side, with each group under its name; the brand and `actions` stay in the bar. When, below the collapse breakpoint,

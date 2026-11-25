@@ -15,5 +15,5 @@ const sites = [
 ];
 
 export default function FamilyBarDemo(): JSX.Element {
-  return <FamilyBar links={sites} current="docs" label="Lantern's sites" />;
+  return <FamilyBar links={sites} current="docs" heading="Lantern family" />;
 }
