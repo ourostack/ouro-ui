@@ -1540,6 +1540,32 @@ describe("TimeGrid", () => {
     expect(slot).toHaveBeenCalledTimes(2);
   });
 
+  it("starts a drag only from the primary mouse button, and captures the pointer so the drag follows it out of the column", async () => {
+    const slot = vi.fn();
+    const { grid } = await render({ view: "day", onSlotSelect: slot });
+    const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
+    const box = slots.getBoundingClientRect();
+    const y = (minutes: number) => box.top + (box.height * minutes) / 1440;
+    const fire = (type: string, minutes: number, pointerType: string, button: number) =>
+      slots.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType, button, pointerId: 46 }));
+    const capture = vi.spyOn(slots, "setPointerCapture").mockImplementation(() => {});
+    const preview = () => grid.querySelector("[data-ouro-time-grid-drag]");
+    for (const [pointerType, button] of [["touch", 0], ["mouse", 2], ["pen", 0]] as const) {
+      fire("pointerdown", 605, pointerType, button);
+      await act(async () => {});
+      fire("pointermove", 725, pointerType, button);
+      await act(async () => {});
+      expect(preview()).toBeNull();
+    }
+    expect(capture).not.toHaveBeenCalled();
+    fire("pointerdown", 605, "mouse", 0);
+    await act(async () => {});
+    expect(capture).toHaveBeenCalledWith(46);
+    fire("pointermove", 725, "mouse", 0);
+    await act(async () => {});
+    expect(preview()).not.toBeNull();
+  });
+
   it("ends a drag without a range on Escape or a cancelled pointer, and a touch or a drag back to its start still gives one slot", async () => {
     const slot = vi.fn();
     const { grid } = await render({ view: "day", onSlotSelect: slot });
