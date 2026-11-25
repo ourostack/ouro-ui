@@ -19,21 +19,6 @@ describe("the calendar page", () => {
     expect(routes.some((route) => route.path === "/docs/calendar-demo/")).toBe(true);
   });
 
-  it("opens a dialog from New event, asks for a title, and puts the event on the grid", async () => {
-    await renderPage("/docs/calendar-demo/");
-    await expect.element(page.getByRole("heading", { level: 1, name: "A calendar" })).toBeInTheDocument();
-    await page.getByRole("button", { name: "New event" }).click();
-    const dialog = page.getByRole("dialog", { name: "New event" });
-    await expect.element(dialog).toBeInTheDocument();
-    await dialog.getByRole("button", { name: "Create" }).click();
-    await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
-    await expect.poll(() => `${document.activeElement?.tagName}${document.activeElement?.getAttribute("aria-invalid")}`).toBe("INPUTtrue");
-    await dialog.getByRole("textbox", { name: /Title/ }).fill("Garden club");
-    await dialog.getByRole("button", { name: "Create" }).click();
-    await expect.element(dialog).not.toBeInTheDocument();
-    await expect.poll(() => document.body.textContent).toContain("Garden club");
-  });
-
   it("shows an empty week from the State switcher", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {
@@ -43,6 +28,27 @@ describe("the calendar page", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("opens a dialog from New event and asks for a title", async () => {
+    await renderPage("/docs/calendar-demo/");
+    await expect.element(page.getByRole("heading", { level: 1, name: "A calendar" })).toBeInTheDocument();
+    await page.getByRole("button", { name: "New event" }).click();
+    const dialog = page.getByRole("dialog", { name: "New event" });
+    await expect.element(dialog).toBeInTheDocument();
+    await dialog.getByRole("button", { name: "Create" }).click();
+    await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
+    await expect.poll(() => `${document.activeElement?.tagName}${document.activeElement?.getAttribute("aria-invalid")}`).toBe("INPUTtrue");
+  });
+
+  it("puts a new event on the grid once it has a title", async () => {
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: "New event" }).click();
+    const dialog = page.getByRole("dialog", { name: "New event" });
+    await dialog.getByRole("textbox", { name: /Title/ }).fill("Garden club");
+    await dialog.getByRole("button", { name: "Create" }).click();
+    await expect.element(dialog).not.toBeInTheDocument();
+    await expect.poll(() => document.body.textContent).toContain("Garden club");
   });
 
   it("leaves the now line off an empty week, and draws it on a week with events", async () => {
