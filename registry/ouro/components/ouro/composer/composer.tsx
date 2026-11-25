@@ -371,16 +371,17 @@ const frameClass =
   "relative box-border flex min-w-0 flex-col rounded-ouro-lg border border-solid border-input bg-card text-card-foreground " +
   "ouro-field-cue outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid has-[[data-ouro-composer-editor]:focus-visible]:outline-2 has-[[data-ouro-composer-editor]:focus-visible]:outline-solid " +
   "[&_textarea:focus-visible]:outline-0 group/frame " +
-  // No data-[ouro-moving] guard needed: idle, --ouro-composer-radius is unset, so the declaration
-  // is invalid at computed-value time and clip-path falls back to its own initial none; a move sets
-  // both properties inline, so this only ever clips while one runs. Reduced motion still needs its
-  // own gate, so a collapse's early return (above) still measures a clip-path of exactly none.
-  // --ouro-composer-inset needs no grow-start override either: animation-fill-mode both already
+  // --ouro-composer-inset needs no grow-start override: animation-fill-mode both already
   // applies the reveal keyframe's own "from" (--ouro-composer-gap) the instant data-ouro-moving is
   // set, mid-flight reversal included, which the turned-round-mid-way tests below measure directly.
   // inset()'s 3-value shorthand (top, right/left, bottom) sets right and left to 0 at once, as the 4-value
   // form's explicit third 0 did; one fewer "_0" in the compiled selector and declaration, net.
-  "motion-safe:[clip-path:inset(var(--ouro-composer-inset)_0_0_round_var(--ouro-composer-radius))] " +
+  // The data-[ouro-moving] gate stays on the clip-path itself (not just the animations): leaving it
+  // unconditional, so the rule is present at rest too, keeps Chromium treating the frame as if an
+  // @property-registered value were still live under this story's backdrop-filter, which never lets
+  // its compositor layer go quiet (the composer e2e spec's own painted-frame settle check catches
+  // this directly: CDP's screencast never idles for 300ms once the frame is clipped this way at rest).
+  "data-[ouro-moving]:motion-safe:[clip-path:inset(var(--ouro-composer-inset)_0_0_round_var(--ouro-composer-radius))] " +
   "data-[ouro-moving=grow]:motion-safe:animate-[ouro-composer-reveal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
   "data-[ouro-moving=shrink]:motion-safe:animate-[ouro-composer-conceal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] data-[ouro-moving=shrink]:justify-end";
 
