@@ -248,7 +248,7 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
   };
   const changed = (changedRow: Element) => {
     if (changedRow !== row) return;
-    if (layer.get(changedRow) === undefined) show(null, null, false);
+    if (layer.get(changedRow) === undefined) show(null, null, false, false);
     else {
       // Stryker disable next-line ArithmeticOperator: version only forces a new object identity, so the layer reads its row's new data; any other number does that too.
       setShown((previous) => ({ ...previous, version: previous.version + 1 }));
