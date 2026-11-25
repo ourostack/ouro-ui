@@ -232,26 +232,20 @@ export function Attachment(props: AttachmentProps): JSX.Element {
           {icon}
         </span>
       )}
-      <span className="flex min-w-0 flex-1 flex-col">
+      <span data-slot="attachment-body" className="flex min-w-0 flex-1 flex-col">
         <span data-ouro-attachment-name="" title={name} className="truncate font-medium">
           {name}
         </span>
+        {/* A space, so the link's name reads "menu.pdf 2 kB" or "budget.xlsx Spreadsheet". */}
+        <span className="sr-only"> </span>
         {validSize(size) ? (
-          <>
-            {/* A space, so the link's name reads "menu.pdf 2 kB". */}
-            <span className="sr-only"> </span>
-            <span data-ouro-attachment-size="" className="truncate text-xs text-muted-foreground tabular-nums">
-              {formatSize(size)}
-            </span>
-          </>
+          <span data-ouro-attachment-size="" className="truncate text-xs text-muted-foreground tabular-nums">
+            {formatSize(size)}
+          </span>
         ) : (
-          <>
-            {/* A space, so the link's name reads "budget.xlsx Spreadsheet". */}
-            <span className="sr-only"> </span>
-            <span data-ouro-attachment-kind="" className="truncate text-xs text-muted-foreground">
-              {kindLabel(kind)}
-            </span>
-          </>
+          <span data-ouro-attachment-kind="" data-slot="attachment-kind" className="truncate text-xs text-muted-foreground">
+            {kindLabel(kind)}
+          </span>
         )}
       </span>
     </>
