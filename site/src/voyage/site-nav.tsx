@@ -384,9 +384,13 @@ function Crossfade({ shown, panes }: { shown: string; panes: ReadonlyArray<{ id:
   useLayoutEffect(() => {
     const pane = box.current?.querySelector<HTMLElement>(`[data-site-pane="${shown}"]`);
     if (!pane) return;
-    const measure = () => setHeight(pane.offsetHeight);
-    measure();
-    const observer = new ResizeObserver(measure);
+    // The observer's own first callback, not an eager pane.offsetHeight read here: a read forces the browser to lay
+    // out the whole sheet synchronously, in the same task as the press that opens it, which this menu's heavier
+    // panels (the platform marks, Proof and Docs) made slow enough to push the press past its budget (#3628). The
+    // callback still runs after layout and before paint, on this same frame, so the box is sized before it shows.
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setHeight(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height);
+    });
     observer.observe(pane);
     return () => observer.disconnect();
   }, [shown]);
