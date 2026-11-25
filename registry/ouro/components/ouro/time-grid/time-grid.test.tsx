@@ -2900,6 +2900,17 @@ describe("TimeGridNav", () => {
     expect(onDateChange.mock.calls.map((call) => call[0])).toEqual(["2026-03-13", "2026-03-11"]);
   });
 
+  it("disables Today, Previous and Next while disabled, so the date stays where it is", async () => {
+    const { onDateChange, root } = mountNav();
+    await act(async () => root.render(<TimeGridNav date="2026-03-12" onDateChange={onDateChange} disabled />));
+    for (const name of ["Today", "Previous week", "Next week"]) {
+      const button = page.getByRole("button", { name }).element() as HTMLButtonElement;
+      expect(button.disabled).toBe(true);
+      button.click();
+    }
+    expect(onDateChange).not.toHaveBeenCalled();
+  });
+
   it("takes its own labels and warns about an appearance class", async () => {
     const { onDateChange, root } = mountNav();
     await act(async () => root.render(<TimeGridNav date="2026-03-12" onDateChange={onDateChange} labels={{ today: "Heute", previous: "Vorherige Woche", next: "Nächste Woche" }} />));

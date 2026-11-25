@@ -21,6 +21,8 @@ export interface TimeGridNavProps {
   timeZone?: string | undefined;
   /** The buttons' words, for other languages. @default { today: "Today", previous: "Previous week", next: "Next week" }, or "day" for a day's view */
   labels?: { today?: string | undefined; previous?: string | undefined; next?: string | undefined } | undefined;
+  /** Disables all three buttons, for while the grid's events load. @default false */
+  disabled?: boolean | undefined;
   /** Layout only: margins and placement. Appearance classes warn in development. */
   className?: string | undefined;
 }
@@ -50,7 +52,7 @@ const chevron = (d: string) => (
  * @claim "The grid takes the same keys" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > moves to the next or previous period with Page Down and Page Up, or Alt with the arrows, and to today with Alt+Shift+Y)
  */
 export function TimeGridNav(props: TimeGridNavProps): JSX.Element {
-  const { date, view, onDateChange, timeZone, labels, className } = props;
+  const { date, view, onDateChange, timeZone, labels, disabled = false, className } = props;
   useAppearanceClassNameCheck(
     "TimeGridNav",
     className,
@@ -73,17 +75,17 @@ export function TimeGridNav(props: TimeGridNavProps): JSX.Element {
   return (
     <div data-ouro="time-grid-nav" className={cn("inline-flex items-center gap-1", className)}>
       <Tooltip content={tip(today, ["alt", "shift", "y"])}>
-        <Button variant="outline" size="sm" onClick={() => onDateChange(todayOn(zonedClock(timeZone)))}>
+        <Button variant="outline" size="sm" disabled={disabled} onClick={() => onDateChange(todayOn(zonedClock(timeZone)))}>
           {today}
         </Button>
       </Tooltip>
       <Tooltip content={tip(previous, ["alt", "up"])}>
-        <Button variant="plain" tone="secondary" size="sm" aria-label={previous} onClick={() => onDateChange(addDays(date, -step))}>
+        <Button variant="plain" tone="secondary" size="sm" aria-label={previous} disabled={disabled} onClick={() => onDateChange(addDays(date, -step))}>
           {chevron("M10 3.5L5.5 8l4.5 4.5")}
         </Button>
       </Tooltip>
       <Tooltip content={tip(next, ["alt", "down"])}>
-        <Button variant="plain" tone="secondary" size="sm" aria-label={next} onClick={() => onDateChange(addDays(date, step))}>
+        <Button variant="plain" tone="secondary" size="sm" aria-label={next} disabled={disabled} onClick={() => onDateChange(addDays(date, step))}>
           {chevron("M6 3.5L10.5 8 6 12.5")}
         </Button>
       </Tooltip>

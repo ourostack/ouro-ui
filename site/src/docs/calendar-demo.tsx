@@ -208,7 +208,7 @@ function Screen(): JSX.Element {
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <TimeGridNav date={date} view={view} onDateChange={setDate} />
+        <TimeGridNav date={date} view={view} onDateChange={setDate} disabled={stage === "loading"} />
         <Heading level={2} size="md" className="me-auto min-w-0 max-sm:order-first max-sm:basis-full">
           {heading}
         </Heading>
