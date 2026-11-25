@@ -2061,7 +2061,7 @@ test("the conformance shards run only the checks' proofs on the first shard when
   assert.match(block, /^ {4}name: conformance \(\$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}\)$/m);
 });
 
-test("themes, conformance and mutation are each one check over their shards, which passes only when every shard passed", () => {
+test("conformance and mutation are each one check over their shards, which passes only when every shard passed", () => {
   const jobs = ciJobs();
   for (const [check, needs] of [["conformance", "plan, conformance-shard"], ["themes", "plan, themes-shard"], ["mutation", "plan, mutation-plan, mutation-shard"]]) {
     assert.match(jobs[check], new RegExp(`^ {4}needs: \\[${needs}\\]\n {4}if: ${untested.replace(/[$(){}!.]/g, "\\$&")}$`, "m"), check);
