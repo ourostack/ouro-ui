@@ -76,7 +76,7 @@ it("gives a background event's thin bar a 44px touch target that leaves the pers
 
 it("gives the +N chip a 44px touch target that the chip itself answers", async () => {
   const host = document.createElement("div");
-  host.style.width = "190px";
+  host.style.width = "216px";
   document.body.append(host);
   nodes.push(host);
   root = createRoot(host);
@@ -90,4 +90,6 @@ it("gives the +N chip a 44px touch target that the chip itself answers", async (
   const box = chip.getBoundingClientRect();
   expect(box.width).toBeGreaterThanOrEqual(44);
   for (const dy of [-21, 21]) expect(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2 + dy)?.closest("[data-slot=time-grid-more]")).toBe(chip);
+  // The fold counted the wider strip: a day this wide shows one event beside the chip, not two.
+  expect(host.querySelectorAll("[data-ouro-event-key]:not([data-slot=time-grid-more])")).toHaveLength(1);
 });

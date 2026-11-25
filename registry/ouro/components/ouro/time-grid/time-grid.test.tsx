@@ -111,6 +111,8 @@ describe("TimeGrid date and layout math", () => {
     expect(split(9.49)).toEqual([[["a"], ["b", "c"], [1]]]);
     expect(split(6.5)).toEqual([[["a"], ["b", "c"], [1]]]);
     expect(split(6.49)).toEqual([[[], ["a", "b", "c"], []]]);
+    // A wider chip strip, as a touch screen draws it, leaves a column fewer in the same width.
+    expect(foldsOf(three, 9.5, 2.75).map((fold) => fold.shown.map((placed) => placed.key))).toEqual([["a"]]);
     // A lone event is never folded, and an event's span stays inside the columns that show.
     expect(foldsOf(layoutDay([{ key: "x", start: 0, end: 60 }]), 2)).toEqual([]);
     const spread = layoutDay([

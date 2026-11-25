@@ -692,8 +692,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // server HTML and the first render draw them all, in steps, until a measure.
   const [dayWidth, setDayWidth] = useState(0);
   const [dayRem, setDayRem] = useState(16);
+  const [chipRem, setChipRem] = useState(2);
   const { shown, folds, reserved, stackOf } = useMemo(() => {
-    const folds = timed.map((placements) => (dayWidth > 0 ? foldsOf(placements, dayWidth / dayRem) : []));
+    const folds = timed.map((placements) => (dayWidth > 0 ? foldsOf(placements, dayWidth / dayRem, chipRem) : []));
     const folded = new Set(folds.flat().flatMap((fold) => fold.folded.map((placed) => placed.key)));
     const shown = timed.map((placements, index) => {
       const adjust = new Map(folds[index]!.flatMap((fold) => fold.shown.map((placed) => [placed.key, placed] as const)));
@@ -702,7 +703,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const members = new Map(folds.flat().flatMap((fold) => fold.folded.map((placed) => [placed.key, fold.folded] as const)));
     const reserved = new Set(folds.flat().flatMap((fold) => fold.shown.map((placed) => placed.key)));
     return { shown, folds, reserved, stackOf: new Map([...stackOfBackground, ...members]) };
-  }, [timed, dayWidth, dayRem, stackOfBackground]);
+  }, [timed, dayWidth, dayRem, chipRem, stackOfBackground]);
   const reachable = pieces.filter((piece) => (stackOf.get(piece.key)?.[0]!.key ?? piece.key) === piece.key);
 
   // The event with the Tab stop: the last one moved to, else the selected one, else the first.
@@ -794,6 +795,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const measure = () => {
       setDayWidth(day.getBoundingClientRect().width);
       setDayRem(parseFloat(getComputedStyle(document.documentElement).fontSize));
+      setChipRem(parseFloat(getComputedStyle(day).getPropertyValue("--ouro-time-grid-chip")));
     };
     // Measured here, not only in the observer's callback, but only when a day has events that
     // might fold: the observer's first notification runs after the layout effect's commit paints,
