@@ -90,6 +90,28 @@ describe("MessageList bar fade", () => {
   it("fades the bar out over the fast duration when the pointer leaves, then unmounts it, with reduced motion false", () => fadesOutThenUnmounts(false));
   it("fades the bar out over the fast duration when the pointer leaves, then unmounts it, with reduced motion true", () => fadesOutThenUnmounts(true));
 
+  it("fades a new bar in again after the old one fully ended and the pointer returned", async () => {
+    slowFade();
+    await render();
+    await shown("m0");
+    await expect.poll(() => bar()!.getAnimations().length).toBe(0);
+    await userEvent.unhover(document.body);
+    await expect.poll(() => bar()).toBeNull();
+    const seen: string[] = [];
+    const watch = new MutationObserver(() => {
+      const next = bar();
+      if (next !== null && seen.length === 0) seen.push(...next.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty));
+    });
+    watch.observe(document.body, { childList: true, subtree: true });
+    try {
+      await shown("m0");
+    } finally {
+      watch.disconnect();
+    }
+    expect(seen).toEqual(["opacity"]);
+    await expect.poll(() => getComputedStyle(bar()!).opacity).toBe("1");
+  });
+
   it("keeps the same bar, unfaded, when the pointer comes back during the exit", async () => {
     slowFade();
     await render();

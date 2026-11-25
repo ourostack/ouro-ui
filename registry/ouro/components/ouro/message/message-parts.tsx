@@ -390,8 +390,11 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     } else if (shown === null || parked || !host.parentNode?.isConnected) {
       host.parentNode?.removeChild(host);
     }
-    const bar = host.firstElementChild;
-    if (bar !== null && slot !== null && !entered.has(bar)) {
+    // The portal renders the bar in the same commit shown first holds data (the render above corrects shown synchronously
+    // before any commit), so a slot (which needs on, which needs shown to already match) never finds the host without a
+    // bar already in it: the firstElementChild assertion holds whenever slot !== null does.
+    if (slot !== null && !entered.has(host.firstElementChild!)) {
+      const bar = host.firstElementChild!;
       entered.add(bar);
       // Styled transparent once, then cleared, so the opacity runs as a transition.
       // Stryker disable next-line StringLiteral: the stylesheet reads the attribute's presence, never its value.
@@ -414,9 +417,8 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     const running = host!.firstElementChild?.getAnimations() ?? [];
     void Promise.allSettled(running.map((animation) => animation.finished)).then(() => {
       if (!current) return;
-      // The next showing fades in again.
-      /* istanbul ignore else @preserve -- the bar stays in the host while it ends, so firstElementChild is never null here */
-      if (host!.firstElementChild !== null) entered.delete(host!.firstElementChild);
+      // The next showing fades in again: the bar stays in the host while it ends, so firstElementChild is never null here.
+      entered.delete(host!.firstElementChild!);
       setParked(true);
     });
     return () => {
