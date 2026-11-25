@@ -111,8 +111,7 @@ async function openUncontrolled(props: Partial<PopoverProps> = {}) {
 
 describe("Popover", () => {
   it("keeps its fixed sizes at a compact --spacing: an 18rem panel", async () => {
-    await page.viewport(1280, 800);
-    const panel = await openUncontrolled();
+    const panel = await openUncontrolled({ presentation: "popover" });
     const width = () => parseFloat(getComputedStyle(panel).width);
     expect(width()).toBeCloseTo(288);
     panel.style.setProperty("--spacing", "0.2rem");
