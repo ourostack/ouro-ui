@@ -54,7 +54,7 @@ const variants: { variant: string; message: ReactElement; inList?: true; element
     components: 2,
   },
   { variant: "a message still being written", message: <Message role="assistant" variant="chat" name="Ana" streaming />, elements: 14, components: 2 },
-  { variant: "a message that did not send", message: <Message role="user" variant="chat" name="You" failed={{ onRetry: () => {}, onDelete: () => {} }}>Hello there</Message>, elements: 18, components: 10 },
+  { variant: "a message that did not send", message: <Message role="user" variant="chat" name="You" failed={{ onRetry: () => {}, onDelete: () => {} }}>Hello there</Message>, elements: 18, components: 8 },
   { variant: "a post", message: <Message role="assistant" variant="post" name="Ana" time="9:41 AM">Hello there</Message>, elements: 12, components: 2 },
   { variant: "a reply", message: <Message role="assistant" variant="reply" name="Ana" time="9:41 AM">Hello there</Message>, elements: 11, components: 2 },
   { variant: "a message in the default layout", message: <Message role="assistant" name="Ana">Hello there</Message>, elements: 7, components: 2 },

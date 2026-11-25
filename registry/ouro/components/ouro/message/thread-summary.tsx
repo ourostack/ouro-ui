@@ -7,12 +7,19 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
-/** Someone who replied in a thread: their name, and their picture if there is one. */
+/** Someone who replied in a thread: their name, their picture if there is one, and their id for colour. */
 export interface ThreadReplier {
   /** Their name, for the avatar's initials and for screen readers. */
   name: string;
   /** Their picture's URL. Without it the avatar shows initials. */
   src?: string | undefined;
+  /**
+   * Their id, so their face takes the same colour here as it does elsewhere (Avatar's `idForColor`).
+   * Without it the colour comes from `name`, so a renamed person's face changes colour.
+   *
+   * @claim "so their face takes the same" registry/ouro/components/ouro/message/thread-summary.test.tsx verify:testExists(registry/ouro/components/ouro/message/thread-summary.test.tsx::ThreadSummary > colours a replier's face by idForColor, matching the same id elsewhere, not by name)
+   */
+  idForColor?: string | undefined;
 }
 
 /** The props ThreadSummary adds to the `<div>` attributes it passes through. */
@@ -21,8 +28,8 @@ export interface ThreadSummaryOwnProps {
    * How many replies the thread has. With none, the summary is a single small "Reply" button
    * that opens the thread to write the first one. As a post's `thread`, that button sits at the
    * end of the post's line of name and time, so it adds no row. Where a mouse or trackpad points,
-   * it shows only while the pointer is over the post or focus is in it; on a touch screen it
-   * always shows, in the same place.
+   * it shows only while the pointer is over the post or focus is in it, unless `alwaysShown` is
+   * set; on a touch screen it always shows, in the same place.
    *
    * @claim "With none, the summary is a" registry/ouro/components/ouro/message/thread-summary.test.tsx verify:testExists(registry/ouro/components/ouro/message/thread-summary.test.tsx::ThreadSummary > is a single Reply button with no replies yet)
    * @claim "that button sits at the" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message post > puts Reply at the end of the name line when nobody has replied, adding no row)
@@ -67,6 +74,16 @@ export interface ThreadSummaryOwnProps {
   lastReplyLabel?: ((time: string) => string) | undefined;
   /** What screen readers hear for the repliers' avatars, for other languages. @default "Replied" */
   repliersLabel?: string | undefined;
+  /**
+   * Keeps the quiet Reply button visible in a post with no replies, where a mouse points, instead
+   * of showing it only on hover or focus. Pass it for a channel's posts, where a reader scanning
+   * must see which posts nobody has answered; leave it off for a chat message, where hover-only
+   * stays the default. Reply's place, size and style don't change: only whether it starts shown.
+   *
+   * @default false
+   * @claim "Keeps the quiet Reply button visible" registry/ouro/components/ouro/message/thread-summary.test.tsx verify:testExists(registry/ouro/components/ouro/message/thread-summary.test.tsx::ThreadSummary > alwaysShown keeps the quiet Reply visible with no hover or focus, in the same place and style)
+   */
+  alwaysShown?: boolean | undefined;
   /** Layout only: margins (`mt-1`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
@@ -123,6 +140,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
     lastReplyLabel = defaultLast,
     repliersLabel = "Replied",
     label,
+    alwaysShown = false,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     onClick,
@@ -161,13 +179,19 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
       data-ouro="thread-summary"
       // Stryker disable next-line StringLiteral: styles and tests read only whether the attribute is there, never its value.
       data-ouro-thread-summary-unanswered={replied ? undefined : ""}
-      className={cn("box-border flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1", !replied && quietReply, className)}
+      className={cn("box-border flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1", !replied && !alwaysShown && quietReply, className)}
     >
       {faces && (
         <AvatarGroup label={repliersLabel} size="xs">
           {/* Two letters at this size are noise: one initial, on the person's own colour, or their picture. */}
           {repliers.slice(0, 3).map((replier, index) => (
-            <Avatar key={`${replier.name}-${index}`} name={replier.name} src={replier.src} initials={[...replier.name.trim()][0]} />
+            <Avatar
+              key={`${replier.name}-${index}`}
+              name={replier.name}
+              src={replier.src}
+              idForColor={replier.idForColor}
+              initials={[...replier.name.trim()][0]}
+            />
           ))}
         </AvatarGroup>
       )}

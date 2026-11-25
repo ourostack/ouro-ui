@@ -1,0 +1,1 @@
+- Removed: `capLabel()` and cap-height text centering from #3527, reverted because it split button/badge text across separate `<span>` elements and made NVDA read "Back to recipes" as "Back torecipes", dropping the space between JSX-split children; it will be re-landed once it wraps a control's text as one combined node.

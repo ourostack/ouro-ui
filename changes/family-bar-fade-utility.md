@@ -1,0 +1,1 @@
+- Changed: FamilyBar's end-fade reads a shared `ouro-fade-end`/`ouro-fade-start` utility in `ouro-base.css` instead of repeating its `mask-image` text as arbitrary-value classes, so the row fades the same but a page that links it ships less CSS.

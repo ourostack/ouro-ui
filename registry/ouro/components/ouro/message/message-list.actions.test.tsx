@@ -242,7 +242,7 @@ describe("MessageList actions", () => {
     await render(<Channel count={3} />);
     await ready("m1");
     await act(async () => void window.dispatchEvent(new Event("blur")));
-    expect(bars()).toHaveLength(0);
+    await expect.poll(() => bars()).toHaveLength(0);
   });
 
   it("hides the bar when the menu opens", async () => {
@@ -250,7 +250,7 @@ describe("MessageList actions", () => {
     await ready("m1");
     await userEvent.click(page.getByRole("button", { name: "More actions" }));
     await expect.element(page.getByRole("menu", { name: "Message actions for Ana Lind" })).toBeVisible();
-    expect(bars()).toHaveLength(0);
+    await expect.poll(() => bars()).toHaveLength(0);
   });
 
   it("opens one menu from the bar's button and a right-click, with the reactions on top, and the same menu again for another message", async () => {
@@ -520,7 +520,7 @@ describe("MessageList actions", () => {
     expect(document.activeElement).toBe(message("m2"));
     await expect.poll(() => barIn("m2")).not.toBeNull();
     await userEvent.keyboard("{Escape}");
-    expect(bars()).toHaveLength(0);
+    await expect.poll(() => bars()).toHaveLength(0);
     expect(document.activeElement).toBe(message("m2"));
 
     await userEvent.keyboard("{Shift>}{F10}{/Shift}");

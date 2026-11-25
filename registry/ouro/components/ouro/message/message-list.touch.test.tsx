@@ -219,8 +219,8 @@ it("shows the list's one action bar on a tapped message, where the message itsel
     const tap = () => message.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" }));
     await expect.poll(async () => (await act(async () => void tap()), message.querySelector('[role="toolbar"]'))).not.toBeNull();
     expect(bars()).toHaveLength(1);
-    expect(getComputedStyle(message.querySelector('[role="toolbar"]')!).opacity).toBe("1");
+    await expect.poll(() => getComputedStyle(message.querySelector('[role="toolbar"]')!).opacity).toBe("1");
   }
   await act(async () => void document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" })));
-  expect(bars()).toHaveLength(0);
+  await expect.poll(() => bars().length).toBe(0);
 });

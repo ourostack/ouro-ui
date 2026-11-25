@@ -124,7 +124,10 @@ describe("transition rules", () => {
     // No fill holds this animation's end state, so once its clamped currentTime reaches its own endTime its computed
     // progress goes unresolved (null); stepTrace must fall back to reading the boundary from currentTime itself. Both
     // keyframes are the same value so reverting out of the active phase there makes no visible difference to judge.
-    const press = () => void document.getElementById("t-fallback")!.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 40 });
+    // Paused right away, as stepTrace itself always pauses a matched animation before driving it: a running 40ms
+    // animation would otherwise race stepTrace's own two-frame wait, which is real wall-clock time, and could finish
+    // (playState "finished") before stepTrace ever reads document.getAnimations(), dropping it from the trace entirely.
+    const press = () => document.getElementById("t-fallback")!.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 40 }).pause();
     const { result, faults } = await trace('<div id="t-fallback"></div>', press);
     const key = Object.keys(result.progress).find((k) => k.endsWith(":fade"));
     expect(key).toBeDefined();

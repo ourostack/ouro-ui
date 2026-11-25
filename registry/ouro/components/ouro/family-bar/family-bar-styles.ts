@@ -84,8 +84,8 @@ const familyScrollerClass =
   "@container box-content flex h-full min-w-0 flex-1 items-stretch gap-3 first:-ms-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden " +
   "pointer-coarse:snap-x pointer-coarse:snap-proximity scroll-px-8 " +
   "pointer-coarse:-my-[calc((44px-var(--ouro-family-h))/2)] pointer-coarse:py-[calc((44px-var(--ouro-family-h))/2)] " +
-  // fade-ok: it fades links, not a picture; gradient-ok: the row has no scroll bar, so this fade is what says more sites are cut off at its end (approved for the family strip, 2026-11-24).
-  "data-[more]:[mask-image:linear-gradient(to_right,#000_calc(100%-3rem),transparent)] rtl:data-[more]:[mask-image:linear-gradient(to_left,#000_calc(100%-3rem),transparent)]";
+  // Both read a shared utility (ouro-base.css): its mask-image declaration, and why it's allowed, live there.
+  "data-[more]:ouro-fade-end rtl:data-[more]:ouro-fade-start";
 
 /**
  * A link in a FamilyFooter's list: a FamilyBar link that looks like a link at rest, underlined in the border colour and

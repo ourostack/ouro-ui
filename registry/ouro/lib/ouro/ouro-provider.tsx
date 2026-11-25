@@ -3,7 +3,6 @@
 import { CSPProvider } from "@base-ui/react/csp-provider";
 import { Tooltip } from "@base-ui/react/tooltip";
 import { useEffect, useLayoutEffect, useMemo, type JSX, type ReactNode, type RefObject } from "react";
-import { installSquircleCapsules } from "@/registry/ouro/lib/ouro/squircle-capsules";
 import { TooltipsGrouped } from "@/registry/ouro/lib/ouro/portal-container";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { DefaultLink, OuroContext, useOuro, type OuroContextValue, type OuroLinkComponent, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
@@ -249,8 +248,14 @@ export function OuroProvider({
       if (quietProviders === 0) document.documentElement.removeAttribute("data-ouro-quiet");
     };
   }, [quiet]);
-  // Stryker disable next-line ArrayDeclaration: installSquircleCapsules takes only document, a stable reference, so any constant array runs this effect alike.
-  useEffect(() => installSquircleCapsules(document), []);
+  // The capsule watcher loads in a chunk of its own, and only where the engine lacks corner-shape, so most first loads never carry it.
+  useEffect(() => {
+    if (CSS.supports("corner-shape", "squircle") || !CSS.supports("clip-path", "shape(from 0 0, close)")) return;
+    const stop = import("@/registry/ouro/lib/ouro/squircle-capsules").then(({ installSquircleCapsules }) => installSquircleCapsules(document));
+    return () => void stop.then((uninstall) => uninstall());
+  },
+  // Stryker disable next-line ArrayDeclaration: the effect reads only document, a stable reference, so any constant array runs it alike.
+  []);
   const tooltips = (
     <Tooltip.Provider>
       <TooltipsGrouped value>{children}</TooltipsGrouped>
