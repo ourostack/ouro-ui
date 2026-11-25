@@ -41,7 +41,7 @@ export interface BreadcrumbProps {
   maxItems?: number | undefined;
   /** Names the navigation for screen readers. @default "Breadcrumb" */
   label?: string | undefined;
-  /** The name of the "…" button that opens the hidden steps. @default "More" */
+  /** The name of the more button, drawn as dots, that opens the hidden steps. @default "More" */
   moreLabel?: string | undefined;
   /** The text of the item that closes the hidden steps' sheet on a phone. @default "Close" */
   closeLabel?: string | undefined;
@@ -182,7 +182,12 @@ export function Breadcrumb(props: BreadcrumbProps): JSX.Element {
                     closeLabel={closeLabel}
                     trigger={
                       <button type="button" aria-label={moreLabel} data-ouro-control="breadcrumb" data-ouro-part="more" className={more}>
-                        <span aria-hidden="true">…</span>
+                        {/* Three dots drawn about the button's middle: a typed "…" would rest on the text's baseline, low in the button. */}
+                        <svg aria-hidden="true" viewBox="0 0 16 16" className="size-ouro-4" fill="currentColor">
+                          <circle cx="3" cy="8" r="1.25" />
+                          <circle cx="8" cy="8" r="1.25" />
+                          <circle cx="13" cy="8" r="1.25" />
+                        </svg>
                       </button>
                     }
                     items={hidden.map((step) => ({ label: step.label, href: step.href, disabled: step.href === undefined }))}

@@ -23,9 +23,9 @@ async function render(node: ReactNode) {
     get nav() {
       return host.querySelector<HTMLElement>('[data-ouro="breadcrumb"]')!;
     },
-    /** The visible trail: each crumb's text, and "…" for the menu button. */
+    /** The visible trail: each crumb's text, and "…" for the more button, which draws its dots as an icon. */
     get trail() {
-      return [...host.querySelectorAll<HTMLElement>("[data-ouro-breadcrumb-item]")].map((item) => item.textContent);
+      return [...host.querySelectorAll<HTMLElement>("[data-ouro-breadcrumb-item]")].map((item) => (item.querySelector('[data-ouro-part="more"]') ? "…" : item.textContent));
     },
   };
 }
