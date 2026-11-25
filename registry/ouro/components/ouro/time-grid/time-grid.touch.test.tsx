@@ -88,5 +88,6 @@ it("gives the +N chip a 44px touch target that the chip itself answers", async (
   expect(target.width).toBeGreaterThanOrEqual(44);
   expect(target.height).toBeGreaterThanOrEqual(44);
   const box = chip.getBoundingClientRect();
+  expect(box.width).toBeGreaterThanOrEqual(44);
   for (const dy of [-21, 21]) expect(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2 + dy)?.closest("[data-slot=time-grid-more]")).toBe(chip);
 });
