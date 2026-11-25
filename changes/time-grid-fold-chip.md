@@ -1,0 +1,1 @@
+- New: TimeGrid folds overlapping events that a narrow day (a phone, a work week, large text) has no room to read into a `+N` chip that opens their list; `moreLabel` sets its words.

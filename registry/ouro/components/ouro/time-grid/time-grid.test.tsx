@@ -551,16 +551,51 @@ describe("TimeGrid", () => {
     });
   }
 
-  it("hides the text of a stepped event whose visible lane is under 2rem, so none sits over the event that covers it", async () => {
-    const spans: Array<[string, string, string]> = [["Aa", "09:00", "12:00"], ["Bb", "09:00", "12:00"], ["Cc", "09:00", "12:00"], ["Dd", "09:00", "12:00"], ["Ee", "09:00", "12:00"]];
-    const { items, rem } = await placedBoxes(spans.map(([title, from, to]) => ({ id: title, title, start: at(12, from), end: at(12, to) })), "180px");
-    const lanes = items.map((item) => item.querySelector<HTMLElement>("span.flex-1")!);
-    await expect.poll(() => lanes.map((lane) => lane.getBoundingClientRect().width).join()).toBe(lanes.map((lane) => lane.getBoundingClientRect().width).join());
-    const narrow = lanes.filter((lane) => lane.getBoundingClientRect().width < 2 * rem);
-    const wide = lanes.filter((lane) => lane.getBoundingClientRect().width >= 2 * rem);
-    expect([narrow.length > 0, wide.length > 0]).toEqual([true, true]);
-    await expect.poll(() => narrow.every((lane) => [...lane.children].every((child) => getComputedStyle(child).visibility === "hidden"))).toBe(true);
-    expect(wide.every((lane) => [...lane.children].every((child) => getComputedStyle(child).visibility === "visible"))).toBe(true);
+  describe("folding overlapping events a day has no room for", () => {
+    const crowd = (count: number) => Array.from({ length: count }, (_, index) => ({ id: `c${index}`, title: `Event ${index}`, start: at(12, "09:00"), end: at(12, "12:00") }));
+    const chip = () => document.querySelector<HTMLElement>('[data-ouro-part="more"]');
+    const stack = () => document.querySelector<HTMLElement>('[data-ouro-part="stack"]');
+    const shown = () => events().filter((element) => !["more", "stack"].includes(element.getAttribute("data-ouro-part")!)).map((element) => element.getAttribute("aria-label")!.split(",")[0]);
+
+    it("draws every event, with no chip, where each keeps about three characters of its title", async () => {
+      await render({ view: "day", events: crowd(3) }, (grid) => <div style={{ width: "240px" }}>{grid}</div>);
+      await expect.poll(() => shown().length).toBe(3);
+      expect([chip(), stack()]).toEqual([null, null]);
+    });
+
+    it("shows the first events and folds the rest into a +N chip that lists them, in a day about 12 rem wide", async () => {
+      const onEventSelect = vi.fn();
+      await render({ view: "day", events: crowd(5), onEventSelect }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
+      await expect.poll(shown).toEqual(["Event 0", "Event 1"]);
+      expect([plain(chip()!.textContent), chip()!.getAttribute("aria-label")]).toEqual(["+3", "+3 more events"]);
+      // The chip is the folded events' Tab stop, after the shown ones.
+      expect(chip()!.tabIndex).toBe(-1);
+      await userEvent.click(chip()!);
+      await expect.element(page.getByRole("menuitem", { name: /Event 3/ })).toBeVisible();
+      expect(page.getByRole("menuitem").elements().map((element) => plain(element.textContent).split(" 9")[0])).toEqual(["Event 2", "Event 3", "Event 4"]);
+      await userEvent.click(page.getByRole("menuitem", { name: /Event 3/ }).element());
+      expect(onEventSelect.mock.calls[0]![0].id).toBe("c3");
+    });
+
+    it("folds a whole stack into one count where even the first event would be under its minimum, as in a phone's work week", async () => {
+      await render({ view: "day", events: crowd(3) }, (grid) => <div style={{ width: "130px" }}>{grid}</div>);
+      await expect.poll(stack).not.toBeNull();
+      expect([shown(), chip()]).toEqual([[], null]);
+      expect(stack()!.hasAttribute("data-background")).toBe(false);
+      expect(plain(stack()!.textContent)).toContain("3 events");
+    });
+
+    it("folds at 200% text, where a day of about 8 rem is too narrow for three", async () => {
+      const before = document.documentElement.style.fontSize;
+      document.documentElement.style.fontSize = "32px";
+      try {
+        await render({ view: "day", events: crowd(3) }, (grid) => <div style={{ width: "380px" }}>{grid}</div>);
+        await expect.poll(shown).toEqual(["Event 0"]);
+        expect(plain(chip()!.textContent)).toBe("+2");
+      } finally {
+        document.documentElement.style.fontSize = before;
+      }
+    });
   });
 
   it("covers an event only by a later column that overlaps it, and by the nearest such column", async () => {
