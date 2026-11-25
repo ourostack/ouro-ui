@@ -666,6 +666,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-drag`,
 `lib-use-field`,
 `lib-use-find-highlights`,
+`lib-use-fold-posture`,
 `lib-use-install-prompt`,
 `lib-use-keyboard-scrollable`,
 `lib-use-loading-visible`,
