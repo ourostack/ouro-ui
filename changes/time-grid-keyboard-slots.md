@@ -1,0 +1,1 @@
+- New: `TimeGrid` takes the keyboard to empty slots when `onSlotSelect` is set: one Tab stop, arrows move by step, day and hour, Home and End go to the day edges, and Enter or Space selects the slot.
