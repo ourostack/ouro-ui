@@ -50,6 +50,12 @@ export interface AttachmentOwnProps {
    * @claim "in steps of 1024" registry/ouro/components/ouro/message/attachment.test.tsx verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > names the file and gives its size in readable units) verify:fileLine(registry/ouro/components/ouro/message/attachment.test.tsx, /\[2048,\s"2\skB"\]/)
    */
   formatSize?: ((bytes: number) => string) | undefined;
+  /**
+   * Writes the kind under the name when `size` is not a byte count, for other languages: "Document", "Spreadsheet".
+   * @default "Document", "Spreadsheet", "Slides", "PDF", "Image", "Video", "Audio", "Archive", "Code", "File"
+   * @claim "Writes the kind under the name" registry/ouro/components/ouro/message/attachment.test.tsx verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > names the kind under the name when size is not a byte count)
+   */
+  kindLabel?: ((kind: AttachmentKind) => string) | undefined;
   /** Layout only: margins, width (`mt-2`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
@@ -89,6 +95,20 @@ function defaultFormatSize(bytes: number): string {
 }
 
 const validSize = (size: number | undefined): size is number => typeof size === "number" && Number.isFinite(size) && size >= 0;
+
+/** The kind's name, shown under the file name when `size` is not a byte count. */
+const kindLabels: Readonly<Record<AttachmentKind, string>> = {
+  doc: "Document",
+  sheet: "Spreadsheet",
+  slides: "Slides",
+  pdf: "PDF",
+  image: "Image",
+  video: "Video",
+  audio: "Audio",
+  zip: "Archive",
+  code: "Code",
+  file: "File",
+};
 
 const focusRing = "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
@@ -166,6 +186,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
     onRemove,
     removeLabel = (file: string) => `Remove ${file}`,
     formatSize = defaultFormatSize,
+    kindLabel = (fileKind: AttachmentKind) => kindLabels[fileKind],
     className,
     ref,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -211,18 +232,28 @@ export function Attachment(props: AttachmentProps): JSX.Element {
           {icon}
         </span>
       )}
-      <span data-ouro-attachment-name="" title={name} className="min-w-0 flex-1 truncate font-medium">
-        {name}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span data-ouro-attachment-name="" title={name} className="truncate font-medium">
+          {name}
+        </span>
+        {validSize(size) ? (
+          <>
+            {/* A space, so the link's name reads "menu.pdf 2 kB". */}
+            <span className="sr-only"> </span>
+            <span data-ouro-attachment-size="" className="truncate text-xs text-muted-foreground tabular-nums">
+              {formatSize(size)}
+            </span>
+          </>
+        ) : (
+          <>
+            {/* A space, so the link's name reads "budget.xlsx Spreadsheet". */}
+            <span className="sr-only"> </span>
+            <span data-ouro-attachment-kind="" className="truncate text-xs text-muted-foreground">
+              {kindLabel(kind)}
+            </span>
+          </>
+        )}
       </span>
-      {validSize(size) && (
-        <>
-          {/* A space, so the link's name reads "menu.pdf 2 kB". */}
-          <span className="sr-only"> </span>
-          <span data-ouro-attachment-size="" className="shrink-0 text-muted-foreground tabular-nums">
-            {formatSize(size)}
-          </span>
-        </>
-      )}
     </>
   );
   const inner = "flex min-h-ouro-11 min-w-0 flex-1 items-center gap-2 px-3 pointer-fine:min-h-ouro-9";
@@ -235,7 +266,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
       ref={merged}
       data-ouro="attachment"
       className={cn(
-        "relative box-border inline-flex max-w-full min-w-0 items-center rounded-ouro-lg border border-solid border-border bg-card",
+        "relative box-border inline-flex max-w-full min-w-0 items-center rounded-ouro-lg bg-card ring-1 ring-border/60 forced-colors:border forced-colors:border-solid",
         "align-middle text-base text-card-foreground pointer-fine:text-sm",
         className,
       )}
