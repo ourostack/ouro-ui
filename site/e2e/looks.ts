@@ -455,17 +455,24 @@ export async function pictureBatch(page: Page, looks: { index: number; attribute
     }
     const raw = await sharp(sheet).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     const scale = view.scale;
-    // Scrolling can wake the part of the page it reaches, so a look whose attributes changed during the screenshot is skipped, as picture() does.
+    // Scrolling can wake the part of the page it reaches, so a look whose attributes changed or whose box moved during the screenshot is not cropped: it is taken with picture(), as a look that never fit is.
     const after = await page
       .evaluate((indexes) => indexes.map((i) => {
         const el = document.querySelector<HTMLElement>(`[data-sweep-look="${i}"]`);
-        return el ? [...el.attributes].filter((a) => !a.name.startsWith("data-sweep-")).map((a) => `${a.name}=${a.value}`).sort().join(" ") : null;
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { attributes: [...el.attributes].filter((a) => !a.name.startsWith("data-sweep-")).map((a) => `${a.name}=${a.value}`).sort().join(" "), x: Math.floor(r.left), y: Math.floor(r.top), right: Math.ceil(r.right), bottom: Math.ceil(r.bottom) };
       }), here.map((m) => m.index))
       .catch(() => null);
-    here.forEach((m, n) => {
-      if (!after || after[n] !== wanted.get(m.index)) {
+    for (const [n, m] of here.entries()) {
+      const now = after?.[n];
+      if (!now || now.attributes !== wanted.get(m.index)) {
         out.set(m.index, null);
-        return;
+        continue;
+      }
+      if (now.x !== m.clip.x || now.y !== m.clip.y || now.right !== m.clip.x + m.clip.width || now.bottom !== m.clip.y + m.clip.height) {
+        out.set(m.index, await picture(page, m.index, wanted.get(m.index)!));
+        continue;
       }
       const x = Math.round(m.clip.x * scale);
       const y = Math.round(m.clip.y * scale);
@@ -474,7 +481,7 @@ export async function pictureBatch(page: Page, looks: { index: number; attribute
       const data = Buffer.alloc(width * height * 4);
       for (let row = 0; row < height; row++) raw.data.copy(data, row * width * 4, ((y + row) * raw.info.width + x) * 4, ((y + row) * raw.info.width + x + width) * 4);
       out.set(m.index, { data, width, height, scale });
-    });
+    }
     const done = new Set(here.map((m) => m.index));
     left = rest.filter((l) => !done.has(l.index));
   }
