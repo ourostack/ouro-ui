@@ -312,6 +312,37 @@ describe("the calendar page", () => {
     expect(document.activeElement?.closest('[data-ouro="time-grid"]')).not.toBeNull();
   });
 
+  it("puts focus in the grid after Delete even when the sheet takes ages to close", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
+    (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
+    await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    // A sheet that takes a long while to leave, so focus is handed back well after the delete.
+    const slow = document.createElement("style");
+    slow.setAttribute("data-test-harness", "");
+    slow.textContent = '[data-ouro="sheet"], [data-ouro="sheet"] * { transition-duration: 1500ms !important; }';
+    document.head.append(slow);
+    try {
+      await userEvent.click(page.getByRole("button", { name: "Delete" }));
+      await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null, { timeout: 10_000 }).toBe(true);
+    } finally {
+      slow.remove();
+    }
+  });
+
+  it("returns focus to Go to date when its popover is dismissed without a pick", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    const jump = page.getByRole("button", { name: /Go to date/ });
+    const button = jump.element();
+    await userEvent.click(jump);
+    await expect.poll(() => button.getAttribute("aria-expanded")).toBe("true");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => button.getAttribute("aria-expanded")).toBe("false");
+    await expect.poll(() => document.activeElement === button).toBe(true);
+  });
+
   it("keeps the slot cursor on the slot just created, so the keyboard does not start over", async () => {
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");

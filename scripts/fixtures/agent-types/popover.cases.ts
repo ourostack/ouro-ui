@@ -9,7 +9,7 @@ export const agentCases: AgentCase[] = [
     id: "popover02",
     habit: "a controlled popover with nothing to point at",
     tsc: [
-      `error TS2322: Type '{ children: string; title: string; open: true; onOpenChange: (open: boolean) => void; }' is not assignable to type 'IntrinsicAttributes & PopoverProps'.\n  Property 'anchor' is missing in type '{ children: string; title: string; open: true; onOpenChange: (open: boolean) => void; }' but required in type '{ open: boolean; onOpenChange: (open: boolean) => void; anchor: RefObject<HTMLElement | null>; trigger?: never; }'.`,
+      `error TS2322: Type '{ children: string; title: string; open: true; onOpenChange: (open: boolean) => void; }' is not assignable to type 'IntrinsicAttributes & PopoverProps'.\n  Property 'anchor' is missing in type '{ children: string; title: string; open: true; onOpenChange: (open: boolean) => void; }' but required in type '{ open: boolean; onOpenChange: (open: boolean) => void; anchor: RefObject<HTMLElement | null>; finalFocus?: RefObject<HTMLElement | null>; trigger?: never; }'.`,
     ],
     dev: control,
     names: ["tsc", "dev"],
