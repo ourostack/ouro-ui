@@ -1,0 +1,1 @@
+- Fixed: Composer mounts the rich editor from its own first render, when a page has already loaded its module, so focus lands once instead of twice.
