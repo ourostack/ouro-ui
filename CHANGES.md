@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: ReactionBar draws a counted reaction that is not the reader's own as a soft, borderless pill, like a quick reaction, instead of a bordered rectangle; only `mine`'s tint still sets a reaction apart, with an edge of its own under forced colours.
