@@ -402,6 +402,9 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     contain(contained, on !== null && on.data.beside !== undefined ? on.row : null);
   });
   // The pointer left: the bar stays in the message it was on while it fades, and goes when its transition ends (at once when none runs).
+  // Stryker disable next-line ConditionalExpression: forcing shown !== null to true only matters while shown is actually null, before any
+  // bar has ever rendered; the layout effect it lets through then finds an unattached, childless host with no animations, so it only
+  // schedules an early setParked(true) that the first real hover clears (on !== null && parked resets it) before anything paints.
   const ending = shown !== null && on === null && !parked;
   useLayoutEffect(() => {
     if (!ending) return;
