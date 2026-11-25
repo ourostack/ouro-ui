@@ -27,6 +27,7 @@ describe("the calendar page", () => {
     await expect.element(dialog).toBeInTheDocument();
     await dialog.getByRole("button", { name: "Create" }).click();
     await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
+    await expect.poll(() => `${document.activeElement?.tagName}${document.activeElement?.getAttribute("aria-invalid")}`).toBe("INPUTtrue");
     await dialog.getByRole("textbox", { name: /Title/ }).fill("Garden club");
     await dialog.getByRole("button", { name: "Create" }).click();
     await expect.element(dialog).not.toBeInTheDocument();
@@ -42,6 +43,44 @@ describe("the calendar page", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("leaves the now line off an empty week, and draws it on a week with events", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+    vi.setSystemTime(new Date(2026, 2, 11, 12, 0));
+    try {
+      await renderPage("/docs/calendar-demo/");
+      const line = () => document.querySelector("[data-site-calendar-demo] [data-ouro-time-grid-now-label]");
+      await page.getByRole("radio", { name: "Empty week" }).click();
+      await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
+      expect(line()).toBeNull();
+      await page.getByRole("radio", { name: "Full week" }).click();
+      await expect.poll(line).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("starts the date picker's weeks on Monday, as the work week does", async () => {
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: "Go to date" }).click();
+    await expect.poll(() => document.querySelector("[role=dialog] [role=columnheader], [role=dialog] th")?.textContent).toMatch(/^Mon/);
+  });
+
+  it("shows one day on a phone, with no view switch, so every event keeps a readable width", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => document.querySelector("[data-site-calendar-demo] [data-ouro=time-grid]")).not.toBeNull();
+    expect(page.getByRole("radio", { name: /Work week/ }).query()).toBeNull();
+  });
+
+  it("lands focus in the grid after a date is picked from Go to date", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: "Go to date" }).click();
+    await expect.poll(() => document.querySelectorAll("[role=dialog] button[data-day], [role=dialog] [role=gridcell] button").length).toBeGreaterThan(20);
+    await userEvent.click(page.getByRole("dialog").getByRole("button", { name: /\b15\b/ }).first());
+    await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
   });
 
   it("shows a loading state from the State switcher", async () => {
@@ -61,7 +100,8 @@ describe("the calendar page", () => {
   it("opens on one day on a phone and on a work week on a laptop", async () => {
     await page.viewport(390, 844);
     await renderPage("/docs/calendar-demo/");
-    await expect.element(page.getByRole("radio", { name: "Day" })).toBeChecked();
+    await expect.poll(() => document.querySelector("[data-site-calendar-demo] [data-ouro=time-grid]")).not.toBeNull();
+    await expect.poll(() => document.querySelectorAll('[data-site-calendar-demo] [role=radio]').length).toBe(3);
     await cleanupPage();
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
@@ -96,12 +136,10 @@ describe("the calendar page", () => {
     await expect.poll(eventTitles).toBe(before);
   });
 
-  it.each(["light", "dark"] as const)("passes the accessibility scan in the week view on a phone in %s", async (scheme) => {
+  it.each(["light", "dark"] as const)("passes the accessibility scan in the day view on a phone in %s", async (scheme) => {
     setScheme(scheme);
     await page.viewport(390, 844);
     await renderPage("/docs/calendar-demo/");
-    await page.getByRole("radio", { name: /Work week/ }).click();
-    await expect.element(page.getByRole("radio", { name: /Work week/ })).toBeChecked();
     const violations = await scan();
     expect(violations, describeViolations(violations)).toEqual([]);
   }, pageScanTimeout);
@@ -129,6 +167,29 @@ describe("the calendar page", () => {
     await expect.element(dialog).not.toBeInTheDocument();
   });
 
+  it("names a length that is not a preset with its unit, so an edited event never shows a bare number", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    await page.getByRole("button", { name: /more events/ }).first().click();
+    await page.getByRole("menuitem", { name: /Weekly cross-team sync/ }).click();
+    page.getByRole("button", { name: "Edit" }).element().focus();
+    await userEvent.keyboard("{Enter}");
+    const dialog = page.getByRole("dialog", { name: "Edit event" });
+    await expect.element(dialog.getByRole("combobox", { name: "Length" })).toHaveTextContent("45 minutes");
+  });
+
+  it("shows one Undo toast at a time, and says how to reach it", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    for (const name of [/Sprint planning/, /Design review/]) {
+      await page.getByRole("button", { name }).first().click();
+      await userEvent.click(page.getByRole("button", { name: "Delete" }));
+      await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    }
+    await expect.poll(() => page.getByRole("button", { name: "Undo" }).elements().length).toBe(1);
+    expect(document.body.textContent).toContain("Press F6 to reach Undo.");
+  });
+
   it("puts focus back in the grid after Delete, so the keyboard does not start over", async () => {
     await page.viewport(1100, 900);
     await renderPage("/docs/calendar-demo/");
@@ -137,6 +198,38 @@ describe("the calendar page", () => {
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
     await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
+  });
+
+  it("puts focus in the grid after Delete on a phone, not on the page body", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
+    (document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]') as HTMLElement).click();
+    await expect.element(page.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    page.getByRole("button", { name: "Delete" }).element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    await expect.poll(() => document.activeElement === document.body).toBe(false);
+    await expect.poll(() => document.activeElement?.closest('[data-ouro="time-grid"]') !== null).toBe(true);
+  });
+
+  it("keeps the slot cursor on the slot just created, so the keyboard does not start over", async () => {
+    await page.viewport(1100, 900);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [role="grid"]')).not.toBeNull();
+    const slots = document.querySelector<HTMLElement>('[data-ouro="time-grid"] [role="grid"]')!;
+    slots.focus();
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowRight}");
+    const was = slots.getAttribute("aria-activedescendant");
+    expect(was).not.toBeNull();
+    await userEvent.keyboard("{Enter}");
+    const dialog = page.getByRole("dialog", { name: "New event" });
+    await expect.element(dialog).toBeInTheDocument();
+    await dialog.getByRole("textbox", { name: /Title/ }).fill("Qwe");
+    await dialog.getByRole("button", { name: "Create" }).click();
+    await expect.element(dialog).not.toBeInTheDocument();
+    await expect.poll(() => document.activeElement === slots).toBe(true);
+    expect(slots.getAttribute("aria-activedescendant")).toBe(was);
   });
 
   it("marks Go to date as opening a dialog", async () => {

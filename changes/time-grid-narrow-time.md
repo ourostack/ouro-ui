@@ -1,0 +1,1 @@
+- Fixed: a narrow TimeGrid event shows its start time and drops the end, rather than cutting the range mid-word.

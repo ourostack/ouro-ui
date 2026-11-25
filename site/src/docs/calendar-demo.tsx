@@ -13,6 +13,7 @@ import { TimeGrid, type TimeGridEvent, type TimeGridSlot, type TimeGridView } fr
 import { TimeGridNav } from "@/registry/ouro/components/ouro/time-grid/time-grid-parts";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
+import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { CodeBlock } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
 import { TrayArt } from "./tray-art";
@@ -53,7 +54,13 @@ const lengthLabel = (minutes: number) => {
   const minutePart = rest > 0 ? `${rest} minutes` : "";
   return [hourPart, minutePart].filter(Boolean).join(" ");
 };
-const lengthOptions = [15, 30, 60, 90, 120].map((minutes) => ({ value: String(minutes), label: lengthLabel(minutes) }));
+const presetLengths = [15, 30, 60, 90, 120];
+// A dragged range can be any length, so the Select lists it with the presets instead of showing a bare number.
+const lengthChoices = (current: number) =>
+  (presetLengths.includes(current) ? presetLengths : [...presetLengths, current].sort((a, b) => a - b)).map((minutes) => ({ value: String(minutes), label: lengthLabel(minutes) }));
+
+/** Weeks start on Monday in both the week view and the date picker, as the work week does. */
+const weekLocale = "en-US-u-fw-mon";
 
 /** A made-up week around the reader's today, so the now line shows. */
 function seed(today: string): Entry[] {
@@ -109,6 +116,7 @@ function Screen(): JSX.Element {
   const today = iso(new Date());
   const [date, setDate] = useState(today);
   const [view, setView] = useState<TimeGridView>(() => (window.matchMedia("(max-width: 639px)").matches ? "day" : "work-week"));
+  const phone = useMediaQuery("(max-width: 639px)", false);
   const [stage, setStage] = useState<Stage>("week");
   const [events, setEvents] = useState<Entry[]>(() => seed(today));
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -119,6 +127,7 @@ function Screen(): JSX.Element {
   const jumpRef = useRef<HTMLButtonElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [refocus, setRefocus] = useState(0);
+  const forceFocus = useRef(false);
   // The deleted event's popover has nothing to return focus to, so focus goes to the grid's event stop once the popover is gone.
   useEffect(() => {
     if (refocus === 0) return;
@@ -127,8 +136,11 @@ function Screen(): JSX.Element {
     const settle = () => {
       const target = rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]');
       const lost = document.activeElement?.matches('body, div:not([tabindex])') ?? true;
-      if (target && lost) target.focus({ preventScroll: true });
+      // The date picker's popover hands focus back to its button as it closes, a frame or two after the pick, so a forced move keeps landing the grid until then.
+      const forced = forceFocus.current && !target?.closest('[data-ouro="time-grid"]')?.contains(document.activeElement);
+      if (target && (lost || forced)) target.focus({ preventScroll: true });
       if (++tries < 30) frame = requestAnimationFrame(settle);
+      else forceFocus.current = false;
     };
     frame = requestAnimationFrame(settle);
     return () => cancelAnimationFrame(frame);
@@ -164,14 +176,17 @@ function Screen(): JSX.Element {
     const title = draft.title.trim();
     if (!title) {
       setError("Add a title");
+      document.getElementById(formId)?.querySelector<HTMLElement>("input")?.focus();
       return;
     }
     const tone = kinds.find((candidate) => candidate.value === draft.kind)?.tone;
     const next: Entry = { id: draft.id ?? `new-${Date.now()}`, title, kind: draft.kind, tone, start: atTime(draft.day, draft.start), end: atTime(draft.day, draft.start + draft.length) };
     setEvents((now) => (draft.id ? now.map((candidate) => (candidate.id === draft.id ? { ...candidate, ...next } : candidate)) : [...now, next]));
     if (stage === "empty") setStage("week");
+    toast.dismiss();
     toast(draft.id ? "Event updated" : "Event created", { tone: "success", description: `${title}, ${clock(draft.start)}` });
     setDraft(null);
+    setRefocus((count) => count + 1);
   };
 
   const remove = (entry: Entry) => {
@@ -179,13 +194,17 @@ function Screen(): JSX.Element {
     setOpen(null);
     setRefocus((count) => count + 1);
     setEvents((now) => now.filter((candidate) => candidate.id !== entry.id));
-    // An Undo toast stays until dismissed, so a slow or screen-reader reader can reach it; the demo leaves room under the grid on a phone for it to rest.
+    // One toast at a time, so a second delete replaces the first. It lasts 8 s, longer than the default, and hovering or focusing it holds the countdown; the demo leaves room under the grid on a phone for it to rest.
+    toast.dismiss();
     toast("Event deleted", {
-      description: entry.title,
+      description: `${entry.title}. Press F6 to reach Undo.`,
+      duration: 8000,
       action: {
         label: "Undo",
-        onClick: () =>
-          setEvents((now) => (now.some((candidate) => candidate.id === entry.id) ? now : [...now.slice(0, at), entry, ...now.slice(at)])),
+        onClick: () => {
+          setEvents((now) => (now.some((candidate) => candidate.id === entry.id) ? now : [...now.slice(0, at), entry, ...now.slice(at)]));
+          setRefocus((count) => count + 1);
+        },
       },
     });
   };
@@ -208,14 +227,15 @@ function Screen(): JSX.Element {
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <TimeGridNav date={date} view={view} onDateChange={setDate} />
+        <TimeGridNav date={date} view={phone ? "day" : view} onDateChange={setDate} disabled={stage === "loading"} />
         <Heading level={2} size="md" className="me-auto min-w-0 max-sm:order-first max-sm:basis-full">
           {heading}
         </Heading>
+        <div className="flex flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
         <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => setJump(!jump)}>
           Go to date
         </Button>
-        <SegmentedControl
+        {phone ? null : <SegmentedControl
           label="View"
           hideLabel
           value={view}
@@ -225,16 +245,20 @@ function Screen(): JSX.Element {
             { value: "work-week", label: "Work week" },
             { value: "week", label: "Week" },
           ]}
-        />
+        />}
         <Button onClick={newEvent}>New event</Button>
+        </div>
       </div>
       <Popover title="Go to date" open={jump} onOpenChange={setJump} anchor={jumpRef} presentation="auto">
         <Calendar
           label="Date to show"
+          locale={weekLocale}
           value={date}
           onValueChange={(next) => {
             setDate(next);
             setJump(false);
+            forceFocus.current = true;
+            setRefocus((count) => count + 1);
           }}
         />
       </Popover>
@@ -250,7 +274,10 @@ function Screen(): JSX.Element {
           <TimeGrid
             label={label}
             date={date}
-            view={view}
+            view={phone ? "day" : view}
+            locale={weekLocale}
+            // An empty week has nothing to mark the time against, so the now line stays off it.
+            now={stage === "empty" ? "1970-01-01T00:00:00Z" : undefined}
             events={shown}
             workingHours={{ start: 8, end: 18 }}
             selectedId={open}
@@ -302,7 +329,7 @@ function Screen(): JSX.Element {
           <form id={formId} noValidate onSubmit={save} className="grid gap-4">
             <TextField label="Title" required value={draft.title} error={error} onValueChange={(title) => { setError(undefined); setDraft({ ...draft, title }); }} />
             <Select label="Starts" value={String(draft.start)} options={startOptions} onValueChange={(value) => value && setDraft({ ...draft, start: Number(value) })} />
-            <Select label="Length" value={String(draft.length)} options={lengthOptions} onValueChange={(value) => value && setDraft({ ...draft, length: Number(value) })} />
+            <Select label="Length" value={String(draft.length)} options={lengthChoices(draft.length)} onValueChange={(value) => value && setDraft({ ...draft, length: Number(value) })} />
             <Select label="Calendar" value={draft.kind} options={kinds} onValueChange={(value) => value && setDraft({ ...draft, kind: value as Kind })} />
           </form>
         ) : null}

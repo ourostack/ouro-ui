@@ -4,7 +4,7 @@ import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { TimeGrid, type TimeGridEvent, type TimeGridProps } from "@/registry/ouro/components/ouro/time-grid/time-grid";
 import { TimeGridNav } from "@/registry/ouro/components/ouro/time-grid/time-grid-parts";
 import {
@@ -433,12 +433,13 @@ describe("TimeGrid", () => {
   });
 
   it("writes day names, hours and times in the locale", async () => {
-    const { grid } = await render({ locale: "de-DE", view: "day", events: [forum], allDayLabel: "Ganztägig" });
+    const { grid, rerender } = await render({ locale: "de-DE", view: "day", events: [forum], allDayLabel: "Ganztägig" });
     expect(dayLists()[0]!.getAttribute("aria-label")).toBe("Donnerstag, 12. März");
     expect(plain(grid.querySelector("[data-ouro-time-grid-body] > [aria-hidden] span")!.textContent)).toBe("01 Uhr");
     const shownRange = new Intl.DateTimeFormat("de-DE", { hour: "numeric", minute: "2-digit", timeZone: zone }).formatRange(new Date(forum.start), new Date(forum.end!));
     expect(plain(named("Donnerstag").getAttribute("aria-label"))).toBe(plain(`Architecture forum, ${shownRange}, Donnerstag, needs your answer, Main auditorium`));
     expect(plain(grid.querySelector("[data-ouro-time-grid-now-label]")!.textContent)).toBe("10:41");
+    await rerender({ locale: "de-DE", view: "day", events: [forum, { id: "free", title: "Feiertag", start: "2026-03-12", end: "2026-03-13" }], allDayLabel: "Ganztägig" });
     expect(grid.querySelector("[data-ouro-time-grid-head]")!.textContent).toContain("Ganztägig");
     // The now label drops AM and PM, before the time or after it.
     await render({ locale: "ko-KR", view: "day" });
@@ -922,7 +923,7 @@ describe("TimeGrid", () => {
     const lines = (title: string) => titled(title).querySelector<HTMLElement>(":scope > span > span[style]")!.style.getPropertyValue("--ouro-lines");
     expect([lines("Design review"), lines("Launch rehearsal"), lines("Writing")]).toEqual(["1", "2", "3"]);
     expect(parts("Workshop")).toEqual(["Workshop", "7:00 – 8:15 PM", "Lab"]);
-    expect(titled("Workshop").querySelectorAll('[dir="auto"]')).toHaveLength(2);
+    expect(titled("Workshop").querySelectorAll('[dir="auto"]')).toHaveLength(1);
     expect(plain(titled("Check-in").getAttribute("aria-label"))).toBe("Check-in, 9:00 – 9:45 PM, Thursday");
     // Each name starts with the words its event shows, in the order it shows them; the end of a one-line event's time comes after.
     expect(plain(titled("Standup").getAttribute("aria-label"))).toBe("Standup, 9:30 AM – 9:45 AM, Thursday");
@@ -965,7 +966,7 @@ describe("TimeGrid", () => {
     const { grid } = await render({ view: "work-week", events: [{ id: "sat", title: "Hike", start: "2026-03-14", end: "2026-03-15" }] });
     expect(events()).toEqual([]);
     expect(grid.querySelectorAll("ul")).toHaveLength(0);
-    expect(grid.querySelector<HTMLElement>("[data-ouro-time-grid-head] > div:last-child")!.style.minHeight).toBe("2rem");
+    expect(grid.querySelector("[data-ouro-time-grid-head]")!.textContent).not.toContain("All day");
   });
 
   it("puts a timed event of a day or more in the all-day row, and cuts one across midnight into each day", async () => {
@@ -1154,6 +1155,37 @@ describe("TimeGrid", () => {
   it("takes events that start together longest first", async () => {
     await render({ view: "day", events: [{ id: "quick", title: "Quick sync", start: at(12, "10:00"), end: at(12, "10:15") }, forum] });
     expect(events().filter((element) => element.tabIndex === 0)).toEqual([titled("Architecture forum")]);
+  });
+
+  it("lines an event's title and time up on the same side in a right-to-left page", async () => {
+    await render({ view: "day", events: [{ id: "tall", title: "Planning", start: at(12, "10:00"), end: at(12, "12:00") }], locale: "en-US" }, (grid) => (
+      <div dir="rtl" style={{ width: 600 }}>
+        {grid}
+      </div>
+    ));
+    const event = titled("Planning");
+    const time = event.querySelector<HTMLElement>("[data-slot='time-grid-event-time']")!;
+    const title = [...event.querySelectorAll<HTMLElement>("span")].find((span) => span.textContent === "Planning")!;
+    const gap = (element: HTMLElement) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return event.getBoundingClientRect().right - range.getBoundingClientRect().right;
+    };
+    await expect.poll(() => Math.abs(gap(title) - gap(time)) < 1).toBe(true);
+    expect(gap(title)).toBeLessThan(event.getBoundingClientRect().width / 2);
+  });
+
+  it.each([
+    ["week", 390, "none"],
+    ["day", 900, "inline"],
+  ] as const)("shows an event's whole time range only where it fits: a %s view at %ipx", async (view, width, display) => {
+    await render({ view, events: [{ id: "tall", title: "Planning", start: at(12, "10:00"), end: at(12, "12:00") }], locale: "en-US" }, (grid) => (
+      <div style={{ width, height: 600 }}>{grid}</div>
+    ));
+    const time = titled("Planning").querySelector<HTMLElement>("[data-slot='time-grid-event-time']")!;
+    const end = time.querySelector<HTMLElement>("[data-slot='time-grid-event-time-end']")!;
+    await expect.poll(() => getComputedStyle(end).display).toBe(display);
+    expect(time.textContent).toBe("10:00 AM – 12:00 PM");
   });
 
   it("swaps Left and Right in a right-to-left page", async () => {
@@ -1824,7 +1856,8 @@ describe("TimeGrid", () => {
     await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(true);
     expect(getComputedStyle(viewport()).maskImage).toBe("none");
     const head = viewport().querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    expect(getComputedStyle(head).backdropFilter).toContain("blur");
+    expect(getComputedStyle(head).backdropFilter).toBe("blur(24px)");
+    await expect.poll(() => Number(getComputedStyle(head).backgroundColor.match(/\/ ([\d.]+)\)/)?.[1])).toBeCloseTo(0.88, 2);
     await expect.poll(() => getComputedStyle(head).borderBottomColor).not.toBe("rgba(0, 0, 0, 0)");
     await expect.poll(() => getComputedStyle(head).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     viewport().scrollTop = 0;
@@ -1833,6 +1866,14 @@ describe("TimeGrid", () => {
     await expect.poll(() => getComputedStyle(head).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     await expect.poll(() => getComputedStyle(head).borderBottomColor).toBe("rgba(0, 0, 0, 0)");
     expect(warnings()).toEqual([]);
+  });
+
+  it("draws the day header without the blur under forced colours, where the system draws the surface", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    await render();
+    await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(true);
+    const head = viewport().querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    await expect.poll(() => getComputedStyle(head).backdropFilter).toBe("none");
   });
 
   it.each(["light", "dark"])("keeps the glass day header's text legible over the busiest event beneath it (%s)", async (scheme) => {
@@ -2897,6 +2938,17 @@ describe("TimeGridNav", () => {
     await userEvent.click(page.getByRole("button", { name: "Next day" }));
     await userEvent.click(page.getByRole("button", { name: "Previous day" }));
     expect(onDateChange.mock.calls.map((call) => call[0])).toEqual(["2026-03-13", "2026-03-11"]);
+  });
+
+  it("disables Today, Previous and Next while disabled, so the date stays where it is", async () => {
+    const { onDateChange, root } = mountNav();
+    await act(async () => root.render(<TimeGridNav date="2026-03-12" onDateChange={onDateChange} disabled />));
+    for (const name of ["Today", "Previous week", "Next week"]) {
+      const button = page.getByRole("button", { name }).element() as HTMLButtonElement;
+      expect(button.disabled).toBe(true);
+      button.click();
+    }
+    expect(onDateChange).not.toHaveBeenCalled();
   });
 
   it("takes its own labels and warns about an appearance class", async () => {

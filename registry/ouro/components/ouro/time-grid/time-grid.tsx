@@ -366,6 +366,19 @@ const serverNow = () => 0;
 const mutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
 const mutedLineClass = "truncate text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
 
+// A time range as its start and the rest, so a narrow event can show only the start rather than cut the range
+// mid-word ("11:00 AM –…"); the full range stays in the text.
+function startAndRest(range: string) {
+  const split = /\s[–-]\s/.exec(range);
+  if (!split) return range;
+  return (
+    <>
+      {range.slice(0, split.index)}
+      <span data-slot="time-grid-event-time-end" className="@max-[6rem]/event:hidden">{range.slice(split.index)}</span>
+    </>
+  );
+}
+
 // The default for backgroundEvents: one array, so the layout is worked out again only when the events change.
 const noEvents: readonly TimeGridEvent[] = [];
 
@@ -942,11 +955,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         // A space between the lines, which a column doesn't draw, keeps them separate words in the
         // event's visible text, as its name says them (WCAG 2.5.3, Label in Name).
         <>
-          <span dir="auto" className="line-clamp-(--ouro-lines) font-medium @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
+          <span className="line-clamp-(--ouro-lines) font-medium [unicode-bidi:isolate] @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
             {event.title}
           </span>{" "}
           <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-end`}>
-            {rangeText(formats.time, start!, end!)}
+            {startAndRest(rangeText(formats.time, start!, end!))}
           </span>
           {lines >= 3 && event.description ? (
             <>
@@ -1180,7 +1193,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       onKeyDown={onKeyDown}
     >
       <ScrollArea label={label} className="min-h-0 flex-1">
-        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/95 [[data-overflow-y-start]_&]:backdrop-blur-lg [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
+        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/88 [[data-overflow-y-start]_&]:backdrop-blur-xl [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none [[data-overflow-y-start]_&]:forced-colors:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
           <div aria-hidden="true" />
           {days.map((day, index) => (
             <div
@@ -1213,10 +1226,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               ))}
             </>
           ) : null}
+          {allDay.length > 0 ? (
+            <>
           <div aria-hidden="true" className="flex items-start justify-end py-1 pe-2 text-[11px] leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
             {allDayLabel}
           </div>
-          {allDay.length > 0 ? (
             <ul
               role="list"
               aria-label={allDayLabel}
@@ -1229,9 +1243,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                 </li>
               ))}
             </ul>
-          ) : (
-            <div aria-hidden="true" style={{ minHeight: "2rem" }} />
-          )}
+            </>
+          ) : null}
         </div>
         <div data-ouro-time-grid-body="" className="relative grid" style={{ gridTemplateColumns: columns, height: minutesTall(dayLength) }}>
           {onSlotSelect && days.length > 0 ? (
