@@ -1,0 +1,1 @@
+- New: dragging a mouse over empty time in TimeGrid gives onSlotSelect the whole dragged range, with a preview while it is dragged.

@@ -1441,6 +1441,35 @@ describe("TimeGrid", () => {
     });
   });
 
+  it("gives onSlotSelect the dragged range, from the first slot to the end of the last, whichever way it is dragged", async () => {
+    const slot = vi.fn();
+    const { grid } = await render({ view: "day", onSlotSelect: slot });
+    const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
+    const y = (minutes: number) => {
+      const box = slots.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
+    const fire = (type: string, minutes: number) => slots.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType: "mouse", button: 0, pointerId: 41 }));
+    fire("pointerdown", 605);
+    await act(async () => {});
+    fire("pointermove", 725);
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).not.toBeNull();
+    fire("pointerup", 725);
+    slots.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: y(725) }));
+    await act(async () => {});
+    expect(slot).toHaveBeenCalledTimes(1);
+    expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T10:00:00-04:00"), end: new Date("2026-03-12T12:30:00-04:00") });
+    fire("pointerdown", 725);
+    await act(async () => {});
+    fire("pointermove", 605);
+    await act(async () => {});
+    fire("pointerup", 605);
+    expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T10:00:00-04:00"), end: new Date("2026-03-12T12:30:00-04:00") });
+    await act(async () => {});
+    expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
+  });
+
   it("presses an empty slot with onSlotSelect, and shows a mouse the slot first", async () => {
     // WebKit sends a mouse move of its own when the page changes under a resting pointer, so the
     // pointer an earlier press left over the grid would show a slot of its own.
