@@ -1219,6 +1219,25 @@ describe("Composer rich mode highlights", () => {
     expect(box.top).toBeGreaterThan(item.top - 2);
     expect(box.bottom).toBeLessThan(item.bottom + 2);
   });
+
+  it("marks a draft an agent sets from outside the editor, ending in a list's inline code, without throwing", async () => {
+    const draft = "Thanks! **Rerun** the build after the [lint fixes](https://example.com/builds/4521/lint) land:\n\n- fix the two warnings\n- then `npm test`";
+    function Agent() {
+      const [value, setValue] = useState("");
+      return (
+        <>
+          <Composer label="Message Mia" format="rich" offsets="markdown" value={value} onValueChange={setValue} highlights={value ? [{ start: 0, end: value.length, label: "Agent" }] : []} onSend={() => {}} />
+          <button type="button" onClick={() => setValue(draft)}>
+            Agent sets draft
+          </button>
+        </>
+      );
+    }
+    const { host } = await render(<Agent />);
+    await act(async () => void [...host.querySelectorAll("button")].at(-1)!.click());
+    await expect.poll(() => boxes(host).length).toBeGreaterThan(0);
+    expect(host.querySelector("code")!.textContent).toBe("npm test");
+  });
 });
 
 describe("Composer rich mode Escape", () => {

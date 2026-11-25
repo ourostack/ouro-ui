@@ -571,12 +571,18 @@ interface MarkBox {
   width: number;
   height: number;
 }
+// The Text node a leaf's DOM element actually holds: a code-formatted leaf nests its text inside an extra wrapper element.
+function domTextNode(dom: Node): Text {
+  let node = dom;
+  while (node.nodeType !== Node.TEXT_NODE) node = node.firstChild!;
+  return node as Text;
+}
 // Where the DOM has the text offset `clean`.
 function domPoint(editor: LexicalEditor, clean: number): [Node, number] {
   return editor.read(() => {
     const [node, offset, type] = $pointOfText(clean);
     const dom = editor.getElementByKey(node.getKey())!;
-    return type === "text" ? [dom.firstChild!, offset] : [dom, offset];
+    return type === "text" ? [domTextNode(dom), offset] : [dom, offset];
   });
 }
 // The boxes that cover the marked runs, placed from the top left of `frame`.
