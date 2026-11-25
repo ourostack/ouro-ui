@@ -1102,7 +1102,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const bottom = Math.max(...folded.map((placed) => placed.bottom));
     const element = () => rootRef.current!.querySelector<HTMLElement>(`[data-ouro-event-key="${CSS.escape(key)}"]`)!;
     return (
-      <li key={key} className="pointer-events-auto absolute end-0" style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)`, width: chipWidth }}>
+      <li key={key} data-slot="time-grid-more-item" className="pointer-events-auto absolute end-0" style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)`, width: chipWidth }}>
         <Menu
           side="right"
           trigger={
@@ -1110,6 +1110,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               type="button"
               data-ouro-control="time-grid"
               data-ouro-part="more"
+              data-slot="time-grid-more"
               data-ouro-event-key={key}
               tabIndex={key === tabStop ? 0 : -1}
               aria-label={`${moreLabel(members.length)} ${rangeText(formats.time, new Date(Math.min(...members.map((piece) => toInstant(piece.event.start)!.getTime()))), new Date(Math.max(...members.map((piece) => toInstant(piece.event.end!)!.getTime()))))}`}
@@ -1119,7 +1120,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "z-[9] items-start justify-center px-0 text-center")}
             >
               <TouchTarget />
-              <span aria-hidden="true" className="min-w-0 font-medium">{`+${members.length}`}</span>
+              <span aria-hidden="true" data-slot="time-grid-more-count" className="min-w-0 font-medium">{`+${members.length}`}</span>
             </button>
           }
         >

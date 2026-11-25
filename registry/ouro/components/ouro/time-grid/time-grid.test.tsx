@@ -603,6 +603,14 @@ describe("TimeGrid", () => {
       expect(onEventSelect.mock.calls[0]![0].id).toBe("c3");
     });
 
+    it("keeps an arrow key on the +N chip for the grid's own movement, never opening its list", async () => {
+      await render({ view: "day", events: crowd(5) }, (grid) => <div style={{ width: "260px" }}>{grid}</div>);
+      await expect.poll(shown).toEqual(["Event 0", "Event 1"]);
+      chip()!.focus();
+      await userEvent.keyboard("{ArrowDown}");
+      expect(page.getByRole("menuitem").elements()).toEqual([]);
+    });
+
     it("folds a whole stack into one count where even the first event would be under its minimum, as in a phone's work week", async () => {
       await render({ view: "day", events: crowd(3) }, (grid) => <div style={{ width: "130px" }}>{grid}</div>);
       await expect.poll(stack).not.toBeNull();
