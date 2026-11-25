@@ -46,6 +46,11 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
     OnceExit(input: unknown) {
       const root = input as Node;
       const selectors = new Set<string>();
+      // Two rules in the same place (the same @media, @supports or layer) that round to the same radii need the
+      // same fallback declarations: grouped by parent and by those declarations, they share one sibling rule
+      // instead of each writing its own, which is the only duplication this pass can safely remove (a rule's own
+      // class is unique, so no other group ever claims its selector).
+      const groups = new Map<Node, Map<string, { vars: string[]; radii: string[]; selectors: string[] }>>();
       root.walkRules((rule) => {
         if (skipped(rule)) return;
         const corners = cornersOf(rule);
@@ -56,13 +61,23 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
           vars.push(`--sq-${KEYS[i]}: ${round ? "0px" : c}`);
           return round ? (c ?? "0") : `calc(${c} * ${ENCLOSING_CIRCLE})`;
         });
-        const sibling = { selector: rule.selector, nodes: [] as object[] };
-        for (const v of vars) sibling.nodes.push({ prop: v.split(": ")[0], value: v.split(": ")[1] });
-        sibling.nodes.push({ prop: "border-radius", value: radii.join(" ") });
-        const wrap = { name: "supports", params: MISSING, nodes: [sibling] };
-        rule.parent!.append(wrap);
+        let byBody = groups.get(rule.parent!);
+        if (!byBody) groups.set(rule.parent!, (byBody = new Map()));
+        const key = `${vars.join(";")}|${radii.join(" ")}`;
+        let group = byBody.get(key);
+        if (!group) byBody.set(key, (group = { vars, radii, selectors: [] }));
+        group.selectors.push(rule.selector!);
         for (const s of rule.selectors ?? []) selectors.add(s);
       });
+      for (const [parent, byBody] of groups) {
+        for (const group of byBody.values()) {
+          const sibling = { selector: group.selectors.join(","), nodes: [] as object[] };
+          for (const v of group.vars) sibling.nodes.push({ prop: v.split(": ")[0], value: v.split(": ")[1] });
+          sibling.nodes.push({ prop: "border-radius", value: group.radii.join(" ") });
+          const wrap = { name: "supports", params: MISSING, nodes: [sibling] };
+          parent.append(wrap);
+        }
+      }
       if (selectors.size === 0) return;
       const list = [...selectors].join(",\n");
       const layer = {
