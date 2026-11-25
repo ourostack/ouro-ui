@@ -1,0 +1,1 @@
+- Fixed: Popover no longer takes focus back when a dialog or sheet opened from inside it.

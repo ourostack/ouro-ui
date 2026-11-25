@@ -3461,18 +3461,14 @@ jobs:
       matrix:
         variant: [shadcn, ouro]
         preset: [nova, vega]
-        # The shadcn variant's Ouro AX tests take about five minutes alone, so four jobs run a quarter each;
-        # the ouro variant has none, so it runs once.
-        ax: [1, 2, 3, 4]
+        # The shadcn variant's Ouro AX tests take about five minutes alone, and one of their files holds most of
+        # that, so two jobs run half each; the ouro variant has none, so it runs once.
+        ax: [1, 2]
         exclude:
           - variant: ouro
             preset: vega
           - variant: ouro
             ax: 2
-          - variant: ouro
-            ax: 3
-          - variant: ouro
-            ax: 4
     name: install checks (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.ax }})
     env:
       OURO_PRESET: ${{ matrix.preset }}
@@ -3536,7 +3532,7 @@ jobs:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
           OURO_CHECK_ONLY: "1"
-          OURO_AX_SHARD: ${{ matrix.variant == 'shadcn' && format('{0}/4', matrix.ax) || '' }}
+          OURO_AX_SHARD: ${{ matrix.variant == 'shadcn' && format('{0}/2', matrix.ax) || '' }}
         run: scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
   install-gate:
     # A variant's install check: passes when each of its shards passed, as their markers show,

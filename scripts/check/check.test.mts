@@ -74,6 +74,27 @@ describe("Ouro check", () => {
     assert.deepEqual(result.findings.filter((f) => f.page === "/veiled.html" && f.rule === "overlap"), []);
   });
 
+  test("a title raised onto its own glass band over a picture, with data-ouro-allow, reads even when the band falls a few px short of the title", async () => {
+    // Models Card's rise/glass band: title text stacked in the same grid cell as an (intentionally undersized, by a
+    // few px, as a Linux font fallback's metrics can render it, #3575) glass layer over a picture. Without the
+    // opt-out the geometric backing check can miss by that much and still fire; the opt-out reads regardless of the
+    // glass's measured bounds, since the pattern is by design.
+    const band = (allow: boolean) =>
+      page(
+        `<div style="display:grid;width:320px;overflow:hidden">` +
+          `<img style="grid-area:1/1;width:320px;height:180px;object-fit:cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" alt="">` +
+          `<div ${allow ? 'data-ouro-allow="overlap" data-ouro-allow-why="the title rises onto its own glass band over the media"' : ""} style="grid-area:1/1;align-self:end;display:grid">` +
+          `<div style="grid-area:1/1;height:28px;align-self:end;background:rgba(255,255,255,0.95)"></div>` +
+          `<div style="grid-area:1/1;align-self:end;padding:12px 0 12px 12px"><h3 style="margin:0">A risen title</h3></div>` +
+          `</div>` +
+          `</div>`,
+      );
+    const folder = site("rise-band", { "unmarked.html": band(false), "marked.html": band(true) });
+    const result = await check({ targets: [folder], out: dir("rise-band"), sizes: [[1440, 900]], themes: ["light"], measured: false, chromium, log: quiet });
+    assert.ok(result.findings.some((f) => f.page === "/unmarked.html" && f.rule === "overlap"));
+    assert.deepEqual(result.findings.filter((f) => f.page === "/marked.html" && f.rule === "overlap"), []);
+  });
+
   test("a decision in the config is a check: it fails where its expectation, count or only breaks, and holds where the page, width or a veil leaves it out", async () => {
     const folder = site("decisions", {
       "page.html": page(

@@ -1,0 +1,74 @@
+{
+  "phase": "probe-v4-actions",
+  "judge": "claude-opus-5.5",
+  "models": [
+    "claude-sonnet-5.5",
+    "gpt-6.2-sol"
+  ],
+  "rows": [
+    {
+      "id": "households--claude-sonnet-5.5--1",
+      "scenario": "households",
+      "model": "claude-sonnet-5.5",
+      "rep": 1,
+      "commit": "ae64aa3c1403f097d03b24077dd0a59bf15ead88",
+      "seconds": 51,
+      "calls": 7,
+      "pass": false,
+      "criteria": {
+        "jobs": false,
+        "restraint": false,
+        "craft": false,
+        "proof": false
+      }
+    },
+    {
+      "id": "households--claude-sonnet-5.5--2",
+      "scenario": "households",
+      "model": "claude-sonnet-5.5",
+      "rep": 2,
+      "commit": "ae64aa3c1403f097d03b24077dd0a59bf15ead88",
+      "seconds": 59,
+      "calls": 4,
+      "pass": false,
+      "criteria": {
+        "jobs": false,
+        "restraint": false,
+        "craft": false,
+        "proof": true
+      }
+    },
+    {
+      "id": "households--gpt-6.2-sol--1",
+      "scenario": "households",
+      "model": "gpt-6.2-sol",
+      "rep": 1,
+      "commit": "ae64aa3c1403f097d03b24077dd0a59bf15ead88",
+      "seconds": 102,
+      "calls": 30,
+      "pass": false,
+      "criteria": {
+        "jobs": true,
+        "restraint": true,
+        "craft": false,
+        "proof": true
+      }
+    },
+    {
+      "id": "households--gpt-6.2-sol--2",
+      "scenario": "households",
+      "model": "gpt-6.2-sol",
+      "rep": 2,
+      "commit": "ae64aa3c1403f097d03b24077dd0a59bf15ead88",
+      "seconds": 81,
+      "calls": 18,
+      "pass": false,
+      "criteria": {
+        "jobs": true,
+        "restraint": false,
+        "craft": false,
+        "proof": true
+      }
+    }
+  ]
+}

@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.540 ourostack/ouro-ui/ouro-source-rules#v1.3.540
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.541 ourostack/ouro-ui/ouro-source-rules#v1.3.541
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -231,7 +231,7 @@ The check also holds pages to design rules that measurement can decide, after Re
 | `nested-frame` | A frame inside a frame: a framed box hugging another within 6px on every side (a double border); or a rounded, filled or framed box whose child has an edge of its own (a fill, a frame, or a picture that runs to its corner, not an icon or a clear logo) and sits near its corner with a radius that isn't the outer radius less the inset, so the corners don't nest.[^check-design] |
 | `doubled-line` | Two dividing lines side by side where one would separate: a divider (a border on some sides of a box, an `hr`, a separator, or a fill 3px thick or less) within 6px of another line or of a frame's edge, along most of its length, such as a list's last row's border against its card's.[^check-doubled-line] Frames side by side (chips in a row), lines that share pixels, a table whose borders collapse, a thick coloured accent edge and a line under a sticky bar pass.[^check-doubled-line-pass] |
 | `count-badge` | A count on a small filled pill laid over an icon, such as a bell's unread number, that a box around it clips, whose numerals' ink sits more than 0.75px off the pill's middle (as a count centred on its line box rather than its cap height can), or that sits at another offset from its icon than the page's other count badges on icons of that size.[^check-count-badge] |
-| `off-centre-text` | One line of words in a control, such as a button, a field's value or placeholder, an editor, or a text area with no frame of its own inside the frame around it, whose cap height sits more than 2.1px off the control's middle (2.5px for a field's value or placeholder, which the browser centres by its line box), as a composer's placeholder pushed low by a bottom-aligned row does.[^check-off-centre] A box with room for two lines or more lays out from its top and is left alone, and so are words on two lines and words under or over an icon.[^check-off-centre-pass] |
+| `off-centre-text` | One line of words in a control, such as a button, a field's value or placeholder, an editor, or a text area with no frame of its own inside the frame around it, whose cap height sits more than 2.1px off the control's middle (1.5px for a field's value or placeholder, which the browser centres by its line box), as a composer's placeholder pushed low by a bottom-aligned row does.[^check-off-centre] A box with room for two lines or more lays out from its top and is left alone, and so are words on two lines and words under or over an icon.[^check-off-centre-pass] |
 | `baked-corner` | A picture or video whose own pixels draw a corner inside the page's frame (the roundest clipping box it fills, past a wrapper of zero size), such as a screen recording of a window with its dark corner showing in a rounded frame.[^check-corner-frame] Read from the pixels, on the video's first frame, at two corners or more in the same colour.[^check-design] |
 | `type-scale` | More than 10 text sizes, or more than 3 font weights in a text role, on a page: headings are one role and the rest of the text another, so a semibold heading leaves running text its regular, medium and bold.[^check-design][^check-weight-roles] Text inside an element that opts out with `data-ouro-allow="type-scale"` and a reason (hand lettering, say) is left out of the counts; the rest of the page is still held to the scale. |
 | `giant-text` | The size most of a page's running text is drawn at, counted by its characters outside headings, is over 24px, as when an app grows its root type with the screen and a 4K display at 1x draws its body text at 27px.[^check-giant-text] [A page with under 120 characters at its main size](registry/ouro/check/design-check.ts "verify:fileLine(registry/ouro/check/design-check.ts, /main\[1\]\.chars >= 120/)") has no reading size to judge. Let `ouro-base`'s wide-screen step (125% at most) set the root, or set the reading size in rem; text that opts out with `data-ouro-allow="giant-text"` and a reason (a poster line, say) is left out of the count. Emoji count for nothing: they are pictures, and a picker draws its grid of them large on purpose.[^check-giant-emoji] |
@@ -368,7 +368,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.540
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.541
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -452,7 +452,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.540
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.541
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -462,7 +462,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.540
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.541
         with:
           merge: "true"
 ```
@@ -482,7 +482,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.540
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.541
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -547,7 +547,7 @@ Run `ouro check --handoff` and it writes `handoff.md` beside `summary.md`: the f
 
 Fix the findings that fail first, so a session is spent on the task and not on a broken screen. A clean check leaves those questions open.
 
-[^check-off-centre]: test:test/check-design-in-page.test.ts::findDesignIssues: off-centre-text > finds one line of words off its control's middle by its cap height: a field's placeholder and value, a writing area, a button, an editor, and a bare text area in its frame verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: off-centre-text > finds one line of words off its control's middle by its cap height: a field's placeholder and value, a writing area, a button, an editor, and a bare text area in its frame) verify:fileLine(registry/ouro/check/design-check.ts, /textSlackPx = 2.1, fieldSlackPx = 2\.5/)
+[^check-off-centre]: test:test/check-design-in-page.test.ts::findDesignIssues: off-centre-text > finds one line of words off its control's middle by its cap height: a field's placeholder and value, a writing area, a button, an editor, and a bare text area in its frame verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: off-centre-text > finds one line of words off its control's middle by its cap height: a field's placeholder and value, a writing area, a button, an editor, and a bare text area in its frame) verify:fileLine(registry/ouro/check/design-check.ts, /textSlackPx = 2.1, fieldSlackPx = 1\.5/)
 [^check-off-centre-pass]: test:test/check-design-in-page.test.ts::findDesignIssues: off-centre-text > passes centred words, a box of two lines or more, words on two lines, an icon over or under its label, hidden or trimmed words, the opted out and a scaled thumbnail verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: off-centre-text > passes centred words, a box of two lines or more, words on two lines, an icon over or under its label, hidden or trimmed words, the opted out and a scaled thumbnail)
 [^check-doubled-line]: test:test/check-design-in-page.test.ts::findDesignIssues: doubled-line > finds a divider drawn against a frame's edge or another line, across and down, naming both and marking the later verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: doubled-line > finds a divider drawn against a frame's edge or another line, across and down, naming both and marking the later) verify:fileLine(registry/ouro/check/design-check.ts, /lineGapPx = 6/)
 [^check-doubled-line-pass]: test:test/check-design-in-page.test.ts::findDesignIssues: doubled-line > passes frames side by side, lines that share pixels, collapsed tables, accents, lines apart or short, and the opted out; test:test/check-design-in-page.test.ts::findDesignIssues: doubled-line > passes a line a sticky bar covers, and finds a pair off the screen, where nothing can be hit verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: doubled-line > passes frames side by side, lines that share pixels, collapsed tables, accents, lines apart or short, and the opted out) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: doubled-line > passes a line a sticky bar covers, and finds a pair off the screen, where nothing can be hit)
@@ -560,7 +560,7 @@ Fix the findings that fail first, so a session is spent on the task and not on a
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.540
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.541
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
