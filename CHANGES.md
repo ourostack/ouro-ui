@@ -1,0 +1,5 @@
+# Changes in this release
+
+- Removed: `<SegmentedControl glass>`, the Liquid Glass capsule variant from #3431, reverted because it pushed docs-shell CSS over its gzip ceiling; it will be re-landed once it fits under budget.
+- Removed: squircleCorners' capsule hooks, cascade copy-order fix, `!important` propagation and longhand-per-corner tracking from #3541, reverted because the reland made the docs-shell ceiling breach bigger rather than fixing it; they will be re-landed with corrected size evidence once they fit under budget.
+- Fixed: Composer keeps a quote and its attachments a full step from the frame edge and from the toolbar.
