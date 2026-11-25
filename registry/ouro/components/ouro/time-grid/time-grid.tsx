@@ -52,6 +52,7 @@ import {
   periodShift,
   stackMinWidth,
   todayOn,
+  foldsOf,
   stacksOf,
   statusClass,
   statuses,
@@ -261,6 +262,13 @@ export interface TimeGridOwnProps {
    */
   stackLabel?: ((count: number) => string) | undefined;
   /**
+   * The words on the chip that folds a day's overlapping events when its columns are too narrow to
+   * read a few characters of a title: the earliest events stay in their columns and the rest fold
+   * into a chip that opens their list. Translate it with your app.
+   * @default (count) => `+${count} more events`
+   */
+  moreLabel?: ((count: number) => string) | undefined;
+  /**
    * The id of the event whose popover of your own is open: it says so to screen readers
    * (`aria-expanded`) and gets an outline until you clear it.
    * @claim "it says so to screen readers" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid background events > tells onEventSelect which element was pressed, and marks the one whose popover is open)
@@ -344,6 +352,8 @@ const defaultStatusLabels: Record<TimeGridStatus, string> = { busy: "", tentativ
 const oneOf = <Name extends string>(list: readonly Name[], value: string | undefined, fallback: Name): Name => ((list as readonly (string | undefined)[]).includes(value) ? (value as Name) : fallback);
 const defaultWorkingHours = { start: 8, end: 17 };
 const overlapMinWidth = "4.5rem";
+// The strip a day gives the chip that folds the overlapping events it has no room for.
+const chipWidth = "2rem";
 
 const clock = minuteClock();
 // Stryker disable next-line ArrowFunction: the server's time only has to be no time, which 0 and undefined both are
@@ -443,6 +453,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     backgroundEvents = noEvents,
     backgroundLabel = "Other calendars",
     stackLabel = (count: number) => `${count} events`,
+    moreLabel = (count: number) => `+${count} more events`,
     expandedId,
     renderDaySummary,
     markedDays,
@@ -652,7 +663,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const [laneWidth, setLaneWidth] = useState(0);
   // The stacks in each day, and each folded event's stack by its key (the stack goes by its first event's key):
   // worked out once per layout and lane width.
-  const { stacks, stackOf } = useMemo(() => {
+  const { stacks, stackOf: stackOfBackground } = useMemo(() => {
     const stacks = behind.map((placements) =>
       // Stryker disable next-line ConditionalExpression,EqualityOperator: an unmeasured lane is measured before the first paint, which decides either way.
       labelBackground && laneWidth > 0
@@ -662,6 +673,21 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     );
     return { stacks, stackOf: new Map(stacks.flat().flatMap((stack) => stack.map((placed) => [placed.key, stack] as const))) };
   }, [behind, labelBackground, laneWidth]);
+  // The width of one day and of a rem, which decide how many overlapping events a day can show: the
+  // server HTML and the first render draw them all, in steps, until a measure.
+  const [dayWidth, setDayWidth] = useState(0);
+  const [dayRem, setDayRem] = useState(16);
+  const { shown, folds, reserved, stackOf } = useMemo(() => {
+    const folds = timed.map((placements) => (dayWidth > 0 ? foldsOf(placements, dayWidth / dayRem) : []));
+    const folded = new Set(folds.flat().flatMap((fold) => fold.folded.map((placed) => placed.key)));
+    const shown = timed.map((placements, index) => {
+      const adjust = new Map(folds[index]!.flatMap((fold) => fold.shown.map((placed) => [placed.key, placed] as const)));
+      return placements.filter((placed) => !folded.has(placed.key)).map((placed) => adjust.get(placed.key) ?? placed);
+    });
+    const members = new Map(folds.flat().flatMap((fold) => fold.folded.map((placed) => [placed.key, fold.folded] as const)));
+    const reserved = new Set(folds.flat().flatMap((fold) => fold.shown.map((placed) => placed.key)));
+    return { shown, folds, reserved, stackOf: new Map([...stackOfBackground, ...members]) };
+  }, [timed, dayWidth, dayRem, stackOfBackground]);
   const reachable = pieces.filter((piece) => (stackOf.get(piece.key)?.[0]!.key ?? piece.key) === piece.key);
 
   // The event with the Tab stop: the last one moved to, else the selected one, else the first.
@@ -744,6 +770,22 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // Stryker disable next-line ArrowFunction: once the lane is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
   }, [hasLane]);
+
+  const dayKey = days.join();
+  // One day's width, which the days share, and the size of a rem at the current text size.
+  useLayoutEffect(() => {
+    const day = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-day]");
+    if (!day) return;
+    const measure = () => {
+      setDayWidth(day.getBoundingClientRect().width);
+      setDayRem(parseFloat(getComputedStyle(document.documentElement).fontSize));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(day);
+    // Stryker disable next-line ArrowFunction: once the day is gone, nothing reads what the observer would set.
+    return () => observer.disconnect();
+    // The day column is replaced when the dates change, so the observer follows it.
+  }, [dayKey]);
 
   const focusPiece = (key: string) => {
     setActive(key);
@@ -967,19 +1009,22 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const placedItems = (placements: ReadonlyArray<DayPlacement<string>>, clearOfLane?: ReadonlySet<string>, stepped = true) =>
     placements.map((placed) => {
       const share = 100 / placed.columns;
+      // Beside a chip that folds the events it has no room for, the day is that much narrower.
+      const whole = reserved.has(placed.key) ? `(100% - ${chipWidth})` : "100%";
+      const wholeQ = reserved.has(placed.key) ? `(100cqw - ${chipWidth})` : "100cqw";
       const cleared = clearOfLane?.has(placed.key);
       // Where a background event shares its time, the event is placed in what the lane leaves free.
       const free = "(100% - var(--ouro-time-grid-lane))";
       // A day too narrow to give each of its overlapping events a readable width lets them overlap in steps, each later one on top of the last, instead of splitting the width into slivers.
-      const step = `max(0.75rem, min(${share}%, (100% - ${overlapMinWidth}) / ${Math.max(placed.columns - 1, 1)}))`;
+      const step = `max(0.75rem, min(${share / 100} * ${whole}, (${whole} - ${overlapMinWidth}) / ${Math.max(placed.columns - 1, 1)}))`;
       const startAt = !stepped ? `${placed.column * share}%` : placed.columns > 1 ? `calc(${step} * ${placed.column})` : "0%";
-      const widthAt = !stepped ? `${placed.span * share}%` : placed.columns > 1 ? `min(max(${placed.span * share}%, ${overlapMinWidth}), 100% - ${startAt})` : "100%";
+      const widthAt = !stepped ? `${placed.span * share}%` : placed.columns > 1 ? `min(max(${(placed.span * share) / 100} * ${whole}, ${overlapMinWidth}), ${whole} - ${startAt})` : whole;
       // The text of an event a later one steps over ends where that one starts, so it is never drawn under another event.
       // Stryker disable next-line EqualityOperator: a freed column is reused, so an event in a later column never merely touches this one, so no filter operand, and no single-column or filter-less case, changes which event covers this one, and < against <= and > against >= place the same events. The stepped test below pins the rest.
       const coveredBy = stepped ? placements.filter((other) => other.column > placed.column && other.top < placed.bottom && other.bottom > placed.top).sort((one, two) => one.column - two.column)[0] : undefined;
-      const unit = `max(0.75rem, min(${share}cqw, (100cqw - ${overlapMinWidth}) / ${placed.columns - 1}))`;
+      const unit = `max(0.75rem, min(${share / 100} * ${wholeQ}, (${wholeQ} - ${overlapMinWidth}) / ${placed.columns - 1}))`;
       // Stryker disable next-line ArithmeticOperator: width only feeds the cover, and a covered event has an overlapping later column, which stops its span at 1, so span * share and span / share agree.
-      const width = `min(max(${placed.span * share}cqw, ${overlapMinWidth}), 100cqw - ${unit} * ${placed.column})`;
+      const width = `min(max(${(placed.span * share) / 100} * ${wholeQ}, ${overlapMinWidth}), ${wholeQ} - ${unit} * ${placed.column})`;
       // Padding and borders must still fit the button, or it would spill out of its place.
       const cover = coveredBy ? `max(0px, min(${width} - ${unit} * ${coveredBy.column - placed.column} - 0.875rem, ${width} - 2rem))` : undefined;
       return (
@@ -1001,21 +1046,23 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       );
     });
 
+  // The time from the earliest start to the latest end of some events.
+  const membersRange = (members: ReadonlyArray<{ event: TimeGridEvent }>) =>
+    rangeText(formats.time, new Date(Math.min(...members.map((piece) => toInstant(piece.event.start)!.getTime()))), new Date(Math.max(...members.map((piece) => toInstant(piece.event.end!)!.getTime()))));
+
   // A stack of a day's background events drawn as one: their count and their time, which opens
   // their list, each item choosing its event as a press on it would.
-  const stackItem = (stack: ReadonlyArray<DayPlacement<string>>) => {
+  const stackItem = (stack: ReadonlyArray<DayPlacement<string>>, background = true, clearOfLane = false) => {
     const members = stack.map((placed) => pieces.find((piece) => piece.key === placed.key)!);
     const key = stack[0]!.key;
     const top = Math.min(...stack.map((placed) => placed.top));
     const bottom = Math.max(...stack.map((placed) => placed.bottom));
-    const starts = members.map((piece) => toInstant(piece.event.start)!.getTime());
-    const ends = members.map((piece) => toInstant(piece.event.end!)!.getTime());
     const element = () => rootRef.current!.querySelector<HTMLElement>(`[data-ouro-event-key="${CSS.escape(key)}"]`)!;
     return (
       <li
         key={key}
-        className="pointer-events-auto absolute inset-x-0"
-        style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)` }}
+        className="pointer-events-auto absolute end-0 start-0"
+        style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)`, ...(clearOfLane ? { insetInlineStart: "var(--ouro-time-grid-lane)" } : {}) }}
       >
         <Menu
           side="right"
@@ -1025,8 +1072,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               data-ouro-control="time-grid"
               data-ouro-part="stack"
               data-ouro-event-key={key}
-              data-background=""
+              data-background={background ? "" : undefined}
               tabIndex={key === tabStop ? 0 : -1}
+              aria-label={`${stackLabel(stack.length)} ${membersRange(members)}`}
               aria-current={members.some((piece) => piece.event.id === selectedId) ? "true" : undefined}
               // The arrows move through the grid, as from any event; Enter and Space press it, which opens the list.
               onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => (event as typeof event & { preventBaseUIHandler: () => void }).preventBaseUIHandler()}
@@ -1036,13 +1084,54 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               <TouchTarget />
               <span className="@container/text flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden @max-[2rem]/text:*:invisible">
                 <span className="truncate font-medium">{stackLabel(stack.length)}</span>{" "}
-                <span dir="ltr" data-slot="time-grid-stack-time" className={`${mutedLineClass} [unicode-bidi:isolate]`}>{rangeText(formats.time, new Date(Math.min(...starts)), new Date(Math.max(...ends)))}</span>
+                <span dir="ltr" data-slot="time-grid-stack-time" className={`${mutedLineClass} [unicode-bidi:isolate]`}>{membersRange(members)}</span>
               </span>
             </button>
           }
         >
           {members.map((piece) => (
-            <MenuItem key={piece.key} href={piece.event.href} onClick={() => onEventSelect?.(piece.event, { element: element(), background: true })}>
+            <MenuItem key={piece.key} href={piece.event.href} onClick={() => onEventSelect?.(piece.event, { element: element(), background })}>
+              <span dir="auto">{piece.event.title}</span>
+              <span className={mutedClass}> {rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
+            </MenuItem>
+          ))}
+        </Menu>
+      </li>
+    );
+  };
+
+  // The events a day has no room to show, folded into a chip in a strip at the day's end, which opens their list.
+  const chipItem = (folded: ReadonlyArray<DayPlacement<string>>) => {
+    const members = folded.map((placed) => pieces.find((piece) => piece.key === placed.key)!);
+    const key = folded[0]!.key;
+    const top = Math.min(...folded.map((placed) => placed.top));
+    const bottom = Math.max(...folded.map((placed) => placed.bottom));
+    const element = () => rootRef.current!.querySelector<HTMLElement>(`[data-ouro-event-key="${CSS.escape(key)}"]`)!;
+    return (
+      <li key={key} data-slot="time-grid-more-item" className="pointer-events-auto absolute end-0" style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)`, width: chipWidth }}>
+        <Menu
+          side="right"
+          trigger={
+            <button
+              type="button"
+              data-ouro-control="time-grid"
+              data-ouro-part="more"
+              data-slot="time-grid-more"
+              data-ouro-event-key={key}
+              tabIndex={key === tabStop ? 0 : -1}
+              aria-label={`${moreLabel(members.length)} ${membersRange(members)}`}
+              aria-current={members.some((piece) => piece.event.id === selectedId) ? "true" : undefined}
+              onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => (event as typeof event & { preventBaseUIHandler: () => void }).preventBaseUIHandler()}
+              onFocus={() => setActive(key)}
+              className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "z-[9] items-start justify-center px-0 text-center")}
+            >
+              <TouchTarget />
+              <span aria-hidden="true" data-slot="time-grid-more-count" className="min-w-0 font-medium">{`+${members.length}`}</span>
+            </button>
+          }
+        >
+          {members.map((piece) => (
+            <MenuItem key={piece.key} href={piece.event.href} onClick={() => onEventSelect?.(piece.event, { element: element(), background: false })}>
               <span dir="auto">{piece.event.title}</span>
               <span dir="ltr" data-slot="time-grid-menu-time" className={`${mutedClass} [unicode-bidi:isolate]`}> {rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
             </MenuItem>
@@ -1172,7 +1261,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           {days.map((day, index) => {
             const off = weekend.includes(utcDate(day).getUTCDay());
             return (
-              <div key={day} className="relative @container/col min-w-0 border-0 border-s border-solid border-border">
+              <div key={day} data-ouro-time-grid-day="" data-slot="time-grid-day" className="relative @container/col min-w-0 border-0 border-s border-solid border-border">
                 <div aria-hidden="true" data-slot="time-grid-lines" className="pointer-events-none absolute inset-0">
                   {hourLines.map((line) => (
                     <span key={line.at} data-slot="time-grid-line" className={line.half ? halfHourLineClass : hourLineClass} style={{ top: minutesTall(line.at) }} />
@@ -1250,7 +1339,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                     aria-current={index === todayIndex ? "date" : undefined}
                     className="pointer-events-none absolute inset-0 m-0 list-none p-0"
                   >
-                    {placedItems(timed[index]!, clearOfLane[index])}
+                    {placedItems(shown[index]!, clearOfLane[index])}
+                    {folds[index]!.map((fold) => (fold.shown.length > 0 ? chipItem(fold.folded) : stackItem(fold.folded, false, clearOfLane[index]!.has(fold.folded[0]!.key))))}
                   </ul>
                 ) : null}
                 {behind[index]!.length > 0 ? (
@@ -1261,7 +1351,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                     className="pointer-events-none absolute inset-y-0 start-0 m-0 box-border w-(--ouro-time-grid-lane) list-none p-0"
                   >
                     {placedItems(behind[index]!.filter((placed) => !stackOf.has(placed.key)), undefined, false)}
-                    {stacks[index]!.map(stackItem)}
+                    {stacks[index]!.map((stack) => stackItem(stack))}
                   </ul>
                 ) : null}
               </div>

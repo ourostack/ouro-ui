@@ -7,6 +7,7 @@
       {"part": "event", "role": "button", "portal": false, "modes": ["button"]},
       {"part": "event-link", "role": "link", "portal": false, "modes": ["link"]},
       {"part": "stack", "role": "button", "portal": false, "modes": ["button"]},
+      {"part": "more", "role": "button", "portal": false, "modes": ["button"]},
       {"part": "slots", "role": "grid", "portal": false, "modes": ["button"]}
     ]
   }
