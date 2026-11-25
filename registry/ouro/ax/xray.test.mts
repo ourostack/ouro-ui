@@ -717,7 +717,12 @@ test("a self-scoped twin that does not check the owner fails ui.self-scope-refus
     { component: "Roster", kind: "action", id: "kick", effect: "private", twin: "call kick <listener> --agent <me>", scope: "self" },
     { component: "Roster", kind: "action", id: "leave-room", effect: "private", twin: "call unfollow <room> <listener> --agent <me>", scope: "self" },
   ];
-  const report = await call("call-owner", "owner", { inventory: callInventory("call-owner", ui) });
+  // Each run has its own state file, so the three run side by side.
+  const [report, unsafe, stateless] = await Promise.all([
+    call("call-owner", "owner", { inventory: callInventory("call-owner", ui) }),
+    call("call-owner-unsafe", "", { mock: undefined }),
+    call("call-owner-stateless", "", { state: [], inventory: callInventory("call-owner-stateless", [...callUi, ui.at(-1)]) }),
+  ]);
   const result = (surface: string) => report.results.find((r) => r.claim === "ui.self-scope-refuses" && r.surface === surface)!;
   // Any agent's call acts on research-agent's row: help gives the command no scope, and the state changes.
   assert.equal(result("AgentPresence action stop").verdict, "fail");
@@ -729,11 +734,9 @@ test("a self-scoped twin that does not check the owner fails ui.self-scope-refus
   assert.deepEqual([result("Roster action leave-room").verdict, result("Roster action leave-room").note], ["fail", '`call unfollow` does not check the owner: help --json gives it no scope: "self"']);
   assert.equal(report.conformant, false);
   // Unproven as a mock, nothing scoped runs.
-  const unsafe = await call("call-owner-unsafe", "", { mock: undefined });
   assert.match(unsafe.results.find((r) => r.claim === "ui.self-scope-refuses")!.note, /^not run: the target is not proven a mock/);
   assert.deepEqual(JSON.parse(readFileSync(join(scratch, "call-owner-unsafe-state.json"), "utf8")).listening.length, 2);
   // Without a state command, the refusal is judged by its answers alone; a placeholder with no sample is skipped.
-  const stateless = await call("call-stateless", "", { state: [], inventory: callInventory("call-stateless", [...callUi, ui.at(-1)]) });
   assert.equal(verdictOf(stateless, "ui.self-scope-refuses", "Roster action leave-room"), "skip");
   assert.equal(verdictOf(stateless, "ui.self-scope-refuses", "AgentPresence action stop"), "pass");
 });
