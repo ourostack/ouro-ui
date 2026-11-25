@@ -327,14 +327,6 @@ export const knownFindings: KnownFinding[] = [
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
-    story: "ConversationFind/LongConversation",
-    rule: "near-miss",
-    issue: 3286,
-    theme: "nova",
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
     story: "Heading/RecipeCard",
     rule: "near-miss",
     issue: 3286,

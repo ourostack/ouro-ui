@@ -2439,10 +2439,10 @@ describe("Message actions", () => {
     const [mine, user, assistant] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
     expect(box(barOf(mine!)).left).toBeCloseTo(box(bubbleOf(mine!)).left + 8, 0);
     expect(box(bubbleOf(user!)).right).toBeGreaterThan(box(host).right - 60);
-    // Elsewhere it sits at the bubble's end corner, 32px above it.
+    // Elsewhere it sits at the bubble's end corner, 30px above it.
     for (const message of [user!, assistant!]) {
       expect(box(barOf(message)).right).toBeCloseTo(box(bubbleOf(message)).right - 8, 0);
-      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 32, 0);
+      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 30, 0);
     }
   });
 
@@ -2462,12 +2462,12 @@ describe("Message actions", () => {
     );
     const [chat, post, reply] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
     expect(box(barOf(chat!)).right).toBeCloseTo(box(bubbleOf(chat!)).right - 8, 0);
-    expect(box(barOf(chat!)).top).toBeCloseTo(box(bubbleOf(chat!)).top - 32, 0);
+    expect(box(barOf(chat!)).top).toBeCloseTo(box(bubbleOf(chat!)).top - 30, 0);
     const body = post!.querySelector("[data-ouro-message-body]")!;
     expect(box(barOf(post!)).right).toBeCloseTo(box(body).right - 8, 0);
     expect(box(barOf(post!)).top).toBeCloseTo(box(body).top - 20, 0);
     expect(box(barOf(reply!)).right).toBeCloseTo(box(bubbleOf(reply!)).right - 8, 0);
-    expect(box(barOf(reply!)).top).toBeCloseTo(box(bubbleOf(reply!)).top - 32, 0);
+    expect(box(barOf(reply!)).top).toBeCloseTo(box(bubbleOf(reply!)).top - 30, 0);
   });
 
   it("puts a reply's bar beside its text, level with its top, clear of the name", async () => {
@@ -2646,7 +2646,7 @@ describe("Message actions", () => {
     expect(box(barOf(post!)).top).toBeCloseTo(box(body).top - 20, 0);
     for (const message of [plain!, note!]) {
       expect(box(barOf(message)).right).toBeCloseTo(box(bubbleOf(message)).right - 8, 0);
-      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 32, 0);
+      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 30, 0);
       expect(getComputedStyle(message).containerType).toBe("normal");
     }
   });
