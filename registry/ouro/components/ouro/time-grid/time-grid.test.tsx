@@ -1305,6 +1305,33 @@ describe("TimeGrid", () => {
       expect(focus.getAttribute("tabindex")).toBe("0");
     });
 
+    it("returns to the slot it was on when focus leaves the grid and comes back, as after a dialog closes", async () => {
+      const { grid, focus } = await open();
+      await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowRight}");
+      const was = named(grid);
+      await act(async () => focus.blur());
+      expect(focus.getAttribute("aria-activedescendant")).toBeNull();
+      await act(async () => focus.focus());
+      expect(named(grid)).toBe(was);
+    });
+
+    it("returns to the last slot of the last day exactly, and to the last day left when the view shows fewer", async () => {
+      const onSlotSelect = vi.fn();
+      const { grid, rerender } = await render({ view: "week", onSlotSelect });
+      const focus = grid.querySelector<HTMLElement>('[role="grid"]')!;
+      await act(async () => focus.focus());
+      await userEvent.keyboard("{End}{ArrowRight}{ArrowRight}{ArrowRight}");
+      const was = named(grid);
+      expect(was).toBe("Saturday, March 14, 11:30 PM");
+      await act(async () => focus.blur());
+      await act(async () => focus.focus());
+      expect(named(grid)).toBe(was);
+      await act(async () => focus.blur());
+      await rerender({ view: "day", onSlotSelect });
+      await act(async () => grid.querySelector<HTMLElement>('[role="grid"]')!.focus());
+      expect(named(grid)).toBe("Thursday, March 12, 11:30 PM");
+    });
+
     it("moves a slot with Up and Down, an hour with Page Up and Page Down, and to the day's ends with Home and End", async () => {
       const { grid } = await open();
       await userEvent.keyboard("{ArrowDown}");
