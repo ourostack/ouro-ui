@@ -375,7 +375,10 @@ const frameClass =
   // is invalid at computed-value time and clip-path falls back to its own initial none; a move sets
   // both properties inline, so this only ever clips while one runs. Reduced motion still needs its
   // own gate, so a collapse's early return (above) still measures a clip-path of exactly none.
-  "motion-safe:[clip-path:inset(var(--ouro-composer-inset)_0_0_0_round_var(--ouro-composer-radius))] data-[ouro-moving=grow]:motion-safe:[--ouro-composer-inset:var(--ouro-composer-gap)] " +
+  // --ouro-composer-inset needs no grow-start override either: animation-fill-mode both already
+  // applies the reveal keyframe's own "from" (--ouro-composer-gap) the instant data-ouro-moving is
+  // set, mid-flight reversal included, which the turned-round-mid-way tests below measure directly.
+  "motion-safe:[clip-path:inset(var(--ouro-composer-inset)_0_0_0_round_var(--ouro-composer-radius))] " +
   "data-[ouro-moving=grow]:motion-safe:animate-[ouro-composer-reveal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
   "data-[ouro-moving=shrink]:motion-safe:animate-[ouro-composer-conceal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] data-[ouro-moving=shrink]:justify-end";
 
