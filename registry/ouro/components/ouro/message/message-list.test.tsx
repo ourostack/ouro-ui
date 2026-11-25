@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { createElement, useState, type ComponentType, type ReactNode } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -2873,6 +2873,40 @@ describe("MessageList keyboard", () => {
     // The newest just sent becomes the Tab stop; tabindex itself is excluded from the attributes watched above,
     // since the roving Tab stop moving to it is its own, separate concern.
     expect(added.getAttribute("tabindex")).toBe("0");
+    // No sync after its own render wrote any of these again.
+    expect(mutated).toEqual([]);
+  });
+
+  it("gives a Server-Component-passed Message its control and part too, in its own first render, when its type is a lazy reference and not Message itself", async () => {
+    // A Next.js build sends a client Message this way: the element itself, but with `type` a lazy
+    // reference to the component, never `Message` directly, so it cannot be told apart by `type === Message`.
+    const lazyMessage = (id: string) =>
+      createElement(
+        { $$typeof: Symbol.for("react.lazy"), _payload: Message, _init: (payload: unknown) => payload } as unknown as ComponentType,
+        { role: "user", name: "Ana", id } as object,
+        "A lazy post",
+      );
+    const { scroller, rerender } = await render(<Channel>{lazyMessage("lazy-post-0")}</Channel>);
+    const mutated: Element[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === "attributes" && record.target instanceof Element && record.target.id === "lazy-post-1") mutated.push(record.target);
+      }
+    });
+    observer.observe(scroller, { subtree: true, attributes: true, attributeFilter: ["data-ouro-control", "data-ouro-part", "aria-posinset", "aria-setsize"] });
+    await rerender(
+      <Channel>
+        {lazyMessage("lazy-post-0")}
+        {lazyMessage("lazy-post-1")}
+      </Channel>,
+    );
+    await settle(scroller);
+    observer.disconnect();
+    const added = document.getElementById("lazy-post-1")!;
+    expect(added.getAttribute("data-ouro-control")).toBe("message-list");
+    expect(added.getAttribute("data-ouro-part")).toBe("item");
+    expect(added.getAttribute("aria-posinset")).toBe("2");
+    expect(added.getAttribute("aria-setsize")).toBe("2");
     // No sync after its own render wrote any of these again.
     expect(mutated).toEqual([]);
   });
