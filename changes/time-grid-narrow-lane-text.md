@@ -1,1 +1,1 @@
-- Fixed: TimeGrid hides the text of a stepped event when almost none of it is left uncovered.
+- Fixed: TimeGrid hides the text of a stepped event when its visible lane is very narrow.
