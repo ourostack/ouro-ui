@@ -117,6 +117,7 @@ function Screen(): JSX.Element {
   const [date, setDate] = useState(today);
   const [view, setView] = useState<TimeGridView>(() => (window.matchMedia("(max-width: 639px)").matches ? "day" : "work-week"));
   const phone = useMediaQuery("(max-width: 639px)", false);
+  const coarse = useMediaQuery("(pointer: coarse)", false);
   const [stage, setStage] = useState<Stage>("week");
   const [events, setEvents] = useState<Entry[]>(() => seed(today));
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -157,6 +158,7 @@ function Screen(): JSX.Element {
   }, []);
 
   const newEvent = () => {
+    toast.dismiss();
     const now = new Date();
     const upcoming = date === today ? Math.min(Math.ceil((minutesOf(now) + 1) / 30) * 30, 23 * 60) : 9 * 60;
     begin({ day: date, start: upcoming });
@@ -219,7 +221,7 @@ function Screen(): JSX.Element {
     // One toast at a time, so a second delete replaces the first. It lasts 8 s, longer than the default, and hovering or focusing it holds the countdown; the demo leaves room under the grid on a phone for it to rest.
     toast.dismiss();
     toast("Event deleted", {
-      description: `${entry.title}. Ctrl or Cmd+Z also undoes it.`,
+      description: coarse ? entry.title : `${entry.title}. Ctrl or Cmd+Z also undoes it.`,
       duration: 8000,
       action: {
         label: "Undo",
@@ -271,7 +273,10 @@ function Screen(): JSX.Element {
           {heading}
         </Heading>
         <div className="flex flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
-        <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => setJump(!jump)}>
+        <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => {
+            toast.dismiss();
+            setJump(!jump);
+          }}>
           Go to date
         </Button>
         {phone ? null : <SegmentedControl
