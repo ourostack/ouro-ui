@@ -1,0 +1,1 @@
+- MessageList's action bar now fades in when it first shows and fades out when the pointer leaves, over `--ouro-duration-fast` (opacity only, so reduced motion keeps it); it stays mounted through the exit, marked `data-ending-style`, and a pointer that returns mid-exit keeps it, so an app can drop its own `@starting-style`.

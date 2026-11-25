@@ -141,6 +141,7 @@ const namedButUnread = {
     "test/screenshots.visual.test.tsx ./__screenshots__/screenshots.visual.test.tsx/*-linux.png": "the visual project, which runs only with CI_VISUAL=1, in the visual job",
   },
   screens: {
+    "site/probes/route-profile.spec.ts ../e2e/looks": "an on-demand probe that no CI tier runs",
     ...Object.fromEntries(
       ["registry/ouro/e2e/ouro/", "registry/ouro/e2e/screen-reader/", "registry/ouro/lib/ouro/testing/", "registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/theme/control-shape.test.tsx", "registry/ouro/theme/hover-tokens.test.tsx", "registry/ouro/theme/plain-classes.touch.test.tsx"].map((path) => [
         `scripts/registry.mts ${path}`,

@@ -521,13 +521,13 @@ const mutedInk = {
 const layouts = {
   filled: {
     // A transparent border, which forced colours draw, so a bubble that is only a fill keeps its edge there.
-    user: `rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-se-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-ee-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-ee-(--ouro-jr) border border-solid border-transparent px-3 pt-2 pb-2 ${filledInk}`,
+    user: `rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-se-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-ee-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-ee-(--ouro-jr) border border-solid border-transparent px-3 pt-2 pb-2 has-[>[data-ouro=code-block]:first-child]:pt-3 ${filledInk}`,
     assistant:
-      "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-ss-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-es-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-es-(--ouro-jr) border border-solid border-transparent bg-(--ouro-bubble-other-fill) px-3 py-2 text-(--ouro-bubble-other-ink)",
+      "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:9px] group-data-continued/message:rounded-ss-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-es-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-es-(--ouro-jr) border border-solid border-transparent bg-(--ouro-bubble-other-fill) px-3 py-2 text-(--ouro-bubble-other-ink) has-[>[data-ouro=code-block]:first-child]:pt-3",
   },
   raised: {
-    user: "rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 pt-2 pb-2 text-foreground",
-    assistant: `rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] px-3 py-2 ${raised}`,
+    user: "rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 pt-2 pb-2 text-foreground has-[>[data-ouro=code-block]:first-child]:pt-3",
+    assistant: `rounded-ouro-lg [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] px-3 py-2 has-[>[data-ouro=code-block]:first-child]:pt-3 ${raised}`,
   },
 } as const;
 
@@ -1059,7 +1059,16 @@ export function Message(props: MessageProps): JSX.Element {
   // Hidden rather than left out when empty: MessageList reads every message's text from it.
   const marked = end && statusMark !== undefined && statusMark !== null && statusMark !== false;
   const contentBox = (
-    <div data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("relative box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface, marked && "pb-6")}>
+    <div
+      data-ouro-message-content=""
+      hidden={!worded}
+      style={surfaceColors}
+      className={cn(
+        "relative box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]",
+        surface,
+        marked ? "pb-6" : "has-[>[data-ouro=code-block]:last-child]:pb-3",
+      )}
+    >
       {contextLine}
       {titled && (
         <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">

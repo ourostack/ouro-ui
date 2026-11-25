@@ -239,6 +239,35 @@ export const Chat: Story = {
   render: () => <ChatConversation />,
 };
 
+/** The pointer has left a message: its action bar fades out where it was, and goes once it has. */
+export const ChatLeaving: Story = {
+  render: () => (
+    <Surface>
+      <MessageList label="Chat with Mara Quill" style={{ height: 160 }}>
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41" actions={actionsFor(() => {}, () => {})}>
+          Morning! The venue confirmed the long table for Friday.
+        </Message>
+      </MessageList>
+    </Surface>
+  ),
+  play: async ({ canvasElement }) => {
+    const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    let message = canvasElement.querySelector<HTMLElement>("[data-ouro-message-content]");
+    while (message === null) {
+      await frame();
+      message = canvasElement.querySelector<HTMLElement>("[data-ouro-message-content]");
+    }
+    const row = message.closest<HTMLElement>('[data-ouro="message"]') ?? message;
+    while (row.querySelector('[data-ouro-part="bar"]') === null) {
+      message.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
+      await frame();
+    }
+    // pointerleave does not bubble, so it goes to each element the list may listen on.
+    for (let up: HTMLElement | null = row; up !== null && up !== canvasElement.parentElement; up = up.parentElement) up.dispatchEvent(new PointerEvent("pointerleave", { pointerType: "mouse" }));
+    while (row.querySelector('[data-ouro-part="bar"]') !== null) await frame();
+  },
+};
+
 /**
  * The same chat with `bubble="raised"`, a workplace chat's look: others' messages on a raised card,
  * the user's own in a tint of the primary color.

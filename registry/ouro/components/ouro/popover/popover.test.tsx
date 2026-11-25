@@ -595,6 +595,47 @@ describe("controlled Popover", () => {
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => popup()).toBeNull();
   });
+
+  it("leaves focus in a dialog opened while it closes, instead of pulling it back to anchor (#3612)", async () => {
+    // A press inside the popover can close it and open a sibling dialog in the same handler, as a
+    // calendar's Edit action does: setOpen(false) and the dialog's open state change together, so the
+    // popover is still mid-exit when the dialog opens. Its anchor-named finalFocus must not then steal
+    // focus back from the dialog.
+    function Overlap() {
+      const anchor = useRef<HTMLButtonElement>(null);
+      const [open, setOpen] = useState(false);
+      const [dialogOpen, setDialogOpen] = useState(false);
+      return (
+        <>
+          <button ref={anchor} type="button" onClick={() => setOpen((value) => !value)}>
+            Filters
+          </button>
+          <Popover title="Filters" open={open} anchor={anchor} onOpenChange={setOpen}>
+            <Button
+              onClick={() => {
+                setOpen(false);
+                setDialogOpen(true);
+              }}
+            >
+              Edit
+            </Button>
+          </Popover>
+          <Dialog title="Edit event" open={dialogOpen} onOpenChange={setDialogOpen}>
+            <input aria-label="Name" />
+          </Dialog>
+        </>
+      );
+    }
+
+    await render(<Overlap />);
+    const toggle = page.getByRole("button", { name: "Filters" }).element() as HTMLElement;
+    await userEvent.click(toggle);
+    await settled();
+    await userEvent.click(page.getByRole("button", { name: "Edit" }));
+    const dialog = () => document.querySelector<HTMLElement>('[role="dialog"]');
+    await expect.poll(() => dialog()?.hasAttribute("data-open")).toBe(true);
+    await expect.poll(() => dialog()?.contains(document.activeElement)).toBe(true);
+  });
 });
 
 describe("nested overlays", () => {

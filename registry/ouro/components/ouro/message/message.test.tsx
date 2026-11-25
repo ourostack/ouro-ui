@@ -894,6 +894,28 @@ describe("Message chat", () => {
     expect(message.getBoundingClientRect().width).toBeLessThanOrEqual(600);
   });
 
+  it("evens its inset around a code block that starts or ends the bubble, instead of the text inset", async () => {
+    const { message: ending } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill">
+        <CodeBlock code="echo hi" />
+      </Message>,
+    );
+    const endingBubble = bubbleOf(ending).getBoundingClientRect();
+    const endingCode = ending.querySelector<HTMLElement>('[data-ouro="code-block"]')!.getBoundingClientRect();
+    const endingSideGap = endingCode.left - endingBubble.left;
+    expect(endingBubble.bottom - endingCode.bottom).toBeCloseTo(endingSideGap, 0);
+
+    const { message: starting } = await render(
+      <Message variant="chat" role="user" bubble="raised" name="Priya Okafor">
+        <CodeBlock code="echo hi" />
+      </Message>,
+    );
+    const startingBubble = bubbleOf(starting).getBoundingClientRect();
+    const startingCode = starting.querySelector<HTMLElement>('[data-ouro="code-block"]')!.getBoundingClientRect();
+    const startingSideGap = startingCode.left - startingBubble.left;
+    expect(startingCode.top - startingBubble.top).toBeCloseTo(startingSideGap, 0);
+  });
+
   it("fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with equal corners", async () => {
     const { host } = await render(
       <>
