@@ -111,6 +111,8 @@ describe("TimeGrid date and layout math", () => {
     expect(split(9.49)).toEqual([[["a"], ["b", "c"], [1]]]);
     expect(split(6.5)).toEqual([[["a"], ["b", "c"], [1]]]);
     expect(split(6.49)).toEqual([[[], ["a", "b", "c"], []]]);
+    // A wider chip strip, as a touch screen draws it, leaves a column fewer in the same width.
+    expect(foldsOf(three, 9.5, 2.75).map((fold) => fold.shown.map((placed) => placed.key))).toEqual([["a"]]);
     // A lone event is never folded, and an event's span stays inside the columns that show.
     expect(foldsOf(layoutDay([{ key: "x", start: 0, end: 60 }]), 2)).toEqual([]);
     const spread = layoutDay([
@@ -798,6 +800,20 @@ describe("TimeGrid", () => {
       expect(shown()).toEqual([]);
     });
 
+    it("reads the chip's count as +N in a right-to-left page", async () => {
+      await render({ view: "day", events: mixed }, (grid) => <div dir="rtl" style={{ width: "260px" }}>{grid}</div>);
+      await expect.poll(chip).not.toBeNull();
+      const count = chip()!.querySelector<HTMLElement>('[data-slot="time-grid-more-count"]')!;
+      const text = count.firstChild as Text;
+      const sign = document.createRange();
+      sign.setStart(text, 0);
+      sign.setEnd(text, 1);
+      const digits = document.createRange();
+      digits.setStart(text, 1);
+      digits.setEnd(text, text.length);
+      expect(sign.getBoundingClientRect().left).toBeLessThan(digits.getBoundingClientRect().left);
+    });
+
     it("places overlapping events across the whole day, as a share of 100%", async () => {
       await render({ view: "day", events: crowd(2) }, (grid) => <div style={{ width: "240px" }}>{grid}</div>);
       await expect.poll(() => shown().length).toBe(2);
@@ -821,9 +837,9 @@ describe("TimeGrid", () => {
       for (const element of shown().map((_, index) => events()[index]!)) expect(element.getBoundingClientRect().right).toBeLessThanOrEqual(strip + 1);
       // A shown event that another covers keeps its text clear of the cover, within the day less the chip's strip.
       const cover = (events()[0]!.closest("li") as HTMLElement).style.getPropertyValue("--ouro-time-grid-cover");
-      expect(cover).toContain("max(0.75rem, min(0.5 * calc(100cqw - 2rem), (calc(100cqw - 2rem) - 4.5rem) / 1))");
+      expect(cover).toContain("max(0.75rem, min(0.5 * calc(100cqw - var(--ouro-time-grid-chip)), (calc(100cqw - var(--ouro-time-grid-chip)) - 4.5rem) / 1))");
       // And in the plain day, less the same strip.
-      expect(first.style.width).toContain("100% - 2rem");
+      expect(first.style.width).toContain("100% - var(--ouro-time-grid-chip)");
     });
 
     it("moves the Tab stop to the chip when it takes focus, and marks it current only when a folded event is selected", async () => {
@@ -2204,6 +2220,13 @@ describe("TimeGrid", () => {
     expect(host.querySelector('[data-ouro-time-grid-now="today"]')).not.toBeNull();
     const scroller = host.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     await expect.poll(() => Math.abs(scroller.scrollTop - (7.5 * 48 - 8))).toBeLessThan(1);
+  });
+
+  it("draws every overlapping event, with no chip, until the browser has measured a day", () => {
+    const events = Array.from({ length: 4 }, (_, index) => ({ id: `e${index}`, title: `Sync ${index}`, start: "2026-03-12T10:00:00Z", end: "2026-03-12T11:00:00Z" }));
+    const html = renderToString(<TimeGrid {...base} timeZone="UTC" view="day" events={events} />);
+    expect(html.match(/data-ouro-event-key/g)).toHaveLength(4);
+    expect(html).not.toContain("time-grid-more");
   });
 
   it("hydrates without a mismatch when the server's engine spaced a time range differently from this browser's", async () => {

@@ -206,10 +206,9 @@ function stacksOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>): Array<Arra
  * A shown event keeps a step wide enough for a few characters of its title; a day that can't
  * give the first event its minimum beside the chip's strip folds the whole stack into one.
  */
-function foldsOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>, widthRem: number) {
+function foldsOf<Key>(placements: ReadonlyArray<DayPlacement<Key>>, widthRem: number, strip = 2) {
   const minStep = 3;
   const minWidth = 4.5;
-  const strip = 2;
   const folds: Array<{ shown: Array<DayPlacement<Key>>; folded: Array<DayPlacement<Key>> }> = [];
   for (const stack of stacksOf(placements)) {
     // A stack is one group of overlapping events, so its events share their column count.

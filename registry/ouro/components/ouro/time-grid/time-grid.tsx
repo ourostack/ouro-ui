@@ -355,7 +355,7 @@ const oneOf = <Name extends string>(list: readonly Name[], value: string | undef
 const defaultWorkingHours = { start: 8, end: 17 };
 const overlapMinWidth = "4.5rem";
 // The strip a day gives the chip that folds the overlapping events it has no room for.
-const chipWidth = "2rem";
+const chipWidth = "var(--ouro-time-grid-chip)";
 
 const clock = minuteClock();
 // Stryker disable next-line ArrowFunction: the server's time only has to be no time, which 0 and undefined both are
@@ -692,8 +692,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // server HTML and the first render draw them all, in steps, until a measure.
   const [dayWidth, setDayWidth] = useState(0);
   const [dayRem, setDayRem] = useState(16);
+  const [chipRem, setChipRem] = useState(2);
   const { shown, folds, reserved, stackOf } = useMemo(() => {
-    const folds = timed.map((placements) => (dayWidth > 0 ? foldsOf(placements, dayWidth / dayRem) : []));
+    const folds = timed.map((placements) => (dayWidth > 0 ? foldsOf(placements, dayWidth / dayRem, chipRem) : []));
     const folded = new Set(folds.flat().flatMap((fold) => fold.folded.map((placed) => placed.key)));
     const shown = timed.map((placements, index) => {
       const adjust = new Map(folds[index]!.flatMap((fold) => fold.shown.map((placed) => [placed.key, placed] as const)));
@@ -702,7 +703,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const members = new Map(folds.flat().flatMap((fold) => fold.folded.map((placed) => [placed.key, fold.folded] as const)));
     const reserved = new Set(folds.flat().flatMap((fold) => fold.shown.map((placed) => placed.key)));
     return { shown, folds, reserved, stackOf: new Map([...stackOfBackground, ...members]) };
-  }, [timed, dayWidth, dayRem, stackOfBackground]);
+  }, [timed, dayWidth, dayRem, chipRem, stackOfBackground]);
   const reachable = pieces.filter((piece) => (stackOf.get(piece.key)?.[0]!.key ?? piece.key) === piece.key);
 
   // The event with the Tab stop: the last one moved to, else the selected one, else the first.
@@ -796,6 +797,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const measure = () => {
       setDayWidth(day.getBoundingClientRect().width);
       setDayRem(parseFloat(getComputedStyle(document.documentElement).fontSize));
+      setChipRem(parseFloat(getComputedStyle(day).getPropertyValue("--ouro-time-grid-chip")));
     };
     // Measured here, not only in the observer's callback, but only when a day has events that
     // might fold: the observer's first notification runs after the layout effect's commit paints,
@@ -1173,7 +1175,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "inset-x-0 z-[9] items-start justify-center whitespace-nowrap px-0 text-center")}
             >
               <TouchTarget />
-              <span aria-hidden="true" data-slot="time-grid-more-count" className="min-w-0 font-medium">{`+${members.length}`}</span>
+              <span aria-hidden="true" dir="ltr" data-slot="time-grid-more-count" className="min-w-0 font-medium [unicode-bidi:isolate]">{`+${members.length}`}</span>
             </button>
           }
         >
@@ -1196,7 +1198,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       data-view={view}
       className={cn(
         "relative box-border flex h-ouro-144 min-h-0 min-w-0 flex-col text-foreground",
-        "[--ouro-time-grid-gutter:4rem] [--ouro-time-grid-hour:max(3rem,var(--ouro-time-grid-fill,0px))] [--ouro-time-grid-tint:14%] pointer-coarse:[--ouro-time-grid-hour:max(3.5rem,var(--ouro-time-grid-fill,0px))] dark:[--ouro-time-grid-tint:24%]",
+        "[--ouro-time-grid-gutter:4rem] [--ouro-time-grid-hour:max(3rem,var(--ouro-time-grid-fill,0px))] [--ouro-time-grid-tint:14%] [--ouro-time-grid-chip:2rem] pointer-coarse:[--ouro-time-grid-chip:2.75rem] pointer-coarse:[--ouro-time-grid-hour:max(3.5rem,var(--ouro-time-grid-fill,0px))] dark:[--ouro-time-grid-tint:24%]",
         className,
       )}
       style={
