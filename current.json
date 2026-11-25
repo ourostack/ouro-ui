@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-25T01:29:13.907Z",
+  "generatedAt": "2026-11-25T01:57:17.684Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -107,8 +107,8 @@
         }
       ],
       "pr": {
-        "number": 1248,
-        "url": "https://github.com/ourostack/factory/pull/1248"
+        "number": 1249,
+        "url": "https://github.com/ourostack/factory/pull/1249"
       }
     },
     {
@@ -225,14 +225,14 @@
     },
     {
       "repo": "ourostack/m365crawl",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 188be02",
+          "current": "commit e1122e2",
           "latest": "v1.3.536",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
@@ -242,10 +242,7 @@
           "behind": false
         }
       ],
-      "pr": {
-        "number": 597,
-        "url": "https://github.com/ourostack/m365crawl/pull/597"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouro-current-fixture-android",
