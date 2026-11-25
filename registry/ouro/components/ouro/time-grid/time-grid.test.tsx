@@ -1146,12 +1146,13 @@ describe("TimeGrid", () => {
 
     it("draws the cursor at its slot's top, one slot tall", async () => {
       const heights: number[] = [];
-      for (const slotMinutes of [30, 60]) {
+      for (const slotMinutes of [30, 60] as const) {
         const { grid } = await open({ slotMinutes });
         heights.push(grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!.getBoundingClientRect().height);
       }
-      expect(heights[0]).toBeGreaterThan(0);
-      expect(heights[1]).toBeCloseTo(heights[0] * 2, 0);
+      const [short, tall] = heights as [number, number];
+      expect(short).toBeGreaterThan(0);
+      expect(tall).toBeCloseTo(short * 2, 0);
     });
 
     it("draws no slots, and throws nothing, when the date is not a date", async () => {
