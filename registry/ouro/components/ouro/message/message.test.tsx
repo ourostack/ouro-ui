@@ -1255,6 +1255,27 @@ describe("Message chat", () => {
     expect(third!.querySelector("[data-ouro-message-gutter]")!.childElementCount).toBe(0);
   });
 
+  it("keeps a continued message's hover time clear of the bubble, with a one- or two-digit hour alike", async () => {
+    const timeRight = async (time: string) => {
+      const { host } = await render(
+        <Message variant="chat" role="assistant" name="Mara Quill" time={time} dateTime="2026-05-04T00:52" continued>
+          The venue confirmed.
+        </Message>,
+      );
+      const message = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+      const gutterTime = message.querySelector<HTMLElement>("[data-ouro-message-gutter] time")!;
+      await userEvent.hover(bubbleOf(message));
+      await expect.poll(() => getComputedStyle(gutterTime).opacity).toBe("1");
+      // Its end never reaches the bubble's own leading edge, whatever the time's width.
+      expect(gutterTime.getBoundingClientRect().right).toBeLessThanOrEqual(bubbleOf(message).getBoundingClientRect().left);
+      return gutterTime.getBoundingClientRect().right;
+    };
+    const oneDigitHour = await timeRight("9:41 AM");
+    const twoDigitHour = await timeRight("12:52 AM");
+    // A two-digit hour is wider than a one-digit one, but its end sits no further right: growth goes left, away from the bubble.
+    expect(twoDigitHour).toBeLessThanOrEqual(oneDigitHour + 0.5);
+  });
+
   it("keeps its fixed sizes at a compact --spacing: the typing dots, the sending and failed icons, the gutter, a reply's column, and the bar's icons and reactions", async () => {
     const quickReactions = [{ key: "like", label: "Like", icon: "👍", onClick: () => {} }];
     const { host } = await render(

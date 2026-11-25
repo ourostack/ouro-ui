@@ -1110,7 +1110,7 @@ export function Message(props: MessageProps): JSX.Element {
       )}
     >
       {!end && avatar !== false && (
-        <span data-ouro-message-gutter="" className="flex w-ouro-8 shrink-0 justify-center">
+        <span data-ouro-message-gutter="" className="flex w-ouro-8 shrink-0 justify-end">
           {continued ? (
             showing ? (
               // A continued reply's line holds its text, so its clock sits in the gutter, where its time shows on hover.
@@ -1120,8 +1120,8 @@ export function Message(props: MessageProps): JSX.Element {
               <time
                 aria-hidden="true"
                 dateTime={dateTime}
-                // Centered wider than the gutter, so its first glyph would otherwise sit under the row's focus ring; ms-1.5 clears it.
-                className="mt-2.5 ms-1.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
+                // End-aligned so a two-digit hour overflows left (away from the bubble) instead of right, under it; -me-[7.5px] holds its end at the same slack the gutter always gave it, whatever its width, so it never reaches the bubble and still clears the row's focus ring for a short time.
+                className="-me-[7.5px] mt-2.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
               >
                 {time}
               </time>
