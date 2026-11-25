@@ -1,0 +1,1 @@
+- New: `ThreadSummary` takes `alwaysShown`, which keeps its quiet unanswered Reply visible in a post instead of showing it only on hover or focus.

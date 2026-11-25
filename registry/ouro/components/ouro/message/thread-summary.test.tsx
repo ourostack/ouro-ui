@@ -144,6 +144,28 @@ describe("ThreadSummary", () => {
     expect(quiet!.getBoundingClientRect()).toEqual(rest);
   });
 
+  it("alwaysShown keeps the quiet Reply visible with no hover or focus, in the same place and style", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="post" role="assistant" name="Jonah Vale" thread={<ThreadSummary count={0} onOpen={() => {}} />}>
+          Agenda for Friday
+        </Message>
+        <Message variant="post" role="assistant" name="Mara Quill" thread={<ThreadSummary count={0} alwaysShown onOpen={() => {}} />}>
+          Unanswered post
+        </Message>
+      </>,
+    );
+    const [hoverOnly, always] = [...host.querySelectorAll<HTMLElement>('[data-ouro="thread-summary"]')];
+    const opacity = (element: HTMLElement) => getComputedStyle(element).opacity;
+    expect(opacity(hoverOnly!)).toBe("0");
+    expect(opacity(always!)).toBe("1");
+    // Same place and the same quiet size: alwaysShown changes only whether it starts shown.
+    const hoverOnlyButton = hoverOnly!.querySelector("button")!.getBoundingClientRect();
+    const alwaysButton = always!.querySelector("button")!.getBoundingClientRect();
+    expect(alwaysButton.height).toBe(hoverOnlyButton.height);
+    expect(always!.querySelector("button")!.className).toBe(hoverOnly!.querySelector("button")!.className);
+  });
+
   it("takes other words for every label", async () => {
     await render(
       <ThreadSummary

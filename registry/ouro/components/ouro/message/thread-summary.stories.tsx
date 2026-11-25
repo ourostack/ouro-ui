@@ -73,7 +73,7 @@ function Posts() {
         role="assistant"
         name="Mara Quill"
         time="8:02 AM"
-        thread={<ThreadSummary count={0} label="Reply to Mara Quill's post" onOpen={() => setOpened("Started a thread under Mara Quill's post")} />}
+        thread={<ThreadSummary count={0} alwaysShown label="Reply to Mara Quill's post" onOpen={() => setOpened("Started a thread under Mara Quill's post")} />}
       >
         The mockups are in the Files tab.
       </Message>
