@@ -168,7 +168,7 @@ describe("Lightbox fit", () => {
     expect(getComputedStyle(popup()!).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
   });
 
-  it("hides the title from sight and makes the header buttons glass, only with fit", async () => {
+  it("hides the title from sight and puts the header buttons in one glass group, only with fit", async () => {
     // Large enough that the dialog draws it smaller than its own size, so the zoom button renders too.
     const bigImage: LightboxImage = { src: picture(2400, 1600, "#59a"), alt: "A big picture", href: "https://example.com/full.jpg" };
     const withHref = [bigImage, images[1]!];
@@ -188,15 +188,15 @@ describe("Lightbox fit", () => {
       if (fit) {
         // Named for screen readers, not drawn: the picture is the viewer.
         expect(title.closest("[data-ouro-lightbox-header] > div")!.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+        // One glass group holds them all, each button plain inside it.
+        const group = dialog.querySelector<HTMLElement>('[data-ouro-lightbox-header] [data-ouro="button-group"]')!;
+        const glass = getComputedStyle(group);
+        expect(glass.backdropFilter || glass.getPropertyValue("-webkit-backdrop-filter")).toMatch(/blur/);
         for (const button of [original, zoom, close]) {
-          const style = getComputedStyle(button);
-          expect(style.backdropFilter || style.getPropertyValue("-webkit-backdrop-filter")).toMatch(/blur/);
-          expect(style.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+          expect(button.parentElement).toBe(group);
+          expect(getComputedStyle(button).backgroundColor).toBe("rgba(0, 0, 0, 0)");
         }
-        // An icon's glass is a circle, not a box.
-        const box = close.getBoundingClientRect();
-        expect(Math.round(box.width)).toBe(Math.round(box.height));
-        expect(Number.parseFloat(getComputedStyle(close).borderTopLeftRadius)).toBeGreaterThanOrEqual(box.height / 2);
+        expect(group.lastElementChild).toBe(close);
       } else {
         expect(getComputedStyle(title).fontWeight).toBe("600");
         for (const button of [original, zoom, close]) {
@@ -225,7 +225,7 @@ describe("Lightbox fit", () => {
     expect(popup()!.querySelector('[data-ouro-part="zoom"]')).toBeNull();
   });
 
-  it("keeps the buttons on the shown picture's top-end corner, set in from it, after the picture changes", async () => {
+  it("keeps the controls on the shown picture's top-end corner, set in from it, after the picture changes", async () => {
     const host = await render(true);
     await userEvent.click(thumbnail(host));
     await settled();
@@ -236,16 +236,11 @@ describe("Lightbox fit", () => {
         const r = p.getBoundingClientRect();
         return r.left >= 0 && r.right <= innerWidth;
       })!.getBoundingClientRect();
-      const close = dialog.querySelector('[data-ouro-part="close"]')!.getBoundingClientRect();
+      const close = dialog.querySelector('[data-ouro-lightbox-header] [data-ouro="button-group"]')!.getBoundingClientRect();
       // 12px in from each edge, to the pixel: the picture's own edges fall between pixels.
       return { right: Math.abs(shownPic.right - close.right - 12) <= 1, top: Math.abs(close.top - shownPic.top - 12) <= 1 };
     };
     await expect.poll(corner).toEqual({ right: true, top: true });
-    // Previous and Next are glass too, over the dimmed screen, not hollow outlines.
-    for (const part of ["previous", "next"]) {
-      const arrow = getComputedStyle(dialog.querySelector(`[data-ouro-control="carousel"][data-ouro-part="${part}"]`)!);
-      expect(arrow.backdropFilter || arrow.getPropertyValue("-webkit-backdrop-filter")).toMatch(/blur/);
-    }
     await userEvent.keyboard("{ArrowRight}");
     await expect.poll(() => dialog.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("2 of 2");
     await expect.poll(corner).toEqual({ right: true, top: true });
@@ -260,5 +255,38 @@ describe("Lightbox fit", () => {
     header.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(popup()).not.toBeNull();
+  });
+  it("groups Previous, the position, Next and Close as one glass control, and hides the carousel's own", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const dialog = popup()!;
+    const group = dialog.querySelector<HTMLElement>('[data-ouro-lightbox-header] [data-ouro="button-group"]')!;
+    const style = getComputedStyle(group);
+    expect(style.backdropFilter || style.getPropertyValue("-webkit-backdrop-filter")).toMatch(/blur/);
+    expect([...group.children].map((c) => c.getAttribute("data-ouro-part") ?? (c.hasAttribute("data-ouro-lightbox-position") ? "position" : "?"))).toEqual(["previous", "position", "next", "close"]);
+    for (const part of ["previous", "next"]) expect(dialog.querySelector<HTMLElement>(`[data-ouro-control="carousel"][data-ouro-part="${part}"]`)!.getClientRects().length).toBe(0);
+    const previous = group.querySelector<HTMLButtonElement>('[data-ouro-part="previous"]')!;
+    const next = group.querySelector<HTMLButtonElement>('[data-ouro-part="next"]')!;
+    expect(previous.disabled).toBe(true);
+    await userEvent.click(next);
+    await expect.poll(() => group.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("2 of 2");
+    await expect.poll(() => next.disabled).toBe(true);
+    await userEvent.click(previous);
+    await expect.poll(() => group.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("1 of 2");
+    expect(popup()).not.toBeNull();
+  });
+
+  it("rounds the picture with the large squircle, not the thumbnail's small one", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const img = popup()!.querySelector<HTMLElement>("[data-ouro-lightbox-figure] > img")!;
+    const probe = document.createElement("div");
+    probe.style.borderRadius = "var(--radius-ouro-2xl)";
+    document.body.append(probe);
+    mounted.push(probe);
+    expect(getComputedStyle(img).borderTopLeftRadius).toBe(getComputedStyle(probe).borderTopLeftRadius);
+    expect(Number.parseFloat(getComputedStyle(img).borderTopLeftRadius)).toBeGreaterThan(Number.parseFloat(getComputedStyle(thumbnail(host)).borderTopLeftRadius || "0"));
   });
 });

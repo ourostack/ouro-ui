@@ -46,7 +46,6 @@ Type: `CarouselProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The slides: each child is one slide, so pass the images or cards themselves. |
 | `className` | `string` |  | Layout only: width and margins (`max-w-xl`, `mx-auto`). Appearance classes warn in development. |
-| `controls` | `"outline" \| "glass"` | `"outline"` | How Previous and Next look: `outline` on a page, `glass` over a picture or a dimmed screen, as Lightbox's fitted viewer draws them. |
 | `defaultIndex` | `number` | `0` | The slide to start on, counting from 0. The starting slide is not announced. |
 | `index` | `number` |  | The slide in view, counting from the first as `0`, for a carousel your app drives: from the address (`#slide-3`, so a slide has a link and Back and Forward step through the slides), a router's state, or another control. When it changes the carousel moves there, smoothly or at once with reduced motion, and announces the position, without calling `onIndexChange`. Set it from `onIndexChange` too, so a swipe or a button press moves it. Unset, the carousel keeps its own position, from `defaultIndex`. |
 | `label` (required) | `string` |  | Names the carousel for screen readers, such as "Recipe photos". It is always required. |

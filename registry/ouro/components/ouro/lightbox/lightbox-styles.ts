@@ -15,6 +15,7 @@ export {
   fitFrom,
   fitCounterClass,
   fitHeaderClass,
+  fitImageClass,
   fitQuietTitleClass,
   fitStageClass,
   gridClass,
@@ -131,15 +132,20 @@ const fitQuietTitleClass =
  */
 const fitHeaderClass = "absolute top-0 end-0 z-1 flex items-center gap-2 [&>:first-child]:sr-only";
 
-/** With `fit`, "2 of 4" is a glass capsule beside the buttons, as tall as a small Button. @internal */
-const fitCounterClass =
-  "inline-flex h-9 sm:h-8 items-center rounded-full [corner-shape:superellipse(1.05)] border border-(--ouro-glass-rim) px-3 text-foreground " +
-  "bg-[color-mix(in_oklab,var(--ouro-glass)_var(--ouro-glass-tint),transparent)] shadow-(--shadow-sm) backdrop-blur-xl " +
-  "[@media(prefers-reduced-transparency:reduce)]:bg-(--ouro-glass-solid) [@media(prefers-reduced-transparency:reduce)]:border-(--ouro-glass-edge) [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
-  "contrast-more:bg-(--ouro-glass-solid) contrast-more:border-current contrast-more:backdrop-blur-none";
+/** With `fit`, "2 of 4" sits between Previous and Next in their glass group. @internal */
+const fitCounterClass = "flex items-center px-1 text-foreground";
 
-/** With `fit`, the picture keeps the same margin above it as below and beside it, with no bar over it. @internal */
-const fitStageClass = "pt-3 sm:pt-5";
+/** With `fit`, the picture's corners are a large squircle, as a picture viewer's photo is. @internal */
+const fitImageClass = "rounded-ouro-2xl";
+
+/**
+ * With `fit`, the carousel's own Previous and Next give way to the ones on the picture's corner,
+ * which press them. @internal
+ */
+const fitCarouselControlsClass = "[&_[data-ouro-carousel-buttons]]:hidden";
+
+/** With `fit`, the picture keeps the same margin above it as below and beside it. @internal */
+const fitStageClass = `pt-3 sm:pt-5 ${fitCarouselControlsClass}`;
 
 /**
  * Around a mosaic: as wide as its column, at most 25rem, and no wider than keeps it 17.5rem tall at
@@ -302,7 +308,7 @@ function zoomOrigin(thumbnail: Element, popup: HTMLElement): string {
   return `${Math.round(x)}px ${Math.round(y)}px`;
 }
 
-/** The margin around the fitted image, on every side. */
+/** The margin around the fitted image, above, below and beside it. */
 const margin = 20;
 
 /**
