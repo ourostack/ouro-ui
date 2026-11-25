@@ -2032,8 +2032,8 @@ test("the themes shards pass as not affected when a pull request changes no comp
   const later = block.slice(block.indexOf("name: Is any story affected?")).split(/\n {6}- /).slice(1);
   for (const step of later) assert.match(step, /^if: steps\.affected\.outputs\.run == 'true'$/m, step);
   const scan = stepScript(block, "Theme scans");
-  assert.match(runStep(scan, { FULL: "true", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=unset/);
-  assert.match(runStep(scan, { FULL: "false", COMPONENTS: "checkbox-group", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=checkbox$/m);
+  assert.match(runStep(scan, { FULL: "true", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/6\nOURO_STORIES=unset/);
+  assert.match(runStep(scan, { FULL: "false", COMPONENTS: "checkbox-group", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/6\nOURO_STORIES=checkbox$/m);
 });
 
 test("the conformance shards run only the checks' proofs on the first shard when a pull request changes no component, and check only the selected stories, every nth per shard", () => {
