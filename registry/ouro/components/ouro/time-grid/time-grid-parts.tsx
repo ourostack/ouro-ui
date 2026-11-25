@@ -32,7 +32,7 @@ const chevron = (d: string) => (
 );
 
 /**
- * Today, Previous and Next for a `TimeGrid`: three buttons that move its `date` by its view's
+ * Today, Previous and Next for a `TimeGrid`: buttons that move its `date` by its view's
  * day or week, each with its keyboard shortcut in its tooltip. The grid takes the same keys
  * while focus is in it, with `onDateChange`: Page Up and ⌥↑ (Alt+↑) the period before, Page
  * Down and ⌥↓ the next, ⌥⇧Y (Alt+Shift+Y) today.
@@ -46,7 +46,7 @@ const chevron = (d: string) => (
  * @example
  * <TimeGridNav date={date} view={view} onDateChange={setDate} />
  * <TimeGrid label="Team calendar" date={date} view={view} onDateChange={setDate} events={events} />
- * @claim "three buttons that move its `date`" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGridNav > moves the date by the view's day or week and to today, with each key in its button's tooltip)
+ * @claim "buttons that move its `date`" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGridNav > moves the date by the view's day or week and to today)
  * @claim "The grid takes the same keys" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > moves to the next or previous period with Page Down and Page Up, or Alt with the arrows, and to today with Alt+Shift+Y)
  */
 export function TimeGridNav(props: TimeGridNavProps): JSX.Element {
