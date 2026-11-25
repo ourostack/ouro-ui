@@ -124,6 +124,26 @@ describe("TextArea", () => {
     expect(onValueChange).toHaveBeenLastCalledWith("Salt!", expect.anything());
   });
 
+  it("syncs a controlled value through the DOM property, never rewriting defaultValue as the person types", async () => {
+    function Controlled() {
+      const [value, setValue] = useState("a");
+      return <TextArea label="Notes" value={value} onValueChange={setValue} />;
+    }
+    const { textarea } = await render(<Controlled />);
+    const mutations: MutationRecord[] = [];
+    const observer = new MutationObserver((records) => mutations.push(...records));
+    observer.observe(textarea, { childList: true });
+    textarea.focus();
+    textarea.setSelectionRange(1, 1);
+    await userEvent.keyboard("bcd");
+    await frame();
+    observer.disconnect();
+    expect(textarea.value).toBe("abcd");
+    // Setting defaultValue replaces the textarea's child text node: a childList mutation that
+    // invalidates every :has() rule whose subject can contain it (ouro-ui#3759).
+    expect(mutations.filter((record) => record.type === "childList")).toHaveLength(0);
+  });
+
   it("passes aria-required through without making the textarea natively required", async () => {
     const { textarea } = await render(<TextArea label="Method" aria-required />);
     expect(textarea.getAttribute("aria-required")).toBe("true");

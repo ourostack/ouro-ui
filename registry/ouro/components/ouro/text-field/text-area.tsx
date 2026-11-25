@@ -1,7 +1,7 @@
 "use client";
 
 import "@/registry/ouro/lib/ouro/last-input";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, JSX, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl, type FieldControlProps } from "@/registry/ouro/components/ouro/field/field-parts";
@@ -239,6 +239,46 @@ const owner = { name: "TextArea", data: "text-area" };
  * @claim "` draws no frame, for a textarea inside" registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > sets 20px text on 28px lines with size lg, at phone and desktop widths)
  * @claim "` draws no frame, for a textarea inside" registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea variant and size > draws no frame of its own with variant plain, and still outlines on keyboard focus)
  */
+/**
+ * Wraps every `on*` handler and the `ref` Base UI's FieldControl rebuilds on each render in a
+ * stable-identity function that always calls the latest version, reusing one wrapper per key
+ * across renders. The memoized native textarea below can then bail out of a commit a typed
+ * keystroke would otherwise force on it, since its props compare equal.
+ */
+function stabilizeTextareaProps<P extends object>(
+  props: P,
+  state: { registry: Map<string, (...args: unknown[]) => unknown>; latest: P },
+): P {
+  state.latest = props;
+  const next = { ...props } as Record<string, unknown>;
+  for (const key of Object.keys(props as Record<string, unknown>)) {
+    const value = (props as Record<string, unknown>)[key];
+    if (typeof value !== "function" || !(key.startsWith("on") || key === "ref")) continue;
+    let wrapped = state.registry.get(key);
+    if (!wrapped) {
+      wrapped = (...args: unknown[]) => {
+        const handler = (state.latest as Record<string, unknown>)[key] as ((...a: unknown[]) => unknown) | undefined;
+        return handler?.(...args);
+      };
+      state.registry.set(key, wrapped);
+    }
+    next[key] = wrapped;
+  }
+  return next as P;
+}
+
+/**
+ * The native textarea, memoized so a controlled TextArea's typing commits never reach `value` or
+ * `defaultValue` here: either would make React write `.defaultValue`, which always replaces the
+ * element's child text node, on every commit that revisits this fiber, whether or not the text
+ * changed (ouro-ui#3759). `TextArea`'s own `useLayoutEffect` keeps `.value` in sync directly,
+ * outside this leaf's props, so this bails out of a render a parent-driven re-render would
+ * otherwise force on it.
+ */
+const RawTextarea = memo(function RawTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> }) {
+  return <textarea {...props} />;
+});
+
 export function TextArea(props: TextAreaProps): JSX.Element {
   const {
     label,
@@ -272,6 +312,8 @@ export function TextArea(props: TextAreaProps): JSX.Element {
     ...rest
   } = props;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const stableHandlersRef = useRef<{ registry: Map<string, (...args: unknown[]) => unknown>; latest: TextareaHTMLAttributes<HTMLTextAreaElement> } | null>(null);
+  stableHandlersRef.current ??= { registry: new Map(), latest: {} };
   const variant = Object.hasOwn(textAreaVariants, variantProp) ? (variantProp as keyof typeof textAreaVariants) : "outline";
   const size = Object.hasOwn(textAreaSizes, sizeProp) ? (sizeProp as keyof typeof textAreaSizes) : "md";
 
@@ -304,9 +346,31 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // autoGrow, measure nothing: the inline height is the user's resize handle. Turning autoGrow
   // off once clears the height autoGrow set, so `rows` applies again.
   const controlled = rest.value !== undefined;
+  // Captured once at mount, like Base UI's own uncontrolled default: the memoized leaf below
+  // renders this as its initial `defaultValue` (matching server markup before hydration's
+  // effects run) and never sees it change again, so a controlled value's later edits never
+  // reach the leaf's props at all; the layout effect below is what then keeps `.value` current.
+  const initialControlledValueRef = useRef(rest.value);
+  // Flips once, right after the first commit (before anything else can revisit the leaf's
+  // fiber): the leaf's `defaultValue` below is then undefined for the rest of this instance's
+  // life, so a later commit that touches some other prop (focus, dirty, filled) never re-reaches
+  // `updateTextarea`'s unguarded defaultValue write (ouro-ui#3759). It mirrors the server markup
+  // only for that one first commit, which is what hydration compares against.
+  const [mounted, setMounted] = useState(false);
+  useLayoutEffect(() => setMounted(true), []);
   const grew = useRef(false);
   const native = autoGrow && supportsFieldSizing();
   const watched = native ? undefined : rest.value;
+  // Keeps the visible text in sync with a controlled value through the DOM `.value` property
+  // directly, since the native textarea below is memoized and never receives `value` itself: once
+  // the element's dirty-value flag is set (which this effect's first run does), setting `.value`
+  // never touches the child text node the way `.defaultValue` does, so this never forces the
+  // `:has()`-invalidating mutation `updateTextarea` would otherwise make on every commit (ouro-ui#3759).
+  // Runs before the fit-height effect below, which measures this same `.value`.
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea && controlled && textarea.value !== rest.value) textarea.value = rest.value ?? "";
+  }, [controlled, rest.value]);
   useLayoutEffect(() => {
     const textarea = textareaRef.current!;
     if (autoGrow && !native) {
@@ -318,6 +382,9 @@ export function TextArea(props: TextAreaProps): JSX.Element {
       grew.current = false;
     }
   }, [autoGrow, native, rows, maxRows, size, variant, watched]);
+  // The common case has no inline style, so this stays the same reference across keystrokes,
+  // letting the memoized native textarea below bail out of commits; a custom style still applies.
+  const autoGrowStyle = useMemo(() => (autoGrow ? autoGrowBounds(rows, maxRows) : undefined), [autoGrow, rows, maxRows]);
   // In development, once the field has painted: a class that sets the textarea's vertical padding
   // (`py-*`) leaves `--ouro-text-area-frame` out of step, so the bounds autoGrow renders miss it.
   const checked = useRef({});
@@ -404,11 +471,20 @@ export function TextArea(props: TextAreaProps): JSX.Element {
           ref={setRef as Ref<HTMLInputElement>}
           onChange={handleChange as unknown as FieldControlProps["onChange"]}
           render={(controlProps) => {
-            const { style, ...textareaProps } = controlProps as TextareaHTMLAttributes<HTMLTextAreaElement>;
+            // Dropping `value` here, not just from the destructure below, keeps a controlled textarea's
+            // typed text out of what the memoized leaf receives: `useLayoutEffect` above syncs `.value`
+            // on the DOM node directly instead (ouro-ui#3759).
+            const { style, value: controlledValue, defaultValue: uncontrolledDefault, ...textareaProps } = controlProps as TextareaHTMLAttributes<HTMLTextAreaElement>;
+            const stableProps = stabilizeTextareaProps(textareaProps, stableHandlersRef.current!);
+            const mergedStyle = style === undefined ? autoGrowStyle : { ...autoGrowStyle, ...style };
+            // Present only for the first commit (matching server markup); undefined for every
+            // commit after `mounted` flips, so no later commit's `updateTextarea` call rewrites it.
+            const defaultValue = mounted ? undefined : controlledValue !== undefined ? initialControlledValueRef.current : uncontrolledDefault;
             const textarea = (
-              <textarea
-                {...textareaProps}
-                style={autoGrow ? { ...autoGrowBounds(rows, maxRows), ...style } : style}
+              <RawTextarea
+                {...stableProps}
+                defaultValue={defaultValue}
+                style={mergedStyle}
                 rows={rows}
                 data-ouro-control="text-area"
                 data-ouro-part="input"
