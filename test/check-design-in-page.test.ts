@@ -918,6 +918,23 @@ describe("findDesignIssues: doubled-line", () => {
     expect(of("doubled-line")).toEqual([]);
   });
 
+  it("passes a pair of lines an opaque sheet covers, but still finds the same pair under a glass sheet", () => {
+    const grid = `<div id="grid" style="border-bottom:1px solid #bbb;width:300px;height:20px"></div><div style="border-top:1px solid #bbb;width:300px;height:20px"></div>`;
+    render(`${grid}<div style="position:fixed;inset:0;background:#fff;z-index:5"></div>`);
+    expect(of("doubled-line")).toEqual([]);
+    host.remove();
+    render(`${grid}<div style="position:fixed;inset:0;background:rgb(255 255 255 / 0.6);backdrop-filter:blur(12px);z-index:5"></div>`);
+    expect(of("doubled-line").map(({ detail }) => detail)).toEqual([line(0)]);
+    host.remove();
+    render(`${grid}<div style="position:fixed;inset:0;background:rgb(255 255 255 / 0.6);z-index:5"></div>`);
+    expect(of("doubled-line").map(({ detail }) => detail)).toEqual([line(0)]);
+  });
+
+  it("treats a cover with no fill of its own as resting on the page's own opaque background", () => {
+    render(`<div style="border-bottom:1px solid #bbb;width:300px;height:20px"></div><div style="border-top:1px solid #bbb;width:300px;height:20px"></div><div style="position:fixed;inset:0;z-index:5"></div>`);
+    expect(of("doubled-line")).toEqual([]);
+  });
+
   it("reads lines further apart as one drawn twice when told a wider gap", () => {
     render(`<div style="border-bottom:1px solid #bbb;width:300px;height:20px"></div><div style="border-top:1px solid #bbb;width:300px;margin-top:10px;height:20px"></div>`);
     expect(of("doubled-line")).toEqual([]);
