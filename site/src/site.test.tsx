@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
 import { sliced } from "../../test/slice";
@@ -124,6 +124,23 @@ describe("home page", () => {
       await frame();
       expect(lines(heading)).toBe(2);
     });
+  });
+
+  it("leaves a docs page's column wide enough to use, and no sideways scroll, when type is doubled on a narrow window", async () => {
+    await page.viewport(700, 900);
+    document.documentElement.style.fontSize = "200%";
+    // The View control's labels outgrow its scroller at this size, which its own message says; the page must still not scroll.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await renderPage("/docs/calendar-demo/");
+      const column = document.querySelector<HTMLElement>("[data-site-calendar-demo]")!.closest("main")!;
+      await expect.poll(() => column.getBoundingClientRect().width).toBeGreaterThanOrEqual(0.3 * 700);
+      // WCAG 1.4.10: doubled type at 700px reflows, with no sideways scroll for the page.
+      await expect.poll(() => document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+    } finally {
+      warn.mockRestore();
+      document.documentElement.style.fontSize = "";
+    }
   });
 
   it("opens on the Nautilus hero, and Come aboard goes to the Nautilus's page", async () => {

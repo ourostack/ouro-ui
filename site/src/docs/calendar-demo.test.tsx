@@ -299,7 +299,7 @@ describe("the calendar page", () => {
     expect(document.body.textContent).toContain("Ctrl or Cmd+Z also undoes it.");
   });
 
-  it("names no key on a touch screen, and clears the Undo toast when Go to date opens over it", async () => {
+  it("names no key on a touch screen, and keeps the Undo toast reachable when Go to date opens over it", async () => {
     const real = window.matchMedia.bind(window);
     vi.stubGlobal("matchMedia", (query: string) => (query === "(pointer: coarse)" ? ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real(query)));
     try {
@@ -313,11 +313,25 @@ describe("the calendar page", () => {
       await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
       expect(document.body.textContent).not.toContain("Cmd+Z");
       await userEvent.click(page.getByRole("button", { name: "Go to date" }));
-      await expect.poll(() => page.getByRole("button", { name: "Undo" }).elements().length).toBe(0);
+      await expect.poll(() => document.querySelector('[data-ouro-part="action"]')).not.toBeNull();
+      // The phone sheet rises from the bottom, so Undo hangs from the top while it is open.
+      await expect.poll(() => (document.querySelector('[data-ouro-part="action"]')?.getBoundingClientRect().bottom ?? Infinity) < innerHeight / 2).toBe(true);
+      // Undo stays on screen after the toast has moved, not only while it leaves.
+      for (let frame = 0; frame < 20; frame += 1) await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(document.querySelector('[data-ouro-part="action"]')).not.toBeNull();
     } finally {
       vi.unstubAllGlobals();
       await page.viewport(1100, 900);
     }
+  });
+
+
+  it("draws the toolbar's buttons at one height", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/calendar-demo/");
+    await expect.poll(() => page.getByRole("button", { name: "New event" }).elements().length).toBe(1);
+    const height = (name: string) => Math.round(page.getByRole("button", { name }).element().getBoundingClientRect().height);
+    expect(new Set(["Today", "Previous week", "Next week", "Go to date", "New event"].map(height)).size).toBe(1);
   });
 
   it("puts focus back in the grid after Delete, so the keyboard does not start over", async () => {
@@ -398,6 +412,8 @@ describe("the calendar page", () => {
   it("scrolls the week inside its frame at large text instead of squeezing the days or the page", async () => {
     await page.viewport(700, 900);
     document.documentElement.style.fontSize = "200%";
+    // The View control's labels outgrow its scroller at this size, which its own message says.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       await renderPage("/docs/calendar-demo/");
       const frame = () => document.querySelector<HTMLElement>('[data-site-calendar-demo] [data-ouro="time-grid"]')!.parentElement!.parentElement!;
@@ -408,6 +424,7 @@ describe("the calendar page", () => {
       const grid = document.querySelector<HTMLElement>('[data-site-calendar-demo] [data-ouro="time-grid"]')!;
       expect(grid.getBoundingClientRect().width).toBeGreaterThanOrEqual(36 * parseFloat(getComputedStyle(document.documentElement).fontSize));
     } finally {
+      warn.mockRestore();
       document.documentElement.style.fontSize = "";
     }
   });

@@ -1,0 +1,1 @@
+- Menu: its popup keeps an edge under forced colours, where its shadow and ring vanish.
