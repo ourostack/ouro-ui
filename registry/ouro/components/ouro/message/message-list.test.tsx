@@ -2877,6 +2877,20 @@ describe("MessageList keyboard", () => {
     expect(mutated).toEqual([]);
   });
 
+  it("keeps a Message's own aria-posinset and aria-setsize in its first render, instead of the list's computed ones", async () => {
+    const { host } = await render(
+      <Channel>
+        {posts(2)}
+        <Message role="user" name="Ana" id="own-position" aria-posinset={40} aria-setsize={200}>
+          Already placed
+        </Message>
+      </Channel>,
+    );
+    const own = host.querySelector<HTMLElement>("#own-position")!;
+    expect(own.getAttribute("aria-posinset")).toBe("40");
+    expect(own.getAttribute("aria-setsize")).toBe("200");
+  });
+
   it("gives a Server-Component-passed Message its control and part too, in its own first render, when its type is a lazy reference and not Message itself", async () => {
     // A Next.js build sends a client Message this way: the element itself, but with `type` a lazy
     // reference to the component, never `Message` directly, so it cannot be told apart by `type === Message`.
