@@ -269,7 +269,7 @@ function Screen(): JSX.Element {
         <Heading level={2} size="md" className="me-auto min-w-0 max-sm:order-first max-sm:basis-full">
           {heading}
         </Heading>
-        <div className="flex flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
+        <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
         <Button ref={jumpRef} variant="outline" tone="secondary" size="sm" aria-haspopup="dialog" aria-expanded={jump} onClick={() => {
             toGrid.current = false;
             toast.dismiss();
@@ -277,17 +277,21 @@ function Screen(): JSX.Element {
           }}>
           Go to date
         </Button>
-        {phone ? null : <SegmentedControl
-          label="View"
-          hideLabel
-          value={view}
-          onValueChange={(value) => setView(value as TimeGridView)}
-          items={[
-            { value: "day", label: "Day" },
-            { value: "work-week", label: "Work week" },
-            { value: "week", label: "Week" },
-          ]}
-        />}
+        {phone ? null : (
+          <div className="max-w-full min-w-0 overflow-x-auto">
+            <SegmentedControl
+              label="View"
+              hideLabel
+              value={view}
+              onValueChange={(value) => setView(value as TimeGridView)}
+              items={[
+                { value: "day", label: "Day" },
+                { value: "work-week", label: "Work week" },
+                { value: "week", label: "Week" },
+              ]}
+            />
+          </div>
+        )}
         <Button size="sm" onClick={newEvent}>New event</Button>
         </div>
       </div>

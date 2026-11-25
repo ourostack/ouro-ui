@@ -1,0 +1,1 @@
+- Docs: the calendar demo and the site header fit a narrow window when text is doubled, so the page no longer scrolls sideways.

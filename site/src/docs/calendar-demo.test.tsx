@@ -344,6 +344,8 @@ describe("the calendar page", () => {
   it("scrolls the week inside its frame at large text instead of squeezing the days or the page", async () => {
     await page.viewport(700, 900);
     document.documentElement.style.fontSize = "200%";
+    // The View control's labels outgrow its scroller at this size, which its own message says.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       await renderPage("/docs/calendar-demo/");
       const frame = () => document.querySelector<HTMLElement>('[data-site-calendar-demo] [data-ouro="time-grid"]')!.parentElement!.parentElement!;
@@ -354,6 +356,7 @@ describe("the calendar page", () => {
       const grid = document.querySelector<HTMLElement>('[data-site-calendar-demo] [data-ouro="time-grid"]')!;
       expect(grid.getBoundingClientRect().width).toBeGreaterThanOrEqual(36 * parseFloat(getComputedStyle(document.documentElement).fontSize));
     } finally {
+      warn.mockRestore();
       document.documentElement.style.fontSize = "";
     }
   });

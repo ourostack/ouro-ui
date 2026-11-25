@@ -114,7 +114,7 @@ function SiteCommand({ open, setOpen }: { open: boolean; setOpen: Dispatch<SetSt
         aria-haspopup="dialog"
         // As wide as Ctrl+K needs, with the hint at its end, as a search field: the server can't know the platform, so
         // a Mac's ⌘K, narrower, arrives as the page hydrates, and would otherwise pull the controls beside it along.
-        className="max-sm:hidden min-w-[8.25rem] [&>[data-ouro-label]]:flex-1"
+        className="max-sm:hidden min-w-[min(8.25rem,26vw)] [&>[data-ouro-label]]:flex-1"
         aria-keyshortcuts={ariaKeyShortcuts(["mod", "k"], platform)}
       >
         Search
