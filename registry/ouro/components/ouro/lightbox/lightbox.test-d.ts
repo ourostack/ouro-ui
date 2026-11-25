@@ -58,6 +58,10 @@ createElement(Lightbox, { label: "Photos", images, slides: images });
 
 // A mosaic, full screen, and the images' own size and still frame.
 expectTypeOf<{ label: "Photos"; images: typeof images; layout: "mosaic"; fullScreen: true }>().toExtend<LightboxProps>();
+// framed opts out of the hairline frame.
+expectTypeOf<{ label: "Photos"; images: typeof images; framed: false }>().toExtend<LightboxProps>();
+// A controlled Lightbox draws no thumbnails to frame.
+expectTypeOf<{ label: "Photos"; images: typeof images; open: true; onOpenChange: (open: boolean) => void; framed: false }>().not.toExtend<LightboxProps>();
 expectTypeOf<{ label: "Photos"; images: typeof images; open: true; onOpenChange: (open: boolean) => void; fullScreen: true }>().toExtend<LightboxProps>();
 expectTypeOf<{ src: "/a.gif"; alt: "A rocket"; width: 300; height: 200; still: "/a.png" }>().toExtend<LightboxImage>();
 // A controlled Lightbox draws no thumbnails, so it takes no layout.

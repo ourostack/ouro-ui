@@ -653,7 +653,7 @@ function SwitchingChats() {
               actions={at === all.length - 1 ? switchActions : undefined}
               attachments={
                 item.picture !== undefined ? (
-                  <Lightbox label={`Photo from ${person.name}`} layout="mosaic" images={[{ src: picture(item.picture), alt: "A hill under the sky", width: 1200, height: 800 }]} />
+                  <Lightbox label={`Photo from ${person.name}`} layout="mosaic" framed={false} images={[{ src: picture(item.picture), alt: "A hill under the sky", width: 1200, height: 800 }]} />
                 ) : item.file ? (
                   <Attachment name="seating-plan.pdf" size={48_200} contentType="application/pdf" href={`#${item.id}`} />
                 ) : undefined

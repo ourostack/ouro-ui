@@ -75,6 +75,7 @@ A controlled Lightbox: the viewer alone, which you open from thumbnails you lay 
 Not in this mode (a type error):
 
 - `className`: Not with `open`: lay out your own thumbnails instead, since a controlled Lightbox draws the viewer alone.
+- `framed`: Not with `open`: a controlled Lightbox draws no thumbnails to frame.
 - `layout`: Not with `open`: a controlled Lightbox draws no thumbnails to lay out.
 
 ### With thumbnails: `LightboxWithThumbnailsProps`
@@ -84,6 +85,7 @@ A Lightbox that draws its own thumbnails, which open the viewer.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
+| `framed` | `boolean` | `true` | Draw the thumbnails with a hairline frame and rounded corners of their own, as a card around a picture. Pass `false` to draw them edge to edge instead, with no hairline, rounded to match whatever they sit in (through `rounded-ouro-inner`'s `--ouro-fr`/`--ouro-fi`, which a message bubble already sets): use that where the picture is the point, as in a chat message. A forced- colours edge stays either way. |
 | `layout` | `"grid" \| "mosaic"` | `"grid"` | How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame, as a chat shows the pictures in a message: one picture at its own shape (`width` and `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid with "+N" on the last; the viewer still steps through them all. The frame is as big as a chat shows pictures: at most 25rem wide and 17.5rem tall, and never wider than its column, so a picture never crowds the words around it; `className` gives it another width (`max-w-none`). |
 
 Not in this mode (a type error):

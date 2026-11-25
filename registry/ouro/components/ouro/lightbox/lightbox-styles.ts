@@ -3,6 +3,7 @@ export {
   mosaicCellClass,
   mosaicClass,
   mosaicFrameClass,
+  mosaicFramelessClass,
   mosaicImageClass,
   mosaicLayout,
   mosaicMoreClass,
@@ -19,6 +20,7 @@ export {
   popupClass,
   stageClass,
   thumbnailClass,
+  thumbnailFramelessClass,
   thumbnailImageClass,
   titleClass,
   zoomedImageClass,
@@ -46,6 +48,20 @@ const gridClass = "m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100
 const thumbnailClass =
   "group press relative box-border block aspect-4/3 w-full m-0 p-0 overflow-hidden cursor-zoom-in " +
   "rounded-ouro-lg border border-solid border-border bg-muted [-webkit-tap-highlight-color:transparent] " +
+  "motion-safe:active:scale-(--ouro-press-scale) " +
+  "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+
+/**
+ * A thumbnail with `framed={false}`: edge to edge with whatever it sits in (a message bubble's
+ * own corner radius, through `rounded-ouro-inner`'s `--ouro-fr`/`--ouro-fi`), with no hairline or
+ * placeholder tint, only a forced-colours edge.
+ *
+ * @claim "with no hairline or placeholder tint" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox thumbnails > draws thumbnails edge to edge, with no hairline, when framed is false)
+ * @internal
+ */
+const thumbnailFramelessClass =
+  "group press relative box-border block aspect-4/3 w-full m-0 p-0 overflow-hidden cursor-zoom-in " +
+  "rounded-ouro-inner forced-colors:border forced-colors:border-solid [-webkit-tap-highlight-color:transparent] " +
   "motion-safe:active:scale-(--ouro-press-scale) " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
@@ -126,6 +142,18 @@ const mosaicFrameClass =
 const mosaicClass =
   "relative m-0 grid w-full list-none gap-0.5 overflow-hidden p-0 " +
   "rounded-ouro-lg border border-solid border-border bg-card";
+
+/**
+ * The mosaic's frame with `framed={false}`: edge to edge with whatever it sits in (a message
+ * bubble's own corner radius, through `rounded-ouro-inner`), with no hairline, only a
+ * forced-colours edge; the card colour still shows in the gaps between its pictures.
+ *
+ * @claim "with no hairline" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws edge to edge, with no hairline, when framed is false)
+ * @internal
+ */
+const mosaicFramelessClass =
+  "relative m-0 grid w-full list-none gap-0.5 overflow-hidden p-0 " +
+  "rounded-ouro-inner forced-colors:border forced-colors:border-solid bg-card";
 
 /**
  * A mosaic's cell; the first of three spans both rows. @internal
