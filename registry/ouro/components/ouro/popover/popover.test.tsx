@@ -205,6 +205,14 @@ describe("Popover", () => {
     }
   });
 
+  it("marks a modal popover with data-ouro-modal", async () => {
+    expect((await openUncontrolled()).getAttribute("data-ouro-modal")).toBe("");
+  });
+
+  it("leaves a popover that is not modal without data-ouro-modal", async () => {
+    expect((await openUncontrolled({ modal: false })).hasAttribute("data-ouro-modal")).toBe(false);
+  });
+
   it("labels the close button Close by default", async () => {
     const element = await openUncontrolled();
     expect(element.querySelector("[data-ouro-popover-close]")!.textContent).toBe("Close");

@@ -237,7 +237,7 @@ const OPEN_DIALOG = '[role="dialog"][data-open]:not([data-ouro="toast"])';
 const TABBABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
- * A modal dialog traps Tab, so the toasts outside it would never be reached from the keyboard. While a
+ * A modal dialog traps Tab, so toasts outside it need their own way in. While a
  * dialog holds focus, Tab past its last control goes to the toasts, and Tab past the last toast control
  * returns to the dialog's first (Shift+Tab goes the other way), so a toast's action stays within reach.
  */
@@ -267,6 +267,7 @@ function ModalReach(): JSX.Element {
     };
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
+    // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   }, []);
   return <span ref={mark} hidden data-ouro-toaster-modal-reach="" />;
 }

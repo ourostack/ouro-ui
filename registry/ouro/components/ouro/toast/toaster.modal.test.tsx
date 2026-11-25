@@ -133,4 +133,35 @@ describe("Toaster beside a modal", () => {
     await pressTab();
     expect(document.activeElement?.closest('[data-ouro="toaster"]')).toBeNull();
   });
+
+  it("hands Tab on only at the ends: mid-toast Tab moves on its own, and with focus on the page body it does nothing", async () => {
+    function Example() {
+      const anchor = useRef<HTMLButtonElement>(null);
+      return (
+        <>
+          <button ref={anchor}>Anchor</button>
+          <Toaster />
+          <Popover title="Go to date" open onOpenChange={() => {}} anchor={anchor} presentation="popover">
+            <button>Pick</button>
+          </Popover>
+        </>
+      );
+    }
+    const host = document.body.appendChild(document.createElement("div"));
+    root = createRoot(host);
+    await act(async () => root!.render(<Example />));
+    await act(async () => void toast("Event deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } }));
+    await expect.element(page.getByRole("button", { name: "Undo" })).toBeVisible();
+    const undo = page.getByRole("button", { name: "Undo" }).element() as HTMLElement;
+    undo.focus();
+    const tabbed = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    undo.dispatchEvent(tabbed);
+    // Undo is not the last toast control, so the key is left to the browser.
+    expect(tabbed.defaultPrevented).toBe(false);
+    (document.activeElement as HTMLElement).blur();
+    const none = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    document.body.dispatchEvent(none);
+    expect(none.defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(document.body);
+  });
 });
