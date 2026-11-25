@@ -29,7 +29,7 @@ const portalClass = "relative isolate z-[calc(var(--ouro-layer)+1)]";
  */
 const viewportClass =
   "group/toaster fixed outline-none [--ouro-toast-dir:-1] data-[edge=top]:[--ouro-toast-dir:1] " +
-  "start-(--ouro-toaster-start) end-(--ouro-toaster-end) bottom-(--ouro-toaster-bottom) w-(--ouro-toaster-width) max-w-[calc(100vw-var(--ouro-toaster-end)-1rem)] " +
+  "start-(--ouro-toaster-start) end-(--ouro-toaster-end) bottom-(--ouro-toaster-bottom) w-(--ouro-toaster-width) max-w-[calc(100%-2rem)] " +
   // A move to the top cross-fades: the stack fades out, moves while invisible and fades back in, so it never slides across the screen.
   "transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out) data-[ouro-toaster-fading]:opacity-0 " +
   "data-[ouro-toaster-moved=top]:!top-(--ouro-toaster-moved-top) data-[ouro-toaster-moved=top]:!bottom-auto " +
