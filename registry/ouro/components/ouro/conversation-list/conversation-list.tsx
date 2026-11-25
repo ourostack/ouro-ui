@@ -1225,7 +1225,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
               </button>
             );
             const header = withMore ? (
-              <div className="group/row relative">
+              <div data-slot="conversation-list-section-header" className="group/row relative">
                 {headerButton}
                 <MoreButton rowKey={key} name={section.title} moreLabel={moreLabel} onMore={onMore} className="top-1/2 -translate-y-1/2" />
               </div>
