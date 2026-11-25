@@ -337,8 +337,11 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
   // measured from the trigger the panel would sit across the bar's hairline.
   const gapBelowBar = () => {
     const root = nav.current;
+    // Stryker disable next-line OptionalChaining: the root is mounted whenever a panel is open, so the guard only protects an unmounted call
     const trigger = root?.querySelector("[data-popup-open]");
+    // Stryker disable next-line OptionalChaining: same guard as the trigger above
     const bar = root?.closest("[data-ouro=navbar], header") ?? root;
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: unreachable fallback while a panel is open; the guard keeps an unmounted call from throwing
     if (!trigger || !bar) return 8;
     return Math.max(0, bar.getBoundingClientRect().bottom - trigger.getBoundingClientRect().bottom) + 8;
   };
