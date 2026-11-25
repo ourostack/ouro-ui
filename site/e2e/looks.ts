@@ -337,15 +337,16 @@ export async function picture(page: Page, index: number, attributes?: string): P
   if (!handle) return null;
   // The site scrolls smoothly (html's scroll-behavior), so a plain scrollIntoView is still moving when the cover check reads
   // the element, and the picture was skipped (#1463).
-  await handle.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" })).catch(() => {});
   // An instant scroll returns before the browser's own paint and compositor pipeline has necessarily caught up: a
   // large jump (a control well below the fold) can leave part of the newly-visible area painted from its last
   // frame for a tick or two, with no CSS Animation or Transition marking it, so settleMotion never sees it either.
   // A picture taken in that gap shows the stale paint, and a retake taken once the page has had a moment longer
   // disagrees with it even though nothing about the control itself changed (ourostack/ouro-ui#3693). Two real
   // frames is enough to see the scroll's own repaint land before the clip rect and the screenshot are taken.
-  await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())))).catch(() => {});
-  const clear = await handle.evaluate((el) => {
+  // The scroll, the two frames and the reads that follow them are one call into the page, not four: each call is a round trip.
+  const view = await handle.evaluate(async (el) => {
+    el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+    await new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())));
     const r = el.getBoundingClientRect();
     const points: [number, number][] = [
       [r.left + 2, r.top + 2],
@@ -354,23 +355,21 @@ export async function picture(page: Page, index: number, attributes?: string): P
       [r.right - 2, r.bottom - 2],
       [r.left + r.width / 2, r.top + r.height / 2],
     ];
-    return points.every(([x, y]) => {
+    const clear = points.every(([x, y]) => {
       const hit = document.elementFromPoint(x, y);
       return hit !== null && (el.contains(hit) || hit.contains(el));
     });
-  }).catch(() => false);
-  if (!clear) return null;
-  // WebKit spends about a second on an element's own screenshot however small it is, and far less on a clip of the page
-  // with the same pixels, so an element wholly inside the viewport is clipped, and any other is taken as an element.
-  const view = await handle.evaluate((el) => {
-    const r = el.getBoundingClientRect();
+    // WebKit spends about a second on an element's own screenshot however small it is, and far less on a clip of the page
+    // with the same pixels, so an element wholly inside the viewport is clipped, and any other is taken as an element.
     const x = Math.floor(r.left);
     const y = Math.floor(r.top);
     const fits = x >= 0 && y >= 0 && Math.ceil(r.right) <= window.innerWidth && Math.ceil(r.bottom) <= window.innerHeight;
-    return fits ? { x, y, width: Math.ceil(r.right) - x, height: Math.ceil(r.bottom) - y } : null;
+    return { clear, clip: fits ? { x, y, width: Math.ceil(r.right) - x, height: Math.ceil(r.bottom) - y } : null, scale: devicePixelRatio };
   }).catch(() => null);
+  if (!view?.clear) return null;
+  const clip = view.clip;
   const shot = { animations: "disabled", caret: "hide", timeout: 15_000 } as const;
-  const png = await (view && view.width > 0 && view.height > 0 ? page.screenshot({ clip: view, ...shot }) : handle.screenshot(shot)).catch(() => null);
+  const png = await (clip && clip.width > 0 && clip.height > 0 ? page.screenshot({ clip, ...shot }) : handle.screenshot(shot)).catch(() => null);
   if (!png) return null;
   // Scrolling it into view can wake the part of the page it is in (an island hydrates and an avatar's picture loads), so a
   // picture of an element whose attributes changed since it was described shows another state than its look's.
@@ -379,8 +378,7 @@ export async function picture(page: Page, index: number, attributes?: string): P
     if (now !== attributes) return null;
   }
   const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const scale = await page.evaluate(() => devicePixelRatio).catch(() => 1);
-  return { data, width: info.width, height: info.height, scale };
+  return { data, width: info.width, height: info.height, scale: view.scale };
 }
 
 /** An element's picture: its pixels, and how many of them make a CSS pixel. */
