@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: Ouro check's panel rules, `empty-panel`, `wrapped-short-line`, `boxed-blurb`, `panel-off-screen` and `panel-clip`, read the open menus, popovers, dialogs, sheets and `data-ouro-panel` elements, including the popups the check opens at the narrowest size and at the size it walks at, and fail a panel that is mostly empty, short words that wrap in it, a decorative card of words in it, a panel past the bottom of the screen with nothing to scroll it, and words its box cuts off.
