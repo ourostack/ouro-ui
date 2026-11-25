@@ -251,6 +251,9 @@ describe("the calendar page", () => {
       await expect.poll(() => document.querySelector('[data-ouro-part="action"]')).not.toBeNull();
       // The phone sheet rises from the bottom, so Undo hangs from the top while it is open.
       await expect.poll(() => (document.querySelector('[data-ouro-part="action"]')?.getBoundingClientRect().bottom ?? Infinity) < innerHeight / 2).toBe(true);
+      // Undo stays on screen after the toast has moved, not only while it leaves.
+      for (let frame = 0; frame < 20; frame += 1) await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(document.querySelector('[data-ouro-part="action"]')).not.toBeNull();
     } finally {
       vi.unstubAllGlobals();
       await page.viewport(1100, 900);

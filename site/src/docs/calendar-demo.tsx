@@ -272,7 +272,6 @@ function Screen(): JSX.Element {
         <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
         <Button ref={jumpRef} variant="outline" tone="secondary" size="sm" aria-haspopup="dialog" aria-expanded={jump} onClick={() => {
             toGrid.current = false;
-            toast.dismiss();
             setJump(!jump);
           }}>
           Go to date
