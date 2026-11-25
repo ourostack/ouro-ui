@@ -3793,6 +3793,17 @@ test("the browser shards hold each test to half its timeout: vitest.config.ts ad
   assert.equal(workflow("ci.yml").match(/issues: write/g)?.length ?? 0, 0);
 });
 
+test("the changed-files step scopes to a stacked pull request's real base, not only main, and fails closed with a reason when it cannot diff", () => {
+  const script = stepScript(ciJobs().plan, "Which files does the change touch?");
+  // A pull request into any base (main or a stacked branch) gets its own real base diffed; only a
+  // release branch's own pull request (which runs full-judge today) is excluded (ourostack/ouro-ui#3665).
+  assert.doesNotMatch(script, /BASE_REF.? = main/);
+  assert.match(script, /EVENT" = pull_request/);
+  assert.match(script, /HEAD_REF" != release\//);
+  // A diff that fails (the base ref unresolved, say) leaves files empty, as today, but now says why.
+  assert.match(script, /::warning/);
+});
+
 test("rerun-guard.yml starts on CI going in_progress (requested never fires for a rerun), not needing plan or the run to finish, and comments only on main's own rerun", () => {
   const guard = workflow("rerun-guard.yml");
   // requested does not fire on a rerun (GitHub's events-that-trigger-workflows doc, workflow_run section);
