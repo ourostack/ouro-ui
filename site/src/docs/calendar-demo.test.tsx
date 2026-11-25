@@ -74,6 +74,7 @@ describe("the calendar page", () => {
     } finally {
       warn.mockRestore();
       document.documentElement.style.fontSize = "";
+      await page.viewport(1100, 900);
     }
   });
 
