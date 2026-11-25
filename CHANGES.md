@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Removed: `capLabel()` and cap-height text centering from #3527, reverted because it split button/badge text across separate `<span>` elements and made NVDA read "Back to recipes" as "Back torecipes", dropping the space between JSX-split children; it will be re-landed once it wraps a control's text as one combined node.
+- Changed: [Ouro check's `off-centre-text` rule tightens `fieldSlackPx` from 2.5px to 1.5px](registry/ouro/check/design-check.ts "verify:fileLine(registry/ouro/check/design-check.ts, /textSlackPx = 2\.5, fieldSlackPx = 1\.5/) verify:testExists(test/field-cap-height.test.tsx::cap height: TextField, NumberField, TextArea and Composer)"): TextField, NumberField, TextArea at one row and Composer already centre their value and placeholder on their cap height within 1.5px, in Chromium and WebKit, at 100% and 200% text, with no padding change (#3529).
