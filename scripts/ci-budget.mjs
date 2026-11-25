@@ -471,11 +471,14 @@ async function previousRunWork({ repository, token, branch, runId }, key = "work
 /** How many of the latest runs the wall time's median and 90th percentile are taken over. */
 export const recentRuns = 20;
 
+/** Jobs per page: a page of 100 answers 502 on every try for a run of about 160 jobs (each carries its steps), so the check waited out all its retries; 30 answers at once. */
+export const jobsPerPage = 30;
+
 /** Every job of a run attempt, through the API's pages. */
 async function fetchJobs({ repository, runId, attempt, token }) {
   const jobs = [];
   for (let page = 1; ; page += 1) {
-    const body = await getJson(`https://api.github.com/repos/${repository}/actions/runs/${runId}/attempts/${attempt}/jobs?per_page=100&page=${page}`, token);
+    const body = await getJson(`https://api.github.com/repos/${repository}/actions/runs/${runId}/attempts/${attempt}/jobs?per_page=${jobsPerPage}&page=${page}`, token);
     jobs.push(...body.jobs);
     if (jobs.length >= body.total_count || body.jobs.length === 0) return jobs;
   }
