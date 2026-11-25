@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: TimeGrid's +N chip is a full touch target wide on a touch screen, and the events beside it make room.
