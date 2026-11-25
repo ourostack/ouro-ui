@@ -36,6 +36,11 @@ export interface CarouselProps {
   children: ReactNode;
   /** Next on the last slide goes back to the first, and Previous on the first goes to the last. */
   loop?: boolean | undefined;
+  /**
+   * How Previous and Next look: `outline` on a page, `glass` over a picture or a dimmed screen, as
+   * Lightbox's fitted viewer draws them. @default "outline"
+   */
+  controls?: "outline" | "glass" | undefined;
   /** How many slides show at once. @default 1 */
   slidesPerView?: 1 | 2 | 3 | (number & { 'Use 1, 2 or 3': never }) | undefined;
   /**
@@ -179,6 +184,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
     label,
     children,
     loop = false,
+    controls = "outline",
     slidesPerView: perViewProp = 1,
     defaultIndex = 0,
     index: indexProp,
@@ -494,7 +500,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
         )}
         <Button
           ref={previousRef}
-          variant="outline"
+          variant={controls}
           tone="secondary"
           size="sm"
           aria-label={previousLabel}
@@ -507,7 +513,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
         </Button>
         <Button
           ref={nextRef}
-          variant="outline"
+          variant={controls}
           tone="secondary"
           size="sm"
           aria-label={nextLabel}

@@ -795,6 +795,7 @@ function LightboxViewer({
         key={run}
         label={label}
         loop={loop}
+        controls={fit ? "glass" : "outline"}
         defaultIndex={start}
         onIndexChange={(next) => {
           setCurrent(next);

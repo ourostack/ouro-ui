@@ -241,6 +241,11 @@ describe("Lightbox fit", () => {
       return { right: Math.abs(shownPic.right - close.right - 12) <= 1, top: Math.abs(close.top - shownPic.top - 12) <= 1 };
     };
     await expect.poll(corner).toEqual({ right: true, top: true });
+    // Previous and Next are glass too, over the dimmed screen, not hollow outlines.
+    for (const part of ["previous", "next"]) {
+      const arrow = getComputedStyle(dialog.querySelector(`[data-ouro-control="carousel"][data-ouro-part="${part}"]`)!);
+      expect(arrow.backdropFilter || arrow.getPropertyValue("-webkit-backdrop-filter")).toMatch(/blur/);
+    }
     await userEvent.keyboard("{ArrowRight}");
     await expect.poll(() => dialog.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("2 of 2");
     await expect.poll(corner).toEqual({ right: true, top: true });
