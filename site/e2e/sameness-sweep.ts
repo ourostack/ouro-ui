@@ -23,9 +23,10 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
     const guard = routeGuard(context, page);
     page.setDefaultTimeout(5_000);
     const spent = { navigate: 0, settle: 0, picture: 0 };
-    const perRoute: [string, number][] = [];
+    const perRoute: [string, number, string][] = [];
     for (const path of pages) {
       const routeStart = Date.now();
+      const before = { ...spent };
       await guard.visit(path, async (page) => {
         let t = Date.now();
         await page.goto(path);
@@ -40,9 +41,9 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
         for (const look of found) looks.add(path, look, look.pictured && looks.wants(look) ? await picture(page, look.index, look.attributes) : null);
         spent.picture += Date.now() - t;
       });
-      perRoute.push([path, Date.now() - routeStart]);
+      perRoute.push([path, Date.now() - routeStart, `navigate ${spent.navigate - before.navigate}, settle ${spent.settle - before.settle}, pictures ${spent.picture - before.picture}`]);
     }
-    const slowest = perRoute.sort((a, b) => b[1] - a[1]).slice(0, 5).map(([path, ms]) => `${path} ${ms}`).join(", ");
+    const slowest = perRoute.sort((a, b) => b[1] - a[1]).slice(0, 5).map(([path, ms, phases]) => `${path} ${ms} (${phases})`).join(", ");
     console.log(`TIMING ${browserName} ${mode} part ${part}: navigate ${spent.navigate} ms, settle ${spent.settle} ms, describe and pictures ${spent.picture} ms, over ${pages.length} routes; slowest: ${slowest}`);
     console.log(`${browserName} ${mode}: ${looks.keys} component states, ${looks.crops} pictures, over ${pages.length} pages`);
     for (const f of escapes) console.log(`FINDING ${browserName} ${mode}: ${f}`);
