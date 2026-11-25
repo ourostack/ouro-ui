@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-25T16:57:59.280Z",
+  "generatedAt": "2026-11-25T17:27:37.754Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -68,7 +68,7 @@
     },
     {
       "repo": "ourostack/desk",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "plugins/desk/mcp/src/lib/ouro-actions/dist-manifest.json",
@@ -80,22 +80,19 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 796e371",
+          "current": "commit 64ad4a8",
           "latest": "v1.3.568",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 796e371",
+          "current": "commit 64ad4a8",
           "latest": "v1.3.568",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1782,
-        "url": "https://github.com/ourostack/desk/pull/1782"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/factory",
@@ -110,8 +107,8 @@
         }
       ],
       "pr": {
-        "number": 1302,
-        "url": "https://github.com/ourostack/factory/pull/1302"
+        "number": 1303,
+        "url": "https://github.com/ourostack/factory/pull/1303"
       }
     },
     {
