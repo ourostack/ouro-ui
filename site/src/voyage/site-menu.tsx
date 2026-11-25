@@ -153,6 +153,11 @@ export function MenuPages({ pages, current }: { pages: readonly MenuPage[]; curr
   );
 }
 
+/** Whether a height transition is running, or WebKit still lists one for a moment after it ends. */
+function isHeightMoving(animation: Animation): boolean {
+  return (animation.playState === "running" || animation.playState === "finished") && (animation as CSSTransition).transitionProperty === "height";
+}
+
 /**
  * Calls `shown(true)` each time the sheet around `ref` shows and `shown(false)` as it hides. The Navbar builds its sheet
  * while the page is idle, and again once each close has finished, and keeps it hidden until a press: the menu inside
@@ -203,6 +208,11 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
         const spot = link.getBoundingClientRect();
         return spot.height > 0 && spot.top >= 0 && spot.bottom <= innerHeight;
       }
+      // Crossfade sizes its box from a ResizeObserver callback a render after it mounts (#3628), so a fresh sheet's
+      // first frame can still have it at its starting (zero) height, and its own height transition then moves the
+      // links below it for a moment. Wait for that transition to end before measuring, rather than bake in a
+      // scroll target read mid-move.
+      if (list.current.getAnimations({ subtree: true }).some(isHeightMoving)) return false;
       scroller.scrollTop = 0;
       const box = scroller.getBoundingClientRect();
       const spot = link.getBoundingClientRect();
