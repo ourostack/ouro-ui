@@ -179,7 +179,10 @@ function Screen(): JSX.Element {
     const title = draft.title.trim();
     if (!title) {
       setError("Add a title");
-      document.getElementById(formId)?.querySelector<HTMLElement>("input")?.focus();
+      const input = document.getElementById(formId)?.querySelector<HTMLElement>("input");
+      input?.focus();
+      // At large text the message below the input sits past the scrolled body's edge, under the footer.
+      requestAnimationFrame(() => input?.getAttribute("aria-describedby")?.split(" ").forEach((id) => document.getElementById(id)?.scrollIntoView({ block: "nearest" })));
       return;
     }
     const tone = kinds.find((candidate) => candidate.value === draft.kind)?.tone;

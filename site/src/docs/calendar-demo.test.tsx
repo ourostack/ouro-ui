@@ -54,6 +54,29 @@ describe("the calendar page", () => {
     }
   });
 
+  it("keeps the Add a title message above the footer at large text on a short screen", async () => {
+    await page.viewport(550, 450);
+    document.documentElement.style.fontSize = "32px";
+    // The page's State switcher reports that it spills at this size; that is not what this test is about.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await renderPage("/docs/calendar-demo/");
+      await page.getByRole("button", { name: "New event" }).click();
+      const dialog = page.getByRole("dialog", { name: "New event" });
+      await dialog.getByRole("button", { name: "Create" }).click();
+      await expect.element(dialog.getByText("Add a title")).toBeInTheDocument();
+      const clear = () => {
+        const message = [...document.querySelectorAll("[role=dialog] *")].find((el) => el.children.length === 0 && el.textContent === "Add a title");
+        const footer = document.querySelector("[data-ouro-footer]");
+        return !!message && !!footer && message.getBoundingClientRect().bottom <= footer.getBoundingClientRect().top;
+      };
+      await expect.poll(clear).toBe(true);
+    } finally {
+      warn.mockRestore();
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
   it("puts a new event on the grid once it has a title", async () => {
     await renderPage("/docs/calendar-demo/");
     await page.getByRole("button", { name: "New event" }).click();
