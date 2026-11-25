@@ -783,14 +783,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // The keyboard's slot is virtual: the grid below owns focus and names this slot through aria-activedescendant.
   const [heldCursor, setCursor] = useState<{ day: number; minutes: number } | null>(null);
   // The days can shrink under a focused grid (a controlled `view` changes), so the cursor stays on a day that exists.
-  const cursor = heldCursor && days.length > 0 ? { ...heldCursor, day: Math.min(heldCursor.day, days.length - 1) } : null;
+  const cursor = heldCursor ? { ...heldCursor, day: Math.min(heldCursor.day, days.length - 1) } : null;
   const cursorId = useId();
   const cursorRef = useRef<HTMLSpanElement | null>(null);
   useLayoutEffect(() => {
     const slot = cursorRef.current;
     if (!slot) return;
     // The sticky day header covers the top of the scrolling area, so a slot scrolled "into view" would sit behind it.
-    slot.style.scrollMarginTop = `${slot.closest("[data-ouro=\"time-grid\"]")?.querySelector("[data-ouro-time-grid-head]")?.getBoundingClientRect().height ?? 0}px`;
+    slot.style.scrollMarginTop = `${rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!.offsetHeight}px`;
     slot.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [heldCursor]);
   const cursorStart = () => {
