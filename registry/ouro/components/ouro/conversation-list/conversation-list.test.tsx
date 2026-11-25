@@ -1285,6 +1285,113 @@ describe("ConversationList row menu", () => {
   });
 });
 
+describe("ConversationList section menu", () => {
+  const sections = (pick: (label: string) => void) => [
+    { id: "team", title: "My team", menu: [{ label: "Rename", onClick: () => pick("rename") }, { label: "Delete", onClick: () => pick("delete") }] },
+    { id: "plain", title: "Plain" },
+  ];
+  const rows: ConversationListItem[] = [
+    { id: "ana", title: "Ana Lind", section: "team" },
+    { id: "trail", title: "Trail crew", section: "plain" },
+  ];
+  const headerOf = (title: string) => [...document.querySelectorAll<HTMLElement>('[data-ouro-part="section"]')].find((node) => node.textContent!.startsWith(title))!;
+  const moreOf = (title: string) => headerOf(title).nextElementSibling as HTMLElement | null;
+  const wide = async () => {
+    const [width, height] = [innerWidth, innerHeight];
+    await page.viewport(1280, 800);
+    onTestFinished(() => page.viewport(width, height));
+  };
+
+  it("opens a section's menu on a right-click, runs the chosen entry and puts focus back on the header", async () => {
+    const picked: string[] = [];
+    await render(<ConversationList label="Chats" items={rows} sections={sections((label) => picked.push(label))} onSelect={() => {}} />);
+    await userEvent.click(headerOf("My team"), { button: "right" });
+    await expect.element(page.getByRole("menu", { name: "My team" })).toBeVisible();
+    await userEvent.click(page.getByRole("menuitem", { name: "Rename" }));
+    expect(picked).toEqual(["rename"]);
+    await expect.poll(() => document.activeElement).toBe(headerOf("My team"));
+    // The right-click opened a menu and left the section open.
+    expect(headerOf("My team").getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("opens a section's menu beside its header from Shift+F10 or the Menu key, and from no other key", async () => {
+    await wide();
+    await render(<ConversationList label="Chats" items={rows} sections={sections(() => {})} onSelect={() => {}} />);
+    const press = async (title: string, init: KeyboardEventInit) => {
+      const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
+      await act(async () => headerOf(title).dispatchEvent(event));
+      return event.defaultPrevented;
+    };
+    for (const keys of [{ key: "F10", shiftKey: true }, { key: "ContextMenu" }]) {
+      expect(await press("My team", keys)).toBe(true);
+      await expect.element(page.getByRole("menu", { name: "My team" })).toBeVisible();
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+      await expect.poll(() => document.activeElement).toBe(headerOf("My team"));
+    }
+    expect(await press("My team", { key: "F10" })).toBe(false);
+    expect(await press("Plain", { key: "F10", shiftKey: true })).toBe(false);
+    expect(page.getByRole("menu").query()).toBeNull();
+  });
+
+  it("opens a section's menu when a finger rests on its header, and the press does not toggle the section", async () => {
+    await render(<ConversationList label="Chats" items={rows} sections={sections(() => {})} onSelect={() => {}} />);
+    const box = headerOf("My team").getBoundingClientRect();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      headerOf("My team").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch", clientX: box.left + 40, clientY: box.top + 8 }));
+      await act(async () => void vi.advanceTimersByTime(600));
+    } finally {
+      vi.useRealTimers();
+    }
+    await expect.element(page.getByRole("menu", { name: "My team" })).toBeVisible();
+    await act(async () => headerOf("My team").click());
+    expect(headerOf("My team").getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("leaves a header without a menu as it was: no more button, no menu, no touch callout change, the browser's own context menu", async () => {
+    await render(<ConversationList label="Chats" items={rows} sections={sections(() => {})} onSelect={() => {}} />);
+    expect(moreOf("Plain")?.getAttribute("data-ouro-part")).not.toBe("more");
+    expect(headerOf("Plain").classList).not.toContain("[-webkit-touch-callout:none]");
+    expect(headerOf("My team").classList).toContain("[-webkit-touch-callout:none]");
+    const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    await act(async () => headerOf("Plain").dispatchEvent(event));
+    expect(event.defaultPrevented).toBe(false);
+    expect(page.getByRole("menu").query()).toBeNull();
+  });
+
+  it("draws a more button after a header with a menu, named for the section, that opens the menu and goes back to the header with ArrowLeft", async () => {
+    await wide();
+    await render(<ConversationList label="Chats" items={rows} sections={sections(() => {})} moreLabel="Options for" onSelect={() => {}} />);
+    const more = moreOf("My team")!;
+    expect(more.getAttribute("data-ouro-part")).toBe("more");
+    expect(more.textContent).toContain("Options for My team");
+    // ArrowRight on an open header reaches it, and ArrowLeft or Escape from it comes back; the header does not close.
+    await act(async () => headerOf("My team").focus());
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(more);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(headerOf("My team"));
+    expect(headerOf("My team").getAttribute("aria-expanded")).toBe("true");
+    await act(async () => more.click());
+    await expect.element(page.getByRole("menu", { name: "My team" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(more.previousElementSibling);
+  });
+
+  it("still opens and closes the section on a press of its header, and opens a closed one with ArrowRight", async () => {
+    await render(<ConversationList label="Chats" items={rows} sections={sections(() => {})} onSelect={() => {}} />);
+    expect(page.getByRole("button", { name: /^Ana Lind/ }).query()).not.toBeNull();
+    await userEvent.click(headerOf("My team"));
+    expect(headerOf("My team").getAttribute("aria-expanded")).toBe("false");
+    expect(page.getByRole("button", { name: /^Ana Lind/ }).query()).toBeNull();
+    await act(async () => headerOf("My team").focus());
+    await userEvent.keyboard("{ArrowRight}");
+    expect(headerOf("My team").getAttribute("aria-expanded")).toBe("true");
+    expect(page.getByRole("button", { name: /^Ana Lind/ }).query()).not.toBeNull();
+  });
+});
+
 describe("ConversationList in a bordered container, under forced colours", () => {
   it("drops the container's own edge, since the list already draws its own frame (#3180)", async () => {
     try {
