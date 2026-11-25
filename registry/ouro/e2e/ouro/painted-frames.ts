@@ -1,5 +1,8 @@
+export { classifyPaintedFrames };
+export type { PaintedFrame };
+
 /** A single captured frame's measurement of a column scanned for a box's painted border. */
-export interface PaintedFrame {
+interface PaintedFrame {
   readonly height: number;
   readonly runs: number;
 }
@@ -22,7 +25,7 @@ export interface PaintedFrame {
  * the line its real neighbors describe. The run's first and last frame never count this way, since
  * a caller checks those against the move's own `from`/`to` separately.
  */
-export function classifyPaintedFrames<T extends PaintedFrame>(
+function classifyPaintedFrames<T extends PaintedFrame>(
   body: readonly T[],
   sign: number,
   tolerance = 3,
