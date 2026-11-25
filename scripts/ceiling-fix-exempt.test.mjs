@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { alreadyLogged, candidateComment, candidateMarker, candidateVerdict, exemptCandidate, parseBaseOverFailure, report } from "./ceiling-fix-exempt.mjs";
 
-const BASE_OVER = "css-size-gate docs CSS, gzip bytes: 57407 bytes, 0 more than its base's 57407, within the 512 a pull request may add, but still over its ceiling of 57344: its base was over too";
-const BASE_OVER_SHRINKS = "css-size-gate docs CSS, gzip bytes: 57340 bytes, 67 less than its base's 57407, within the 512 a pull request may add, but still over its ceiling of 57344: its base was over too";
-const BASE_OVER_GREW = "css-size-gate docs CSS, gzip bytes: 57420 bytes, 13 more than its base's 57407, within the 512 a pull request may add, but still over its ceiling of 57344: its base was over too";
-const TIPS_IT_OVER = "css-size-gate docs CSS, gzip bytes: 57400 bytes, 56 more than its base's 57344, within the 512 a pull request may add, but past its ceiling of 57344 for the first time: this pull request tips it over";
+// Real shape, including the "Raise the ceiling..." sentence judgeSizes always appends to a failure line
+// (scripts/size-gate.mjs), taken from ourostack/ouro-ui#3798's own fresh-main log.
+const RAISE_OR_SHRINK = " Raise the ceiling with the new measurement and why, or make it smaller";
+const BASE_OVER = `css-size-gate docs CSS, gzip bytes: 57407 bytes, 0 more than its base's 57407, within the 512 a pull request may add, but still over its ceiling of 57344: its base was over too.${RAISE_OR_SHRINK}`;
+const BASE_OVER_SHRINKS = `css-size-gate docs CSS, gzip bytes: 57340 bytes, 67 less than its base's 57407, within the 512 a pull request may add, but still over its ceiling of 57344: its base was over too.${RAISE_OR_SHRINK}`;
+const BASE_OVER_GREW = `css-size-gate docs CSS, gzip bytes: 57420 bytes, 13 more than its base's 57407, within the 512 a pull request may add, but still over its ceiling of 57344: its base was over too.${RAISE_OR_SHRINK}`;
+const TIPS_IT_OVER = `css-size-gate docs CSS, gzip bytes: 57400 bytes, 56 more than its base's 57344, within the 512 a pull request may add, but past its ceiling of 57344 for the first time: this pull request tips it over.${RAISE_OR_SHRINK}`;
 const UNDER = "css-size-gate docs CSS, gzip bytes: 57000 bytes, 0 more than its base's 57000, within the 512 a pull request may add, under its ceiling of 57344";
 
 test("parseBaseOverFailure reads a size-gate 'its base was over too' failure line, and only that shape", () => {

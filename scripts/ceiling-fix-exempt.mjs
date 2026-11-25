@@ -33,7 +33,7 @@ const FIX_LABEL = "red-main-fix";
  * growth, never a candidate for exemption.
  */
 export function parseBaseOverFailure(line) {
-  const match = /^css-size-gate (.+): (\d+) bytes, (\d+) (more|less) than its base's \d+(?: \([^)]*\))?, within the \d+ a pull request may add, but still over its ceiling of (\d+): its base was over too$/.exec(
+  const match = /^css-size-gate (.+): (\d+) bytes, (\d+) (more|less) than its base's \d+(?: \([^)]*\))?, within the \d+ a pull request may add, but still over its ceiling of (\d+): its base was over too\./.exec(
     line.trim(),
   );
   if (!match) return null;
