@@ -21,7 +21,7 @@ export interface TimeGridNavProps {
   timeZone?: string | undefined;
   /** The buttons' words, for other languages. @default { today: "Today", previous: "Previous week", next: "Next week" }, or "day" for a day's view */
   labels?: { today?: string | undefined; previous?: string | undefined; next?: string | undefined } | undefined;
-  /** Disables all three buttons, for while the grid's events load. @default false */
+  /** Disables the toolbar's buttons while the grid's events load. @default false */
   disabled?: boolean | undefined;
   /** Layout only: margins and placement. Appearance classes warn in development. */
   className?: string | undefined;
