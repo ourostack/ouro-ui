@@ -1,1 +1,0 @@
-- Fixed: a toast's action button, such as Undo, is a full touch target on a coarse pointer.
