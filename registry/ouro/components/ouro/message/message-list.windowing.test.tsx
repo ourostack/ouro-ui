@@ -124,6 +124,32 @@ const frame = () =>
     );
   });
 
+// Counts the times viewport()'s own bail fires, so a test can prove the path ran rather than inferring it from timing alone.
+let viewportBails = 0;
+/**
+ * Resizes the browser's real viewport, as a reader rotating their device or window does. Bounded: the browser provider's own
+ * resize round trip is a protocol call to the browser process, which can itself go unanswered when a sibling browser project
+ * starves this one's host process (the same install-job contention #3730 bounded frame() against, #3785/#3788) — this fails
+ * fast with its own clear error instead of hanging past the test's own timeout and dragging later tests into the same wait.
+ */
+const viewport = (width: number, height: number) =>
+  new Promise<void>((resolve, reject) => {
+    const bail = setTimeout(() => {
+      viewportBails++;
+      reject(new Error("viewport(): page.viewport did not settle within 5000ms; the renderer looks stalled"));
+    }, 5000);
+    page.viewport(width, height).then(
+      () => {
+        clearTimeout(bail);
+        resolve();
+      },
+      (error: unknown) => {
+        clearTimeout(bail);
+        reject(error);
+      },
+    );
+  });
+
 /** A post the app's own component draws, its variant set by the component's own state, not by the list's render. */
 function OwnPost({ expose }: { expose: (set: (variant: "post" | "chat") => void) => void }) {
   const [variant, setVariant] = useState<"post" | "chat">("post");
@@ -287,6 +313,29 @@ describe("MessageList windowing", () => {
       expect(frameBails).toBe(1);
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  it("fails viewport() fast, with its own error, when the browser provider's resize round trip does not answer, instead of hanging past the test's own timeout (#3785, #3788)", async () => {
+    viewportBails = 0;
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // A browser process too starved by a concurrent sibling (chromium + webkit on the same install-job runner, #3785/#3788)
+      // to answer page.viewport's protocol call at all: it never settles.
+      const unresolved = new Promise<void>(() => {});
+      vi.spyOn(page, "viewport").mockReturnValue(unresolved);
+      const waiting = viewport(800, 600).then(
+        () => "resolved" as const,
+        () => "rejected" as const,
+      );
+      // Advance past viewport()'s own bail, then give its rejection a turn to settle the race before reading it.
+      await vi.advanceTimersByTimeAsync(5000);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(await waiting).toBe("rejected");
+      expect(viewportBails).toBe(1);
+    } finally {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
     }
   });
 
@@ -2074,7 +2123,7 @@ describe("MessageList windowing", () => {
 
   it("opens with no more rows than fill the window, and draws the rows past the view's edges only after the first paint", async () => {
     const { innerWidth: width, innerHeight: height } = window;
-    await page.viewport(800, 600);
+    await viewport(800, 600);
     try {
       // A list taller than the window measured last: the next one still draws no more than the window holds.
       await render(<Chat items={conversation(100)} style={{ height: 1000, width: 360 }} />);
@@ -2115,7 +2164,7 @@ describe("MessageList windowing", () => {
       expect(messages(scroller).length).toBeGreaterThanOrEqual(Math.floor((400 + 800) / 96));
       expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     } finally {
-      await page.viewport(width, height);
+      await viewport(width, height);
     }
   });
 
@@ -2196,7 +2245,7 @@ describe("MessageList windowing", () => {
 
   it("draws only the rows that fill the view in the first commit, given their estimatedItemHeight, where the built-in estimate would draw more", async () => {
     const { innerWidth: width, innerHeight: height } = window;
-    await page.viewport(800, 900);
+    await viewport(800, 900);
     try {
       // A 600px view, measured, for the next list to take as its own.
       await render(<Chat items={conversation(100)} style={{ height: 600, width: 360 }} />);
@@ -2209,7 +2258,7 @@ describe("MessageList windowing", () => {
       // Five 130px rows fill 600px; at 96px a row, the list would draw seven.
       expect(first).toBe(5);
     } finally {
-      await page.viewport(width, height);
+      await viewport(width, height);
     }
   });
 
