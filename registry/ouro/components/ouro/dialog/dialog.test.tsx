@@ -177,6 +177,13 @@ describe("automatic presentation", () => {
     expect(Math.round(element.getBoundingClientRect().bottom)).toBe(innerHeight);
   });
 
+  it("gives the sheet's first field focus as it opens at 390px, not the sheet itself", async () => {
+    await page.viewport(390, 844);
+    const element = await openUncontrolled();
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Name");
+    expect(document.activeElement).not.toBe(element);
+  });
+
   it("follows presentation over the viewport", async () => {
     expect((await openUncontrolled({ presentation: "sheet" })).getAttribute("data-ouro-presentation")).toBe("sheet");
     await act(async () => roots.splice(0).forEach((root) => root.unmount()));

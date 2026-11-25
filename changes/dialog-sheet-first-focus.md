@@ -1,0 +1,1 @@
+- Changed: a Dialog shown as a phone sheet gives its first field focus as it opens, as the centered dialog does.
