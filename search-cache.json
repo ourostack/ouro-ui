@@ -1,9 +1,9 @@
 {
   "spoonjoy/spoonjoy-v2": {
     "components/ouro/": {
-      "commit": "52da7c577a3d358d9216c8d572b2a91e0220dcba",
-      "at": "2026-11-25T04:18:59.334Z",
-      "total": 610,
+      "commit": "302d5ab685cf93be6dbc3222306e55f98c3168ef",
+      "at": "2026-11-25T06:28:07.762Z",
+      "total": 624,
       "paths": [
         "app/components/ouro/inspector/inspector.stories.tsx",
         ".storybook/main.ts",
@@ -88,10 +88,10 @@
         "app/components/ouro/tab-bar/tab-bar.stories.tsx",
         "app/components/ouro/collapsible/collapsible.tsx",
         "app/components/ouro/tooltip/tooltip.stories.tsx",
+        "app/components/ouro/combobox/combobox-styles.ts",
         "app/components/ouro/checkbox/checkbox-group.tsx",
         "app/components/ouro/choice-card/choice-card.tsx",
         "app/components/ouro/item/item-group.stories.tsx",
-        "app/components/ouro/combobox/combobox-styles.ts",
         "app/components/ouro/radio-group/radio-group.tsx",
         "app/components/ouro/file-field/file-field.tsx",
         "app/components/ouro/timer/timer-tray.stories.tsx",
@@ -106,63 +106,12 @@
         "app/components/ouro/spinner/spinner.tsx",
         "app/components/ouro/toggle/toggle-group.tsx"
       ]
-    },
-    "\"ouro-ui-core\"": {
-      "commit": "52da7c577a3d358d9216c8d572b2a91e0220dcba",
-      "at": "2026-11-25T05:18:38.843Z",
-      "total": 13,
-      "paths": [
-        "README.md",
-        "tools/ouro-actions/README.md",
-        "scripts/sync-sj-tokens.mjs",
-        "actions/spoonjoy.actions.mts",
-        "app/styles/sj-tokens.css",
-        "app/styles/tailwind.css",
-        "claims-urls.json",
-        "tools/ouro-actions/actions.claims.json",
-        "test/styles/theme-css.ts",
-        "test/styles/sj-token-parity.test.ts",
-        "test/scripts/sync-sj-tokens.test.ts",
-        "test/components/recipe/CoverPlaceholder.test.tsx",
-        "test/lib/mcp/declared-actions.server.test.ts"
-      ]
-    },
-    "defineCommand": {
-      "commit": "52da7c577a3d358d9216c8d572b2a91e0220dcba",
-      "at": "2026-11-25T05:18:54.626Z",
-      "total": 5,
-      "paths": [
-        "app/lib/ouro/ax/ax-command.ts",
-        "scripts/ouro/ax/xray.kit.mts",
-        "scripts/ouro/ax/xray.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "app/lib/ouro/ax/ax-moved.d.ts"
-      ]
-    },
-    "bindAx": {
-      "commit": "52da7c577a3d358d9216c8d572b2a91e0220dcba",
-      "at": "2026-11-25T05:20:44.387Z",
-      "total": 4,
-      "paths": [
-        "app/lib/ouro/ax/component.ts",
-        "actions/generated/web.ts",
-        "scripts/ouro/ax/xray.ts",
-        "tools/ouro-actions/ouro-actions.mts"
-      ]
-    },
-    "ax-mcp": {
-      "commit": "52da7c577a3d358d9216c8d572b2a91e0220dcba",
-      "at": "2026-11-25T05:21:12.071Z",
-      "total": 1,
-      "paths": [
-        "app/lib/ouro/ax/ax-claims.ts"
-      ]
     }
   },
   "spoonjoy/spoonjoy-apple": {
     "OuroButton": {
-      "commit": "a919359e37f7972976f0586ae1465381fb4ff40e",
-      "at": "2026-11-25T05:24:52.617Z",
+      "commit": "5c7858357b55cd659587c0a7df8c09d7e12eb6fb",
+      "at": "2026-11-25T06:36:11.110Z",
       "total": 7,
       "paths": [
         "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift",
@@ -175,26 +124,10 @@
       ]
     },
     "OuroToast": {
-      "commit": "a919359e37f7972976f0586ae1465381fb4ff40e",
-      "at": "2026-11-25T05:24:58.680Z",
+      "commit": "5c7858357b55cd659587c0a7df8c09d7e12eb6fb",
+      "at": "2026-11-25T06:37:54.094Z",
       "total": 0,
       "paths": []
-    },
-    "OuroBanner": {
-      "commit": "a919359e37f7972976f0586ae1465381fb4ff40e",
-      "at": "2026-11-25T05:25:31.715Z",
-      "total": 1,
-      "paths": [
-        "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift"
-      ]
-    },
-    "\"import OuroAX\"": {
-      "commit": "a919359e37f7972976f0586ae1465381fb4ff40e",
-      "at": "2026-11-25T05:29:48.018Z",
-      "total": 1,
-      "paths": [
-        "Tests/SpoonjoyCoreTests/XrayExpectationTests.swift"
-      ]
     }
   },
   "ourostack/ouro-md": {
