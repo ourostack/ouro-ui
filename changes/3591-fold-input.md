@@ -1,0 +1,1 @@
+- New: `useFoldPosture` and `useFoldHostInput` (`lib/ouro/use-fold-posture.ts`) read a native host's reported fold hinge and regions through a `window` CustomEvent bridge and resolve them with `resolveFoldPosture`.
