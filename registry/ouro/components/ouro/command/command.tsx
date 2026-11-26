@@ -1221,7 +1221,7 @@ function CommandList({ children, className, after, snap }: { children: (group: G
   const empty = Autocomplete.useFilteredItems().length === 0;
   const list = useRef<HTMLDivElement>(null);
   const observer = useRef<ResizeObserver | null>(null);
-  // The list ends on a whole row or heading, never through one: its height is cut to the last bottom edge that fits. It is
+  // The list ends on a whole row, never through one or on a heading without its first row: its height is cut to the last bottom edge that fits. It is
   // measured in a ResizeObserver's callback, once the browser has laid the list out, so a key that changes the rows reads
   // no layout of its own: the room is the box around the list less what else that box holds, never the list's own height
   // with its cut lifted.
@@ -1244,7 +1244,7 @@ function CommandList({ children, className, after, snap }: { children: (group: G
           // The list holds more than its room here, so it is laid out and offsetHeight is not 0.
           const scale = rect.height / node.offsetHeight;
           const end = parseFloat(getComputedStyle(node).paddingBottom);
-          for (const edge of node.querySelectorAll("[data-ouro-command-value],[data-ouro-command-group-label]")) {
+          for (const edge of node.querySelectorAll("[data-ouro-command-value]")) {
             // Stryker disable next-line all: pixel geometry; command.rows.test.tsx checks the cut flush with the last whole edge, scaled or not.
             const bottom = (edge.getBoundingClientRect().bottom - rect.top) / scale + node.scrollTop + end;
             // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
