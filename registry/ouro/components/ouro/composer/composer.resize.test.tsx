@@ -177,6 +177,15 @@ describe("Composer resizable edge", () => {
     await expect.poll(() => wholeLines(view.textarea)).toBeCloseTo(3, 1);
   });
 
+  it("counts from the text's new padding once it changes and the box is resized", async () => {
+    const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} onSend={() => {}} />);
+    const l = line(view.textarea);
+    view.edge.focus();
+    style(`textarea { --ouro-text-area-py: ${parseFloat(getComputedStyle(view.textarea).paddingTop) + l / 2}px; }`);
+    await userEvent.keyboard("{ArrowUp}");
+    await expect.poll(() => wholeLines(view.textarea)).toBeCloseTo(2, 1);
+  });
+
   it("holds a controlled height on the nearest whole line, and follows the app's value", async () => {
     let set: (value: number | null) => void = () => {};
     function Controlled() {
