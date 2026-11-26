@@ -165,4 +165,107 @@ describe("capsule measure", () => {
     nested.remove();
     plain.remove();
   });
+
+  describe("cost", () => {
+    const force = () => vi.spyOn(CSS, "supports").mockImplementation((prop: string) => prop === "clip-path");
+    const settle = async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    };
+
+    it("rescans no stylesheet and no document across a burst of text edits", async () => {
+      force();
+      const style = document.createElement("style");
+      style.textContent = ".typing-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      document.head.append(style);
+      const field = document.createElement("div");
+      field.contentEditable = "true";
+      document.body.append(field);
+      const stop = installSquircleCapsules(document);
+      const rules = vi.spyOn(CSSStyleSheet.prototype, "cssRules", "get");
+      const all = vi.spyOn(Document.prototype, "querySelectorAll");
+      const computed = vi.spyOn(window, "getComputedStyle");
+      for (let i = 0; i < 20; i++) {
+        field.append(document.createTextNode("k"));
+        field.firstChild!.textContent += "j";
+        await Promise.resolve();
+        await Promise.resolve();
+      }
+      await settle();
+      expect(rules).not.toHaveBeenCalled();
+      expect(all).not.toHaveBeenCalled();
+      expect(computed).not.toHaveBeenCalled();
+      stop();
+      style.remove();
+      field.remove();
+    });
+
+    it("draws a node added later with a capsule class, nested ones too", async () => {
+      force();
+      const style = document.createElement("style");
+      style.textContent = ".added-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      document.head.append(style);
+      const stop = installSquircleCapsules(document);
+      const wrap = document.createElement("section");
+      const el = document.createElement("div");
+      el.className = "added-cap";
+      const own = el.cloneNode() as HTMLElement;
+      wrap.append(el);
+      document.body.append(wrap, own);
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      await expect.poll(() => own.style.getPropertyValue("--sq-half")).toBe("15px");
+      stop();
+      style.remove();
+      wrap.remove();
+      own.remove();
+    });
+
+    it("draws an existing element once a stylesheet made it a capsule", async () => {
+      force();
+      const el = document.createElement("div");
+      el.className = "late-cap";
+      document.body.append(el);
+      const stop = installSquircleCapsules(document);
+      const style = document.createElement("style");
+      style.textContent = ".late-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      document.head.append(style);
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      stop();
+      style.remove();
+      el.remove();
+    });
+
+    it("reads a linked stylesheet once it has loaded", async () => {
+      force();
+      const el = document.createElement("div");
+      el.className = "linked-cap";
+      document.body.append(el);
+      const stop = installSquircleCapsules(document);
+      const css = ".linked-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = URL.createObjectURL(new Blob([css], { type: "text/css" }));
+      document.head.append(link);
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      stop();
+      link.remove();
+      el.remove();
+    });
+
+    it("draws an element after its style element's text is replaced", async () => {
+      force();
+      const style = document.createElement("style");
+      document.head.append(style);
+      const el = document.createElement("div");
+      el.className = "text-cap";
+      document.body.append(el);
+      const stop = installSquircleCapsules(document);
+      style.textContent = ".text-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      stop();
+      style.remove();
+      el.remove();
+    });
+  });
 });
