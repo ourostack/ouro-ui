@@ -559,11 +559,7 @@ function InspectorLayer({
    * @claim "Puts each outline over its component" registry/ouro/components/ouro/inspector/inspector.tsx verify:fileLine(registry/ouro/components/ouro/inspector/inspector.tsx, /const\sboxes\s=\scomponents\.map\(\(component\)\s=>\spixelSnapped\(shownBox\(component\.element\)\s\?\?\snew\sDOMRect\(\)\)\)/)
    */
   const place = (all: Found[]) => {
-    const own = layer.current;
-    // A frame a resize, a scroll or a mutation queued just before X-ray closed can still run once the
-    // layer has already left the page (a race cancelling it does not always win under load, #3848):
-    // nothing is left to place its outlines over.
-    if (!own) return;
+    const own = layer.current!;
     // An outline React has yet to render is placed once it has, from the layout effect below.
     const components = all.filter((component) => outlines.has(component.key));
     const ancestors = new Map<Element, Ancestor>();
@@ -629,6 +625,11 @@ function InspectorLayer({
       frame = 0;
       clearTimeout(backstop);
       backstop = 0;
+      // A mutation or resize observed in the instant X-ray closes can still queue this before
+      // cleanup disconnects the observers and cancels the frame; a frame already queued when
+      // cancelAnimationFrame runs is not always dropped, either (#3314). Either way `own` is by
+      // then off the page, with nothing left to measure or place outlines over (#3848).
+      if (!own.isConnected) return;
       const modal = modalOpen(own);
       // While a dialog shuts off the page, the bar (shut off with it) steps aside so it never covers the dialog.
       own.toggleAttribute("data-modal", modal);

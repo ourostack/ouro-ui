@@ -688,21 +688,25 @@ describe("Inspector", () => {
     expect(own.hasAttribute("data-ouro-settling"), "cleanup clears it, rather than leaving it for the cancelled frame").toBe(false);
   });
 
-  it("does not throw when a stale resize or mutation callback fires its queued frame after X-ray has already closed (#3848)", async () => {
-    // A resize, a scroll or a page mutation queued just before X-ray closes can still request a frame;
-    // cancelling that frame on unmount is a race the real browser does not always win under load, so the
-    // callback itself must tolerate running once the layer element it reads is already gone.
+  it("does nothing for a frame queued just before close that still runs after, rather than crash on the layer already gone (#3848)", async () => {
+    // A resize in the instant before close queues one more frame; cancelAnimationFrame in cleanup
+    // does not always win that race, and a frame already queued is not always dropped either (#3314).
+    // Captured here instead of waited for, so the test does not depend on winning or losing that race itself.
     const { host } = await render(<Page />);
     await drawn(pageRoots(host).length);
     let stale: FrameRequestCallback | undefined;
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    const requestFrame = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       stale = callback;
       return 1;
     });
-    dispatchEvent(new Event("resize"));
-    expect(stale, "a resize schedules a frame to re-measure").toBeDefined();
+    try {
+      dispatchEvent(new Event("resize"));
+      expect(stale, "the resize queued a frame to capture").toBeDefined();
+    } finally {
+      requestFrame.mockRestore();
+    }
     await act(async () => roots.splice(0).forEach((root) => root.unmount()));
-    expect(() => stale!(performance.now()), "the queued frame still ran, after the layer left the page").not.toThrow();
+    expect(() => stale!(performance.now())).not.toThrow();
   });
 
   it("does not measure contrast while a scroll-triggered reposition is still pending, with no Animation to catch it (#3361)", async () => {
