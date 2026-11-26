@@ -34,7 +34,7 @@ import { fileURLToPath } from "node:url";
 /** The job that waits on every other job: once it has finished, nothing is left to free. */
 export const LAST = "ci-budget";
 /** Jobs whose failure the run tolerates: when the plan fails, every job that reads it runs everything. */
-export const TOLERATED = ["plan"];
+export const TOLERATED = ["plan", "fresh-main"];
 /** Jobs that a slow runner can fail with the change sound: their failure is left to a re-run of that job, not a cancelled run. */
 export const RERUN_ALONE = ["latency"];
 /** A finished job with one of these conclusions means the run cannot pass. */

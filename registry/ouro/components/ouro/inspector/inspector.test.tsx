@@ -508,6 +508,40 @@ describe("Inspector", () => {
     outlines().forEach((outline, index) => expect(onTarget(outline, components[index]!), `outline ${index}`).toBe(true));
   });
 
+  it("still outlines the page when its first scheduled frame never calls back, as a stalled renderer drops one (ourostack/ouro-ui#3740)", async () => {
+    // A CI runner's compositor can stall under contention and drop a requestAnimationFrame callback
+    // instead of merely delaying it (the same mechanism ourostack/ouro-ui#3314 found for a different
+    // file): nothing else on this static page re-triggers X-ray's census, so a mount that depends
+    // solely on that one frame would never outline anything.
+    const real = window.requestAnimationFrame;
+    vi.stubGlobal("requestAnimationFrame", () => 1);
+    let host: HTMLElement;
+    try {
+      ({ host } = await render(<Page />));
+    } finally {
+      vi.stubGlobal("requestAnimationFrame", real);
+    }
+    await drawn(pageRoots(host).length);
+  });
+
+  it("cancels the frame its backstop beat, so that frame never measures a layer already unmounted", async () => {
+    // The renderer holds the mount's frame past the 500ms backstop, then calls it after X-ray closed (#3761).
+    const [real, realCancel] = [window.requestAnimationFrame, window.cancelAnimationFrame];
+    const late = new Map<number, FrameRequestCallback>();
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => late.set(late.size + 1e6, callback).size + 1e6 - 1);
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => (late.delete(id) ? undefined : realCancel(id)));
+    let host: HTMLElement;
+    try {
+      ({ host } = await render(<Page />));
+    } finally {
+      vi.stubGlobal("requestAnimationFrame", real);
+    }
+    await drawn(pageRoots(host).length);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    vi.stubGlobal("cancelAnimationFrame", realCancel);
+    expect(() => late.forEach((callback) => callback(0))).not.toThrow();
+  });
+
   it("puts its bar in a landmark named by its label", async () => {
     await render(<Page inspector={{ label: "Röntgen" }} />);
     await drawn(3);

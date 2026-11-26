@@ -1532,8 +1532,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]' || '[1,2,3,4,5,6]') }}
-    name: design (${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 24 || 6 }})
+        shard: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]' || '[1,2,3,4,5,6]') }}
+    name: design (${{ matrix.shard }}/${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 24 || 6 }})
     steps:
       # Its checkout needs the base commit (HEAD^1), which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
@@ -1593,7 +1593,7 @@ jobs:
         with:
           targets: site/dist
           sizes: 390x844,1440x900,3840x2160
-          shard: ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 24 || 6 }}
+          shard: ${{ matrix.shard }}/${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 24 || 6 }}
           script: registry/ouro/check/check.ts
           config: .github/ouro-check.json
           artifact: design-check
@@ -1611,6 +1611,10 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read # read this run's own job logs, to judge a failure against the quarantine before it reports (scripts/quarantine.mjs judge)
+      issues: read # read a quarantined test's issue state (open, not expired)
     outputs:
       reduced: ${{ needs.coverage.outputs.reduced }}
       stems: ${{ needs.coverage.outputs.stems }}
@@ -1623,7 +1627,9 @@ jobs:
       DESIGN_RUN: ${{ needs.plan.outputs.design != 'false' }}
       SCREEN_READER_RUN: ${{ needs.plan.outputs.screen_reader != 'none' }}
     steps:
-      - name: Every part passed
+      - id: parts
+        name: Every part passed
+        continue-on-error: true
         env:
           CHECKS: ${{ needs.checks.result }}
           ATTRIBUTION: ${{ needs.attribution.result }}
@@ -1658,6 +1664,47 @@ jobs:
             failed=1
           fi
           exit "$failed"
+      # A merge queue entry is dropped the instant this check reports failure, too late for
+      # quarantine-retry.yml's later retry (after this run completes) to put it back. So when the
+      # step above failed, this run judges its own failing jobs against the quarantine itself,
+      # before it reports anything (scripts/quarantine.mjs judge), reusing the same
+      # quarantined/open/unexpired explanation retryPlan uses for the later, push-only retry.
+      # screen-reader is left out: it calls a reusable workflow in its own run, not a job whose
+      # steps and log this run's own jobs API reports. The id "checkout" in this job already
+      # names the FALLBACK checkout below, and its #1765 stall-retry triplet is for a real
+      # actions/checkout; the few files judge needs come from the contents API instead, with no
+      # checkout step at all.
+      - id: fetch-quarantine
+        name: Fetch the quarantine script and list by the contents API, with no checkout
+        if: steps.parts.outcome == 'failure'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          mkdir -p scripts .github/workflows
+          for path in .github/workflows/ci.yml scripts/quarantine.mjs scripts/ci-budget.mjs .github/quarantine.json; do
+            gh api -H "Accept: application/vnd.github.raw" "repos/$GH_REPO/contents/$path?ref=$SHA" > "$path"
+          done
+      - if: steps.parts.outcome == 'failure'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - id: judge
+        if: steps.parts.outcome == 'failure'
+        name: Quarantined failures alone are forgiven; anything else still fails
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: node scripts/quarantine.mjs judge "$GITHUB_RUN_ID" checks attribution design browser subsets scripts scripts-browser check-node check-node-merge coverage browser-fallback
+      - name: Every part passed, or was forgiven as quarantined
+        if: always()
+        run: |
+          if [ "${{ steps.parts.outcome }}" = success ]; then exit 0; fi
+          if [ "${{ steps.judge.outcome }}" = success ]; then exit 0; fi
+          exit 1
       - id: checkout
         if: env.FALLBACK == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1957,7 +2004,7 @@ jobs:
       matrix:
         # Three shards on a pull request and two on main for every run that checks every story; one for a reduced pull request, whose
         # few selected stories (or only the checks' proofs) the other two shards would idle through.
-        shard: ${{ fromJSON(needs.plan.outputs.full != 'false' && (github.event_name == 'pull_request' && '[1,2,3]' || '[1,2]') || needs.plan.outputs.conformance_shards || '[1]') }}
+        shard: ${{ fromJSON(needs.plan.outputs.full != 'false' && ((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[1,2,3]' || '[1,2]') || needs.plan.outputs.conformance_shards || '[1]') }}
     name: conformance (${{ matrix.shard }}/${{ strategy.job-total }})
     steps:
       - id: checkout
@@ -2569,7 +2616,7 @@ jobs:
       fail-fast: false
       matrix:
         # Half as many shards, twice as long each, for a run that is not a pull request's: main has no one waiting on it, and fewer jobs leave runners for the pull requests.
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8]' || '[1,2,3]') }}
+        shard: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[1,2,3,4,5,6,7,8]' || '[1,2,3]') }}
     name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
     permissions:
       contents: read
@@ -2716,7 +2763,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14]' || '[1,2,3,4]') }}
+        shard: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14]' || '[1,2,3,4]') }}
     name: sweeps (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
       SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
