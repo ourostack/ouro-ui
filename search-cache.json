@@ -1,164 +1,4 @@
 {
-  "spoonjoy/spoonjoy-v2": {
-    "components/ouro/": {
-      "commit": "454dc9aede74a23fb7249cbc4dccd9f8b648fd6e",
-      "at": "2026-11-25T10:20:17.942Z",
-      "total": 623,
-      "paths": [
-        "app/components/ouro/inspector/inspector.stories.tsx",
-        ".storybook/main.ts",
-        "vitest.ouro.config.ts",
-        "vitest.stories-scope.config.ts",
-        "AGENTS.md",
-        "vitest.config.ts",
-        "docs/building-with-ouro-hx.md",
-        ".oxlintrc.json",
-        "app/components/ouro/kbd/kbd.tsx",
-        "app/components/ouro/link/link.tsx",
-        "app/components/ouro/tabs/tabs.tsx",
-        "app/components/ouro/text/text.tsx",
-        "app/components/ouro/empty/empty.tsx",
-        "app/components/ouro/timer/timer.tsx",
-        "app/components/ouro/cover/cover.tsx",
-        "app/components/ouro/badge/badge.tsx",
-        "app/components/ouro/alert/alert.tsx",
-        "scripts/ouro-source-rules.mjs",
-        "app/components/ouro/text/heading.tsx",
-        "scripts/generate-ouro-provenance.mjs",
-        "app/components/ouro/field/field.tsx",
-        "app/components/ouro/switch/switch.tsx",
-        "app/components/ouro/toggle/toggle.tsx",
-        "app/components/ouro/select/select.tsx",
-        "app/components/ouro/field/fieldset.tsx",
-        "app/components/ouro/slider/slider.tsx",
-        "app/components/ouro/kbd/kbd.stories.tsx",
-        "app/components/ouro/menu/menu-styles.ts",
-        "app/components/ouro/tabs/tabs-styles.ts",
-        "app/components/ouro/item/item-group.tsx",
-        "app/components/ouro/tooltip/tooltip.tsx",
-        "app/components/ouro/tab-bar/tab-bar.tsx",
-        "app/components/ouro/timer/timer-tray.tsx",
-        "app/components/ouro/checkbox/checkbox.tsx",
-        "app/components/ouro/sheet/sheet-styles.ts",
-        "app/components/ouro/timer/timer-styles.ts",
-        "app/components/ouro/tabs/tabs.stories.tsx",
-        "app/components/ouro/card/card.stories.tsx",
-        "app/components/ouro/field/field-parts.tsx",
-        "app/components/ouro/menu/menu.stories.tsx",
-        "app/components/ouro/form/form.stories.tsx",
-        "app/components/ouro/field/field-styles.ts",
-        "app/components/ouro/sheet/sheet.tsx",
-        "app/components/ouro/avatar/avatar-styles.ts",
-        "app/components/ouro/toggle/toggle-styles.ts",
-        "app/components/ouro/select/select-parts.tsx",
-        "app/components/ouro/timer/timer.stories.tsx",
-        "app/components/ouro/moment/moment-styles.ts",
-        "app/components/ouro/dialog/dialog-styles.ts",
-        "app/components/ouro/select/select-styles.ts",
-        "app/components/ouro/alert/alert.stories.tsx",
-        "app/components/ouro/field/field.stories.tsx",
-        "app/components/ouro/cover/cover.stories.tsx",
-        "app/components/ouro/empty/empty.stories.tsx",
-        "app/components/ouro/celebrate/celebrate.tsx",
-        "app/components/ouro/slider/slider-styles.ts",
-        "app/components/ouro/toast/toaster-styles.ts",
-        "app/components/ouro/switch/switch-styles.ts",
-        "app/components/ouro/popover/popover.tsx",
-        "app/components/ouro/text/heading.stories.tsx",
-        "app/components/ouro/select/native-select.tsx",
-        "app/components/ouro/item/item.stories.tsx",
-        "app/components/ouro/local-date/local-date.tsx",
-        "app/components/ouro/dialog/confirm-dialog.tsx",
-        "app/components/ouro/popover/popover-styles.ts",
-        "app/components/ouro/navbar/navbar.stories.tsx",
-        "app/components/ouro/tab-bar/tab-bar-styles.ts",
-        "app/components/ouro/code-block/code-block.tsx",
-        "app/components/ouro/popover/popover-parts.tsx",
-        "app/components/ouro/breadcrumb/breadcrumb.tsx",
-        "app/components/ouro/separator/separator.tsx",
-        "app/components/ouro/field/fieldset.stories.tsx",
-        "app/components/ouro/navbar/navbar.tsx",
-        "app/components/ouro/sync-status/sync-status.tsx",
-        "app/components/ouro/scroll-area/scroll-area.tsx",
-        "app/components/ouro/spinner/spinner.stories.tsx",
-        "app/components/ouro/popover/popover.stories.tsx",
-        "app/components/ouro/auth-layout/auth-layout.tsx",
-        "app/components/ouro/copy-button/copy-button.tsx",
-        "app/components/ouro/checkbox/checkbox-styles.ts",
-        "app/components/ouro/tab-bar/tab-bar.stories.tsx",
-        "app/components/ouro/collapsible/collapsible.tsx",
-        "app/components/ouro/tooltip/tooltip.stories.tsx",
-        "app/components/ouro/combobox/combobox-styles.ts",
-        "app/components/ouro/checkbox/checkbox-group.tsx",
-        "app/components/ouro/choice-card/choice-card.tsx",
-        "app/components/ouro/item/item-group.stories.tsx",
-        "app/components/ouro/radio-group/radio-group.tsx",
-        "app/components/ouro/file-field/file-field.tsx",
-        "app/components/ouro/timer/timer-tray.stories.tsx",
-        "app/components/ouro/image-field/image-field.tsx",
-        "app/components/ouro/dialog/dialog-parts.tsx",
-        "app/components/ouro/checklist/checklist-styles.ts",
-        "app/components/ouro/aspect-ratio/aspect-ratio.tsx",
-        "app/components/ouro/inspector/inspector-styles.ts",
-        "app/components/ouro/share-button/share-button.tsx",
-        "app/components/ouro/number-field/number-field.tsx",
-        "app/components/ouro/select/select.stories.tsx",
-        "app/components/ouro/spinner/spinner.tsx",
-        "app/components/ouro/toggle/toggle-group.tsx"
-      ]
-    },
-    "\"ouro-ui-core\"": {
-      "commit": "454dc9aede74a23fb7249cbc4dccd9f8b648fd6e",
-      "at": "2026-11-25T11:18:48.537Z",
-      "total": 13,
-      "paths": [
-        "README.md",
-        "tools/ouro-actions/README.md",
-        "scripts/sync-sj-tokens.mjs",
-        "actions/spoonjoy.actions.mts",
-        "app/styles/sj-tokens.css",
-        "app/styles/tailwind.css",
-        "claims-urls.json",
-        "tools/ouro-actions/actions.claims.json",
-        "test/styles/theme-css.ts",
-        "test/styles/sj-token-parity.test.ts",
-        "test/scripts/sync-sj-tokens.test.ts",
-        "test/components/recipe/CoverPlaceholder.test.tsx",
-        "test/lib/mcp/declared-actions.server.test.ts"
-      ]
-    },
-    "defineCommand": {
-      "commit": "454dc9aede74a23fb7249cbc4dccd9f8b648fd6e",
-      "at": "2026-11-25T10:25:48.654Z",
-      "total": 5,
-      "paths": [
-        "app/lib/ouro/ax/ax-command.ts",
-        "scripts/ouro/ax/xray.kit.mts",
-        "scripts/ouro/ax/xray.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "app/lib/ouro/ax/ax-moved.d.ts"
-      ]
-    },
-    "bindAx": {
-      "commit": "454dc9aede74a23fb7249cbc4dccd9f8b648fd6e",
-      "at": "2026-11-25T11:19:01.484Z",
-      "total": 4,
-      "paths": [
-        "app/lib/ouro/ax/component.ts",
-        "actions/generated/web.ts",
-        "scripts/ouro/ax/xray.ts",
-        "tools/ouro-actions/ouro-actions.mts"
-      ]
-    },
-    "ax-mcp": {
-      "commit": "454dc9aede74a23fb7249cbc4dccd9f8b648fd6e",
-      "at": "2026-11-25T11:19:26.546Z",
-      "total": 1,
-      "paths": [
-        "app/lib/ouro/ax/ax-claims.ts"
-      ]
-    }
-  },
   "spoonjoy/spoonjoy-apple": {
     "OuroButton": {
       "commit": "5c7858357b55cd659587c0a7df8c09d7e12eb6fb",
@@ -269,56 +109,6 @@
     }
   },
   "ourostack/ouro-md": {
-    "OuroButton": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-25T00:44:55.446Z",
-      "total": 1,
-      "paths": [
-        "Sources/OuroMD/Sidebar.swift"
-      ]
-    },
-    "OuroToast": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-25T03:27:59.953Z",
-      "total": 0,
-      "paths": []
-    },
-    "OuroBanner": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-25T03:28:06.470Z",
-      "total": 1,
-      "paths": [
-        "Sources/OuroMD/Sidebar.swift"
-      ]
-    },
-    "OuroSheet": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-25T03:28:12.932Z",
-      "total": 0,
-      "paths": []
-    },
-    "OuroEmptyState": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-25T03:28:19.564Z",
-      "total": 1,
-      "paths": [
-        "Sources/OuroMD/Sidebar.swift"
-      ]
-    },
-    "OuroHX": {
-      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
-      "at": "2026-11-25T03:28:34.983Z",
-      "total": 7,
-      "paths": [
-        "Package.swift",
-        "Sources/OuroMD/Themes.swift",
-        "Sources/OuroMD/Sidebar.swift",
-        "Sources/OuroMD/EditorWebView.swift",
-        "Sources/OuroMD/ChangeHighlightTest.swift",
-        "Tests/OuroMDTests/EditorWebViewTests.swift",
-        "Tests/OuroMDTests/NativeAccessibilityPreferenceTests.swift"
-      ]
-    },
     "\"import OuroAX\"": {
       "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
       "at": "2026-11-26T00:36:20.727Z",
@@ -390,58 +180,22 @@
     },
     "\"import OuroAX\"": {
       "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
-      "at": "2026-11-25T01:25:50.335Z",
+      "at": "2026-11-26T01:27:58.007Z",
       "total": 0,
       "paths": []
     }
   },
-  "ourostack/desk": {
-    "defineCommand": {
-      "commit": "2dd33a3c1014be3e363b6c9f923b6e1b013950e6",
-      "at": "2026-11-26T00:48:22.068Z",
-      "total": 26,
-      "paths": [
-        "plugins/desk/mcp/src/lib/ouro-ui/registry/ouro/ax/ax-command.ts",
-        "plugins/desk/mcp/scripts/lfs.js",
-        "ax/walkers/cli.mts",
-        "plugins/desk/mcp/src/runtime/runtime-deps-cli.js",
-        "plugins/desk/mcp/scripts/crew.js",
-        "plugins/desk/mcp/scripts/resolve-desk-root.js",
-        "plugins/desk/mcp/src/lib/ouro-ui/registry/ouro/ax/xray.kit.mts",
-        "plugins/desk/mcp/scripts/private-view.js",
-        "plugins/desk/mcp/src/util/finish-commit.js",
-        "plugins/desk/mcp/src/desk/tidy.js",
-        "plugins/desk/mcp/src/runtime/drains-cli.js",
-        "plugins/desk/mcp/scripts/factory.js",
-        "plugins/desk/mcp/src/runtime/sessions-cli.js",
-        "plugins/desk/mcp/src/runtime/session-sync.js",
-        "plugins/desk/mcp/src/runtime/boot.js",
-        "plugins/desk/mcp/scripts/local-recovery.js",
-        "plugins/desk/mcp/src/factory/desk-problem-file.js",
-        "plugins/desk/mcp/src/runtime/sync-worker.js",
-        "plugins/desk/mcp/src/runtime/pending-migrations.js",
-        "plugins/desk/mcp/src/runtime/session-retention.js",
-        "plugins/desk/mcp/src/lib/ouro-actions/ouro-actions.mts",
-        "plugins/desk/mcp/src/lib/ouro-ui/registry/ouro/ax/xray.ts",
-        "tests/ax/fixtures/cli/plug/src/lib/ouro-ui/ax-command.ts",
-        "tests/ax/fixtures/cli/dup/a.js",
-        "tests/ax/fixtures/cli/plug/src/one-cli.js",
-        "tests/ax/fixtures/cli/plug/src/tasks-cli.js"
-      ]
-    }
-  },
-  "ourostack/factory": {
+  "ourostack/ouroboros": {
     "components/ouro/": {
-      "commit": "7a0510faa56dd81e26798c089e6e6f08d99904c0",
-      "at": "2026-11-25T14:28:44.753Z",
-      "total": 0,
-      "paths": []
-    },
-    "\"ouro-ui-core\"": {
-      "commit": "7a0510faa56dd81e26798c089e6e6f08d99904c0",
-      "at": "2026-11-25T20:25:48.001Z",
-      "total": 0,
-      "paths": []
+      "commit": "c22ebee0722b4cf5a6139ed09c8ee01e3c0abd4d",
+      "at": "2026-11-26T01:28:22.579Z",
+      "total": 4,
+      "paths": [
+        "deploy/eval/u/build/kit-config.mjs",
+        "deploy/eval/u/results/k1-package.json",
+        "deploy/eval/u/results/ouro-baseline-summary.json",
+        "deploy/eval/u/results/ouro-rewrite.json"
+      ]
     }
   },
   "ourostack/ouroboros-website": {
