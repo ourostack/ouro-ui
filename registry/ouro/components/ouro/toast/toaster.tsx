@@ -224,37 +224,12 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
               <ToastList closeLabel={closeLabel} />
               <ToastAnnouncer />
               {keepingClear}
-              <ModalReach />
             </Toast.Viewport>
           </PortalScope>
         </Toast.Portal>
       )}
     </Toast.Provider>
   );
-}
-
-/** Loads the Tab hand-over for a modal when focus first enters a dialog, keeping it out of a page's first load. */
-function ModalReach(): JSX.Element {
-  const mark = useRef<HTMLSpanElement | null>(null);
-  useEffect(() => {
-    let stop: (() => void) | undefined;
-    let gone = false;
-    const load = (event?: globalThis.FocusEvent) => {
-      if (!((event?.target ?? document.activeElement) as Element | null)?.closest?.('[role="dialog"]')) return;
-      document.removeEventListener("focusin", load, true);
-      void import("@/registry/ouro/components/ouro/toast/toaster-parts").then(({ reachModal }) => {
-        if (!gone) stop = reachModal(mark.current!.closest<HTMLElement>('[data-ouro="toaster"]')!);
-      });
-    };
-    document.addEventListener("focusin", load, true);
-    load();
-    return () => {
-      gone = true;
-      document.removeEventListener("focusin", load, true);
-      stop?.();
-    };
-  }, []);
-  return <span ref={mark} hidden data-ouro-toaster-modal-reach="" />;
 }
 
 /**
@@ -311,6 +286,8 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
   const state = useRef({ shown: new Set<string>(), queue: [] as ToastRecord[] });
   const key = useRef({});
   useEffect(() => {
+    // The Tab hand-over for a modal loads at the first focus change, keeping it out of a page's first load.
+    document.addEventListener("focusin", () => import("@/registry/ouro/components/ouro/toast/toaster-parts"));
     const { shown } = state.current;
     const next = () => {
       while (shown.size < VISIBLE && state.current.queue.length > 0) {
