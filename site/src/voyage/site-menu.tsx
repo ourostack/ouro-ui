@@ -1,7 +1,7 @@
 import { useEffectEvent, useId, useLayoutEffect, useRef, type JSX, type ReactNode, type RefObject } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { GITHUB, href, normalizePath } from "../paths";
-import { NAV_PLATFORMS, PhoneNav } from "./site-nav";
+import { loadNavPanels, NAV_PLATFORMS, PhoneNav } from "./site-nav";
 
 /*
  * The site's sections as data (the search palette and the docs menu's search read them), and the header's sheet whenever
@@ -190,9 +190,12 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
   // Below the sheet's fold, the page you are on scrolls up into view each time the sheet opens, without moving the page
   // behind. Navbar builds its kept sheet afresh after each close, so each open starts from the sheet's top.
   const frame = useRef(0);
+  const revealToken = useRef(0);
   useSheetShown(list, (on) => {
     cancelAnimationFrame(frame.current);
+    revealToken.current += 1;
     if (!on) return;
+    const token = revealToken.current;
     const reveal = (): boolean => {
       if (!list.current) return true;
       const link = list.current.querySelector<HTMLElement>('[aria-current="page"]:not([inert] *)');
@@ -215,8 +218,12 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
       return true;
     };
     let tries = 0;
-    frame.current = requestAnimationFrame(function again() {
-      if (!reveal() && ++tries < 30) frame.current = requestAnimationFrame(again);
+    // The panels above the page's list load on demand, so the scroll waits for them, and a frame for them to draw.
+    void loadNavPanels().catch(() => {}).then(() => {
+      if (token !== revealToken.current) return;
+      frame.current = requestAnimationFrame(function again() {
+        if (!reveal() && ++tries < 30) frame.current = requestAnimationFrame(again);
+      });
     });
   });
   return (
