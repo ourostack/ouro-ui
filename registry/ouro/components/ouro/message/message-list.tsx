@@ -2779,13 +2779,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // A reply that streams out of view stays drawn until it is heard, though it stops streaming.
     const publish = () => setWaitingKeys([...waiting].map(slotKeyOf).join("\n"));
     const redrawn = (message: Element) => viewRef.current.windowed && keysHeard.has(slotKeyOf(message));
-    // Marks a message that just arrived, so its bubble grows in (Message's styles read the mark); it comes off with the animation.
+    // Marks a message that just arrived, so its bubble grows in (Message's styles read the mark). The mark comes off two
+    // frames after the arrival ends, not in its animationend: taking it off there drops the finished animation at once,
+    // which reads as a cancel to anything that watches it between frames, and a finished animation draws nothing anyway.
     const arrive = (message: HTMLElement) => {
       const done = (event: Event) => {
         if (!(event as AnimationEvent).animationName.startsWith("ouro-message-")) return;
-        message.removeAttribute("data-starting-style");
         message.removeEventListener("animationend", done);
         message.removeEventListener("animationcancel", done);
+        requestAnimationFrame(() => requestAnimationFrame(() => message.removeAttribute("data-starting-style")));
       };
       message.setAttribute("data-starting-style", "");
       message.addEventListener("animationend", done);
