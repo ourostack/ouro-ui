@@ -5,6 +5,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
+import { forgetRichEditor, preloadRichEditor } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import type { EmojiCatalogue, EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -120,6 +121,45 @@ describe("Composer rich mode", () => {
     expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
     // Let the later effect settle before the next test unmounts this root.
     await act(async () => {});
+  });
+
+  it("draws the editor from its first render and focuses once, for a rich box mounted after preloadRichEditor() resolves", async () => {
+    forgetRichEditor();
+    const loading = preloadRichEditor();
+    // A second call joins the first load instead of starting another.
+    expect(preloadRichEditor()).toBeInstanceOf(Promise);
+    await loading;
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let focusMoves = 0;
+    const onFocusIn = () => {
+      focusMoves += 1;
+    };
+    document.addEventListener("focusin", onFocusIn);
+    try {
+      flushSync(() => root.render(rich({ autoFocus: true })));
+      expect(host.querySelector("textarea")).toBeNull();
+      expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+      await act(async () => {});
+    } finally {
+      document.removeEventListener("focusin", onFocusIn);
+    }
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(focusMoves).toBe(1);
+  });
+
+  it("loads the editor once however often preloadRichEditor() is called", async () => {
+    forgetRichEditor();
+    const first = preloadRichEditor();
+    const second = preloadRichEditor();
+    await Promise.all([first, second]);
+    await expect(preloadRichEditor()).resolves.toBeUndefined();
+    // One shared load: the module instance a later mount reads is the one both calls waited on.
+    const { richEditorModule, loadRich } = await import("@/registry/ouro/components/ouro/composer/composer-styles");
+    expect(richEditorModule()).toBe(await loadRich());
   });
 
   it("focuses once, not twice, mounting a box that asks for focus once a page has already loaded the module", async () => {

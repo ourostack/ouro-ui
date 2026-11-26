@@ -1,10 +1,51 @@
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 
-export { clearComposerDrafts, composerDrafts, composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts };
-export type { ComposerEdit };
+export { clearComposerDrafts, forgetRichEditor, loadRich, preloadRichEditor, richEditorModule, composerDrafts, composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts };
+export type { ComposerEdit, RichModule };
 
 // The text edits and keys Composer's formatting uses, apart from the component so its file
 // exports only components and types (React Fast Refresh).
+
+type RichModule = typeof import("@/registry/ouro/components/ouro/composer/composer-parts");
+
+let richLoading: Promise<RichModule> | undefined;
+// The module itself, once the import has settled, so a later mount in the same page draws it straight away instead of a plain box that swaps a tick later.
+let richModule: RichModule | undefined;
+
+/** Loads the rich editor once, by a dynamic import, so Lexical stays out of a plain page's build. */
+function loadRich(): Promise<RichModule> {
+  return (richLoading ??= import("@/registry/ouro/components/ouro/composer/composer-parts").then((loaded) => (richModule = loaded)));
+}
+
+/** The rich editor's module once it has loaded, or `undefined` until then. */
+function richEditorModule(): RichModule | undefined {
+  return richModule;
+}
+
+/**
+ * Loads the rich editor ahead of time, so the first `<Composer format="rich">` draws the editor from its first render, with no plain box first and a single focus.
+ * Call it once at launch in an app that will show a rich Composer; calling it again loads nothing more. The page's own import of `composer-parts` does not fill this cache.
+ *
+ * @example
+ * ```ts
+ * void preloadRichEditor();
+ * ```
+ * Use it instead of waiting for the first Composer to load the editor itself, which a box mounted at launch cannot.
+ * @group Chat
+ */
+function preloadRichEditor(): Promise<void> {
+  return loadRich().then(() => undefined);
+}
+
+/**
+ * Forgets the loaded editor, so a test can start cold.
+ *
+ * @internal
+ */
+function forgetRichEditor(): void {
+  richLoading = undefined;
+  richModule = undefined;
+}
 
 /** The unsent drafts of uncontrolled composers, by conversation, oldest first; it outlives a composer that unmounts. */
 const composerDrafts = new Map<string | undefined, string>();

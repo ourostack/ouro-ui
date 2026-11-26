@@ -5,7 +5,7 @@ import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRe
 import type { ClipboardEvent, FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { RichEditor, RichEditorHandle } from "@/registry/ouro/components/ouro/composer/composer-parts";
-import { composerDrafts, composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
+import { composerDrafts, composerShortcuts, formatEdit, isApple, loadRich, markFormats, pressed, richEditorModule, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiTextToTokens } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
@@ -22,17 +22,6 @@ import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 
 /** What sent the message: the Enter key in the box, or a press of the send button. */
 export type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement | HTMLDivElement> | MouseEvent<HTMLButtonElement>;
-
-type RichModule = typeof import("@/registry/ouro/components/ouro/composer/composer-parts");
-
-let richLoading: Promise<RichModule> | undefined;
-// The module itself, once the import above has settled, so a later mount in the same page draws it straight away instead of a plain box that swaps a tick later.
-let richModule: RichModule | undefined;
-
-// Loads the rich editor once, by a dynamic import, so Lexical stays out of a plain page's build.
-function loadRich(): Promise<RichModule> {
-  return (richLoading ??= import("@/registry/ouro/components/ouro/composer/composer-parts").then((loaded) => (richModule = loaded)));
-}
 
 /**
  * What the bubbling `ouro-composer-move` event carries while the box expands or collapses, so the
@@ -673,7 +662,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   // or a later format change, is the effect below's job too.
   const clientRender = useSyncExternalStore(subscribeNothing, onClient, onServer);
   const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>(() =>
-    clientRender && formatMode === "rich" && richModule ? { Editor: richModule.RichEditor, focus: rest.autoFocus === true } : undefined,
+    clientRender && formatMode === "rich" && richEditorModule() ? { Editor: richEditorModule()!.RichEditor, focus: rest.autoFocus === true } : undefined,
   );
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,BlockStatement: loading the editor in plain mode changes nothing a person or a test can read, as richOn below also needs the rich format.
