@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Shrink Badge's and Button's soft and outline looks onto shared tone-indirection classes instead of one per tone, cutting duplicate generated CSS rules.
