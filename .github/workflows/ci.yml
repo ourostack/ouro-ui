@@ -1684,7 +1684,7 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           mkdir -p scripts .github/workflows
-          for path in .github/workflows/ci.yml scripts/quarantine.mjs scripts/ci-budget.mjs .github/quarantine.json; do
+          for path in .github/workflows/ci.yml scripts/quarantine.mjs scripts/ci-budget.mjs scripts/run-jobs.mjs .github/quarantine.json; do
             gh api -H "Accept: application/vnd.github.raw" "repos/$GH_REPO/contents/$path?ref=$SHA" > "$path"
           done
       - if: steps.parts.outcome == 'failure'
@@ -3676,7 +3676,7 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           mkdir -p scripts .github/workflows
-          for path in .github/workflows/ci.yml scripts/quarantine.mjs scripts/ci-budget.mjs .github/quarantine.json; do
+          for path in .github/workflows/ci.yml scripts/quarantine.mjs scripts/ci-budget.mjs scripts/run-jobs.mjs .github/quarantine.json; do
             gh api -H "Accept: application/vnd.github.raw" "repos/$GH_REPO/contents/$path?ref=$SHA" > "$path"
           done
       - if: steps.parts.outcome == 'failure'

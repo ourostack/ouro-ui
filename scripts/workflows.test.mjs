@@ -4114,3 +4114,16 @@ test("the LCD-text job runs the scrollers' surface tests on Windows Chromium wit
     assert.match(readFileSync(join(root, `registry/ouro/components/ouro/${file}.surface.test.tsx`), "utf8"), /commands\.compositedLayers\(\)/);
   }
 });
+
+test("each judge step fetches every script quarantine.mjs imports, directly or through another, since it has no checkout to find them in", () => {
+  const imports = (file, seen = new Set()) => {
+    if (seen.has(file)) return seen;
+    seen.add(file);
+    for (const [, path] of readFileSync(join(root, file), "utf8").matchAll(/^import [^;]*? from "\.\/([^"]+)";$/gm)) imports(`scripts/${path}`, seen);
+    return seen;
+  };
+  const needed = [...imports("scripts/quarantine.mjs")].sort();
+  const lists = [...workflow("ci.yml").matchAll(/- id: fetch-quarantine\n[\s\S]*?for path in ([^;]+); do/g)].map(([, paths]) => paths.split(" "));
+  assert.equal(lists.length, 2);
+  for (const list of lists) assert.deepEqual(needed.filter((file) => !list.includes(file)), []);
+});
