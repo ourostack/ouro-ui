@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import postcss from "postcss";
-import { squircleCorners } from "../registry/ouro/lib/ouro/squircle-corners.ts";
+import { squircleCorners, squircleCornersDedupe } from "../registry/ouro/lib/ouro/squircle-corners.ts";
 
 const run = async (css) => (await postcss([squircleCorners()]).process(css, { from: undefined })).css;
+
+// Runs the dedupe plugin's generateBundle hook over one fake CSS asset, as Vite would call it.
+const dedupe = (source) => {
+  const bundle = { "a.css": { type: "asset", fileName: "a.css", source } };
+  squircleCornersDedupe().generateBundle({}, bundle);
+  return bundle["a.css"].source;
+};
 
 test("squircle corners: a rounded rule gets a sibling that records its radii and shrinks its own, and one clip path in the lowest layer", async () => {
   const out = await run("@layer utilities{.card{border-radius:12px}}");
@@ -41,4 +48,36 @@ test("squircle corners: the same radii in different places (a media query, a dif
   assert.match(out, /@media \(width>=40rem\)\{\.b\{border-radius:8px\}@supports[^{]*\{\.b\{--sq-tl:8px/);
   assert.match(out, /@supports[^{]*\{\.a\{--sq-tl:8px/);
   assert.equal((out.match(/--sq-tl:8px/g) ?? []).length, 2);
+});
+
+test("squircleCornersDedupe: merges two source files' complete squircle-corners layers, bundled into one chunk, into one", async () => {
+  const a = await run("@layer utilities{.a{border-radius:8px}}");
+  const b = await run("@layer utilities{.b{border-radius:8px}.c{border-radius:4px}}");
+  const bundled = a + b;
+  const out = dedupe(bundled);
+  // one merged layer, one corner-shape rule and one --sq-clip rule, covering every selector from both files
+  assert.equal((out.match(/@layer squircle-corners\{/g) ?? []).length, 1);
+  assert.equal((out.match(/corner-shape:squircle\}/g) ?? []).length, 1);
+  assert.equal((out.match(/--sq-clip:/g) ?? []).length, 1);
+  for (const sel of [".a", ".b", ".c"]) assert.match(out, new RegExp(`${sel}[,{]`));
+});
+
+test("squircleCornersDedupe: within one chunk, collapses the same selector list repeated under both @layer blocks into one, same declarations", async () => {
+  const a = await run("@layer utilities{.a{border-radius:8px}}");
+  const out = dedupe(a + a);
+  assert.equal((out.match(/@layer squircle-corners\{/g) ?? []).length, 1);
+  assert.equal((out.match(/corner-shape:squircle\}/g) ?? []).length, 1);
+  assert.equal((out.match(/--sq-clip:/g) ?? []).length, 1);
+  const layer = out.match(/@layer squircle-corners\{(.*?)\}\}(?=@layer squircle-corners;|$)/s)[1];
+  assert.equal((layer.match(/\.a/g) ?? []).length, 2); // once per @supports fallback group, not once per source file
+});
+
+test("squircleCornersDedupe: a CSS file with no squircle-corners layer, and a non-CSS asset, pass through unchanged", () => {
+  const bundle = {
+    "plain.css": { type: "asset", fileName: "plain.css", source: ".x{color:red}" },
+    "app.js": { type: "chunk", fileName: "app.js", source: "console.log(1)" },
+  };
+  squircleCornersDedupe().generateBundle({}, bundle);
+  assert.equal(bundle["plain.css"].source, ".x{color:red}");
+  assert.equal(bundle["app.js"].source, "console.log(1)");
 });
