@@ -462,6 +462,23 @@ describe("Attachment preview", () => {
     expect(button.getBoundingClientRect().width).toBe(28);
   });
 
+  it("frames the picture 6px in from each edge, where a file's icon keeps 12px at its sides", async () => {
+    const { attachment } = await render(<Attachment name="crumb.jpg" preview="/crumb-thumb.jpg" />);
+    const card = attachment.getBoundingClientRect();
+    const picture = attachment.querySelector("[data-ouro-attachment-preview]")!.getBoundingClientRect();
+    expect([picture.left - card.left, picture.top - card.top, card.right - picture.right, card.bottom - picture.bottom]).toEqual([6, 6, 6, 6]);
+    const { attachment: file } = await render(<Attachment name="menu.pdf" />);
+    const icon = file.querySelector("[data-ouro-attachment-icon]")!.getBoundingClientRect();
+    expect(icon.left - file.getBoundingClientRect().left).toBe(12);
+  });
+
+  it("sets the remove button 8px in from the card's corner, clear of its edges", async () => {
+    const { attachment } = await render(<Attachment name="crumb.jpg" preview="/crumb-thumb.jpg" onRemove={() => {}} />);
+    const card = attachment.getBoundingClientRect();
+    const button = attachment.querySelector('[data-ouro-part="remove"]')!.getBoundingClientRect();
+    expect([card.right - button.right, button.top - card.top]).toEqual([8, 8]);
+  });
+
   it("warns that icon does nothing once preview is set, and keeps the picture", async () => {
     const appIcon = (
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor">

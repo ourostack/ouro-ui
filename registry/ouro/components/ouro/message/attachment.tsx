@@ -39,6 +39,8 @@ export interface AttachmentOwnProps {
    * any node already sized to fill the square. With `onRemove` its ✕ sits on the picture's corner instead of beside
    * the name. The name and size still read to screen readers, so `onOpen` and `href` still name the control by them.
    * Takes over from `icon` when both are passed.
+   *
+   * @claim "a square about 56px" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-size-14: 3\.5rem;/)
    */
   preview?: ReactNode;
   /**
@@ -242,8 +244,8 @@ export function Attachment(props: AttachmentProps): JSX.Element {
   const body = (
     <>
       {hasPreview ? (
-        <span aria-hidden="true" data-ouro-attachment-preview="" className="flex size-ouro-14 shrink-0 items-center justify-center overflow-hidden rounded-ouro-md bg-muted">
-          {typeof preview === "string" ? <img src={preview} alt="" className="size-full object-cover" /> : preview}
+        <span aria-hidden="true" data-ouro-attachment-preview="" data-slot="attachment-preview" className="flex size-ouro-14 shrink-0 items-center justify-center overflow-hidden rounded-ouro-md bg-muted">
+          {typeof preview === "string" ? <img src={preview} alt="" data-slot="attachment-preview-image" className="size-full object-cover" /> : preview}
         </span>
       ) : icon === undefined || icon === null || icon === false ? (
         <FileIcon kind={kind} />
@@ -325,7 +327,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
             "motion-safe:active:scale-(--ouro-press-scale)",
             focusRing,
             hasPreview
-              ? "absolute end-1 top-1 rounded-full bg-card shadow-(--shadow-sm) ring-1 ring-border/60 pointer-fine:size-ouro-7 pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground"
+              ? "absolute end-2 top-2 rounded-full bg-card shadow-(--shadow-sm) ring-1 ring-border/60 pointer-fine:size-ouro-7 pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground"
               : "relative rounded-ouro-md bg-transparent pointer-fine:me-1.5 pointer-fine:size-ouro-7 pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground",
           )}
         >
