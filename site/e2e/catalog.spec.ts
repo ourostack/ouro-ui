@@ -175,13 +175,8 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * phone menu's two ways in, and the real Apple, Windows and Android marks Ari asked for ("yeah, lets use real platform
  * marks"), about 1,700 of it. The Docs panel's lists, which read the docs' generated index, load on their own when a
  * pointer or focus first reaches the header (site/src/voyage/docs-panel.tsx), so no page pays for them up front.
- *
- * The voyage's set again 2026-11-26 at 303,689 bytes, what CI measured on #3770 (run 45781018721, e2e job
- * 139777700887), 43 over its base's 303,646, which had already reached within 35 bytes of the old ceiling: the
- * toaster's reach from inside a modal (Toaster in a dialog's own top layer, its Tab stop and a toast action's 44px
- * touch target), which the voyage's stage (site/src/voyage/stage/stage.tsx) carries in its first script.
  */
-const MEASURED = { voyage: 303_689, docs: 202_898 } as const;
+const MEASURED = { voyage: 303_169, docs: 202_898 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
