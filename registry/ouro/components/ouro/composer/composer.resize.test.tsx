@@ -93,6 +93,12 @@ describe("Composer resizable edge", () => {
     expect(onHeightChange).toHaveBeenCalledWith(Math.round(3 * line(view.textarea) + offset(view.textarea)));
   });
 
+  it("takes focus from a press on it, so the keys work straight after", async () => {
+    const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} onSend={() => {}} />);
+    await userEvent.click(view.edge);
+    expect(document.activeElement).toBe(view.edge);
+  });
+
   it("reports null when released at its smallest", async () => {
     const onHeightChange = vi.fn();
     const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} defaultHeight={80} onHeightChange={onHeightChange} onSend={() => {}} />);

@@ -95,6 +95,7 @@ export function useResize({ label, read, onResize, grow = "up" }: ResizeOptions)
     onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       event.preventDefault();
+      event.currentTarget.focus({ preventScroll: true });
       const range = latest.current.read();
       drag.current = { id: event.pointerId, y: event.clientY, range, last: range.now };
       event.currentTarget.setPointerCapture(event.pointerId);
