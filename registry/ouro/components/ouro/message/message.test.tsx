@@ -784,9 +784,32 @@ describe("Message quote", () => {
     const times = quotes.map((quote) => quote.querySelector<HTMLElement>("[data-ouro-message-quote-day] time")!);
     expect(times[0]!.getAttribute("datetime")).toBe(new Date(at).toISOString());
     expect(times[1]!.textContent).toBe("Yesterday");
+    expect(times[1]!.parentElement!.textContent).toBe(" \u00b7 Yesterday");
     expect(times[1]!.getAttribute("datetime")).toBe(new Date(at).toISOString());
     expect(quotes[1]!.querySelector(".sr-only")!.textContent).toBe("Reply to Ana Lind, Yesterday: ");
     expect(quotes[0]!.querySelector(".sr-only")!.textContent).toMatch(/^Reply to Ana Lind, .+: $/);
+  });
+
+  it("on a default message's primary bubble, draws the quote in the bubble's text color, with a gap above the text", async () => {
+    const { message } = await render(
+      <Message role="user" name="Priya Okafor" quote={{ author: "Ana Lind", excerpt: "Lunch on Friday?" }}>
+        Count me in.
+      </Message>,
+    );
+    const bubble = bubbleOf(message);
+    const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
+    // As drawn: the excerpt's color is a color-mix, which reads back in oklab.
+    const rgb = (color: string) => {
+      const context = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      return [...context.getImageData(0, 0, 1, 1).data].join();
+    };
+    const ink = rgb(getComputedStyle(bubble).color);
+    expect(rgb(getComputedStyle(quote.querySelector("[data-ouro-message-quote-author]")!).color)).toBe(ink);
+    expect(rgb(getComputedStyle(quote.querySelector("[data-ouro-message-quote-excerpt]")!).color)).toBe(ink);
+    expect(getComputedStyle(quote).marginBlockEnd).toBe("8px");
+    expect(quote.getAttribute("data-ouro-allow-why")).toBe("the quote rule is a 2px stroke, which cannot hold a concentric corner");
   });
 
   it("draws no day for an at that is not a date", async () => {

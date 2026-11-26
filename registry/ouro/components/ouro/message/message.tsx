@@ -1202,6 +1202,7 @@ const quoteButtonClass =
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 function quoteDay(quote: MessageQuote): { node: ReactNode } | undefined {
+  // Stryker disable next-line ConditionalExpression: an undefined at makes an invalid date, which the next check drops too.
   if (quote.at === undefined) return undefined;
   const date = new Date(quote.at);
   if (!Number.isFinite(date.getTime())) return undefined;
@@ -1248,7 +1249,7 @@ function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
   const why = "the quote rule is a 2px stroke, which cannot hold a concentric corner";
   // With no context line the quote stands alone, so a message with a quote draws no wrapper for it.
   const alone = !quote.context;
-  const own = alone ? { className: "mb-2", style: primaryBubble ? onPrimary : undefined } : { className: "", style: undefined };
+  const own = alone ? { className: "mb-2", style: primaryBubble ? onPrimary : undefined } : {};
   const box = quote.onActivate ? (
     <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass, own.className)} style={own.style}>
       {body}
