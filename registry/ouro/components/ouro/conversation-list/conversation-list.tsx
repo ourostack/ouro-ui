@@ -796,7 +796,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const shownSections = useMemo(() => {
     const byId = new Map(sections.map((section) => [section.id, section]));
     let at = 0;
-    return sections.map((section) => (section.reorderable === true ? (byId.get(ids[at++]!) ?? section) : section));
+    // The order is always of these same sections, so each id names one.
+    return sections.map((section) => (section.reorderable === true ? byId.get(ids[at++]!)! : section));
   }, [sections, ids]);
   const { loose, groupsShown, keys } = useMemo(() => {
     const loose = items.filter((item) => !known.has(item.section));
