@@ -429,6 +429,16 @@ describe("Attachment preview", () => {
     expect(img.getAttribute("alt")).toBe("");
   });
 
+  it.each([
+    ["null", null],
+    ["false", false],
+  ])("treats preview={%s} as no picture, keeping the icon, the visible name and the side padding", async (_, preview) => {
+    const { attachment } = await render(<Attachment name="menu.pdf" preview={preview as never} />);
+    expect(attachment.querySelector("[data-ouro-attachment-preview]")).toBeNull();
+    expect(attachment.querySelector("[data-ouro-attachment-icon]")).not.toBeNull();
+    expect(attachment.querySelector("[data-ouro-attachment-name]")!.closest(".sr-only")).toBeNull();
+  });
+
   it("draws a node passed as preview directly, instead of treating it as a picture address", async () => {
     const { attachment } = await render(<Attachment name="crumb.jpg" preview={<svg data-testid="custom-preview" />} />);
     expect(attachment.querySelector("img")).toBeNull();
