@@ -1,0 +1,1 @@
+- New: a shared `scripts/load.mjs` CPU-load harness (`withLoad`, `maxLoadWorkers`, `loadWorkersRemain`) every lane uses to prove a test's timing holds under real contention, so no lane hand-rolls its own spin loops.
