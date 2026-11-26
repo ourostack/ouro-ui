@@ -44,18 +44,34 @@ export function unsuffixedProjectExemptions(exemptions) {
   });
 }
 
-/** Whether an exemption names its test, a reason and an owner. */
+const issuePattern = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+$/;
+
+/** Whether an exemption names its test, a reason and an owner, and has a well-formed issue URL and expiry where given. */
 export const exemptionProblems = (exemptions) =>
-  exemptions.flatMap((entry) =>
-    ["test", "reason", "owner"].filter((field) => typeof entry[field] !== "string" || entry[field].trim() === "").map((field) => `${entry.test ?? "An exemption"} in .github/headroom.json has no ${field}.`),
-  );
+  exemptions.flatMap((entry) => {
+    const problems = ["test", "reason", "owner"].filter((field) => typeof entry[field] !== "string" || entry[field].trim() === "").map((field) => `${entry.test ?? "An exemption"} in .github/headroom.json has no ${field}.`);
+    if (entry.issue !== undefined && (typeof entry.issue !== "string" || !issuePattern.test(entry.issue))) problems.push(`${entry.test ?? "An exemption"} in .github/headroom.json has an issue that is not a GitHub issue URL (https://github.com/<owner>/<repo>/issues/<number>).`);
+    if (entry.expiry !== undefined && (typeof entry.expiry !== "string" || Number.isNaN(Date.parse(entry.expiry)))) problems.push(`${entry.test ?? "An exemption"} in .github/headroom.json has an expiry that is not an ISO 8601 date-time.`);
+    return problems;
+  });
+
+/** Whether an exemption's expiry has passed. An exemption with no expiry never does. */
+export const isExpired = (entry, now = new Date()) => typeof entry.expiry === "string" && !Number.isNaN(Date.parse(entry.expiry)) && new Date(entry.expiry).getTime() <= now.getTime();
+
+/** The warning for an exemption whose expiry has passed: it stops exempting its test. */
+export const expiredWarning = (entry) => `[ouro-ui] Headroom: ${entry.test} in .github/headroom.json has an expiry (${entry.expiry}) that has passed. Fix: renew the expiry or remove the exemption.`;
+
+/** The exemptions whose expiry has passed, as `expiredWarning` messages: reported wherever this runs, like a stale exemption. */
+export const expiredExemptions = (exemptions, now = new Date()) => exemptions.filter((entry) => isExpired(entry, now)).map(expiredWarning);
 
 /**
  * The problems of one run. `tests` are `{ name, durationMs, timeoutMs }`; a test over half its timeout
- * fails unless exempt. A stale exemption is found by `staleExemptions`.
+ * fails unless exempt. A stale exemption is found by `staleExemptions`. An exemption whose expiry has
+ * passed (`expiredExemptions`) no longer exempts its test either, so a breach it once covered shows again.
  */
-export function headroomProblems(tests, exemptions) {
-  const patterns = exemptions.map(({ test }) => new RegExp(`^${test.split("*").map((piece) => piece.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*")}$`));
+export function headroomProblems(tests, exemptions, now = new Date()) {
+  const current = exemptions.filter((entry) => !isExpired(entry, now));
+  const patterns = current.map(({ test }) => new RegExp(`^${test.split("*").map((piece) => piece.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*")}$`));
   const named = { has: (name) => patterns.some((pattern) => pattern.test(name)) };
   const problems = exemptionProblems(exemptions);
   for (const { name, durationMs, timeoutMs } of tests) {
@@ -94,12 +110,12 @@ export const reportOnly = (event) => event !== undefined && event !== "" && even
 /**
  * Judges one run. `tests` are `{ name, file, durationMs, timeoutMs }`; on a pull request (`changed` set) only tests in
  * its changed files count. `failures` fail the run; on a report-only `event` a breach is a `warnings` annotation
- * (and one `breaches` line) instead, while a malformed, stale or unsuffixed exemption fails everywhere.
+ * (and one `breaches` line) instead, while a malformed, stale, unsuffixed or expired exemption fails everywhere.
  */
-export function judge({ tests, exemptions, event, changed }) {
+export function judge({ tests, exemptions, event, changed, now = new Date() }) {
   const judged = changed ? tests.filter(({ file }) => changed.has(file)) : tests;
-  const breaches = headroomProblems(judged, exemptions).filter((problem) => !exemptionProblems(exemptions).includes(problem));
-  const failures = [...exemptionProblems(exemptions), ...staleExemptions(exemptions), ...unsuffixedProjectExemptions(exemptions)];
+  const breaches = headroomProblems(judged, exemptions, now).filter((problem) => !exemptionProblems(exemptions).includes(problem));
+  const failures = [...exemptionProblems(exemptions), ...staleExemptions(exemptions), ...unsuffixedProjectExemptions(exemptions), ...expiredExemptions(exemptions, now)];
   if (!reportOnly(event)) return { failures: [...failures, ...breaches], warnings: [], breaches: [] };
   return { failures, warnings: breaches.map((breach) => `::warning title=Headroom::${breach}`), breaches };
 }

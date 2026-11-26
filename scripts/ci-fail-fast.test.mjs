@@ -40,7 +40,7 @@ test("a failed latency job cancels nothing: a slow runner can fail it, and a re-
 });
 
 test("it never counts a failed plan (everything then runs), or what an earlier attempt failed or had cancelled", () => {
-  assert.deepEqual(TOLERATED, ["plan"]);
+  assert.deepEqual(TOLERATED, ["plan", "fresh-main"]);
   assert.deepEqual(decide([job("plan", "completed", "failure"), job("checks")], 1), { kind: "wait" });
   // "Re-run failed jobs": the jobs it did not run keep their first attempt, and so may the ones it has not started yet.
   assert.deepEqual(decide([job("browser (2/6)", "completed", "failure", 1), job(LAST, "completed", "cancelled", 1), job("browser (2/6)", "in_progress", null, 2)], 2), { kind: "wait" });
