@@ -36,7 +36,7 @@ function fakeApi({ pushRuns, pulls = [], runsBySha = {}, jobsByRunId = {} } = {}
   };
 }
 
-test("report does nothing while main did not just turn green", async () => {
+test("fail-fast-fresh-main's report does nothing while main did not just turn green", async () => {
   const logged = [];
   const result = await report({ env: { GITHUB_REPOSITORY: "o/r" }, api: fakeApi({ pushRuns: [run({ conclusion: "success" }), run({ conclusion: "success" })] }), log: (line) => logged.push(line) });
   assert.deepEqual(result, { posted: false });
@@ -75,7 +75,7 @@ test("report logs, once per green sha on #3820, only the cascade-cancelled auto-
   assert.equal(posts.length, 1, "the same green sha is logged only once");
 });
 
-test("report fails open and never throws when main's runs or the issue cannot be read", async () => {
+test("fail-fast-fresh-main's report fails open and never throws when main's runs or the issue cannot be read", async () => {
   const brokenRuns = await report({ env: { GITHUB_REPOSITORY: "o/r" }, api: () => { throw new Error("HTTP 500"); }, log() {} });
   assert.deepEqual(brokenRuns, { posted: false });
   const pushRuns = [run({ head_sha: "green1", conclusion: "success" }), run({ head_sha: "red1", conclusion: "failure" })];

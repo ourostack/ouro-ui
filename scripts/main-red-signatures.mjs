@@ -154,7 +154,7 @@ export async function report({ env = process.env, api = ghApi, jobLog = defaultJ
     log(`::warning::main-red-signatures: ${problems.join("; ")}; ignoring every entry until this is fixed.`);
     entries = [];
   }
-  let jobs = [];
+  let jobs;
   try {
     const run = runs.find((candidate) => candidate.head_sha === state.sha);
     const allJobs = api(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`).jobs;
