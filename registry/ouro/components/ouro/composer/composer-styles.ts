@@ -23,7 +23,7 @@ function richEditorModule(): RichModule | undefined {
 }
 
 /**
- * Loads the rich editor ahead of time, so the first `<Composer format="rich">` draws the editor from its first render, with no plain box first and a single focus.
+ * Loads the rich editor ahead of time, so the first `<Composer format="rich">` draws the editor from its first render and takes focus once.
  * Call it once at launch in an app that will show a rich Composer; calling it again loads nothing more. The page's own import of `composer-parts` does not fill this cache.
  *
  * @example
@@ -33,8 +33,8 @@ function richEditorModule(): RichModule | undefined {
  * Use it instead of waiting for the first Composer to load the editor itself, which a box mounted at launch cannot.
  * @group Chat
  */
-function preloadRichEditor(): Promise<void> {
-  return loadRich().then(() => undefined);
+async function preloadRichEditor(): Promise<void> {
+  await loadRich();
 }
 
 /**

@@ -160,6 +160,9 @@ describe("Composer rich mode", () => {
     // One shared load: the module instance a later mount reads is the one both calls waited on.
     const { richEditorModule, loadRich } = await import("@/registry/ouro/components/ouro/composer/composer-styles");
     expect(richEditorModule()).toBe(await loadRich());
+    forgetRichEditor();
+    expect(richEditorModule()).toBeUndefined();
+    await preloadRichEditor();
   });
 
   it("focuses once, not twice, mounting a box that asks for focus once a page has already loaded the module", async () => {
