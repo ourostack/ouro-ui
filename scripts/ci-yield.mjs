@@ -28,12 +28,9 @@ import { execFileSync } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { rateLimited, requestsLeft } from "./ci-fail-fast.mjs";
+import { JOBS_PER_PAGE } from "./run-jobs.mjs";
 
-/**
- * Jobs per page. A merge group's run lists 137 to 151 jobs, and GitHub answers a page of 100 of them with a 502, so
- * every read failed ERRORS times and the yield started the run without waiting.
- */
-export const JOBS_PER_PAGE = 30;
+export { JOBS_PER_PAGE };
 /** How often it reads the queue: once a minute. */
 export const POLL_MS = 60_000;
 /** The longest it holds a pull request's run back; then the run starts anyway. */

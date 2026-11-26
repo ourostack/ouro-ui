@@ -14,6 +14,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { jobGraph } from "./ci-budget.mjs";
+import { listJobs } from "./run-jobs.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 /** The lane's job name in a run: the caller job's id, then the called job's name. */
@@ -99,7 +100,7 @@ async function main(numbers) {
       console.log(`| #${number} | none | no CI run for ${head.sha.slice(0, 7)} | | | | |`);
       continue;
     }
-    const jobs = allPages(`repos/${repo}/actions/runs/${runs[0].id}/jobs?filter=latest`, "jobs");
+    const jobs = listJobs(api, `repos/${repo}/actions/runs/${runs[0].id}`, "filter=latest&");
     const timings = laneTimings(jobs, graph);
     const laneRow = timings.ran ? "ran" : "not selected";
     console.log(`| #${number} | ${runs[0].html_url} | ${laneRow} | ${minutes(timings.laneWallSeconds)} | ${minutes(timings.addedWallSeconds)} | ${minutes(timings.macosRunSeconds)} | ${minutes(timings.otherRunSeconds)} |`);
