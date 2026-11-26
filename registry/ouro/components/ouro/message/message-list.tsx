@@ -2782,7 +2782,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Marks a message that just arrived, so its bubble grows in (Message's styles read the mark); it comes off with the animation.
     const arrive = (message: HTMLElement) => {
       const done = (event: Event) => {
-        if (event.target === message) return;
+        if (!(event as AnimationEvent).animationName.startsWith("ouro-message-")) return;
         message.removeAttribute("data-starting-style");
         message.removeEventListener("animationend", done);
         message.removeEventListener("animationcancel", done);

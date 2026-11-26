@@ -76,6 +76,17 @@ describe("MessageList arrival", () => {
     expect(parseFloat(box(received))).toBe(0);
   });
 
+  it("keeps the mark through another animation's end inside the message, and drops it when the arrival ends", async () => {
+    const render = await start(["u1", "a1"]);
+    await render(["u1", "a1", "u2"]);
+    const article = document.getElementById("u2")!;
+    expect(article.hasAttribute("data-starting-style")).toBe(true);
+    bubble("u2").dispatchEvent(new AnimationEvent("animationend", { animationName: "ouro-pulse", bubbles: true }));
+    expect(article.hasAttribute("data-starting-style")).toBe(true);
+    bubble("u2").dispatchEvent(new AnimationEvent("animationend", { animationName: "ouro-message-sent", bubbles: true }));
+    expect(article.hasAttribute("data-starting-style")).toBe(false);
+  });
+
   it("draws the messages already there, and one that fills an empty list, with no arrival", async () => {
     const render = await start(["u1", "a1"]);
     expect(document.querySelector("[data-starting-style]")).toBeNull();
