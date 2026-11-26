@@ -665,24 +665,6 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
   }
 
-  // A run of glyphs' ink, drawn in the font at 100px: its bounds from the pen's start on the baseline, or null when it
-  // draws nothing.
-  const pen = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
-  const inkOf = (text: string, font: string) => {
-    pen.font = font;
-    const width = Math.ceil(pen.measureText(text).width) + 80;
-    pen.canvas.width = width;
-    pen.canvas.height = 300;
-    pen.font = font;
-    pen.fillText(text, 40, 200);
-    const { data } = pen.getImageData(0, 0, width, 300);
-    let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
-    for (let y = 0; y < 300; y++) for (let x = 0; x < width; x++) {
-      if (data[(y * width + x) * 4 + 3]! < 64) continue;
-      left = Math.min(left, x); right = Math.max(right, x + 1); top = Math.min(top, y); bottom = Math.max(bottom, y + 1);
-    }
-    return left === Infinity ? null : { left: left - 40, top: top - 200, right: right - 40, bottom: bottom - 200 };
-  };
   // off-centre-ink: a control that holds a thing other than words (an icon, a picture, or a typed glyph such as "…", "·"
   // or "+") whose ink sits off the control's middle, across or down. Ink, not boxes: an icon by what its drawing covers,
   // a glyph by where its strokes fall, so a typed "…" resting on its baseline reads as low. Words are off-centre-text's,
@@ -715,16 +697,11 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         range.setStart(n, start);
         range.setEnd(n, start + text.length);
         const line = range.getBoundingClientRect();
-        // The ascent at the glyph's own size, as its line was laid out, places the baseline. The ink is read from the
-        // glyph's own pixels, drawn at 100px and scaled back: a Linux host's measured glyph bounds don't follow a "…"'s
-        // dots, at a control's size or at 100px, and read one resting on its baseline as centred.
         const ts = getComputedStyle(n.parentElement!);
         context.font = `${ts.fontStyle} ${ts.fontWeight} ${ts.fontSize} ${ts.fontFamily}`;
-        const baseline = line.top + context.measureText(text).fontBoundingBoxAscent * scale;
-        const drop = inkOf(text, `${ts.fontStyle} ${ts.fontWeight} 100px ${ts.fontFamily}`);
-        if (!drop) continue;
-        const k = (px(ts.fontSize) / 100) * scale;
-        add(line.left + drop.left * k, baseline + drop.top * k, line.left + drop.right * k, baseline + drop.bottom * k);
+        const m = context.measureText(text);
+        const baseline = line.top + m.fontBoundingBoxAscent * scale;
+        add(line.left - m.actualBoundingBoxLeft * scale, baseline - m.actualBoundingBoxAscent * scale, line.left + m.actualBoundingBoxRight * scale, baseline + m.actualBoundingBoxDescent * scale);
       }
     }
     if (hasWords) continue;
