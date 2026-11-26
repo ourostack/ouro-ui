@@ -10,7 +10,7 @@ import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { KITS } from "./kit-pin.mjs";
-import { entryProblems, expiredWarning, failedTests, hungTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
+import { entryProblems, expiredWarning, failedPull, failedTests, hungTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -3230,6 +3230,27 @@ test("isExpired reads a quarantine entry's expiry against now; expiredWarning na
   assert.equal(isExpired({ expiry: "2026-06-02T00:00:00Z" }, now), false);
   assert.match(expiredWarning(calendarEntry), /^::warning title=Expired quarantine entry::/);
   assert.match(expiredWarning(calendarEntry), new RegExp(`has passed for ${calendarEntry.project} ${calendarEntry.file} > ${calendarEntry.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\. Remove the entry or renew its expiry\\.$`));
+});
+
+test("a job whose container image could not be pulled is retried once, and never forgiven by the run's own judge", () => {
+  const ciYml = workflow("ci.yml");
+  const pull = logLines("design (20/24)", ["##[error]Docker pull failed with exit code 1"]);
+  const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
+  const pulled = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Initialize containers"], log: pull });
+  const runs = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs }];
+  const contexts = ["install (shadcn, nova)"];
+  assert.equal(failedPull(pulled), true);
+  assert.equal(failedPull({ ...pulled, failedSteps: ["Initialize containers", "Run tests"] }), false);
+  assert.equal(failedPull({ ...pulled, log: logLines("j", ["1 failed"]) }), false);
+  const plan = retryPlan({ runs: runs([pulled]), contexts, entries: [] });
+  assert.equal(plan.retry, true, plan.problems.join("; "));
+  assert.deepEqual(plan.pulls.map((entry) => entry.job), ["install (shadcn, nova)"]);
+  // Once only: a second attempt that fails the same way is not retried again.
+  assert.equal(retryPlan({ runs: runs([pulled], 2), contexts, entries: [] }).retry, false);
+  // Another failed step of the job is no pull failure.
+  assert.equal(retryPlan({ runs: runs([{ ...pulled, failedSteps: ["Run tests"] }]), contexts, entries: [] }).retry, false);
+  // The run's own judge forgives no failed pull: the shard did not run, so the check stays red.
+  assert.equal(judgeOwnRun({ run: runs([pulled])[0], ids: ["install"], entries: [] }).explained, false);
 });
 
 test("Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them", () => {
