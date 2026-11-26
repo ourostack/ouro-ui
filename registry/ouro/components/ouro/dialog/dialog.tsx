@@ -509,9 +509,9 @@ export function DialogFrame({
       closeDisabled={closeDisabled}
       onOpenChangeComplete={onOpenChangeComplete}
       initialFocus={() => {
-        const sheet = [...document.querySelectorAll<HTMLElement>("[data-ouro-presentation='sheet']")].pop();
+        const sheet = [...document.querySelectorAll<HTMLElement>("[data-ouro-presentation='sheet']")].pop()!;
         const touch = trigger === undefined ? lastInput() === "touch" || lastInput() === "pen" : tapOpened;
-        return sheet ? (touch ? sheet : firstFocus(sheet)) : true;
+        return touch ? sheet : firstFocus(sheet);
       }}
       {...finalFocus}
     >
