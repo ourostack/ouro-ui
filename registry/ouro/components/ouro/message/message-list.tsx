@@ -5,7 +5,7 @@ import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "re
 import { Message, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
 import type { MessageFindLayer } from "@/registry/ouro/components/ouro/message/message-list-parts";
-import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
+import { OLDER_CHUNK, isFlingKick } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { hasLazyType } from "@/registry/ouro/lib/ouro/server-element";
@@ -771,7 +771,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
     if (reduced()) return [...moving.keys()].forEach(rest);
     // A move of a list's height or more is a jump (End from far up, a link to an old message), not a scroll, unless it goes on
     // with the reader's scroll: a fling that a long frame gathered into one scroll event.
-    const kick = going || Math.abs(scrolled) < view.height ? scrolled : 0;
+    const kick = isFlingKick(going, scrolling, scrolled, view.height) ? scrolled : 0;
     going = false;
     const band = nearby(view);
     const near = new Set(band.map(({ item }) => item));
