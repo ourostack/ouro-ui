@@ -327,8 +327,9 @@ function Screen(): JSX.Element {
       ) : null}
       <div className="h-160 min-h-0 overflow-hidden" style={{ overflowX: "auto" }}>
         {stage === "loading" ? (
-          <div role="group" aria-label={label} aria-busy="true" data-site-week-skeleton="" className="grid h-full content-start gap-3 p-4" style={{ gridTemplateColumns: `repeat(${phone ? 1 : view === "day" ? 1 : view === "week" ? 7 : 5}, minmax(0, 1fr))` }}>
+          <>
             <span role="status" className="sr-only">Loading your week</span>
+          <div role="group" aria-label={label} aria-busy="true" data-site-week-skeleton="" className="grid h-full content-start gap-3 p-4" style={{ gridTemplateColumns: `repeat(${phone ? 1 : view === "day" ? 1 : view === "week" ? 7 : 5}, minmax(0, 1fr))` }}>
             {Array.from({ length: phone ? 1 : view === "day" ? 1 : view === "week" ? 7 : 5 }, (_, day) => (
               <div key={day} className="grid content-start gap-3">
                 <Skeleton shape="text" size="sm" />
@@ -338,6 +339,7 @@ function Screen(): JSX.Element {
               </div>
             ))}
           </div>
+          </>
         ) : (
           <div className="h-full" style={phone ? undefined : { minWidth: "36rem" }}>
           <TimeGrid
