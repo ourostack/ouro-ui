@@ -143,6 +143,42 @@ describe("Composer rich mentions and emoji", () => {
   });
 });
 
+describe("Composer rich mentions after a pick", () => {
+  const team: AutocompleteItem[] = [{ value: "lee", label: "Lee Gu" }];
+  const triggers: AutocompleteTrigger[] = [{ char: "@", label: "People", allowSpaces: true, items: filter(team) }];
+  function Setup({ controlled, onSend }: { controlled: boolean; onSend: (text: string) => void }) {
+    const [text, setText] = useState("");
+    return (
+      <Autocomplete triggers={triggers}>
+        {controlled ? <Composer label="Message" format="rich" value={text} onValueChange={setText} onSend={onSend} /> : <Composer label="Message" format="rich" onSend={onSend} />}
+      </Autocomplete>
+    );
+  }
+  it.each([
+    [true, true],
+    [false, true],
+    [true, false],
+    [false, false],
+  ])("keeps the space a pick adds in the value, the list closed, and sends on the next Enter (controlled: %s, insertText command available: %s)", async (controlled, command) => {
+    if (!command) vi.spyOn(document, "execCommand").mockReturnValue(false);
+    const onSend = vi.fn();
+    const { editor } = await render(<Setup controlled={controlled} onSend={onSend} />);
+    const control = editor as unknown as HTMLTextAreaElement;
+    editor.focus();
+    await userEvent.keyboard("KS4 hi @lee");
+    await expect.poll(labels).toEqual(["Lee Gu"]);
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => editor.textContent).toContain("@Lee Gu ");
+    await new Promise((r) => setTimeout(r, 400));
+    expect(options().length).toBe(0);
+    expect(control.value.endsWith("@Lee Gu ")).toBe(true);
+    await expect.poll(options).toEqual([]);
+    await userEvent.keyboard("{Enter}");
+    expect(onSend).toHaveBeenCalledTimes(1);
+    expect(onSend).toHaveBeenCalledWith("KS4 hi @Lee Gu ", expect.anything());
+  });
+});
+
 describe("Composer rich element reads", () => {
   it("defines its textarea reads so a remount can redefine them", async () => {
     const { editor } = await render(<Composer label="Message" format="rich" onSend={() => {}} />);
