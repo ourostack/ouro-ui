@@ -8,15 +8,15 @@ const range: ResizeRange = { least: 80, most: 400, step: 20, offset: 0, now: 100
 let root: Root | undefined;
 const calls: [number, boolean][] = [];
 
-function Edge({ grow }: { grow?: "up" | "down" | undefined }) {
-  const { props, dragging } = useResize({ label: "Resize", read: () => range, onResize: (px, settled) => calls.push([px, settled]), grow });
+function Edge({ grow, read = range }: { grow?: "up" | "down" | undefined; read?: ResizeRange | undefined }) {
+  const { props, dragging } = useResize({ label: "Resize", read: () => read, onResize: (px, settled) => calls.push([px, settled]), grow });
   return <div {...props} data-state={String(dragging)} data-test-harness />;
 }
 
-async function shown(grow?: "up" | "down"): Promise<{ edge: HTMLElement; capture: ReturnType<typeof vi.fn> }> {
+async function shown(grow?: "up" | "down", read?: ResizeRange): Promise<{ edge: HTMLElement; capture: ReturnType<typeof vi.fn> }> {
   const container = document.body.appendChild(document.createElement("div"));
   root = createRoot(container);
-  await act(async () => root!.render(<Edge grow={grow} />));
+  await act(async () => root!.render(<Edge grow={grow} read={read} />));
   const edge = container.firstElementChild as HTMLElement;
   const capture = vi.fn();
   edge.setPointerCapture = capture as never;
@@ -49,6 +49,14 @@ describe("useResize", () => {
     expect(edge.getAttribute("data-ouro-edge")).toBe("focus");
     await act(async () => edge.blur());
     expect(edge.hasAttribute("data-ouro-edge")).toBe(false);
+  });
+
+  it("follows the pointer to the pixel when the range has no step, kept between its floor and ceiling", async () => {
+    const { edge } = await shown(undefined, { ...range, step: 0 });
+    await pointer(edge, "pointerdown", { clientY: 300 });
+    await pointer(edge, "pointermove", { clientY: 263 });
+    await pointer(edge, "pointerup", { clientY: 0 });
+    expect(calls).toEqual([[137, false], [400, true]]);
   });
 
   it("grows the other way when the edge grows down", async () => {

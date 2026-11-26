@@ -788,17 +788,16 @@ export function Composer(props: ComposerProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression: a changed offset alone is re-read by the next dependency change, and only a restyle between renders could tell.
     if (next && (metrics?.line !== next.line || metrics.offset !== next.offset)) setMetrics(next);
   }, [resizable, metrics, baseRows, ownHeight, heldHeight]);
+  // Stryker disable next-line ObjectLiteral: the text is drawn whenever the edge is, so the fallback only keeps a read or press before the first paint from throwing.
+  const edgeMetrics = () => textMetrics(frameRef.current) ?? { line: 24, offset: 0, now: 0 };
   const readEdge = (): ResizeRange => {
-    // Stryker disable next-line ObjectLiteral: the text is drawn whenever the edge is, so the fallback only keeps a read before the first paint from throwing.
-    const m = textMetrics(frameRef.current) ?? { line: 24, offset: 0, now: 0 };
+    const m = edgeMetrics();
     const least = Math.round(baseRows * m.line + m.offset);
     const most = Math.max(Math.round(baseMaxRows * m.line + m.offset), Math.floor(window.innerHeight * 0.6));
     return { least, most, step: m.line, offset: m.offset, now: Math.round(m.now) };
   };
   const resizeTo = (px: number, settled: boolean) => {
-    const m = textMetrics(frameRef.current);
-    // Stryker disable next-line ConditionalExpression: the text is drawn whenever the edge is, so the guard only covers a press before the first paint.
-    if (!m) return;
+    const m = edgeMetrics();
     const lines = Math.round((px - m.offset) / m.line);
     if (!settled) {
       setDragLines(lines);
