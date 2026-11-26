@@ -6,7 +6,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type F
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
-import { useFocusHandoff, type FocusHandoffOptions } from "@/registry/ouro/lib/ouro/focus-handoff";
+import { reachable, tabbable, useFocusHandoff, type FocusHandoffOptions } from "@/registry/ouro/lib/ouro/focus-handoff";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { rubberband, spring, type SpringHandle } from "@/registry/ouro/lib/ouro/spring";
 import { connectToaster, type ToastRecord } from "@/registry/ouro/lib/ouro/toast";
@@ -234,7 +234,6 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
 }
 
 const OPEN_DIALOG = '[role="dialog"][data-open]:not([data-ouro="toast"])';
-const TABBABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
  * A modal dialog traps Tab, so toasts outside it need their own way in. While a
@@ -245,7 +244,7 @@ function ModalReach(): JSX.Element {
   const mark = useRef<HTMLSpanElement | null>(null);
   useEffect(() => {
     const viewport = mark.current!.closest<HTMLElement>('[data-ouro="toaster"]')!;
-    const tabbables = (root: ParentNode) => [...root.querySelectorAll<HTMLElement>(TABBABLE)].filter((el) => el.offsetParent !== null || el.getClientRects().length > 0);
+    const tabbables = (root: ParentNode) => [...root.querySelectorAll<HTMLElement>(tabbable)].filter(reachable);
     // A modal traps Tab and, where it can, hides the rest of the page; a popover left non-modal does neither.
     const hidesPage = (dialog: HTMLElement) =>
       dialog.hasAttribute("data-ouro-modal") ||

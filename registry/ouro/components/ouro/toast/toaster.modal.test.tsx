@@ -164,4 +164,73 @@ describe("Toaster beside a modal", () => {
     expect(none.defaultPrevented).toBe(false);
     expect(document.activeElement).toBe(document.body);
   });
+
+  describe("hands Tab over only when it can", () => {
+    async function open(extra?: (toastEl: HTMLElement) => void, withToast = true) {
+      function Example() {
+        const anchor = useRef<HTMLButtonElement>(null);
+        return (
+          <>
+            <button ref={anchor}>Anchor</button>
+            <Toaster />
+            <Popover title="Go to date" open onOpenChange={() => {}} anchor={anchor} presentation="popover">
+              <button>Pick</button>
+            </Popover>
+          </>
+        );
+      }
+      const host = document.body.appendChild(document.createElement("div"));
+      root = createRoot(host);
+      await act(async () => root!.render(<Example />));
+      if (withToast) {
+        await act(async () => void toast("Event deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } }));
+        await expect.element(page.getByRole("button", { name: "Undo" })).toBeVisible();
+        extra?.(document.querySelector<HTMLElement>('[data-ouro="toaster"]')!);
+      }
+      const last = document.querySelector<HTMLElement>("[data-ouro-popover-close]")!;
+      last.focus();
+      return last;
+    }
+    const press = (target: HTMLElement, init: KeyboardEventInit & { prevent?: boolean }) => {
+      const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
+      if (init.prevent) window.addEventListener("keydown", (e) => e.preventDefault(), { capture: true, once: true });
+      target.dispatchEvent(event);
+      return event;
+    };
+
+    it("leaves a key other than Tab, and a Tab another handler already took, alone", async () => {
+      const last = await open();
+      // The close button is the popover's last control, so a Tab here is handed on.
+      expect(press(last, { key: "Enter" }).defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(last);
+      press(last, { key: "Tab", prevent: true });
+      expect(document.activeElement).toBe(last);
+      expect(press(last, { key: "Tab" }).defaultPrevented).toBe(true);
+      expect(document.activeElement?.closest('[data-ouro="toaster"]')).not.toBeNull();
+    });
+
+    it("skips a hidden or zero-size control in a toast, going to the first one that shows", async () => {
+      const last = await open((viewport) => {
+        const hidden = document.createElement("button");
+        hidden.dataset.skipped = "";
+        hidden.style.display = "none";
+        const flat = document.createElement("button");
+        flat.dataset.skipped = "";
+        flat.style.cssText = "position:absolute;width:0;height:0;border:0;padding:0;overflow:hidden;display:contents";
+        viewport.prepend(hidden, flat);
+      });
+      press(last, { key: "Tab" });
+      expect(document.activeElement?.closest('[data-ouro="toaster"]')).not.toBeNull();
+      expect(document.activeElement?.hasAttribute("data-skipped")).toBe(false);
+    });
+
+    it("leaves Tab to the browser when the toast has no control to take it, or there is no toast", async () => {
+      const last = await open((viewport) => void (viewport.style.display = "none"));
+      expect(press(last, { key: "Tab" }).defaultPrevented).toBe(false);
+      await act(async () => root?.unmount());
+      document.body.replaceChildren();
+      const lone = await open(undefined, false);
+      expect(press(lone, { key: "Tab" }).defaultPrevented).toBe(false);
+    });
+  });
 });
