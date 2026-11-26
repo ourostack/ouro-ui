@@ -1,0 +1,46 @@
+name: LCD text on Windows
+# Report-only: not a required check (not in .github/required-checks.json). Runs the ScrollArea and MessageList surface
+# tests on Windows Chromium with LCD text on at device scale 1, the one setup that leaves a see-through scroller off the
+# compositor (ourostack/ouro-ui#2891), so commands.compositedLayers() fails a scroller that has lost its opaque
+# background. Linux CI cannot reproduce it. scripts/lcd-text/vitest.config.ts has the setup; contributing/ci.md's
+# report-only gate conventions apply. Flip to blocking (add "LCD text on Windows" to .github/required-checks.json and
+# the main ruleset, in the same pull request as this comment's removal) once a quiet week of runs shows it green.
+on:
+  pull_request:
+    paths:
+      - "scripts/lcd-text/**"
+      - "registry/ouro/components/ouro/scroll-area/**"
+      - "registry/ouro/components/ouro/message/**"
+      - "registry/ouro/lib/ouro/testing/commands.ts"
+      - "registry/ouro/theme/**"
+      - "app.css"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/lcd-text-windows.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+concurrency:
+  group: lcd-text-windows-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  lcd-text-windows:
+    name: LCD text on Windows
+    runs-on: windows-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm exec playwright install chromium
+      - run: pnpm exec vitest run --config scripts/lcd-text/vitest.config.ts

@@ -2931,6 +2931,7 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "incumbent.yml": "  group: incumbent-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "first-run-sso.yml": "  group: first-run-sso-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "chromium-floor-smoke.yml": "  group: chromium-floor-smoke-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "lcd-text-windows.yml": "  group: lcd-text-windows-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
   };
   for (const { file, text } of workflows) {
     const on = text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
@@ -3174,7 +3175,7 @@ const calendarLog = logLines("install (shadcn@latest, nova)", [
   "##[error]Process completed with exit code 1.",
 ]);
 const diveTitle = "pressing Dive > ends early on a click, which reaches nothing under the water, or on the button under it";
-const diveLog = logLines("browser (5/22)", [
+const diveLog = logLines("browser (5/11)", [
   ` FAIL   site (chromium)  site/src/voyage/dive/dive.test.tsx > ${diveTitle}`,
   " Test Files  1 failed | 75 passed (76)",
   "      Tests  1 failed | 3284 passed | 4 skipped (3289)",
@@ -3202,7 +3203,7 @@ test("the quarantine reads a job's failed Vitest tests from its log, and anythin
 });
 
 const latencyTitle = "interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU";
-const latencyLog = logLines("browser (5/22)", [
+const latencyLog = logLines("browser (5/11)", [
   `  ✘  1 [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle} (1.2s)`,
   "  1) [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU",
   "    Error: expected p95 to be below 100ms, measured 142ms",
@@ -3236,10 +3237,10 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   const latestStep = 'Run SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" b478a3226bf42656ed903307714b9f1d4280e26a';
   const contexts = ["ci", "motion-coverage", "install (shadcn, nova)", "install (shadcn@latest, nova)"];
   const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
-  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/22)", "success"), job(5, "motion-coverage", "success")];
+  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/11)", "success"), job(5, "motion-coverage", "success")];
   const runWith = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: green.filter((base) => !jobs.some((other) => other.name === base.name)).concat(jobs) }];
   const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: [latestStep], log: calendarLog });
-  const dive = [job(4, "browser (5/22)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
+  const dive = [job(4, "browser (5/11)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
 
   // Tonight's Calendar failure, quarantined: retried once, recorded with its issue and owner.
   const plan = retryPlan({ runs: runWith([calendar]), contexts, entries: [calendarEntry] });
@@ -3273,9 +3274,9 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.match(setup.problems.join("\n"), /failed in "Run pnpm i --frozen-lockfile", which is not a step that runs the tests/);
   assert.equal(retryPlan({ runs: runWith([{ ...dive[0], failedSteps: ["Browser tests", "Coverage of installed subsets"] }, dive[1], dive[2]]), contexts, entries: [diveEntry] }).retry, false);
   // A gate that read a skipped job failed on that, which no test explains.
-  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/22)", "skipped")]), contexts, entries: [diveEntry] });
+  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/11)", "skipped")]), contexts, entries: [diveEntry] });
   assert.equal(skippedShard.retry, false);
-  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/22\), which was skipped/);
+  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/11\), which was skipped/);
   // A quarantined failure beside any other failure: not retried.
   assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
   const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });
@@ -3316,7 +3317,7 @@ test("judgeOwnRun explains ci.yml's own failing jobs, by their id, from inside o
 
   // Two failing ids: a gate (browser, read by nothing here) and install, both quarantined, still
   // forgiven together; judgeOwnRun collects every reason across every id it is asked to judge.
-  const dive = job(4, "browser (5/22)", "failure", { failedSteps: ["Browser tests"], log: diveLog });
+  const dive = job(4, "browser (5/11)", "failure", { failedSteps: ["Browser tests"], log: diveLog });
   const both = judgeOwnRun({ run: runWith([calendar, dive]), ids: ["install", "browser"], entries: [calendarEntry, diveEntry] });
   assert.equal(both.explained, true, both.problems.join("; "));
   assert.equal(both.retried.length, 2);
@@ -4052,4 +4053,19 @@ test("rerun-guard.yml starts on CI going in_progress (requested never fires for 
   assert.match(guard, /RUN_ATTEMPT: \$\{\{ github\.event\.workflow_run\.run_attempt \}\}/);
   assert.match(guard, /RUN_URL: \$\{\{ github\.event\.workflow_run\.html_url \}\}/);
   assert.match(guard, /RUN_ACTOR: \$\{\{ github\.event\.workflow_run\.triggering_actor\.login \}\}/);
+});
+
+test("the LCD-text job runs the scrollers' surface tests on Windows Chromium with LCD text on at scale 1, report-only and outside the required ci check", () => {
+  const text = readFileSync(join(root, ".github/workflows/lcd-text-windows.yml"), "utf8");
+  assert.match(text, /^ {4}runs-on: windows-latest$/m);
+  assert.match(text, /^ {4}continue-on-error: true$/m);
+  assert.match(text, /vitest run --config scripts\/lcd-text\/vitest\.config\.ts/);
+  const required = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
+  assert.ok(!JSON.stringify(required).includes("LCD text on Windows"));
+  const config = readFileSync(join(root, "scripts/lcd-text/vitest.config.ts"), "utf8");
+  assert.match(config, /"--enable-lcd-text", "--force-device-scale-factor=1"/);
+  assert.match(config, /\{scroll-area,message\}\/\*\.surface\.test\.tsx/);
+  for (const file of ["scroll-area/scroll-area", "message/message-list"]) {
+    assert.match(readFileSync(join(root, `registry/ouro/components/ouro/${file}.surface.test.tsx`), "utf8"), /commands\.compositedLayers\(\)/);
+  }
 });

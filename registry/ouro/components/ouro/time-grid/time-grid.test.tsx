@@ -680,6 +680,32 @@ describe("TimeGrid", () => {
       expect(onEventSelect.mock.calls[0]![0].id).toBe("c3");
     });
 
+    it("screenshots cleanly with the +N popup open, and leaves nothing behind for the next subject when unmounted mid-open", async () => {
+      // ourostack/ouro-ui#3735: a scan that opens every overlay a story or demo offers, then
+      // unmounts the subject with the overlay still open (the next path renders fresh anyway),
+      // once saw `locator.screenshot` time out while this popup was open. Throttling the CPU 20x,
+      // forcing 16-way overlaps and repeated open/close/unmount cycles, and reading every element
+      // the floating-ui focus manager could leave behind (the scroll lock, aria-hidden siblings, a
+      // stray portal node) found no rAF loop, ResizeObserver feedback loop or focus-trap leak: see
+      // #3735 and the Signature line on #2469 for the investigation. This keeps the case covered.
+      const { host } = await render({ view: "day", events: crowd(5) }, (inner) => <div style={{ width: "260px" }}>{inner}</div>);
+      await expect.poll(shown).toEqual(["Event 0", "Event 1"]);
+      await userEvent.click(chip()!);
+      await expect.element(page.getByRole("menuitem", { name: /Event 3/ })).toBeVisible();
+      const menu = document.querySelector<HTMLElement>('[data-ouro="menu"]')!;
+      // Resolves at all: the regression this guards against is a hang, not a pixel comparison.
+      await expect(page.screenshot({ element: menu, timeout: 5_000, save: false })).resolves.toBeTruthy();
+
+      const otherBodyChildren = () => [...document.body.children].filter((element) => element !== host);
+      const before = otherBodyChildren().length;
+      // Unmounted directly, with the menu still open: the same cleanupStories() the touch scan runs between subjects.
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+      expect(otherBodyChildren().length).toBeLessThan(before);
+      expect(document.body.hasAttribute("aria-hidden")).toBe(false);
+      expect(document.body.hasAttribute("inert")).toBe(false);
+      expect(getComputedStyle(document.body).overflow).toBe("visible");
+    });
+
     it("folds by the day's width on the render that mounts, without waiting for a ResizeObserver notification", async () => {
       // A stand-in that never calls back: if the fold depended only on the observer's own
       // notification, dayWidth would stay 0 and every event would draw unfolded forever. Folding
