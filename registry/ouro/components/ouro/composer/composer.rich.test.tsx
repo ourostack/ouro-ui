@@ -370,6 +370,21 @@ describe("Composer rich mode", () => {
     expect(editor.textContent).not.toContain("にほ");
   });
 
+  it("leaves focus where the person is when the app sets a value while they are outside the box", async () => {
+    const { editor, rerender } = await render(rich({ value: "one", onValueChange: () => {} }));
+    // The editor keeps its last caret once the person has been in it, which is what a value change used to carry back.
+    editor.focus();
+    await userEvent.keyboard("{End}");
+    const elsewhere = document.createElement("input");
+    elsewhere.setAttribute("aria-label", "Search");
+    document.body.append(elsewhere);
+    mounted.push(elsewhere);
+    elsewhere.focus();
+    await rerender(rich({ value: "two", onValueChange: () => {} }));
+    await expect.poll(() => editor.textContent).toBe("two");
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
   it("follows a value the app sets, and reports only what the person types", async () => {
     const onValueChange = vi.fn();
     const { editor, rerender } = await render(rich({ value: "one", onValueChange }));
