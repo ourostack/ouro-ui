@@ -161,8 +161,8 @@
   },
   "spoonjoy/spoonjoy-apple": {
     "OuroButton": {
-      "commit": "a58fd20833f45a7128d8154d0745e7bb0c3fffc9",
-      "at": "2026-11-26T07:18:12.995Z",
+      "commit": "c253a27b4e06a24cc48d35df258b6cf7a5996a2d",
+      "at": "2026-11-26T10:16:32.109Z",
       "total": 7,
       "paths": [
         "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift",
@@ -175,28 +175,28 @@
       ]
     },
     "OuroToast": {
-      "commit": "a58fd20833f45a7128d8154d0745e7bb0c3fffc9",
-      "at": "2026-11-26T07:18:19.523Z",
+      "commit": "c253a27b4e06a24cc48d35df258b6cf7a5996a2d",
+      "at": "2026-11-26T10:16:38.512Z",
       "total": 0,
       "paths": []
     },
     "OuroBanner": {
-      "commit": "a58fd20833f45a7128d8154d0745e7bb0c3fffc9",
-      "at": "2026-11-26T07:18:26.003Z",
+      "commit": "c253a27b4e06a24cc48d35df258b6cf7a5996a2d",
+      "at": "2026-11-26T10:16:45.090Z",
       "total": 1,
       "paths": [
         "Apps/Spoonjoy/Shared/Views/PendingCoverUploadBanner.swift"
       ]
     },
     "OuroSheet": {
-      "commit": "a58fd20833f45a7128d8154d0745e7bb0c3fffc9",
-      "at": "2026-11-26T07:20:47.905Z",
+      "commit": "c253a27b4e06a24cc48d35df258b6cf7a5996a2d",
+      "at": "2026-11-26T10:16:51.446Z",
       "total": 0,
       "paths": []
     },
     "OuroEmptyState": {
-      "commit": "a58fd20833f45a7128d8154d0745e7bb0c3fffc9",
-      "at": "2026-11-26T07:20:54.483Z",
+      "commit": "c253a27b4e06a24cc48d35df258b6cf7a5996a2d",
+      "at": "2026-11-26T10:16:58.131Z",
       "total": 9,
       "paths": [
         "Apps/Spoonjoy/Shared/Views/SearchView.swift",
@@ -206,12 +206,13 @@
         "Apps/Spoonjoy/Shared/Views/CookbooksView.swift",
         "Apps/Spoonjoy/Shared/Views/ShoppingListView.swift",
         "Apps/Spoonjoy/Shared/Views/SpoonCookLogView.swift",
+        "Tests/SpoonjoyCoreTests/NativeMobileDesignContractTests.swift",
         "Tests/SpoonjoyCoreTests/KitchenRecipesStructureContractTests.swift"
       ]
     },
     "OuroHX": {
-      "commit": "a58fd20833f45a7128d8154d0745e7bb0c3fffc9",
-      "at": "2026-11-26T07:21:00.998Z",
+      "commit": "c253a27b4e06a24cc48d35df258b6cf7a5996a2d",
+      "at": "2026-11-26T10:17:04.636Z",
       "total": 42,
       "paths": [
         "Package.swift",
@@ -229,6 +230,7 @@
         "Spoonjoy.xcodeproj/project.pbxproj",
         "Sources/SpoonjoyCore/Design/KitchenTypeRole.swift",
         "Apps/Spoonjoy/Shared/Views/AddRecipeSheet.swift",
+        "Apps/Spoonjoy/Shared/Design/KitchenTableTheme.swift",
         "Apps/Spoonjoy/Shared/Views/SearchView.swift",
         "Apps/Spoonjoy/Shared/Views/RecipesView.swift",
         "Apps/Spoonjoy/Shared/Views/ProfileView.swift",
@@ -258,8 +260,8 @@
       ]
     },
     "\"import OuroAX\"": {
-      "commit": "a58fd20833f45a7128d8154d0745e7bb0c3fffc9",
-      "at": "2026-11-26T07:21:07.425Z",
+      "commit": "c253a27b4e06a24cc48d35df258b6cf7a5996a2d",
+      "at": "2026-11-26T10:17:11.110Z",
       "total": 1,
       "paths": [
         "Tests/SpoonjoyCoreTests/XrayExpectationTests.swift"
@@ -457,8 +459,8 @@
   },
   "ourostack/desk": {
     "defineCommand": {
-      "commit": "b90b74c492ebdd6435824df17d6db616fd7f53b7",
-      "at": "2026-11-26T09:22:14.627Z",
+      "commit": "88092aa36ecfd02a9e1f6717efe3c1fbceca89f4",
+      "at": "2026-11-26T10:17:55.669Z",
       "total": 26,
       "paths": [
         "plugins/desk/mcp/src/lib/ouro-ui/registry/ouro/ax/ax-command.ts",
@@ -490,8 +492,8 @@
       ]
     },
     "bindAx": {
-      "commit": "b90b74c492ebdd6435824df17d6db616fd7f53b7",
-      "at": "2026-11-26T09:22:21.054Z",
+      "commit": "88092aa36ecfd02a9e1f6717efe3c1fbceca89f4",
+      "at": "2026-11-26T10:22:39.588Z",
       "total": 5,
       "paths": [
         "plugins/desk/mcp/src/lib/ouro-ui/registry/ouro/ax/component.ts",
@@ -500,12 +502,36 @@
         "plugins/desk/mcp/src/lib/ouro-actions/ouro-actions.mts",
         "plugins/desk/mcp/src/lib/ouro-ui/registry/ouro/ax/xray.ts"
       ]
+    },
+    "ax-mcp": {
+      "commit": "88092aa36ecfd02a9e1f6717efe3c1fbceca89f4",
+      "at": "2026-11-26T10:22:52.638Z",
+      "total": 3,
+      "paths": [
+        "plugins/desk/mcp/src/lib/ouro-ui/registry/ouro/ax/ax-claims.ts",
+        "xray/report.json",
+        "xray-desk-web/report.json"
+      ]
+    }
+  },
+  "ourostack/factory": {
+    "components/ouro/": {
+      "commit": "b632a39b939832245f5a150866824736da8e7aa1",
+      "at": "2026-11-26T10:23:15.108Z",
+      "total": 0,
+      "paths": []
+    },
+    "\"ouro-ui-core\"": {
+      "commit": "b632a39b939832245f5a150866824736da8e7aa1",
+      "at": "2026-11-26T10:24:51.382Z",
+      "total": 0,
+      "paths": []
     }
   },
   "ourostack/ouroboros-website": {
     "components/ouro/": {
-      "commit": "77c97c3fb7d527e4461a523b070e29a64c67c6db",
-      "at": "2026-11-26T08:33:04.976Z",
+      "commit": "705dd40ad410e79fba929fd8a8cda3942fefd218",
+      "at": "2026-11-26T10:24:57.916Z",
       "total": 57,
       "paths": [
         "AGENTS.md",
@@ -568,8 +594,8 @@
       ]
     },
     "\"ouro-ui-core\"": {
-      "commit": "77c97c3fb7d527e4461a523b070e29a64c67c6db",
-      "at": "2026-11-26T08:33:11.531Z",
+      "commit": "705dd40ad410e79fba929fd8a8cda3942fefd218",
+      "at": "2026-11-26T10:25:04.435Z",
       "total": 5,
       "paths": [
         "src/data/scenes.mjs",
@@ -582,8 +608,8 @@
   },
   "arimendelow/mendelow.me": {
     "components/ouro/": {
-      "commit": "aa9090f544585ac063b48d1f4834754bf75d2ef7",
-      "at": "2026-11-26T08:33:18.161Z",
+      "commit": "e5d3ac6044fd5f67519aa9b48eb794a45fd62fba",
+      "at": "2026-11-26T10:25:10.974Z",
       "total": 67,
       "paths": [
         "readme.md",
@@ -656,16 +682,16 @@
       ]
     },
     "\"ouro-ui-core\"": {
-      "commit": "aa9090f544585ac063b48d1f4834754bf75d2ef7",
-      "at": "2026-11-26T08:33:24.479Z",
+      "commit": "e5d3ac6044fd5f67519aa9b48eb794a45fd62fba",
+      "at": "2026-11-26T10:26:47.757Z",
       "total": 0,
       "paths": []
     }
   },
   "ourostack/ouro-ui": {
     "registry/ouro/components/ouro path:site": {
-      "commit": "3a2f4dd6d283a0e4b1f99b65a6f5a3d317024ef6",
-      "at": "2026-11-26T08:33:31.238Z",
+      "commit": "8f0793d263399804f10bbc092cce1249e20fd908",
+      "at": "2026-11-26T10:26:54.504Z",
       "total": 219,
       "paths": [
         "site/src/copy.ts",
@@ -771,8 +797,8 @@
       ]
     },
     "\"ouro-ui-core\"": {
-      "commit": "3a2f4dd6d283a0e4b1f99b65a6f5a3d317024ef6",
-      "at": "2026-11-26T08:33:37.736Z",
+      "commit": "8f0793d263399804f10bbc092cce1249e20fd908",
+      "at": "2026-11-26T10:27:00.956Z",
       "total": 130,
       "paths": [
         "changes/core-0-18-3.md",
@@ -878,8 +904,8 @@
       ]
     },
     "defineCommand": {
-      "commit": "3a2f4dd6d283a0e4b1f99b65a6f5a3d317024ef6",
-      "at": "2026-11-26T08:35:14.356Z",
+      "commit": "8f0793d263399804f10bbc092cce1249e20fd908",
+      "at": "2026-11-26T10:27:07.413Z",
       "total": 39,
       "paths": [
         "registry/ouro/ax/ax-command.ts",
@@ -924,8 +950,8 @@
       ]
     },
     "bindAx": {
-      "commit": "3a2f4dd6d283a0e4b1f99b65a6f5a3d317024ef6",
-      "at": "2026-11-26T09:25:16.754Z",
+      "commit": "8f0793d263399804f10bbc092cce1249e20fd908",
+      "at": "2026-11-26T10:27:13.751Z",
       "total": 28,
       "paths": [
         "registry/ouro/ax/component.ts",
@@ -959,8 +985,8 @@
       ]
     },
     "ax-mcp": {
-      "commit": "3a2f4dd6d283a0e4b1f99b65a6f5a3d317024ef6",
-      "at": "2026-11-26T09:27:05.261Z",
+      "commit": "8f0793d263399804f10bbc092cce1249e20fd908",
+      "at": "2026-11-26T10:27:20.270Z",
       "total": 23,
       "paths": [
         "docs/ax/ax-mcp.md",
@@ -991,8 +1017,8 @@
   },
   "ourostack/housesitter": {
     "defineCommand": {
-      "commit": "61a68b379daca60128c82a84d236e1e774409082",
-      "at": "2026-11-26T09:27:14.917Z",
+      "commit": "3ace3c37cfb7babd810213042bb5f5a7af8ae38b",
+      "at": "2026-11-26T10:27:28.693Z",
       "total": 12,
       "paths": [
         "lib/ouro-ui/registry/ouro/ax/ax-command.ts",
@@ -1010,8 +1036,8 @@
       ]
     },
     "bindAx": {
-      "commit": "61a68b379daca60128c82a84d236e1e774409082",
-      "at": "2026-11-26T09:27:20.422Z",
+      "commit": "3ace3c37cfb7babd810213042bb5f5a7af8ae38b",
+      "at": "2026-11-26T10:27:35.183Z",
       "total": 4,
       "paths": [
         "lib/ouro-ui/registry/ouro/ax/component.ts",
@@ -1021,8 +1047,8 @@
       ]
     },
     "ax-mcp": {
-      "commit": "61a68b379daca60128c82a84d236e1e774409082",
-      "at": "2026-11-26T09:27:26.854Z",
+      "commit": "3ace3c37cfb7babd810213042bb5f5a7af8ae38b",
+      "at": "2026-11-26T10:27:41.674Z",
       "total": 1,
       "paths": [
         "lib/ouro-ui/registry/ouro/ax/ax-claims.ts"
@@ -1031,8 +1057,8 @@
   },
   "ourostack/m365crawl": {
     "defineCommand": {
-      "commit": "7b983849853639138d2d7fa5dc137e2320b2c5d0",
-      "at": "2026-11-26T09:27:36.425Z",
+      "commit": "9cc4795dcf68dcb10f72579e824eec909a72f273",
+      "at": "2026-11-26T10:27:50.684Z",
       "total": 8,
       "paths": [
         "tools/ouro-ax/ax-command.ts",
@@ -1046,8 +1072,8 @@
       ]
     },
     "bindAx": {
-      "commit": "7b983849853639138d2d7fa5dc137e2320b2c5d0",
-      "at": "2026-11-26T09:27:42.558Z",
+      "commit": "9cc4795dcf68dcb10f72579e824eec909a72f273",
+      "at": "2026-11-26T10:27:57.206Z",
       "total": 4,
       "paths": [
         "tools/ouro-ax/component.ts",
@@ -1057,8 +1083,8 @@
       ]
     },
     "ax-mcp": {
-      "commit": "7b983849853639138d2d7fa5dc137e2320b2c5d0",
-      "at": "2026-11-26T09:27:48.907Z",
+      "commit": "9cc4795dcf68dcb10f72579e824eec909a72f273",
+      "at": "2026-11-26T10:28:03.694Z",
       "total": 1,
       "paths": [
         "tools/ouro-ax/ax-claims.ts"
@@ -1067,8 +1093,8 @@
   },
   "ourostack/friends": {
     "defineCommand": {
-      "commit": "87e84ef422f660d3e1a935e157b89649b1cf1f7e",
-      "at": "2026-11-26T09:29:27.674Z",
+      "commit": "469bc550b98ca818f04cb1e4ddb85f0f29000b6b",
+      "at": "2026-11-26T10:28:11.705Z",
       "total": 8,
       "paths": [
         "lib/ouro-ui/registry/ouro/ax/ax-command.ts",
@@ -1077,6 +1103,129 @@
         "lib/ouro-ui/registry/ouro/ax/example-cli.ts",
         "lib/ouro-ui/registry/ouro/ax/lint.ts",
         "lib/ouro-ui/registry/ouro/ax/flows.ts",
+        "tools/ouro-actions/ouro-actions.mts",
+        "lib/ouro-ui/registry/ouro/ax/xray.ts"
+      ]
+    },
+    "bindAx": {
+      "commit": "469bc550b98ca818f04cb1e4ddb85f0f29000b6b",
+      "at": "2026-11-26T10:28:18.149Z",
+      "total": 4,
+      "paths": [
+        "lib/ouro-ui/registry/ouro/ax/component.ts",
+        "actions/generated/web.ts",
+        "tools/ouro-actions/ouro-actions.mts",
+        "lib/ouro-ui/registry/ouro/ax/xray.ts"
+      ]
+    },
+    "ax-mcp": {
+      "commit": "469bc550b98ca818f04cb1e4ddb85f0f29000b6b",
+      "at": "2026-11-26T10:29:54.883Z",
+      "total": 1,
+      "paths": [
+        "lib/ouro-ui/registry/ouro/ax/ax-claims.ts"
+      ]
+    }
+  },
+  "ourostack/flow-review": {
+    "defineCommand": {
+      "commit": "91b175ca663c4a1ba228a4864d580ee275b512e8",
+      "at": "2026-11-26T10:30:04.363Z",
+      "total": 10,
+      "paths": [
+        "lib/ouro-ui/registry/ouro/ax/ax-command.ts",
+        "lib/ouro-ui/registry/ouro/ax/xray.kit.mts",
+        "lib/ouro-ui/registry/ouro/ax/flows.kit.mts",
+        "lib/cli.mjs",
+        "lib/ouro-ui/registry/ouro/ax/example-cli.ts",
+        "lib/ouro-ui/registry/ouro/ax/lint.ts",
+        "actions/flow-review.actions.mts",
+        "lib/ouro-ui/registry/ouro/ax/flows.ts",
+        "tools/ouro-actions/ouro-actions.mts",
+        "lib/ouro-ui/registry/ouro/ax/xray.ts"
+      ]
+    },
+    "bindAx": {
+      "commit": "91b175ca663c4a1ba228a4864d580ee275b512e8",
+      "at": "2026-11-26T10:30:10.388Z",
+      "total": 4,
+      "paths": [
+        "lib/ouro-ui/registry/ouro/ax/component.ts",
+        "actions/generated/web.ts",
+        "tools/ouro-actions/ouro-actions.mts",
+        "lib/ouro-ui/registry/ouro/ax/xray.ts"
+      ]
+    },
+    "ax-mcp": {
+      "commit": "91b175ca663c4a1ba228a4864d580ee275b512e8",
+      "at": "2026-11-26T10:30:16.865Z",
+      "total": 1,
+      "paths": [
+        "lib/ouro-ui/registry/ouro/ax/ax-claims.ts"
+      ]
+    }
+  },
+  "ourostack/apple-distribution-kit": {
+    "defineCommand": {
+      "commit": "a5434d5e4a45c195e06742ec14b1714756947b6c",
+      "at": "2026-11-26T10:30:24.647Z",
+      "total": 9,
+      "paths": [
+        "src/ouro-ax/ax-command.ts",
+        "src/command-table.ts",
+        "src/ouro-ax/xray.kit.mts",
+        "src/ouro-ax/flows.kit.mts",
+        "src/ouro-ax/example-cli.ts",
+        "src/ouro-ax/lint.ts",
+        "src/ouro-ax/flows.ts",
+        "src/ouro-ax/xray.ts",
+        "tools/ouro-actions/ouro-actions.mts"
+      ]
+    },
+    "bindAx": {
+      "commit": "a5434d5e4a45c195e06742ec14b1714756947b6c",
+      "at": "2026-11-26T10:30:30.689Z",
+      "total": 4,
+      "paths": [
+        "src/ouro-ax/component.ts",
+        "actions/generated/web.ts",
+        "src/ouro-ax/xray.ts",
+        "tools/ouro-actions/ouro-actions.mts"
+      ]
+    },
+    "ax-mcp": {
+      "commit": "a5434d5e4a45c195e06742ec14b1714756947b6c",
+      "at": "2026-11-26T10:30:37.259Z",
+      "total": 1,
+      "paths": [
+        "src/ouro-ax/ax-claims.ts"
+      ]
+    }
+  },
+  "ourostack/ouro-work-substrate": {
+    "defineCommand": {
+      "commit": "e5eab85956a256bc812586ea5e6dd9fe9627027b",
+      "at": "2026-11-26T10:30:44.820Z",
+      "total": 9,
+      "paths": [
+        "lib/ouro-ui/registry/ouro/ax/ax-command.ts",
+        "lib/ouro-ui/registry/ouro/ax/xray.kit.mts",
+        "lib/ouro-ui/registry/ouro/ax/flows.kit.mts",
+        "lib/ouro-ui/registry/ouro/ax/example-cli.ts",
+        "tools/mail-control-ax/cli.mts",
+        "lib/ouro-ui/registry/ouro/ax/lint.ts",
+        "lib/ouro-ui/registry/ouro/ax/flows.ts",
+        "tools/ouro-actions/ouro-actions.mts",
+        "lib/ouro-ui/registry/ouro/ax/xray.ts"
+      ]
+    },
+    "bindAx": {
+      "commit": "e5eab85956a256bc812586ea5e6dd9fe9627027b",
+      "at": "2026-11-26T10:30:50.923Z",
+      "total": 4,
+      "paths": [
+        "lib/ouro-ui/registry/ouro/ax/component.ts",
+        "actions/generated/web.ts",
         "tools/ouro-actions/ouro-actions.mts",
         "lib/ouro-ui/registry/ouro/ax/xray.ts"
       ]
