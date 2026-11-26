@@ -1,0 +1,1 @@
+- TimeGrid: the corner above the hour labels is opaque, so labels no longer show through the glass header as they scroll under it.

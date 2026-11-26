@@ -2,6 +2,8 @@ name: First run on Windows
 # Ouro check's first-run harness on a fresh GitHub-hosted Windows runner, through its Windows System and eyes
 # (registry/ouro/check/first-run-windows.ts, first-run-uia-tree.cs): scripts/check/first-run-windows/proof.mts. Unit tests
 # read the Windows answers on any host; only a Windows machine proves the eyes build, see and press, and the firewall holds.
+# scripts/check/first-run-uia-order.test.mts runs here too, with real dotnet, because the check job's Node tests run in a
+# browser image with no .NET SDK: this is the only runner that can execute the eyes' LastLook<T> for real.
 on:
   pull_request:
     paths:
@@ -30,6 +32,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      - name: LastLook's children-first-then-descendants search order, run for real with dotnet
+        run: node --test scripts/check/first-run-uia-order.test.mts
       - name: The harness drives a Windows app through a detour, and fails it when it leaves a blank page
         run: node scripts/check/first-run-windows/proof.mts "$RUNNER_TEMP/first-run-windows"
       - if: always()

@@ -10,6 +10,7 @@
 // Job logs come from GitHub's logs endpoint, which redirects to the bytes, as ci-budget.mjs reads them.
 import { fileURLToPath } from "node:url";
 import { ApiUnavailable, get } from "./ci-budget.mjs";
+import { listJobsAsync } from "./run-jobs.mjs";
 
 /** The runs read when --runs is not given. */
 export const defaultRuns = 20;
@@ -64,12 +65,7 @@ async function pushRuns(repository, count, token) {
 
 /** A run's jobs that are latency shards and have completed. */
 async function latencyShards(repository, runId, token) {
-  const jobs = [];
-  for (let page = 1; ; page += 1) {
-    const body = await get(`https://api.github.com/repos/${repository}/actions/runs/${runId}/jobs?per_page=100&page=${page}`, token);
-    jobs.push(...body.jobs);
-    if (jobs.length >= body.total_count || body.jobs.length === 0) break;
-  }
+  const jobs = await listJobsAsync((url) => get(`https://api.github.com/${url}`, token), `repos/${repository}/actions/runs/${runId}`);
   return jobs.filter((job) => isLatencyShard(job.name) && job.status === "completed");
 }
 

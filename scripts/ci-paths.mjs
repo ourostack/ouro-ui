@@ -15,11 +15,12 @@
 export const scoped = [
   { pattern: /^scripts\/[^/]+\.test\.mjs$/, tiers: [], components: false, reason: "a Node script test (pnpm test:scripts)" },
   {
-    pattern: /^scripts\/(ceiling-ratchet|ci-budget|ci-fail-fast|ci-proof|ci-yield|docs-pin-release-check|fresh-main|main-green|required-checks|required-producers|cache-prune|patch-guard|quarantine|repeat-red-quarantine|rerun-guard|size-budget|release-commit|release-note|release-wait|run-script-tests|script-tests|check-node-coverage|check-node-coverage-merge)\.(mjs|sh)$|^scripts\/(required-ci|dispatch-required|scheduled-failure|sr-infra-issue|pages-clear|retry)\.sh$/,
+    pattern: /^scripts\/(ceiling-ratchet|ci-budget|ci-fail-fast|ci-proof|ci-yield|run-jobs|docs-pin-release-check|fresh-main|main-green|required-checks|required-producers|cache-prune|patch-guard|quarantine|repeat-red-quarantine|rerun-guard|size-budget|release-commit|release-note|release-wait|run-script-tests|script-tests|check-node-coverage|check-node-coverage-merge|main-red-signatures|cascade-retrigger|queue-unmergeable|ceiling-fix-exempt|fail-fast-fresh-main)\.(mjs|sh)$|^scripts\/(required-ci|dispatch-required|scheduled-failure|sr-infra-issue|pages-clear|retry)\.sh$/,
     tiers: [],
     components: false,
     reason: "a CI or release helper that only the workflows and the Node script tests run",
   },
+  { pattern: /^\.github\/main-red-signatures\.json$/, tiers: [], components: false, reason: "the filed main-red coverage entries, which only the report-signatures job and its Node script test read" },
   {
     pattern: /^scripts\/current\//,
     tiers: ["installs"],
@@ -29,6 +30,7 @@ export const scoped = [
   { pattern: /^scripts\/bar-eval\//, tiers: [], components: false, reason: "the bar evaluation, run by hand, which no workflow or test runs" },
   { pattern: /^scripts\/scroller-probe\.mjs$/, tiers: [], components: false, reason: "a probe run by hand for #2891, which no workflow or test runs" },
   { pattern: /^scripts\/chromium-floor-smoke\.mjs$/, tiers: [], components: false, reason: "the Chromium floor smoke test, which only the report-only chromium-floor-smoke.yml workflow runs" },
+  { pattern: /^scripts\/lcd-text\//, tiers: [], components: false, reason: "the Vitest config for the scrollers' LCD-text surface tests, which only the report-only lcd-text-windows.yml workflow runs" },
   { pattern: /^scripts\/ouro-census\//, tiers: [], components: false, reason: "the Ouro AX census, which only its Node script test (scripts/ouro-census.test.mjs) runs" },
   { pattern: /^scripts\/ax-claim-sets\.(json|mjs)$/, tiers: [], components: false, reason: "the Ouro AX claim-set history, which only its Node script test and the adoption ledger read" },
   { pattern: /^scripts\/claims-urls\.json$/, tiers: [], components: false, reason: "the claim URL list, which only the Node script tests read" },

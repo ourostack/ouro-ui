@@ -117,7 +117,7 @@ test("it reads every open pull request run's latest attempt, cancels the runs wi
   const run = swept(gh);
   assert.equal(await run.done, "idle");
   assert.deepEqual(calls[0], ["api", "--include", "repos/o/r/actions/workflows/ci.yml/runs?event=pull_request&status=in_progress&per_page=100"]);
-  assert.ok(calls.some((call) => call.at(-1) === "repos/o/r/actions/runs/8/attempts/2/jobs?per_page=100&page=1"));
+  assert.ok(calls.some((call) => call.at(-1) === "repos/o/r/actions/runs/8/attempts/2/jobs?per_page=30&page=1"));
   assert.deepEqual(calls.filter((call) => call.includes("POST")), [["api", "-X", "POST", "repos/o/r/actions/runs/8/cancel"]]);
   assert.deepEqual(run.waits, [SWEEP_MS, SWEEP_MS]);
   assert.ok(run.lines.includes(`::notice::Run 8: ${cancelNote(["e2e (1/4)"])}`), "the earlier attempt's failure is not counted");
@@ -205,7 +205,7 @@ test("ci-fail-fast.yml runs one watcher for every pull request's CI run, on pull
   assert.match(watcher, /\n {4}permissions:\n {6}actions: write\n {6}contents: read\n {4}steps:/, "actions: write to read the jobs and cancel; nothing more");
   assert.match(watcher, /^permissions:\n {2}contents: read\n/m, "the workflow's default stays read-only");
   assert.match(watcher, /- run: node scripts\/ci-fail-fast\.mjs\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}$/m);
-  assert.match(watcher, /sparse-checkout: scripts\/ci-fail-fast\.mjs\n/);
+  assert.match(watcher, /sparse-checkout: \|\n\s+scripts\/ci-fail-fast\.mjs\n\s+scripts\/run-jobs\.mjs\n\s+sparse-checkout-cone-mode: false\n/);
   assert.match(yml, /^permissions:\n {2}contents: read\n#/m, "ci.yml's default stays read-only");
   assert.ok(!Object.keys(jobs).includes("fail-fast"), "ci.yml holds no watcher job of its own");
   for (const id of Object.keys(jobs)) {

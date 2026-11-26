@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { changedFiles, exemptionProblems, judge, headroomProblems, headroomReason, ratchetProblems, readExemptions, staleExemptions, unsuffixedProjectExemptions } from "./headroom.mjs";
+import { changedFiles, exemptionProblems, expiredExemptions, expiredWarning, isExpired, judge, headroomProblems, headroomReason, ratchetProblems, readExemptions, staleExemptions, unsuffixedProjectExemptions } from "./headroom.mjs";
 
 const named = (test) => ({ test, reason: "slow", owner: "drain-3" });
 
@@ -20,6 +20,14 @@ test("headroom passes a test at or under half its own timeout, whatever the time
 
 test("headroom lets a named exemption's test run over half", () => {
   assert.deepEqual(headroomProblems([{ name: "a", durationMs: 20_000, timeoutMs: 30_000 }], [named("a")]), []);
+});
+
+test("headroom stops letting an expired exemption's test run over half: the breach shows again", () => {
+  const now = new Date("2026-06-01T00:00:00Z");
+  const expired = [{ ...named("a"), expiry: "2026-05-01T00:00:00Z" }];
+  const problems = headroomProblems([{ name: "a", durationMs: 20_000, timeoutMs: 30_000 }], expired, now);
+  assert.equal(problems.filter((problem) => /took 20\.0 s/.test(problem)).length, 1);
+  assert.deepEqual(headroomProblems([{ name: "a", durationMs: 20_000, timeoutMs: 30_000 }], [{ ...named("a"), expiry: "2027-01-01T00:00:00Z" }], now), []);
 });
 
 test("headroom reads * in an exemption as any text, so one entry covers a test in every project and size", () => {
@@ -54,6 +62,35 @@ test("every committed exemption's project name carries Vitest's own (browser) su
 
 test("an exemption with no reason or owner fails", () => {
   assert.equal(exemptionProblems([{ test: "a", reason: "", owner: "x" }, { test: "b", reason: "r" }]).length, 2);
+});
+
+test("an exemption's issue must be a GitHub issue URL, and its expiry an ISO date-time, when given", () => {
+  assert.deepEqual(exemptionProblems([{ test: "a", reason: "r", owner: "o" }]), []);
+  assert.deepEqual(exemptionProblems([{ test: "a", reason: "r", owner: "o", issue: "https://github.com/ourostack/ouro-ui/issues/3032", expiry: "2099-01-01T00:00:00Z" }]), []);
+  const badIssue = exemptionProblems([{ test: "a", reason: "r", owner: "o", issue: "not a url" }]);
+  assert.equal(badIssue.length, 1);
+  assert.match(badIssue[0], /issue that is not a GitHub issue URL/);
+  const badExpiry = exemptionProblems([{ test: "a", reason: "r", owner: "o", expiry: "not a date" }]);
+  assert.equal(badExpiry.length, 1);
+  assert.match(badExpiry[0], /expiry that is not an ISO 8601 date-time/);
+});
+
+test("isExpired reads an exemption's expiry against now, and a missing expiry never expires", () => {
+  const now = new Date("2026-06-01T00:00:00Z");
+  assert.equal(isExpired({ expiry: "2026-05-31T00:00:00Z" }, now), true);
+  assert.equal(isExpired({ expiry: "2026-06-01T00:00:00Z" }, now), true);
+  assert.equal(isExpired({ expiry: "2026-06-02T00:00:00Z" }, now), false);
+  assert.equal(isExpired({}, now), false);
+  assert.equal(isExpired({ expiry: "not a date" }, now), false);
+});
+
+test("expiredExemptions names each exemption whose expiry has passed, and keeps an unexpired or expiry-less one quiet", () => {
+  const now = new Date("2026-06-01T00:00:00Z");
+  const exemptions = [{ ...named("a"), expiry: "2026-05-01T00:00:00Z" }, { ...named("b"), expiry: "2027-01-01T00:00:00Z" }, named("c")];
+  const problems = expiredExemptions(exemptions, now);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0], expiredWarning(exemptions[0]));
+  assert.match(problems[0], /a in \.github\/headroom\.json has an expiry \(2026-05-01T00:00:00Z\) that has passed/);
 });
 
 test("the committed exemptions each name a test, a reason and an owner, once", () => {
@@ -100,6 +137,16 @@ test("a malformed exemption fails the run on main too", () => {
 test("an exemption with an unsuffixed project name fails the run on main too", () => {
   const exemptions = [{ test: "site scripts/headroom.test.mjs > headroom fails a test over half", reason: "r", owner: "o" }];
   assert.equal(judge({ tests: [], exemptions, event: "push", changed: null }).failures.length, 1);
+});
+
+test("an exemption whose expiry has passed fails the run everywhere, even report-only", () => {
+  const now = new Date("2026-06-01T00:00:00Z");
+  const tests = [{ name: "site (chromium) a.test.tsx > slow", file: "a.test.tsx", durationMs: 17_000, timeoutMs: 30_000 }];
+  const expired = [{ ...named("site (chromium) a.test.tsx > slow"), expiry: "2026-05-01T00:00:00Z" }];
+  const push = judge({ tests, exemptions: expired, event: "push", changed: null, now });
+  assert.equal(push.failures.some((failure) => /has an expiry \(2026-05-01T00:00:00Z\) that has passed/.test(failure)), true);
+  const pull = judge({ tests, exemptions: expired, event: "pull_request", changed: new Set(["a.test.tsx"]), now });
+  assert.equal(pull.failures.some((failure) => /has an expiry \(2026-05-01T00:00:00Z\) that has passed/.test(failure)), true);
 });
 
 test("changedFiles reads a pull request's files, and judges every test where it gets none", () => {

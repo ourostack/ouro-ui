@@ -5,7 +5,8 @@
     "conversation-list": [
       {"part": "row", "role": "button", "portal": false},
       {"part": "more", "role": "button", "portal": false},
-      {"part": "section", "role": "button", "portal": false}
+      {"part": "section", "role": "button", "portal": false},
+      {"part": "section-handle", "role": "button", "portal": false}
     ]
   }
 }

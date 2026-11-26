@@ -80,8 +80,8 @@ describe("ReactionBar", () => {
   it("tints the person's own reaction", async () => {
     const { bar } = await render(<ReactionBar reactions={reactions} onReact={() => {}} />);
     const [mine, other] = [...bar!.querySelectorAll<HTMLElement>('[data-ouro="badge"]')];
-    expect(mine!.className).toContain("[--ouro-bg:color-mix(in_oklab,var(--primary)_10%");
-    expect(other!.className).not.toContain("[--ouro-bg:color-mix(in_oklab,var(--primary)_10%");
+    expect(mine!.className).toContain("[--ouro-tone:var(--primary)]");
+    expect(other!.className).not.toContain("[--ouro-tone:var(--primary)]");
   });
 
   it("gives a counted reaction that is not the reader's own a soft borderless pill, like a quick reaction", async () => {
@@ -243,7 +243,7 @@ describe("ReactionBar", () => {
     expect(bar!.querySelector("button")).toBeNull();
     const [mine, other] = [...bar!.querySelectorAll<HTMLElement>('[data-ouro="badge"]')];
     expect(mine!.textContent).toBe("👍Like, 3, including you");
-    expect(mine!.className).toContain("[--ouro-bg:color-mix(in_oklab,var(--primary)_10%");
+    expect(mine!.className).toContain("[--ouro-tone:var(--primary)]");
     expect(other!.textContent).toBe("😄Laugh, 1");
   });
 

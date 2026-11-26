@@ -23,6 +23,28 @@ import {
 
 const TabsContext = createContext(false);
 
+/**
+ * Base UI scrolls the highlighted tab into view whenever the tabs register, which reads the
+ * row's layout and so makes the browser lay the page out in the middle of the mount. A tab that
+ * has just mounted hides `scrollTo`, the method that scroll needs, for one frame. In that frame,
+ * once the mount has committed, the selected tab brings itself into view in a row that scrolls
+ * sideways (only a horizontal row scrolls), so a row that opens on a later tab still shows it.
+ * After it, the arrow keys scroll the row as before.
+ */
+function holdScrollOnMount(element: HTMLElement | null): void {
+  if (!element) return;
+  Object.defineProperty(element, "scrollTo", { value: undefined, configurable: true });
+  requestAnimationFrame(() => {
+    delete (element as { scrollTo?: unknown }).scrollTo;
+    if (!element.isConnected || element.getAttribute("aria-selected") !== "true") return;
+    const list = element.closest<HTMLElement>('[role="tablist"]')!;
+    const row = list.getBoundingClientRect();
+    const tab = element.getBoundingClientRect();
+    const by = Math.min(0, tab.left - row.left) + Math.max(0, tab.right - row.right);
+    list.scrollLeft += by;
+  });
+}
+
 /** Throws in development, with the JSX the part belongs in, unless it sits inside a TabsRoot. */
 function useTabsPart(part: string, inner: string): void {
   if (!useContext(TabsContext)) {
@@ -172,12 +194,14 @@ export function TabsTab(allProps: TabsTabProps): JSX.Element {
   useTabsPart("TabsTab", '<TabsTab value="…">…</TabsTab>');
   usePartClassName("TabsTab", className);
   const reason = useDisabledReason(allProps, props["aria-describedby"]);
+  const merged = useMergedRef(props.ref, holdScrollOnMount);
   const tab = (
     <BaseTabs.Tab
       data-ouro-control="tabs"
       data-ouro-part="tab"
       data-slot="tabs-trigger"
       {...props}
+      ref={merged}
       disabled={disabled && !reason.off}
       {...(reason.off
         ? {
