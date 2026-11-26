@@ -313,6 +313,35 @@ function RowMenus() {
   );
 }
 
+function ReorderableSections() {
+  const [sections, setSections] = useState([
+    { id: "pinned", title: "Pinned" },
+    { id: "favorites", title: "Favorites", reorderable: true },
+    { id: "projects", title: "Projects", reorderable: true },
+  ]);
+  return (
+    <Surface>
+      <ConversationList
+        label="Conversations"
+        sections={sections}
+        onSectionsReorder={(ids) => setSections((all) => [...all.filter((section) => !section.reorderable), ...ids.map((id) => all.find((section) => section.id === id)!)])}
+        items={[
+          { id: "trail", title: "Trail crew", preview: "Meet at the north gate at eight.", time: "9:41", unread: true, section: "pinned" },
+          { id: "ana", title: "Ana Lind", preview: "The engine notes are attached.", time: "8:15", unread: false, section: "favorites" },
+          { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", time: "Tue", unread: false, section: "projects" },
+        ]}
+        selectedId="ana"
+        onSelect={() => {}}
+      />
+    </Surface>
+  );
+}
+
+/** The person's own sections, Favorites and Projects, move by dragging their headers or by the grip button beside each; Pinned stays put. */
+export const ReorderableSectionHeaders: Story = {
+  render: () => <ReorderableSections />,
+};
+
 /** A row's menu, open from a right-click on "Ana Lind". */
 export const RowMenu: Story = {
   render: () => <RowMenus />,
