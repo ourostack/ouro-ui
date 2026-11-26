@@ -751,10 +751,11 @@ export function Command(props: CommandProps): JSX.Element {
     if (onQueryChange) search("");
   };
 
-  // The command the person has highlighted, by its value, and what was typed when it was. Base UI
-  // keeps the highlight's position when the results change; KeepHighlight puts it back on this one.
+  // The command the person has highlighted, by its value, its row's position and what was typed when it
+  // was. Base UI keeps the highlight's position when the results change; KeepHighlight puts it back on this
+  // one, or, when it has gone, on the row now at its position rather than the first command.
   // Stryker disable next-line ObjectLiteral,StringLiteral: before any highlight, every start moves it to the first command, where autoHighlight puts it anyway.
-  const held = useRef<{ value: string; query: string }>({ value: "", query: "" });
+  const held = useRef<{ value: string; query: string; index: number }>({ value: "", query: "", index: 0 });
 
   // The app's ranges for a command, or the search's words when the palette marks matches.
   const rangesFor = (item: CommandItem, part: "label" | "description"): readonly TextRange[] =>
@@ -843,10 +844,10 @@ export function Command(props: CommandProps): JSX.Element {
       filter={onQueryChange ? null : (item: CommandItem, text: string) => item.alwaysShown === true || matchesQuery(item.label, searchedWords(item), text)}
       value={query}
       inputRef={markInput}
-      onItemHighlighted={(item: CommandItem | undefined) => {
+      onItemHighlighted={(item: CommandItem | undefined, { index }: Autocomplete.Root.HighlightEventDetails) => {
         // No highlight holds no command: when the results come back, the first one is highlighted.
-        // Stryker disable next-line StringLiteral: a value no command has falls back to the first command, as the empty one does.
-        held.current = { value: item ? valueOf(item) : "", query };
+        // Stryker disable next-line StringLiteral,ConditionalExpression: a value no command has falls back to the first command, as the empty one does.
+        held.current = { value: item ? valueOf(item) : "", query, index: item ? index : 0 };
       }}
       onValueChange={(next: string) => {
         setQuery(next);
@@ -1106,18 +1107,21 @@ const valueOf = (item: CommandItem) => item.value ?? item.label;
 
 /**
  * Puts the highlight back on the command the person had highlighted when the results change while
- * the query stays the same (results arriving from a slow source), or on the first command when that
- * one has gone. Base UI's Autocomplete takes no highlighted item as a prop, so it moves it the way
- * a pointer does, through the list's own handler for a pointer moving over a row. It runs after the
- * rows' own layout effects, as the last child of the list's root.
+ * the query stays the same (results arriving from a slow source), or, when that one has gone, on
+ * the command now at its held position (the last one when fewer remain) rather than the first
+ * command, so the highlight stays where the person put it. Base UI's Autocomplete takes no
+ * highlighted item as a prop, so it moves it the way a pointer does, through the list's own handler
+ * for a pointer moving over a row. It runs after the rows' own layout effects, as the last child of
+ * the list's root.
  * @claim "Base UI's Autocomplete takes no" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > keeps the highlight on the same command when results arrive above it)
+ * @claim "on the command now at its held position" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > keeps the highlight in its place when the highlighted command leaves the results, not on the first command (#3838))
  */
 function KeepHighlight({
   heldRef,
   query,
   idle,
 }: {
-  heldRef: { current: { value: string; query: string } };
+  heldRef: { current: { value: string; query: string; index: number } };
   query: string;
   idle: boolean;
 }): JSX.Element {
@@ -1127,7 +1131,9 @@ function KeepHighlight({
     const want = heldRef.current;
     if (idle || want.query !== query) return;
     const rows = [...mark.current!.closest('[data-ouro="command"]')!.querySelectorAll<HTMLElement>("[data-ouro-command-value]")];
-    const row = rows.find((candidate) => candidate.getAttribute("data-ouro-command-value") === want.value) ?? rows[0];
+    // The held command itself when it is still among the rows; otherwise the row now at its position (the last one
+    // when fewer remain), not the first row: a re-mounted row publishes its index a commit later than this effect runs.
+    const row = rows.find((candidate) => candidate.getAttribute("data-ouro-command-value") === want.value) ?? rows[Math.min(want.index, rows.length - 1)];
     if (!row) return;
     // Stryker disable next-line ConditionalExpression,StringLiteral: moving the highlight onto the row it is already on changes nothing.
     if (row.hasAttribute("data-highlighted")) return;
