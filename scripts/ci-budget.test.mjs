@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 import { deflateRawSync } from "node:zlib";
 import { scratchDir } from "./scratch.mjs";
 import { ApiUnavailable, ceilingSeconds, mergeQueueRunsFrom, mergeQueueRunsUrl, main, reportUnavailable, backoffSeconds, baseline, budget, get, retry, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, judgeLane, laneCriticalPath, laneLine, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
