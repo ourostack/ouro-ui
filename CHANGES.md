@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: TimeGrid scrolls the keyboard's slot clear of a toast over the bottom of the page, so the toast does not cover its focus ring.
