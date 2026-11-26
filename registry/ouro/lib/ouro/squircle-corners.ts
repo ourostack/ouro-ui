@@ -1,4 +1,5 @@
-export { squircleCorners, squircleCornersDedupe };
+export { squircleCorners };
+export { squircleCornersDedupe };
 export default squircleCorners;
 
 interface Node {
@@ -99,12 +100,11 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
 interface CssAsset { type: string; fileName: string; source: string | Uint8Array }
 
 /**
- * A Vite plugin that collapses duplicate `squircleCorners()` output within each built CSS file.
- * Vite's PostCSS pipeline runs `squircleCorners()` once per source CSS file, so a shared partial a page's final
- * chunk bundles from several source files ends up with that chunk's `@layer squircle-corners` carrying one
- * complete, separately-computed copy of the shared boilerplate per source file. The content is the same every
- * time (`clipPath()` reads only custom properties), so this merges those repeats into one pair of rules per
- * chunk, after Vite has decided chunking, which is the only place this is safe to do.
+ * A Vite plugin that collapses duplicate `squircleCorners()` output within a built CSS file.
+ * Vite's PostCSS pipeline runs `squircleCorners()` once per source CSS file, so a chunk that bundles several source
+ * files ends up with a `@layer squircle-corners` carrying a separately-computed copy of the shared boilerplate per
+ * source file. The copies are identical (`clipPath()` reads just custom properties), so this merges them into one
+ * pair of rules per chunk, after Vite has decided chunking, since an earlier merge could not see the final chunks.
  *
  * @example
  * // vite.config.ts: plugins: [squircleCornersDedupe()], css: { postcss: { plugins: [squircleCorners()] } }
@@ -205,11 +205,10 @@ function dedupeSupportsGroups(layerBody: string): string {
 }
 
 /**
- * Merges `squircleCorners()`'s repeated boilerplate within one CSS string, operating only inside its own
- * `@layer squircle-corners` block (content no other rule ever shares), so merging never changes cascade order
- * for anything else in the file. A named CSS layer's content accumulates across every `@layer <name>{...}`
- * occurrence regardless of position, so collapsing several occurrences into the first one's spot, and dropping
- * the rest, is cascade-equivalent to leaving them where the source files put them.
+ * Merges `squircleCorners()`'s repeated boilerplate within one CSS string, working inside its own
+ * `@layer squircle-corners` blocks, which hold rules from this plugin alone, so the cascade order of the rest of
+ * the file stays as it was. A named CSS layer's content accumulates across its `@layer <name>{...}` blocks
+ * wherever they sit, so folding the later blocks into the first one's spot keeps the same cascade.
  */
 function dedupeSquircleCss(css: string): string {
   const marker = "@layer squircle-corners{";
