@@ -38,7 +38,7 @@ function isFoldHostInput(value: unknown): value is OuroFoldHostInput {
   return isFoldHinge(hinge) && Array.isArray(regions) && regions.every(isFoldRegion);
 }
 
-/** One of `window.visualViewport`'s `segments`, read down to the four numbers {@link foldInputFromSegments} needs. */
+/** A segment from `window.visualViewport`'s `segments`, read down to the position and size {@link foldInputFromSegments} needs. */
 type OuroViewportSegment = { x: number; y: number; width: number; height: number };
 
 /** `visualViewport` with the Viewport Segments API's `segments`, which the DOM lib types don't carry yet. */
@@ -66,6 +66,8 @@ function readViewportSegments(): readonly OuroViewportSegment[] | undefined {
 
 function subscribeViewportSegments(onChange: () => void) {
   const viewport = /* istanbul ignore next @preserve -- server only, which has no window to subscribe on */ (
+    // Stryker disable next-line ConditionalExpression,StringLiteral: every test runs in a browser-like environment
+    // with window defined; only a real server, which has no window to subscribe on, takes the null branch.
     typeof window === "undefined" ? null : window.visualViewport
   );
   if (viewport === null) return () => {};
@@ -75,7 +77,9 @@ function subscribeViewportSegments(onChange: () => void) {
 
 /**
  * Reads `window.visualViewport.segments`, redrawing as a fold changes the segments the browser reports. `undefined`
- * where the browser reports none: no `visualViewport`, or one with no `segments` (most browsers today).
+ * where the browser reports none: without a `visualViewport`, or with one that lacks `segments`.
+ *
+ * @claim "where the browser reports none" registry/ouro/lib/ouro/use-fold-posture.test.tsx verify:testExists(registry/ouro/lib/ouro/use-fold-posture.test.tsx::useViewportSegments > reads undefined where the browser reports no segments) verify:testExists(registry/ouro/lib/ouro/use-fold-posture.test.tsx::useViewportSegments > reads undefined, and subscribes to nothing, where the browser has no visualViewport)
  *
  * @example
  * const segments = useViewportSegments();
@@ -92,9 +96,9 @@ function useViewportSegments(): readonly OuroViewportSegment[] | undefined {
 }
 
 /**
- * Turns two adjacent {@link OuroViewportSegment}s into the one fold region between them, in the same row (a
- * vertical, book-style fold) or the same column (a horizontal, tabletop-style fold). `null` for any other pair:
- * fewer or more than two segments, or two that don't share a row or column.
+ * Turns a pair of adjacent {@link OuroViewportSegment}s into the fold region between them, side by side (a
+ * vertical, book-style fold) or stacked (a horizontal, tabletop-style fold). `null` for anything else: a lone
+ * segment, more than a pair, or a pair that shares neither a row nor a column.
  */
 function foldRegionFromSegments(segments: readonly OuroViewportSegment[]): OuroFoldRegion | null {
   if (segments.length !== 2) return null;
@@ -118,15 +122,15 @@ function foldRegionFromSegments(segments: readonly OuroViewportSegment[]): OuroF
 
 /**
  * Turns `window.visualViewport.segments` into an {@link OuroFoldHostInput}, the same shape a native host reports:
- * `{ kind: "fullyOpen" }` with the one region between the two segments. `null` with fewer than two segments (no
- * fold to report, or the browser carries no Viewport Segments API at all), so {@link useFoldPosture} falls back
- * to the native host's report.
+ * `{ kind: "fullyOpen" }` with the region between the pair of segments. `null` without a pair to fold between
+ * (a lone segment, or a browser without the Viewport Segments API), so {@link useFoldPosture} falls back to the
+ * native host's report.
  *
  * @example
  * foldInputFromSegments([{ x: 0, y: 0, width: 400, height: 800 }, { x: 420, y: 0, width: 400, height: 800 }])
  */
 function foldInputFromSegments(segments: readonly OuroViewportSegment[] | undefined): OuroFoldHostInput | null {
-  if (segments === undefined || segments.length < 2) return null;
+  if (segments === undefined) return null;
   const region = foldRegionFromSegments(segments);
   return region === null ? null : { hinge: { kind: "fullyOpen" }, regions: [region] };
 }
@@ -173,6 +177,8 @@ function useFoldHostInput(): OuroFoldHostInput | null {
  * browser reports one; otherwise falls back to whatever a native host has reported over {@link FOLD_INPUT_EVENT}.
  * Reads as `{ kind: "single" }` until either reports a fold: a plain browser tab, with no segments and outside a
  * host bridge, stays in that posture.
+ *
+ * @claim "a plain browser tab, with no segments and outside a host bridge, stays in that posture" registry/ouro/lib/ouro/use-fold-posture.test.tsx verify:testExists(registry/ouro/lib/ouro/use-fold-posture.test.tsx::useFoldPosture > resolves to single with no host input)
  *
  * @example
  * const posture = useFoldPosture({ width: 600, height: 800 });

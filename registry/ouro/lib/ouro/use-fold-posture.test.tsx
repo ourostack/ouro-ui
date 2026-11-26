@@ -434,6 +434,35 @@ describe("foldInputFromSegments", () => {
       regions: [{ frame: { x: 400, y: 0, width: 20, height: 800 }, isActive: true }],
     });
   });
+
+  it("folds between two side-by-side segments that touch, off the top edge", () => {
+    expect(
+      foldInputFromSegments([
+        { x: 0, y: 100, width: 400, height: 600 },
+        { x: 400, y: 100, width: 400, height: 600 },
+      ]),
+    ).toEqual({ hinge: { kind: "fullyOpen" }, regions: [{ frame: { x: 400, y: 100, width: 0, height: 600 }, isActive: true }] });
+  });
+
+  it("folds between two stacked segments that touch, off the left edge", () => {
+    expect(
+      foldInputFromSegments([
+        { x: 100, y: 0, width: 600, height: 400 },
+        { x: 100, y: 400, width: 600, height: 400 },
+      ]),
+    ).toEqual({ hinge: { kind: "fullyOpen" }, regions: [{ frame: { x: 100, y: 400, width: 600, height: 0 }, isActive: true }] });
+  });
+
+  it.each([
+    ["side by side, a pixel apart in top edge", [{ x: 0, y: 0, width: 400, height: 800 }, { x: 420, y: 1, width: 400, height: 800 }]],
+    ["side by side, a pixel apart in height", [{ x: 0, y: 0, width: 400, height: 800 }, { x: 420, y: 0, width: 400, height: 799 }]],
+    ["side by side, overlapping", [{ x: 0, y: 0, width: 400, height: 800 }, { x: 300, y: 0, width: 400, height: 800 }]],
+    ["stacked, a pixel apart in left edge", [{ x: 0, y: 0, width: 800, height: 390 }, { x: 1, y: 410, width: 800, height: 390 }]],
+    ["stacked, a pixel apart in width", [{ x: 0, y: 0, width: 800, height: 390 }, { x: 0, y: 410, width: 799, height: 390 }]],
+    ["stacked, overlapping", [{ x: 0, y: 0, width: 800, height: 390 }, { x: 0, y: 300, width: 800, height: 390 }]],
+  ])("returns null for two segments %s", (_, segments) => {
+    expect(foldInputFromSegments(segments)).toBeNull();
+  });
 });
 
 describe("useViewportSegments", () => {
@@ -456,6 +485,20 @@ describe("useViewportSegments", () => {
     ]);
     await act(reportViewportResize);
     expect(container.textContent).toBe("2");
+    await act(async () => root.unmount());
+  });
+
+  it("reads undefined, and subscribes to nothing, where the browser has no visualViewport", async () => {
+    const own = Object.getOwnPropertyDescriptor(window, "visualViewport");
+    Object.defineProperty(window, "visualViewport", { configurable: true, get: () => null });
+    restoreSegments.push(() => {
+      if (own) Object.defineProperty(window, "visualViewport", own);
+      else delete (window as unknown as Record<string, unknown>).visualViewport;
+    });
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<SegmentsProbe />));
+    expect(container.textContent).toBe("none");
     await act(async () => root.unmount());
   });
 
