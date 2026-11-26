@@ -267,5 +267,47 @@ describe("capsule measure", () => {
       style.remove();
       el.remove();
     });
+    it("rescans nothing for an added link that is no stylesheet, or a load that is no link's", async () => {
+      force();
+      const stop = installSquircleCapsules(document);
+      const rules = vi.spyOn(CSSStyleSheet.prototype, "cssRules", "get");
+      const icon = document.createElement("link");
+      icon.rel = "icon";
+      const wrap = document.createElement("div");
+      wrap.append(icon.cloneNode());
+      document.body.append(wrap);
+      document.head.append(icon);
+      wrap.dispatchEvent(new Event("load"));
+      await settle();
+      expect(rules).not.toHaveBeenCalled();
+      stop();
+      icon.remove();
+      wrap.remove();
+    });
+
+    it("reads a stylesheet that arrives inside an added subtree", async () => {
+      force();
+      const stop = installSquircleCapsules(document);
+      const wrap = document.createElement("div");
+      wrap.innerHTML = '<style>.nested-sheet-cap { --sq-half: 0; width: 100px; height: 30px; display: block }</style><p class="nested-sheet-cap"></p>';
+      document.body.append(wrap);
+      const el = wrap.querySelector("p")!;
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      stop();
+      wrap.remove();
+    });
+
+    it("looks at an added node when no capsule selector exists", async () => {
+      force();
+      const iframe = document.createElement("iframe");
+      document.body.append(iframe);
+      const frameDoc = iframe.contentDocument!;
+      vi.spyOn(frameDoc.defaultView!.CSS, "supports").mockImplementation((prop: string) => prop === "clip-path");
+      const stop = installSquircleCapsules(frameDoc);
+      frameDoc.body.append(frameDoc.createElement("div"));
+      await settle();
+      stop();
+      iframe.remove();
+    });
   });
 });

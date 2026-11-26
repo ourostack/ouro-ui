@@ -70,7 +70,7 @@ function installSquircleCapsules(doc: Document): () => void {
     if (node.matches(selector)) observe(node);
     for (const el of Array.from(node.querySelectorAll(selector))) observe(el);
   };
-  const isSheet = (el: Element) => el.localName === "style" || (el.localName === "link" && /stylesheet/i.test(el.getAttribute("rel") ?? ""));
+  const isSheet = (el: Element) => el.localName === "style" || (el.localName === "link" && /stylesheet/i.test((el as HTMLLinkElement).rel));
   const holdsSheet = (el: Element) => isSheet(el) || el.querySelector("style,link[rel~=stylesheet i]") !== null;
   readSheets();
   watchAll();
@@ -94,7 +94,7 @@ function installSquircleCapsules(doc: Document): () => void {
   mutations.observe(doc.documentElement, { childList: true, subtree: true });
   // A linked sheet's rules are readable only once it has loaded.
   const onLoad = (event: Event) => {
-    if ((event.target as Element | null)?.localName !== "link") return;
+    if ((event.target as Element).localName !== "link") return;
     readSheets();
     watchAll();
   };
