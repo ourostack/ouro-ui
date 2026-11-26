@@ -1723,6 +1723,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // else (the reader's, a key's, or code going to a message) leaves it.
     // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
     const atBottom = () => Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || farthest() - scroller.scrollTop <= AT_BOTTOM;
+    // Jump to latest shows only with more than a line below the view: a list opened at a message among the last (an app's
+    // first unread) sits at its end without following it, and a jump there would only cover the newest message.
+    // Stryker disable next-line EqualityOperator: exactly a line from the end shows or hides the jump, a pixel either way.
+    const jumpOwed = () => !pinned.current && farthest() - scroller.scrollTop > LINE;
     // While the list follows its end, the scroll height keeps at least the content's height there, held by a 1px mark at that
     // depth (`floorRef`), so a change that shortens the content for a moment and lengthens it again (a picture's placeholder
     // swapped for the picture, with a layout read between) never lets the browser pull the scroll position up, which would
@@ -2093,6 +2097,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
         }
       } else owed = 0;
       keepAnchor();
+      // Something grew below while the reader is near the end: the jump shows once it is more than a line away. Only a
+      // change is set (the jump is drawn while its button is), as setting the same value here still costs a render.
+      if (jumpOwed() !== (jumpRef.current !== null)) setShowJump(jumpOwed());
     };
     const follow = new ResizeObserver(hold);
     follow.observe(content);
@@ -2169,7 +2176,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       release();
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
       if (farthest() === end) keepAnchor();
-      setShowJump(!pinned.current);
+      setShowJump(jumpOwed());
       // Back at the bottom: no room is owed any more.
       if (pinned.current) setJumpRoom(false);
     };

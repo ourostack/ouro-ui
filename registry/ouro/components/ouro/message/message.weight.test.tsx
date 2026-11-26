@@ -29,7 +29,8 @@ const variants: { variant: string; message: ReactElement; inList?: true; element
   {
     variant: "a message with its author's presence",
     message: <Message role="assistant" variant="chat" name="Ana" presence="available" presenceLabel="Available">Hello there</Message>,
-    elements: 12,
+    // The presence dot's mark is one more element now that it draws at every size (#3805).
+    elements: 13,
     components: 4,
   },
   { variant: "a message with a name tag", message: <Message role="assistant" variant="chat" name="Halden" nameTag="AI agent" time="9:41 AM">Hello there</Message>, elements: 13, components: 2 },

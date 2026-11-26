@@ -3609,6 +3609,10 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read # read this run's own job logs, to judge a failure against the quarantine before it reports (scripts/quarantine.mjs judge)
+      issues: read # read a quarantined test's issue state (open, not expired)
     strategy:
       fail-fast: false
       matrix:
@@ -3625,7 +3629,9 @@ jobs:
           pattern: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-*
           path: ${{ runner.temp }}/passed
           merge-multiple: true
-      - name: Every shard passed
+      - id: parts
+        name: Every shard passed
+        continue-on-error: true
         env:
           VARIANT: ${{ matrix.variant }}
           PRESET: ${{ matrix.preset }}
@@ -3654,6 +3660,52 @@ jobs:
             fi
           done
           exit "$failed"
+      # install-shard runs the shipped Vitest tests from the installed app's own copy
+      # (registry/ouro/<path> installs to src/<path>), so a quarantined test fails here under that
+      # copy's path; scripts/quarantine.mjs's names() already maps it back to the registry path it
+      # is quarantined under. Same reasoning as the ci job's judge steps below: a merge queue entry
+      # is dropped the instant this check reports failure, too late for quarantine-retry.yml's later
+      # retry to put it back, so this run judges its own failing jobs first.
+      - id: fetch-quarantine
+        name: Fetch the quarantine script and list by the contents API, with no checkout
+        if: steps.parts.outcome == 'failure'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          mkdir -p scripts .github/workflows
+          for path in .github/workflows/ci.yml scripts/quarantine.mjs scripts/ci-budget.mjs .github/quarantine.json; do
+            gh api -H "Accept: application/vnd.github.raw" "repos/$GH_REPO/contents/$path?ref=$SHA" > "$path"
+          done
+      - if: steps.parts.outcome == 'failure'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - id: judge
+        if: steps.parts.outcome == 'failure'
+        name: Quarantined failures alone are forgiven; anything else still fails
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHARDS: ${{ needs.install-shard.result }}
+          CHECKS: ${{ needs.install-checks.result }}
+        # judgeOwnRun treats a listed id with no failing instance of its own as a problem, not as
+        # nothing to explain (ourostack/ouro-ui#3827's own "ci" job accepts the same for its own
+        # fixed id list), so only the id whose result actually isn't success is named here.
+        run: |
+          ids=()
+          if [ "$SHARDS" != success ]; then ids+=(install-shard); fi
+          if [ "$CHECKS" != success ]; then ids+=(install-checks); fi
+          node scripts/quarantine.mjs judge "$GITHUB_RUN_ID" "${ids[@]}"
+      - name: Every shard passed, or was forgiven as quarantined
+        if: always()
+        run: |
+          if [ "${{ steps.parts.outcome }}" = success ]; then exit 0; fi
+          if [ "${{ steps.judge.outcome }}" = success ]; then exit 0; fi
+          exit 1
   install:
     # Installs every item into a fresh app and runs its type check and build
     # (scripts/install-test.sh). namespace: `shadcn add @ouro/dialog` from the registry Pages
