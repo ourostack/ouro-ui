@@ -2882,6 +2882,7 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "incumbent.yml": "  group: incumbent-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "first-run-sso.yml": "  group: first-run-sso-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "chromium-floor-smoke.yml": "  group: chromium-floor-smoke-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "lcd-text-windows.yml": "  group: lcd-text-windows-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
   };
   for (const { file, text } of workflows) {
     const on = text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
@@ -4003,4 +4004,19 @@ test("rerun-guard.yml starts on CI going in_progress (requested never fires for 
   assert.match(guard, /RUN_ATTEMPT: \$\{\{ github\.event\.workflow_run\.run_attempt \}\}/);
   assert.match(guard, /RUN_URL: \$\{\{ github\.event\.workflow_run\.html_url \}\}/);
   assert.match(guard, /RUN_ACTOR: \$\{\{ github\.event\.workflow_run\.triggering_actor\.login \}\}/);
+});
+
+test("the LCD-text job runs the scrollers' surface tests on Windows Chromium with LCD text on at scale 1, report-only and outside the required ci check", () => {
+  const text = readFileSync(join(root, ".github/workflows/lcd-text-windows.yml"), "utf8");
+  assert.match(text, /^ {4}runs-on: windows-latest$/m);
+  assert.match(text, /^ {4}continue-on-error: true$/m);
+  assert.match(text, /vitest run --config scripts\/lcd-text\/vitest\.config\.ts/);
+  const required = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
+  assert.ok(!JSON.stringify(required).includes("LCD text on Windows"));
+  const config = readFileSync(join(root, "scripts/lcd-text/vitest.config.ts"), "utf8");
+  assert.match(config, /"--enable-lcd-text", "--force-device-scale-factor=1"/);
+  assert.match(config, /\{scroll-area,message\}\/\*\.surface\.test\.tsx/);
+  for (const file of ["scroll-area/scroll-area", "message/message-list"]) {
+    assert.match(readFileSync(join(root, `registry/ouro/components/ouro/${file}.surface.test.tsx`), "utf8"), /commands\.compositedLayers\(\)/);
+  }
 });
