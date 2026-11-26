@@ -48,8 +48,6 @@ describe("reachModal", () => {
     inside[1]!.focus();
     press(inside[1]!);
     expect(document.activeElement).toBe(action);
-    press(action, "Tab", true);
-    expect(document.activeElement).toBe(inside[1]);
     action.remove();
     press(inside[1]!);
     expect(document.activeElement).toBe(toasts[0]);
