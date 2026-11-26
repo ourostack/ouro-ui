@@ -1,0 +1,1 @@
+- Changed: a `CodeBlock` inside a `Message` bubble is one quiet tonal block, with no border, caption band or hairline; its copy button floats at the top corner on hover and focus (always on touch), and its language stays for screen readers.
