@@ -318,9 +318,76 @@
         "Tests/OuroMDTests/EditorWebViewTests.swift",
         "Tests/OuroMDTests/NativeAccessibilityPreferenceTests.swift"
       ]
+    },
+    "\"import OuroAX\"": {
+      "commit": "4d35439fb7ff66cbfd9d98874130c0af568e248b",
+      "at": "2026-11-26T00:36:20.727Z",
+      "total": 6,
+      "paths": [
+        "Sources/OuroMD/DocumentActionHandlers.swift",
+        "Sources/OuroMD/DocumentActionCommands.swift",
+        "Sources/OuroMD/MCPServer.swift",
+        "Sources/OuroMD/DocumentActions.swift",
+        "Sources/OuroMD/DocumentIntents.swift",
+        "Tests/OuroMDTests/DocumentIntentsTests.swift"
+      ]
     }
   },
   "ourostack/gatefold": {
+    "OuroButton": {
+      "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
+      "at": "2026-11-26T00:36:40.814Z",
+      "total": 2,
+      "paths": [
+        "Gatefold/Design/OuroTheme+Gatefold.swift",
+        "Gatefold/Library/LibraryView.swift"
+      ]
+    },
+    "OuroToast": {
+      "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
+      "at": "2026-11-26T00:39:11.209Z",
+      "total": 0,
+      "paths": []
+    },
+    "OuroBanner": {
+      "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
+      "at": "2026-11-26T00:39:17.800Z",
+      "total": 3,
+      "paths": [
+        "Gatefold/Design/OuroTheme+Gatefold.swift",
+        "GatefoldUITests/SyncSafetyUITests.swift",
+        "Gatefold/Library/LibraryView.swift"
+      ]
+    },
+    "OuroSheet": {
+      "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
+      "at": "2026-11-26T00:39:24.231Z",
+      "total": 0,
+      "paths": []
+    },
+    "OuroEmptyState": {
+      "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
+      "at": "2026-11-26T00:39:50.262Z",
+      "total": 1,
+      "paths": [
+        "Gatefold/Library/LibraryView.swift"
+      ]
+    },
+    "OuroHX": {
+      "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
+      "at": "2026-11-26T00:39:56.810Z",
+      "total": 8,
+      "paths": [
+        "GatefoldTests/OuroThemeTests.swift",
+        "Gatefold/Design/OuroTheme+Gatefold.swift",
+        "project.yml",
+        "Gatefold/App/GatefoldApp.swift",
+        "Gatefold/Reader/ReaderChrome.swift",
+        "Gatefold/Reader/SettingsPanel.swift",
+        "Gatefold/Library/LibraryView.swift",
+        "GatefoldUITests/FeelReaderUITests.swift"
+      ]
+    },
     "\"import OuroAX\"": {
       "commit": "77175d24e3eee270377aa1bf425cd181613f4b73",
       "at": "2026-11-25T01:25:50.335Z",
@@ -328,22 +395,38 @@
       "paths": []
     }
   },
-  "ourostack/ouroboros": {
+  "ourostack/desk": {
     "defineCommand": {
-      "commit": "cce1d15855ac1295c2b66bd1e1e23e28f6d43cd2",
-      "at": "2026-11-25T23:28:30.647Z",
-      "total": 10,
+      "commit": "2dd33a3c1014be3e363b6c9f923b6e1b013950e6",
+      "at": "2026-11-26T00:48:22.068Z",
+      "total": 26,
       "paths": [
-        "src/eval/interviews/guest/ax/ax-command.ts",
-        "lib/ouro-ui/registry/ouro/ax/ax-command.ts",
-        "lib/ouro-ui/registry/ouro/ax/xray.kit.mts",
-        "lib/ouro-ui/registry/ouro/ax/flows.kit.mts",
-        "lib/ouro-ui/registry/ouro/ax/example-cli.ts",
-        "src/eval/interviews/guest/arms.ts",
-        "lib/ouro-ui/registry/ouro/ax/lint.ts",
-        "lib/ouro-ui/registry/ouro/ax/flows.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "lib/ouro-ui/registry/ouro/ax/xray.ts"
+        "plugins/desk/mcp/src/lib/ouro-ui/registry/ouro/ax/ax-command.ts",
+        "plugins/desk/mcp/scripts/lfs.js",
+        "ax/walkers/cli.mts",
+        "plugins/desk/mcp/src/runtime/runtime-deps-cli.js",
+        "plugins/desk/mcp/scripts/crew.js",
+        "plugins/desk/mcp/scripts/resolve-desk-root.js",
+        "plugins/desk/mcp/src/lib/ouro-ui/registry/ouro/ax/xray.kit.mts",
+        "plugins/desk/mcp/scripts/private-view.js",
+        "plugins/desk/mcp/src/util/finish-commit.js",
+        "plugins/desk/mcp/src/desk/tidy.js",
+        "plugins/desk/mcp/src/runtime/drains-cli.js",
+        "plugins/desk/mcp/scripts/factory.js",
+        "plugins/desk/mcp/src/runtime/sessions-cli.js",
+        "plugins/desk/mcp/src/runtime/session-sync.js",
+        "plugins/desk/mcp/src/runtime/boot.js",
+        "plugins/desk/mcp/scripts/local-recovery.js",
+        "plugins/desk/mcp/src/factory/desk-problem-file.js",
+        "plugins/desk/mcp/src/runtime/sync-worker.js",
+        "plugins/desk/mcp/src/runtime/pending-migrations.js",
+        "plugins/desk/mcp/src/runtime/session-retention.js",
+        "plugins/desk/mcp/src/lib/ouro-actions/ouro-actions.mts",
+        "plugins/desk/mcp/src/lib/ouro-ui/registry/ouro/ax/xray.ts",
+        "tests/ax/fixtures/cli/plug/src/lib/ouro-ui/ax-command.ts",
+        "tests/ax/fixtures/cli/dup/a.js",
+        "tests/ax/fixtures/cli/plug/src/one-cli.js",
+        "tests/ax/fixtures/cli/plug/src/tasks-cli.js"
       ]
     }
   },
@@ -734,27 +817,6 @@
         "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--open--large-company.json",
         "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gemini-4-carbon--listed--product-team.json",
         "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--open--product-team.json"
-      ]
-    }
-  },
-  "ourostack/housesitter": {
-    "defineCommand": {
-      "commit": "43aadd23787d3864d95377594000835cc0ec6688",
-      "at": "2026-11-25T21:26:41.356Z",
-      "total": 12,
-      "paths": [
-        "lib/ouro-ui/registry/ouro/ax/ax-command.ts",
-        "ax/walkers/cli.mts",
-        "lib/ouro-ui/registry/ouro/ax/xray.kit.mts",
-        "lib/ouro-ui/registry/ouro/ax/flows.kit.mts",
-        "lib/ouro-ui/registry/ouro/ax/example-cli.ts",
-        "src/cli-table.mjs",
-        "lib/ouro-ui/registry/ouro/ax/lint.ts",
-        "lib/ouro-ui/registry/ouro/ax/flows.ts",
-        "tools/ouro-actions/ouro-actions.mts",
-        "lib/ouro-ui/registry/ouro/ax/xray.ts",
-        "test/ax/fixtures/cli/table.mjs",
-        "test/ax/cli.node-test.mts"
       ]
     }
   }
