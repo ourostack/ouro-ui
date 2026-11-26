@@ -1,1 +1,1 @@
-- New: Ouro check writes `scanned` in `report.json`: the pages, sizes and themes swept, the visits made, how many reached first content, and the elements and rule checks read, so a report with no findings can be told from a run that scanned nothing.
+- New: Ouro check writes `scanned` in `report.json`: the pages, sizes and themes swept, the visits made, how many reached first content, and the elements and rule checks read.
