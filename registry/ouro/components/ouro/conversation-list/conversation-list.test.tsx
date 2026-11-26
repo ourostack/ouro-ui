@@ -1393,20 +1393,22 @@ describe("ConversationList section menu", () => {
 });
 
 describe("ConversationList in a bordered container, under forced colours", () => {
-  it("drops the container's own edge, since the list already draws its own frame (#3180)", async () => {
+  it("rules each row and draws no frame, so the container's own edge is not doubled (#3764)", async () => {
     try {
       const { host } = await render(
-        <div style={{ border: "1px solid black" }} className="forced-colors:border-0!" data-test-surface="">
+        <div style={{ border: "1px solid black" }} data-test-surface="">
           <ConversationList label="Chats" items={items} onSelect={() => {}} />
         </div>,
       );
       const surface = host.querySelector<HTMLElement>("[data-test-surface]")!;
       const list = host.querySelector<HTMLElement>('[data-ouro="conversation-list"]')!;
+      const row = list.querySelector<HTMLElement>("button")!;
       await commands.emulateMedia({ forcedColors: "active" });
       expect(matchMedia("(forced-colors: active)").matches).toBe(true);
-      // The container's own edge is gone, so only the list's own frame remains: it is not doubled.
-      expect(parseFloat(getComputedStyle(surface).borderTopWidth)).toBe(0);
-      expect(parseFloat(getComputedStyle(list).borderTopWidth)).toBeGreaterThan(0);
+      expect(parseFloat(getComputedStyle(surface).borderTopWidth)).toBe(1);
+      expect(parseFloat(getComputedStyle(list).borderTopWidth)).toBe(0);
+      expect(parseFloat(getComputedStyle(row).borderTopWidth)).toBe(0);
+      expect(parseFloat(getComputedStyle(row).borderBottomWidth)).toBeGreaterThan(0);
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
     }
