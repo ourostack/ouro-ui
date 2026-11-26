@@ -99,6 +99,34 @@ describe("Composer resizable edge", () => {
     expect(document.activeElement).toBe(view.edge);
   });
 
+  it("is named 'Resize the message box' unless the app names it", async () => {
+    const view = await render(<Composer label="Reply" resizable onSend={() => {}} />);
+    expect(view.edge.getAttribute("aria-label")).toBe("Resize the message box");
+  });
+
+  it("reads its floor from rows and its ceiling from maxRows, or from 60% of the window when that is taller", async () => {
+    const tall = await render(<Composer label="Reply" resizable resizeLabel={label} rows={2} maxRows={50} onSend={() => {}} />);
+    tall.edge.focus();
+    const l = line(tall.textarea);
+    const o = offset(tall.textarea);
+    await expect.poll(() => tall.edge.getAttribute("aria-valuemin")).toBe(String(Math.round(2 * l + o)));
+    expect(tall.edge.getAttribute("aria-valuemax")).toBe(String(Math.round(50 * l + o)));
+    const short = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} maxRows={1} onSend={() => {}} />);
+    short.edge.focus();
+    await expect.poll(() => short.edge.getAttribute("aria-valuemax")).toBe(String(Math.floor(window.innerHeight * 0.6)));
+  });
+
+  it("leaves a controlled height to the app: a key reports the new height and the box stays until the app sets it", async () => {
+    const onHeightChange = vi.fn();
+    const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} height={100} onHeightChange={onHeightChange} onSend={() => {}} />);
+    const before = height(view.textarea);
+    view.edge.focus();
+    await userEvent.keyboard("{ArrowUp}");
+    await expect.poll(() => onHeightChange.mock.calls.length).toBe(1);
+    expect(onHeightChange.mock.calls[0][0]).toBeGreaterThan(before - 1);
+    expect(height(view.textarea)).toBeCloseTo(before, 0);
+  });
+
   it("reports null when released at its smallest", async () => {
     const onHeightChange = vi.fn();
     const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} defaultHeight={80} onHeightChange={onHeightChange} onSend={() => {}} />);
