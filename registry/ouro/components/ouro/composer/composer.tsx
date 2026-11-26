@@ -1,7 +1,7 @@
 "use client";
 
 import "@/registry/ouro/lib/ouro/last-input";
-import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ClipboardEvent, FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { RichEditor, RichEditorHandle } from "@/registry/ouro/components/ouro/composer/composer-parts";
@@ -482,6 +482,10 @@ function ownAttrsOf(rest: object): Record<string, unknown> {
   return picked;
 }
 
+const subscribeNothing = () => () => {};
+const onClient = () => true;
+const onServer = () => false;
+
 /**
  * A chat message box: text that grows from one line as the person writes, a send button, and
  * room for the rest of a composer, in one frame with one focus outline. Enter sends and
@@ -660,12 +664,13 @@ export function Composer(props: ComposerProps): JSX.Element {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const setRef = useMergedRef(ref, textareaRef);
   const richRef = useRef<RichEditorHandle | null>(null);
-  // A page that already loaded the editor's module (an earlier Composer on it) draws this mount with the editor from its very
-  // first render, with no plain box and no swap: richModule is read only here, during this mount's own first render, so its
-  // state can never differ between the server (which never runs this) and the client's own first render, and hydration still
-  // matches. A cold load, or a later format change, is the effect below's job.
+  // A page that already loaded the editor's module (an earlier Composer on it) draws a client-only mount with the editor from
+  // its very first render, with no plain box and no swap, so it takes focus once. A mount that hydrates server HTML draws the
+  // plain box the server drew (the server snapshot is false), and the effect below swaps it, so hydration matches. A cold load,
+  // or a later format change, is the effect below's job too.
+  const clientRender = useSyncExternalStore(subscribeNothing, onClient, onServer);
   const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>(() =>
-    formatMode === "rich" && richModule ? { Editor: richModule.RichEditor, focus: rest.autoFocus === true } : undefined,
+    clientRender && formatMode === "rich" && richModule ? { Editor: richModule.RichEditor, focus: rest.autoFocus === true } : undefined,
   );
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,BlockStatement: loading the editor in plain mode changes nothing a person or a test can read, as richOn below also needs the rich format.

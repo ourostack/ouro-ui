@@ -1,6 +1,6 @@
 import { createRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
@@ -66,6 +66,26 @@ describe("Composer rich mode", () => {
     expect(editor.getAttribute("aria-label")).toBe("Message Mia");
     expect(editor.isContentEditable).toBe(true);
     expect(host.textContent).toContain("Write a message");
+  });
+
+  it("hydrates server HTML with the plain box, then draws the editor, though the page has already loaded its module", async () => {
+    // A render anywhere on the page warms the module cache the state initializer reads from.
+    await render(rich());
+    const node = rich({ placeholder: "Write a message" });
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(node);
+    document.body.append(host);
+    mounted.push(host);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    await expect.poll(() => host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
   });
 
   it("draws the editor directly, with no plain box first, once a page has already loaded its module", async () => {
