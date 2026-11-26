@@ -1855,6 +1855,15 @@ describe("first focus after the last press, with and without a trigger", () => {
     await expect.poll(() => document.activeElement).toBe(name());
   });
 
+  it("focuses a phone sheet itself after a tap, so the keyboard stays down, and its first field after a mouse click", async () => {
+    await page.viewport(390, 844);
+    const element = await openWithTrigger("touch");
+    await expect.poll(() => document.activeElement).toBe(element);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    await openWithTrigger("mouse");
+    await expect.poll(() => document.activeElement).toBe(name());
+  });
+
   it("focuses the popup after a tap opens a dialog with a trigger", async () => {
     const element = await openWithTrigger("touch");
     await expect.poll(() => document.activeElement).toBe(element);
