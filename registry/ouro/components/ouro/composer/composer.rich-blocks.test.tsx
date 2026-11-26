@@ -107,6 +107,27 @@ describe("Composer rich blocks", () => {
     await expect.poll(() => seen.at(-1)).toBe("- a\n  b\n- c\n\n1. x\n   y!");
   });
 
+  it("indents a nested item's next line four spaces a level, and keeps a paragraph after a list apart from it", async () => {
+    const seen: string[] = [];
+    const nested = await render(rich({ expanded: true, defaultValue: "- a\n    - b\n      c", onValueChange: (value) => void seen.push(value) }));
+    expect(nested.querySelectorAll("li > br")).toHaveLength(1);
+    nested.focus();
+    await userEvent.keyboard("!");
+    await expect.poll(() => seen.at(-1)).toBe("- a\n    - b\n      c!");
+  });
+
+  it("reads a line of words straight after a list as its own paragraph, and writes it after a blank line", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ defaultValue: "- a\n\nb c", onValueChange: (value) => void seen.push(value) }));
+    expect(editor.querySelectorAll("li > br")).toHaveLength(0);
+    editor.focus();
+    await userEvent.keyboard("!");
+    await expect.poll(() => seen.at(-1)).toBe("- a\n\nb c!");
+    const joined = await render(rich({ defaultValue: "- a\nb c" }));
+    expect(joined.querySelectorAll("li > br")).toHaveLength(0);
+    expect(joined.querySelectorAll("li")).toHaveLength(1);
+  });
+
   it("keeps a blank line between a list item and a line after it as a paragraph", async () => {
     const editor = await render(rich({ defaultValue: "- a\n\n  b" }));
     expect(editor.querySelectorAll("ul > li > br")).toHaveLength(0);
