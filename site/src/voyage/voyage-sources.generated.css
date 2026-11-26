@@ -67,6 +67,7 @@
 @source not "../../../registry/ouro/census";
 @source not "../../../registry/ouro/check";
 @source not "../../../registry/ouro/e2e";
+@source not "../../../registry/ouro/feel";
 @source not "../../../registry/ouro/images";
 @source not "../../../registry/ouro/patterns";
 @source not "../../../registry/ouro/source-rules";
@@ -98,9 +99,11 @@
 @source not "../docs/demos";
 @source not "../docs/demos.tsx";
 @source not "../docs/markdown.tsx";
+@source not "../docs/pages.json";
 @source not "../docs/pages.ts";
 @source not "../docs/ship-components.json";
 @source not "../docs/ships.ts";
+@source not "../docs/sources.json";
 @source not "../docs/spoonjoy.json";
 @source not "../docs/spot-art.tsx";
 @source not "../docs/tray-art.tsx";
