@@ -223,7 +223,12 @@ const LazyProofPanel = lazy(() => loadNavPanels().then((module) => ({ default: m
 
 /** Marks a panel still loading, which the phone menu's scroll to the current page waits out (site-menu.tsx). */
 function Pending({ children }: { children?: ReactNode }): JSX.Element {
-  return <div data-nav-pending="" className="contents">{children}</div>;
+  return (
+    <div data-nav-pending="" className="contents">
+      <style>{'[data-ouro="navigation-menu-popup"]:has([data-nav-pending]){opacity:0}'}</style>
+      {children}
+    </div>
+  );
 }
 
 /** The four platforms side by side, each with the same four pages: two columns on a phone, four from 640px. */
@@ -265,7 +270,7 @@ const LazyDocsPanel = lazy(() => loadDocsPanel().then((module) => ({ default: mo
 export function DocsPanel({ current, compact = false }: { current: string; compact?: boolean }): JSX.Element {
   if (docsPanel) return <docsPanel.DocsPanel current={current} compact={compact} />;
   return (
-    <Suspense fallback={compact ? null : <Head page={NAV_DOCS} hint={NAV_DOCS.hint} current={current} />}>
+    <Suspense fallback={<Pending>{compact ? null : <Head page={NAV_DOCS} hint={NAV_DOCS.hint} current={current} />}</Pending>}>
       <LazyDocsPanel current={current} compact={compact} />
     </Suspense>
   );
