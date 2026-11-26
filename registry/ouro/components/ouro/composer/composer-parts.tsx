@@ -3,11 +3,11 @@
 import { CodeNode } from "@lexical/code-core";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
 import { $createLinkNode, $isLinkNode, $toggleLink, LinkNode } from "@lexical/link";
-import { ListItemNode, ListNode, registerList } from "@lexical/list";
-import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type TextMatchTransformer, type Transformer } from "@lexical/markdown";
+import { $isListItemNode, $isListNode, ListItemNode, ListNode, registerList } from "@lexical/list";
+import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type ElementTransformer, type TextFormatTransformer, type TextMatchTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
-import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, $getState, $setState, createState, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
+import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isParagraphNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, $getState, $setState, createState, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
 import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
@@ -62,6 +62,8 @@ interface RichEditorProps {
   "data-slot": string;
   /** Sees keys before the editor does, so Enter can send and a mark's key can format. */
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+  /** Enter sends, so Shift+Enter goes on with the block; otherwise Shift+Enter is a line break, as in a chat app's long-compose box. */
+  enterSends: boolean;
   /** Focus the editor when it mounts, with the caret at the end: the person was in the plain box it replaces. */
   autoFocus: boolean;
   /** The form field name the Markdown submits under. */
@@ -152,8 +154,38 @@ function $restoreMarkMemory(root: ElementNode) {
 // Reads Markdown into the editor the way every other call site here does, plus the marker pass above and below it, so a star-spelled italic or an underscore-spelled bold survives the round trip.
 function $fromMarkdown(markdown: string, transformersArg: Transformer[], node?: ElementNode, shouldPreserveNewLines?: boolean) {
   $convertFromMarkdownString(markPreservingSyntax(markdown), transformersArg, node, shouldPreserveNewLines);
+  $joinItemLines(node ?? $getRoot());
   $restoreMarkMemory(node ?? $getRoot());
 }
+
+// A line indented under a list item, straight after it, is the item's next line: a line break in it, as `keepItemLines` writes one.
+function $joinItemLines(root: ElementNode) {
+  for (const node of root.getChildren()) {
+    const list = node.getPreviousSibling();
+    if (!$isParagraphNode(node) || !$isListNode(list)) continue;
+    const first = node.getFirstChild();
+    if (!$isTextNode(first) || !/^\s/.test(first.getTextContent())) continue;
+    first.setTextContent(first.getTextContent().trimStart());
+    $findMatchingParent(list.getLastDescendant()!, $isListItemNode)!.append($createLineBreakNode(), ...node.getChildren());
+    node.remove();
+  }
+}
+
+// A line break in a list item goes out as the item's next line, indented under its words, so a reader of Markdown keeps it in the item.
+const keepItemLines = (list: ElementTransformer): ElementTransformer => ({
+  ...list,
+  export: (node, exportChildren, selection) =>
+    list.export(
+      node,
+      (item) => {
+        // Where Lexical writes the item's words: four spaces a level, after its marker.
+        const depth = item.getParents().filter($isListNode).length - 1;
+        const marker = (item.getParent() as ListNode).getListType() === "number" ? `${(item as ListItemNode).getValue()}. ` : "- ";
+        return exportChildren(item).replaceAll("\n", `\n${" ".repeat(depth * 4 + marker.length)}`);
+      },
+      selection,
+    ),
+});
 
 // `*text*` reads as italic like `_text_` does, but writes back out with the star it came in with, never the array's underscore default.
 const ITALIC_STAR_MARK: TextMatchTransformer = {
@@ -253,7 +285,7 @@ function $insertWithEmoji(selection: RangeSelection, text: string, catalogue: Em
   }
 }
 
-const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK, ITALIC_STAR_MARK, BOLD_UNDERSCORE_MARK];
+const transformers: Transformer[] = [keepItemLines(UNORDERED_LIST), keepItemLines(ORDERED_LIST), QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK, ITALIC_STAR_MARK, BOLD_UNDERSCORE_MARK];
 
 const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
 
@@ -302,7 +334,8 @@ function separateBlocks(markdown: string): string {
     const line = marked.replaceAll(CARET, "");
     const fence = line.startsWith("```");
     // Stryker disable next-line StringLiteral: a fence line is told apart by `fence`, not by its kind, so the kind's name is never compared.
-    const kind = fence ? "fence" : lineKind(line);
+    // A line indented under a list item is the item's own next line.
+    const kind = fence ? "fence" : before === "list" && /^\s/.test(line) ? "list" : lineKind(line);
     // The line that closes a fence is a fence too; one inside it is the code's.
     if (!fenced && line !== "" && before !== "" && (kind !== before || fence)) out.push("");
     if (fence) fenced = !fenced;
@@ -616,7 +649,7 @@ function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, enterSends, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -675,9 +708,11 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   const emoji = useRef(catalogue);
   const readingRef = useRef<Transformer[]>(transformers);
   const pasting = useRef(pasteText);
+  const sendsOnEnter = useRef(enterSends);
   useEffect(() => {
     emoji.current = catalogue;
     pasting.current = pasteText;
+    sendsOnEnter.current = enterSends;
   });
   // ⌘⇧V was pressed, so the paste that follows takes the clipboard's text alone.
   const plainPaste = useRef(false);
@@ -769,8 +804,8 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         },
         COMMAND_PRIORITY_HIGH,
       ),
-      // Enter sends, so Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, a plain line a new paragraph, and a quote stays on one line until an empty one leaves it.
-      editor.registerCommand(INSERT_LINE_BREAK_COMMAND, () => leaveOrContinueBlock(editor), COMMAND_PRIORITY_HIGH),
+      // Where Enter sends, Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, a plain line a new paragraph, and a quote stays on one line until an empty one leaves it. Where it doesn't, Enter goes on with the block and Shift+Enter is a line break.
+      editor.registerCommand(INSERT_LINE_BREAK_COMMAND, () => sendsOnEnter.current && leaveOrContinueBlock(editor), COMMAND_PRIORITY_HIGH),
       // Escape is not a request to leave the box: Lexical would blur it, which drops a keyboard person's place.
       editor.registerCommand(KEY_ESCAPE_COMMAND, () => true, COMMAND_PRIORITY_HIGH),
       // A caret is placed only when the box takes focus, so that loading it never moves focus.
