@@ -34,6 +34,7 @@ jobs:
             .github/workflows/ci.yml
             scripts/quarantine.mjs
             scripts/ci-budget.mjs
+            scripts/run-jobs.mjs
             .github/quarantine.json
           ref: ${{ github.event.workflow_run.head_sha }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

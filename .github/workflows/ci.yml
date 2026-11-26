@@ -4139,6 +4139,7 @@ jobs:
           sparse-checkout: |
             .github/workflows/ci.yml
             scripts/ci-budget.mjs
+            scripts/run-jobs.mjs
             scripts/waivers.mjs
             site/e2e/waivers.ts
           sparse-checkout-cone-mode: false
@@ -4157,6 +4158,7 @@ jobs:
           sparse-checkout: |
             .github/workflows/ci.yml
             scripts/ci-budget.mjs
+            scripts/run-jobs.mjs
             scripts/waivers.mjs
             site/e2e/waivers.ts
           sparse-checkout-cone-mode: false
@@ -4175,6 +4177,7 @@ jobs:
           sparse-checkout: |
             .github/workflows/ci.yml
             scripts/ci-budget.mjs
+            scripts/run-jobs.mjs
             scripts/waivers.mjs
             site/e2e/waivers.ts
           sparse-checkout-cone-mode: false

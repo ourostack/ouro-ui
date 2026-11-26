@@ -38,7 +38,7 @@ required=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" --jq '[.[] | se
 [ -n "$required" ] || { echo "::error::Main's rules require no check."; exit 1; }
 jobs=
 for run in "$@"; do
-  jobs+=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/jobs?per_page=100" --paginate --jq '.jobs[] | [.name, .conclusion] | @tsv') || { echo "::error::Could not read the jobs of run $run."; exit 1; }
+  jobs+=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/jobs?per_page=30" --paginate --jq '.jobs[] | [.name, .conclusion] | @tsv') || { echo "::error::Could not read the jobs of run $run."; exit 1; }
   jobs+=$'\n'
 done
 failed=()
