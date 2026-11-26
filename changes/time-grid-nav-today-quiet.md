@@ -1,1 +1,0 @@
-- TimeGridNav: Today draws the quiet outline of a secondary button, so it no longer shows a tinted border beside the arrows.
