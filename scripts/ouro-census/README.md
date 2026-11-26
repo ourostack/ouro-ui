@@ -41,7 +41,7 @@ In a pull request, pass the base commit's copies of the config and baseline: `no
 
 ## Vendored code
 
-A product that copies another product's code into its source folder, such as the Ouro AX kit in `src/ouro-ax`, names that folder under `skip` in the `argv-entries` and `tool-schemas` sources. Those doors belong to the product the code came from, and its own census counts them. A skip proves itself: every source file in the folder must be pinned at its current sha256 in the repository's `upstream-sources.lock.json`, the lock Ouro Current keeps, so a product can't skip its own code. Each skipped folder appears in the report under `excluded` with the category `vendored`, so the census still shows what it left out. A skip that names no folder under the source, or a folder holding a file the lock doesn't pin, is a census error.[^vendored]
+A product that copies another product's code into its source folder, such as the Ouro AX kit in `src/ouro-ax`, names that folder under `skip` in the `argv-entries` and `tool-schemas` sources. Those doors belong to the product the code came from, and its own census counts them. A skip proves itself: every source file in the folder must be pinned at its current sha256 in the repository's `upstream-sources.lock.json`, the lock Ouro Current keeps, so a product can't skip its own code.[^vendored] Each skipped folder appears in the report under `excluded` with the category `vendored`, so the census still shows what it left out.[^vendored] A skip that names no folder under the source, or a folder holding a file the lock doesn't pin, is a census error.[^vendored]
 
 ```json
 {"walker": "argv-entries", "module": "dist", "source": "src", "skip": ["src/ouro-ax"]}
