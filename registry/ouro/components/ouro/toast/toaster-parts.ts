@@ -1,3 +1,5 @@
+"use client";
+
 import { reachable, tabbable } from "@/registry/ouro/lib/ouro/focus-handoff";
 
 const OPEN_DIALOG = '[role="dialog"][data-open]:not([data-ouro="toast"])';
