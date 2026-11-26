@@ -622,6 +622,8 @@ function InspectorLayer({
     const observed = new Set<Element>();
     const resizes = new ResizeObserver(() => schedule());
     const update = () => {
+      // Whichever of the frame and the backstop runs first cancels the other: a frame left pending outlives its id here.
+      cancelAnimationFrame(frame);
       frame = 0;
       clearTimeout(backstop);
       backstop = 0;

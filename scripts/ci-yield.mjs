@@ -28,7 +28,9 @@ import { execFileSync } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { rateLimited, requestsLeft } from "./ci-fail-fast.mjs";
+import { JOBS_PER_PAGE } from "./run-jobs.mjs";
 
+export { JOBS_PER_PAGE };
 /** How often it reads the queue: once a minute. */
 export const POLL_MS = 60_000;
 /** The longest it holds a pull request's run back; then the run starts anyway. */
@@ -84,7 +86,7 @@ export function openRuns(gh, repo) {
     .map((run) => {
       const jobs = [];
       for (let page = 1; ; page += 1) {
-        const body = read(gh, `repos/${repo}/actions/runs/${run.id}/jobs?per_page=100&page=${page}`);
+        const body = read(gh, `repos/${repo}/actions/runs/${run.id}/jobs?per_page=${JOBS_PER_PAGE}&page=${page}`);
         jobs.push(...body.jobs);
         if (jobs.length >= body.total_count || body.jobs.length === 0) return { run, jobs };
       }
@@ -97,10 +99,12 @@ export function openRuns(gh, repo) {
  */
 export function ownQueueWait(gh, repo, runId, runner) {
   if (!runId || !runner) return null;
-  const { jobs } = read(gh, `repos/${repo}/actions/runs/${runId}/jobs?per_page=100`);
-  const own = jobs.find((job) => job.runner_name === runner && job.status === "in_progress");
-  if (!own?.created_at || !own.started_at) return null;
-  return Date.parse(own.started_at) - Date.parse(own.created_at);
+  for (let page = 1; ; page += 1) {
+    const { jobs, total_count: total } = read(gh, `repos/${repo}/actions/runs/${runId}/jobs?per_page=${JOBS_PER_PAGE}&page=${page}`);
+    const own = jobs.find((job) => job.runner_name === runner && job.status === "in_progress");
+    if (own) return own.created_at && own.started_at ? Date.parse(own.started_at) - Date.parse(own.created_at) : null;
+    if (page * JOBS_PER_PAGE >= total || jobs.length === 0) return null;
+  }
 }
 
 /** The first line of an error's message, for a warning. */

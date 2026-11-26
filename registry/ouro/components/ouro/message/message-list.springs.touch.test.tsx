@@ -5,6 +5,7 @@ import { commands } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 
 // Runs in the `touch` project: Chromium as a 390x844 phone with a coarse pointer.
 
@@ -91,4 +92,49 @@ it("follows the whole of a fling through a long frame, and settles only once it 
   scroller.scrollTop -= 200;
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   for (const message of messages()) expect(message.style.transform).toBe("");
+});
+
+it("still follows a late scroll event after scrollend reset `scrolling`, without `going` to carry it", async () => {
+  const { scroller, messages } = await render(chat(60));
+  // Holds every frame from before the drag even starts: a native frame requested before this test
+  // held them would run on its own, outside this test's control (the browser's own pace, not this
+  // test's), so nothing may run until this test calls `step`.
+  const frames = holdFrames();
+  const box = scroller.getBoundingClientRect();
+  const x = box.left + box.width / 2;
+  const drag = commands.touchDrag({ from: [x, box.top + 300], to: [x, box.top + 260], steps: 2, durationMs: 40 });
+  // The drag's touches reach the page over the real clock (through CDP, outside this frame hold), so
+  // this test steps the held frames alongside it, until the one the drag's own scroll asked for has
+  // drawn a message, or the drag itself finishes first.
+  let dragDone = false;
+  void drag.then(() => (dragDone = true));
+  while (!dragDone && scroller.querySelector("[data-ouro-settling]") === null) {
+    frames.step();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  await drag;
+  frames.step();
+  expect(scroller.querySelector("[data-ouro-settling]")).not.toBeNull();
+  // The reader's scroll really ended (scrollend), resetting `scrolling` to false, while messages are
+  // still settling (`moving` non-empty): springs asks for one more frame (not run yet, held above).
+  scroller.dispatchEvent(new Event("scrollend"));
+  // A jump of the list's height or more, with no scroll event yet: as far as springs knows, nothing
+  // happened since the last frame it read.
+  const before = scroller.scrollTop;
+  scroller.scrollTop -= box.height + 50;
+  // A scroll event lands within springs' own ARMED window, after `scrollend` already reset `scrolling`:
+  // its own listener's `going ||= scrolling` reads `scrolling` as false here, so `going` does not arm,
+  // even though this same call reopens `scrolling` to true for the frame right after (#3736, #3741).
+  scroller.dispatchEvent(new Event("scroll"));
+  // The one frame now due reads the jump with `going` false and `scrolling` newly true: it must
+  // still take the jump as the fling's own (kept going by `scrolling` alone), seeding the messages
+  // the jump newly brings into view the same as the ones already moving, not a jump to discard,
+  // which would leave the messages the jump reveals with no transform of their own (popping in at
+  // rest instead of trailing in, #3736, #3741).
+  frames.step();
+  const after = scroller.scrollTop;
+  expect(after).toBeLessThan(before - box.height);
+  const seeded = messages().filter((message) => message.style.transform !== "").length;
+  expect(seeded).toBeGreaterThanOrEqual(6);
+  frames.release();
 });
