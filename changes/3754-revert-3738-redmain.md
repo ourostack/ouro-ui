@@ -1,0 +1,1 @@
+- Reverted: MessageList no longer releases the space above the first message at once when a wheel rests at `scrollTop === 0`; it reverts to releasing only once the reader has scrolled past it (#3738 reverted; reopens #3733).
