@@ -790,8 +790,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const reorderIds = useMemo(() => sections.filter((section) => section.reorderable === true).map((section) => section.id), [sections]);
   const reorderKey = JSON.stringify(reorderIds);
   // The order the person gave, kept until the app passes sections in another order.
-  const [reordered, setReordered] = useState<{ key: string; ids: string[] }>({ key: reorderKey, ids: reorderIds });
-  const ids = reordered.key === reorderKey ? reordered.ids : reorderIds;
+  const [reordered, setReordered] = useState<{ key: string; ids: string[] }>();
+  const ids = reordered?.key === reorderKey ? reordered.ids : reorderIds;
   const shownSections = useMemo(() => {
     const byId = new Map(sections.map((section) => [section.id, section]));
     let at = 0;
@@ -1242,7 +1242,6 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     onStart: () => {
       const held = drag.current!;
       if (!held.movable) return false;
-      endPress();
       // Headers are all one height, so their tops order them as their middles would.
       held.spots = [...listRef.current!.querySelectorAll<HTMLElement>("[data-ouro-section-header]")].map((el) => ({ id: el.getAttribute("data-ouro-section-header")!, el, top: el.getBoundingClientRect().top }));
       held.from = held.to = held.spots.findIndex((spot) => spot.id === held.id);
@@ -1265,6 +1264,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       held.own.style.transform = `translateY(${delta}px)`;
       const to = dropIndex(held.spots.map((spot) => spot.top), held.from, held.spots[held.from]!.top + delta);
       held.to = to;
+      // Stryker disable next-line EqualityOperator: the line shows only where it would land is not where it began, where > and >= agree.
       held.spots.forEach((spot, at) => (at === to && to !== held.from ? spot.el.setAttribute("data-drop", to > held.from ? "after" : "before") : spot.el.removeAttribute("data-drop")));
     },
     onEnd: ({ cancelled }) => {
@@ -1288,7 +1288,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       event.preventDefault();
       return openMenu(target, key, frozen(event.currentTarget));
     }
-    if (event.key === "ArrowRight" && (menuOf(key) !== undefined || (key.startsWith("section:") && movable.includes(key.slice(8))))) {
+    if (event.key === "ArrowRight" && (menuOf(key) !== undefined || movable.some((id) => key === `section:${id}`))) {
       const more = event.currentTarget.nextElementSibling as HTMLElement | null;
       event.preventDefault();
       // Stryker disable next-line OptionalChaining: a row with a menu always renders the more button right after it.
@@ -1448,7 +1448,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                     data-ouro-part="section-handle"
                     data-ouro-reorder={section.id}
                     data-ouro-reorder-handle=""
-                    data-grabbed={grabbed?.id === section.id ? "" : undefined}
+                    data-grabbed={grabbed?.id === section.id || undefined}
                     aria-describedby={`${baseId}-reorder`}
                     onFocus={() => setActive(key)}
                     onKeyDown={(event) => onHandleKey(event, section.id)}

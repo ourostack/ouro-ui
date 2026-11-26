@@ -213,6 +213,17 @@ describe("ConversationList section reorder", () => {
     await userEvent.click(page.getByRole("menuitem", { name: "Rename" }));
     expect(onRename).toHaveBeenCalledTimes(1);
   });
+  it("does not open a section's menu for a finger held still on its grip once it has dragged, and makes its header the tab stop when focused", async () => {
+    const menu = [{ label: "Rename" }];
+    const { host } = await render(list({ onSectionsReorder: () => {}, sections: sections.map((s) => (s.id === "work" ? { ...s, menu } : s)) }));
+    await dragOnto(handle(host, "work"), headers(host)[1]!, { release: false, pointerType: "touch" });
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    await pointer(window, "pointerup", ...middle(headers(host)[1]!), { pointerType: "touch" });
+    await act(async () => handle(host, "club").focus());
+    expect(headers(host).filter((header) => header.tabIndex === 0).map((header) => header.textContent)).toEqual(["Clubs"]);
+  });
+
   it("names the grip Move section by default, keeps it out of the tab order, and marks only the section picked up", async () => {
     const { host } = await render(list({ onSectionsReorder: () => {} }));
     expect(handle(host, "club").textContent).toBe("Move section Clubs");
