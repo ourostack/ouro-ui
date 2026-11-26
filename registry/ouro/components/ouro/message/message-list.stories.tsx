@@ -394,10 +394,12 @@ function LongChat() {
         <button type="submit" data-test-harness="" style={harnessStyle}>
           Find
         </button>
+      </form>
+      {found && (
         <span role="status" style={{ color: "var(--muted-foreground)" }}>
           {found}
         </span>
-      </form>
+      )}
       <MessageList label="Conversation with Ouro" style={{ height: 420 }} actionsRef={actions}>
         {history.map((item) => (
           <Message

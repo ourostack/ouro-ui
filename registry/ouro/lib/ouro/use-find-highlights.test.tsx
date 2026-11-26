@@ -186,10 +186,8 @@ describe("useFindHighlights", () => {
     const scrollTo = vi.spyOn(HTMLElement.prototype, "scrollTo").mockImplementation(() => undefined);
     const reserveJumpRoom = vi.fn();
     const { host } = await mount({ query: "last", current: 0, tall: true, reserveJumpRoom });
-    const view = host.querySelector<HTMLElement>("[data-testid=scroller]")!;
     expect(scrollTo).toHaveBeenCalledTimes(1);
-    const [options] = scrollTo.mock.calls[0] as unknown as [ScrollToOptions];
-    expect(reserveJumpRoom).toHaveBeenCalledExactlyOnceWith(view, options.top);
+    expect(reserveJumpRoom).toHaveBeenCalledExactlyOnceWith(true);
     reserveJumpRoom.mockClear();
     await mount({ query: "last", current: 0, roomy: true, reserveJumpRoom });
     expect(reserveJumpRoom).not.toHaveBeenCalled();

@@ -1200,11 +1200,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // only ever uncovers history above the end: whatever already sits at the view's bottom edge there may be exactly
   // where the floating pill sits too, with no arrival ahead to earn room for it the usual way. Reserve room at
   // once, rather than wait for one, so the pill never opens over a message either placed there. Shared by bring()
-  // (the reveal path) and useFindHighlights's scrollToCurrent (the find path), which scrolls on its own.
-  const reserveJumpRoom = (scroller: HTMLElement, landingTop: number) => {
-    // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator: a landing at the end needs no room, and reserving it there anyway is undone at once: the list's resize and scroll handlers read pinned back from the position and clear the room once pinned, so the pill never shows for it.
-    if (scroller.scrollHeight - scroller.clientHeight - landingTop > AT_BOTTOM) setJumpRoom(true);
-  };
+  // (the reveal path) and useFindHighlights's scrollToCurrent (the find path), which scrolls on its own. A landing
+  // at the end reserves it too, and the list's resize and scroll handlers read pinned back and clear it at once.
   const [spoken, setSpoken] = useState<Spoken[]>([]);
   const nextId = useRef(0);
   // The newest label function, for the observer set up once below.
@@ -2296,7 +2293,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const centred = box.top - top - Math.max(0, (room - box.height) / 2);
       scroller.scrollTop += block === "center" ? centred : block === "start" || above ? box.top - top - EDGE : below ? box.bottom - top - room + EDGE : 0;
       springsRef.current?.moved(scroller.scrollTop - before);
-      reserveJumpRoom(scroller, scroller.scrollTop);
+      setJumpRoom(true);
     };
     windowSync.current = (scrolled) => {
       const { windowed, keys, indexes, measured, band, reach, sizeOf } = viewRef.current;
@@ -3223,7 +3220,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           onFindMatches={onFindMatches}
           onMarks={setFindMarks}
           request={requestRef}
-          reserveJumpRoom={reserveJumpRoom}
+          reserveJumpRoom={setJumpRoom}
         />
       ) : null}
     </div>

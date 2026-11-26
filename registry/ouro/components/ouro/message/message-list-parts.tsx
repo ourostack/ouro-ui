@@ -50,7 +50,7 @@ function MessageFindLayer({
   onFindMatches: ((report: MessageListFindReport) => void) | undefined;
   onMarks: (marks: string) => void;
   request: RefObject<(next: { key: string; id: null; child: boolean; forward: boolean; focus: boolean; block: "center" }) => void>;
-  reserveJumpRoom: (scroller: HTMLElement, landingTop: number) => void;
+  reserveJumpRoom: (room: boolean) => void;
 }): null {
   useLayoutEffect(() => onMarks(findMarkClasses), [onMarks]);
   const reduced = useReducedMotion();
