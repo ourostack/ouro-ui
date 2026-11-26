@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import "@/registry/ouro/components/ouro/toast/toaster-parts";
+import "@/registry/ouro/components/ouro/toast/reach";
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -51,6 +51,33 @@ describe("reachModal", () => {
     action.remove();
     inside[1]!.focus();
     press(inside[1]!);
+    expect(document.activeElement).toBe(toasts[0]);
+  });
+
+  it("goes to the last toast control, not an action, on Shift+Tab, and to the dialog's first control, not a nested action, on Tab out of the toasts", () => {
+    const { inside, toasts, dialog } = build();
+    const action = document.createElement("button");
+    action.dataset.ouroPart = "action";
+    toasts[0]!.append(action);
+    inside[0]!.focus();
+    press(inside[0]!, "Tab", true);
+    expect(document.activeElement).toBe(toasts[1]);
+    const link = document.createElement("a");
+    link.href = "#x";
+    const nested = document.createElement("button");
+    nested.dataset.ouroPart = "action";
+    link.append(nested);
+    dialog.prepend(link);
+    toasts[1]!.focus();
+    press(toasts[1]!);
+    expect(document.activeElement).toBe(link);
+  });
+
+  it("hands over even when the target stops the event from bubbling", () => {
+    const { inside, toasts } = build();
+    inside[1]!.addEventListener("keydown", (event) => event.stopPropagation());
+    inside[1]!.focus();
+    expect(press(inside[1]!).defaultPrevented).toBe(true);
     expect(document.activeElement).toBe(toasts[0]);
   });
 

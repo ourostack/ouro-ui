@@ -285,7 +285,7 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
   const key = useRef({});
   useEffect(() => {
     // The Tab hand-over for a modal loads at the first focus change, keeping it out of a page's first load.
-    document.addEventListener("focusin", () => import("@/registry/ouro/components/ouro/toast/toaster-parts"));
+    addEventListener("focusin", () => import("@/registry/ouro/components/ouro/toast/reach"));
     const { shown } = state.current;
     const next = () => {
       while (shown.size < VISIBLE && state.current.queue.length > 0) {
