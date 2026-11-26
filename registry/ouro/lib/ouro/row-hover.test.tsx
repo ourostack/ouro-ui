@@ -1249,6 +1249,41 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBeNull();
   });
 
+  it("finds no row for a document with nothing of its own focused as the layer mounts (document.activeElement itself null)", async () => {
+    // A live, attached document's own activeElement is an Element even with nothing deliberately
+    // focused (the spec falls back to <body>), so no real page ever reaches rowOf with a target
+    // that is neither an Element nor null's own counted case. A document that is not fully active
+    // (a detached iframe's) is the one place the spec allows null itself; stub it rather than detach
+    // a real iframe, which no test here can do without flaking the host page around it.
+    const layer = createRowLayer<string>();
+    function List() {
+      const ref = useRef<HTMLDivElement | null>(null);
+      const r0 = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        layer.set(r0.current!, "r0");
+      }, []);
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      return (
+        <div ref={ref}>
+          <div ref={r0} id="r0" style={{ height: 40 }}>
+            Row
+          </div>
+        </div>
+      );
+    }
+    const activeElement = vi.spyOn(document, "activeElement", "get").mockReturnValue(null);
+    try {
+      await render(<List />);
+      expect(probe.hover.row).toBeNull();
+      expect(probe.hover.via).toBeNull();
+    } finally {
+      activeElement.mockRestore();
+    }
+  });
+
   it("shows on a row focused from the keyboard, or the pointer rests on, in the commit a layer arriving after its list mounts in", async () => {
     const layer = createRowLayer<string>();
     // What the layer's first commit leaves committed before anything else can run: nothing paints between a task and
