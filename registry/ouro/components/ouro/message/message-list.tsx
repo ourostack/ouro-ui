@@ -3086,8 +3086,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     sync(true);
     keyboardMark.current = markItems;
     const observer = new MutationObserver((records) => {
-      // A message that changes its variant without the list rendering re-renders its children, which the child list shows, so
-      // no attribute is watched. The mark that moves is the next slot's, the only one that reads this slot.
+      // A message that changes its variant without the list rendering changes its `data-variant`, which no child-list change
+      // shows (a message keeps its element across the change), so that attribute alone is watched. The mark that moves is the
+      // next slot's, the only one that reads this slot.
       for (const { target } of records) {
         const slot = (target as Element).closest(`[${SLOT}]`);
         markPostAfter(slot?.nextElementSibling);
@@ -3096,7 +3097,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ConditionalExpression,MethodExpression,BooleanLiteral: after only the bar moved, syncing finds and marks the same messages again; skipping it only spares the work.
       if (!records.every(barOnly)) sync(records.some(touchesItems));
     });
-    observer.observe(content, { childList: true, subtree: true });
+    observer.observe(content, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-variant"] });
     scroller.addEventListener("focusin", focusIn);
     scroller.addEventListener("focusout", focusOut);
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
