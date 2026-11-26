@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "project": "ouro-webkit",
+    "file": "registry/ouro/components/ouro/message/message-list.windowing.test.tsx",
+    "title": "MessageList windowing > holds the reader's place for a message deleted above them in the frame the space above the first message goes, before the list's own scroll is reported",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3785",
+    "owner": "lane-hang-windowing",
+    "expiry": "2026-11-27T01:50:00Z"
+  },
+  {
+    "project": "site-latency",
+    "file": "site/e2e/site-menu.latency.spec.ts",
+    "title": "interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3628",
+    "owner": "lane-latency-3684",
+    "expiry": "2026-11-27T01:50:00Z"
+  }
+]
