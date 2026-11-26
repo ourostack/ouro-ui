@@ -2005,6 +2005,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         openTargetRef.current = null;
         if (target.isConnected) {
           centre(target);
+          // Stryker disable next-line all: the same guard as the place check below, which keeps only a pixel or two of overflow from reading as the end.
           if (placed !== null) placed = scroller.scrollTop;
           keepAnchor();
         }

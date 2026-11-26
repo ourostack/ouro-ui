@@ -940,6 +940,18 @@ describe("MessageList", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("keeps the reader's place when the message it opened at goes before the list re-centres on it", async () => {
+    const items = history(30);
+    const { scroller, rerender } = await render(<Found items={items} initialAnchor="found-10" windowing={false} />);
+    await rerender(<Found items={items.filter((item) => item.id !== 10)} initialAnchor="found-10" windowing={false} />);
+    await settle(scroller);
+    const below = document.getElementById("found-11")!;
+    const top = below.getBoundingClientRect().top;
+    await settle(scroller);
+    expect(Math.abs(below.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+    expect(inView(scroller, "found-11")).toBe(true);
+  });
+
   it("opens with an initialAnchor near the end in view, not several rows above it", async () => {
     const { scroller } = await render(<Found items={history(30)} initialAnchor="found-28" />);
     await nextFrame(scroller);
