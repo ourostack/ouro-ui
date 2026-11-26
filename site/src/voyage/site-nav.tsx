@@ -388,9 +388,8 @@ function Crossfade({ shown, panes }: { shown: string; panes: ReadonlyArray<{ id:
     // out the whole sheet synchronously, in the same task as the press that opens it, which this menu's heavier
     // panels (the platform marks, Proof and Docs) made slow enough to push the press past its budget (#3628). The
     // callback still runs after layout and before paint, on this same frame, so the box is sized before it shows.
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry) setHeight(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height);
-    });
+    // This box has no border or padding, so its content-box height is also its offsetHeight.
+    const observer = new ResizeObserver(([entry]) => entry && setHeight(entry.contentRect.height));
     observer.observe(pane);
     return () => observer.disconnect();
   }, [shown]);
