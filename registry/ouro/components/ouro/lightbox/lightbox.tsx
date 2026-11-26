@@ -677,8 +677,8 @@ function followPictureCorner(head: HTMLElement, shown: number): () => void {
   const place = () => {
     const box = popup.getBoundingClientRect();
     const pic = img.getBoundingClientRect();
-    // The popup's scale as it grows from the thumbnail; an unlaid popup (0 / 0) has no picture to sit on.
-    const unit = box.width / popup.offsetWidth || 1;
+    // The popup's scale as it grows from the thumbnail.
+    const unit = box.width / popup.offsetWidth;
     head.style.top = `${Math.round((pic.top - box.top) / unit + cornerInset)}px`;
     // The picture is centred, so it is as far from the popup's end as from its start, in either direction.
     head.style.insetInlineEnd = `${Math.round((box.right - pic.right) / unit + cornerInset)}px`;
