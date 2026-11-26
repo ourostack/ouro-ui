@@ -318,7 +318,7 @@ function gh(args, { allowFail = false } = {}) {
 /** Reads one run's own jobs (and, for each failed one, its log) and the workflow text it ran. */
 function buildRun(repo, id) {
   const [attempt, path] = gh(["api", `repos/${repo}/actions/runs/${id}`, "--jq", "[.run_attempt, .path] | @tsv"]).trim().split("\t");
-  const jobs = gh(["api", `repos/${repo}/actions/runs/${id}/jobs?per_page=100`, "--paginate", "--jq", ".jobs[] | {id, name, conclusion, url: .html_url, failedSteps: [.steps[] | select(.conclusion == \"failure\") | .name]} | tojson"])
+  const jobs = gh(["api", `repos/${repo}/actions/runs/${id}/jobs?per_page=30`, "--paginate", "--jq", ".jobs[] | {id, name, conclusion, url: .html_url, failedSteps: [.steps[] | select(.conclusion == \"failure\") | .name]} | tojson"])
     .split("\n")
     .filter(Boolean)
     .map((line) => JSON.parse(line));
@@ -450,7 +450,7 @@ function rehearsed(id) {
   }
   const repo = process.env["GITHUB_REPOSITORY"];
   const url = `${process.env["GITHUB_SERVER_URL"] ?? "https://github.com"}/${repo}/actions/runs/${id}`;
-  const jobs = gh(["api", `repos/${repo}/actions/runs/${id}/jobs?per_page=100`, "--paginate", "--jq", ".jobs[].id"], { allowFail: true });
+  const jobs = gh(["api", `repos/${repo}/actions/runs/${id}/jobs?per_page=30`, "--paginate", "--jq", ".jobs[].id"], { allowFail: true });
   if (jobs === undefined) {
     console.log(`::warning::Could not read the jobs of the rehearsal ${url}, so its retries are not shown here.`);
     return 0;

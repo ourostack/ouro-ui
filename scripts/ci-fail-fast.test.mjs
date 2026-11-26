@@ -117,7 +117,7 @@ test("it reads every open pull request run's latest attempt, cancels the runs wi
   const run = swept(gh);
   assert.equal(await run.done, "idle");
   assert.deepEqual(calls[0], ["api", "--include", "repos/o/r/actions/workflows/ci.yml/runs?event=pull_request&status=in_progress&per_page=100"]);
-  assert.ok(calls.some((call) => call.at(-1) === "repos/o/r/actions/runs/8/attempts/2/jobs?per_page=100&page=1"));
+  assert.ok(calls.some((call) => call.at(-1) === "repos/o/r/actions/runs/8/attempts/2/jobs?per_page=30&page=1"));
   assert.deepEqual(calls.filter((call) => call.includes("POST")), [["api", "-X", "POST", "repos/o/r/actions/runs/8/cancel"]]);
   assert.deepEqual(run.waits, [SWEEP_MS, SWEEP_MS]);
   assert.ok(run.lines.includes(`::notice::Run 8: ${cancelNote(["e2e (1/4)"])}`), "the earlier attempt's failure is not counted");

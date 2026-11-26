@@ -129,7 +129,7 @@ export async function sweep({ gh, repo, wait = sleep, now = Date.now, log = cons
         const run = `repos/${repo}/actions/runs/${id}`;
         let verdict = { kind: "wait" };
         try {
-          verdict = decide(readJobs(gh, `${run}/attempts/${attempt}/jobs?per_page=100`), attempt);
+          verdict = decide(readJobs(gh, `${run}/attempts/${attempt}/jobs?per_page=30`), attempt);
         } catch (error) {
           if (error instanceof RateLimit || rateLimited(said(error))) throw error;
           log(`::warning::Could not read run ${id}'s jobs (${firstLine(error)}); trying again.`);

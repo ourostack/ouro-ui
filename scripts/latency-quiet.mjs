@@ -66,7 +66,7 @@ async function pushRuns(repository, count, token) {
 async function latencyShards(repository, runId, token) {
   const jobs = [];
   for (let page = 1; ; page += 1) {
-    const body = await get(`https://api.github.com/repos/${repository}/actions/runs/${runId}/jobs?per_page=100&page=${page}`, token);
+    const body = await get(`https://api.github.com/repos/${repository}/actions/runs/${runId}/jobs?per_page=30&page=${page}`, token);
     jobs.push(...body.jobs);
     if (jobs.length >= body.total_count || body.jobs.length === 0) break;
   }

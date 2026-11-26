@@ -144,7 +144,13 @@ export function createSources(publicGh, { unzip = defaultUnzip, liveCheck = runL
           for (const run of runs) {
             if (run.status !== "completed" || full.has(run.workflow_id) || cut.has(run.workflow_id)) continue;
             if (sent.some((later) => later.workflow_id === run.workflow_id && later.created_at > run.created_at)) continue;
-            const { jobs = [] } = await client.get(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`);
+            const jobs = [];
+            for (let page = 1; ; page += 1) {
+              const body = await client.get(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=30&page=${page}`);
+              const got = body.jobs ?? [];
+              jobs.push(...got);
+              if (got.length === 0 || jobs.length >= (body.total_count ?? 0)) break;
+            }
             if (!jobs.some((job) => job.conclusion === "cancelled")) continue;
             const { artifacts = [] } = await client.get(`repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`);
             if (artifacts.some((item) => /^ouro-check/.test(item.name))) cut.set(run.workflow_id, { id: run.workflow_id, path: run.path });

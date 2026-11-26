@@ -76,18 +76,23 @@ export function read(gh, url) {
   return JSON.parse(output.slice(at).trim());
 }
 
+/** Every job of a run, read in pages of 30: a 502 answers a bigger page of a run with many jobs. */
+export function runJobs(gh, repo, runId) {
+  const jobs = [];
+  for (let page = 1; ; page += 1) {
+    const body = read(gh, `repos/${repo}/actions/runs/${runId}/jobs?per_page=30&page=${page}`);
+    jobs.push(...body.jobs);
+    if (jobs.length >= body.total_count || body.jobs.length === 0) return jobs;
+  }
+}
+
 /** The merge queue's open runs of this repository, each with its latest attempt's jobs. */
 export function openRuns(gh, repo) {
   const { workflow_runs: runs } = read(gh, `repos/${repo}/actions/runs?event=merge_group&per_page=30`);
   return runs
     .filter((run) => run.status !== "completed")
     .map((run) => {
-      const jobs = [];
-      for (let page = 1; ; page += 1) {
-        const body = read(gh, `repos/${repo}/actions/runs/${run.id}/jobs?per_page=100&page=${page}`);
-        jobs.push(...body.jobs);
-        if (jobs.length >= body.total_count || body.jobs.length === 0) return { run, jobs };
-      }
+      return { run, jobs: runJobs(gh, repo, run.id) };
     });
 }
 
@@ -97,7 +102,7 @@ export function openRuns(gh, repo) {
  */
 export function ownQueueWait(gh, repo, runId, runner) {
   if (!runId || !runner) return null;
-  const { jobs } = read(gh, `repos/${repo}/actions/runs/${runId}/jobs?per_page=100`);
+  const jobs = runJobs(gh, repo, runId);
   const own = jobs.find((job) => job.runner_name === runner && job.status === "in_progress");
   if (!own?.created_at || !own.started_at) return null;
   return Date.parse(own.started_at) - Date.parse(own.created_at);

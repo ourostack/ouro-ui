@@ -67,7 +67,7 @@ test("it starts the run at once when no merge-queue job waits, reading only the 
   const { result, logs, waits } = await drive(gh);
   assert.equal(result, "clear");
   assert.deepEqual(waits, []);
-  assert.deepEqual(calls, ["api --include repos/o/r/actions/runs?event=merge_group&per_page=30", "api --include repos/o/r/actions/runs/7/jobs?per_page=100&page=1"]);
+  assert.deepEqual(calls, ["api --include repos/o/r/actions/runs?event=merge_group&per_page=30", "api --include repos/o/r/actions/runs/7/jobs?per_page=30&page=1"]);
   assert.match(logs.at(-1), /^No merge-queue job is waiting for a runner, so this run starts\.$/);
 });
 

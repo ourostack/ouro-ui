@@ -71,11 +71,11 @@ export function laneTimings(jobs, graph) {
 const gh = (args) => execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 const api = (url) => JSON.parse(gh(["api", url]));
 
-/** Every page of a list the API pages, under `key`. */
+/** Every page of a list the API pages, under `key`, 30 at a time: a 502 answers a bigger page of a run's jobs. */
 function allPages(url, key) {
   const items = [];
   for (let page = 1; ; page += 1) {
-    const body = api(`${url}${url.includes("?") ? "&" : "?"}per_page=100&page=${page}`);
+    const body = api(`${url}${url.includes("?") ? "&" : "?"}per_page=30&page=${page}`);
     items.push(...body[key]);
     if (items.length >= body.total_count || body[key].length === 0) return items;
   }

@@ -113,7 +113,7 @@ export function ghApi(repo, gh = (args) => execFileSync("gh", args, { encoding: 
         .filter((pull) => pull.merged_at && pull.merge_commit_sha === sha)
         .map((pull) => pull.head.sha),
     runs: (sha) => pages(`actions/workflows/ci.yml/runs?head_sha=${sha}&per_page=100`, "workflow_runs"),
-    jobs: (id) => pages(`actions/runs/${id}/jobs?filter=latest&per_page=100`, "jobs"),
+    jobs: (id) => pages(`actions/runs/${id}/jobs?filter=latest&per_page=30`, "jobs"),
   };
 }
 
