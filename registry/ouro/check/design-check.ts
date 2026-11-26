@@ -411,6 +411,32 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const [c, behind] = [rgba(colour), backgroundOf(el.parentElement!) ?? [255, 255, 255, 1]];
     return c[3] >= 0.2 && Math.abs(c[0] - behind[0]!) + Math.abs(c[1] - behind[1]!) + Math.abs(c[2] - behind[2]!) > 12;
   };
+  // Whether `el` truly hides what it is drawn over: a fully opaque fill (alpha 1), no backdrop-filter and effective
+  // opacity 1 up its own ancestor chain. A glass or translucent cover (a see-through fill, a blur, or a faded ancestor)
+  // still shows a line through it, so it is left alone.
+  const opaqueCover = (el: Element): boolean => {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const s = getComputedStyle(n);
+      if (s.opacity !== "1" || s.backdropFilter !== "none" || s.backgroundImage !== "none") return false;
+      const fill = rgba(s.backgroundColor);
+      if (fill[3] >= 0.999) return true;
+      if (fill[3] > 0) return false;
+    }
+    /* istanbul ignore next @preserve -- body always carries an opaque bg-background fill (app.css's base layer), so the loop above always returns there or sooner */
+    return true;
+  };
+  // Whether `el` is positioned at (x, y) on paper but a scrollable ancestor's overflow cuts it off there, so nothing of
+  // `el` is actually painted at that point: a hit test there lands on whatever else is on the page, not a cover of
+  // `el`, and that unrelated element's own opacity says nothing about whether `el` can be seen through it.
+  const clippedAway = (el: Element, x: number, y: number): boolean => {
+    for (let n = el.parentElement; n; n = n.parentElement) {
+      const s = getComputedStyle(n);
+      if (!/hidden|auto|scroll|clip/.test(s.overflow + s.overflowX + s.overflowY)) continue;
+      const r = n.getBoundingClientRect();
+      if (x < r.left || x >= r.right || y < r.top || y >= r.bottom) return true;
+    }
+    return false;
+  };
   // A hairline under 2px is too thin for `visible`, which wants a box a person can see whole, so it is found on its own.
   const thin = all.filter((el) => {
     const r = el.getBoundingClientRect();
@@ -459,20 +485,28 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         const overlap = Math.min(a.to, b.to) - Math.max(a.from, b.from);
         const pair = a.el !== b.el && gap >= 0 && (dividers.has(a.el) || dividers.has(b.el)) && !paired.has(a.el) && !paired.has(b.el);
         if (!pair || overlap < Math.max(24, Math.min(a.to - a.from, b.to - b.from) * 0.5)) continue;
-        // Each line has to be on top where they run together: one under a sticky bar or an opaque layer isn't seen. Off
-        // the screen nothing can be hit, so only the page's sticky and fixed bars are looked for there. A hit test lands
-        // on a whole pixel, so the line is tried at the pixels its edge and its middle round to.
+        // Each line has to be on top where they run together: one under a sticky bar or an opaque layer isn't seen, but
+        // a glass or translucent one still shows it. Off the screen nothing can be hit, so only the page's sticky and
+        // fixed bars are looked for there. A hit test lands on a whole pixel, so the line is tried at the pixels its
+        // edge and its middle round to.
         const onTop = (l: Line) =>
           [0.25, 0.5, 0.75].every((t) => {
             const along = Math.max(a.from, b.from) + overlap * t;
             const tries = [Math.ceil(l.near), Math.floor((l.near + l.far) / 2)].map((at) => (across ? [along, at] : [at, along]) as [number, number]);
             const [x, y] = tries[0]!;
-            const under = bars.some((bar) => {
+            const under = bars.find((bar) => {
               const r = bar.getBoundingClientRect();
               return !bar.contains(l.el) && x > r.left && x < r.right && y >= r.top && y < r.bottom;
             });
+            if (under) return !clippedAway(l.el, x, y) && !opaqueCover(under);
             const offScreen = x < 0 || y < 0 || x >= innerWidth || y >= innerHeight;
-            return !under && (offScreen || tries.some(([hx, hy]) => l.el.contains(document.elementFromPoint(hx, hy))));
+            return (
+              offScreen ||
+              tries.some(([hx, hy]) => {
+                const hit = document.elementFromPoint(hx, hy);
+                return hit !== null && (l.el.contains(hit) || (!clippedAway(l.el, hx, hy) && !opaqueCover(hit)));
+              })
+            );
           });
         if (!onTop(a) || !onTop(b)) continue;
         const [first, second] = a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? [a.el, b.el] : [b.el, a.el];
