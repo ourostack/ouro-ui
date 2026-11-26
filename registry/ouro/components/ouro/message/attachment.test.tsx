@@ -469,7 +469,8 @@ describe("Attachment preview", () => {
     const button = attachment.querySelector<HTMLElement>('[data-ouro-part="remove"]')!;
     expect(button.className).toMatch(/\babsolute\b/);
     // This project runs with a fine pointer; attachment.touch.test.tsx checks the 44px coarse target.
-    expect(button.getBoundingClientRect().width).toBe(28);
+    // The layout width: the click's press scale may still be releasing, and it scales the drawn box.
+    expect(button.offsetWidth).toBe(28);
   });
 
   it("frames the picture 6px in from each edge, where a file's icon keeps 12px at its sides", async () => {
