@@ -4053,3 +4053,25 @@ test("rerun-guard.yml starts on CI going in_progress (requested never fires for 
   assert.match(guard, /RUN_URL: \$\{\{ github\.event\.workflow_run\.html_url \}\}/);
   assert.match(guard, /RUN_ACTOR: \$\{\{ github\.event\.workflow_run\.triggering_actor\.login \}\}/);
 });
+
+test("Queue UNMERGEABLE watch runs every 10 minutes, with pinned actions and an app token, and never touches an entry that is not UNMERGEABLE", async () => {
+  const { text } = workflows.find(({ file }) => file === "queue-unmergeable.yml");
+  assert.match(text, /^on:\n {2}schedule:\n {4}- cron: "\*\/10 \* \* \* \*"\n {2}workflow_dispatch: \{\}\npermissions:\n {2}contents: read\n/m);
+  assert.doesNotMatch(text.split(/^permissions:/m)[0], /^ {2}(pull_request|pull_request_target|push|merge_group):/m);
+  assert.match(text, /node scripts\/queue-unmergeable\.mjs/);
+  const { anchorDrift, ceilingCheckFailing, decide, firstUnmergeable } = await import("./queue-unmergeable.mjs");
+  assert.equal(firstUnmergeable([{ state: "QUEUED", n: 1 }, { state: "UNMERGEABLE", n: 2 }, { state: "UNMERGEABLE", n: 3 }]).n, 2);
+  assert.equal(firstUnmergeable([{ state: "LOCKED" }]), null);
+  assert.equal(ceilingCheckFailing([{ name: "no-ceiling-check", conclusion: "FAILURE" }]), true);
+  assert.equal(ceilingCheckFailing([{ name: "no-ceiling-check", conclusion: "SUCCESS" }, { name: "ci", conclusion: "FAILURE" }]), false);
+  assert.equal(anchorDrift([{ id: "a", base: 10, head: 10, main: 12, merged: 12 }]).length, 0);
+  assert.equal(anchorDrift([{ id: "a", base: 10, head: 11, main: 12, merged: 13 }]).length, 0);
+  assert.equal(anchorDrift([{ id: "a", base: 10, head: 10, main: 12, merged: 14 }]).length, 1);
+  assert.equal(decide({ conflicts: true, ceilingFailing: false, drift: [] }), "conflict");
+  assert.equal(decide({ conflicts: false, ceilingFailing: true, drift: [] }), "skip-ceiling-check");
+  assert.equal(decide({ conflicts: false, ceilingFailing: false, drift: [{}] }), "skip-drift");
+  assert.equal(decide({ conflicts: false, ceilingFailing: false, drift: [] }), "update");
+  // A real conflict is only commented on: the dequeue sits after the conflict return.
+  const script = readFileSync(join(root, "scripts/queue-unmergeable.mjs"), "utf8");
+  assert.ok(script.indexOf('action === "conflict"') < script.indexOf("dequeuePullRequest"));
+});
