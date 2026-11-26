@@ -41,7 +41,7 @@ function holdScrollOnMount(element: HTMLElement | null): void {
     const row = list.getBoundingClientRect();
     const tab = element.getBoundingClientRect();
     const by = Math.min(0, tab.left - row.left) + Math.max(0, tab.right - row.right);
-    if (by !== 0) list.scrollLeft += by;
+    list.scrollLeft += by;
   });
 }
 
