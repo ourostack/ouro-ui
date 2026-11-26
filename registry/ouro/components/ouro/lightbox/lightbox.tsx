@@ -390,17 +390,22 @@ function useFillSize(fit: boolean, figure: RefObject<HTMLElement | null>, pictur
         width: box.clientWidth,
         height: box.clientHeight - (caption ? caption.offsetHeight + Number.parseFloat(getComputedStyle(box).rowGap) : 0),
       };
-      if (w <= 0 || h <= 0 || room.width <= 0 || room.height <= 0) return;
       const scale = Math.min(room.width / w, room.height / h);
       const next = { width: Math.floor(w * scale), height: Math.floor(h * scale) };
-      setSize((was) => (was?.width === next.width && was.height === next.height ? was : next));
+      // An unknown shape (0 / 0) or no room draws nothing to fit.
+      if (next.width > 0 && next.height > 0) setSize(next);
     };
+    // Now, before the browser draws the picture at its own size: the observer's first call would size it a frame later.
+    // Stryker disable next-line CallExpression: the observer's first call sizes it too, and a test cannot catch the frame between.
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(box);
     img.addEventListener("load", measure);
+    // Stryker disable next-line BlockStatement: the effect runs again only for `fit` or the given shape changing while open, and the picture's own shape, once loaded, wins over the given one.
     return () => {
+      // Stryker disable next-line CallExpression: observers are called in the order they were made, so the current one measures last.
       observer.disconnect();
+      // Stryker disable next-line CallExpression,StringLiteral: once the picture has loaded, every measure reads its own shape.
       img.removeEventListener("load", measure);
     };
   }, [fit, figure, picture, image.width, image.height]);
@@ -672,8 +677,8 @@ function followPictureCorner(head: HTMLElement, shown: number): () => void {
   const place = () => {
     const box = popup.getBoundingClientRect();
     const pic = img.getBoundingClientRect();
-    // Stryker disable next-line ConditionalExpression: an unlaid popup has no picture to sit on; 1 keeps the arithmetic finite.
-    const unit = popup.offsetWidth > 0 ? box.width / popup.offsetWidth : 1;
+    // The popup's scale as it grows from the thumbnail; an unlaid popup (0 / 0) has no picture to sit on.
+    const unit = box.width / popup.offsetWidth || 1;
     const rtl = getComputedStyle(popup).direction === "rtl";
     head.style.top = `${Math.round((pic.top - box.top) / unit + cornerInset)}px`;
     head.style.insetInlineEnd = `${Math.round((rtl ? pic.left - box.left : box.right - pic.right) / unit + cornerInset)}px`;
@@ -682,11 +687,8 @@ function followPictureCorner(head: HTMLElement, shown: number): () => void {
   const observer = new ResizeObserver(place);
   observer.observe(popup);
   observer.observe(img);
-  img.addEventListener("load", place);
-  return () => {
-    observer.disconnect();
-    img.removeEventListener("load", place);
-  };
+  // Stryker disable next-line ArrowFunction: observers are called in the order they were made, so one left from the picture shown before places first and the current one after it.
+  return () => observer.disconnect();
 }
 
 /**
@@ -748,46 +750,52 @@ function LightboxViewer({
   // Stryker disable next-line EqualityOperator: no layout draws an image at exactly minZoom of its fitted size, so > and >= agree.
   const zoomable = (maxima[shown] ?? 1) > minZoom;
   useLayoutEffect(() => (fit ? followPictureCorner(header.current!, shown) : undefined), [fit, shown]);
-  const original = (variant: "plain" | "outline") =>
-    href !== undefined && (
-      <Button
-        href={href}
-        target="_blank"
-        reloadDocument
-        variant={variant}
-        tone="secondary"
-        size="sm"
-        data-ouro-control="lightbox"
-        data-ouro-part="original"
-        startIcon={ExternalIcon}
-      >
-        {/* Below 640px only the icon shows; the text still names the link. */}
-        <span className="max-sm:sr-only">{originalLabel}</span>
-      </Button>
-    );
-  const zoomButton = (variant: "plain" | "outline") =>
-    zoomable && (
-      <Button
-        variant={variant}
-        tone="secondary"
-        size="sm"
-        aria-label={zoomLabel}
-        aria-pressed={scale > 1}
-        data-ouro-control="lightbox"
-        data-ouro-part="zoom"
-        onClick={() => setZoom({ index: shown, scale: scale > 1 ? 1 : maxima[shown]! })}
-      >
-        <ZoomIcon out={scale > 1} />
-      </Button>
-    );
-  const closeButton = (variant: "plain" | "outline") => (
-    <DialogClose
-      render={
-        <Button variant={variant} tone="secondary" size="sm" aria-label={closeLabel} data-ouro-control="lightbox" data-ouro-part="close">
-          <CloseIcon />
+  const variant = fit ? "plain" : "outline";
+  const position = (
+    <span data-slot="lightbox-position" data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={cn(counterClass, fit && fitCounterClass)}>
+      {fillTemplate(positionLabel, chosen + 1, total)}
+    </span>
+  );
+  const buttons = (
+    <>
+      {href !== undefined && (
+        <Button
+          href={href}
+          target="_blank"
+          reloadDocument
+          variant={variant}
+          tone="secondary"
+          size="sm"
+          data-ouro-control="lightbox"
+          data-ouro-part="original"
+          startIcon={ExternalIcon}
+        >
+          {/* Below 640px only the icon shows; the text still names the link. */}
+          <span className="max-sm:sr-only">{originalLabel}</span>
         </Button>
-      }
-    />
+      )}
+      {zoomable && (
+        <Button
+          variant={variant}
+          tone="secondary"
+          size="sm"
+          aria-label={zoomLabel}
+          aria-pressed={scale > 1}
+          data-ouro-control="lightbox"
+          data-ouro-part="zoom"
+          onClick={() => setZoom({ index: shown, scale: scale > 1 ? 1 : maxima[shown]! })}
+        >
+          <ZoomIcon out={scale > 1} />
+        </Button>
+      )}
+      <DialogClose
+        render={
+          <Button variant={variant} tone="secondary" size="sm" aria-label={closeLabel} data-ouro-control="lightbox" data-ouro-part="close">
+            <CloseIcon />
+          </Button>
+        }
+      />
+    </>
   );
   return (
     <>
@@ -800,11 +808,7 @@ function LightboxViewer({
             {total > 1 ? `${label}, ${fillTemplate(positionLabel, chosen + 1, total)}` : label}
           </span>
         </div>
-        {total > 1 && !fit && (
-          <span data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={counterClass}>
-            {fillTemplate(positionLabel, chosen + 1, total)}
-          </span>
-        )}
+        {total > 1 && !fit && position}
         {fit ? (
           // Every control in one glass group on the picture's corner; Previous and Next press the carousel's own.
           <ButtonGroup label={label} glass="sm">
@@ -822,9 +826,7 @@ function LightboxViewer({
                 >
                   <ChevronIcon back />
                 </Button>
-                <span data-slot="lightbox-position" data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={cn(counterClass, fitCounterClass)}>
-                  {fillTemplate(positionLabel, chosen + 1, total)}
-                </span>
+                {position}
                 <Button
                   variant="plain"
                   tone="secondary"
@@ -839,16 +841,10 @@ function LightboxViewer({
                 </Button>
               </>
             )}
-            {original("plain")}
-            {zoomButton("plain")}
-            {closeButton("plain")}
+            {buttons}
           </ButtonGroup>
         ) : (
-          <>
-            {original("outline")}
-            {zoomButton("outline")}
-            {closeButton("outline")}
-          </>
+          buttons
         )}
       </div>
       <Carousel
