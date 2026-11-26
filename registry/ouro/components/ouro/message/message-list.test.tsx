@@ -1,4 +1,4 @@
-import { createElement, useState, type ComponentType, type ReactNode } from "react";
+import { createElement, useLayoutEffect, useState, type ComponentType, type ReactNode } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -941,9 +941,13 @@ describe("MessageList", () => {
   });
 
   it("keeps the reader's place when the message it opened at goes before the list re-centres on it", async () => {
-    const items = history(30);
-    const { scroller, rerender } = await render(<Found items={items} initialAnchor="found-10" windowing={false} />);
-    await rerender(<Found items={items.filter((item) => item.id !== 10)} initialAnchor="found-10" windowing={false} />);
+    // The app drops the message in the commit right after the list opened at it, before any observer or frame re-centres.
+    function Dropped() {
+      const [items, setItems] = useState(() => history(30));
+      useLayoutEffect(() => setItems((all) => all.filter((item) => item.id !== 10)), []);
+      return <Found items={items} initialAnchor="found-10" windowing={false} />;
+    }
+    const { scroller } = await render(<Dropped />);
     await settle(scroller);
     const below = document.getElementById("found-11")!;
     const top = below.getBoundingClientRect().top;
