@@ -160,8 +160,8 @@ function AnsiCode({ code, catalogue }: { code: string; catalogue: EmojiCatalogue
  * server too. With `catalogue`, the emoji characters in the code show as an image catalogue's pictures.
  *
  * Inside a `Message` bubble, which already frames it, it drops the border, caption band and hairline for one
- * tonal fill, with the copy button floating at the top corner on hover and focus (always shown on touch),
- * and the language kept for screen readers only.
+ * tonal fill, with the copy button floating at the top corner on hover and focus (on touch it stays shown),
+ * and the language read by screen readers.
  *
  * Use `Kbd` instead for a key or shortcut in a sentence, `<code>` for a short name in
  * running text, and `CopyButton` for one value without a block around it.
