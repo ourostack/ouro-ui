@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-26T21:26:39.037Z",
+  "generatedAt": "2026-11-26T21:55:31.015Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -221,27 +221,6 @@
       "pr": null
     },
     {
-      "repo": "ourostack/m365crawl",
-      "state": "current",
-      "pins": [
-        {
-          "file": "upstream-sources.lock.json",
-          "follows": "web",
-          "current": "commit 524577c",
-          "latest": "v1.3.589",
-          "behind": false
-        },
-        {
-          "file": "upstream-sources.lock.json",
-          "follows": "core",
-          "current": "commit 16698c8",
-          "latest": "v1.12.0",
-          "behind": false
-        }
-      ],
-      "pr": null
-    },
-    {
       "repo": "ourostack/ouro-current-fixture-android",
       "state": "current",
       "pins": [
@@ -341,7 +320,7 @@
     },
     {
       "repo": "ourostack/ouroboros",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "tools/ouro-actions/dist-manifest.json",
@@ -353,15 +332,12 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 87b2843",
+          "current": "commit 524577c",
           "latest": "v1.3.589",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1974,
-        "url": "https://github.com/ourostack/ouroboros/pull/1974"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouroboros-website",
