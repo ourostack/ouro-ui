@@ -413,6 +413,76 @@ describe("Attachment", () => {
   });
 });
 
+describe("Attachment preview", () => {
+  it("shows the picture itself, about 56px square, instead of the kind's icon", async () => {
+    const { attachment } = await render(<Attachment name="crumb.jpg" preview="/crumb-thumb.jpg" />);
+    const preview = attachment.querySelector<HTMLElement>("[data-ouro-attachment-preview]")!;
+    expect(preview).not.toBeNull();
+    expect(attachment.querySelector("[data-ouro-attachment-icon]")).toBeNull();
+    const rect = preview.getBoundingClientRect();
+    expect(rect.width).toBeGreaterThanOrEqual(48);
+    expect(rect.width).toBeLessThanOrEqual(64);
+    expect(rect.height).toBe(rect.width);
+    const img = preview.querySelector("img")!;
+    expect(img.getAttribute("src")).toBe("/crumb-thumb.jpg");
+    // The picture is decorative; the name carries the meaning.
+    expect(img.getAttribute("alt")).toBe("");
+  });
+
+  it("draws a node passed as preview directly, instead of treating it as a picture address", async () => {
+    const { attachment } = await render(<Attachment name="crumb.jpg" preview={<svg data-testid="custom-preview" />} />);
+    expect(attachment.querySelector("img")).toBeNull();
+    expect(attachment.querySelector('[data-testid="custom-preview"]')).not.toBeNull();
+  });
+
+  it("keeps the name and size readable to screen readers, hidden only from sight", async () => {
+    const { attachment } = await render(<Attachment name="crumb.jpg" size={348_160} preview="/crumb-thumb.jpg" />);
+    expect(attachment.textContent).toBe("crumb.jpg 340 kB");
+    const name = attachment.querySelector<HTMLElement>("[data-ouro-attachment-name]")!;
+    expect(name.closest(".sr-only")).not.toBeNull();
+  });
+
+  it("opens from a link named by the file and its size, with the picture as its only visible content", async () => {
+    const onOpen = vi.fn();
+    await render(<Attachment name="crumb.jpg" size={348_160} href="#crumb" preview="/crumb-thumb.jpg" onOpen={onOpen} />);
+    const link = page.getByRole("link", { name: "crumb.jpg 340 kB" }).element() as HTMLAnchorElement;
+    await userEvent.click(link);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves the remove button onto the picture's corner, keeping its 44px touch target", async () => {
+    const onRemove = vi.fn();
+    const { attachment } = await render(<Attachment name="crumb.jpg" preview="/crumb-thumb.jpg" onRemove={onRemove} />);
+    const remove = page.getByRole("button", { name: "Remove crumb.jpg" });
+    await userEvent.click(remove);
+    expect(onRemove).toHaveBeenCalledTimes(1);
+    const button = attachment.querySelector<HTMLElement>('[data-ouro-part="remove"]')!;
+    expect(button.className).toMatch(/\babsolute\b/);
+    // This project runs with a fine pointer; attachment.touch.test.tsx checks the 44px coarse target.
+    expect(button.getBoundingClientRect().width).toBe(28);
+  });
+
+  it("warns that icon does nothing once preview is set, and keeps the picture", async () => {
+    const appIcon = (
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor">
+        <circle cx="10" cy="10" r="8" />
+      </svg>
+    );
+    const { attachment } = await render(<Attachment name="crumb.jpg" icon={appIcon} preview="/crumb-thumb.jpg" />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Attachment: icon does nothing with preview: preview draws the picture instead. Fix: <Attachment name="crumb.jpg" preview={file.url} />.',
+    );
+    expect(attachment.querySelector("[data-ouro-attachment-preview]")).not.toBeNull();
+    expect(attachment.querySelector("svg circle")).toBeNull();
+  });
+
+  it("warns for thumbnail with the fix", async () => {
+    const props = { name: "crumb.jpg", thumbnail: "/crumb-thumb.jpg" } as unknown as Parameters<typeof Attachment>[0];
+    await render(<Attachment {...props} />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Attachment: thumbnail is not a prop. Fix: <Attachment name="crumb.jpg" preview={file.url} />.');
+  });
+});
+
 describe("Attachment development messages", () => {
   it.each([
     ["fileName", { fileName: "menu.pdf" }, "fileName is not a prop", '<Attachment name="menu.pdf" />'],

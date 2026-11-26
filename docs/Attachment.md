@@ -2,7 +2,7 @@
 
 # Attachment
 
-A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size. With `href` it is a link that opens or downloads the file; with `onOpen` it opens the file in the app, such as in a `Lightbox`; with `onRemove` it has a remove button, named after the file, for the composer. Long names truncate.
+A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size, or with `preview` the picture itself. With `href` it is a link that opens or downloads the file; with `onOpen` it opens the file in the app, such as in a `Lightbox`; with `onRemove` it has a remove button, named after the file, for the composer. Long names truncate.
 
 ```tsx
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
@@ -14,6 +14,7 @@ import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 <Attachment name="menu.pdf" size={file.size} contentType={file.type} href={file.url} />
 <Attachment name={file.name} size={file.size} onRemove={() => remove(file)} />
 <Attachment name="crumb.jpg" contentType="image/jpeg" href={file.url} onOpen={() => showInLightbox(file)} />
+<Attachment name="crumb.jpg" preview={objectUrl} onRemove={() => remove(file)} />
 ```
 
 ## Use instead when
@@ -37,6 +38,7 @@ Type: `AttachmentProps`.
 | `name` (required) | `string` |  | The file's name, as the user sees it: "menu.pdf". Required, so every file has a name. |
 | `onOpen` | `((event: MouseEvent<HTMLElement>) => void)` |  | Opens the file in the app, for example in a `Lightbox`. Without `href` the attachment is a button that calls it. With `href` it stays a link: a plain click calls it instead of following the link, and a click with a modifier key (a new tab, a new window) or the middle button follows the link as usual. |
 | `onRemove` | `(() => void)` |  | Shows a remove button, which calls this. Use it while composing a message, before it is sent. |
+| `preview` | `ReactNode` |  | The picture itself, in place of the icon: a square about 56px, an image's `src` (shown with `object-cover`) or any node already sized to fill the square. With `onRemove` its ✕ sits on the picture's corner instead of beside the name. The name and size still read to screen readers, so `onOpen` and `href` still name the control by them. Takes over from `icon` when both are passed. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `removeLabel` | `((name: string) => string)` | `` (name) => `Remove ${name}` `` | The remove button's accessible name, for other languages. |
 | `size` | `number` |  | The file's size in bytes (`file.size`), shown as "1.2 MB". |
@@ -53,6 +55,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `fileName`: Not a prop. The file's name is `name`: `<Attachment name="menu.pdf" />`.
 - `onDelete`: Not a prop. Use `onRemove`: `<Attachment name="menu.pdf" onRemove={remove} />`.
 - `onDismiss`: Not a prop. Use `onRemove`: `<Attachment name="menu.pdf" onRemove={remove} />`.
+- `thumbnail`: Not a prop. The picture itself is `preview`: `<Attachment name="crumb.jpg" preview={file.url} />`.
 - `url`: Not a prop. The file's address is `href`: `<Attachment name="menu.pdf" href="/menu.pdf" />`.
 
 ## `className` is for layout only
