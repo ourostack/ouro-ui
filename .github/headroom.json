@@ -103,5 +103,10 @@
     "test": "* registry/ouro/components/ouro/command/command.test.tsx > Command motion > fades and scales in from 0.96 on the Dialog's slow token, and only fades with reduced motion",
     "reason": "Ran past half its timeout in main CI. Make it faster or give it a larger timeout, then remove this entry.",
     "owner": "drain-3"
+  },
+  {
+    "test": "* site/src/site.test.tsx > docs > opens a random component with a trick to try from the docs index, rolling the names past first",
+    "reason": "Measured at 8.8 s against a 15 s budget on a loaded browser shard (CI run 45731877765, shard 5/22). It is in this pull request's HEADROOM_CHANGED scope only because the revert removes a different test from site.test.tsx; this test is unchanged and its cost is not one the revert added or can cut. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "ouro-ui-revert-3743"
   }
 ]

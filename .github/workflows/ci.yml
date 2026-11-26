@@ -1813,8 +1813,8 @@ jobs:
   themes-shard:
     # Every story passes axe under shadcn's nova and vega presets and Spoonjoy's cookbook theme
     # (test/theme-fixtures/), light and dark, closed and with each overlay open: the components
-    # read only shadcn's standard tokens, so a third-party theme carries through. One fixture per
-    # shard (test/themes/), in Chromium, beside the ci job. On a reduced pull request, only the
+    # read only shadcn's standard tokens, so a third-party theme carries through. Every shard scans
+    # its own slice of the stories under each fixture (test/themes/, test/slice.ts), in Chromium, beside the ci job. On a reduced pull request, only the
     # selected components' stories, and nothing when it selected none. Beside them, the components'
     # shipped contrast and looks-off tests run under cookbook (project themes-contrast), whose dark text
     # is brighter than Ouro's and whose disabled button is drawn in its own colours at full opacity, so a
@@ -1837,8 +1837,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: themes (${{ matrix.shard }}/3)
+        shard: [1, 2, 3, 4, 5, 6]
+    name: themes (${{ matrix.shard }}/6)
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1908,9 +1908,9 @@ jobs:
           SHARD: ${{ matrix.shard }}
         run: |
           if [ "$FULL" = true ]; then
-            pnpm test:themes --shard="$SHARD/3"
+            pnpm test:themes --shard="$SHARD/6"
           else
-            OURO_STORIES=$(node scripts/test-impact.mjs stories "$COMPONENTS") pnpm test:themes --shard="$SHARD/3"
+            OURO_STORIES=$(node scripts/test-impact.mjs stories "$COMPONENTS") pnpm test:themes --shard="$SHARD/6"
           fi
           # The shipped contrast tests under cookbook, once, on the first shard.
           if [ "$SHARD" = 1 ]; then pnpm test:themes-contrast; fi
