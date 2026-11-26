@@ -203,6 +203,24 @@ describe("Tabs", () => {
     await expect.poll(() => scrollTo.mock.calls.length).toBeGreaterThan(0);
   });
 
+  it("brings the selected tab into view in the frame after the tabs mount, and leaves tabs unmounted by then alone", async () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ value: `tab-${i}`, label: `Tab number ${i}`, content: <p>{i}</p> }));
+    const { host } = await render(<Tabs label="Many" items={many} defaultValue="tab-11" />);
+    const list = host.querySelector<HTMLElement>('[role="tablist"]')!;
+    expect(list.scrollWidth).toBeGreaterThan(list.clientWidth);
+    await expect.poll(() => list.scrollLeft).toBeGreaterThan(0);
+    const tab = host.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')!.getBoundingClientRect();
+    expect(tab.right).toBeLessThanOrEqual(list.getBoundingClientRect().right + 1);
+    const gone = document.createElement("div");
+    document.body.append(gone);
+    mounted.push(gone);
+    const root = createRoot(gone);
+    await act(async () => root.render(<Tabs label="Gone" items={many} defaultValue="tab-11" />));
+    root.unmount();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(gone.childElementCount).toBe(0);
+  });
+
   it("moves to the next tab with ArrowLeft in a right-to-left page, where it sits on the left", async () => {
     document.documentElement.dir = "rtl";
     try {
