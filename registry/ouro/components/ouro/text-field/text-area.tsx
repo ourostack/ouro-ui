@@ -374,6 +374,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // every change event (`changes`), as React's own controlled textarea restores after one: a change
   // the owner refuses leaves `value` as it was, so without this the person's or a script's text
   // would stay on screen beside a `value` that never took it (ouro-ui#3911).
+  // Stryker disable next-line ArithmeticOperator: equivalent; any step changes the count, and only a change reruns the effect.
   const [changes, countChange] = useReducer((count: number) => count + 1, 0);
   useLayoutEffect(() => {
     const textarea = textareaRef.current!;
@@ -431,6 +432,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
       if (moved) onHighlightsChange?.(moved);
     }
     onChange?.(event);
+    // Stryker disable next-line ConditionalExpression: equivalent; the sync it reruns writes nothing to an uncontrolled field.
     if (controlled) countChange();
   };
   // The text rewraps when the width changes (a rotated phone, a resized window). The refit
