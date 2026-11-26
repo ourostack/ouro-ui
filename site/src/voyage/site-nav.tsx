@@ -1,4 +1,4 @@
-import { lazy, startTransition, Suspense, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
+import { lazy, startTransition, Suspense, useEffect, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { href } from "../paths";
@@ -381,6 +381,17 @@ function WaySwitch<T extends string>({ label, items, value, onChange }: { label:
 function Crossfade({ shown, panes }: { shown: string; panes: ReadonlyArray<{ id: string; content: ReactNode }> }): JSX.Element {
   const box = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | undefined>(undefined);
+  const [warm, setWarm] = useState(false);
+  // The pane that is not shown mounts after the press's first paint, so opening the menu draws and lays out one pane,
+  // not both (#3628); by the time anyone switches it is there to fade in.
+  useEffect(() => {
+    let timer = 0;
+    const frame = requestAnimationFrame(() => (timer = window.setTimeout(() => setWarm(true))));
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, []);
   useLayoutEffect(() => {
     const pane = box.current?.querySelector<HTMLElement>(`[data-site-pane="${shown}"]`);
     if (!pane) return;
@@ -411,7 +422,7 @@ function Crossfade({ shown, panes }: { shown: string; panes: ReadonlyArray<{ id:
             style={on ? undefined : { maxHeight: height }}
             className={cn("absolute inset-x-0 top-0 transition-[opacity,visibility] duration-(--ouro-duration-base) ease-(--ouro-ease-out)", on ? "opacity-100" : "pointer-events-none invisible overflow-hidden opacity-0")}
           >
-            {pane.content}
+            {on || warm ? pane.content : null}
           </div>
         );
       })}
