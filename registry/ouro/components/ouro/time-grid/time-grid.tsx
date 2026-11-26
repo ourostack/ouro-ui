@@ -1212,7 +1212,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     >
       <ScrollArea label={label} className="min-h-0 flex-1">
         <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-transparent bg-transparent transition-[background-color,border-color] duration-(--ouro-duration-fast) [[data-overflow-y-start]_&]:border-border [[data-overflow-y-start]_&]:bg-background/88 [[data-overflow-y-start]_&]:backdrop-blur-xl [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:bg-background [[data-overflow-y-start]_&]:[@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [[data-overflow-y-start]_&]:contrast-more:bg-background [[data-overflow-y-start]_&]:contrast-more:backdrop-blur-none [[data-overflow-y-start]_&]:forced-colors:backdrop-blur-none" style={{ gridTemplateColumns: columns }}>
-          <div aria-hidden="true" data-slot="time-grid-corner" className="bg-background" />
+          <div aria-hidden="true" />
           {days.map((day, index) => (
             <div
               key={day}
@@ -1386,7 +1386,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                         data-slot="time-grid-cursor"
                         data-ouro-time-grid-slot=""
                         data-ouro-time-grid-cursor=""
-                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border-2 border-dashed border-primary px-1.5 text-[11px] leading-4 text-muted-foreground forced-colors:border-[Highlight]"
+                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border-2 border-solid border-primary bg-primary/10 px-1.5 text-[11px] leading-4 text-foreground forced-colors:border-[Highlight]"
                         style={{ top: minutesTall(cursor.minutes), height: minutesTall(slotMinutes) }}
                       >
                         {formats.time.format(formats.clock.instant(day, cursor.minutes))}
@@ -1402,7 +1402,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                         {`${formats.time.format(formats.clock.instant(day, Math.min(drag.from, drag.to)))} – ${formats.time.format(formats.clock.instant(day, Math.max(drag.from, drag.to) + slotMinutes))}`}
                       </span>
                     ) : null}
-                    {hover?.day === index && !drag && !coveredAt(index, hover.minutes) ? (
+                    {hover?.day === index && !coveredAt(index, hover.minutes) ? (
                       <span
                         data-ouro-time-grid-slot=""
                         className={cn(

@@ -109,7 +109,7 @@ const contentClass =
  * @claim "The action button: a quiet bordered" registry/ouro/components/ouro/toast/toaster.touch.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.touch.test.tsx::gives the dismiss and action buttons 44px touch targets)
  */
 const actionClass =
-  "press relative m-0 -my-1 box-border inline-flex h-ouro-11 shrink-0 items-center justify-center rounded-ouro-md border border-solid border-border " +
+  "press relative m-0 -my-1 box-border inline-flex h-9 shrink-0 items-center justify-center rounded-ouro-md border border-solid border-border " +
   "bg-transparent px-3 text-base font-medium text-foreground pointer-fine:h-8 pointer-fine:text-sm whitespace-nowrap " +
   "cursor-pointer touch-manipulation outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale)";
