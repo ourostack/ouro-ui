@@ -1893,6 +1893,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // hands a wheel's scroll over in steps of hundreds of pixels) would otherwise see the content jump up by that part. It sits
     // above the content as a margin, so where each message sits in the content, which the anchors and the window read, stays.
     const setSlack = (px: number) => {
+      // Stryker disable next-line ConditionalExpression: moving the mark to where it already is writes nothing, and a list whose space changed and whose mark stayed has it moved by the keepAnchor that follows every change of the space.
       const moved = px !== slack;
       slack = px;
       content.style.marginBlockStart = `${px}px`;
@@ -1948,7 +1949,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // In whole pixels: WebKit drops the fraction of a scroll position written to it, so a carry of 3,499.99 px moved the
       // reader's place a whole pixel there (ourostack/ouro-ui#2648).
       const applied = scrollOwn(Math.round(by));
-      // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
+      // Stryker disable next-line ConditionalExpression,BooleanLiteral,CallExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only; left where it held the view, the mark is moved to the content's end by the keepAnchor the write's scroll event brings.
       if (!anchoring) holdEnd(contentEnd());
       // A scroll position written while the wheel turns may land in part there, and the rest settles frames later against the
       // reader. Where no end stopped the write, what has not landed stays carried, drawn by the translate, until a later write lands it.
