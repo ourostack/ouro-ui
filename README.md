@@ -905,7 +905,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Chat
 
-- **Attachment** — A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size. [Docs](docs/Attachment.md)
+- **Attachment** — A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size, or with `preview` the picture itself. [Docs](docs/Attachment.md)
 - **AttentionCard** — Something that waits on the person: a mention, a question asked of them or a request still unanswered. [Docs](docs/AttentionCard.md)
 - **ChatHeader** — The bar above an open chat: who it is with, and what you can do there. [Docs](docs/ChatHeader.md)
 - **Composer** — A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. [Docs](docs/Composer.md)

@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { ghApi, mainState } from "./main-green.mjs";
 import { failedTests, names } from "./quarantine.mjs";
 import { postComment, readComments } from "./rerun-guard.mjs";
+import { listJobs } from "./run-jobs.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 // OURO_MAIN_RED_SIGNATURES_FILE lets the tests hand it a file of their own.
@@ -157,7 +158,7 @@ export async function report({ env = process.env, api = ghApi, jobLog = defaultJ
   let jobs;
   try {
     const run = runs.find((candidate) => candidate.head_sha === state.sha);
-    const allJobs = api(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`).jobs;
+    const allJobs = listJobs(api, `repos/${repo}/actions/runs/${run.id}`);
     jobs = allJobs.filter((job) => job.conclusion === "failure").map((job) => ({ name: job.name, log: jobLog(repo, job.id) }));
   } catch (error) {
     log(`::notice::main-red-signatures: could not read the failing jobs (${error.message}); failing closed.`);
