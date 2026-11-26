@@ -997,6 +997,36 @@
         "tools"
       ],
       "xray": []
+    },
+    {
+      "id": "private-desktop-app",
+      "name": "A private desktop app",
+      "kind": "desktop app",
+      "privateRepo": true,
+      "published": {
+        "repo": "ourostack/adoption-evidence",
+        "path": "private-desktop-app.json"
+      },
+      "scopeNote": "A private repository. Its own CI publishes its Ouro HX pin, its X-ray of the shipped window and its AX X-ray report summaries to ourostack/adoption-evidence, and the ledger reads them from there.",
+      "pins": [
+        {
+          "label": "Ouro HX",
+          "latest": "web",
+          "from": "published"
+        }
+      ],
+      "hx": {
+        "kind": "published"
+      },
+      "ax": {
+        "kind": "none",
+        "reason": "Its agent interface is in a private repository; its census isn't published yet."
+      },
+      "giveBackTerms": [],
+      "xraySurfaces": [
+        "cli"
+      ],
+      "xray": []
     }
   ],
   "program": {
