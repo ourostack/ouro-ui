@@ -1,0 +1,1 @@
+- Fix: ouro-base.css and ouro-theme.css no longer repeat a `.dark` custom property whose formula already reads theme-dependent variables (or is a fixed constant), which the size gate measures in CI.

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { DEADLINE_MS, ERRORS, GRACE_MS, ownQueueWait, POLL_MS, RESERVE, SATURATED_MS, waiting, WAITING, yieldToQueue } from "./ci-yield.mjs";
+import { DEADLINE_MS, ERRORS, GRACE_MS, JOBS_PER_PAGE, ownQueueWait, POLL_MS, RESERVE, SATURATED_MS, waiting, WAITING, yieldToQueue } from "./ci-yield.mjs";
 
 // The yield to the merge queue (scripts/ci-yield.mjs): that a pull request's CI waits while a merge
 // group's run has a job waiting for a runner, that it always lets the run start in the end, and
@@ -67,7 +67,7 @@ test("it starts the run at once when no merge-queue job waits, reading only the 
   const { result, logs, waits } = await drive(gh);
   assert.equal(result, "clear");
   assert.deepEqual(waits, []);
-  assert.deepEqual(calls, ["api --include repos/o/r/actions/runs?event=merge_group&per_page=30", "api --include repos/o/r/actions/runs/7/jobs?per_page=100&page=1"]);
+  assert.deepEqual(calls, ["api --include repos/o/r/actions/runs?event=merge_group&per_page=30", "api --include repos/o/r/actions/runs/7/jobs?per_page=30&page=1"]);
   assert.match(logs.at(-1), /^No merge-queue job is waiting for a runner, so this run starts\.$/);
 });
 
@@ -153,4 +153,18 @@ test("ci.yml yields on pull requests only, in the plan before any other job queu
     const waits = (key, seen = new Set()) => needsOf(key).some((need) => need === "plan" || (!seen.has(need) && (seen.add(need), waits(need, seen))));
     assert.ok(waits(id) || id === "install-github" || id === "install-latest", `${id} waits on the plan`);
   }
+});
+
+test("it reads a run's jobs in pages of 30, which a 150-job merge group needs, and finds its own job on a later page", () => {
+  assert.equal(JOBS_PER_PAGE, 30);
+  const urls = [];
+  const filler = Array.from({ length: 30 }, () => ({ runner_name: "other", status: "completed" }));
+  const own = { runner_name: "GitHub Actions 7", status: "in_progress", created_at: at(0), started_at: at(60_000) };
+  const gh = ([, , url]) => {
+    urls.push(url);
+    const page = Number(url.match(/&page=(\d+)/)[1]);
+    return `HTTP/2.0 200 OK\nx-ratelimit-remaining: 900\n\n${JSON.stringify({ total_count: 61, jobs: page === 3 ? [own] : filler })}`;
+  };
+  assert.equal(ownQueueWait(gh, "o/r", "9", "GitHub Actions 7"), 60_000);
+  assert.deepEqual(urls, [1, 2, 3].map((page) => `repos/o/r/actions/runs/9/jobs?per_page=30&page=${page}`));
 });

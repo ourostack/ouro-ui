@@ -75,7 +75,7 @@ function fakeApi({ pushRuns, pulls = [], runsBySha = {}, jobsByRunId = {} } = {}
     }
     if (path.includes("/actions/runs/")) {
       const id = Number(path.match(/\/runs\/(\d+)\//)[1]);
-      return { jobs: jobsByRunId[id] ?? [] };
+      return { total_count: (jobsByRunId[id] ?? []).length, jobs: jobsByRunId[id] ?? [] };
     }
     throw new Error(`no route for ${path}`);
   };

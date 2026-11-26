@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { cascadeVerdict, autoMergePulls, transitionedToGreen } from "./cascade-retrigger.mjs";
 import { ghApi, mainState } from "./main-green.mjs";
 import { postComment, readComments } from "./rerun-guard.mjs";
+import { listJobs } from "./run-jobs.mjs";
 
 /** The issue this report-only log is written to: the fail-fast-ignores-a-failed-fresh-main request. */
 export const ISSUE_NUMBER = 3820;
@@ -84,7 +85,7 @@ export async function report({ env = process.env, api = ghApi, readIssueComments
       const runsForSha = api(`repos/${repo}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${pr.head.sha}&per_page=1`).workflow_runs;
       const run = runsForSha[0];
       if (!run || run.status !== "completed") continue;
-      const jobs = api(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`).jobs;
+      const jobs = listJobs(api, `repos/${repo}/actions/runs/${run.id}`);
       if (cascadeVerdict({ run, jobs }) !== "cascade") continue;
       prevented.push({ number: pr.number, runId: run.id });
     } catch (error) {
