@@ -4134,3 +4134,12 @@ test("each judge step fetches every script quarantine.mjs imports, directly or t
   assert.equal(lists.length, 2);
   for (const list of lists) assert.deepEqual(needed.filter((file) => !list.includes(file)), []);
 });
+
+test("the ci check's judge is asked only about the parts that failed, since judgeOwnRun counts a listed part with nothing to explain as a problem", () => {
+  const jobs = ciJobs();
+  const parts = stepScript(jobs.ci, "Every part passed");
+  const passed = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", CHECK_NODE: "success", CHECK_NODE_MERGE: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "false" };
+  assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure" }).output, { ids: "subsets" });
+  assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure", COVERAGE: "failure", FALLBACK: "true", BROWSER_FALLBACK: "failure" }).output, { ids: "subsets coverage browser-fallback" });
+  assert.match(jobs.ci, /^ {8}run: node scripts\/quarantine\.mjs judge "\$GITHUB_RUN_ID" \$\{\{ steps\.parts\.outputs\.ids \}\}$/m);
+});
