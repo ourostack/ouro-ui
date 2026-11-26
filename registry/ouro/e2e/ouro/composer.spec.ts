@@ -272,7 +272,9 @@ test("under a backdrop-filter, the box opens and closes in painted frames with o
       const torn = new Set(body.flatMap((row, index) => (row.runs !== 1 ? [index] : [])));
       const stale = new Set(
         body.flatMap((row, index) => {
-          if (torn.has(index) || index === 0 || index === body.length - 1) return [];
+          if (torn.has(index) || index === body.length - 1) return [];
+          // The run's first frame has no frame before it, so it is out of order when the next one is already behind it.
+          if (index === 0) return (row.height - body[1]!.height) * sign > 3 ? [0] : [];
           const prev = body[index - 1]!.height;
           const next = body[index + 1]!.height;
           return (row.height - prev) * sign < -3 && (row.height - next) * sign < -3 ? [index] : [];
