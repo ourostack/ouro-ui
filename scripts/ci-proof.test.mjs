@@ -125,5 +125,5 @@ test("the API reads ci.yml's runs on a commit, a run's latest jobs, and the pull
   assert.deepEqual(api.runs(head).map((entry) => entry.id), [1]);
   assert.deepEqual(api.jobs(1).map((entry) => entry.name), ["a", "b"]);
   assert.ok(calls.includes(`api --paginate --slurp repos/o/r/actions/workflows/ci.yml/runs?head_sha=${head}&per_page=100`));
-  assert.ok(calls.includes("api --paginate --slurp repos/o/r/actions/runs/1/jobs?filter=latest&per_page=100"));
+  assert.ok(calls.includes("api --paginate --slurp repos/o/r/actions/runs/1/jobs?filter=latest&per_page=30"));
 });

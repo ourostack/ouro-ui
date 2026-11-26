@@ -23,6 +23,7 @@ import { CONFIG as CHECK_CONFIG, bringsCheck, checkConfigs, checkRulesSection, s
 import { gateLive, liveFor, runLiveCheck } from "./live.mjs";
 import { RULES_PATH, applyRules, isIgnored, reviewTeam } from "./rules.mjs";
 import { readTarball } from "./tar.mjs";
+import { listJobsAsync } from "../run-jobs.mjs";
 
 export const BRANCH = "ouro-current/update";
 /** Ouro UI's own repositories are where releases come from, not consumers. */
@@ -144,7 +145,7 @@ export function createSources(publicGh, { unzip = defaultUnzip, liveCheck = runL
           for (const run of runs) {
             if (run.status !== "completed" || full.has(run.workflow_id) || cut.has(run.workflow_id)) continue;
             if (sent.some((later) => later.workflow_id === run.workflow_id && later.created_at > run.created_at)) continue;
-            const { jobs = [] } = await client.get(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`);
+            const jobs = await listJobsAsync((url) => client.get(url), `repos/${repo}/actions/runs/${run.id}`);
             if (!jobs.some((job) => job.conclusion === "cancelled")) continue;
             const { artifacts = [] } = await client.get(`repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`);
             if (artifacts.some((item) => /^ouro-check/.test(item.name))) cut.set(run.workflow_id, { id: run.workflow_id, path: run.path });
