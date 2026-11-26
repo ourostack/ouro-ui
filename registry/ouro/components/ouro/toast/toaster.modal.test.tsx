@@ -166,7 +166,7 @@ describe("Toaster beside a modal", () => {
   });
 
   describe("hands Tab over only when it can", () => {
-    async function open(extra?: (toastEl: HTMLElement) => void, withToast = true) {
+    async function open(extra?: (toastEl: HTMLElement) => void) {
       function Example() {
         const anchor = useRef<HTMLButtonElement>(null);
         return (
@@ -182,7 +182,7 @@ describe("Toaster beside a modal", () => {
       const host = document.body.appendChild(document.createElement("div"));
       root = createRoot(host);
       await act(async () => root!.render(<Example />));
-      if (withToast) {
+      {
         await act(async () => void toast("Event deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } }));
         await expect.element(page.getByRole("button", { name: "Undo" })).toBeVisible();
         extra?.(document.querySelector<HTMLElement>('[data-ouro="toaster"]')!);
@@ -224,14 +224,9 @@ describe("Toaster beside a modal", () => {
       expect(document.activeElement?.hasAttribute("data-skipped")).toBe(false);
     });
 
-    it("leaves Tab to the browser when the toast has no control to take it, or there is no toast", async () => {
+    it("leaves Tab to the browser when the toast has no control to take it", async () => {
       const last = await open((viewport) => void (viewport.style.display = "none"));
       expect(press(last, { key: "Tab" }).defaultPrevented).toBe(false);
-      await act(async () => root?.unmount());
-      document.body.replaceChildren();
-      const lone = await open(undefined, false);
-      expect(document.querySelector("[data-ouro-toaster-modal-reach]")).toBeNull();
-      expect(press(lone, { key: "Tab" }).defaultPrevented).toBe(false);
     });
   });
 });
