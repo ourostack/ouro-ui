@@ -167,6 +167,42 @@ describe("ConversationList section reorder", () => {
     expect(order(host)).toEqual(["Pinned", "Favorites", "Clubs", "Work"]);
     await expect.poll(said).toBe("Clubs put back. Position 2 of 3.");
     expect(onSectionsReorder).not.toHaveBeenCalled();
+    // Put back to the order the person had given before, not the app's.
+    await act(async () => headers(host)[3]!.focus());
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    await act(async () => handle(host, "work").focus());
+    await userEvent.keyboard(" ");
+    await userEvent.keyboard("{ArrowUp}");
+    await userEvent.keyboard("{Escape}");
+    expect(order(host)).toEqual(["Pinned", "Favorites", "Work", "Clubs"]);
+  });
+
+  it("says the app's own words for each step", async () => {
+    const reorderMessages = { pickedUp: "up {label} {n}/{total}", moved: "moved {label} {n}/{total}", dropped: "down {label} {n}/{total}", putBack: "back {label} {n}/{total}", instructions: "Space, arrows, Escape." };
+    const { host } = await render(list({ onSectionsReorder: () => {}, reorderMessages }));
+    expect(document.getElementById(handle(host, "club").getAttribute("aria-describedby")!)!.textContent).toBe("Space, arrows, Escape.");
+    await act(async () => handle(host, "club").focus());
+    await userEvent.keyboard(" ");
+    await expect.poll(said).toBe("up Clubs 2/3");
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(said).toBe("moved Clubs 3/3");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(said).toBe("back Clubs 2/3");
+    await userEvent.keyboard(" ");
+    await userEvent.keyboard(" ");
+    await expect.poll(said).toBe("down Clubs 2/3");
+  });
+
+  it("moves no section for Alt and an arrow on a header that does not move, and leaves Right on a row with no menu to the page", async () => {
+    const onSectionsReorder = vi.fn();
+    const { host } = await render(list({ onSectionsReorder }));
+    await key(headers(host)[0]!, { key: "ArrowDown", altKey: true });
+    expect(order(host)).toEqual(["Pinned", "Favorites", "Clubs", "Work"]);
+    expect(onSectionsReorder).not.toHaveBeenCalled();
+    const row = host.querySelector<HTMLButtonElement>('li[data-ouro-conversation-section="work"] [data-ouro-part="row"]')!;
+    await act(async () => row.focus());
+    expect((await key(row, { key: "ArrowRight" })).prevented).toBe(false);
+    expect(document.activeElement).toBe(row);
   });
 
   it("moves a section with Alt and the arrow keys on its header, at once, and keeps focus on the header", async () => {
