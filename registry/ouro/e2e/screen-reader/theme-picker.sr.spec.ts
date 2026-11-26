@@ -18,7 +18,14 @@ test("ThemePicker is announced as a list of looks: each one's name, its place in
   } else {
     await heard(sr, () => ledger.focus(), (phrase) => inOneSentence(phrase, /\bLedger\b/i, /\b\d+ of \d+\b/i), '"Ledger", with its place in the list ("2 of 4")');
   }
-  await heard(sr, () => page.keyboard.press("ArrowRight"), (phrase) => inOneSentence(phrase, /\bChart\b/i, /\b\d+ of \d+\b/i), '"Chart", with its place in the list, after ArrowRight');
+  // VoiceOver on macOS 15 occasionally says nothing for this step, though focus does move to the next option
+  // (two sightings, both silent, no wrong reading: ourostack/ouro-ui#2469). macOS 26 reads it every time.
+  const chart = '"Chart", with its place in the list, after ArrowRight';
+  if (onOlderMacOS()) {
+    await said(sr, () => page.keyboard.press("ArrowRight"), chart);
+  } else {
+    await heard(sr, () => page.keyboard.press("ArrowRight"), (phrase) => inOneSentence(phrase, /\bChart\b/i, /\b\d+ of \d+\b/i), chart);
+  }
   await heard(sr, () => page.keyboard.press("Enter"), (phrase) => inOneSentence(phrase, RADIO_CHECKED), '"selected", after Enter');
   await expect(page.getByRole("option", { name: "Chart" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "chart");
