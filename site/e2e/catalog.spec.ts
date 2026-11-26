@@ -448,8 +448,9 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
         : kind === "docs"
           ? [...lazyFiles(manifest, "src/components/docs-sidebar.tsx", expected), ...lazyFiles(manifest, "src/components/docs-header.tsx", expected)]
           : []),
-      // The voyage header's panels load once the page is idle (header.tsx), so a first open draws them whole: no part of the ceiling.
-      ...(kind === "voyage" ? [...lazyFiles(manifest, "src/voyage/nav-panels.tsx", expected), ...lazyFiles(manifest, "src/voyage/docs-panel.tsx", expected)] : []),
+      // The header's panels load once the page is idle (header.tsx), so a first open draws them whole: no part of the ceiling.
+      ...lazyFiles(manifest, "src/voyage/nav-panels.tsx", expected),
+      ...lazyFiles(manifest, "src/voyage/docs-panel.tsx", expected),
     ]);
     // The index's previews load the demos they draw, and the components those use, once it is live: within their own
     // budget. Only the frames that drew count, so any other chunk the page fetches still fails the closure check below.
