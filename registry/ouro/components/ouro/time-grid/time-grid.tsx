@@ -72,6 +72,7 @@ import {
   type TimeGridStatus,
   type TimeGridTone,
   type TimeGridView,
+  toastClearance,
 } from "@/registry/ouro/components/ouro/time-grid/time-grid-styles";
 
 export type { TimeGridStatus, TimeGridTone, TimeGridView };
@@ -866,12 +867,13 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const clear = () => {
       const at = slot.getBoundingClientRect();
       for (const toast of document.querySelectorAll("[data-ouro-toast-id]")) {
-        const over = toast.getBoundingClientRect();
-        if (over.top > innerHeight / 2 && at.bottom + 8 > over.top && at.top < over.bottom && over.left < at.right && over.right > at.left) {
-          slot.style.scrollMarginBottom = `${innerHeight - over.top + 8}px`;
+        const margin = toastClearance(at, toast.getBoundingClientRect(), innerHeight);
+        if (margin) {
+          slot.style.scrollMarginBottom = `${margin}px`;
           slot.scrollIntoView({ block: "nearest", inline: "nearest" });
         }
       }
+      // Stryker disable next-line EqualityOperator: one more frame of a bounded loop that only re-measures a toast is not observable
       if ((left -= 1) > 0) frame = requestAnimationFrame(clear);
     };
     clear();
