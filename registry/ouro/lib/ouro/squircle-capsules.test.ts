@@ -86,13 +86,16 @@ describe("capsule measure", () => {
     document.body.append(el);
     const stop = installSquircleCapsules(document);
     expect(observe).toHaveBeenCalledExactlyOnceWith(el, { box: "border-box" });
-    // A later mutation re-runs watch(); an element already watched is not observed twice.
-    document.body.append(document.createElement("span"));
-    await Promise.resolve();
-    await Promise.resolve();
+    // A sheet added later re-runs the watch over every match; an element already watched is not observed twice.
+    const other = document.createElement("style");
+    other.textContent = ".once-other { --sq-half: 0 }";
+    const scanned = vi.spyOn(Document.prototype, "querySelectorAll");
+    document.head.append(other);
+    await expect.poll(() => scanned.mock.calls.length).toBeGreaterThan(0);
     expect(observe).toHaveBeenCalledOnce();
     stop();
     style.remove();
+    other.remove();
     el.remove();
   });
 
@@ -122,6 +125,15 @@ describe("capsule measure", () => {
     await Promise.resolve();
     // A mutation after stop() finds no watcher left to run watch() again.
     expect(observe).toHaveBeenCalledOnce();
+    // Nor does a linked sheet that loads after stop().
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = URL.createObjectURL(new Blob([".after-stop { --sq-half: 0 }"], { type: "text/css" }));
+    const loaded = new Promise((resolve) => link.addEventListener("load", resolve));
+    document.head.append(link);
+    await loaded;
+    expect(observe).toHaveBeenCalledOnce();
+    link.remove();
     style.remove();
     before.remove();
     after.remove();

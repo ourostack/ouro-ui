@@ -42,9 +42,8 @@ function installSquircleCapsules(doc: Document): () => void {
     }
   });
   const watched = new Set<Element>();
-  let selector = "";
   // Reads every rule of every sheet: run it only when a sheet is added or loads, never on an ordinary DOM change.
-  const readSheets = () => {
+  const readSheets = (): string => {
     // Stryker disable next-line ArrayDeclaration: a stray starting entry is a syntactically valid, unmatched compound selector in the join, so it changes which elements match nothing.
     const selectors: string[] = [];
     for (const sheet of Array.from(doc.styleSheets)) {
@@ -54,8 +53,9 @@ function installSquircleCapsules(doc: Document): () => void {
         // A cross-origin sheet is not ours.
       }
     }
-    selector = selectors.join(",");
+    return selectors.join(",");
   };
+  let selector = readSheets();
   const observe = (el: Element) => {
     if (watched.has(el) || el.matches(ROUND)) return;
     watched.add(el);
@@ -70,9 +70,9 @@ function installSquircleCapsules(doc: Document): () => void {
     if (node.matches(selector)) observe(node);
     for (const el of Array.from(node.querySelectorAll(selector))) observe(el);
   };
-  const isSheet = (el: Element) => el.localName === "style" || (el.localName === "link" && /stylesheet/i.test((el as HTMLLinkElement).rel));
-  const holdsSheet = (el: Element) => isSheet(el) || el.querySelector("style,link[rel~=stylesheet i]") !== null;
-  readSheets();
+  // A linked sheet is read when it loads (onLoad below): before then its rules are not readable.
+  const isSheet = (el: Element) => el.localName === "style";
+  const holdsSheet = (el: Element) => isSheet(el) || el.querySelector("style") !== null;
   watchAll();
   const mutations = new MutationObserver((records) => {
     const added: Element[] = [];
@@ -87,7 +87,7 @@ function installSquircleCapsules(doc: Document): () => void {
       }
     }
     if (sheetsChanged) {
-      readSheets();
+      selector = readSheets();
       watchAll();
     } else for (const node of added) watchAdded(node);
   });
@@ -95,7 +95,7 @@ function installSquircleCapsules(doc: Document): () => void {
   // A linked sheet's rules are readable only once it has loaded.
   const onLoad = (event: Event) => {
     if ((event.target as Element).localName !== "link") return;
-    readSheets();
+    selector = readSheets();
     watchAll();
   };
   doc.addEventListener("load", onLoad, true);
