@@ -468,8 +468,9 @@ describe("Attachment preview", () => {
     expect(onRemove).toHaveBeenCalledTimes(1);
     const button = attachment.querySelector<HTMLElement>('[data-ouro-part="remove"]')!;
     expect(button.className).toMatch(/\babsolute\b/);
-    // This project runs with a fine pointer; attachment.touch.test.tsx checks the 44px coarse target.
-    expect(button.getBoundingClientRect().width).toBe(28);
+    // This project runs with a fine pointer; attachment.touch.test.tsx checks the 44px coarse target. The click's press
+    // scale can still be easing back, so this reads the laid-out width, which a transform never changes.
+    expect(button.offsetWidth).toBe(28);
   });
 
   it("frames the picture 6px in from each edge, where a file's icon keeps 12px at its sides", async () => {
