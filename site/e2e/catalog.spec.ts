@@ -175,13 +175,8 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * phone menu's two ways in, and the real Apple, Windows and Android marks Ari asked for ("yeah, lets use real platform
  * marks"), about 1,700 of it. The Docs panel's lists, which read the docs' generated index, load on their own when a
  * pointer or focus first reaches the header (site/src/voyage/docs-panel.tsx), so no page pays for them up front.
- *
- * The voyage's set again 2026-11-26 at 303,700 bytes, what CI measured on #3744's head 9c366ee54 (e2e job 3/8), 60 over
- * its base: NavigationMenu measures the bar's edge so open panels clear its hairline (#3744). The measurement is one
- * small function in the menu, which every page's header carries; shortening it three times saved nothing main did not
- * take back.
  */
-const MEASURED = { voyage: 303_700, docs: 202_898 } as const;
+const MEASURED = { voyage: 303_169, docs: 202_898 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
