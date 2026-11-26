@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-26T04:40:24.061Z",
+  "generatedAt": "2026-11-26T04:56:44.894Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -68,7 +68,7 @@
     },
     {
       "repo": "ourostack/desk",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "plugins/desk/mcp/src/lib/ouro-actions/dist-manifest.json",
@@ -80,22 +80,19 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 57c3deb",
+          "current": "commit 5cc3017",
           "latest": "v1.3.574",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 57c3deb",
+          "current": "commit 5cc3017",
           "latest": "v1.3.574",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1809,
-        "url": "https://github.com/ourostack/desk/pull/1809"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/factory",
@@ -225,14 +222,14 @@
     },
     {
       "repo": "ourostack/m365crawl",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit b00985b",
+          "current": "commit 5cc3017",
           "latest": "v1.3.574",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
@@ -242,10 +239,7 @@
           "behind": false
         }
       ],
-      "pr": {
-        "number": 637,
-        "url": "https://github.com/ourostack/m365crawl/pull/637"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouro-current-fixture-android",
@@ -347,7 +341,7 @@
     },
     {
       "repo": "ourostack/ouroboros",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "tools/ouro-actions/dist-manifest.json",
@@ -359,15 +353,12 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit b00985b",
+          "current": "commit 5cc3017",
           "latest": "v1.3.574",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1930,
-        "url": "https://github.com/ourostack/ouroboros/pull/1930"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouroboros-website",
