@@ -19,6 +19,7 @@ import {
   weekendDays,
   zonedClock,
 } from "@/registry/ouro/components/ouro/time-grid/time-grid-styles";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -1506,6 +1507,13 @@ describe("TimeGrid", () => {
       expect(slot).toHaveBeenCalledTimes(1);
     });
 
+    it("draws the keyboard's slot as an empty dashed outline, not a filled card that reads as an event", async () => {
+      const { grid } = await open();
+      const style = getComputedStyle(grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!);
+      expect(style.borderStyle).toBe("dashed");
+      expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    });
+
     it("scrolls a slot clear of the sticky day header", async () => {
       const { grid } = await open();
       const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
@@ -1658,6 +1666,29 @@ describe("TimeGrid", () => {
     expect(slot).toHaveBeenLastCalledWith({ start: new Date("2026-03-12T10:00:00-04:00"), end: new Date("2026-03-12T12:30:00-04:00") });
     await act(async () => {});
     expect(grid.querySelector("[data-ouro-time-grid-drag]")).toBeNull();
+  });
+
+  it("draws no hovered-slot label over the dragged range, so only the range's own start and end are named", async () => {
+    const { grid } = await render({ view: "day", onSlotSelect: vi.fn() });
+    const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
+    const y = (minutes: number) => {
+      const box = slots.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
+    const fire = (type: string, minutes: number) => slots.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y(minutes), pointerType: "mouse", button: 0, pointerId: 43 }));
+    const labels = () => [...grid.querySelectorAll("[data-ouro-time-grid-slot]")].map((node) => plain(node.textContent));
+    fire("pointermove", 605);
+    await act(async () => {});
+    expect(labels()).toEqual(["10:00 AM"]);
+    fire("pointerdown", 605);
+    await act(async () => {});
+    fire("pointermove", 725);
+    await act(async () => {});
+    expect(plain(grid.querySelector("[data-ouro-time-grid-drag]")!.textContent)).toBe("10:00 AM – 12:30 PM");
+    expect(labels()).toEqual([]);
+    fire("pointerup", 725);
+    await act(async () => {});
+    expect(labels()).toEqual(["12:00 PM"]);
   });
 
   it("shows the dragged range as it grows, and only reads Escape while a drag is held", async () => {
@@ -1951,6 +1982,34 @@ describe("TimeGrid", () => {
     await expect.poll(() => viewport().hasAttribute("data-overflow-y-start")).toBe(true);
     const head = viewport().querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
     await expect.poll(() => getComputedStyle(head).backdropFilter).toBe("none");
+  });
+
+  it("covers the hour labels with an opaque corner cell where they scroll under the glass header", async () => {
+    await render();
+    const corner = viewport().querySelector<HTMLElement>('[data-slot="time-grid-corner"]')!;
+    expect(getComputedStyle(corner).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  });
+
+  it("tells each tone's start bar apart under forced colours, where every colour becomes the system's", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    const tones = ["primary", "secondary", "success", "warning", "destructive"] as const;
+    await render({ view: "day", events: tones.map((tone, index) => ({ id: tone, title: tone, start: at(12, `${String(index + 8).padStart(2, "0")}:00`), end: at(12, `${String(index + 8).padStart(2, "0")}:30`), tone })) });
+    const bar = (tone: string) => {
+      const style = getComputedStyle(events().find((event) => event.getAttribute("aria-label")?.startsWith(tone))!);
+      return `${style.borderInlineStartWidth} ${style.borderInlineStartStyle}`;
+    };
+    await expect.poll(() => new Set(tones.map(bar)).size).toBe(tones.length);
+  });
+
+  it("gives the +N menu an edge under forced colours, where its shadow and ring vanish", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    const crowd = Array.from({ length: 3 }, (_, index) => ({ id: `c${index}`, title: `Event ${index}`, start: at(12, "09:00"), end: at(12, "12:00") }));
+    await render({ view: "day", events: crowd }, (grid) => <div style={{ width: "190px", height: "600px" }}>{grid}</div>);
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro-part="more"]')?.getBoundingClientRect().width).toBeGreaterThan(0);
+    await userEvent.click(document.querySelector<HTMLElement>('[data-ouro-part="more"]')!);
+    await expect.poll(() => page.getByRole("menuitem").elements().length).toBeGreaterThan(0);
+    const menu = page.getByRole("menuitem").elements()[0]!.closest<HTMLElement>('[data-ouro="menu"]')!;
+    expect(getComputedStyle(menu).borderTopWidth).not.toBe("0px");
   });
 
   it.each(["light", "dark"])("keeps the glass day header's text legible over the busiest event beneath it (%s)", async (scheme) => {
@@ -2989,6 +3048,19 @@ describe("TimeGridNav", () => {
     const show = (view: "day" | "week") => act(async () => root.render(<TimeGridNav date="2026-03-12" view={view} timeZone={zone} onDateChange={onDateChange} />));
     return { onDateChange, root, show };
   };
+
+  it("draws Today with the quiet outline of a secondary button, not a tinted border", async () => {
+    const { show } = mountNav();
+    await show("week");
+    const probe = document.createElement("div");
+    document.body.append(probe);
+    mounted.push(probe);
+    const quiet = createRoot(probe);
+    roots.push(quiet);
+    await act(async () => quiet.render(<Button variant="outline" tone="secondary" size="sm">Quiet</Button>));
+    const border = (name: string) => getComputedStyle(Array.from(document.querySelectorAll("button")).find((button) => button.textContent === name)!).borderColor;
+    expect(border("Today")).toBe(border("Quiet"));
+  });
 
   it("draws Previous and Next as named chevron icons, each tooltip saying its words and its key", async () => {
     const { show } = mountNav();

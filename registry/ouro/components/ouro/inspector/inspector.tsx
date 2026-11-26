@@ -616,12 +616,15 @@ function InspectorLayer({
   useEffect(() => {
     const own = layer.current!;
     let frame = 0;
+    let backstop = 0;
     // Whether anything moved at the last measure.
     let moved: boolean | undefined;
     const observed = new Set<Element>();
     const resizes = new ResizeObserver(() => schedule());
     const update = () => {
       frame = 0;
+      clearTimeout(backstop);
+      backstop = 0;
       const modal = modalOpen(own);
       // While a dialog shuts off the page, the bar (shut off with it) steps aside so it never covers the dialog.
       own.toggleAttribute("data-modal", modal);
@@ -655,6 +658,9 @@ function InspectorLayer({
         // Stryker disable next-line StringLiteral: a test reads only whether the attribute is set, never its value.
         own.setAttribute("data-ouro-settling", "");
         frame = requestAnimationFrame(update);
+        // A stalled compositor can drop a frame callback rather than merely delay it (#3314); this
+        // backstop measures anyway so the page still outlines once the stall passes (#3740).
+        backstop = window.setTimeout(update, 500);
       }
     };
     // X-ray's own writes (each outline's position) are no change to the page.
@@ -669,6 +675,7 @@ function InspectorLayer({
     schedule();
     return () => {
       cancelAnimationFrame(frame);
+      clearTimeout(backstop);
       // Stryker disable next-line StringLiteral: `own` is this layer's own element, coming down with
       // it (X-ray closes by unmounting), so clearing an attribute on an element about to leave the
       // page changes nothing a test, or anything else, can observe.
