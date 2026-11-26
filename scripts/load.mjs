@@ -5,6 +5,7 @@
 // path: a normal return, a thrown error, this process receiving SIGTERM/SIGINT, or this process's own exit.
 import { cpus } from "node:os";
 import { spawnSync, spawn } from "node:child_process";
+import { setTimeout as sleep } from "node:timers/promises";
 
 // A plain alphanumeric marker on each worker's own command line, so a pgrep can find them by substring
 // alone, with no regex metacharacters of its own to escape (the busy-loop source itself has parentheses,
@@ -92,7 +93,7 @@ export async function withLoad(fn, { workers = maxLoadWorkers(), seconds = 120 }
           // Already gone between the pgrep snapshot and this kill.
         }
       }
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await sleep(200);
     }
   }
 }

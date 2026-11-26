@@ -7,7 +7,8 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { cpus } from "node:os";
 import { describe, it } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { setTimeout as sleep } from "node:timers/promises";
+import { URL, fileURLToPath, pathToFileURL } from "node:url";
 import { loadWorkersRemain, maxLoadWorkers, withLoad } from "./load.mjs";
 
 const loadMjsUrl = pathToFileURL(fileURLToPath(new URL("./load.mjs", import.meta.url))).href;
@@ -26,7 +27,7 @@ async function waitForWorkers(timeoutMs = 5000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await loadWorkersRemain()) return;
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await sleep(50);
   }
   throw new Error("workers never appeared");
 }
