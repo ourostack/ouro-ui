@@ -7,6 +7,7 @@ import { page, userEvent } from "vitest/browser";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { openPopupSelector, popupTriggerSelector } from "@/registry/ouro/lib/ouro/testing/popups";
+import { scrollPositions } from "./scroll-rest.ts";
 import { storyFileSelected } from "./story-selection.ts";
 
 // Shared by the story accessibility test, the control marker test and the visual test. Stories render
@@ -409,6 +410,7 @@ export async function settle(): Promise<void> {
   // One quiet check is not enough: a fade that begins a frame after it was scanned mid-way (#1303), so
   // the page must read as quiet twice in a row.
   let quiet = 0;
+  let before = scrollPositions();
   for (let round = 0; round < 20; round++) {
     // Base UI clears the starting style in a deferred React update. Before that
     // commit a sheet is offscreen but has no running transition to await.
@@ -420,7 +422,11 @@ export async function settle(): Promise<void> {
     const unsettled = document
       .getAnimations()
       .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && (animation.playState === "running" || animation.pending));
-    if (unsettled.length === 0 && !document.querySelector("[data-open][data-starting-style]")) {
+    // A scroll made by code is no animation: a find's smooth scroll ends, then a Jump to latest pill fades in (#3913, #3918).
+    const after = scrollPositions();
+    const scrolled = after !== before;
+    before = after;
+    if (unsettled.length === 0 && !scrolled && !document.querySelector("[data-open][data-starting-style]")) {
       if (++quiet === 2) return;
       continue;
     }
