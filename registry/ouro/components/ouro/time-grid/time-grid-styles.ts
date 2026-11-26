@@ -498,7 +498,7 @@ const backgroundBarFillClass =
 /**
  * Each tone as a solid swatch, the bar's colour: mixed toward the page so a column of bars stays quiet.
  *
- * @claim "Each tone as a solid swatch" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /primary: "border-primary bg-\[color-mix/)
+ * @claim "Each tone as a solid swatch" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /primary: "border-primary \[--ouro-time-grid-tone:var\(--primary\)\] bg-\[color-mix/)
  */
 const toneSwatchClass: Record<TimeGridTone, string> = {
   primary: "border-primary [--ouro-time-grid-tone:var(--primary)] bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_60%,var(--background))]",
