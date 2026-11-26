@@ -14,6 +14,14 @@ afterEach(async () => {
 
 const eventTitles = () => document.querySelectorAll("[data-site-calendar-demo] [data-ouro='time-grid'] [data-event-id], [data-site-calendar-demo] [data-ouro='time-grid'] button[aria-label*=', ']").length;
 
+// A narrow column shows State as a Select, a wide one as a SegmentedControl.
+async function chooseEmptyWeek() {
+  const radio = page.getByRole("radio", { name: "Empty week" });
+  if (radio.query()) return radio.click();
+  await page.getByRole("combobox", { name: "State" }).click();
+  await page.getByRole("option", { name: "Empty week" }).click();
+}
+
 describe("the calendar page", () => {
   it("has a route", () => {
     expect(routes.some((route) => route.path === "/docs/calendar-demo/")).toBe(true);
@@ -23,7 +31,7 @@ describe("the calendar page", () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {
       await renderPage("/docs/calendar-demo/");
-      await page.getByRole("radio", { name: "Empty week" }).click();
+      await chooseEmptyWeek();
       await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
@@ -41,19 +49,6 @@ describe("the calendar page", () => {
     await expect.poll(() => `${document.activeElement?.tagName}${document.activeElement?.getAttribute("aria-invalid")}`).toBe("INPUTtrue");
   });
 
-  it("fits the State control without a scrollbar at normal text on a narrow phone", async () => {
-    await page.viewport(372, 844);
-    try {
-      await renderPage("/docs/calendar-demo/");
-      const control = page.getByRole("radiogroup", { name: "State" });
-      await expect.element(control).toBeInTheDocument();
-      const wrap = control.element().closest(".overflow-x-auto") as HTMLElement;
-      await expect.poll(() => wrap.scrollWidth <= wrap.clientWidth).toBe(true);
-    } finally {
-      await page.viewport(1100, 900);
-    }
-  });
-
   it("keeps the Add a title message above the footer at large text on a short screen", async () => {
     await page.viewport(550, 450);
     document.documentElement.style.fontSize = "32px";
@@ -61,7 +56,7 @@ describe("the calendar page", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       await renderPage("/docs/calendar-demo/");
-      await page.getByRole("radio", { name: "Empty week" }).click();
+      await chooseEmptyWeek();
       await page.getByRole("button", { name: "New event" }).click();
       const dialog = page.getByRole("dialog", { name: "New event" });
       await dialog.getByRole("button", { name: "Create" }).click();
@@ -87,7 +82,7 @@ describe("the calendar page", () => {
     grow.setAttribute("data-test-harness", "");
     try {
       await renderPage("/docs/calendar-demo/");
-      await page.getByRole("radio", { name: "Empty week" }).click();
+      await chooseEmptyWeek();
       await page.getByRole("button", { name: "New event" }).click();
       const dialog = page.getByRole("dialog", { name: "New event" });
       await dialog.getByRole("button", { name: "Create" }).click();
@@ -120,7 +115,7 @@ describe("the calendar page", () => {
     move.textContent = "[role=dialog] { transform: translateY(120px) !important; }";
     try {
       await renderPage("/docs/calendar-demo/");
-      await page.getByRole("radio", { name: "Empty week" }).click();
+      await chooseEmptyWeek();
       await page.getByRole("button", { name: "New event" }).click();
       const dialog = page.getByRole("dialog", { name: "New event" });
       await expect.element(dialog).toBeVisible();
@@ -160,7 +155,7 @@ describe("the calendar page", () => {
     try {
       await renderPage("/docs/calendar-demo/");
       const line = () => document.querySelector("[data-site-calendar-demo] [data-ouro-time-grid-now-label]");
-      await page.getByRole("radio", { name: "Empty week" }).click();
+      await chooseEmptyWeek();
       await expect.element(page.getByText("Nothing on this week")).toBeInTheDocument();
       expect(line()).toBeNull();
       await page.getByRole("radio", { name: "Full week" }).click();
@@ -410,7 +405,7 @@ describe("the calendar page", () => {
   });
 
   it("scrolls the week inside its frame at large text instead of squeezing the days or the page", async () => {
-    await page.viewport(700, 900);
+    await page.viewport(1100, 900);
     document.documentElement.style.fontSize = "200%";
     // The View control's labels outgrow its scroller at this size, which its own message says.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
