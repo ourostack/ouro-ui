@@ -697,11 +697,15 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         range.setStart(n, start);
         range.setEnd(n, start + text.length);
         const line = range.getBoundingClientRect();
+        // The ascent at the glyph's own size, as its line was laid out; the glyph's bounds at 100px, scaled back, since a
+        // Linux host rounds them to whole pixels at a control's size, which moves a 2px dot's ink by a pixel or more.
         const ts = getComputedStyle(n.parentElement!);
         context.font = `${ts.fontStyle} ${ts.fontWeight} ${ts.fontSize} ${ts.fontFamily}`;
+        const baseline = line.top + context.measureText(text).fontBoundingBoxAscent * scale;
+        context.font = `${ts.fontStyle} ${ts.fontWeight} 100px ${ts.fontFamily}`;
         const m = context.measureText(text);
-        const baseline = line.top + m.fontBoundingBoxAscent * scale;
-        add(line.left - m.actualBoundingBoxLeft * scale, baseline - m.actualBoundingBoxAscent * scale, line.left + m.actualBoundingBoxRight * scale, baseline + m.actualBoundingBoxDescent * scale);
+        const k = (px(ts.fontSize) / 100) * scale;
+        add(line.left - m.actualBoundingBoxLeft * k, baseline - m.actualBoundingBoxAscent * k, line.left + m.actualBoundingBoxRight * k, baseline + m.actualBoundingBoxDescent * k);
       }
     }
     if (hasWords) continue;

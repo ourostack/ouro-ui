@@ -155,7 +155,7 @@ describe("Ouro check", () => {
     // whole comparison the way the measured-rules test above already leaves it out of its own (#3836).
     assert.deepEqual(spots(steady(merged.findings)), spots(steady(whole.findings)));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 71);
+    assert.equal(merged.pages.length, 72);
     // A merge sums the shards' own coverage rather than reading one shard's, so scanned.visits is every shard's
     // shots added together, the same total a single whole run reads from its own.
     assert.deepEqual(merged.scanned, whole.scanned);
