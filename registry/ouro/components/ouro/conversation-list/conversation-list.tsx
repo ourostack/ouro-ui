@@ -252,11 +252,10 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
 
 // A row highlights while pressed instead of scaling, as Item's linked row does, and is a
 // full touch target on a coarse pointer. The focus outline sits inside the row, so a list
-// in a scrolling pane never clips it. Forced colours box the list itself (controlListClass
-// below), not a row: a row at rest draws no border, matching how a system list box leaves
-// its own rows plain.
+// in a scrolling pane never clips it. Forced colours rule each row's bottom edge, with no box
+// around the list or the row, so a container the app draws is never doubled.
 const controlClass =
-  "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 bg-transparent px-3 " +
+  "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 bg-transparent px-3 forced-colors:border-b forced-colors:border-solid " +
   "text-start text-foreground select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-ouro-11 pointer-fine:group-hover/row:bg-[color:var(--ouro-row-hover,color-mix(in_oklab,var(--muted)_60%,var(--background)))] pointer-fine:group-hover/row:shadow-(--ouro-row-hover-shadow,0_0_0_1px_var(--border)) forced-colors:pointer-fine:group-hover/row:border forced-colors:pointer-fine:group-hover/row:border-solid forced-colors:pointer-fine:group-hover/row:border-[Highlight] active:bg-[color:var(--ouro-row-pressed,var(--muted))] pointer-fine:hover:active:bg-[color:var(--ouro-row-pressed,var(--muted))]";
 // A row opens and closes at once (`press` eases no colour): the open row is drawn in its accent on the first frame after
@@ -1156,9 +1155,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       {...rest}
       data-ouro="conversation-list"
       data-density={density}
-      // Forced colours give the list itself an edge (as a native list box has), so a row's own border
-      // can stay off at rest: see controlClass above.
-      className={cn("box-border min-w-0 forced-colors:border forced-colors:border-solid", className)}
+      // Forced colours draw each row's rule (see controlClass above), not a box around the list, so an app's own frame is never doubled.
+      className={cn("box-border min-w-0", className)}
     >
       {items.length === 0 ? (
         <p className={cn("m-0 px-3 py-2 text-sm", quiet)}>{empty}</p>

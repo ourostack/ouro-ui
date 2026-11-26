@@ -15,9 +15,6 @@ import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/
 function Surface({ children, width = 380 }: { children: ReactNode; width?: number }) {
   return (
     <div
-      // Its own edge drops under forced colours: ConversationList already draws its own frame
-      // (and, with sections, each header its own edge too), so this edge would only double it.
-      className="forced-colors:border-0!"
       style={{
         background: "var(--background)",
         color: "var(--foreground)",
