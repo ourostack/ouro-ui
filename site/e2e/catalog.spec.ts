@@ -253,10 +253,7 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // docs 57,155, badge 33,138 and the docs shell 27,693 bytes, each about 1,150 more than its base, and the Composed UI
 // docs page 37,939 measured by catalog.spec.ts) for the Compass nav
 // (#3534): the panels, the platform marks and the phone menu's switch in every page's header, beside the slim family strip.
-// Raised voyage and docs a KiB each (home 56,278 and docs 57,411 bytes measured by scripts/size-budget.mjs on a build merged
-// with main at 2f22eba09, 243 and 216 over main's own, both within CSS_MARGIN) for ConversationList's reorderable section
-// headers (#3817): the grip button, the drag lift and the drop line, whose classes the voyage pages' and the docs' Tailwind builds carry.
-const CSS_CEILINGS = { voyage: 56 * 1024, docs: 57 * 1024, docsShell: 28 * 1024, docsPage: 38 * 1024 } as const;
+const CSS_CEILINGS = { voyage: 55 * 1024, docs: 56 * 1024, docsShell: 28 * 1024, docsPage: 38 * 1024 } as const;
 /**
  * How much one pull request may add to a page's CSS before its ceiling is raised: judged the same way as a page's
  * JavaScript closure (MARGIN above), by growth over the pull request's own base, so a ceiling main is already over,
