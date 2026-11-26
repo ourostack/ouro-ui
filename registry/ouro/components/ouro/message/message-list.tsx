@@ -2056,8 +2056,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
         }
       } else owed = 0;
       keepAnchor();
-      // Something grew below while the reader is near the end: the jump shows once it is more than a line away.
-      setShowJump(jumpOwed());
+      // Something grew below while the reader is near the end: the jump shows once it is more than a line away. Only a
+      // change is set (the jump is drawn while its button is), as setting the same value here still costs a render.
+      if (jumpOwed() !== (jumpRef.current !== null)) setShowJump(jumpOwed());
     };
     const follow = new ResizeObserver(hold);
     follow.observe(content);
