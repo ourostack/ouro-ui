@@ -3211,7 +3211,10 @@ jobs:
     # same image as the same user, and run their share of the shipped tests against it, instead of
     # each repeating the setup.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'skip' }}
+    # It runs on a push to main whose tree already passed as well, because only main saves the prepared app and
+    # the merge queue's runs restore it: without that save the newest app stays the one before the last change to
+    # the theme, and every merge group adds everything from the base. With the app cached it ends after the restore.
+    if: ${{ !cancelled() && needs.plan.outputs.installs != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).

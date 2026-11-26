@@ -1606,12 +1606,12 @@ test("a push to main whose tree already passed runs only install-github", () => 
   assert.match(jobs.plan, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n {6}pull-requests: read/m);
   // A proven push installs nothing for the plan either.
   assert.match(readFileSync(join(dir, "ci.yml"), "utf8").split("\n  checks:\n")[0], /^ {6}- if: steps\.tested\.outputs\.tested != 'true'\n {8}id: install\n/m);
-  // Every job but the plan, the GitHub install, the release-only install, fail-fast and fresh-main (pull
+  // Every job but the plan, the GitHub install, the release-only install, install prep (which saves the prepared app), fail-fast and fresh-main (pull
   // requests only) and tree-proof skips on it, gates included; motion-coverage waits on ci and browser-fallback on
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
   const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, designRuns, laneRuns].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof", "yield"].includes(id)).sort());
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "install-prep", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof", "yield"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[plan, browser, coverage, browser-fallback\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
@@ -1695,6 +1695,7 @@ function checkNames(block, id) {
 const untested = "${{ !cancelled() && needs.plan.outputs.tested != 'true' }}";
 
 /** The install test's jobs (not its gates): they also skip on a pull request that changes nothing the install test reads (the plan's `installs`). */
+const preppedInstalls = "${{ !cancelled() && needs.plan.outputs.installs != 'skip' }}";
 const queuedInstalls = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'skip' }}";
 
 /** The browser shards': they also skip on a pull request that changes nothing they read (the plan's `browser`). */
@@ -1733,7 +1734,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs beside ci once the coverage job and the shards it reads passed or were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser.result) && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser-fallback.result) }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-prep" ? preppedInstalls : id === "install-shard" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -3950,6 +3951,12 @@ test("install prep caches a base keyed on the runtime files, then adds the shipp
   assert.ok(prep.includes("OURO_DELTA=1 OURO_PREPARE_ONLY=1 OURO_SKIP_CHECKS=1"));
   const script = readFileSync("scripts/install-test.sh", "utf8");
   assert.ok(script.includes("OURO_BASE_ONLY") && script.includes("OURO_DELTA"));
+});
+
+test("install prep runs on a push to main whose tree passed, so main saves the prepared app the merge queue restores", () => {
+  const block = ciJobs()["install-prep"];
+  assert.doesNotMatch(block.match(/^ {4}if: (.+)$/m)[1], /tested/);
+  assert.match(block, /github\.ref == 'refs\/heads\/main' && github\.event_name != 'pull_request'/);
 });
 
 test("fresh-main starts with the run, waits on nothing but the plan, and runs on pull requests only", () => {
