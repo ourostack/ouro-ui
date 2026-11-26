@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
 import { routes } from "../routes";
 
@@ -198,9 +198,17 @@ describe("the calendar page", () => {
       await renderPage("/docs/calendar-demo/");
       await page.getByRole("radio", { name: "Loading" }).click();
       await expect.poll(() => document.querySelector("[data-site-calendar-demo] [aria-busy=true]")).not.toBeNull();
-      // Moment's `announce` prop also speaks this title to the shared live region, so a plain
-      // text query can match twice; scope to the heading, as Moment's own tests do.
-      await expect.element(page.getByRole("heading", { level: 3, name: "Loading your week" })).toBeInTheDocument();
+      await expect.element(page.getByRole("status")).toHaveTextContent("Loading your week");
+      // The week's shape, not a bare spinner: a placeholder block per day, and no spinner.
+      const skeleton = document.querySelector("[data-site-week-skeleton]")!;
+      expect(skeleton.querySelectorAll("[data-ouro='skeleton']").length).toBeGreaterThanOrEqual(4);
+      expect(skeleton.querySelector("[role=progressbar], svg")).toBeNull();
+      await commands.emulateMedia({ reducedMotion: "reduce" });
+      try {
+        expect(getComputedStyle(skeleton.querySelector("[data-ouro='skeleton']")!).animationName).toBe("none");
+      } finally {
+        await commands.emulateMedia({ reducedMotion: "no-preference" });
+      }
     } finally {
       vi.useRealTimers();
     }
