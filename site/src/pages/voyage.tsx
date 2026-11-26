@@ -1,7 +1,6 @@
 // First, so the page's own rules below come after Tailwind's and win.
 import "../voyage/voyage-tailwind.css";
 import { lazy, Suspense, useEffect, useState, type JSX } from "react";
-import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { AxHero } from "../ax/hero";
 import { Popups, PopupsProvider } from "../components/popups";
@@ -64,8 +63,32 @@ const PART_ISLANDS: Record<(typeof PART_PATHS)[number], () => JSX.Element> = {
 };
 const isPart = (page: string): page is (typeof PART_PATHS)[number] => page in PART_ISLANDS;
 
-/** HX Inspector's code loads only once someone turns X-ray on, so the page's first JavaScript carries none of it. */
-const Inspector = lazy(() => import("@/registry/ouro/components/ouro/inspector/inspector").then((module) => ({ default: module.Inspector })));
+/**
+ * The page's two overlays load after the first paint, in one chunk (site/src/voyage/overlays.ts), so its first JavaScript
+ * carries neither. HX Inspector renders only once someone turns X-ray on. The Toaster mounts on the reader's first press,
+ * key or focus: every toast here answers one (Copy, the Dive, typing "nemo"), and one raised before the chunk arrives
+ * waits in toast()'s queue until the Toaster connects.
+ */
+const Inspector = lazy(() => import("../voyage/overlays").then((module) => ({ default: module.Inspector })));
+const Toaster = lazy(() => import("../voyage/overlays").then((module) => ({ default: module.Toaster })));
+const WAKES = ["pointerdown", "keydown", "focusin", "click"] as const;
+
+function LazyToaster(): JSX.Element | null {
+  const [wanted, setWanted] = useState(false);
+  useEffect(() => {
+    if (wanted) return;
+    const want = () => setWanted(true);
+    for (const type of WAKES) addEventListener(type, want, { capture: true, passive: true });
+    return () => {
+      for (const type of WAKES) removeEventListener(type, want, { capture: true });
+    };
+  }, [wanted]);
+  return wanted ? (
+    <Suspense>
+      <Toaster />
+    </Suspense>
+  ) : null;
+}
 
 /**
  * X-ray: HX Inspector over the page. It opens in the frame after the press has painted (two
@@ -193,7 +216,7 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
           </HydrateInTurn>
         </div>
         <Xray />
-        <Toaster />
+        <LazyToaster />
       </PopupsProvider>
     </OuroProvider>
   );

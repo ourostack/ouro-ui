@@ -75,7 +75,7 @@ export function TimeGridNav(props: TimeGridNavProps): JSX.Element {
   return (
     <div data-ouro="time-grid-nav" className={cn("inline-flex items-center gap-1", className)}>
       <Tooltip content={tip(today, ["alt", "shift", "y"])}>
-        <Button variant="outline" size="sm" disabled={disabled} onClick={() => onDateChange(todayOn(zonedClock(timeZone)))}>
+        <Button variant="outline" tone="secondary" size="sm" disabled={disabled} onClick={() => onDateChange(todayOn(zonedClock(timeZone)))}>
           {today}
         </Button>
       </Tooltip>
