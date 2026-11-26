@@ -3347,7 +3347,7 @@ test("a file quarantined whole (title \"*\") forgives its tests and a job the ha
 
   const ciYml = workflow("ci.yml");
   const installStep = 'Run scripts/install-test.sh namespace "$RUNNER_TEMP/app" abc';
-  const test = (name) => `ouro-chromium (chromium) src/components/ouro/message/message-list.windowing.test.tsx > MessageList windowing > ${name}`;
+  const flying = (name) => `ouro-chromium (chromium) src/components/ouro/message/message-list.windowing.test.tsx > MessageList windowing > ${name}`;
   const hang = (inFlight) => logLines("install (namespace, nova)", [
     `[ouro-ui] Vitest has had no test finish for 2 min. In flight: ${inFlight}. Not started: ouro-chromium (chromium) src/lib/ouro/claims.test.ts`,
     "[ouro-ui] Vitest page ouro-chromium (chromium): the page did not pause in 2 s either, so it is hung",
@@ -3356,28 +3356,28 @@ test("a file quarantined whole (title \"*\") forgives its tests and a job the ha
   const run = (log, failedSteps = [installStep]) => ({ id: "5", workflow: ciYml, jobs: [{ id: 3, name: "install (namespace, nova)", conclusion: "failure", url: "https://github.com/o/r/actions/runs/5/job/3", failedSteps, log }] });
   const judge = (log, entries = [whole], failedSteps) => judgeOwnRun({ run: run(log, failedSteps), ids: ["install"], entries });
 
-  assert.deepEqual(hungTests(hang(`${test("opens, and more (running 2m 0s)")}`.replace(" (running 2m 0s)", "") + " (running 2m 0s)")).map((t) => t.file), ["src/components/ouro/message/message-list.windowing.test.tsx"]);
+  assert.deepEqual(hungTests(hang(`${flying("opens, and more (running 2m 0s)")}`.replace(" (running 2m 0s)", "") + " (running 2m 0s)")).map((t) => t.file), ["src/components/ouro/message/message-list.windowing.test.tsx"]);
   assert.equal(hungTests("no watchdog here"), undefined);
 
-  const forgiven = judge(hang(`${test("opens a conversation (running 2m 0s)")}`));
+  const forgiven = judge(hang(`${flying("opens a conversation (running 2m 0s)")}`));
   assert.equal(forgiven.explained, true, forgiven.problems.join("; "));
   assert.equal(forgiven.retried.length, 1);
   // Two in flight, both in the file: forgiven. One outside it, or none named, or the entry gone, closed or expired: not.
-  assert.equal(judge(hang(`${test("a (running 2m 0s)")}; ${test("b (running 1m 0s)")}`)).explained, true);
-  assert.equal(judge(hang(`${test("a (running 2m 0s)")}; ouro-chromium (chromium) src/components/ouro/dialog/dialog.test.tsx > Dialog > opens (running 1m 0s)`)).explained, false);
+  assert.equal(judge(hang(`${flying("a (running 2m 0s)")}; ${flying("b (running 1m 0s)")}`)).explained, true);
+  assert.equal(judge(hang(`${flying("a (running 2m 0s)")}; ouro-chromium (chromium) src/components/ouro/dialog/dialog.test.tsx > Dialog > opens (running 1m 0s)`)).explained, false);
   assert.equal(judge(hang(`ouro-chromium (chromium) src/components/ouro/dialog/dialog.test.tsx > Dialog > opens (running 2m 0s)`)).explained, false);
-  assert.equal(judge(hang(`${test("a (running 2m 0s)")}; something else`)).explained, false);
+  assert.equal(judge(hang(`${flying("a (running 2m 0s)")}; something else`)).explained, false);
   assert.equal(judge(logLines("install (namespace, nova)", ["[ouro-ui] Vitest: a page did not answer at the warn check, so failing now"])).explained, false);
-  assert.equal(judge(hang(test("a (running 2m 0s)")), []).explained, false);
-  assert.equal(judge(hang(test("a (running 2m 0s)")), [{ ...whole, open: false }]).explained, false);
-  assert.equal(judge(hang(test("a (running 2m 0s)")), [{ ...whole, expired: true }]).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), []).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [{ ...whole, open: false }]).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [{ ...whole, expired: true }]).explained, false);
   // An entry for one test's title does not forgive a hang, nor does a hang with another failed step or a failed test beside it.
-  assert.equal(judge(hang(test("a (running 2m 0s)")), [{ ...whole, title: "MessageList windowing > a" }]).explained, false);
-  assert.equal(judge(hang(test("a (running 2m 0s)")), [whole], ["Checkout", installStep]).explained, false);
-  const beside = `${hang(test("a (running 2m 0s)"))}\n${logLines("install (namespace, nova)", [" FAIL   ouro-chromium (chromium)  src/components/ouro/dialog/dialog.test.tsx > Dialog > opens", "      Tests  1 failed | 3 passed (4)"])}`;
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [{ ...whole, title: "MessageList windowing > a" }]).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [whole], ["Checkout", installStep]).explained, false);
+  const beside = `${hang(flying("a (running 2m 0s)"))}\n${logLines("install (namespace, nova)", [" FAIL   ouro-chromium (chromium)  src/components/ouro/dialog/dialog.test.tsx > Dialog > opens", "      Tests  1 failed | 3 passed (4)"])}`;
   assert.equal(judge(beside).explained, false);
   // An install shard (install-gate's install-shard id, its "Install test" step) is judged too, the installed src/ path mapped to the registry/ entry.
-  const shard = { id: 3, name: "install (ouro, nova, 1/3)", conclusion: "failure", url: "https://github.com/o/r/actions/runs/5/job/3", failedSteps: ["Install test"], log: hang(test("a (running 2m 0s)")) };
+  const shard = { id: 3, name: "install (ouro, nova, 1/3)", conclusion: "failure", url: "https://github.com/o/r/actions/runs/5/job/3", failedSteps: ["Install test"], log: hang(flying("a (running 2m 0s)")) };
   const shardJudged = judgeOwnRun({ run: { id: "5", workflow: ciYml, jobs: [shard] }, ids: ["install-shard"], entries: [whole] });
   assert.equal(shardJudged.explained, true, shardJudged.problems.join("; "));
 });
