@@ -19,6 +19,8 @@ export const uncommitted = [
   // data, and each committed page went stale on the next one's merge (#2600).
   "docs/guides/model-reviews.md",
   "docs/guides/model-interviews.md",
+  // The accessibility evidence page: its rows count each component's stories, so two pull requests that touch one component edit the same row, and the merge queue drops one on the conflict.
+  "docs/guides/accessibility-evidence.md",
   // Ouro Feel's probe, built from feel/probe/probe.ts: committed, any change to probe.ts that merged beside it could leave it stale.
   "registry/ouro/feel/ouro-feel-probe.js",
 ];
