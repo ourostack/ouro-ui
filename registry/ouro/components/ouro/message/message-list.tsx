@@ -1214,8 +1214,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const endRef = useRef<HTMLSpanElement | null>(null);
   // The mark that holds the scroll height while the list follows its end (see the layout effect).
   const floorRef = useRef<HTMLSpanElement | null>(null);
-  // The mark that holds the scroll height down to the bottom of the view between two holds of the reader's place (see keepAnchor).
-  const viewMarkRef = useRef<HTMLSpanElement | null>(null);
+  // The mark that holds the scroll height down to the content's end between two holds of the reader's place (see keepAnchor).
+  const endMarkRef = useRef<HTMLSpanElement | null>(null);
   // Moves focus to a message, making it the Tab stop; set by the keyboard effect.
   const moveTo = useRef<(item: HTMLElement) => void>(undefined);
   const keyHandler = useRef<(event: KeyboardEvent<HTMLElement>) => void>(undefined);
@@ -1639,22 +1639,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // half a pixel is not made, so each correction's remainder goes into the next. Dropped, the remainders of a page of older
     // messages drawn a row a frame would add up, and the reader's place would creep.
     let owed = 0;
-    // Between two holds, a 1px mark keeps the scroll range down to the bottom of the view. When the content gets shorter than the
-    // scroll position needs, for good (rows above coming in shorter than the space kept for them, by more than lies below the
-    // view) or for a moment in a commit (the window takes out a space before it puts the rows in, and WebKit can lay the page out
-    // between), the browser pulls the scroll position up at the next layout, before the hold has corrected it; the hold, which
-    // reads where each message sits in the content, would take that pull for the reader's own scroll and leave the row being
-    // read moved by it (ourostack/ouro-ui#3892). Held, the place stays until the hold has kept it. keepAnchor then lets the mark
-    // go, so content truly shorter than the view still pulls the scroll position up, and sets it again at the bottom of the view.
-    const viewMark = viewMarkRef.current!;
-    let viewHeld = 0;
-    const holdView = (px: number) => {
+    // Between two holds, a 1px mark keeps the scroll range down to where the content ended when its place was last kept. When the
+    // content gets shorter than the scroll position needs, for good (rows above coming in shorter than the space kept for them, by
+    // more than lies below the view) or for a moment in a commit (the window takes out a space before it puts the rows in, and
+    // WebKit can lay the page out between), the browser would pull the scroll position up at the next layout, before the hold has
+    // corrected it; the hold, which reads where each message sits in the content, would take that pull for the reader's own scroll
+    // and leave the row being read moved by it (ourostack/ouro-ui#3892). Held, the place stays until the hold has kept it, and
+    // keepAnchor then moves the mark to where the content ends now, so content truly shorter than the view still pulls the scroll
+    // position up. The mark moves only when the content's end does, not as the reader scrolls.
+    const endMark = endMarkRef.current!;
+    let endHeld = 0;
+    const holdEnd = (px: number) => {
       // Stryker disable next-line ConditionalExpression: only spares writing the values the mark already holds.
-      if (px === viewHeld) return;
-      viewHeld = px;
-      viewMark.style.display = px > 0 ? "block" : "";
-      viewMark.style.top = `${Math.max(0, px - 1)}px`;
+      if (px === endHeld) return;
+      endHeld = px;
+      endMark.style.display = px > 0 ? "block" : "";
+      endMark.style.top = `${Math.max(0, px - 1)}px`;
     };
+    // Where the content ends, in the scroller's own coordinates: below the space kept above the first message, if any.
+    const contentEnd = () => content.offsetTop + content.offsetHeight;
     // Stryker disable next-line ArrowFunction,ConditionalExpression,StringLiteral: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
     const native = () => getComputedStyle(scroller).overflowAnchor === "auto";
     const keepAnchor = () => {
@@ -1665,7 +1668,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Where an app turned the browser's own anchoring on, the mark is not moved, which would stop WebKit's: it goes only once
       // the content has come up past it, where letting it go is a change the browser's own clamp would make anyway.
       const anchoring = native();
-      if (!anchoring || viewHeld > content.offsetTop + content.offsetHeight) holdView(0);
+      if (!anchoring) holdEnd(contentEnd());
+      else if (endHeld > contentEnd()) holdEnd(0);
       const view = scroller.getBoundingClientRect();
       // Finds the anchors among the nodes, in the order they come in the page.
       const find = (nodes: readonly Element[]) => {
@@ -1712,9 +1716,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (!anchors.some(({ node }) => boxOf(node).top < view.bottom)) anchors = find(withBareChildren(content, messages));
       end = farthest();
       taken = scroller.scrollTop;
-      // No lower than the content reaches: what the floor holds past it goes when the floor does.
-      // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
-      if (!anchoring) holdView(Math.min(taken + scroller.clientHeight, content.offsetTop + content.offsetHeight));
     };
     const farthest = () => scroller.scrollHeight - scroller.clientHeight;
     // At the bottom as the list was before this change, or as it is now: growth at the end, or the
@@ -1888,11 +1889,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // hands a wheel's scroll over in steps of hundreds of pixels) would otherwise see the content jump up by that part. It sits
     // above the content as a margin, so where each message sits in the content, which the anchors and the window read, stays.
     const setSlack = (px: number) => {
-      // The mark at the view's bottom held the content where the space put it: the next keepAnchor sets it again.
-      if (px !== slack && !native()) holdView(0);
+      const moved = px !== slack;
       slack = px;
       content.style.marginBlockStart = `${px}px`;
       placeFloor();
+      // The mark held the content's end where the space put it: it follows the end.
+      if (moved && !native()) holdEnd(contentEnd());
     };
     // Scrolls the list by `by` itself, which the springs leave alone, and returns how far it went.
     const scrollOwn = (by: number) => {
@@ -1932,18 +1934,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (by === 0) return letGo();
       const wheeling = turning();
       const before = scroller.scrollTop;
-      // The translate holds the scroll range where it draws the content past the content's end: the mark at the view's bottom holds
-      // it instead while the translate goes and the scroll position takes it, so a carry the content came up by (rows above coming
+      // The translate holds the scroll range where it draws the content past the content's end: the mark holds it down to the view's
+      // bottom instead while the translate goes and the scroll position takes it, so a carry the content came up by (rows above coming
       // in shorter) is not pulled up by the browser first (ourostack/ouro-ui#3892).
       const anchoring = native();
       // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
-      if (!anchoring) holdView(before + scroller.clientHeight);
+      if (!anchoring) holdEnd(Math.max(endHeld, before + scroller.clientHeight));
       content.style.removeProperty("translate");
       // In whole pixels: WebKit drops the fraction of a scroll position written to it, so a carry of 3,499.99 px moved the
       // reader's place a whole pixel there (ourostack/ouro-ui#2648).
       const applied = scrollOwn(Math.round(by));
-      // Stryker disable next-line ConditionalExpression,BooleanLiteral,CallExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only. Left in place, the mark holds no more than the view's bottom the write just reached, until the next keepAnchor sets it again.
-      if (!anchoring) holdView(0);
+      // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
+      if (!anchoring) holdEnd(contentEnd());
       // A scroll position written while the wheel turns may land in part there, and the rest settles frames later against the
       // reader. Where no end stopped the write, what has not landed stays carried, drawn by the translate, until a later write lands it.
       const top = scroller.scrollTop;
@@ -2073,7 +2075,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           owed = 0;
           carriedRef.current += moved;
           // pay() takes the translate away itself, holding the range as it does; with nothing left to pay, it goes here.
-          // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: a carry and a change that cancel to the pixel leave nothing for pay() to take the translate away by, and no test lands a change in the frames between the wheel's scroll ending and its rest; taken away here with a carry left, the range goes before pay() holds it, as before #3892.
+          // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,CallExpression: a carry and a change that cancel to the pixel leave nothing for pay() to take the translate away by, and no test lands a change in the frames between the wheel's scroll ending and its rest; taken away here with a carry left, the range goes before pay() holds it, as before #3892.
           if (carriedRef.current === 0) content.style.removeProperty("translate");
           pay();
           return keepAnchor();
@@ -2211,7 +2213,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     const onScrollEnd = endSoon;
     scroller.addEventListener("scrollend", onScrollEnd);
-    return () => (["pointerdown", "keydown", "touchstart"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), Reflect.deleteProperty(scroller, "scrollTo"), Reflect.deleteProperty(scroller, "scrollBy"), cancelAnimationFrame(disarm), (held.current = false), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), holdView(0), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
+    return () => (["pointerdown", "keydown", "touchstart"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), Reflect.deleteProperty(scroller, "scrollTo"), Reflect.deleteProperty(scroller, "scrollBy"), cancelAnimationFrame(disarm), (held.current = false), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), holdEnd(0), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,
@@ -3201,7 +3203,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
               in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
           {Layer && <Layer scroller={scrollerRef} layer={layer} />}
           <span ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
-          <span ref={viewMarkRef} aria-hidden="true" data-ouro-message-list-view-mark="" data-slot="message-list-view-mark" className="pointer-events-none absolute start-0 top-0 hidden size-px [overflow-anchor:none]" />
+          <span ref={endMarkRef} aria-hidden="true" data-ouro-message-list-end-mark="" data-slot="message-list-end-mark" className="pointer-events-none absolute start-0 top-0 hidden size-px [overflow-anchor:none]" />
         </div>
         {/* There only while the scroller has focus: at rest nothing lies over the content, so a contrast check sees the text's own background. */}
         <span
