@@ -38,7 +38,13 @@ export const slicedSuites = [
   "test/stories.test.tsx",
   "test/text-size.touch.test.tsx",
   "test/theme-tokens.test.tsx",
+  "test/themes/cookbook-dark.test.ts",
+  "test/themes/cookbook-light.test.ts",
   "test/themes/nova-check.test.tsx",
+  "test/themes/nova-dark.test.ts",
+  "test/themes/nova-light.test.ts",
+  "test/themes/vega-dark.test.ts",
+  "test/themes/vega-light.test.ts",
 ];
 
 /** Whether a `<project> <path>` timing key (the project as Vitest names it, `ouro-chromium (chromium)`) is a sliced suite's. */

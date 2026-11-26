@@ -46,7 +46,7 @@ const menuSheetPositionerClass =
 const menuPopupClass =
   "box-border min-w-ouro-48 max-w-(--available-width) max-h-(--available-height) overflow-y-auto overscroll-contain p-1 " +
   "rounded-ouro-lg bg-popover text-popover-foreground [--ouro-scroller-surface:var(--popover)] outline-none " +
-  "ring-1 ring-border/60 shadow-(--shadow-lg) " +
+  "ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
   "has-[[data-ouro-menu-indicator]]:[--ouro-menu-inset:var(--ouro-size-6)] " +
   "origin-(--transform-origin) " +
   "[transition:transform_var(--ouro-duration-fast)_var(--ouro-ease-out),opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)] " +
