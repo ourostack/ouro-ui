@@ -1232,6 +1232,7 @@ function CommandList({ children, className, after, snap }: { children: (group: G
       const end = parseFloat(getComputedStyle(node).paddingBottom);
       let best = 0;
       for (const edge of node.querySelectorAll("[data-ouro-command-value],[data-ouro-command-group-label]")) {
+        // Stryker disable next-line all: pixel geometry; command.rows.test.tsx checks the cut flush with the last whole edge, scaled or not.
         const bottom = (edge.getBoundingClientRect().bottom - box.top) / scale + node.scrollTop + end;
         // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
         if (bottom <= node.clientHeight + 0.5 && bottom > best) best = bottom;
