@@ -281,7 +281,7 @@ test("under a backdrop-filter, the box opens and closes in painted frames with o
       expect(torn.size + stale.size, "every captured frame but at most one capture glitch paints the box's real, one-outline size").toBeLessThanOrEqual(1);
       const sound = body.filter((_, index) => !torn.has(index) && !stale.has(index));
       expect(Math.abs(sound[0]!.height - from), "the first painted frame is the old size").toBeLessThanOrEqual(Math.abs(to - from) * 0.4 + 3);
-      for (let index = 1; index < sound.length; index++) expect((sound[index]!.height - sound[index - 1]!.height) * sign).toBeGreaterThanOrEqual(-3);
+      for (let index = 1; index < sound.length; index++) expect((sound[index]!.height - sound[index - 1]!.height) * sign, `frame ${index} of the heights ${body.map((row) => `${row.height}/${row.runs}`).join(" ")}`).toBeGreaterThanOrEqual(-3);
       expect(Math.abs(sound.at(-1)!.height - to)).toBeLessThanOrEqual(3);
     };
     check(shrink, tall, shortBox.height);
