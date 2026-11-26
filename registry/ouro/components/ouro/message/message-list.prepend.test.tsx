@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { commands, server } from "vitest/browser";
+import { commands, server, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
@@ -75,6 +75,13 @@ async function settle(scroller: HTMLElement) {
     return same;
   }).toBe(true);
   await expect.poll(() => scroller.querySelector("[data-ouro-settling]")).toBeNull();
+}
+
+/** Waits until the list has settled and the wheel has rested, so nothing it carries is still drawn by a translate. */
+async function settleCarry(scroller: HTMLElement) {
+  await settle(scroller);
+  await expect.poll(() => scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!.style.translate).toBe("");
+  await settle(scroller);
 }
 
 /** Runs `body` with the page's motion preference set, then puts back the one it found. */
@@ -289,6 +296,56 @@ describe("MessageList prepending older history", () => {
       await expect.poll(() => scroller.scrollTop).toBe(at - 400);
     });
   }
+
+  it("holds the row being read as a page of older messages goes in after a wheel flings a windowed list to its top, with the rows above shorter than the space kept for them (#3892)", async () => {
+    // The newest rows are tall (a picture each) and the older ones short, so the space kept for the rows not drawn is too tall.
+    const rows = (from: number, count: number) =>
+      Array.from({ length: count }, (_, offset) => {
+        const id = from + offset;
+        return (
+          <Message key={id} id={`fling-${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"}>
+            {id >= 0 ? <div style={{ height: 420 }} /> : `Message ${id}: ${"step ".repeat(4 + Math.abs(id % 3) * 6)}`}
+          </Message>
+        );
+      });
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let older = 0;
+    const draw = (loadingOlder: boolean) =>
+      act(async () =>
+        root.render(
+          <MessageList label="Conversation" style={{ height: 740, width: 420 }} hasOlder={older === 0} loadingOlder={loadingOlder}>
+            {rows(-older, older + 12)}
+          </MessageList>,
+        ),
+      );
+    await atMotion(true, async () => {
+      await draw(false);
+      const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+      await settle(scroller);
+      // A trackpad's fling to the top, a step of 1,500px at a time, with the older page asked for on the way, until the wheel's
+      // own scroll has ended there, as the browser says it does: then the place is the reader's (Chromium animates a step).
+      let restedAtTop = false;
+      scroller.addEventListener("scrollend", () => (restedAtTop = scroller.scrollTop === 0));
+      for (let step = 0; step < 20 && scroller.scrollTop > 0; step++) await userEvent.wheel(scroller, { delta: { y: -1500 } });
+      await draw(true);
+      await expect.poll(() => restedAtTop).toBe(true);
+      await settleCarry(scroller);
+      // The premise: the fling reached the top, with older messages to come.
+      expect(scroller.scrollTop).toBe(0);
+      const reading = firstVisible(scroller);
+      // The page goes in above the reader, the last there is.
+      older = 120;
+      await draw(false);
+      await settleCarry(scroller);
+      // The premise: the older page went in above the reader.
+      expect(scroller.scrollTop).toBeGreaterThan(0);
+      expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    });
+  });
 
   chromiumOnly(`keeps layout still as three pages of older messages go in above a scrolled-up reader, with no layout shift, when every message is drawn`, async () => {
     const pages = await prependPages(false);
