@@ -23,6 +23,7 @@ node scripts/control-matrix.mts
 # git ignores them on main; `git commit -a` (release.yml) commits what is staged.
 # shellcheck disable=SC2046 # one path per line, no spaces
 git add --force -- $(node --input-type=module -e 'import { uncommitted } from "./scripts/generated-files.mjs"; console.log(uncommitted.join("\n"))')
+git add --force -- 'docs/*.md'
 # The tag holds this release's changes, assembled from changes/*.md less the fragments at the newest
 # release's tag, which that release or an earlier one published; main keeps the fragments only, so no
 # pull request deletes them after a release.

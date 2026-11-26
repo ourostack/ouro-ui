@@ -30,3 +30,5 @@ test/generated/
 /site/src/docs/pages.json
 /site/src/docs/page-index.json
 .scratch/
+# The generated page for each export (docs/<Export>.md, docs/parts.md); the README catalog links them.
+/docs/*.md

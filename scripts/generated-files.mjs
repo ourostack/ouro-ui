@@ -23,6 +23,13 @@ export const uncommitted = [
   "registry/ouro/feel/ouro-feel-probe.js",
 ];
 
+/**
+ * The generated pages at the top of docs/ (one per export, and parts.md), which main does not commit either: a change to
+ * one component's JSDoc edits its page, and two queued pull requests that touch the same one conflict. A git pathspec,
+ * because the names come from the components' exports.
+ */
+export const uncommittedGlobs = [":(glob)docs/*.md"];
+
 /** The hand-written llms.txt, whose `## Items` list `pnpm registry` fills in to make site/public/llms.txt. */
 export const llmsSource = "site/llms.txt";
 
