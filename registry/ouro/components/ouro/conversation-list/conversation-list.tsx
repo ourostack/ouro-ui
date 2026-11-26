@@ -1466,7 +1466,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                 className={cn(
                   "group/row relative",
                   reorderable &&
-                    "data-dragging:relative data-dragging:z-10 data-dragging:bg-background data-dragging:shadow-(--shadow-lg) data-dragging:ring-1 data-dragging:ring-border/60 data-dragging:rounded-(--ouro-row-radius,var(--radius-ouro-md)) data-dragging:[&_button]:cursor-grabbing",
+                    "data-dragging:z-10 data-dragging:bg-background data-dragging:shadow-(--shadow-lg) data-dragging:ring-1 data-dragging:ring-border/60 data-dragging:rounded-(--ouro-row-radius,var(--radius-ouro-md))",
                   reorderable &&
                     "after:pointer-events-none after:absolute after:inset-x-0 after:h-0.5 after:bg-ring after:opacity-0 forced-colors:after:bg-[Highlight] data-[drop=before]:after:top-0 data-[drop=before]:after:opacity-100 data-[drop=after]:after:bottom-0 data-[drop=after]:after:opacity-100",
                 )}
@@ -1485,6 +1485,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                     }}
                     type="button"
                     tabIndex={-1}
+                    data-slot="conversation-list-section-handle"
                     data-ouro-control="conversation-list"
                     data-ouro-part="section-handle"
                     data-ouro-reorder={section.id}
@@ -1519,7 +1520,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                       <circle cx="6" cy="12" r="1.2" />
                       <circle cx="10" cy="12" r="1.2" />
                     </svg>
-                    <span className="sr-only">{`${reorderLabel} ${section.title}`}</span>
+                    <span data-slot="conversation-list-section-handle-label" className="sr-only">{`${reorderLabel} ${section.title}`}</span>
                   </button>
                 )}
                 {withMore && <MoreButton rowKey={key} name={section.title} moreLabel={moreLabel} onMore={onMore} className="top-1/2 -translate-y-1/2" />}
