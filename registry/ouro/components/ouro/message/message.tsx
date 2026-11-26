@@ -9,6 +9,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type HTMLAttributes,
   type JSX,
   type MouseEvent,
@@ -20,7 +21,6 @@ import {
 } from "react";
 import { Avatar, type AvatarPresence } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { LocalDate } from "@/registry/ouro/components/ouro/local-date/local-date";
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import type { MenuEntry, MenuShortcut } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageActionBar, MessageBarData } from "@/registry/ouro/components/ouro/message/message-parts";
@@ -90,10 +90,10 @@ export interface MessageQuote {
   onActivate?: (() => void) | undefined;
   /**
    * When the quoted message was sent, a `Date`, an ISO string or milliseconds. Drawn after the author as
-   * a `LocalDate` in the reader's time zone, and read as "Reply to Ana, Mar 3". Use `atText` for the app's own wording.
+   * a date in the reader's language and time zone, and read as "Reply to Ana, Mar 3". Use `atText` for the app's own wording.
    */
   at?: Date | string | number | undefined;
-  /** The app's own wording for the day of `at` ("Yesterday"), drawn in a `<time dateTime>` in place of the `LocalDate`. Needs `at`. */
+  /** The app's own wording for the day of `at` ("Yesterday"), drawn in a `<time dateTime>` in place of the date. Needs `at`. */
   atText?: string | undefined;
   /**
    * A line above the quote, such as "Replied in thread: " and a `Link` or `Button` with the thread's title. It
@@ -1207,7 +1207,22 @@ function quoteDay(quote: MessageQuote): { node: ReactNode } | undefined {
   const date = new Date(quote.at);
   if (!Number.isFinite(date.getTime())) return undefined;
   if (quote.atText !== undefined) return { node: <time dateTime={date.toISOString()}>{quote.atText}</time> };
-  return { node: <LocalDate value={date} /> };
+  return { node: <QuoteDay date={date} /> };
+}
+
+const subscribeNever = () => () => {};
+
+/**
+ * The quote's day, as LocalDate writes a date but without its weight in the first script: the server and hydration
+ * write it in en-US in UTC, so the markup matches, and the browser then writes it in the reader's language and time zone.
+ */
+function QuoteDay({ date }: { date: Date }): JSX.Element {
+  const browser = useSyncExternalStore(subscribeNever, () => true, () => false);
+  return (
+    <time dateTime={date.toISOString()} suppressHydrationWarning>
+      {date.toLocaleDateString(browser ? undefined : "en-US", { dateStyle: "medium", timeZone: browser ? undefined : "UTC" })}
+    </time>
+  );
 }
 
 // On a default message's own primary bubble, which does not re-point the theme's colors as a filled chat bubble does,

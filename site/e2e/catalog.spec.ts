@@ -175,12 +175,8 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * phone menu's two ways in, and the real Apple, Windows and Android marks Ari asked for ("yeah, lets use real platform
  * marks"), about 1,700 of it. The Docs panel's lists, which read the docs' generated index, load on their own when a
  * pointer or focus first reaches the header (site/src/voyage/docs-panel.tsx), so no page pays for them up front.
- *
- * The voyage's set again 2026-11-26 at 304,635 bytes, what CI measured on #3782 (run 45744192568), 1,005 over its base
- * at 29395e46: Message's quote can say when the quoted message was sent (`at`), drawn by `LocalDate`, which message.tsx
- * now imports, and the voyage's stage carries Message in its first script.
  */
-const MEASURED = { voyage: 304_635, docs: 202_898 } as const;
+const MEASURED = { voyage: 303_169, docs: 202_898 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
