@@ -1225,11 +1225,14 @@ function CommandList({ children, className, after, snap }: { children: (group: G
       // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
       if (node.scrollHeight <= node.clientHeight) return;
       // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
-      const top = node.getBoundingClientRect().top - node.scrollTop;
+      const box = node.getBoundingClientRect();
+      // Rects carry an ancestor's transform (a Dialog entering at scale 0.96) and clientHeight does not: measure in layout space.
+      // The overflow guard above means offsetHeight is not 0 here.
+      const scale = box.height / node.offsetHeight;
       const end = parseFloat(getComputedStyle(node).paddingBottom);
       let best = 0;
       for (const edge of node.querySelectorAll("[data-ouro-command-value],[data-ouro-command-group-label]")) {
-        const bottom = edge.getBoundingClientRect().bottom - top + end;
+        const bottom = (edge.getBoundingClientRect().bottom - box.top) / scale + node.scrollTop + end;
         // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
         if (bottom <= node.clientHeight + 0.5 && bottom > best) best = bottom;
       }
