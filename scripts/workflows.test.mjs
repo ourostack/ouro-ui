@@ -10,7 +10,7 @@ import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { KITS } from "./kit-pin.mjs";
-import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
+import { entryProblems, expiredWarning, failedTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -2826,7 +2826,12 @@ test("a release gives each job its own permissions, and none may write commit st
   assert.deepEqual(Object.keys(jobs), ["release", "pages", "publish", "finish", "next", "docs-pin", "attest"]);
   const permissions = permissionsOf;
   // It reads main's CI runs and the pull request merged as the commit, whose run may prove its tree (scripts/ci-proof.mjs).
-  assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "read", "pull-requests": "read" });
+  assert.deepEqual(permissions(jobs.release), {
+    contents: "write",
+    actions: "write",
+    issues: "write",
+    "pull-requests": "read",
+  });
   assert.deepEqual(permissions(jobs.pages), { actions: "write" });
   assert.deepEqual(permissions(jobs.publish), {});
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
@@ -3065,17 +3070,37 @@ test("CI rehearses the release commit on every run: release.yml's own edits, for
   assert.match(tagged.stdout, new RegExp(`^::error::v${next.replace(/\./g, "\\.")} already exists here`, "m"));
 });
 
+/**
+ * Whether file's text has entry's exact title (a Vitest title is literal), or, for a Playwright title built from a
+ * template literal (`` test(`...${expr}...`) ``), matches one of the file's `test(` template literals once each
+ * `${...}` interpolation is wildcarded: a resolved title (with its run's real numbers) cannot appear literally in its
+ * own un-executed source.
+ */
+const hasQuarantinedTitle = (file, title) => {
+  const text = readFileSync(join(root, file), "utf8");
+  // Vitest joins describe and title with " > "; Playwright's failure lines join them with "›" (playwrightFailLine).
+  const last = title.split(/ > | › /).at(-1);
+  if (text.includes(last)) return true;
+  return [...text.matchAll(/test(?:\.\w+)?\(`([^`]*)`/g)].some((match) => {
+    const pattern = match[1]
+      .split(/\$\{[^}]*\}/)
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join(".*?");
+    return new RegExp(`^${pattern}$`, "s").test(last);
+  });
+};
+
 test("every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test", () => {
   const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
   assert.deepEqual(entryProblems(entries), []);
   for (const entry of entries) {
     assert.ok(existsSync(join(root, entry.file)), `${entry.file} does not exist`);
-    assert.ok(readFileSync(join(root, entry.file), "utf8").includes(entry.title.split(" > ").at(-1)), `${entry.file} has no test "${entry.title}"`);
+    assert.ok(hasQuarantinedTitle(entry.file, entry.title), `${entry.file} has no test "${entry.title}"`);
   }
   // Each part is required.
-  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone" };
+  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone", expiry: "2099-01-01T00:00:00Z" };
   assert.deepEqual(entryProblems([whole]), []);
-  for (const key of ["project", "file", "title", "issue", "owner"]) {
+  for (const key of ["project", "file", "title", "issue", "owner", "expiry"]) {
     const without = { ...whole };
     delete without[key];
     assert.equal(entryProblems([without]).length, 1, key);
@@ -3125,6 +3150,35 @@ test("the quarantine reads a job's failed Vitest tests from its log, and anythin
   assert.ok(!names(calendarEntry, { ...installed, project: "ouro-chromium" }));
   assert.ok(!names(calendarEntry, { ...installed, file: "src/components/ouro/calendar/other.test.tsx" }));
   assert.ok(!names(calendarEntry, { ...installed, title: "Calendar > range > something else" }));
+});
+
+const latencyTitle = "interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU";
+const latencyLog = logLines("browser (5/22)", [
+  `  ✘  1 [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle} (1.2s)`,
+  "  1) [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU",
+  "    Error: expected p95 to be below 100ms, measured 142ms",
+  "  1 failed",
+]);
+const latencyEntry = { project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle, issue: "https://github.com/ourostack/ouro-ui/issues/3628", owner: "lane-latency-3684", open: true };
+
+test("the quarantine reads a job's failed Playwright tests from its log too, in either of Playwright's own failure-line formats, plus its bare summary", () => {
+  const found = failedTests(latencyLog);
+  assert.deepEqual(found.tests, [{ project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle }]);
+  assert.equal(found.failed, 1);
+  assert.deepEqual(found.unexplained, []);
+  assert.ok(names(latencyEntry, found.tests[0]));
+  // Either of Playwright's own failure-line shapes alone is enough.
+  assert.deepEqual(failedTests(logLines("j", [`  ✘  1 [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle} (1.2s)`, "  1 failed"])).tests, [{ project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle }]);
+  assert.deepEqual(failedTests(logLines("j", [`  1) [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle}`, "  1 failed"])).tests, [{ project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle }]);
+});
+
+test("isExpired reads a quarantine entry's expiry against now; expiredWarning names the entry and asks to remove or renew it", () => {
+  const now = new Date("2026-06-01T00:00:00Z");
+  assert.equal(isExpired({ expiry: "2026-05-31T00:00:00Z" }, now), true);
+  assert.equal(isExpired({ expiry: "2026-06-01T00:00:00Z" }, now), true);
+  assert.equal(isExpired({ expiry: "2026-06-02T00:00:00Z" }, now), false);
+  assert.match(expiredWarning(calendarEntry), /^::warning title=Expired quarantine entry::/);
+  assert.match(expiredWarning(calendarEntry), new RegExp(`has passed for ${calendarEntry.project} ${calendarEntry.file} > ${calendarEntry.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\. Remove the entry or renew its expiry\\.$`));
 });
 
 test("Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them", () => {
@@ -3193,6 +3247,47 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.equal(retryPlan({ runs: runWith([calendar]), contexts: [...contexts, "lighthouse"], entries: [calendarEntry] }).retry, false);
 });
 
+test("judgeOwnRun explains ci.yml's own failing jobs, by their id, from inside one still-running run: forgiven when every one is quarantined, open, unexpired tests alone, and not when any other failure sits beside them, too late for a retry afterwards to matter to the merge queue", () => {
+  const ciYml = workflow("ci.yml");
+  const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
+  // Its matrix's own values, unlike the real run 41270773113's "shadcn"/"shadcn@latest" that
+  // calendarLog carries: judgeOwnRun looks a job up by its id, through ci.yml's own jobGraph, not
+  // by an exact context string, so its name must match that id's pattern, and its failed step's
+  // name must match ci.yml's own generated one for the install job's test step, expressions expanded.
+  const installStep = 'Run scripts/install-test.sh namespace "$RUNNER_TEMP/app" abc';
+  const calendar = job(3, "install (namespace, nova)", "failure", { failedSteps: [installStep], log: calendarLog });
+  const runWith = (jobs) => ({ id: "5", workflow: ciYml, jobs });
+
+  // The install job (an id ci.yml needs, not "ci" itself: ci's own instance has not concluded yet
+  // while it is the one asking) failed on a test that is quarantined, open and unexpired: forgiven.
+  const forgiven = judgeOwnRun({ run: runWith([calendar]), ids: ["install"], entries: [calendarEntry] });
+  assert.equal(forgiven.explained, true, forgiven.problems.join("; "));
+  assert.equal(forgiven.retried.length, 1);
+  assert.equal(forgiven.retried[0].job, "install (namespace, nova)");
+
+  // Two failing ids: a gate (browser, read by nothing here) and install, both quarantined, still
+  // forgiven together; judgeOwnRun collects every reason across every id it is asked to judge.
+  const dive = job(4, "browser (5/22)", "failure", { failedSteps: ["Browser tests"], log: diveLog });
+  const both = judgeOwnRun({ run: runWith([calendar, dive]), ids: ["install", "browser"], entries: [calendarEntry, diveEntry] });
+  assert.equal(both.explained, true, both.problems.join("; "));
+  assert.equal(both.retried.length, 2);
+
+  // A test that is not quarantined at all sits beside the quarantined one: not forgiven.
+  assert.equal(judgeOwnRun({ run: runWith([calendar, dive]), ids: ["install", "browser"], entries: [calendarEntry] }).explained, false);
+  // Listed, but its issue is closed: not forgiven either.
+  assert.equal(judgeOwnRun({ run: runWith([calendar]), ids: ["install"], entries: [{ ...calendarEntry, open: false }] }).explained, false);
+  // Listed, but its expiry has passed: not forgiven.
+  assert.equal(judgeOwnRun({ run: runWith([calendar]), ids: ["install"], entries: [{ ...calendarEntry, expired: true }] }).explained, false);
+  // An id with no failing instance in the run: a problem, not silently ignored.
+  const clean = judgeOwnRun({ run: runWith([]), ids: ["install"], entries: [calendarEntry] });
+  assert.equal(clean.explained, false);
+  assert.match(clean.problems.join("\n"), /install has no job instance in run 5/);
+  // An id that is not a job in this workflow at all: a problem, naming it.
+  const unknown = judgeOwnRun({ run: runWith([calendar]), ids: ["not-a-real-job"], entries: [calendarEntry] });
+  assert.equal(unknown.explained, false);
+  assert.match(unknown.problems.join("\n"), /not-a-real-job is not a job id in this run's workflow/);
+});
+
 test("quarantine.mjs retry records each retry in the step summary, the log and the issue, then reruns the run's failed jobs once", () => {
   const bin = scratchDir("ouro-quarantine-");
   const calls = join(bin, "calls.log");
@@ -3201,7 +3296,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   writeFileSync(join(bin, "calendar.log"), calendarLog);
   // The Calendar test, quarantined as it was before its fix.
   const list = join(bin, "quarantine.json");
-  writeFileSync(list, JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow" }]));
+  writeFileSync(list, JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow", expiry: "2099-01-01T00:00:00Z" }]));
   // A stand-in gh: run 5 failed install (shadcn@latest, nova) on the Calendar test, its issue is
   // $STATE, and a rerun moves the run to attempt 2.
   writeFileSync(
@@ -3243,6 +3338,51 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   assert.ok(closed.stdout.includes(staleWarning(calendarEntry)));
   assert.equal(readFileSync(summary, "utf8"), "");
   assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
+});
+
+test("quarantine.mjs judge forgives a run's own failing job from inside it, with no retry and no issue comment, the way ci.yml's merge-queue-shaped new step calls it before CI reports", () => {
+  const bin = scratchDir("ouro-quarantine-judge-");
+  const calls = join(bin, "calls.log");
+  const summary = join(bin, "summary.md");
+  writeFileSync(join(bin, "calendar.log"), calendarLog);
+  const list = join(bin, "quarantine.json");
+  const entry = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow", expiry: "2099-01-01T00:00:00Z" };
+  writeFileSync(list, JSON.stringify([entry]));
+  // run 5, still running: its "install" job (ci.yml's own id, matched by jobGraph, not by an exact
+  // context string) failed on the Calendar test alone; its step name is the real one GitHub
+  // generates for that job's run: line, expressions expanded.
+  const installStep = 'Run scripts/install-test.sh namespace \\"$RUNNER_TEMP/app\\" abc';
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${calls}"\ncase "$*" in\n  "api repos/o/r/actions/runs/5 --jq [.run_attempt, .path] | @tsv") printf '1\\t.github/workflows/ci.yml\\n' ;;\n  *"/actions/runs/5/jobs"*) printf '%s\\n' '{"id":3,"name":"install (namespace, nova)","conclusion":"failure","url":"https://github.com/o/r/actions/runs/5/job/3","failedSteps":["${installStep}"]}' ;;\n  "run view --repo o/r --job 3 --log") cat "${join(bin, "calendar.log")}" ;;\n  "issue view "*) echo "$STATE" ;;\n  *) exit 99 ;;\nesac\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const judge = (state, ids) => {
+    writeFileSync(calls, "");
+    writeFileSync(summary, "");
+    return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "judge", "5", ...ids], {
+      cwd: root,
+      encoding: "utf8",
+      env: sandboxEnv({ GITHUB_REPOSITORY: "o/r", GITHUB_STEP_SUMMARY: summary, STATE: state, OURO_QUARANTINE_FILE: list }, [bin]),
+    });
+  };
+  // Quarantined, open and unexpired: forgiven, exit 0, nothing rerun and nothing commented.
+  const forgiven = judge("OPEN", ["install"]);
+  assert.equal(forgiven.status, 0, forgiven.stdout + forgiven.stderr);
+  const line = `Quarantined, open and unexpired, so this run's own failure is forgiven without a retry: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (namespace, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner @arimendelow.`;
+  assert.match(forgiven.stdout, new RegExp(`^::warning title=Quarantined failure forgiven::${line.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+  assert.equal(readFileSync(summary, "utf8"), `- ${line}\n`);
+  assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
+  assert.ok(!readFileSync(calls, "utf8").includes("issue comment"));
+  // The issue closed: no longer quarantined, so the failure is not forgiven and the caller fails, exactly as a real merge-queue run would still report red.
+  const closed = judge("CLOSED", ["install"]);
+  assert.equal(closed.status, 1);
+  assert.match(closed.stdout, /^Not forgiven: .*its issue is not open/m);
+  assert.equal(readFileSync(summary, "utf8"), "");
+  // Asked to judge an id this run has no failure for, beside the quarantined one, the id itself is reported as a problem: not silently forgiven.
+  const extra = judge("OPEN", ["install", "checks"]);
+  assert.equal(extra.status, 1);
+  assert.match(extra.stdout, /checks has no job instance in run 5/);
 });
 
 test("Release tags a commit of main whose push CI passed, names the screen-reader lane that runs after, and runs no rehearsal", () => {
