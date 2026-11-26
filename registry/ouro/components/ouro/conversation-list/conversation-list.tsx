@@ -1239,6 +1239,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       const el = (event.target as Element).closest("[data-ouro-reorder]")!;
       // A finger or pen scrolls from the header; a mouse drags by it, and anything by the grip.
       const movable = event.pointerType === "mouse" || el.hasAttribute("data-ouro-reorder-handle");
+      // Stryker disable next-line ArrayDeclaration: a press ends a drag only once it has started, which finds the spots.
       drag.current = { id: el.getAttribute("data-ouro-reorder")!, movable, own: el.closest<HTMLElement>("[data-ouro-section-header]")!, spots: [], from: 0, to: 0, cancelled: false };
     },
     onStart: () => {

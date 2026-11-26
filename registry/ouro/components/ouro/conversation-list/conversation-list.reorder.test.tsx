@@ -193,6 +193,22 @@ describe("ConversationList section reorder", () => {
     await expect.poll(said).toBe("down Clubs 2/3");
   });
 
+  it("takes Alt and an arrow from the page on a header that moves, and moves a section for an app that does not listen", async () => {
+    const errors: unknown[] = [];
+    const caught = (event: ErrorEvent) => {
+      event.preventDefault();
+      errors.push(event.error);
+    };
+    addEventListener("error", caught);
+    const { host } = await render(list());
+    expect((await key(headers(host)[1]!, { key: "ArrowDown", altKey: true })).prevented).toBe(true);
+    expect(order(host)).toEqual(["Pinned", "Clubs", "Favorites", "Work"]);
+    await dragOnto(headers(host)[3]!, headers(host)[1]!);
+    expect(order(host)).toEqual(["Pinned", "Work", "Clubs", "Favorites"]);
+    removeEventListener("error", caught);
+    expect(errors).toEqual([]);
+  });
+
   it("moves no section for Alt and an arrow on a header that does not move, and leaves Right on a row with no menu to the page", async () => {
     const onSectionsReorder = vi.fn();
     const { host } = await render(list({ onSectionsReorder }));
