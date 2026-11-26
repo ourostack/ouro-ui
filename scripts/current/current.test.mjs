@@ -394,15 +394,6 @@ test("a keyframes the app has under that name is kept as the app wrote it, and a
   assert.equal(applyItem(result.text, item, previous).text, result.text, "a second run changes nothing");
 });
 
-test("a @property ouro-base adds is written as a rule at the stylesheet's top, as shadcn add writes it, and a second run changes nothing", () => {
-  const item = { name: "ouro-base", css: { "@property --ouro-i": { syntax: '"<length>"', inherits: "false", "initial-value": "0px" } } };
-  const css = ":root {\n  --ouro-layer: 50;\n}\n";
-  const result = applyItem(css, item);
-  assert.deepEqual(result.skipped ?? [], []);
-  assert.match(result.text, /@property --ouro-i \{\s*syntax: "<length>";\s*inherits: false;\s*initial-value: 0px;\s*\}/);
-  assert.equal(applyItem(result.text, item).text, result.text, "a second run changes nothing");
-});
-
 test("a rule under an at-rule the stylesheet has no block of comes whole, even when the previous tag had it, and a second run changes nothing", () => {
   const item = {
     name: "ouro-base",

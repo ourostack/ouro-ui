@@ -204,7 +204,7 @@ export interface MotionComponent {
   motion: MotionMap;
 }
 
-const cssName = /^(?:--|-)?[a-z][a-z-]*$/;
+const cssName = /^-?[a-z][a-z-]*$/;
 const stateKey = /^(data-[a-z][a-z-]*)(?:=[a-z0-9][a-z0-9-]*)?$/;
 const isCssNames = (value: unknown, allowEmpty: boolean): value is string[] =>
   Array.isArray(value) && (allowEmpty || value.length > 0) && value.every((name) => typeof name === "string" && cssName.test(name));
