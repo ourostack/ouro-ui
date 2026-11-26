@@ -1401,7 +1401,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                 tabIndex={key === tabStop ? 0 : -1}
                 onClick={() => toggle(section, !open)}
                 onKeyDown={(event) => {
-                  if (reorderable && event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) nudge(event, section.id);
+                  if (reorderable && event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown") && !event.defaultPrevented) nudge(event, section.id);
                   else if ((event.key === "ArrowRight" && !open) || (event.key === "ArrowLeft" && open)) {
                     event.preventDefault();
                     toggle(section, !open);

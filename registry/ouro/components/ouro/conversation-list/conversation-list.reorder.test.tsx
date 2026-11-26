@@ -215,6 +215,21 @@ describe("ConversationList section reorder", () => {
     expect(document.activeElement).toBe(headers(host)[2]);
   });
 
+  it("leaves a header's Alt and arrow key to the app that already took it", async () => {
+    const onSectionsReorder = vi.fn();
+    const { host } = await render(list({ onSectionsReorder }));
+    const take = (event: KeyboardEvent) => event.preventDefault();
+    window.addEventListener("keydown", take, true);
+    try {
+      await act(async () => headers(host)[1]!.focus());
+      await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    } finally {
+      window.removeEventListener("keydown", take, true);
+    }
+    expect(order(host)).toEqual(["Pinned", "Favorites", "Clubs", "Work"]);
+    expect(onSectionsReorder).not.toHaveBeenCalled();
+  });
+
   it("names each handle and describes how to use it", async () => {
     const { host } = await render(list({ onSectionsReorder: () => {}, reorderLabel: "Reorder" }));
     const grip = handle(host, "club");
