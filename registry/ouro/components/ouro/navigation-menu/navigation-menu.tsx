@@ -336,8 +336,8 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
   // The 8px gap is measured from the bar's bottom edge, not the trigger's: a trigger is shorter than the bar around it, so
   // measured from the trigger the panel would sit across the bar's hairline.
   const gapBelowBar = () => {
-    const n = nav.current!;
-    return Math.max(8, (n.closest("header") ?? n).getBoundingClientRect().bottom - n.querySelector("[data-popup-open]")!.getBoundingClientRect().bottom + 8);
+    const n = nav.current!, b = (e: Element) => e.getBoundingClientRect().bottom;
+    return Math.max(8, b(n.closest("header") ?? n) - b(n.querySelector("[data-popup-open]")!) + 8);
   };
   const directed = (
     <BaseNavigationMenu.Root
