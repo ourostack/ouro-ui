@@ -660,6 +660,8 @@ export function Composer(props: ComposerProps): JSX.Element {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const setRef = useMergedRef(ref, textareaRef);
   const richRef = useRef<RichEditorHandle | null>(null);
+  // Some sequences commit an input method's word as a plain insertText with no compositionend (ourostack/ouro-ui#3843): the rich editor sets this once it sees that happen, so a later Enter whose isComposing still reads true (the browser's own composition session never closed) is trusted as composing only until then.
+  const richComposed = useRef(false);
   const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
   useLayoutEffect(
     () => {
@@ -848,7 +850,9 @@ export function Composer(props: ComposerProps): JSX.Element {
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement | HTMLDivElement>) => {
     onKeyDown?.(event as KeyboardEvent<HTMLTextAreaElement>);
     // A word an input method is still composing ends with Enter, and Escape cancels it; those keys are the input method's.
-    if (event.defaultPrevented || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (event.defaultPrevented || event.keyCode === 229) return;
+    // A stale isComposing (ourostack/ouro-ui#3843) is trusted only until the editor itself has reported the word committed.
+    if (event.nativeEvent.isComposing && !(richOn && richComposed.current)) return;
     const apple = isApple();
     const keys = richOn ? richShortcuts : composerShortcuts;
     const key = formatting || richOn ? markFormats.find((kind) => pressed(event, keys[kind], apple)) : undefined;
@@ -964,6 +968,7 @@ export function Composer(props: ComposerProps): JSX.Element {
               rows={rows}
               maxRows={maxRows}
               onKeyDown={keyDown}
+              composedRef={richComposed}
               autoFocus={rich!.focus}
               name={name}
               controlRef={ref as Ref<HTMLDivElement> | undefined}
