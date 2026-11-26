@@ -1,1 +1,1 @@
-- Fixed: TimeGrid scrolls the keyboard's slot clear of a toast over the bottom of the page, so its focus ring is never under the toast.
+- Fixed: TimeGrid scrolls the keyboard's slot clear of a toast over the bottom of the page, so the toast does not cover its focus ring.
