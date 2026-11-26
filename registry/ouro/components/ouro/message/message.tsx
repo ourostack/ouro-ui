@@ -243,6 +243,7 @@ export interface MessageOwnProps {
    * the author and a line of what they wrote, drawn with no box. Screen readers hear it first, as "Reply to Ana, Mar 3: …". With `onActivate` it is a
    * button, to show the quoted message.
    *
+   * @claim "drawn with no box" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > shows the quote at the top of the message: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis)
    * @claim "Screen readers hear it first, as" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > is read before the text, as the label and the excerpt)
    * @claim "With `onActivate` it is a button" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > is a button with onActivate, named by the quote, which keyboard and pointer press)
    */
