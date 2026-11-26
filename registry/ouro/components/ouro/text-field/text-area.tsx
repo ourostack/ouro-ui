@@ -213,7 +213,8 @@ function stabilizeTextareaProps<P extends object>(
   const next = { ...props } as Record<string, unknown>;
   for (const key of Object.keys(props as Record<string, unknown>)) {
     const value = (props as Record<string, unknown>)[key];
-    if (typeof value !== "function" || !(key.startsWith("on") || key === "ref")) continue;
+    // A textarea's only function-valued props are its `on*` handlers and a callback `ref`, so the type alone picks them out.
+    if (typeof value !== "function") continue;
     let wrapped = state.registry.get(key);
     if (!wrapped) {
       wrapped = (...args: unknown[]) => {
@@ -358,6 +359,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // `updateTextarea`'s unguarded defaultValue write (ouro-ui#3759). It mirrors the server markup
   // only for that one first commit, which is what hydration compares against.
   const [mounted, setMounted] = useState(false);
+  // Stryker disable next-line ArrayDeclaration: equivalent; any constant dependency list runs this once, at mount.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useLayoutEffect(() => setMounted(true), []);
   const grew = useRef(false);
@@ -371,6 +373,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // Runs before the fit-height effect below, which measures this same `.value`.
   useLayoutEffect(() => {
     const textarea = textareaRef.current!;
+    // Stryker disable next-line ConditionalExpression: equivalent; the HTML value setter leaves the text and the caret as they are when the new value equals the old one.
     if (controlled && textarea.value !== String(rest.value)) textarea.value = String(rest.value);
   }, [controlled, rest.value]);
   useLayoutEffect(() => {

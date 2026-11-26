@@ -161,6 +161,51 @@ describe("TextArea", () => {
     expect(mutations.filter((record) => record.type === "childList")).toHaveLength(0);
   });
 
+  it("writes nothing to the native textarea when a parent re-renders it with the same props", async () => {
+    // A new ref and handler each render, as an inline one is: TextArea hands the textarea stable stand-ins for them.
+    const field = () => <TextArea label="Notes" defaultValue="Salt" ref={() => {}} onFocus={() => {}} />;
+    const { textarea, rerender } = await render(field());
+    // Every commit that reaches a textarea ends in React writing its defaultValue, so counting those writes counts commits.
+    const writes: string[] = [];
+    const own = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "defaultValue")!;
+    Object.defineProperty(textarea, "defaultValue", {
+      configurable: true,
+      get() {
+        return own.get!.call(this);
+      },
+      set(value: string) {
+        writes.push(value);
+        own.set!.call(this, value);
+      },
+    });
+    await rerender(field());
+    expect(writes).toEqual([]);
+    expect(textarea.value).toBe("Salt");
+  });
+
+  it("treats a handler given as undefined as no handler at all", async () => {
+    const { textarea } = await render(<TextArea label="Notes" onCopy={undefined} />);
+    const errors: unknown[] = [];
+    const onError = (event: ErrorEvent) => {
+      errors.push(event.error);
+      event.preventDefault();
+    };
+    window.addEventListener("error", onError);
+    textarea.dispatchEvent(new ClipboardEvent("copy", { bubbles: true }));
+    window.removeEventListener("error", onError);
+    expect(errors).toEqual([]);
+  });
+
+  it("server-renders a controlled value as the textarea's text", () => {
+    expect(renderToString(<TextArea label="Notes" value="Salt" onValueChange={() => {}} />)).toMatch(/<textarea[^>]*>Salt<\/textarea>/);
+  });
+
+  it("keeps the label pointing at the textarea, by the id Field gives it", async () => {
+    const { host, textarea } = await render(<TextArea label="Notes" />);
+    expect(textarea.id).not.toBe("");
+    expect(host.querySelector("label")!.htmlFor).toBe(textarea.id);
+  });
+
   it("passes aria-required through without making the textarea natively required", async () => {
     const { textarea } = await render(<TextArea label="Method" aria-required />);
     expect(textarea.getAttribute("aria-required")).toBe("true");
