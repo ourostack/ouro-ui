@@ -124,6 +124,23 @@ describe("TextArea", () => {
     expect(onValueChange).toHaveBeenLastCalledWith("Salt!", expect.anything());
   });
 
+  it("calls the latest handler, and none once it is removed", async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const { textarea, rerender } = await render(<TextArea label="Notes" onFocus={first} />);
+    textarea.focus();
+    expect(first).toHaveBeenCalledTimes(1);
+    textarea.blur();
+    await rerender(<TextArea label="Notes" onFocus={second} />);
+    textarea.focus();
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(first).toHaveBeenCalledTimes(1);
+    textarea.blur();
+    await rerender(<TextArea label="Notes" />);
+    textarea.focus();
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
   it("syncs a controlled value through the DOM property, never rewriting defaultValue as the person types", async () => {
     function Controlled() {
       const [value, setValue] = useState("a");

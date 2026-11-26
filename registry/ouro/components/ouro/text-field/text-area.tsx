@@ -217,8 +217,9 @@ function stabilizeTextareaProps<P extends object>(
     let wrapped = state.registry.get(key);
     if (!wrapped) {
       wrapped = (...args: unknown[]) => {
-        const handler = (state.latest as Record<string, unknown>)[key] as ((...a: unknown[]) => unknown) | undefined;
-        return handler?.(...args);
+        // The wrapper reaches the element only while `key` is in the latest props.
+        const handler = (state.latest as Record<string, unknown>)[key] as (...a: unknown[]) => unknown;
+        return handler(...args);
       };
       state.registry.set(key, wrapped);
     }
@@ -357,6 +358,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // `updateTextarea`'s unguarded defaultValue write (ouro-ui#3759). It mirrors the server markup
   // only for that one first commit, which is what hydration compares against.
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useLayoutEffect(() => setMounted(true), []);
   const grew = useRef(false);
   const native = autoGrow && supportsFieldSizing();
@@ -368,8 +370,8 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // `:has()`-invalidating mutation `updateTextarea` would otherwise make on every commit (ouro-ui#3759).
   // Runs before the fit-height effect below, which measures this same `.value`.
   useLayoutEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea && controlled && textarea.value !== rest.value) textarea.value = rest.value ?? "";
+    const textarea = textareaRef.current!;
+    if (controlled && textarea.value !== String(rest.value)) textarea.value = String(rest.value);
   }, [controlled, rest.value]);
   useLayoutEffect(() => {
     const textarea = textareaRef.current!;
