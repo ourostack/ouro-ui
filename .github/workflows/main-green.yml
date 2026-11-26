@@ -21,6 +21,12 @@ name: Main green
 # ceiling its base was already over, whether the candidate rule would report rather than fail it (its own
 # growth is zero or less). Report-only too: it never changes what fresh-main decides, and it never loosens a
 # ceiling.
+#
+# A fifth job logs a candidate fail-fast-fresh-main verdict (scripts/fail-fast-fresh-main.mjs) on
+# ourostack/ouro-ui#3820: on each red-to-green transition of main, which cascade-cancelled auto-merge pull
+# request CI runs a fresh-main-tolerant ci-fail-fast would not have cancelled at all (fresh-main was the only
+# failed job). Report-only too: it changes no job's TOLERATED list, so ci-fail-fast keeps cancelling those
+# runs until the coordinator rules on the log.
 on:
   workflow_run:
     workflows: [CI]
@@ -35,7 +41,7 @@ permissions:
   pull-requests: read
   actions: read
   statuses: write
-  issues: write # candidate-verdict, candidate-retrigger-plan and candidate-ceiling-fix-exempt comments (report-signatures, report-cascade-retrigger, report-ceiling-fix-exempt jobs only)
+  issues: write # candidate-verdict, candidate-retrigger-plan, candidate-ceiling-fix-exempt and candidate-fail-fast-fresh-main comments (report-signatures, report-cascade-retrigger, report-ceiling-fix-exempt, report-fail-fast-fresh-main jobs only)
 concurrency:
   group: main-green-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -131,3 +137,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ceiling-fix-exempt.mjs report
+  report-fail-fast-fresh-main:
+    name: Log the candidate fail-fast-fresh-main verdict
+    if: ${{ github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      pull-requests: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - name: Logged the candidate verdict on #3820
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/fail-fast-fresh-main.mjs report

@@ -84,8 +84,8 @@ export function candidateComment({ state, plan }) {
   return lines.join("\n");
 }
 
-/** The open, auto-merge-enabled pull requests into main, paginated. */
-function autoMergePulls(api, repo) {
+/** The open, auto-merge-enabled pull requests into main, paginated. Shared with scripts/fail-fast-fresh-main.mjs (#3820). */
+export function autoMergePulls(api, repo) {
   const pulls = [];
   for (let page = 1; ; page += 1) {
     const batch = api(`repos/${repo}/pulls?state=open&base=main&per_page=100&page=${page}`);
