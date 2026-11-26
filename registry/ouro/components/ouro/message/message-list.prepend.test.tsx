@@ -330,12 +330,14 @@ describe("MessageList prepending older history", () => {
       const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
       await settle(scroller);
       // A trackpad's fling to the top, a step of 1,500px at a time, with the older page asked for on the way, until the wheel's
-      // own scroll has ended there, as the browser says it does: then the place is the reader's (Chromium animates a step).
+      // own scroll has ended there: then the place is the reader's. Chromium animates a step past its event, and a step that
+      // pushes at the top goes on there, so it has ended once Chromium says so at the top; WebKit takes a step whole, and the
+      // list's own write may take it the rest of the way, which brings no scrollend.
       let restedAtTop = false;
-      scroller.addEventListener("scrollend", () => (restedAtTop = scroller.scrollTop === 0));
+      scroller.addEventListener("scrollend", () => void (scroller.scrollTop === 0 && (restedAtTop = true)));
       for (let step = 0; step < 20 && scroller.scrollTop > 0; step++) await userEvent.wheel(scroller, { delta: { y: -1500 } });
       await draw(true);
-      await expect.poll(() => restedAtTop).toBe(true);
+      await expect.poll(() => scroller.scrollTop === 0 && (restedAtTop || server.browser !== "chromium")).toBe(true);
       // Paid in a write once it has rested, or held by drawing the content down until it does.
       if (rested) await settleCarry(scroller);
       // The premise: the fling reached the top, with older messages to come.
