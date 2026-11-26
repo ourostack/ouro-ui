@@ -320,3 +320,12 @@ test("a passthrough's declared source: a call, or the list a harness tool call i
     ok(![...untracedIds].some((id) => id.includes(traced)), traced);
   }
 });
+
+test("a skipped folder's tools are another product's doors: left out, and reported as excluded", async () => {
+  const { doors: all } = await walk();
+  ok(all.some((d) => d.file.startsWith("src/nested/")));
+  const { doors, errors, excluded = [] } = await walk({ skip: ["src/nested"] });
+  deepEqual(errors, []);
+  ok(!doors.some((d) => d.file.startsWith("src/nested/")));
+  deepEqual(excluded, [{ hit: "src/nested", category: "vendored" }]);
+});

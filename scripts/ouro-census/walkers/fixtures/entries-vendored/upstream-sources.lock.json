@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "kit",
+      "repository": "ourostack/ouro-ui",
+      "commit": "0000000000000000000000000000000000000000",
+      "files": [{ "sourcePath": "registry/ouro/ax/kit-entry.ts", "generatedPath": "src/vendor/kit/kit-entry.ts", "sha256": "082c27aad5b230b0db4d2c4c65f932daeaf1722a27dc64989696fc3a054f85bf" }]
+    }
+  ]
+}
