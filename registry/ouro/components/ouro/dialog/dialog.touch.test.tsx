@@ -185,6 +185,34 @@ describe("initial focus in a controlled dialog opened from the app's own button"
   });
 });
 
+describe("initial focus in a controlled sheet follows the last press's pointer type", () => {
+  it.each([
+    ["touch", "popup"],
+    ["pen", "popup"],
+    ["mouse", "input"],
+  ] as const)("after a %s press, then a click that opens it, focuses the %s", async (pointerType, expected) => {
+    await mount(<ControlledDialog presentation="sheet" />);
+    document.dispatchEvent(new PointerEvent("pointerdown", { pointerType, bubbles: true }));
+    document.querySelector<HTMLElement>(OPENER)!.click();
+    const element = await opened();
+    expect(element.getAttribute("data-ouro-presentation")).toBe("sheet");
+    expect(focusOf(element)).toBe(expected);
+  });
+
+  it("focuses a triggered sheet's first input when a click opens it after an unrelated touch", async () => {
+    await mount(
+      <Dialog title="Edit recipe" trigger={<Button>Edit</Button>}>
+        {form}
+      </Dialog>,
+    );
+    document.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", bubbles: true }));
+    document.querySelector<HTMLElement>(TRIGGER)!.click();
+    const element = await opened();
+    expect(element.getAttribute("data-ouro-presentation")).toBe("sheet");
+    expect(focusOf(element)).toBe("input");
+  });
+});
+
 it("gives the centered dialog's close button a 44px hit area on a coarse pointer", async () => {
   expect(matchMedia("(pointer: coarse)").matches).toBe(true);
   const host = document.createElement("div");
