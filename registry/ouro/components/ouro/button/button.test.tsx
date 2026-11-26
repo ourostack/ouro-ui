@@ -912,6 +912,36 @@ describe("icon-only size", () => {
     expect(getComputedStyle(nestedIcon!).paddingInlineStart).toBe("0px");
   });
 
+  it("reads words under an element's own children, a number or a fragment's included, and only blank text or a component's children as no words", async () => {
+    const Glyph = ({ children }: { children: ReactNode }) => <span>{children}</span>;
+    const { host } = await render(
+      <>
+        <Button aria-label="Messages, 3 unread">
+          <span>{3}</span>
+        </Button>
+        <Button aria-label="Copy the link">
+          <span>{[<Star key="star" />, "Copy"]}</span>
+        </Button>
+        <Button aria-label="Copy the link">
+          <span>
+            <>Copy</>
+          </span>
+        </Button>
+        <Button aria-label="Add">
+          <span> </span>
+        </Button>
+        <Button aria-label="Favourite">
+          <span>
+            <Glyph>★</Glyph>
+          </span>
+        </Button>
+      </>,
+    );
+    const [number, mixed, fragment, blank, component] = [...host.querySelectorAll<HTMLElement>('[data-ouro="button"]')];
+    for (const label of [number, mixed, fragment]) expect(getComputedStyle(label!).paddingInlineStart).not.toBe("0px");
+    for (const icon of [blank, component]) expect(getComputedStyle(icon!).paddingInlineStart).toBe("0px");
+  });
+
   it("keeps the size an icon sets for itself", async () => {
     const { button } = await render(
       <Button aria-label="Add">
