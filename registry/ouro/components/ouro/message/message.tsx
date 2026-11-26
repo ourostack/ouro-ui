@@ -866,12 +866,12 @@ export function Message(props: MessageProps): JSX.Element {
 
   const empty = children === undefined || children === null || children === false || children === "";
   const body = streaming && empty ? typing(streamingLabel) : children;
-  const quoted = quote && quoteBox(quote);
   // A context that is nothing draws no line and leaves no gap above the quote.
   const hasContext = context !== undefined && context !== null && typeof context !== "boolean" && context !== "";
   // Muted as the quote's excerpt is, except on a default message's own primary bubble: that bubble does not re-point
   // the muted token, and a muted line on the primary fill fails 4.5:1, so it takes the bubble's text color.
   const primaryBubble = role === "user" && variant === "default";
+  const quoted = quote && quoteBox(quote, primaryBubble);
   const contextLine = hasContext ? (
     <div
       data-ouro-message-context=""
@@ -1209,22 +1209,31 @@ function quoteDay(quote: MessageQuote): { node: ReactNode } | undefined {
   return { node: <LocalDate value={date} /> };
 }
 
+// On a default message's own primary bubble, which does not re-point the theme's colors as a filled chat bubble does,
+// the quote's text, rule and hover read as the bubble's: page colors on the primary fill fail 4.5:1.
+const onPrimary = {
+  "--foreground": "var(--primary-foreground)",
+  "--muted-foreground": "var(--primary-foreground)",
+  "--accent": "color-mix(in oklab,var(--primary-foreground) 12%,var(--primary))",
+  "--ring": "var(--primary-foreground)",
+} as CSSProperties;
+
 /**
  * The message a message replies to: a thin rule, the avatar, the author, the day and the excerpt, under
  * the `context` line. Screen readers hear "Reply to Ana, <day>" in place of the author's name, then the excerpt.
  */
-function quoteBox(quote: MessageQuote): JSX.Element {
+function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
   const day = quoteDay(quote);
   const body = (
     <>
-      <span aria-hidden="true" data-ouro-message-quote-bar="" className="w-0.5 shrink-0 self-stretch rounded-full bg-primary/70 forced-colors:bg-[Highlight]" />
+      <span aria-hidden="true" data-ouro-message-quote-bar="" className={cn("w-0.5 shrink-0 self-stretch rounded-full forced-colors:bg-[Highlight]", primaryBubble ? "bg-primary-foreground/70" : "bg-primary/70")} />
       {quote.avatar}
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="sr-only">{quote.label ?? <>Reply to {quote.author}{day ? <>, {day.node}</> : null}</>}: </span>
+        <span className="sr-only">{quote.label ?? (day ? <>Reply to {quote.author}, {day.node}</> : `Reply to ${quote.author}`)}: </span>
         <span aria-hidden="true" data-ouro-message-quote-author="" className="truncate text-xs font-semibold text-foreground">
           {quote.author}
           {day ? (
-            <span data-ouro-message-quote-day="" className="font-normal text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+            <span data-slot="message-quote-day" data-ouro-message-quote-day="" className="font-normal text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
               {" \u00b7 "}
               {day.node}
             </span>
@@ -1237,22 +1246,24 @@ function quoteBox(quote: MessageQuote): JSX.Element {
     </>
   );
   const why = "the quote rule is a 2px stroke, which cannot hold a concentric corner";
+  // With no context line the quote stands alone, so a message with a quote draws no wrapper for it.
+  const alone = !quote.context;
+  const own = alone ? { className: "mb-2", style: primaryBubble ? onPrimary : undefined } : { className: "", style: undefined };
   const box = quote.onActivate ? (
-    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass)}>
+    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass, own.className)} style={own.style}>
       {body}
     </button>
   ) : (
-    <blockquote data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} className={quoteClass}>
+    <blockquote data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} className={cn(quoteClass, own.className)} style={own.style}>
       {body}
     </blockquote>
   );
+  if (alone) return box;
   return (
-    <div data-ouro-message-quote-group="" className="mb-2 flex min-w-0 flex-col gap-1">
-      {quote.context ? (
-        <div data-ouro-message-quote-context="" className="min-w-0 truncate text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
-          {quote.context}
-        </div>
-      ) : null}
+    <div data-slot="message-quote-group" data-ouro-message-quote-group="" className="mb-2 flex min-w-0 flex-col gap-1" style={primaryBubble ? onPrimary : undefined}>
+      <div data-slot="message-quote-context" data-ouro-message-quote-context="" className="min-w-0 truncate text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+        {quote.context}
+      </div>
       {box}
     </div>
   );

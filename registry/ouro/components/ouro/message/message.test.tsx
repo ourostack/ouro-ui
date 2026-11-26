@@ -760,7 +760,7 @@ describe("Message quote", () => {
     expect(element.getAttribute("data-ouro-control")).toBe("message");
     expect(element.getAttribute("data-ouro-part")).toBe("quote");
     expect(element.hasAttribute("data-ouro-message-quote")).toBe(true);
-    expect(bubbleOf(message).firstElementChild).toBe(element.parentElement);
+    expect(bubbleOf(message).firstElementChild).toBe(element);
     await tabFromTop();
     expect(document.activeElement).toBe(element);
     await userEvent.keyboard("{Enter}");
