@@ -135,6 +135,21 @@ describe("MessageList actions", () => {
     await expect.poll(() => bars()).toHaveLength(0);
   });
 
+  it("names the bar's menu for a message with no name, and gives a message with only a menu no actions", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await render(
+      <MessageList label="Launch channel" style={{ height: 360 }}>
+        <Message id="solo" variant="chat" role="assistant" menu={[{ label: "Copy link", onClick: () => {} }]}>
+          Hello
+        </Message>
+      </MessageList>,
+    );
+    await ready("solo");
+    expect(barIn("solo")).not.toBeNull();
+    expect(barIn("solo")!.querySelectorAll("button")).toHaveLength(1);
+    warn.mockRestore();
+  });
+
   it("shows the bar within the pointer's own event, before the next frame, and moves the same bar to the next message", async () => {
     await render(<Channel count={3} />);
     await ready("m2");
