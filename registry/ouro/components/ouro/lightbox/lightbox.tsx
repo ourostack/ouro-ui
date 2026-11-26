@@ -272,7 +272,7 @@ function ZoomIcon({ out }: { out: boolean }): JSX.Element {
 
 function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={cn("size-ouro-4 rtl:-scale-x-100", back && "-scale-x-100 rtl:scale-x-100")}>
+    <svg aria-hidden="true" data-slot="lightbox-chevron" viewBox="0 0 16 16" fill="none" className={cn("size-ouro-4 rtl:-scale-x-100", back && "-scale-x-100 rtl:scale-x-100")}>
       <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -822,7 +822,7 @@ function LightboxViewer({
                 >
                   <ChevronIcon back />
                 </Button>
-                <span data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={cn(counterClass, fitCounterClass)}>
+                <span data-slot="lightbox-position" data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={cn(counterClass, fitCounterClass)}>
                   {fillTemplate(positionLabel, chosen + 1, total)}
                 </span>
                 <Button
