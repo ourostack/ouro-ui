@@ -336,7 +336,11 @@ describe("MessageList prepending older history", () => {
       let restedAtTop = false;
       scroller.addEventListener("scrollend", () => void (scroller.scrollTop === 0 && (restedAtTop = true)));
       let steps = 0;
-      for (; steps < 40 && scroller.scrollTop > 0; steps++) await userEvent.wheel(scroller, { delta: { y: -1500 } });
+      // A frame between steps, so each lands before the next, as a trackpad's steps come a frame or more apart on a loaded page.
+      for (; steps < 40 && scroller.scrollTop > 0; steps++) {
+        await userEvent.wheel(scroller, { delta: { y: -1500 } });
+        await frames(1);
+      }
       await draw(true);
       const where = () => `${steps} steps, scrollTop ${scroller.scrollTop} of ${scroller.scrollHeight - scroller.clientHeight}, ${scroller.getBoundingClientRect().height}px tall at ${scroller.getBoundingClientRect().top}px in a ${innerHeight}px view`;
       try {

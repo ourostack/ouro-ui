@@ -1653,6 +1653,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ConditionalExpression: only spares writing the values the mark already holds.
       if (px === endHeld) return;
       endHeld = px;
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: a mark at the very top holds no range the content does not, in the layout or out of it.
       endMark.style.display = px > 0 ? "block" : "";
       endMark.style.top = `${Math.max(0, px - 1)}px`;
     };
@@ -1668,7 +1669,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Where an app turned the browser's own anchoring on, the mark is not moved, which would stop WebKit's: it goes only once
       // the content has come up past it, where letting it go is a change the browser's own clamp would make anyway.
       const anchoring = native();
+      // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       if (!anchoring) holdEnd(contentEnd());
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       else if (endHeld > contentEnd()) holdEnd(0);
       const view = scroller.getBoundingClientRect();
       // Finds the anchors among the nodes, in the order they come in the page.
@@ -1899,6 +1902,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       content.style.marginBlockStart = `${px}px`;
       placeFloor();
       // The mark held the content's end where the space put it: it follows the end.
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: the keepAnchor that follows every change of the space moves the mark to the content's end as well; and Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       if (moved && !native()) holdEnd(contentEnd());
     };
     // Scrolls the list by `by` itself, which the springs leave alone, and returns how far it went.
