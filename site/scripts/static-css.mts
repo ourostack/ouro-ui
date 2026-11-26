@@ -71,17 +71,12 @@ export function plainClasses(css: string): { classes: string[]; rest: string } {
 }
 
 /** The top-level at-rules of ouro-base.css, by name, and the rest of the file without them. */
-export function splitBase(css: string): { inline: string; utilities: string[]; properties: string[]; keyframes: string[]; supports: string[]; classes: string[]; blocks: Block[] } {
+export function splitBase(css: string): { inline: string; utilities: string[]; keyframes: string[]; supports: string[]; classes: string[]; blocks: Block[] } {
   const { classes, rest: unlayered } = plainClasses(css.replace(/\/\*[\s\S]*?\*\//g, ""));
   const source = unlayered;
   const inline = /@theme inline\s*\{([^{}]*)\}/.exec(source);
   if (!inline) throw new Error("ouro-base.css has no @theme inline block");
   const utilities = [...source.matchAll(/@utility\s+([\w-]+)\s*\{[^{}]*\}/g)].map((match) => match[1]!);
-  const propertyPattern = /@property\s+--[\w-]+\s*\{[^{}]*\}/g;
-  const properties = [...source.matchAll(propertyPattern)].map((match) => {
-    const name = /@property\s+(--[\w-]+)/.exec(match[0])![1]!;
-    return rule(`@property ${name}`, declarations(match[0].slice(match[0].indexOf("{") + 1, -1)), "");
-  });
   const keyframes = [...source.matchAll(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g)].map((match) => match[0]);
   const supportsPattern = /@(?:supports|container)[^{]*\{(?:\s*[^{}]*\{[^{}]*\})*\s*\}/g;
   // The keyboard-only focus rules need Ouro's last-input tracker, which a page without the components never runs.
@@ -94,10 +89,9 @@ export function splitBase(css: string): { inline: string; utilities: string[]; p
   const rest = source
     .replace(inline[0], "")
     .replace(supportsPattern, "")
-    .replace(propertyPattern, "")
     .replace(/@utility\s+[\w-]+\s*\{[^{}]*\}/g, "")
     .replace(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
-  return { inline: inline[1]!, utilities, properties, keyframes, supports, classes, blocks: parseBlocks(rest) };
+  return { inline: inline[1]!, utilities, keyframes, supports, classes, blocks: parseBlocks(rest) };
 }
 
 /** A keyframes rule, indented two spaces a level. */
@@ -120,7 +114,7 @@ const MODES = [
 
 /** ouro-base.css as plain CSS: its @theme inline aliases become :root properties, and its Tailwind utilities are left out. */
 export function baseCss(css: string): string {
-  const { inline, utilities, properties, keyframes, supports, classes, blocks } = splitBase(css);
+  const { inline, utilities, keyframes, supports, classes, blocks } = splitBase(css);
   const root = blocks.find((block) => block.selector === ":root");
   if (!root) throw new Error("ouro-base.css has no :root block");
   const merged = blocks.map((block) => (block === root ? { selector: ":root", body: `${inline};${block.body}` } : block));
@@ -138,7 +132,6 @@ export function baseCss(css: string): string {
     plainBlocks(merged),
     ...classes,
     ...supports,
-    ...properties,
     ...keyframes.map(formatKeyframes),
   ].join("\n\n") + "\n";
 }
