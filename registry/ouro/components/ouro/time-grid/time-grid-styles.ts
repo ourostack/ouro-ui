@@ -417,10 +417,10 @@ const markedMutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,v
  */
 const toneBarClass: Record<TimeGridTone, string> = {
   primary: "border-primary",
-  secondary: "border-muted-foreground forced-colors:border-s-2",
-  success: "border-success forced-colors:border-s-4 forced-colors:[border-inline-start-style:double]",
-  warning: "border-warning forced-colors:border-s-6",
-  destructive: "border-destructive forced-colors:border-s-5",
+  secondary: "border-muted-foreground",
+  success: "border-success",
+  warning: "border-warning",
+  destructive: "border-destructive",
 };
 
 /**

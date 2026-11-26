@@ -105,8 +105,8 @@
     "owner": "drain-3"
   },
   {
-    "test": "* registry/ouro/components/ouro/composer/composer.test.tsx > Composer conversation > starts an uncontrolled draft over when conversation changes, and keeps it while it stays",
-    "reason": "Measured at 8.6 s against a 15 s budget on a loaded browser shard (CI run 45654909418, shard 3/22), brought into this pull request's HEADROOM_CHANGED scope only because it edits composer.test.tsx elsewhere in the same file. The test itself is a plain userEvent.type() of 14 characters into a textarea plus two rerenders, with no redundant setup; its cost reads as real browser-automation keystroke dispatch under CI-shard load, the same pattern as this file's other entries, not a cost this pull request added or can cut.",
-    "owner": "ouro-ui-composer-backdrop-takeover"
+    "test": "* site/src/site.test.tsx > docs > opens a random component with a trick to try from the docs index, rolling the names past first",
+    "reason": "Measured at 8.8 s against a 15 s budget on a loaded browser shard (CI run 45731877765, shard 5/22). It is in this pull request's HEADROOM_CHANGED scope only because the revert removes a different test from site.test.tsx; this test is unchanged and its cost is not one the revert added or can cut. Make it faster or give it a larger timeout, then remove this entry.",
+    "owner": "ouro-ui-revert-3743"
   }
 ]
