@@ -215,7 +215,8 @@ export function Head({ page, title, hint, current, end }: { page?: NavPage; titl
 /** The bar's three heaviest panels, the real platform marks among them (nav-panels.tsx), load only once a pointer, a
  * finger or focus first reaches the header (header.tsx's wantPanels, which loads this module alongside the Docs panel's),
  * long before a person can open one: a page nobody ever points at the header on never pays for them. */
-export const loadNavPanels = () => import("./nav-panels");
+let navPanels: typeof import("./nav-panels") | undefined;
+export const loadNavPanels = () => import("./nav-panels").then((module) => (navPanels = module));
 const LazyPlatformsPanel = lazy(() => loadNavPanels().then((module) => ({ default: module.PlatformsPanel })));
 const LazyPartsPanel = lazy(() => loadNavPanels().then((module) => ({ default: module.PartsPanel })));
 const LazyProofPanel = lazy(() => loadNavPanels().then((module) => ({ default: module.ProofPanel })));
@@ -227,6 +228,7 @@ function Pending({ children }: { children?: ReactNode }): JSX.Element {
 
 /** The four platforms side by side, each with the same four pages: two columns on a phone, four from 640px. */
 export function PlatformsPanel({ current, compact = false }: { current: string; compact?: boolean }): JSX.Element {
+  if (navPanels) return <navPanels.PlatformsPanel current={current} compact={compact} />;
   return (
     <Suspense fallback={<Pending>{compact ? <Eyebrow>Pick a platform</Eyebrow> : <Head title="Platforms" hint="Web, Apple, Windows and Android" current={current} />}</Pending>}>
       <LazyPlatformsPanel current={current} compact={compact} />
@@ -236,6 +238,7 @@ export function PlatformsPanel({ current, compact = false }: { current: string; 
 
 /** Every part on a line: the part and its line, then its pages across. Stacked on a phone. */
 export function PartsPanel({ current, compact = false, more }: { current: string; compact?: boolean; more?: Readonly<Record<string, ReactNode>> | undefined }): JSX.Element {
+  if (navPanels) return <navPanels.PartsPanel current={current} compact={compact} more={more} />;
   return (
     <Suspense fallback={<Pending>{compact ? <Eyebrow>Ouro UI, part by part</Eyebrow> : <Head title="Parts" hint="Ouro UI, part by part" current={current} />}</Pending>}>
       <LazyPartsPanel current={current} compact={compact} more={more} />
@@ -244,6 +247,7 @@ export function PartsPanel({ current, compact = false, more }: { current: string
 }
 
 export function ProofPanel({ current, compact = false }: { current: string; compact?: boolean }): JSX.Element {
+  if (navPanels) return <navPanels.ProofPanel current={current} compact={compact} />;
   return (
     <Suspense fallback={<Pending>{compact ? null : <Head page={NAV_PROOF} hint={NAV_PROOF.hint} current={current} />}</Pending>}>
       <LazyProofPanel current={current} compact={compact} />
@@ -253,11 +257,13 @@ export function ProofPanel({ current, compact = false }: { current: string; comp
 
 /** The Docs panel's lists come from the docs' generated index, which the voyage pages never load up front: the panel's
  * own module loads as soon as the page is live (loadDocsPanel), long before a person can open it. */
-export const loadDocsPanel = () => import("./docs-panel");
+let docsPanel: typeof import("./docs-panel") | undefined;
+export const loadDocsPanel = () => import("./docs-panel").then((module) => (docsPanel = module));
 const LazyDocsPanel = lazy(() => loadDocsPanel().then((module) => ({ default: module.DocsPanel })));
 
 /** Docs: the components by group and the guides (docs-panel.tsx), under the panel's head while they load. */
 export function DocsPanel({ current, compact = false }: { current: string; compact?: boolean }): JSX.Element {
+  if (docsPanel) return <docsPanel.DocsPanel current={current} compact={compact} />;
   return (
     <Suspense fallback={compact ? null : <Head page={NAV_DOCS} hint={NAV_DOCS.hint} current={current} />}>
       <LazyDocsPanel current={current} compact={compact} />
