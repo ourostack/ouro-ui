@@ -894,6 +894,24 @@ describe("icon-only size", () => {
     for (const button of rest) expect(getComputedStyle(button).paddingInlineStart).not.toBe("0px");
   });
 
+  it("keeps a text label's padding when the whole label is one element, such as an aria-live span, under an aria-label", async () => {
+    const { host } = await render(
+      <>
+        <Button size="lg" variant="outline" tone="secondary" aria-label="Send the link to your computer">
+          <span aria-live="polite">Send the link</span>
+        </Button>
+        <Button aria-label="Add">
+          <span>
+            <Star />
+          </span>
+        </Button>
+      </>,
+    );
+    const [textLabel, nestedIcon] = [...host.querySelectorAll<HTMLElement>('[data-ouro="button"]')];
+    expect(getComputedStyle(textLabel!).paddingInlineStart).not.toBe("0px");
+    expect(getComputedStyle(nestedIcon!).paddingInlineStart).toBe("0px");
+  });
+
   it("keeps the size an icon sets for itself", async () => {
     const { button } = await render(
       <Button aria-label="Add">
