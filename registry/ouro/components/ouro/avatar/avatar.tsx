@@ -477,13 +477,15 @@ const outOfOffice = "stroke-(--ouro-presence-out-of-office,var(--primary))";
 // circle), not a stroked line: a stroke that thin blurs away at the 8 and 9px dot sizes, where
 // a filled shape still anti-aliases to two crisp edges. Busy has no mark at any size, and
 // offline and out of office keep Fluent's own ring-and-stroke style, hidden below 40px as before.
-// Rounded to one decimal place, a tenth of this 16-unit viewBox's unit, and each cubic curve
-// (a rounded cap or corner) drawn as one quadratic curve through the same corner instead: both
-// sub-pixel even at the smallest dot (8px, under 0.02 units of deviation), so neither costs any
-// visible precision, while keeping these strings, repeated in every bundle that imports Avatar,
-// off the initial-load budget (ourostack/ouro-ui#3805).
-const checkMark = "M11.4 6.6L7.8 10.2Q7.2 10.6 6.6 10.2L5 8.6Q4.6 8 5 7.4Q5.6 7 6.2 7.4L7.2 8.5L10.2 5.4Q10.8 5 11.4 5.4Q11.8 6 11.4 6.6Z";
-const clockHandMark = "M8 4.8V7.7L10.2 9.8Q10.6 10.4 10.2 11Q9.6 11.4 9 11L6.6 8.6Q6.4 8.3 6.4 8V4.8Q6.5 4.1 7.2 4Q7.9 4.1 8 4.8Z";
+// Rounded to the nearest whole unit of this 16-unit viewBox, and each cubic curve (a rounded cap
+// or corner) drawn as one quadratic curve through the same corner instead: under half a unit of
+// deviation, under a quarter pixel at the smallest dot (8px), well inside the anti-aliasing blur
+// a mark this size already has, so neither costs any visible precision, while keeping these
+// strings, repeated in every bundle that imports Avatar, off the initial-load budget
+// (ourostack/ouro-ui#3805). Each point picks whichever of its two nearest whole units keeps it
+// distinct from its curve's other end, so no curve collapses to a straight line.
+const checkMark = "M11 7L8 10Q7 11 7 10L5 9Q5 8 5 7Q6 7 6 8L7 8L10 5Q11 5 11 6Q12 6 11 7Z";
+const clockHandMark = "M8 5V8L10 10Q11 10 10 11Q10 12 9 11L7 9Q6 8 7 8V5Q6 4 7 4Q8 4 8 5Z";
 
 /** The presence dot's glyph: a shape per state, so color is not the only cue. */
 function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: boolean }): JSX.Element {
@@ -500,7 +502,7 @@ function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: b
       {presence === "do-not-disturb" && (
         <>
           <circle cx="8" cy="8" r="8" className={busy} />
-          <rect x="4.8" y="7.2" width="6.4" height="1.6" rx="0.8" className={busyInk} />
+          <rect x="5" y="7" width="6" height="2" rx="1" className={busyInk} />
         </>
       )}
       {presence === "away" && (
