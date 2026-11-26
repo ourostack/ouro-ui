@@ -99,7 +99,10 @@ export const DETOURS: Detour[] = [
       const open = menu.items.find((i) => i.enabled && (s.app.reopen ?? /^Open/).test(i.title));
       if (!open) {
         await s.eyes.key("escape");
-        s.report.step(`reopen-menu-bar-at-${cp}`, false, `the window closed at "${cp}", and the menu bar item offers no way to open it (its items: ${menu.items.map((i) => i.title).join(", ") || "none"})`);
+        const evidence = menu.ok
+          ? `and the menu bar item offers no way to open it (its items: ${menu.items.map((i) => i.title).join(", ") || "none"})`
+          : `and the menu bar item's menu didn't open when pressed (${menu.why ?? "no menu appeared under it within 2 s"}), so nothing there reopens it`;
+        s.report.step(`reopen-menu-bar-at-${cp}`, false, `the window closed at "${cp}", ${evidence}`);
         s.sys.start("open", [s.app.bundle]);
         return;
       }

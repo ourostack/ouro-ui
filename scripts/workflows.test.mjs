@@ -3696,7 +3696,24 @@ test("Docs pin leaves an open pull request alone only when it holds the same doc
   for (const o of [{}, { number: 7, failing: 1 }, { number: 7, theirs: "a.md" }, { number: 7, differs: true }, { number: 7, mergeable: "CONFLICTING" }, { number: 7, mergeable: "UNKNOWN" }]) {
     assert.notEqual(runStep(fns(o) + script, env).output.same, "true", JSON.stringify(o));
   }
-  assert.equal(pin.split("steps.same.outputs.same != 'true'").length - 1, 3, "the push, the pull request and its CI start all wait on the check");
+  assert.equal(pin.split("steps.same.outputs.same != 'true'").length - 1, 4, "the queued check, the push, the pull request and its CI start all wait on the check");
+});
+
+test("Docs pin leaves the pull request alone, rather than fail, when it is in the merge queue (#2344)", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Leave the pull request alone while it is in the merge queue");
+  const env = { BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui" };
+  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "api graphql"*) echo ${o.queued ?? "false"} ;; esac; }\n`;
+  const dir = scratchDir("ouro-docs-pin-");
+  const summary = join(dir, "summary.md");
+  const queued = runStep(fns({ number: 7, queued: "true" }) + script, { ...env, GITHUB_STEP_SUMMARY: summary });
+  assert.equal(queued.output.queued, "true", queued.calls);
+  assert.match(readFileSync(summary, "utf8"), /#7 is in the merge queue/);
+  // No open pull request, or one GitHub says is not queued, lets the push go ahead as before.
+  for (const o of [{}, { number: 7, queued: "false" }]) {
+    assert.notEqual(runStep(fns(o) + script, { ...env, GITHUB_STEP_SUMMARY: join(dir, "other.md") }).output.queued, "true", JSON.stringify(o));
+  }
+  assert.match(pin, /isInMergeQueue/, "asks GitHub whether the pull request is in its merge queue, not GitHub's generic mergeable state");
 });
 
 test("Docs pin reuses its open pull request and turns auto-merge on for it", () => {
@@ -3739,14 +3756,39 @@ test("Docs pin fails, and names the pull request, when GitHub will not turn auto
 test("Main green posts its status after each CI run on main, when a pull request into main changes, and by hand, with the pull request's number passed through env", () => {
   const text = workflow("main-green.yml");
   assert.match(text, /^on:\n {2}workflow_run:\n {4}workflows: \[CI\]\n {4}types: \[completed\]\n {4}branches: \[main\]\n {2}pull_request:\n {4}branches: \[main\]\n {4}types: \[opened, synchronize, reopened, labeled, unlabeled\]\n {2}workflow_dispatch:\npermissions:/m);
-  assert.match(text, /^permissions:\n {2}contents: read\n {2}pull-requests: read\n {2}actions: read\n {2}statuses: write\nconcurrency:/m);
+  assert.match(text, /^permissions:\n {2}contents: read\n {2}pull-requests: read\n {2}actions: read\n {2}statuses: write\n {2}issues: write.*\nconcurrency:/m);
   assert.match(text, /^ {10}PR_NUMBER: \$\{\{ github\.event\.pull_request\.number \}\}$/m);
-  assert.doesNotMatch(text.slice(text.indexOf("        run: |")), /\$\{\{/, "the run step names no expression: the number comes from PR_NUMBER");
+  const statusRunStep = text.slice(text.indexOf("        run: |"), text.indexOf("\n  report-signatures:"));
+  assert.doesNotMatch(statusRunStep, /\$\{\{/, "the run step names no expression: the number comes from PR_NUMBER");
   assert.match(text, /node scripts\/main-green\.mjs --pr "\$PR_NUMBER"/);
 });
 
 test("Main green is not a required check yet: the workflow lands, and posts its status, before the main ruleset asks for it", () => {
   assert.ok(!requiredChecks.includes("main green"));
+});
+
+test("Main green's report-signatures job logs the candidate main-red-signatures verdict only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-signatures:\n {4}name: Log the candidate main-red-signatures verdict\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/main-red-signatures\.mjs report/);
+});
+
+test("Main green's report-cascade-retrigger job logs the candidate cascade re-trigger plan only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-cascade-retrigger:\n {4}name: Log the candidate cascade re-trigger plan\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/cascade-retrigger\.mjs report/);
+});
+
+test("Main green's report-ceiling-fix-exempt job logs the candidate ceiling-fix-exempt verdict only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-ceiling-fix-exempt:\n {4}name: Log the candidate ceiling-fix-exempt verdict\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/ceiling-fix-exempt\.mjs report/);
+});
+
+test("Main green's report-fail-fast-fresh-main job logs the candidate fail-fast-fresh-main verdict only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-fail-fast-fresh-main:\n {4}name: Log the candidate fail-fast-fresh-main verdict\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/fail-fast-fresh-main\.mjs report/);
 });
 
 test("Docs pin's stale job reads the tags and whether the pin pull request is open, on each push to main, with pull-requests: read on that job only", () => {
