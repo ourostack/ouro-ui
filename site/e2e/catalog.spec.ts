@@ -442,13 +442,15 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     if (kind === "docs") expect(modules.filter((module) => /^(?:docs\/.*\.md|UPGRADING\.md)\?raw$/.test(module)), `${kind} loads the docs' Markdown first`).toEqual([]);
     // The Nautilus's page asks for Chapter I's island as soon as it is live, the chapter being near the top.
     // The docs sidebar and the docs' header are islands too: they may load after the docs' closure, and they are not part of the ceiling.
-    const island = new Set(
-      name === "nautilus"
+    const island = new Set([
+      ...(name === "nautilus"
         ? islandFiles(manifest).filter((file) => !expected.includes(file))
         : kind === "docs"
           ? [...lazyFiles(manifest, "src/components/docs-sidebar.tsx", expected), ...lazyFiles(manifest, "src/components/docs-header.tsx", expected)]
-          : [],
-    );
+          : []),
+      // The voyage header's panels load once the page is idle (header.tsx), so a first open draws them whole: no part of the ceiling.
+      ...(kind === "voyage" ? [...lazyFiles(manifest, "src/voyage/nav-panels.tsx", expected), ...lazyFiles(manifest, "src/voyage/docs-panel.tsx", expected)] : []),
+    ]);
     // The index's previews load the demos they draw, and the components those use, once it is live: within their own
     // budget. Only the frames that drew count, so any other chunk the page fetches still fails the closure check below.
     const drew = kind === "docs" ? await page.locator("[data-site-preview-drawn]").evaluateAll((frames) => frames.map((frame) => frame.getAttribute("data-site-preview")!)) : [];
