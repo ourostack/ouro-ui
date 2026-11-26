@@ -1210,6 +1210,7 @@ function quoteDay(quote: MessageQuote): { node: ReactNode } | undefined {
   return { node: <QuoteDay date={date} /> };
 }
 
+// Stryker disable next-line ArrowFunction: React only calls the unsubscribe it is handed on unmount, and there is nothing to undo.
 const subscribeNever = () => () => {};
 
 /**
@@ -1217,6 +1218,7 @@ const subscribeNever = () => () => {};
  * write it in en-US in UTC, so the markup matches, and the browser then writes it in the reader's language and time zone.
  */
 function QuoteDay({ date }: { date: Date }): JSX.Element {
+  // Stryker disable next-line ArrowFunction: the server's snapshot is read only as a condition, where undefined is false too.
   const browser = useSyncExternalStore(subscribeNever, () => true, () => false);
   return (
     <time dateTime={date.toISOString()} suppressHydrationWarning>
