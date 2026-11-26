@@ -84,7 +84,9 @@ describe("MessageList arrival", () => {
     bubble("u2").dispatchEvent(new AnimationEvent("animationend", { animationName: "ouro-pulse", bubbles: true }));
     expect(article.hasAttribute("data-starting-style")).toBe(true);
     bubble("u2").dispatchEvent(new AnimationEvent("animationend", { animationName: "ouro-message-sent", bubbles: true }));
-    expect(article.hasAttribute("data-starting-style")).toBe(false);
+    // It stays a frame, so the finished animation is not dropped in the same moment it ends.
+    expect(article.hasAttribute("data-starting-style")).toBe(true);
+    await expect.poll(() => article.hasAttribute("data-starting-style")).toBe(false);
   });
 
   it("draws the messages already there, and one that fills an empty list, with no arrival", async () => {
