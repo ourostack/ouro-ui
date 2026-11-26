@@ -120,6 +120,7 @@ export async function settle(): Promise<void> {
   await Promise.race([document.fonts.ready, new Promise((resolve) => setTimeout(resolve, 3000))]);
   // A scroll made by code is no animation, and what it brings (a Jump to latest pill) comes only when it ends: the page
   // is at rest when nothing runs and nothing scrolled since the round before (#3913).
+  let quiet = 0;
   let before = scrollPositions();
   for (let round = 0; round < 50; round++) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -129,7 +130,11 @@ export async function settle(): Promise<void> {
     const after = scrollPositions();
     const scrolled = after !== before;
     before = after;
-    if (running.length === 0 && !scrolled) return;
+    if (running.length === 0 && !scrolled) {
+      if (++quiet === 3) return;
+      continue;
+    }
+    quiet = 0;
     for (const animation of running) animation.finish();
     await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
   }
