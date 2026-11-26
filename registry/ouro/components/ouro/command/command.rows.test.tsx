@@ -93,11 +93,12 @@ describe("Command rows", () => {
     await render(<Command title="Go to" open onOpenChange={() => {}} items={items} />);
     const box = listbox();
     await expect.poll(() => box.scrollHeight > box.clientHeight).toBe(true);
-    for (let height = 300; height <= 800; height += 5) {
+    for (let height = 300; height <= 800; height += 10) {
       await page.viewport(1280, height);
-      // The cut follows the resize on a frame or two; read it once it has settled.
+      // Every 10px, under the height of a heading, so no height where the list could end on one is skipped. The cut
+      // follows the resize on a frame or two; read it once it has settled.
       await act(async () => {
-        for (let frame = 0; frame < 4; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
+        for (let frame = 0; frame < 3; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
       });
       const bottom = box.getBoundingClientRect().bottom - parseFloat(getComputedStyle(box).paddingBottom);
       const whole = edges().filter((edge) => edge.getBoundingClientRect().bottom <= bottom + 0.5);
