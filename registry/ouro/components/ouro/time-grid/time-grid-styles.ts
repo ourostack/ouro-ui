@@ -374,7 +374,7 @@ const eventClass =
   "outline-ring outline-offset-2 focus-visible:z-30 focus-visible:outline-2 focus-visible:outline-solid " +
   "aria-[current=true]:z-20 " +
   "aria-expanded:z-20 aria-expanded:outline-2 aria-expanded:outline-solid aria-expanded:outline-primary " +
-  "forced-colors:border forced-colors:border-s-3 forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText] forced-colors:aria-[current=true]:pointer-fine:hover:bg-[Highlight] forced-colors:aria-[current=true]:active:bg-[Highlight]";
+  "forced-colors:border forced-colors:border-s-3 forced-colors:aria-[current=true]:bg-[Highlight]! forced-colors:aria-[current=true]:text-[HighlightText]";
 
 /**
  * A timed event fills its place in the day's column, over the now line, with a gap from the
@@ -429,16 +429,15 @@ const toneBarClass: Record<TimeGridTone, string> = {
  * mouse or a press.
  * @claim "A busy event's fill" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /\[--ouro-time-grid-tint:14%\].*dark:\[--ouro-time-grid-tint:24%\]/)
  */
+const toneMixedFillClass =
+  "bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]";
+
 const toneFillClass: Record<TimeGridTone, string> = {
-  primary:
-    "bg-[color-mix(in_oklab,var(--primary)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--primary)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]",
+  primary: `${toneMixedFillClass} [--ouro-time-grid-tone:var(--primary)]`,
   secondary: "bg-secondary pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_8%,var(--secondary))] active:bg-[color-mix(in_oklab,var(--foreground)_12%,var(--secondary))] aria-[current=true]:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--secondary))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--foreground)_20%,var(--secondary))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--foreground)_20%,var(--secondary))]",
-  success:
-    "bg-[color-mix(in_oklab,var(--success)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--success)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]",
-  warning:
-    "bg-[color-mix(in_oklab,var(--warning)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--warning)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]",
-  destructive:
-    "bg-[color-mix(in_oklab,var(--destructive)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--destructive)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]",
+  success: `${toneMixedFillClass} [--ouro-time-grid-tone:var(--success)]`,
+  warning: `${toneMixedFillClass} [--ouro-time-grid-tone:var(--warning)]`,
+  destructive: `${toneMixedFillClass} [--ouro-time-grid-tone:var(--destructive)]`,
 };
 
 /**
@@ -452,16 +451,15 @@ const plainFillClass =
 /**
  * An away event (out of office): the away colour, `--ouro-away`, over the page as a busy event's tone is, whatever
  * the event's `tone`, so it reads apart from primary, secondary and success.
- * @claim "the away colour" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /bg-\[color-mix\(in_oklab,var\(--ouro-away\)_var\(--ouro-time-grid-tint\)/)
+ * @claim "the away colour" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /\[--ouro-time-grid-tone:var\(--ouro-away\)\]/)
  */
-const awayFillClass =
-  "bg-[color-mix(in_oklab,var(--ouro-away)_var(--ouro-time-grid-tint),var(--background))] pointer-fine:hover:bg-[color-mix(in_oklab,var(--ouro-away)_calc(var(--ouro-time-grid-tint)+8%),var(--background))] active:bg-[color-mix(in_oklab,var(--ouro-away)_calc(var(--ouro-time-grid-tint)+12%),var(--background))] aria-[current=true]:bg-[color-mix(in_oklab,var(--ouro-away)_calc(var(--ouro-time-grid-tint)+18%),var(--background))] aria-[current=true]:pointer-fine:hover:bg-[color-mix(in_oklab,var(--ouro-away)_calc(var(--ouro-time-grid-tint)+22%),var(--background))] aria-[current=true]:active:bg-[color-mix(in_oklab,var(--ouro-away)_calc(var(--ouro-time-grid-tint)+22%),var(--background))]";
+const awayFillClass = `${toneMixedFillClass} [--ouro-time-grid-tone:var(--ouro-away)]`;
 
 /** An away event's start bar. */
 const awayBarClass = "border-(color:--ouro-away)";
 
 /** The away colour as a solid swatch, a background event's slim bar. */
-const awaySwatchClass = "border-(color:--ouro-away) bg-[color-mix(in_oklab,var(--ouro-away)_60%,var(--background))]";
+const awaySwatchClass = "border-(color:--ouro-away) [--ouro-time-grid-tone:var(--ouro-away)] bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_60%,var(--background))]";
 
 /**
  * A background event's fill: a step off the page whatever its tone, so it reads as secondary
@@ -503,11 +501,11 @@ const backgroundBarFillClass =
  * @claim "Each tone as a solid swatch" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /primary: "border-primary bg-\[color-mix/)
  */
 const toneSwatchClass: Record<TimeGridTone, string> = {
-  primary: "border-primary bg-[color-mix(in_oklab,var(--primary)_60%,var(--background))]",
-  secondary: "border-muted-foreground bg-[color-mix(in_oklab,var(--muted-foreground)_60%,var(--background))]",
-  success: "border-success bg-[color-mix(in_oklab,var(--success)_60%,var(--background))]",
-  warning: "border-warning bg-[color-mix(in_oklab,var(--warning)_60%,var(--background))]",
-  destructive: "border-destructive bg-[color-mix(in_oklab,var(--destructive)_60%,var(--background))]",
+  primary: "border-primary [--ouro-time-grid-tone:var(--primary)] bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_60%,var(--background))]",
+  secondary: "border-muted-foreground [--ouro-time-grid-tone:var(--muted-foreground)] bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_60%,var(--background))]",
+  success: "border-success [--ouro-time-grid-tone:var(--success)] bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_60%,var(--background))]",
+  warning: "border-warning [--ouro-time-grid-tone:var(--warning)] bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_60%,var(--background))]",
+  destructive: "border-destructive [--ouro-time-grid-tone:var(--destructive)] bg-[color-mix(in_oklab,var(--ouro-time-grid-tone)_60%,var(--background))]",
 };
 
 /**
