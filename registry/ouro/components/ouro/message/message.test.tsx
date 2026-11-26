@@ -1096,6 +1096,16 @@ describe("Message chat", () => {
     expect([other, mine].some((b) => seen(b!))).toBe(false);
   });
 
+  it("leaves a Button with href unstyled by the bubble's own underline, even in the user's filled bubble", async () => {
+    const { host } = await render(
+      <Message variant="chat" role="user" name="Priya Okafor">
+        <Button href="#mine">Open</Button>
+      </Message>,
+    );
+    const link = host.querySelector<HTMLAnchorElement>('a[data-ouro-control="button"]')!;
+    expect(getComputedStyle(link).textDecorationLine).not.toContain("underline");
+  });
+
   chromiumOnly("keeps both filled bubbles' edges under forced colors", async () => {
     try {
       const { host } = await bubblesWithLinks();

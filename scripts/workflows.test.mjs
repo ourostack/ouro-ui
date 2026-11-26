@@ -10,7 +10,7 @@ import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { KITS } from "./kit-pin.mjs";
-import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
+import { entryProblems, expiredWarning, failedTests, hungTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -1676,7 +1676,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
 
 /** The values of a matrix key in a job's block, or undefined. */
 const matrixValues = (block, key) =>
-  (block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m")) ?? block.match(new RegExp(`^ {8}${key}: \\$\\{\\{ fromJSON\\(github\\.event_name == 'pull_request' && '\\[([^\\]]*)\\]' \\|\\| '\\[[^\\]]*\\]'\\) \\}\\}$`, "m")))?.[1]
+  (block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m")) ?? block.match(new RegExp(`^ {8}${key}: \\$\\{\\{ fromJSON\\(\\(?github\\.event_name == 'pull_request'(?: \\|\\| github\\.event_name == 'merge_group'\\))? && '\\[([^\\]]*)\\]' \\|\\| '\\[[^\\]]*\\]'\\) \\}\\}$`, "m")))?.[1]
     .split(",")
     .map((value) => value.trim().replace(/^"(.*)"$/, "$1"));
 
@@ -1688,7 +1688,7 @@ function checkNames(block, id) {
   for (const key of keys) combinations = combinations.flatMap((combination) => (matrixValues(block, key) ?? []).map((value) => ({ ...combination, [key]: value })));
   const excluded = [...(block.split(/^ {8}exclude:\n/m)[1] ?? "").matchAll(/^ {10}- (\w+): (\S+)\n {12}(\w+): (\S+)$/gm)].map(([, k1, v1, k2, v2]) => ({ [k1]: v1, [k2]: v2 }));
   combinations = combinations.filter((combination) => !excluded.some((exclusion) => Object.entries(exclusion).every(([key, value]) => combination[key] === value)));
-  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name).replace("${{ github.event_name == 'pull_request' && 6 || 3 }}", "6").replace("${{ strategy.job-total }}", String(Math.max(...keys.map((key) => matrixValues(block, key).length))))); // a pull request's count: the names the ruleset requires
+  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name).replace("${{ github.event_name == 'pull_request' && 6 || 3 }}", "6").replace("${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 24 || 6 }}", "24").replace("${{ strategy.job-total }}", String(Math.max(...keys.map((key) => matrixValues(block, key).length))))); // a pull request's count: the names the ruleset requires
 }
 
 /** The condition of every job a push whose tree already passed skips (the plan's `tested`, scripts/ci-proof.mjs). */
@@ -1890,10 +1890,10 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   const jobs = ciJobs();
   const block = jobs.design;
   assert.match(block, /^ {4}needs: \[plan\]$/m);
-  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 24 \|\| 6 \}\}\)$/m);
-  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\]' \|\| '\[1,2,3,4,5,6\]'\) \}\}$/m);
+  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/\$\{\{ \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && 24 \|\| 6 \}\}\)$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(\(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\]' \|\| '\[1,2,3,4,5,6\]'\) \}\}$/m);
   // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
-  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 24 \|\| 6 \}\}\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
+  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/\$\{\{ \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && 24 \|\| 6 \}\}\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
   assert.doesNotMatch(block, /continue-on-error/);
   assert.match(block, /^ {6}- run: pnpm site:build$/m);
   // The plan decides whether its runners start at all (scripts/ci-relevance.mjs screens): off a pull request (the
@@ -2055,7 +2055,7 @@ test("the conformance shards run only the checks' proofs on the first shard when
   assert.match(block, /^ {10}OURO_CONFORMANCE_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
   // Three shards where every story is checked (main, the merge queue, a full plan); on a reduced pull request, the plan's
   // count (one for a few stories, three for most: scripts/test-impact.mjs conformanceShards), else one.
-  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && \(github\.event_name == 'pull_request' && '\[1,2,3\]' \|\| '\[1,2\]'\) \|\| needs\.plan\.outputs\.conformance_shards \|\| '\[1\]'\) \}\}$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && \(\(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && '\[1,2,3\]' \|\| '\[1,2\]'\) \|\| needs\.plan\.outputs\.conformance_shards \|\| '\[1\]'\) \}\}$/m);
   assert.match(ciJobs().plan, /^ {6}conformance_shards: \$\{\{ steps\.plan\.outputs\.conformance_shards \}\}$/m);
   assert.match(block, /^ {4}name: conformance \(\$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}\)$/m);
 });
@@ -2153,7 +2153,7 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   const block = jobs["e2e-shard"];
   const count = shardCount(block);
   assert.match(block, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
-  assert.match(block, /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8\]' \|\| '\[1,2,3\]'\)/);
+  assert.match(block, /fromJSON\(\(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && '\[1,2,3,4,5,6,7,8\]' \|\| '\[1,2,3\]'\)/);
   const script = stepScript(block, "End-to-end specs");
   // A full run: the spec files the shard's measured share holds (the stand-in for node prints two).
   const full = runStep(script, { FULL: "true", SHARD: "1/3" });
@@ -2203,7 +2203,7 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.ok(sweeps.every((share) => share.length > 0));
   assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
   assert.deepEqual(matrixValues(jobs["sweep-shard"], "shard"), ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"]);
-  assert.match(jobs["sweep-shard"], /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14\]' \|\| '\[1,2,3,4\]'\)/);
+  assert.match(jobs["sweep-shard"], /fromJSON\(\(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14\]' \|\| '\[1,2,3,4\]'\)/);
 });
 
 test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {
@@ -2247,6 +2247,55 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   const rerun = runStep(counting, { ...passed, SHARDS: "failure" });
   assert.equal(rerun.status, 1);
   assert.match(rerun.stdout, /^::error::an install shard of this attempt did not pass \(failure\)/m);
+  // install (…, …) is a required check: a merge queue entry is dropped the instant it reports
+  // failure, too late for quarantine-retry.yml's later retry to put it back, so this gate judges
+  // its own failing install-shard and install-checks jobs first, exactly as the ci job already
+  // does for its own ids (ourostack/ouro-ui#3827).
+  assert.match(gate, /^ {6}- id: parts\n {8}name: Every shard passed\n {8}continue-on-error: true$/m);
+  assert.match(gate, /^ {6}- id: fetch-quarantine\n/m);
+  assert.match(gate, /^ {8}if: steps\.parts\.outcome == 'failure'$/m);
+  assert.match(gate, /^ {6}- id: judge\n {8}if: steps\.parts\.outcome == 'failure'$/m);
+  const judging = stepScript(gate, "Quarantined failures alone are forgiven; anything else still fails");
+  // Only the id whose own result is not success is named: judgeOwnRun treats a listed id with no
+  // failing instance of its own as a problem, not as nothing to explain.
+  assert.match(judging, /if \[ "\$SHARDS" != success \]; then ids\+=\(install-shard\); fi/);
+  assert.match(judging, /if \[ "\$CHECKS" != success \]; then ids\+=\(install-checks\); fi/);
+  assert.match(judging, /node scripts\/quarantine\.mjs judge "\$GITHUB_RUN_ID" "\$\{ids\[@\]\}"$/m);
+  assert.match(runStep(judging, { SHARDS: "failure", CHECKS: "success", GITHUB_RUN_ID: "5" }).calls, /CALL node scripts\/quarantine\.mjs judge 5 install-shard\n/);
+  assert.match(runStep(judging, { SHARDS: "failure", CHECKS: "failure", GITHUB_RUN_ID: "5" }).calls, /CALL node scripts\/quarantine\.mjs judge 5 install-shard install-checks\n/);
+  assert.match(runStep(judging, { SHARDS: "success", CHECKS: "failure", GITHUB_RUN_ID: "5" }).calls, /CALL node scripts\/quarantine\.mjs judge 5 install-checks\n/);
+  const forgiveness = stepBlock(gate, "Every shard passed, or was forgiven as quarantined");
+  assert.match(forgiveness, /^ {8}if: always\(\)$/m);
+  assert.match(forgiveness, /steps\.parts\.outcome.*success/);
+  assert.match(forgiveness, /steps\.judge\.outcome.*success/);
+});
+
+test("install-gate's judge forgives its own failing install-shard job when the quarantine already explains its test, the registry/ouro path mapped back from the installed app's src/ copy, matching the ci job's judge (ourostack/ouro-ui#3827)", () => {
+  const ciYml = workflow("ci.yml");
+  const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: ["Install test"], log: calendarLog, ...extra });
+  // install-shard's own job name shape, a shard of a pull request's 6 (ourostack/ouro-ui job
+  // 139726952501's style: "install (shadcn, nova, n/N)"), carrying the Calendar test's failure
+  // under its installed app's copy (src/…), which quarantine.mjs's names() maps back to the
+  // registry/ouro/… path the test is actually quarantined under.
+  const shard = job(3, "install (shadcn, nova, 2/6)", "failure");
+  const runWith = (jobs) => ({ id: "5", workflow: ciYml, jobs });
+
+  const forgiven = judgeOwnRun({ run: runWith([shard]), ids: ["install-shard"], entries: [calendarEntry] });
+  assert.equal(forgiven.explained, true, forgiven.problems.join("; "));
+  assert.equal(forgiven.retried.length, 1);
+  assert.equal(forgiven.retried[0].job, "install (shadcn, nova, 2/6)");
+
+  // install-checks fails too, on the same quarantined test (OURO_CHECK_ONLY runs the shipped
+  // tests as well): both ids are judged together, as install-gate's single judge call does.
+  const checks = job(4, "install checks (shadcn, nova, 1)", "failure", { failedSteps: ["Check the app"] });
+  const both = judgeOwnRun({ run: runWith([shard, checks]), ids: ["install-shard", "install-checks"], entries: [calendarEntry] });
+  assert.equal(both.explained, true, both.problems.join("; "));
+  assert.equal(both.retried.length, 2);
+
+  // A real, unquarantined failure beside the quarantined one still fails the judge, so
+  // install-gate still reports red: no silent forgiveness of anything new.
+  const fresh = job(6, "install (ouro, nova, 1/6)", "failure", { log: calendarLog.replace(calendarTitle, "A fresh, unquarantined failure") });
+  assert.equal(judgeOwnRun({ run: runWith([shard, fresh]), ids: ["install-shard"], entries: [calendarEntry] }).explained, false);
 });
 
 test("every job of a workflow that runs on pull requests or in the merge queue ends within an hour", () => {
@@ -2826,7 +2875,12 @@ test("a release gives each job its own permissions, and none may write commit st
   assert.deepEqual(Object.keys(jobs), ["release", "pages", "publish", "finish", "next", "docs-pin", "attest"]);
   const permissions = permissionsOf;
   // It reads main's CI runs and the pull request merged as the commit, whose run may prove its tree (scripts/ci-proof.mjs).
-  assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "read", "pull-requests": "read" });
+  assert.deepEqual(permissions(jobs.release), {
+    contents: "write",
+    actions: "write",
+    issues: "write",
+    "pull-requests": "read",
+  });
   assert.deepEqual(permissions(jobs.pages), { actions: "write" });
   assert.deepEqual(permissions(jobs.publish), {});
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
@@ -2877,6 +2931,7 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "incumbent.yml": "  group: incumbent-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "first-run-sso.yml": "  group: first-run-sso-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "chromium-floor-smoke.yml": "  group: chromium-floor-smoke-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "lcd-text-windows.yml": "  group: lcd-text-windows-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
   };
   for (const { file, text } of workflows) {
     const on = text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
@@ -3065,17 +3120,37 @@ test("CI rehearses the release commit on every run: release.yml's own edits, for
   assert.match(tagged.stdout, new RegExp(`^::error::v${next.replace(/\./g, "\\.")} already exists here`, "m"));
 });
 
+/**
+ * Whether file's text has entry's exact title (a Vitest title is literal), or, for a Playwright title built from a
+ * template literal (`` test(`...${expr}...`) ``), matches one of the file's `test(` template literals once each
+ * `${...}` interpolation is wildcarded: a resolved title (with its run's real numbers) cannot appear literally in its
+ * own un-executed source.
+ */
+const hasQuarantinedTitle = (file, title) => {
+  const text = readFileSync(join(root, file), "utf8");
+  // Vitest joins describe and title with " > "; Playwright's failure lines join them with "›" (playwrightFailLine).
+  const last = title.split(/ > | › /).at(-1);
+  if (text.includes(last)) return true;
+  return [...text.matchAll(/test(?:\.\w+)?\(`([^`]*)`/g)].some((match) => {
+    const pattern = match[1]
+      .split(/\$\{[^}]*\}/)
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join(".*?");
+    return new RegExp(`^${pattern}$`, "s").test(last);
+  });
+};
+
 test("every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test", () => {
   const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
   assert.deepEqual(entryProblems(entries), []);
   for (const entry of entries) {
     assert.ok(existsSync(join(root, entry.file)), `${entry.file} does not exist`);
-    assert.ok(readFileSync(join(root, entry.file), "utf8").includes(entry.title.split(" > ").at(-1)), `${entry.file} has no test "${entry.title}"`);
+    if (entry.title !== "*") assert.ok(hasQuarantinedTitle(entry.file, entry.title), `${entry.file} has no test "${entry.title}"`);
   }
   // Each part is required.
-  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone" };
+  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone", expiry: "2099-01-01T00:00:00Z" };
   assert.deepEqual(entryProblems([whole]), []);
-  for (const key of ["project", "file", "title", "issue", "owner"]) {
+  for (const key of ["project", "file", "title", "issue", "owner", "expiry"]) {
     const without = { ...whole };
     delete without[key];
     assert.equal(entryProblems([without]).length, 1, key);
@@ -3100,7 +3175,7 @@ const calendarLog = logLines("install (shadcn@latest, nova)", [
   "##[error]Process completed with exit code 1.",
 ]);
 const diveTitle = "pressing Dive > ends early on a click, which reaches nothing under the water, or on the button under it";
-const diveLog = logLines("browser (5/22)", [
+const diveLog = logLines("browser (5/11)", [
   ` FAIL   site (chromium)  site/src/voyage/dive/dive.test.tsx > ${diveTitle}`,
   " Test Files  1 failed | 75 passed (76)",
   "      Tests  1 failed | 3284 passed | 4 skipped (3289)",
@@ -3127,16 +3202,45 @@ test("the quarantine reads a job's failed Vitest tests from its log, and anythin
   assert.ok(!names(calendarEntry, { ...installed, title: "Calendar > range > something else" }));
 });
 
+const latencyTitle = "interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU";
+const latencyLog = logLines("browser (5/11)", [
+  `  ✘  1 [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle} (1.2s)`,
+  "  1) [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU",
+  "    Error: expected p95 to be below 100ms, measured 142ms",
+  "  1 failed",
+]);
+const latencyEntry = { project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle, issue: "https://github.com/ourostack/ouro-ui/issues/3628", owner: "lane-latency-3684", open: true };
+
+test("the quarantine reads a job's failed Playwright tests from its log too, in either of Playwright's own failure-line formats, plus its bare summary", () => {
+  const found = failedTests(latencyLog);
+  assert.deepEqual(found.tests, [{ project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle }]);
+  assert.equal(found.failed, 1);
+  assert.deepEqual(found.unexplained, []);
+  assert.ok(names(latencyEntry, found.tests[0]));
+  // Either of Playwright's own failure-line shapes alone is enough.
+  assert.deepEqual(failedTests(logLines("j", [`  ✘  1 [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle} (1.2s)`, "  1 failed"])).tests, [{ project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle }]);
+  assert.deepEqual(failedTests(logLines("j", [`  1) [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle}`, "  1 failed"])).tests, [{ project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle }]);
+});
+
+test("isExpired reads a quarantine entry's expiry against now; expiredWarning names the entry and asks to remove or renew it", () => {
+  const now = new Date("2026-06-01T00:00:00Z");
+  assert.equal(isExpired({ expiry: "2026-05-31T00:00:00Z" }, now), true);
+  assert.equal(isExpired({ expiry: "2026-06-01T00:00:00Z" }, now), true);
+  assert.equal(isExpired({ expiry: "2026-06-02T00:00:00Z" }, now), false);
+  assert.match(expiredWarning(calendarEntry), /^::warning title=Expired quarantine entry::/);
+  assert.match(expiredWarning(calendarEntry), new RegExp(`has passed for ${calendarEntry.project} ${calendarEntry.file} > ${calendarEntry.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\. Remove the entry or renew its expiry\\.$`));
+});
+
 test("Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them", () => {
   const ciYml = workflow("ci.yml");
   // The name GitHub gave install-latest's unnamed test step in run 41270773113.
   const latestStep = 'Run SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" b478a3226bf42656ed903307714b9f1d4280e26a';
   const contexts = ["ci", "motion-coverage", "install (shadcn, nova)", "install (shadcn@latest, nova)"];
   const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
-  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/22)", "success"), job(5, "motion-coverage", "success")];
+  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/11)", "success"), job(5, "motion-coverage", "success")];
   const runWith = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: green.filter((base) => !jobs.some((other) => other.name === base.name)).concat(jobs) }];
   const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: [latestStep], log: calendarLog });
-  const dive = [job(4, "browser (5/22)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
+  const dive = [job(4, "browser (5/11)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
 
   // Tonight's Calendar failure, quarantined: retried once, recorded with its issue and owner.
   const plan = retryPlan({ runs: runWith([calendar]), contexts, entries: [calendarEntry] });
@@ -3170,9 +3274,9 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.match(setup.problems.join("\n"), /failed in "Run pnpm i --frozen-lockfile", which is not a step that runs the tests/);
   assert.equal(retryPlan({ runs: runWith([{ ...dive[0], failedSteps: ["Browser tests", "Coverage of installed subsets"] }, dive[1], dive[2]]), contexts, entries: [diveEntry] }).retry, false);
   // A gate that read a skipped job failed on that, which no test explains.
-  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/22)", "skipped")]), contexts, entries: [diveEntry] });
+  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/11)", "skipped")]), contexts, entries: [diveEntry] });
   assert.equal(skippedShard.retry, false);
-  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/22\), which was skipped/);
+  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/11\), which was skipped/);
   // A quarantined failure beside any other failure: not retried.
   assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
   const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });
@@ -3193,6 +3297,92 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.equal(retryPlan({ runs: runWith([calendar]), contexts: [...contexts, "lighthouse"], entries: [calendarEntry] }).retry, false);
 });
 
+test("judgeOwnRun explains ci.yml's own failing jobs, by their id, from inside one still-running run: forgiven when every one is quarantined, open, unexpired tests alone, and not when any other failure sits beside them, too late for a retry afterwards to matter to the merge queue", () => {
+  const ciYml = workflow("ci.yml");
+  const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
+  // Its matrix's own values, unlike the real run 41270773113's "shadcn"/"shadcn@latest" that
+  // calendarLog carries: judgeOwnRun looks a job up by its id, through ci.yml's own jobGraph, not
+  // by an exact context string, so its name must match that id's pattern, and its failed step's
+  // name must match ci.yml's own generated one for the install job's test step, expressions expanded.
+  const installStep = 'Run scripts/install-test.sh namespace "$RUNNER_TEMP/app" abc';
+  const calendar = job(3, "install (namespace, nova)", "failure", { failedSteps: [installStep], log: calendarLog });
+  const runWith = (jobs) => ({ id: "5", workflow: ciYml, jobs });
+
+  // The install job (an id ci.yml needs, not "ci" itself: ci's own instance has not concluded yet
+  // while it is the one asking) failed on a test that is quarantined, open and unexpired: forgiven.
+  const forgiven = judgeOwnRun({ run: runWith([calendar]), ids: ["install"], entries: [calendarEntry] });
+  assert.equal(forgiven.explained, true, forgiven.problems.join("; "));
+  assert.equal(forgiven.retried.length, 1);
+  assert.equal(forgiven.retried[0].job, "install (namespace, nova)");
+
+  // Two failing ids: a gate (browser, read by nothing here) and install, both quarantined, still
+  // forgiven together; judgeOwnRun collects every reason across every id it is asked to judge.
+  const dive = job(4, "browser (5/11)", "failure", { failedSteps: ["Browser tests"], log: diveLog });
+  const both = judgeOwnRun({ run: runWith([calendar, dive]), ids: ["install", "browser"], entries: [calendarEntry, diveEntry] });
+  assert.equal(both.explained, true, both.problems.join("; "));
+  assert.equal(both.retried.length, 2);
+
+  // A test that is not quarantined at all sits beside the quarantined one: not forgiven.
+  assert.equal(judgeOwnRun({ run: runWith([calendar, dive]), ids: ["install", "browser"], entries: [calendarEntry] }).explained, false);
+  // Listed, but its issue is closed: not forgiven either.
+  assert.equal(judgeOwnRun({ run: runWith([calendar]), ids: ["install"], entries: [{ ...calendarEntry, open: false }] }).explained, false);
+  // Listed, but its expiry has passed: not forgiven.
+  assert.equal(judgeOwnRun({ run: runWith([calendar]), ids: ["install"], entries: [{ ...calendarEntry, expired: true }] }).explained, false);
+  // An id with no failing instance in the run: a problem, not silently ignored.
+  const clean = judgeOwnRun({ run: runWith([]), ids: ["install"], entries: [calendarEntry] });
+  assert.equal(clean.explained, false);
+  assert.match(clean.problems.join("\n"), /install has no job instance in run 5/);
+  // An id that is not a job in this workflow at all: a problem, naming it.
+  const unknown = judgeOwnRun({ run: runWith([calendar]), ids: ["not-a-real-job"], entries: [calendarEntry] });
+  assert.equal(unknown.explained, false);
+  assert.match(unknown.problems.join("\n"), /not-a-real-job is not a job id in this run's workflow/);
+});
+
+test("a file quarantined whole (title \"*\") forgives its tests and a job the hang watchdog failed with only that file's tests in flight, and nothing else", () => {
+  const file = "registry/ouro/components/ouro/message/message-list.windowing.test.tsx";
+  const whole = { project: "ouro-chromium", file, title: "*", issue: "https://github.com/ourostack/ouro-ui/issues/3785", owner: "someone", expiry: "2099-01-01T00:00:00Z", open: true, expired: false };
+  assert.deepEqual(entryProblems([whole]), []);
+  assert.equal(names(whole, { project: "ouro-chromium", file: `src/components/ouro/message/message-list.windowing.test.tsx`, title: "any > title" }), true);
+  assert.equal(names(whole, { project: "ouro-webkit", file, title: "any" }), false);
+  assert.equal(names(whole, { project: "ouro-chromium", file: "registry/ouro/components/ouro/message/message.test.tsx", title: "any" }), false);
+
+  const ciYml = workflow("ci.yml");
+  const installStep = 'Run scripts/install-test.sh namespace "$RUNNER_TEMP/app" abc';
+  const flying = (name) => `ouro-chromium (chromium) src/components/ouro/message/message-list.windowing.test.tsx > MessageList windowing > ${name}`;
+  const hang = (inFlight) => logLines("install (namespace, nova)", [
+    `[ouro-ui] Vitest has had no test finish for 2 min. In flight: ${inFlight}. Not started: ouro-chromium (chromium) src/lib/ouro/claims.test.ts`,
+    "[ouro-ui] Vitest page ouro-chromium (chromium): the page did not pause in 2 s either, so it is hung",
+    "[ouro-ui] Vitest: a page did not answer at the warn check, so failing now instead of waiting the rest of 5 min",
+  ]);
+  const run = (log, failedSteps = [installStep]) => ({ id: "5", workflow: ciYml, jobs: [{ id: 3, name: "install (namespace, nova)", conclusion: "failure", url: "https://github.com/o/r/actions/runs/5/job/3", failedSteps, log }] });
+  const judge = (log, entries = [whole], failedSteps) => judgeOwnRun({ run: run(log, failedSteps), ids: ["install"], entries });
+
+  assert.deepEqual(hungTests(hang(`${flying("opens, and more (running 2m 0s)")}`.replace(" (running 2m 0s)", "") + " (running 2m 0s)")).map((t) => t.file), ["src/components/ouro/message/message-list.windowing.test.tsx"]);
+  assert.equal(hungTests("no watchdog here"), undefined);
+
+  const forgiven = judge(hang(`${flying("opens a conversation (running 2m 0s)")}`));
+  assert.equal(forgiven.explained, true, forgiven.problems.join("; "));
+  assert.equal(forgiven.retried.length, 1);
+  // Two in flight, both in the file: forgiven. One outside it, or none named, or the entry gone, closed or expired: not.
+  assert.equal(judge(hang(`${flying("a (running 2m 0s)")}; ${flying("b (running 1m 0s)")}`)).explained, true);
+  assert.equal(judge(hang(`${flying("a (running 2m 0s)")}; ouro-chromium (chromium) src/components/ouro/dialog/dialog.test.tsx > Dialog > opens (running 1m 0s)`)).explained, false);
+  assert.equal(judge(hang(`ouro-chromium (chromium) src/components/ouro/dialog/dialog.test.tsx > Dialog > opens (running 2m 0s)`)).explained, false);
+  assert.equal(judge(hang(`${flying("a (running 2m 0s)")}; something else`)).explained, false);
+  assert.equal(judge(logLines("install (namespace, nova)", ["[ouro-ui] Vitest: a page did not answer at the warn check, so failing now"])).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), []).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [{ ...whole, open: false }]).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [{ ...whole, expired: true }]).explained, false);
+  // An entry for one test's title does not forgive a hang, nor does a hang with another failed step or a failed test beside it.
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [{ ...whole, title: "MessageList windowing > a" }]).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [whole], ["Checkout", installStep]).explained, false);
+  const beside = `${hang(flying("a (running 2m 0s)"))}\n${logLines("install (namespace, nova)", [" FAIL   ouro-chromium (chromium)  src/components/ouro/dialog/dialog.test.tsx > Dialog > opens", "      Tests  1 failed | 3 passed (4)"])}`;
+  assert.equal(judge(beside).explained, false);
+  // An install shard (install-gate's install-shard id, its "Install test" step) is judged too, the installed src/ path mapped to the registry/ entry.
+  const shard = { id: 3, name: "install (ouro, nova, 1/3)", conclusion: "failure", url: "https://github.com/o/r/actions/runs/5/job/3", failedSteps: ["Install test"], log: hang(flying("a (running 2m 0s)")) };
+  const shardJudged = judgeOwnRun({ run: { id: "5", workflow: ciYml, jobs: [shard] }, ids: ["install-shard"], entries: [whole] });
+  assert.equal(shardJudged.explained, true, shardJudged.problems.join("; "));
+});
+
 test("quarantine.mjs retry records each retry in the step summary, the log and the issue, then reruns the run's failed jobs once", () => {
   const bin = scratchDir("ouro-quarantine-");
   const calls = join(bin, "calls.log");
@@ -3201,7 +3391,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   writeFileSync(join(bin, "calendar.log"), calendarLog);
   // The Calendar test, quarantined as it was before its fix.
   const list = join(bin, "quarantine.json");
-  writeFileSync(list, JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow" }]));
+  writeFileSync(list, JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow", expiry: "2099-01-01T00:00:00Z" }]));
   // A stand-in gh: run 5 failed install (shadcn@latest, nova) on the Calendar test, its issue is
   // $STATE, and a rerun moves the run to attempt 2.
   writeFileSync(
@@ -3243,6 +3433,51 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   assert.ok(closed.stdout.includes(staleWarning(calendarEntry)));
   assert.equal(readFileSync(summary, "utf8"), "");
   assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
+});
+
+test("quarantine.mjs judge forgives a run's own failing job from inside it, with no retry and no issue comment, the way ci.yml's merge-queue-shaped new step calls it before CI reports", () => {
+  const bin = scratchDir("ouro-quarantine-judge-");
+  const calls = join(bin, "calls.log");
+  const summary = join(bin, "summary.md");
+  writeFileSync(join(bin, "calendar.log"), calendarLog);
+  const list = join(bin, "quarantine.json");
+  const entry = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow", expiry: "2099-01-01T00:00:00Z" };
+  writeFileSync(list, JSON.stringify([entry]));
+  // run 5, still running: its "install" job (ci.yml's own id, matched by jobGraph, not by an exact
+  // context string) failed on the Calendar test alone; its step name is the real one GitHub
+  // generates for that job's run: line, expressions expanded.
+  const installStep = 'Run scripts/install-test.sh namespace \\"$RUNNER_TEMP/app\\" abc';
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${calls}"\ncase "$*" in\n  "api repos/o/r/actions/runs/5 --jq [.run_attempt, .path] | @tsv") printf '1\\t.github/workflows/ci.yml\\n' ;;\n  *"/actions/runs/5/jobs"*) printf '%s\\n' '{"id":3,"name":"install (namespace, nova)","conclusion":"failure","url":"https://github.com/o/r/actions/runs/5/job/3","failedSteps":["${installStep}"]}' ;;\n  "run view --repo o/r --job 3 --log") cat "${join(bin, "calendar.log")}" ;;\n  "issue view "*) echo "$STATE" ;;\n  *) exit 99 ;;\nesac\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const judge = (state, ids) => {
+    writeFileSync(calls, "");
+    writeFileSync(summary, "");
+    return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "judge", "5", ...ids], {
+      cwd: root,
+      encoding: "utf8",
+      env: sandboxEnv({ GITHUB_REPOSITORY: "o/r", GITHUB_STEP_SUMMARY: summary, STATE: state, OURO_QUARANTINE_FILE: list }, [bin]),
+    });
+  };
+  // Quarantined, open and unexpired: forgiven, exit 0, nothing rerun and nothing commented.
+  const forgiven = judge("OPEN", ["install"]);
+  assert.equal(forgiven.status, 0, forgiven.stdout + forgiven.stderr);
+  const line = `Quarantined, open and unexpired, so this run's own failure is forgiven without a retry: ouro-webkit src/components/ouro/calendar/calendar.test.tsx > ${calendarTitle} failed in install (namespace, nova) (https://github.com/o/r/actions/runs/5/job/3). Issue https://github.com/ourostack/ouro-ui/issues/351, owner @arimendelow.`;
+  assert.match(forgiven.stdout, new RegExp(`^::warning title=Quarantined failure forgiven::${line.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+  assert.equal(readFileSync(summary, "utf8"), `- ${line}\n`);
+  assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
+  assert.ok(!readFileSync(calls, "utf8").includes("issue comment"));
+  // The issue closed: no longer quarantined, so the failure is not forgiven and the caller fails, exactly as a real merge-queue run would still report red.
+  const closed = judge("CLOSED", ["install"]);
+  assert.equal(closed.status, 1);
+  assert.match(closed.stdout, /^Not forgiven: .*its issue is not open/m);
+  assert.equal(readFileSync(summary, "utf8"), "");
+  // Asked to judge an id this run has no failure for, beside the quarantined one, the id itself is reported as a problem: not silently forgiven.
+  const extra = judge("OPEN", ["install", "checks"]);
+  assert.equal(extra.status, 1);
+  assert.match(extra.stdout, /checks has no job instance in run 5/);
 });
 
 test("Release tags a commit of main whose push CI passed, names the screen-reader lane that runs after, and runs no rehearsal", () => {
@@ -3556,7 +3791,24 @@ test("Docs pin leaves an open pull request alone only when it holds the same doc
   for (const o of [{}, { number: 7, failing: 1 }, { number: 7, theirs: "a.md" }, { number: 7, differs: true }, { number: 7, mergeable: "CONFLICTING" }, { number: 7, mergeable: "UNKNOWN" }]) {
     assert.notEqual(runStep(fns(o) + script, env).output.same, "true", JSON.stringify(o));
   }
-  assert.equal(pin.split("steps.same.outputs.same != 'true'").length - 1, 3, "the push, the pull request and its CI start all wait on the check");
+  assert.equal(pin.split("steps.same.outputs.same != 'true'").length - 1, 4, "the queued check, the push, the pull request and its CI start all wait on the check");
+});
+
+test("Docs pin leaves the pull request alone, rather than fail, when it is in the merge queue (#2344)", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Leave the pull request alone while it is in the merge queue");
+  const env = { BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui" };
+  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "api graphql"*) echo ${o.queued ?? "false"} ;; esac; }\n`;
+  const dir = scratchDir("ouro-docs-pin-");
+  const summary = join(dir, "summary.md");
+  const queued = runStep(fns({ number: 7, queued: "true" }) + script, { ...env, GITHUB_STEP_SUMMARY: summary });
+  assert.equal(queued.output.queued, "true", queued.calls);
+  assert.match(readFileSync(summary, "utf8"), /#7 is in the merge queue/);
+  // No open pull request, or one GitHub says is not queued, lets the push go ahead as before.
+  for (const o of [{}, { number: 7, queued: "false" }]) {
+    assert.notEqual(runStep(fns(o) + script, { ...env, GITHUB_STEP_SUMMARY: join(dir, "other.md") }).output.queued, "true", JSON.stringify(o));
+  }
+  assert.match(pin, /isInMergeQueue/, "asks GitHub whether the pull request is in its merge queue, not GitHub's generic mergeable state");
 });
 
 test("Docs pin reuses its open pull request and turns auto-merge on for it", () => {
@@ -3599,14 +3851,39 @@ test("Docs pin fails, and names the pull request, when GitHub will not turn auto
 test("Main green posts its status after each CI run on main, when a pull request into main changes, and by hand, with the pull request's number passed through env", () => {
   const text = workflow("main-green.yml");
   assert.match(text, /^on:\n {2}workflow_run:\n {4}workflows: \[CI\]\n {4}types: \[completed\]\n {4}branches: \[main\]\n {2}pull_request:\n {4}branches: \[main\]\n {4}types: \[opened, synchronize, reopened, labeled, unlabeled\]\n {2}workflow_dispatch:\npermissions:/m);
-  assert.match(text, /^permissions:\n {2}contents: read\n {2}pull-requests: read\n {2}actions: read\n {2}statuses: write\nconcurrency:/m);
+  assert.match(text, /^permissions:\n {2}contents: read\n {2}pull-requests: read\n {2}actions: read\n {2}statuses: write\n {2}issues: write.*\nconcurrency:/m);
   assert.match(text, /^ {10}PR_NUMBER: \$\{\{ github\.event\.pull_request\.number \}\}$/m);
-  assert.doesNotMatch(text.slice(text.indexOf("        run: |")), /\$\{\{/, "the run step names no expression: the number comes from PR_NUMBER");
+  const statusRunStep = text.slice(text.indexOf("        run: |"), text.indexOf("\n  report-signatures:"));
+  assert.doesNotMatch(statusRunStep, /\$\{\{/, "the run step names no expression: the number comes from PR_NUMBER");
   assert.match(text, /node scripts\/main-green\.mjs --pr "\$PR_NUMBER"/);
 });
 
 test("Main green is not a required check yet: the workflow lands, and posts its status, before the main ruleset asks for it", () => {
   assert.ok(!requiredChecks.includes("main green"));
+});
+
+test("Main green's report-signatures job logs the candidate main-red-signatures verdict only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-signatures:\n {4}name: Log the candidate main-red-signatures verdict\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/main-red-signatures\.mjs report/);
+});
+
+test("Main green's report-cascade-retrigger job logs the candidate cascade re-trigger plan only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-cascade-retrigger:\n {4}name: Log the candidate cascade re-trigger plan\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/cascade-retrigger\.mjs report/);
+});
+
+test("Main green's report-ceiling-fix-exempt job logs the candidate ceiling-fix-exempt verdict only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-ceiling-fix-exempt:\n {4}name: Log the candidate ceiling-fix-exempt verdict\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/ceiling-fix-exempt\.mjs report/);
+});
+
+test("Main green's report-fail-fast-fresh-main job logs the candidate fail-fast-fresh-main verdict only on a workflow_run or a hand dispatch, report-only", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /report-fail-fast-fresh-main:\n {4}name: Log the candidate fail-fast-fresh-main verdict\n {4}if: \$\{\{ github\.event_name == 'workflow_run' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
+  assert.match(text, /continue-on-error: true\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/fail-fast-fresh-main\.mjs report/);
 });
 
 test("Docs pin's stale job reads the tags and whether the pin pull request is open, on each push to main, with pull-requests: read on that job only", () => {
@@ -3821,4 +4098,19 @@ test("rerun-guard.yml starts on CI going in_progress (requested never fires for 
   assert.match(guard, /RUN_ATTEMPT: \$\{\{ github\.event\.workflow_run\.run_attempt \}\}/);
   assert.match(guard, /RUN_URL: \$\{\{ github\.event\.workflow_run\.html_url \}\}/);
   assert.match(guard, /RUN_ACTOR: \$\{\{ github\.event\.workflow_run\.triggering_actor\.login \}\}/);
+});
+
+test("the LCD-text job runs the scrollers' surface tests on Windows Chromium with LCD text on at scale 1, report-only and outside the required ci check", () => {
+  const text = readFileSync(join(root, ".github/workflows/lcd-text-windows.yml"), "utf8");
+  assert.match(text, /^ {4}runs-on: windows-latest$/m);
+  assert.match(text, /^ {4}continue-on-error: true$/m);
+  assert.match(text, /vitest run --config scripts\/lcd-text\/vitest\.config\.ts/);
+  const required = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
+  assert.ok(!JSON.stringify(required).includes("LCD text on Windows"));
+  const config = readFileSync(join(root, "scripts/lcd-text/vitest.config.ts"), "utf8");
+  assert.match(config, /"--enable-lcd-text", "--force-device-scale-factor=1"/);
+  assert.match(config, /\{scroll-area,message\}\/\*\.surface\.test\.tsx/);
+  for (const file of ["scroll-area/scroll-area", "message/message-list"]) {
+    assert.match(readFileSync(join(root, `registry/ouro/components/ouro/${file}.surface.test.tsx`), "utf8"), /commands\.compositedLayers\(\)/);
+  }
 });

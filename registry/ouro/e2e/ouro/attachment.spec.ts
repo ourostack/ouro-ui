@@ -14,6 +14,15 @@ test("a removable attachment goes when its remove button is pressed", async ({ p
   await expect(page.getByText("crumb.jpg")).toHaveCount(0);
 });
 
+test("a picture waiting to send shows itself, with the remove button on its corner", async ({ page }) => {
+  await openStory(page, "chat-attachment--preview");
+  const preview = page.locator('[data-ouro="attachment"]').first();
+  await expect(preview.locator("img")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove crumb.jpg" })).toBeVisible();
+  await page.getByRole("button", { name: "Remove crumb.jpg" }).click();
+  await expect(preview.locator("img")).toHaveCount(0);
+});
+
 test("an attachment opens in the app from a button, and a linked one on a plain click", async ({ page }) => {
   await openStory(page, "chat-attachment--opens-in-app");
   const status = page.getByRole("status");

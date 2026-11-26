@@ -428,6 +428,13 @@ describe("Composer", () => {
     await userEvent.keyboard("a");
     expect(onValueChange).toHaveBeenLastCalledWith("a");
   });
+
+  it("carries the app's own id and data-/aria- attributes to the plain text box", async () => {
+    const { textarea } = await render(<Composer label="Message" onSend={() => {}} {...{ id: "mia-composer", "data-testid": "mia-composer", "aria-required": true }} />);
+    expect(textarea.id).toBe("mia-composer");
+    expect(textarea.getAttribute("data-testid")).toBe("mia-composer");
+    expect(textarea.getAttribute("aria-required")).toBe("true");
+  });
 });
 
 describe("Composer presses around the text", () => {

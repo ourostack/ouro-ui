@@ -44,6 +44,12 @@ export const site = (name: string, pages: Record<string, string>) => {
   return folder;
 };
 export const spots = (findings: Finding[]) => findings.map((f) => `${f.page} ${f.width}x${f.height} ${f.theme} ${f.rule} ${f.element}`).sort();
+// dropped-frames reads a real wall-clock gap between frames; run.ts already serializes its own measuring window
+// process-wide (#3503), but that only keeps two readings from racing each other, not from losing CPU to a sibling's
+// unrelated work (loading, screenshots) — so four check() runs sharing a runner, as a sharded run next to a whole
+// run does on purpose, can still read one extra or missing sample from run to run (#3836). A comparison of two
+// otherwise-identical finding sets drops it, the way the measured-rules test already does for the same reason.
+export const steady = (findings: Finding[]) => findings.filter((f) => f.rule !== "dropped-frames");
 export const run = async (argv: string[], options: { cwd?: string; env?: Record<string, string | undefined>; from?: string[] } = {}) => {
   const out: string[] = [];
   const err: string[] = [];

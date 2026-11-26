@@ -1,0 +1,1 @@
+- Changed: under forced colours, an event's per-calendar cue tells calendars apart with width and a dashed start edge drawn from classes the grid already uses, so an app's stylesheet carries fewer new rules.

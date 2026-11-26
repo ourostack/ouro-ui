@@ -30,11 +30,12 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { JOBS_PER_PAGE } from "./run-jobs.mjs";
 
 /** The job that waits on every other job: once it has finished, nothing is left to free. */
 export const LAST = "ci-budget";
 /** Jobs whose failure the run tolerates: when the plan fails, every job that reads it runs everything. */
-export const TOLERATED = ["plan"];
+export const TOLERATED = ["plan", "fresh-main"];
 /** Jobs that a slow runner can fail with the change sound: their failure is left to a re-run of that job, not a cancelled run. */
 export const RERUN_ALONE = ["latency"];
 /** A finished job with one of these conclusions means the run cannot pass. */
@@ -80,7 +81,7 @@ export const requestsLeft = (headers) => {
 
 class RateLimit extends Error {}
 
-/** Every job of the run attempt, a page of 100 at a time, through `gh api --include`. */
+/** Every job of the run attempt, a page of 30 at a time, through `gh api --include`. */
 function readJobs(gh, url) {
   const jobs = [];
   for (let page = 1; ; page += 1) {
@@ -129,7 +130,7 @@ export async function sweep({ gh, repo, wait = sleep, now = Date.now, log = cons
         const run = `repos/${repo}/actions/runs/${id}`;
         let verdict = { kind: "wait" };
         try {
-          verdict = decide(readJobs(gh, `${run}/attempts/${attempt}/jobs?per_page=100`), attempt);
+          verdict = decide(readJobs(gh, `${run}/attempts/${attempt}/jobs?per_page=${JOBS_PER_PAGE}`), attempt);
         } catch (error) {
           if (error instanceof RateLimit || rateLimited(said(error))) throw error;
           log(`::warning::Could not read run ${id}'s jobs (${firstLine(error)}); trying again.`);

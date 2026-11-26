@@ -1219,6 +1219,67 @@ describe("Composer rich mode highlights", () => {
     expect(box.top).toBeGreaterThan(item.top - 2);
     expect(box.bottom).toBeLessThan(item.bottom + 2);
   });
+
+  it("marks a draft an agent sets from outside the editor, ending in a list's inline code, without throwing", async () => {
+    const draft = "Thanks! **Rerun** the build after the [lint fixes](https://example.com/builds/4521/lint) land:\n\n- fix the two warnings\n- then `npm test`";
+    function Agent() {
+      const [value, setValue] = useState("");
+      return (
+        <>
+          <Composer label="Message Mia" format="rich" offsets="markdown" value={value} onValueChange={setValue} highlights={value ? [{ start: 0, end: value.length, label: "Agent" }] : []} onSend={() => {}} />
+          <button type="button" onClick={() => setValue(draft)}>
+            Agent sets draft
+          </button>
+        </>
+      );
+    }
+    const { host } = await render(<Agent />);
+    await act(async () => void [...host.querySelectorAll("button")].at(-1)!.click());
+    await expect.poll(() => boxes(host).length).toBeGreaterThan(0);
+    expect(host.querySelector("code")!.textContent).toBe("npm test");
+  });
+
+  it("marks a draft an agent sets from outside the editor, ending in bold-and-code (a second wrapper level), without throwing", async () => {
+    const draft = "Thanks! **Rerun** the build after the [lint fixes](https://example.com/builds/4521/lint) land:\n\n- fix the two warnings\n- then run **`npm test`**";
+    function Agent() {
+      const [value, setValue] = useState("");
+      return (
+        <>
+          <Composer label="Message Mia" format="rich" offsets="markdown" value={value} onValueChange={setValue} highlights={value ? [{ start: 0, end: value.length, label: "Agent" }] : []} onSend={() => {}} />
+          <button type="button" onClick={() => setValue(draft)}>
+            Agent sets draft
+          </button>
+        </>
+      );
+    }
+    const { host } = await render(<Agent />);
+    await act(async () => void [...host.querySelectorAll("button")].at(-1)!.click());
+    await expect.poll(() => boxes(host).length).toBeGreaterThan(0);
+    const code = host.querySelector("code")!;
+    expect(code.textContent).toBe("npm test");
+    expect(code.querySelector("strong")!.textContent).toBe("npm test");
+  });
+
+  it("marks a draft an agent sets from outside the editor, ending in a link around bold-and-code (three nested elements), without throwing", async () => {
+    const draft = "Thanks! **Rerun** the build after the [lint fixes](https://example.com/builds/4521/lint) land:\n\n- fix the two warnings\n- then run [**`npm test`**](https://example.com/builds/4521/log)";
+    function Agent() {
+      const [value, setValue] = useState("");
+      return (
+        <>
+          <Composer label="Message Mia" format="rich" offsets="markdown" value={value} onValueChange={setValue} highlights={value ? [{ start: 0, end: value.length, label: "Agent" }] : []} onSend={() => {}} />
+          <button type="button" onClick={() => setValue(draft)}>
+            Agent sets draft
+          </button>
+        </>
+      );
+    }
+    const { host } = await render(<Agent />);
+    await act(async () => void [...host.querySelectorAll("button")].at(-1)!.click());
+    await expect.poll(() => boxes(host).length).toBeGreaterThan(0);
+    const code = host.querySelector("code")!;
+    expect(code.textContent).toBe("npm test");
+    expect(code.closest("a")).not.toBeNull();
+  });
 });
 
 describe("Composer rich mode Escape", () => {
@@ -1305,6 +1366,18 @@ describe("Composer rich mode pasteText", () => {
     editor.focus();
     await paste(editor, "x");
     await expect.poll(() => editor.querySelectorAll("img:not([alt=''])").length).toBe(1);
+  });
+
+  it("carries the app's own id and data-/aria- attributes to the editor, as the plain box already does", async () => {
+    const { editor } = await render(rich({ id: "mia-composer", "data-testid": "mia-composer", "aria-required": true } as Partial<React.ComponentProps<typeof Composer>>));
+    expect(editor.id).toBe("mia-composer");
+    expect(editor.getAttribute("data-testid")).toBe("mia-composer");
+    expect(editor.getAttribute("aria-required")).toBe("true");
+  });
+
+  it("leaves off an attribute that is neither id nor data-/aria-, since it isn't a pass-through one", async () => {
+    const { editor } = await render(rich({ title: "not forwarded" } as Partial<React.ComponentProps<typeof Composer>>));
+    expect(editor.hasAttribute("title")).toBe(false);
   });
 });
 

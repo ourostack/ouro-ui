@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 import { deflateRawSync } from "node:zlib";
 import { scratchDir } from "./scratch.mjs";
-import { ApiUnavailable, main, reportUnavailable, backoffSeconds, baseline, budget, get, retry, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, judgeLane, laneCriticalPath, laneLine, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
+import { ApiUnavailable, ceilingSeconds, mergeQueueRunsFrom, mergeQueueRunsUrl, main, reportUnavailable, backoffSeconds, baseline, budget, get, retry, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, judgeLane, laneCriticalPath, laneLine, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -226,7 +226,7 @@ test("a matrix job its if skipped, reported once under its unexpanded name, is m
 
 test("a skipped event-dependent matrix job, which GitHub reports with its expression normalised, is matched in the real ci.yml", () => {
   const graph = jobGraph(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"));
-  const skipped = ["design (${{ matrix.shard }}/${{ (((github.event_name == 'pull_request') && 24) || 6) }})", "install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ (((github.event_name == 'pull_request') && 6) || 3) }})"];
+  const skipped = ["design (${{ matrix.shard }}/${{ ((((github.event_name == 'pull_request') || (github.event_name == 'merge_group')) && 24) || 6) }})", "install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ (((github.event_name == 'pull_request') && 6) || 3) }})"];
   const path = criticalPath([job("plan", 0, 0, 1), ...skipped.map((name) => job(name, 1, 1, 1, "skipped"))], graph);
   assert.deepEqual(path.unmatched, []);
 });
@@ -696,4 +696,20 @@ test("jobs answer, then the baseline read gets 502s: the pull request run report
     process.env = saved.env;
   }
   assert.ok(logged.some((line) => line.startsWith("::error::Budget unavailable")));
+});
+
+test("main's baseline reads the merge queue's passed runs, so a queue that cancels most of its groups still gives a work time and a ceiling above 10 minutes", async () => {
+  const record = { criticalPathSeconds: 1464, workPathSeconds: 1373, jobs: [{ job: "plan", conclusion: "success" }] };
+  // Of the latest 30 completed runs only two passed, as in ourostack/ouro-ui on 2026-11-26.
+  const completed = [...Array.from({ length: 28 }, (_, index) => ({ id: index, run_attempt: 1, conclusion: "cancelled" })), { id: 100, run_attempt: 1, conclusion: "success" }, { id: 101, run_attempt: 1, conclusion: "success" }];
+  const passed = Array.from({ length: 30 }, (_, index) => ({ id: 200 + index, run_attempt: 1, conclusion: "success" }));
+  const github = (url) => (new URL(url).searchParams.get("status") === "success" ? passed : completed);
+  const runs = async () => github(mergeQueueRunsUrl("o/r"));
+  const recordOf = async (id) => (id === 100 || id === 101 || id >= 200 ? record : { jobs: [{ job: "x", conclusion: "cancelled" }] });
+  const main = baseline(await mergeQueueRunsFrom({ runs, recordOf }, budget.baselineRuns));
+  assert.equal(main.workSeconds, 1373);
+  assert.equal(ceilingSeconds(main.workSeconds), 1.5 * 1373);
+  // The pull request of 2026-11-26: work time 16.5 minutes, with the install path on its critical path.
+  assert.deepEqual(judge({ event: "pull_request", criticalSeconds: 18.2 * 60, workSeconds: 16.5 * 60, baselineWorkSeconds: main.workSeconds, earlierWorkSeconds: 16.5 * 60 }), { fail: false, warning: "over" });
+  assert.equal(judge({ event: "pull_request", criticalSeconds: 18.2 * 60, workSeconds: 16.5 * 60, baselineWorkSeconds: null, earlierWorkSeconds: 16.5 * 60 }).fail, true);
 });

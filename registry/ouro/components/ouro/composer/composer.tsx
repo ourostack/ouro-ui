@@ -471,6 +471,17 @@ function insertTokens(control: HTMLTextAreaElement, event: { preventDefault(): v
   insertText(control, control.selectionStart, control.selectionEnd, tokens);
 }
 
+// The app's own id and data-/aria- attributes, which the plain textarea already gets through its own {...rest}
+// spread (`TextareaHTMLAttributes`): picked out so the rich editor's root can carry them too, since it takes
+// named props instead of a spread.
+function ownAttrsOf(rest: object): Record<string, unknown> {
+  const picked: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(rest)) {
+    if (key === "id" || key.startsWith("data-") || key.startsWith("aria-")) picked[key] = value;
+  }
+  return picked;
+}
+
 /**
  * A chat message box: text that grows from one line as the person writes, a send button, and
  * room for the rest of a composer, in one frame with one focus outline. Enter sends and
@@ -961,6 +972,7 @@ export function Composer(props: ComposerProps): JSX.Element {
               onSelect={rest.onSelect as FormEventHandler<HTMLDivElement> | undefined}
               onFocus={rest.onFocus as FocusEventHandler<HTMLDivElement> | undefined}
               onBlur={rest.onBlur as FocusEventHandler<HTMLDivElement> | undefined}
+              ownAttrs={ownAttrsOf(rest)}
               comboboxProps={{
                 role: rest["aria-autocomplete"] ? "combobox" : rest.role,
                 "aria-expanded": rest["aria-autocomplete"] ? !!rest["aria-controls"] : undefined,

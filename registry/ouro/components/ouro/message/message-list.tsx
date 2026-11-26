@@ -5,7 +5,7 @@ import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "re
 import { Message, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
 import type { MessageFindLayer } from "@/registry/ouro/components/ouro/message/message-list-parts";
-import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
+import { OLDER_CHUNK, isFlingKick } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { hasLazyType } from "@/registry/ouro/lib/ouro/server-element";
@@ -771,7 +771,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
     if (reduced()) return [...moving.keys()].forEach(rest);
     // A move of a list's height or more is a jump (End from far up, a link to an old message), not a scroll, unless it goes on
     // with the reader's scroll: a fling that a long frame gathered into one scroll event.
-    const kick = going || Math.abs(scrolled) < view.height ? scrolled : 0;
+    const kick = isFlingKick(going, scrolling, scrolled, view.height) ? scrolled : 0;
     going = false;
     const band = nearby(view);
     const near = new Set(band.map(({ item }) => item));
@@ -1695,6 +1695,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // else (the reader's, a key's, or code going to a message) leaves it.
     // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
     const atBottom = () => Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || farthest() - scroller.scrollTop <= AT_BOTTOM;
+    // Jump to latest shows only with more than a line below the view: a list opened at a message among the last (an app's
+    // first unread) sits at its end without following it, and a jump there would only cover the newest message.
+    // Stryker disable next-line EqualityOperator: exactly a line from the end shows or hides the jump, a pixel either way.
+    const jumpOwed = () => !pinned.current && farthest() - scroller.scrollTop > LINE;
     // While the list follows its end, the scroll height keeps at least the content's height there, held by a 1px mark at that
     // depth (`floorRef`), so a change that shortens the content for a moment and lengthens it again (a picture's placeholder
     // swapped for the picture, with a layout read between) never lets the browser pull the scroll position up, which would
@@ -2052,6 +2056,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
         }
       } else owed = 0;
       keepAnchor();
+      // Something grew below while the reader is near the end: the jump shows once it is more than a line away. Only a
+      // change is set (the jump is drawn while its button is), as setting the same value here still costs a render.
+      if (jumpOwed() !== (jumpRef.current !== null)) setShowJump(jumpOwed());
     };
     const follow = new ResizeObserver(hold);
     follow.observe(content);
@@ -2128,7 +2135,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       release();
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
       if (farthest() === end) keepAnchor();
-      setShowJump(!pinned.current);
+      setShowJump(jumpOwed());
       // Back at the bottom: no room is owed any more.
       if (pinned.current) setJumpRoom(false);
     };
@@ -2207,6 +2214,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The keys of children that came into a window already drawn and wait to draw out of view, a chunk a frame (see the band):
   // how many of them the window draws now, OLDER_CHUNK in the frame it draws them in, else none, and that frame's request.
   const arriving = useRef(new Set<string>());
+  // Keys once found out of view this page's task, which the next sync in the same task, drawing rows measured shorter than
+  // estimated, must not find in view again: a key found once stays waiting for its frame, so the task commits once, not a
+  // growing band each time rows already drawn correct the overscan's reach (ourostack/ouro-ui#3753).
+  const everOut = useRef(new Set<string>());
   const budget = useRef(0);
   const dripping = useRef(0);
   // The band the last sync set, until React draws it. A frame that syncs before then reads the DOM without that band's rows,
@@ -2498,10 +2509,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
         const outOfView = (offset: number) => offset > -1;
         const later = inBand
           .map((key, at) => ({ key, off: off(from + at) }))
-          .filter(({ key, off }) => arriving.current.has(key) && !drawn.has(key) && outOfView(off))
+          .filter(({ key, off }) => arriving.current.has(key) && !drawn.has(key) && (everOut.current.has(key) || outOfView(off)))
           .sort((a, b) => a.off - b.off)
           .slice(budget.current)
           .map(({ key }) => key);
+        for (const key of later) everOut.current.add(key);
         arriving.current = new Set(later);
         // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: with none to wait, the filter takes none out and the frame asked for draws none; a band whose every row waits is one the view shows none of, which a window with rows never has.
         if (later.length > 0 && later.length < inBand.length) {
