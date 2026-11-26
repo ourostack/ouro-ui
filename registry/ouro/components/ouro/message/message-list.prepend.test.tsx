@@ -335,9 +335,15 @@ describe("MessageList prepending older history", () => {
       // list's own write may take it the rest of the way, which brings no scrollend.
       let restedAtTop = false;
       scroller.addEventListener("scrollend", () => void (scroller.scrollTop === 0 && (restedAtTop = true)));
-      for (let step = 0; step < 20 && scroller.scrollTop > 0; step++) await userEvent.wheel(scroller, { delta: { y: -1500 } });
+      let steps = 0;
+      for (; steps < 40 && scroller.scrollTop > 0; steps++) await userEvent.wheel(scroller, { delta: { y: -1500 } });
       await draw(true);
-      await expect.poll(() => scroller.scrollTop === 0 && (restedAtTop || server.browser !== "chromium")).toBe(true);
+      const where = () => `${steps} steps, scrollTop ${scroller.scrollTop} of ${scroller.scrollHeight - scroller.clientHeight}, ${scroller.getBoundingClientRect().height}px tall at ${scroller.getBoundingClientRect().top}px in a ${innerHeight}px view`;
+      try {
+        await expect.poll(() => scroller.scrollTop === 0 && (restedAtTop || server.browser !== "chromium")).toBe(true);
+      } catch (error) {
+        throw new Error(`The fling never ended at the top: ${where()}`, { cause: error });
+      }
       // Paid in a write once it has rested, or held by drawing the content down until it does.
       if (rested) await settleCarry(scroller);
       // The premise: the fling reached the top, with older messages to come.

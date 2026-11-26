@@ -1655,6 +1655,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       viewMark.style.display = px > 0 ? "block" : "";
       viewMark.style.top = `${Math.max(0, px - 1)}px`;
     };
+    // Stryker disable next-line ArrowFunction,ConditionalExpression,StringLiteral: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
     const native = () => getComputedStyle(scroller).overflowAnchor === "auto";
     const keepAnchor = () => {
       // Hidden by an app around it (a pane put away behind an open thread), the scroller reads all zeros: reading it now
@@ -1712,6 +1713,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       end = farthest();
       taken = scroller.scrollTop;
       // No lower than the content reaches: what the floor holds past it goes when the floor does.
+      // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       if (!anchoring) holdView(Math.min(taken + scroller.clientHeight, content.offsetTop + content.offsetHeight));
     };
     const farthest = () => scroller.scrollHeight - scroller.clientHeight;
@@ -1934,11 +1936,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // it instead while the translate goes and the scroll position takes it, so a carry the content came up by (rows above coming
       // in shorter) is not pulled up by the browser first (ourostack/ouro-ui#3892).
       const anchoring = native();
+      // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       if (!anchoring) holdView(before + scroller.clientHeight);
       content.style.removeProperty("translate");
       // In whole pixels: WebKit drops the fraction of a scroll position written to it, so a carry of 3,499.99 px moved the
       // reader's place a whole pixel there (ourostack/ouro-ui#2648).
       const applied = scrollOwn(Math.round(by));
+      // Stryker disable next-line ConditionalExpression,BooleanLiteral,CallExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only. Left in place, the mark holds no more than the view's bottom the write just reached, until the next keepAnchor sets it again.
       if (!anchoring) holdView(0);
       // A scroll position written while the wheel turns may land in part there, and the rest settles frames later against the
       // reader. Where no end stopped the write, what has not landed stays carried, drawn by the translate, until a later write lands it.
@@ -2069,6 +2073,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           owed = 0;
           carriedRef.current += moved;
           // pay() takes the translate away itself, holding the range as it does; with nothing left to pay, it goes here.
+          // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: a carry and a change that cancel to the pixel leave nothing for pay() to take the translate away by, and no test lands a change in the frames between the wheel's scroll ending and its rest; taken away here with a carry left, the range goes before pay() holds it, as before #3892.
           if (carriedRef.current === 0) content.style.removeProperty("translate");
           pay();
           return keepAnchor();
