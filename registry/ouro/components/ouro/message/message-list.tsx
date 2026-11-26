@@ -1893,7 +1893,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // hands a wheel's scroll over in steps of hundreds of pixels) would otherwise see the content jump up by that part. It sits
     // above the content as a margin, so where each message sits in the content, which the anchors and the window read, stays.
     const setSlack = (px: number) => {
-      // Stryker disable next-line ConditionalExpression: moving the mark to where it already is writes nothing, and a list whose space changed and whose mark stayed has it moved by the keepAnchor that follows every change of the space.
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: moving the mark to where it already is writes nothing, and a list whose space changed and whose mark stayed has it moved by the keepAnchor that follows every change of the space.
       const moved = px !== slack;
       slack = px;
       content.style.marginBlockStart = `${px}px`;
