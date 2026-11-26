@@ -354,8 +354,8 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // reach the leaf's props at all; the layout effect below is what then keeps `.value` current.
   const initialControlledValueRef = useRef(rest.value);
   // Flips once, right after the first commit (before anything else can revisit the leaf's
-  // fiber): the leaf's `defaultValue` below is then undefined for the rest of this instance's
-  // life, so a later commit that touches some other prop (focus, dirty, filled) never re-reaches
+  // fiber): a controlled leaf's `defaultValue` below is then undefined for the rest of this
+  // instance's life, so a later commit that touches some other prop (focus, dirty, filled) never re-reaches
   // `updateTextarea`'s unguarded defaultValue write (ouro-ui#3759). It mirrors the server markup
   // only for that one first commit, which is what hydration compares against.
   const [mounted, setMounted] = useState(false);
@@ -482,9 +482,11 @@ export function TextArea(props: TextAreaProps): JSX.Element {
             const { style, value: controlledValue, defaultValue: uncontrolledDefault, ...textareaProps } = controlProps as TextareaHTMLAttributes<HTMLTextAreaElement>;
             const stableProps = stabilizeTextareaProps(textareaProps, stableHandlersRef.current!);
             const mergedStyle = style === undefined ? autoGrowStyle : { ...autoGrowStyle, ...style };
-            // Present only for the first commit (matching server markup); undefined for every
-            // commit after `mounted` flips, so no later commit's `updateTextarea` call rewrites it.
-            const defaultValue = mounted ? undefined : controlledValue !== undefined ? initialControlledValueRef.current : uncontrolledDefault;
+            // A controlled value is here only for the first commit (matching server markup), then
+            // undefined, so no later commit's `updateTextarea` call rewrites it. An uncontrolled
+            // default always passes through: React writes it to the DOM's `defaultValue` after
+            // each change, and that is what a form's reset goes back to.
+            const defaultValue = controlledValue === undefined ? uncontrolledDefault : mounted ? undefined : initialControlledValueRef.current;
             const textarea = (
               <RawTextarea
                 {...stableProps}

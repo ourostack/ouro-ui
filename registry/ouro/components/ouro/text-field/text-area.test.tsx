@@ -183,6 +183,21 @@ describe("TextArea", () => {
     expect(textarea.value).toBe("Salt");
   });
 
+  it("goes back to its defaultValue when its form resets, after the person has typed", async () => {
+    const { host, textarea } = await render(
+      <form>
+        <TextArea label="Notes" defaultValue="Salt" />
+      </form>,
+    );
+    textarea.focus();
+    textarea.setSelectionRange(4, 4);
+    await userEvent.keyboard(" and pepper");
+    expect(textarea.value).toBe("Salt and pepper");
+    expect(textarea.defaultValue).toBe("Salt");
+    host.querySelector("form")!.reset();
+    expect(textarea.value).toBe("Salt");
+  });
+
   it("treats a handler given as undefined as no handler at all", async () => {
     const { textarea } = await render(<TextArea label="Notes" onCopy={undefined} />);
     const errors: unknown[] = [];
