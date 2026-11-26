@@ -49,6 +49,7 @@ describe("reachModal", () => {
     press(inside[1]!);
     expect(document.activeElement).toBe(action);
     action.remove();
+    inside[1]!.focus();
     press(inside[1]!);
     expect(document.activeElement).toBe(toasts[0]);
   });
