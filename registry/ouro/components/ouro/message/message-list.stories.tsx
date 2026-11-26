@@ -262,7 +262,7 @@ export const ReadingWidth: Story = {
 export const OpenedAtMessage: Story = {
   args: { label: "Conversation with Ouro", children: null },
   render: () => (
-    <div data-ouro-allow="overlap" data-ouro-allow-why="Jump to latest floats over the end of the conversation at this scroll position, as a floating control does by design.">
+    <div data-ouro-allow="overlap near-miss" data-ouro-allow-why="Jump to latest floats over the end of the conversation, so how far the last message sits from it follows the scroll position, as a floating control does by design.">
       <Surface>
         <ChatHistory items={longChat.slice(0, 20)} initialAnchor="found-10" />
       </Surface>
@@ -390,7 +390,7 @@ function LongChat() {
   return (
     <Surface>
       <form role="search" onSubmit={find} style={{ display: "flex", gap: "var(--ouro-gap-min)", alignItems: "center" }}>
-        <input data-test-harness="" aria-label="Find in chat" value={query} onChange={(event) => setQuery(event.target.value)} style={{ ...harnessStyle, flex: 1 }} />
+        <input data-test-harness="" aria-label="Find in chat" value={query} onChange={(event) => setQuery(event.target.value)} style={{ ...harnessStyle, flex: 1, minWidth: 0 }} />
         <button type="submit" data-test-harness="" style={harnessStyle}>
           Find
         </button>
