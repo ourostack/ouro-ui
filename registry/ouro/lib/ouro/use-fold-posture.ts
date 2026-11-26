@@ -65,11 +65,11 @@ function readViewportSegments(): readonly OuroViewportSegment[] | undefined {
 }
 
 function subscribeViewportSegments(onChange: () => void) {
-  const viewport = /* istanbul ignore next @preserve -- server only, which has no window to subscribe on */ (
-    // Stryker disable next-line ConditionalExpression,StringLiteral: every test runs in a browser-like environment
-    // with window defined; only a real server, which has no window to subscribe on, takes the null branch.
-    typeof window === "undefined" ? null : window.visualViewport
-  );
+  // Stryker disable next-line ConditionalExpression,StringLiteral: every test runs in a browser-like environment
+  // with window defined; only a real server, which has no window to subscribe on, takes this branch.
+  /* istanbul ignore if @preserve -- server only, which has no window to subscribe on */
+  if (typeof window === "undefined") return () => {};
+  const viewport = window.visualViewport;
   if (viewport === null) return () => {};
   viewport.addEventListener("resize", onChange);
   return () => viewport.removeEventListener("resize", onChange);
