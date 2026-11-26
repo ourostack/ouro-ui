@@ -230,6 +230,7 @@ describe("Toaster beside a modal", () => {
       await act(async () => root?.unmount());
       document.body.replaceChildren();
       const lone = await open(undefined, false);
+      expect(document.querySelector("[data-ouro-toaster-modal-reach]")).toBeNull();
       expect(press(lone, { key: "Tab" }).defaultPrevented).toBe(false);
     });
   });
