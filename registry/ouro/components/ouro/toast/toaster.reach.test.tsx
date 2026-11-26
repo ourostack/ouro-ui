@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import "@/registry/ouro/components/ouro/toast/reach";
+import "@/registry/ouro/components/ouro/toast/toaster-parts";
 
 afterEach(() => {
   document.body.replaceChildren();
