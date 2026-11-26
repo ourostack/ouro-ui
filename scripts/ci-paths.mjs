@@ -45,7 +45,7 @@ export const scoped = [
   { pattern: /^\.github\/headroom\.json$/, tiers: ["browser"], components: false, reason: "the tests the browser shards may run past half their timeout, which changes no test" },
   { pattern: /^scripts\/(shard\.mjs|shard-timings\.json|vitest-shards\.mts)$/, tiers: ["browser"], components: false, reason: "how the browser shards split their tests, which changes no test" },
   {
-    pattern: /^scripts\/(install-test\.sh|install-delta\.mjs|raw-fetch-retry\.mjs|raw-fetch-retry-preload\.mjs|upgrade-note\.mjs|split-items\.mjs)$/,
+    pattern: /^scripts\/(install-test\.sh|install-delta\.mjs|raw-fetch-retry\.mjs|raw-fetch-retry-preload\.mjs|upgrade-note\.mjs|split-items\.mjs|check-stale-theme-tokens\.mjs)$/,
     tiers: ["installs", "heavy", "browser", "screens"],
     components: false,
     reason: "the install test's own scripts, which the theme install test runs and the docs claims name",
