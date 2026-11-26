@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: Tabs no longer scrolls its row in the middle of the tabs' mount, which made the browser lay the page out there; the selected tab comes into view in the next frame instead, and the arrow keys still scroll an overflowing row to the tab they focus ([test](registry/ouro/components/ouro/tabs/tabs.test.tsx "verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > doesn't scroll the row on mount, and scrolls an overflowing row to the tab an arrow key focuses)")).
