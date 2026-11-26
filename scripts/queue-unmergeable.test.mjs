@@ -61,4 +61,6 @@ test("the workflow runs every 10 minutes by hand or schedule, one run at a time,
   assert.match(text, /cancel-in-progress: false/);
   assert.match(text, /node scripts\/queue-unmergeable\.mjs run/);
   assert.doesNotMatch(text, /pull_request(_target)?:/);
+  assert.doesNotMatch(text, /github\.token/);
+  assert.match(text, /test -n "\$GH_TOKEN"/);
 });

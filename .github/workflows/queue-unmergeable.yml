@@ -31,8 +31,9 @@ jobs:
           persist-credentials: false
       - name: Fix one unmergeable entry
         env:
-          GH_TOKEN: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           git config --global credential.helper '!f() { echo username=x-access-token; echo password=$GH_TOKEN; }; f'
+          test -n "$GH_TOKEN" || { echo "The app token is missing: a GITHUB_TOKEN push would not start the pull request's checks."; exit 1; }
           node scripts/queue-unmergeable.mjs run
