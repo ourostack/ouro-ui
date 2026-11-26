@@ -13,7 +13,16 @@ afterEach(() => {
   for (const root of roots.splice(0)) root.unmount();
   for (const host of hosts) host.remove();
   hosts = [];
+  for (const sheet of sheets.splice(0)) sheet.remove();
 });
+
+const sheets: HTMLStyleElement[] = [];
+function style(css: string) {
+  const sheet = document.head.appendChild(document.createElement("style"));
+  sheet.textContent = css;
+  sheets.push(sheet);
+  return sheet;
+}
 
 async function render(node: ReactNode) {
   const host = document.createElement("div");
@@ -125,6 +134,32 @@ describe("Composer resizable edge", () => {
     await expect.poll(() => onHeightChange.mock.calls.length).toBe(1);
     expect(onHeightChange.mock.calls[0]![0]).toBeGreaterThan(before - 1);
     expect(height(view.textarea)).toBeCloseTo(before, 0);
+  });
+
+  it("counts a line as its font size and a half when the line height is normal, and its padding and borders in the offset", async () => {
+    style("textarea { font-size: 20px; line-height: normal; border: solid 0 transparent; border-top-width: 3px; border-bottom-width: 5px; }");
+    const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={2} maxRows={50} onSend={() => {}} />);
+    view.edge.focus();
+    const o = offset(view.textarea);
+    expect(o).toBeGreaterThanOrEqual(8);
+    await expect.poll(() => view.edge.getAttribute("aria-valuemin")).toBe(String(Math.round(2 * 30 + o)));
+  });
+
+  it("follows the pointer while it drags, lands on release, and goes back to the floor with Home", async () => {
+    const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} maxRows={8} onSend={() => {}} />);
+    const box = view.edge.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    try {
+      await commands.drag({ from: [x, y], to: [x, y - 3 * line(view.textarea)], steps: 6, durationMs: 200, hold: true });
+      await expect.poll(() => wholeLines(view.textarea)).toBeCloseTo(4, 1);
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    await expect.poll(() => wholeLines(view.textarea)).toBeCloseTo(4, 1);
+    view.edge.focus();
+    await userEvent.keyboard("{Home}");
+    await expect.poll(() => wholeLines(view.textarea)).toBeCloseTo(1, 1);
   });
 
   it("reports null when released at its smallest", async () => {

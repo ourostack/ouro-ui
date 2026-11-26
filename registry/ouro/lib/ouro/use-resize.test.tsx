@@ -94,4 +94,25 @@ describe("useResize", () => {
     await pointer(edge, "pointerup", { clientY: 100 });
     expect(calls.length).toBe(2);
   });
+
+  it("moves a step with the arrows and to the ends with Home and End", async () => {
+    const { edge } = await shown();
+    const press = (key: string) => act(async () => void edge.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true })));
+    await press("ArrowUp");
+    await press("ArrowDown");
+    await press("Home");
+    await press("End");
+    expect(calls).toEqual([[120, true], [80, true], [80, true], [400, true]]);
+  });
+
+  it("leaves a key it does not use alone", async () => {
+    const { edge } = await shown();
+    const event = new KeyboardEvent("keydown", { key: "a", bubbles: true, cancelable: true });
+    await act(async () => void edge.dispatchEvent(event));
+    expect(event.defaultPrevented).toBe(false);
+    const modified = new KeyboardEvent("keydown", { key: "Home", ctrlKey: true, bubbles: true, cancelable: true });
+    await act(async () => void edge.dispatchEvent(modified));
+    expect(modified.defaultPrevented).toBe(false);
+    expect(calls).toEqual([]);
+  });
 });

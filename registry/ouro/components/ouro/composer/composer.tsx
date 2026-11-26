@@ -676,7 +676,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   const [ownHeight, setOwnHeight] = useState<number | null>(defaultHeight ?? null);
   const [dragLines, setDragLines] = useState<number | null>(null);
   const heldHeight = heightProp === undefined ? ownHeight : heightProp;
-  const heldLines = resizable && metrics && heldHeight !== null ? Math.round((heldHeight - metrics.offset) / metrics.line) : 0;
+  const heldLines = resizable && metrics ? Math.round(((heldHeight ?? 0) - metrics.offset) / metrics.line) : 0;
   const rows = Math.max(baseRows, dragLines ?? heldLines);
   const maxRows = Math.max(baseMaxRows, rows);
   // The frame, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
@@ -782,11 +782,13 @@ export function Composer(props: ComposerProps): JSX.Element {
   // Stryker disable next-line LogicalOperator: richOn is true only when rich is loaded, so either side alone reads the same.
   const ActiveEditor = richOn && rich ? rich.Editor : undefined;
   useLayoutEffect(() => {
+    // Stryker disable next-line ConditionalExpression: heldLines reads the metrics only while resizable, so measuring without the edge changes nothing drawn.
     if (!resizable) return;
     const next = textMetrics(frameRef.current);
     if (next && (metrics?.line !== next.line || metrics.offset !== next.offset)) setMetrics(next);
   }, [resizable, metrics, baseRows, ownHeight, heldHeight]);
   const readEdge = (): ResizeRange => {
+    // Stryker disable next-line ObjectLiteral: the text is drawn whenever the edge is, so the fallback only keeps a read before the first paint from throwing.
     const m = textMetrics(frameRef.current) ?? { line: 24, offset: 0, now: 0 };
     const least = Math.round(baseRows * m.line + m.offset);
     const most = Math.max(Math.round(baseMaxRows * m.line + m.offset), Math.floor(window.innerHeight * 0.6));
@@ -794,6 +796,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   };
   const resizeTo = (px: number, settled: boolean) => {
     const m = textMetrics(frameRef.current);
+    // Stryker disable next-line ConditionalExpression: the text is drawn whenever the edge is, so the guard only covers a press before the first paint.
     if (!m) return;
     const lines = Math.round((px - m.offset) / m.line);
     if (!settled) {
