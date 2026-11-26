@@ -706,7 +706,15 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     let scratch: LexicalEditor | undefined;
     // Stryker disable next-line ObjectLiteral,StringLiteral,BlockStatement: the copy only receives the editor's own state and writes a mark into it, so its options, namespace and error handler are never read
     const copy = () => (scratch ??= createEditor({ namespace: "ouro-composer-offsets", nodes: NODES, onError: /* istanbul ignore next @preserve -- the copy only writes text into states that already hold */ (error) => { throw error; } }));
-    const read = () => (inMarkdown.current ? readMarkdownControl(editor, copy()) : readControl(editor));
+    // One editor state and one DOM selection read the same every time, and an app reads value, selectionStart and
+    // selectionEnd one after another, as often as it likes on each key: each pair is read once.
+    let last: { key: unknown[]; read: ReturnType<typeof readControl> } | undefined;
+    const read = () => {
+      const dom = window.getSelection();
+      const key = [editor.getEditorState(), inMarkdown.current, dom?.anchorNode, dom?.anchorOffset, dom?.focusNode, dom?.focusOffset];
+      if (!last || key.some((part, i) => part !== last?.key[i])) last = { key, read: inMarkdown.current ? readMarkdownControl(editor, copy()) : readControl(editor) };
+      return last.read;
+    };
     Object.defineProperties(root, {
       value: { configurable: true, get: () => read().value },
       selectionStart: { configurable: true, get: () => read().start },
