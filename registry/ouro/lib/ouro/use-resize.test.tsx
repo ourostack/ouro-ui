@@ -8,7 +8,7 @@ const range: ResizeRange = { least: 80, most: 400, step: 20, offset: 0, now: 100
 let root: Root | undefined;
 const calls: [number, boolean][] = [];
 
-function Edge({ grow }: { grow?: "up" | "down" }) {
+function Edge({ grow }: { grow?: "up" | "down" | undefined }) {
   const { props, dragging } = useResize({ label: "Resize", read: () => range, onResize: (px, settled) => calls.push([px, settled]), grow });
   return <div {...props} data-state={String(dragging)} data-test-harness />;
 }

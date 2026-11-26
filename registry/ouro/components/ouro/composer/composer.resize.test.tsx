@@ -123,7 +123,7 @@ describe("Composer resizable edge", () => {
     view.edge.focus();
     await userEvent.keyboard("{ArrowUp}");
     await expect.poll(() => onHeightChange.mock.calls.length).toBe(1);
-    expect(onHeightChange.mock.calls[0][0]).toBeGreaterThan(before - 1);
+    expect(onHeightChange.mock.calls[0]![0]).toBeGreaterThan(before - 1);
     expect(height(view.textarea)).toBeCloseTo(before, 0);
   });
 
