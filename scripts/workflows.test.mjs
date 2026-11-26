@@ -1676,7 +1676,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
 
 /** The values of a matrix key in a job's block, or undefined. */
 const matrixValues = (block, key) =>
-  (block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m")) ?? block.match(new RegExp(`^ {8}${key}: \\$\\{\\{ fromJSON\\(github\\.event_name == 'pull_request' && '\\[([^\\]]*)\\]' \\|\\| '\\[[^\\]]*\\]'\\) \\}\\}$`, "m")))?.[1]
+  (block.match(new RegExp(`^ {8}${key}: \\[([^\\]]*)\\]$`, "m")) ?? block.match(new RegExp(`^ {8}${key}: \\$\\{\\{ fromJSON\\(\\(?github\\.event_name == 'pull_request'(?: \\|\\| github\\.event_name == 'merge_group'\\))? && '\\[([^\\]]*)\\]' \\|\\| '\\[[^\\]]*\\]'\\) \\}\\}$`, "m")))?.[1]
     .split(",")
     .map((value) => value.trim().replace(/^"(.*)"$/, "$1"));
 
@@ -1688,7 +1688,7 @@ function checkNames(block, id) {
   for (const key of keys) combinations = combinations.flatMap((combination) => (matrixValues(block, key) ?? []).map((value) => ({ ...combination, [key]: value })));
   const excluded = [...(block.split(/^ {8}exclude:\n/m)[1] ?? "").matchAll(/^ {10}- (\w+): (\S+)\n {12}(\w+): (\S+)$/gm)].map(([, k1, v1, k2, v2]) => ({ [k1]: v1, [k2]: v2 }));
   combinations = combinations.filter((combination) => !excluded.some((exclusion) => Object.entries(exclusion).every(([key, value]) => combination[key] === value)));
-  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name).replace("${{ github.event_name == 'pull_request' && 6 || 3 }}", "6").replace("${{ strategy.job-total }}", String(Math.max(...keys.map((key) => matrixValues(block, key).length))))); // a pull request's count: the names the ruleset requires
+  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name).replace("${{ github.event_name == 'pull_request' && 6 || 3 }}", "6").replace("${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 24 || 6 }}", "24").replace("${{ strategy.job-total }}", String(Math.max(...keys.map((key) => matrixValues(block, key).length))))); // a pull request's count: the names the ruleset requires
 }
 
 /** The condition of every job a push whose tree already passed skips (the plan's `tested`, scripts/ci-proof.mjs). */
@@ -1890,10 +1890,10 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   const jobs = ciJobs();
   const block = jobs.design;
   assert.match(block, /^ {4}needs: \[plan\]$/m);
-  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 24 \|\| 6 \}\}\)$/m);
-  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\]' \|\| '\[1,2,3,4,5,6\]'\) \}\}$/m);
+  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/\$\{\{ \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && 24 \|\| 6 \}\}\)$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(\(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\]' \|\| '\[1,2,3,4,5,6\]'\) \}\}$/m);
   // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
-  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/\$\{\{ github\.event_name == 'pull_request' && 24 \|\| 6 \}\}\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
+  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/\$\{\{ \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && 24 \|\| 6 \}\}\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
   assert.doesNotMatch(block, /continue-on-error/);
   assert.match(block, /^ {6}- run: pnpm site:build$/m);
   // The plan decides whether its runners start at all (scripts/ci-relevance.mjs screens): off a pull request (the
@@ -2055,7 +2055,7 @@ test("the conformance shards run only the checks' proofs on the first shard when
   assert.match(block, /^ {10}OURO_CONFORMANCE_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
   // Three shards where every story is checked (main, the merge queue, a full plan); on a reduced pull request, the plan's
   // count (one for a few stories, three for most: scripts/test-impact.mjs conformanceShards), else one.
-  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && \(github\.event_name == 'pull_request' && '\[1,2,3\]' \|\| '\[1,2\]'\) \|\| needs\.plan\.outputs\.conformance_shards \|\| '\[1\]'\) \}\}$/m);
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && \(\(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && '\[1,2,3\]' \|\| '\[1,2\]'\) \|\| needs\.plan\.outputs\.conformance_shards \|\| '\[1\]'\) \}\}$/m);
   assert.match(ciJobs().plan, /^ {6}conformance_shards: \$\{\{ steps\.plan\.outputs\.conformance_shards \}\}$/m);
   assert.match(block, /^ {4}name: conformance \(\$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}\)$/m);
 });
@@ -2153,7 +2153,7 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   const block = jobs["e2e-shard"];
   const count = shardCount(block);
   assert.match(block, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
-  assert.match(block, /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8\]' \|\| '\[1,2,3\]'\)/);
+  assert.match(block, /fromJSON\(\(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && '\[1,2,3,4,5,6,7,8\]' \|\| '\[1,2,3\]'\)/);
   const script = stepScript(block, "End-to-end specs");
   // A full run: the spec files the shard's measured share holds (the stand-in for node prints two).
   const full = runStep(script, { FULL: "true", SHARD: "1/3" });
@@ -2203,7 +2203,7 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.ok(sweeps.every((share) => share.length > 0));
   assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
   assert.deepEqual(matrixValues(jobs["sweep-shard"], "shard"), ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"]);
-  assert.match(jobs["sweep-shard"], /fromJSON\(github\.event_name == 'pull_request' && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14\]' \|\| '\[1,2,3,4\]'\)/);
+  assert.match(jobs["sweep-shard"], /fromJSON\(\(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && '\[1,2,3,4,5,6,7,8,9,10,11,12,13,14\]' \|\| '\[1,2,3,4\]'\)/);
 });
 
 test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {

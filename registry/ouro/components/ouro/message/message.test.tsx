@@ -5,6 +5,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
@@ -1043,6 +1044,16 @@ describe("Message chat", () => {
     };
     expect([other, mine].every((b) => edge(b!))).toBe(true);
     expect([other, mine].some((b) => seen(b!))).toBe(false);
+  });
+
+  it("leaves a Button with href unstyled by the bubble's own underline, even in the user's filled bubble", async () => {
+    const { host } = await render(
+      <Message variant="chat" role="user" name="Priya Okafor">
+        <Button href="#mine">Open</Button>
+      </Message>,
+    );
+    const link = host.querySelector<HTMLAnchorElement>('a[data-ouro-control="button"]')!;
+    expect(getComputedStyle(link).textDecorationLine).not.toContain("underline");
   });
 
   chromiumOnly("keeps both filled bubbles' edges under forced colors", async () => {
