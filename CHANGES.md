@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: Message no longer underlines a Button rendered with `href` inside a user's filled bubble.
