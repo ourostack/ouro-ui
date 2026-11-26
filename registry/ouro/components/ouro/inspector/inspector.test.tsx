@@ -524,6 +524,24 @@ describe("Inspector", () => {
     await drawn(pageRoots(host).length);
   });
 
+  it("cancels the frame its backstop beat, so that frame never measures a layer already unmounted", async () => {
+    // The renderer holds the mount's frame past the 500ms backstop, then calls it after X-ray closed (#3761).
+    const [real, realCancel] = [window.requestAnimationFrame, window.cancelAnimationFrame];
+    const late = new Map<number, FrameRequestCallback>();
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => late.set(late.size + 1e6, callback).size + 1e6 - 1);
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => (late.delete(id) ? undefined : realCancel(id)));
+    let host: HTMLElement;
+    try {
+      ({ host } = await render(<Page />));
+    } finally {
+      vi.stubGlobal("requestAnimationFrame", real);
+    }
+    await drawn(pageRoots(host).length);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    vi.stubGlobal("cancelAnimationFrame", realCancel);
+    expect(() => late.forEach((callback) => callback(0))).not.toThrow();
+  });
+
   it("puts its bar in a landmark named by its label", async () => {
     await render(<Page inspector={{ label: "Röntgen" }} />);
     await drawn(3);
