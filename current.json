@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-26T07:31:01.743Z",
+  "generatedAt": "2026-11-26T07:56:05.984Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -68,7 +68,7 @@
     },
     {
       "repo": "ourostack/desk",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "plugins/desk/mcp/src/lib/ouro-actions/dist-manifest.json",
@@ -80,22 +80,19 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 6ef19f9",
+          "current": "commit b4a823e",
           "latest": "v1.3.576",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 6ef19f9",
+          "current": "commit b4a823e",
           "latest": "v1.3.576",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1814,
-        "url": "https://github.com/ourostack/desk/pull/1814"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/factory",
@@ -228,14 +225,14 @@
     },
     {
       "repo": "ourostack/m365crawl",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 6ef19f9",
+          "current": "commit b4a823e",
           "latest": "v1.3.576",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
@@ -245,10 +242,7 @@
           "behind": false
         }
       ],
-      "pr": {
-        "number": 639,
-        "url": "https://github.com/ourostack/m365crawl/pull/639"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouro-current-fixture-android",
