@@ -14,6 +14,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { DEADLINE_MS, ERRORS, POLL_MS, RateLimit, read, WAITING } from "./ci-yield.mjs";
 import { rateLimited } from "./ci-fail-fast.mjs";
+import { listJobs } from "./run-jobs.mjs";
 
 /** The lane's workflow file: its runs of every event, a push to main and a release's dispatch alike. */
 export const lane = "screen-reader.yml";
@@ -44,7 +45,7 @@ export function laneWaiting(open) {
 /** The lane's runs that have not completed, each with its jobs. */
 export function openLaneRuns(gh, repo) {
   const { workflow_runs: runs } = read(gh, `repos/${repo}/actions/workflows/${lane}/runs?per_page=20`);
-  return runs.filter((run) => run.status !== "completed").map((run) => ({ run, jobs: read(gh, `repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`).jobs }));
+  return runs.filter((run) => run.status !== "completed").map((run) => ({ run, jobs: listJobs((url) => read(gh, url), `repos/${repo}/actions/runs/${run.id}`) }));
 }
 
 /** The first line of an error's message, for a warning. */

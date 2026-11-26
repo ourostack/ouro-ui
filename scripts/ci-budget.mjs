@@ -30,6 +30,7 @@ import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { inflateRawSync } from "node:zlib";
+import { JOBS_PER_PAGE, listJobsAsync } from "./run-jobs.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -472,16 +473,11 @@ async function previousRunWork({ repository, token, branch, runId }, key = "work
 export const recentRuns = 20;
 
 /** Jobs per page: a page of 100 answers 502 on every try for a run of about 160 jobs (each carries its steps), so the check waited out all its retries; 30 answers at once. */
-export const jobsPerPage = 30;
+export const jobsPerPage = JOBS_PER_PAGE;
 
 /** Every job of a run attempt, through the API's pages. */
 async function fetchJobs({ repository, runId, attempt, token }) {
-  const jobs = [];
-  for (let page = 1; ; page += 1) {
-    const body = await getJson(`https://api.github.com/repos/${repository}/actions/runs/${runId}/attempts/${attempt}/jobs?per_page=${jobsPerPage}&page=${page}`, token);
-    jobs.push(...body.jobs);
-    if (jobs.length >= body.total_count || body.jobs.length === 0) return jobs;
-  }
+  return listJobsAsync((url) => getJson(`https://api.github.com/${url}`, token), `repos/${repository}/actions/runs/${runId}/attempts/${attempt}`);
 }
 
 /** What a run that GitHub would not answer for reports: on a pull request a failure, because an unjudged budget is a guard turned off; elsewhere a warning and a passing exit code. Any other error is rethrown. */
