@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: `<SegmentedControl glass>` draws a Liquid Glass capsule for a window toolbar, with a label only on the checked segment, and items take an `icon` and a `count` pill.
