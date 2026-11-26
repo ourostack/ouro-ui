@@ -1,0 +1,38 @@
+name: Queue unmergeable
+# An UNMERGEABLE merge queue entry stalls the entries behind it until a lane rebases it. Every 10 minutes
+# this takes one such entry (scripts/queue-unmergeable.mjs): dequeues it, checks with git merge-tree that main
+# merges into it cleanly, updates its branch and re-arms auto-merge, or, on a real conflict, pings its author
+# and leaves it out. Each action is logged on #2469.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+concurrency:
+  group: queue-unmergeable
+  cancel-in-progress: false
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - id: app
+        continue-on-error: true
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ vars.OURO_CURRENT_APP_ID }}
+          private-key: ${{ secrets.OURO_CURRENT_PRIVATE_KEY }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fix one unmergeable entry
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          git config --global credential.helper '!f() { echo username=x-access-token; echo password=$GH_TOKEN; }; f'
+          node scripts/queue-unmergeable.mjs run
