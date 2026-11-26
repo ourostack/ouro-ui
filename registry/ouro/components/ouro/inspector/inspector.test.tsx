@@ -688,6 +688,23 @@ describe("Inspector", () => {
     expect(own.hasAttribute("data-ouro-settling"), "cleanup clears it, rather than leaving it for the cancelled frame").toBe(false);
   });
 
+  it("does not throw when a stale resize or mutation callback fires its queued frame after X-ray has already closed (#3848)", async () => {
+    // A resize, a scroll or a page mutation queued just before X-ray closes can still request a frame;
+    // cancelling that frame on unmount is a race the real browser does not always win under load, so the
+    // callback itself must tolerate running once the layer element it reads is already gone.
+    const { host } = await render(<Page />);
+    await drawn(pageRoots(host).length);
+    let stale: FrameRequestCallback | undefined;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      stale = callback;
+      return 1;
+    });
+    dispatchEvent(new Event("resize"));
+    expect(stale, "a resize schedules a frame to re-measure").toBeDefined();
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(() => stale!(performance.now()), "the queued frame still ran, after the layer left the page").not.toThrow();
+  });
+
   it("does not measure contrast while a scroll-triggered reposition is still pending, with no Animation to catch it (#3361)", async () => {
     await render(<Page />);
     await settled();

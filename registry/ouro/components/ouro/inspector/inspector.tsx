@@ -559,7 +559,11 @@ function InspectorLayer({
    * @claim "Puts each outline over its component" registry/ouro/components/ouro/inspector/inspector.tsx verify:fileLine(registry/ouro/components/ouro/inspector/inspector.tsx, /const\sboxes\s=\scomponents\.map\(\(component\)\s=>\spixelSnapped\(shownBox\(component\.element\)\s\?\?\snew\sDOMRect\(\)\)\)/)
    */
   const place = (all: Found[]) => {
-    const own = layer.current!;
+    const own = layer.current;
+    // A frame a resize, a scroll or a mutation queued just before X-ray closed can still run once the
+    // layer has already left the page (a race cancelling it does not always win under load, #3848):
+    // nothing is left to place its outlines over.
+    if (!own) return;
     // An outline React has yet to render is placed once it has, from the layout effect below.
     const components = all.filter((component) => outlines.has(component.key));
     const ancestors = new Map<Element, Ancestor>();
