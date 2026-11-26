@@ -5,7 +5,6 @@
       "doubled-line": "A rule new on this site: it reports without failing while its first findings are fixed (ourostack/ouro-ui#3257).",
       "count-badge": "A rule new on this site: it reports without failing while its first findings are fixed (ourostack/ouro-ui#3257).",
       "pointer-not-control": "A rule new on this site: it reports without failing while its first findings are fixed (ourostack/ouro-ui#3257).",
-      "near-miss": "A rule new on this site: it reports without failing while its first findings are fixed (#3286).",
       "jump": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
       "backtrack": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
       "sibling-reflow": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
