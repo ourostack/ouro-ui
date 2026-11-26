@@ -1902,7 +1902,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       content.style.marginBlockStart = `${px}px`;
       placeFloor();
       // The mark held the content's end where the space put it: it follows the end.
-      // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: the keepAnchor that follows every change of the space moves the mark to the content's end as well; and Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral,CallExpression: the keepAnchor that follows every change of the space moves the mark to the content's end as well; and Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       if (moved && !native()) holdEnd(contentEnd());
     };
     // Scrolls the list by `by` itself, which the springs leave alone, and returns how far it went.
