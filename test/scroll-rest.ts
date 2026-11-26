@@ -5,8 +5,11 @@
  */
 export function scrollPositions(): string {
   const positions: string[] = [];
+  let index = 0;
   for (const element of document.querySelectorAll<HTMLElement>("*")) {
-    if (element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth) positions.push(`${element.scrollLeft},${element.scrollTop}`);
+    index++;
+    // Only a box that has scrolled: whether a box can scroll changes every frame while a spinner turns inside it.
+    if (element.scrollLeft !== 0 || element.scrollTop !== 0) positions.push(`${index}:${element.scrollLeft},${element.scrollTop}`);
   }
   return positions.join(";");
 }
