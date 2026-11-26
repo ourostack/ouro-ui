@@ -858,7 +858,24 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     if (!slot) return;
     // The sticky day header covers the top of the scrolling area, so a slot scrolled "into view" would sit behind it.
     slot.style.scrollMarginTop = `${rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!.offsetHeight}px`;
+    slot.style.scrollMarginBottom = "";
     slot.scrollIntoView({ block: "nearest", inline: "nearest" });
+    // A toast hangs over the bottom of the page, so a slot scrolled "into view" can sit under it. Scroll it clear, frame by frame, because the toast slides in.
+    let frame = 0;
+    let left = 40;
+    const clear = () => {
+      const at = slot.getBoundingClientRect();
+      for (const toast of document.querySelectorAll("[data-ouro-toast-id]")) {
+        const over = toast.getBoundingClientRect();
+        if (over.top > innerHeight / 2 && at.bottom + 8 > over.top && at.top < over.bottom && over.left < at.right && over.right > at.left) {
+          slot.style.scrollMarginBottom = `${innerHeight - over.top + 8}px`;
+          slot.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
+      }
+      if ((left -= 1) > 0) frame = requestAnimationFrame(clear);
+    };
+    clear();
+    return () => cancelAnimationFrame(frame);
   }, [heldCursor]);
   const cursorStart = () => {
     const wanted = nowAt && todayIndex >= 0 ? nowAt.minutes : workingHours.start * 60;

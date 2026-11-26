@@ -1627,6 +1627,25 @@ describe("TimeGrid", () => {
       await expect.poll(() => clear()[1]).toBe(true);
     });
 
+    it("scrolls the slot clear of a toast over the bottom of the page", async () => {
+      const toast = document.createElement("div");
+      toast.setAttribute("data-ouro-toast-id", "t");
+      toast.style.cssText = "position:fixed;inset-inline:0;bottom:0;height:5rem;background:#ccc";
+      document.body.append(toast);
+      try {
+        const { grid } = await open({ className: "h-[calc(100vh-1rem)]" });
+        const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
+        await userEvent.keyboard("{Home}");
+        await expect.poll(() => viewport().scrollTop).toBe(0);
+        const { top, height } = cursor.getBoundingClientRect();
+        const steps = Math.ceil((toast.getBoundingClientRect().top - top) / height);
+        for (let step = 0; step < steps; step++) await userEvent.keyboard("{ArrowDown}");
+        await expect.poll(() => cursor.getBoundingClientRect().bottom + 4 <= toast.getBoundingClientRect().top).toBe(true);
+      } finally {
+        toast.remove();
+      }
+    });
+
     it("draws the slot with an outline-weight border that forced colours keep, and adds nothing without onSlotSelect", async () => {
       const { grid } = await open();
       const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
