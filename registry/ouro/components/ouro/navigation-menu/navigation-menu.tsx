@@ -337,7 +337,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
   // measured from the trigger the panel would sit across the bar's hairline.
   const gapBelowBar = () => {
     const n = nav.current!;
-    return (n.closest("header") ?? n).getBoundingClientRect().bottom - n.querySelector("[data-popup-open]")!.getBoundingClientRect().bottom + 8;
+    return Math.max(8, (n.closest("header") ?? n).getBoundingClientRect().bottom - n.querySelector("[data-popup-open]")!.getBoundingClientRect().bottom + 8);
   };
   const directed = (
     <BaseNavigationMenu.Root
