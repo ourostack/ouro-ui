@@ -508,6 +508,22 @@ describe("Inspector", () => {
     outlines().forEach((outline, index) => expect(onTarget(outline, components[index]!), `outline ${index}`).toBe(true));
   });
 
+  it("still outlines the page when its first scheduled frame never calls back, as a stalled renderer drops one (ourostack/ouro-ui#3740)", async () => {
+    // A CI runner's compositor can stall under contention and drop a requestAnimationFrame callback
+    // instead of merely delaying it (the same mechanism ourostack/ouro-ui#3314 found for a different
+    // file): nothing else on this static page re-triggers X-ray's census, so a mount that depends
+    // solely on that one frame would never outline anything.
+    const real = window.requestAnimationFrame;
+    vi.stubGlobal("requestAnimationFrame", () => 1);
+    let host: HTMLElement;
+    try {
+      ({ host } = await render(<Page />));
+    } finally {
+      vi.stubGlobal("requestAnimationFrame", real);
+    }
+    await drawn(pageRoots(host).length);
+  });
+
   it("puts its bar in a landmark named by its label", async () => {
     await render(<Page inspector={{ label: "Röntgen" }} />);
     await drawn(3);
