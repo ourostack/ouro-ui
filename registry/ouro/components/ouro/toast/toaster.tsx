@@ -212,8 +212,6 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
               // the page (Base UI's markOthers) leaves out whatever carries aria-live, and so keeps the
               // toasts' buttons in the accessibility tree while it is open.
               aria-live="off"
-              aria-atomic={undefined}
-              aria-relevant={undefined}
               data-ouro="toaster"
               ref={edgeRef}
               className={cn(viewportClass, className)}
@@ -304,11 +302,9 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
         description: record.description,
         type: record.tone,
         timeout: record.timeout,
-        // Never Base UI's "high": it hides such a toast, buttons and all, from screen readers until
-        // focused, and speaks it from an alert of its own. ToastAnnouncer speaks a destructive toast
-        // assertively instead, and the toast stays reachable.
-        // Stryker disable next-line StringLiteral: Base UI treats every priority but "high" as "low".
-        priority: "low",
+        // No priority, which Base UI takes as "low", never "high": it hides such a toast, buttons and all, from
+        // screen readers until focused, and speaks it from an alert of its own. ToastAnnouncer speaks a
+        // destructive toast assertively instead, and the toast stays reachable.
         onRemove: () => {
           shown.delete(record.id);
           // Base UI removes the toast by its index after this call returns, so adding the
@@ -570,10 +566,10 @@ function ToastAnnouncer(): JSX.Element {
   const current = useUnexpired(spoken);
   return (
     <div ref={anchor} data-ouro-toast-announcer="" style={visuallyHidden}>
-      <div aria-live="polite" aria-relevant="additions text">
+      <div aria-live="polite">
         <SpokenWords entries={current.filter((entry) => !entry.destructive)} />
       </div>
-      <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions text">
+      <div role="alert" aria-live="assertive" aria-atomic="false">
         <SpokenWords entries={current.filter((entry) => entry.destructive)} />
       </div>
     </div>

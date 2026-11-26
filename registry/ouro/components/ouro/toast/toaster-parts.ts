@@ -32,7 +32,7 @@ document.addEventListener(
     const other = inToasts ? inside : toasts;
     if (active !== (event.shiftKey ? own[0] : own[own.length - 1])) return;
     event.preventDefault();
-    (event.shiftKey ? other[other.length - 1] : other[0])?.focus();
+    (event.shiftKey ? other[other.length - 1] : other[0])!.focus();
   },
   true,
 );

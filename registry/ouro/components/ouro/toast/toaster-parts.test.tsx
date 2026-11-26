@@ -129,6 +129,50 @@ describe("reachModal", () => {
     expect(press(inside[1]!).defaultPrevented).toBe(false);
   });
 
+  it("finds the dialog that holds focus, not the last one open", () => {
+    const first = build();
+    const second = document.createElement("div");
+    second.setAttribute("role", "dialog");
+    second.setAttribute("data-open", "");
+    second.setAttribute("data-ouro-modal", "");
+    second.append(document.createElement("button"), document.createElement("button"));
+    document.body.append(second);
+    first.inside[1]!.focus();
+    expect(press(first.inside[1]!).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(first.toasts[0]);
+  });
+
+  it("copes with no focused element at all", () => {
+    build();
+    const errors: unknown[] = [];
+    const record = (event: ErrorEvent) => errors.push(event.error);
+    window.addEventListener("error", record);
+    const real = Object.getOwnPropertyDescriptor(Document.prototype, "activeElement")!;
+    Object.defineProperty(document, "activeElement", { configurable: true, get: () => null });
+    try {
+      expect(press(document.body).defaultPrevented).toBe(false);
+    } finally {
+      delete (document as { activeElement?: unknown }).activeElement;
+      window.removeEventListener("error", record);
+      expect(Object.getOwnPropertyDescriptor(Document.prototype, "activeElement")).toEqual(real);
+    }
+    expect(errors).toEqual([]);
+  });
+
+  it.each([
+    ["inert", ""],
+    ["aria-hidden", "true"],
+  ])("skips a toast control inside a wrapper marked %s, though it has a box", (attribute, value) => {
+    const { inside, toasts, viewport } = build();
+    const holder = document.createElement("div");
+    holder.setAttribute(attribute, value);
+    viewport.prepend(holder);
+    holder.append(toasts[0]!);
+    inside[1]!.focus();
+    expect(press(inside[1]!).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(toasts[1]);
+  });
+
   it("does nothing once the toasts' viewport is gone", () => {
     const { inside, viewport } = build();
     viewport.remove();
