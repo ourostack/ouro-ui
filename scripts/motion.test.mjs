@@ -170,6 +170,7 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "stacked-layout data-closed bars",
       "stacked-layout data-open bars",
       "chart data-highlighted dot",
+      "message data-starting-style bubble",
       "message data-ending-style bar",
       "checklist data-checked tick",
       "checklist data-checked box",
