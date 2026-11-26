@@ -3376,6 +3376,10 @@ test("a file quarantined whole (title \"*\") forgives its tests and a job the ha
   assert.equal(judge(hang(test("a (running 2m 0s)")), [whole], ["Checkout", installStep]).explained, false);
   const beside = `${hang(test("a (running 2m 0s)"))}\n${logLines("install (namespace, nova)", [" FAIL   ouro-chromium (chromium)  src/components/ouro/dialog/dialog.test.tsx > Dialog > opens", "      Tests  1 failed | 3 passed (4)"])}`;
   assert.equal(judge(beside).explained, false);
+  // An install shard (install-gate's install-shard id, its "Install test" step) is judged too, the installed src/ path mapped to the registry/ entry.
+  const shard = { id: 3, name: "install (ouro, nova, 1/3)", conclusion: "failure", url: "https://github.com/o/r/actions/runs/5/job/3", failedSteps: ["Install test"], log: hang(test("a (running 2m 0s)")) };
+  const shardJudged = judgeOwnRun({ run: { id: "5", workflow: ciYml, jobs: [shard] }, ids: ["install-shard"], entries: [whole] });
+  assert.equal(shardJudged.explained, true, shardJudged.problems.join("; "));
 });
 
 test("quarantine.mjs retry records each retry in the step summary, the log and the issue, then reruns the run's failed jobs once", () => {
