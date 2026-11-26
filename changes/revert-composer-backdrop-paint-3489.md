@@ -1,0 +1,1 @@
+- Reverted: Composer's expand/collapse paint under a backdrop-filter (#3489) is taken back; its painted-frame e2e check kept dropping main's merge queue on a race the fix didn't hold against, and will relaunch with a reliable failing-first reproduction.
