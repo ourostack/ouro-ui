@@ -40,6 +40,7 @@ Type: `CalendarProps<Range>`.
 | `previousMonthLabel` | `string` | `"Previous month"` | The previous month button's label. Translate it with your app. |
 | `range` | `Range` |  | Picks a range: the first press sets the start, the second the end, and Escape drops a start. A range never spans an unavailable day: the preview and the end stop at the last available day before it, so a stay cannot include a booked night. Without `range` the calendar picks one day. |
 | `ref` | `Ref<HTMLDivElement>` |  | The calendar's root element. |
+| `today` | `string` |  | Today, as an ISO date, from the app's own clock: give it when the app keeps one, so the month marks the day the app shows as today and moves past midnight with it. Without it, today in the browser's zone, read once. |
 | `value` | `(Range extends true ? DateRange \| null : string)` |  | The picked day as an ISO date (`"2026-10-11"`, `""` for none). With `range` it is the picked `{ start, end }` instead (`null` for none), and passing `{ start, end }` without `range` is a type error. Pass it with `onValueChange` to control the calendar. |
 
 ## Don't use
