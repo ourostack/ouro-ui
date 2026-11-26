@@ -791,6 +791,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const reorderKey = JSON.stringify(reorderIds);
   // The order the person gave, kept until the app passes sections in another order.
   const [reordered, setReordered] = useState<{ key: string; ids: string[] }>();
+  if (reordered && reordered.key !== reorderKey) setReordered(undefined);
   const ids = reordered?.key === reorderKey ? reordered.ids : reorderIds;
   const shownSections = useMemo(() => {
     const byId = new Map(sections.map((section) => [section.id, section]));

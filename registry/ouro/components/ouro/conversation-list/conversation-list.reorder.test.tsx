@@ -230,6 +230,15 @@ describe("ConversationList section reorder", () => {
     expect(order(host)).toEqual(["Pinned", "Work", "Favorites", "Clubs"]);
   });
 
+  it("forgets the person's order once the app passes another, so the app's earlier order is not mistaken for it", async () => {
+    const { host, rerender } = await render(list({ onSectionsReorder: () => {} }));
+    await dragOnto(headers(host)[1]!, headers(host)[3]!, { below: true });
+    const moved = [sections[0]!, sections[2]!, sections[3]!, sections[1]!];
+    await rerender(list({ onSectionsReorder: () => {}, sections: moved }));
+    await rerender(list({ onSectionsReorder: () => {} }));
+    expect(order(host)).toEqual(["Pinned", "Favorites", "Clubs", "Work"]);
+  });
+
   it("counts an empty reorderable section among the ids, in its place", async () => {
     const onSectionsReorder = vi.fn();
     const withEmpty = [...sections.slice(0, 2), { id: "empty", title: "Archive", reorderable: true }, ...sections.slice(2)];
