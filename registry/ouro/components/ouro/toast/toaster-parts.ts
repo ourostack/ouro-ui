@@ -22,6 +22,7 @@ document.addEventListener(
     const viewport = document.querySelector<HTMLElement>('[data-ouro="toaster"]');
     if (!viewport || event.key !== "Tab" || event.defaultPrevented) return;
     const active = document.activeElement as HTMLElement | null;
+    // Stryker disable next-line ConditionalExpression: contains(null) is false, so forcing the null check true changes nothing.
     const inToasts = active !== null && viewport.contains(active);
     const dialog = inToasts ? [...document.querySelectorAll<HTMLElement>(OPEN_DIALOG)].pop() : active?.closest<HTMLElement>(OPEN_DIALOG);
     if (!dialog || viewport.contains(dialog) || !hidesPage(dialog, viewport)) return;
