@@ -1150,10 +1150,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   // Stryker disable next-line ArrayDeclaration: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
   [withMenus]);
 
-  // Moving a section: the person's order shows at once, and the app hears of a landing in a new place.
+  // Moving a section: the person's order shows at once, and the app hears of a landing in a new place. React keeps focus
+  // on a header or handle it moves.
   const [grabbed, setGrabbed] = useState<{ id: string; original: string[] } | null>(null);
-  const handles = useRef(new Map<string, HTMLButtonElement>());
-  const refocus = useRef<{ id: string; handle: boolean } | null>(null);
   const dragged = useRef(false);
   const labels = {
     pickedUp: reorderMessages?.pickedUp ?? "{label} picked up. Position {n} of {total}.",
@@ -1162,10 +1161,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     putBack: reorderMessages?.putBack ?? "{label} put back. Position {n} of {total}.",
     instructions: reorderMessages?.instructions ?? "Press Space to pick up, then use the arrow keys to move, Space to drop, and Escape to cancel.",
   };
-  const titleOf = (id: string) => sections.find((section) => section.id === id)?.title ?? id;
   const say = (template: string, id: string, order: readonly string[]) => {
     const shownIds = order.filter((other) => movable.includes(other));
-    announce(fillLabel(template, titleOf(id), shownIds.indexOf(id) + 1, shownIds.length));
+    announce(fillLabel(template, sections.find((section) => section.id === id)!.title, shownIds.indexOf(id) + 1, shownIds.length));
   };
   const land = (id: string, original: readonly string[], next: string[]) => {
     setReordered({ key: reorderKey, ids: next });
@@ -1173,21 +1171,17 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     const to = next.indexOf(id);
     if (from !== to) onSectionsReorder?.(next, { id, from, to });
   };
-  // The section one step on among those that show, or the same one at an end.
-  const neighbour = (order: readonly string[], id: string, step: -1 | 1) => {
-    const shownIds = order.filter((other) => movable.includes(other));
-    return shownIds[Math.min(Math.max(shownIds.indexOf(id) + step, 0), shownIds.length - 1)]!;
+  // The order with the section a step up or down among those that show; the same order at an end.
+  const step = (id: string, from: string[], by: -1 | 1) => {
+    const shownIds = from.filter((other) => movable.includes(other));
+    const target = shownIds[shownIds.indexOf(id) + by];
+    return target === undefined ? from : moveItem(from, from.indexOf(id), from.indexOf(target));
   };
-  const step = (id: string, from: readonly string[], step: -1 | 1) => {
-    const target = neighbour(from, id, step);
-    return target === id ? [...from] : moveItem(from, from.indexOf(id), from.indexOf(target));
+  const drop = (id: string, original: readonly string[]) => {
+    setGrabbed(null);
+    land(id, original, ids);
+    say(labels.dropped, id, ids);
   };
-  useLayoutEffect(() => {
-    const back = refocus.current;
-    if (back === null) return;
-    refocus.current = null;
-    (back.handle ? handles.current.get(back.id) : controls.current.get(`section:${back.id}`))?.focus();
-  });
   const onHandleKey = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
     if (event.key === " ") {
       event.preventDefault();
@@ -1195,14 +1189,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       if (grabbed === null) {
         setGrabbed({ id, original: ids });
         say(labels.pickedUp, id, ids);
-      } else {
-        setGrabbed(null);
-        land(id, grabbed.original, ids);
-        say(labels.dropped, id, ids);
-      }
-      return;
-    }
-    if (grabbed === null) {
+      } else drop(id, grabbed.original);
+    } else if (grabbed === null) {
+      // As on the … button: Left and Escape go back to the header, Right on to the … button.
       if (event.key === "ArrowLeft" || event.key === "Escape") {
         event.preventDefault();
         (event.currentTarget.previousElementSibling as HTMLElement).focus();
@@ -1210,73 +1199,53 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
         event.preventDefault();
         (event.currentTarget.nextElementSibling as HTMLElement | null)?.focus();
       }
-      return;
-    }
-    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+    } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
       event.preventDefault();
       const next = step(id, ids, event.key === "ArrowUp" ? -1 : 1);
-      if (next.join() !== ids.join()) {
-        refocus.current = { id, handle: true };
-        setReordered({ key: reorderKey, ids: next });
-      }
+      setReordered({ key: reorderKey, ids: next });
       say(labels.moved, id, next);
     } else if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
-      refocus.current = { id, handle: true };
       setReordered({ key: reorderKey, ids: grabbed.original });
       setGrabbed(null);
       say(labels.putBack, id, grabbed.original);
-    }
-  };
-  const onHandleBlur = (id: string) => {
-    // Focus that left because React moved the section comes straight back; focus the person moved drops it where it is.
-    if (grabbed?.id === id && refocus.current === null) {
-      setGrabbed(null);
-      land(id, grabbed.original, ids);
-      say(labels.dropped, id, ids);
     }
   };
   // Alt+Up and Alt+Down on a header move its section at once, open or closed.
   const nudge = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
     event.preventDefault();
     const next = step(id, ids, event.key === "ArrowUp" ? -1 : 1);
-    if (next.join() !== ids.join()) {
-      refocus.current = { id, handle: false };
-      land(id, ids, next);
-    }
+    land(id, ids, next);
     say(labels.moved, id, next);
   };
 
-  // Dragging a header, or a grip on a phone: the section follows the pointer, and the one it would take the place of shows a line.
-  const drag = useRef<{ id: string; handle: boolean; type: string; own: HTMLElement; spots: { id: string; el: HTMLElement; center: number }[]; from: number; to: number; cancelled: boolean; stop?: () => void } | null>(null);
-  const clearDrag = () => {
-    listRef.current?.querySelectorAll("[data-drop]").forEach((el) => el.removeAttribute("data-drop"));
-    const held = drag.current;
-    if (held) {
-      held.own.style.transform = "";
-      held.own.removeAttribute("data-dragging");
-    }
+  // Dragging a header with a mouse, or a grip with any pointer: the section follows the pointer, and the header it would take
+  // the place of shows a line.
+  type Spot = { id: string; el: HTMLElement; top: number };
+  const drag = useRef<{ id: string; movable: boolean; own: HTMLElement; spots: Spot[]; from: number; to: number; cancelled: boolean; stop?: () => void } | null>(null);
+  const clearDrag = (held: { own: HTMLElement; spots: Spot[] }) => {
+    for (const spot of held.spots) spot.el.removeAttribute("data-drop");
+    held.own.style.transform = "";
+    held.own.removeAttribute("data-dragging");
   };
   const gesture = useDrag({
+    // Stryker disable next-line StringLiteral: any axis but "x" is the vertical one.
     axis: "y",
     crossAxis: "ignore",
     onPress: (event) => {
-      const el = (event.target as Element).closest("[data-ouro-reorder]");
-      drag.current = el === null ? null : { id: el.getAttribute("data-ouro-reorder")!, handle: el.hasAttribute("data-ouro-reorder-handle"), type: event.pointerType, own: el.closest<HTMLElement>("[data-ouro-section-header]")!, spots: [], from: 0, to: 0, cancelled: false };
+      const el = (event.target as Element).closest("[data-ouro-reorder]")!;
+      // A finger or pen scrolls from the header; a mouse drags by it, and anything by the grip.
+      const movable = event.pointerType === "mouse" || el.hasAttribute("data-ouro-reorder-handle");
+      drag.current = { id: el.getAttribute("data-ouro-reorder")!, movable, own: el.closest<HTMLElement>("[data-ouro-section-header]")!, spots: [], from: 0, to: 0, cancelled: false };
     },
     onStart: () => {
-      const held = drag.current;
-      // A finger or pen scrolls from the header; only a mouse drags by it.
-      if (held === null || (held.type !== "mouse" && !held.handle)) return false;
+      const held = drag.current!;
+      if (!held.movable) return false;
       endPress();
-      const spots = [...listRef.current!.querySelectorAll<HTMLElement>("[data-ouro-section-header]")].map((el) => {
-        const box = el.getBoundingClientRect();
-        return { id: el.getAttribute("data-ouro-section-header")!, el, center: box.top + box.height / 2 };
-      });
-      held.spots = spots;
-      held.from = held.to = spots.findIndex((spot) => spot.id === held.id);
-      held.cancelled = false;
+      // Headers are all one height, so their tops order them as their middles would.
+      held.spots = [...listRef.current!.querySelectorAll<HTMLElement>("[data-ouro-section-header]")].map((el) => ({ id: el.getAttribute("data-ouro-section-header")!, el, top: el.getBoundingClientRect().top }));
+      held.from = held.to = held.spots.findIndex((spot) => spot.id === held.id);
       dragged.current = true;
       held.own.setAttribute("data-dragging", "");
       const escape = (key: globalThis.KeyboardEvent) => {
@@ -1284,34 +1253,31 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
         key.preventDefault();
         key.stopPropagation();
         held.cancelled = true;
-        clearDrag();
-        removeEventListener("keydown", escape, true);
+        clearDrag(held);
       };
       addEventListener("keydown", escape, true);
       held.stop = () => removeEventListener("keydown", escape, true);
       return undefined;
     },
     onMove: ({ delta }) => {
-      const held = drag.current;
-      if (held === null || held.cancelled) return;
+      const held = drag.current!;
+      if (held.cancelled) return;
       held.own.style.transform = `translateY(${delta}px)`;
-      const to = dropIndex(held.spots.map((spot) => spot.center), held.from, held.spots[held.from]!.center + delta);
+      const to = dropIndex(held.spots.map((spot) => spot.top), held.from, held.spots[held.from]!.top + delta);
       held.to = to;
-      listRef.current!.querySelectorAll("[data-drop]").forEach((el) => el.removeAttribute("data-drop"));
-      if (to !== held.from) held.spots[to]!.el.setAttribute("data-drop", to > held.from ? "after" : "before");
+      held.spots.forEach((spot, at) => (at === to && to !== held.from ? spot.el.setAttribute("data-drop", to > held.from ? "after" : "before") : spot.el.removeAttribute("data-drop")));
     },
     onEnd: ({ cancelled }) => {
-      const held = drag.current;
-      if (held === null) return;
-      held.stop?.();
-      const skip = cancelled || held.cancelled || held.to === held.from;
-      clearDrag();
+      const held = drag.current!;
       drag.current = null;
-      if (skip) return;
-      const target = held.spots[held.to]!.id;
-      land(held.id, ids, moveItem(ids, ids.indexOf(held.id), ids.indexOf(target)));
+      held.stop!();
+      clearDrag(held);
+      if (cancelled || held.cancelled) return;
+      land(held.id, ids, moveItem(ids, ids.indexOf(held.id), ids.indexOf(held.spots[held.to]!.id)));
     },
   });
+  // The header takes a mouse's drag only, so a finger's touch moves on it stay the page's scroll.
+  const { ref: gripRef, ...headerDrag } = gesture;
 
   const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
     // Shift+F10 and the Menu key open a row's menu beside it, as a right-click does at the pointer.
@@ -1440,8 +1406,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                   } else move(event, key);
                 }}
                 onFocus={() => setActive(key)}
-                {...(reorderable ? { ...gesture, "data-ouro-reorder": section.id } : undefined)}
-                className={cn(controlClass, headerClass, withMore && "[-webkit-touch-callout:none]", reorderable ? (withMore ? "pe-[5.5rem]" : "pe-ouro-9") : withMore && "pe-ouro-9")}
+                {...(reorderable ? { ...headerDrag, "data-ouro-reorder": section.id } : undefined)}
+                className={cn(controlClass, headerClass, withMore && "[-webkit-touch-callout:none]", reorderable && withMore ? "pe-[5.5rem]" : (reorderable || withMore) && "pe-ouro-9")}
               >
                 <Chevron open={open} />
                 <span data-ouro-conversation-section-title="" className="min-w-0 truncate font-semibold">
@@ -1463,26 +1429,18 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
               <div
                 data-slot="conversation-list-section-header"
                 data-ouro-section-header={reorderable ? section.id : undefined}
-                className={cn(
-                  "group/row relative",
-                  reorderable &&
-                    "data-dragging:z-10 data-dragging:bg-background data-dragging:shadow-(--shadow-lg) data-dragging:ring-1 data-dragging:ring-border/60 data-dragging:rounded-(--ouro-row-radius,var(--radius-ouro-md))",
-                  reorderable &&
-                    "after:pointer-events-none after:absolute after:inset-x-0 after:h-0.5 after:bg-ring after:opacity-0 forced-colors:after:bg-[Highlight] data-[drop=before]:after:top-0 data-[drop=before]:after:opacity-100 data-[drop=after]:after:bottom-0 data-[drop=after]:after:opacity-100",
-                )}
+                // Lifted as Reorderable lifts a row while it is dragged. The line where it would land is in the gap above or below
+                // a header: below by default, where an absolute box with no top sits after the header's button.
+                className={
+                  "group/row relative data-dragging:z-10 data-dragging:rounded-ouro-lg data-dragging:bg-background data-dragging:shadow-(--shadow-lg) " +
+                  "after:pointer-events-none after:absolute after:inset-x-0 data-drop:after:h-0.5 data-drop:after:bg-ring forced-colors:after:bg-[Highlight] data-[drop=before]:after:-top-0.5"
+                }
               >
                 {headerButton}
                 {reorderable && (
                   <button
-                    ref={(node) => {
-                      if (!node) return undefined;
-                      handles.current.set(section.id, node);
-                      const release = gesture.ref(node);
-                      return () => {
-                        handles.current.delete(section.id);
-                        release?.();
-                      };
-                    }}
+                    {...headerDrag}
+                    ref={gripRef}
                     type="button"
                     tabIndex={-1}
                     data-slot="conversation-list-section-handle"
@@ -1494,21 +1452,14 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                     aria-describedby={`${baseId}-reorder`}
                     onFocus={() => setActive(key)}
                     onKeyDown={(event) => onHandleKey(event, section.id)}
-                    onKeyUp={(event) => {
-                      // A button clicks when Space comes up; this Space has done its work.
-                      if (event.key === " ") event.preventDefault();
-                    }}
-                    onBlur={() => onHandleBlur(section.id)}
-                    onPointerDown={gesture.onPointerDown}
-                    onPointerMove={gesture.onPointerMove}
-                    onPointerUp={gesture.onPointerUp}
-                    onPointerCancel={gesture.onPointerCancel}
+                    // Focus the person moves elsewhere drops a picked-up section where it is.
+                    onBlur={() => grabbed !== null && drop(grabbed.id, grabbed.original)}
                     className={cn(
                       "press absolute box-border flex h-ouro-5 w-ouro-7 cursor-grab touch-none items-center justify-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 bg-transparent p-0 text-muted-foreground top-1/2 -translate-y-1/2",
                       withMore ? "end-[2.75rem]" : "end-3",
                       "[-webkit-tap-highlight-color:transparent] outline-ring outline-offset-0 focus-visible:outline-2 focus-visible:outline-solid",
-                      "transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-focus-within/row:opacity-100 data-grabbed:opacity-100",
-                      "pointer-fine:hover:bg-[color:var(--ouro-row-pressed,var(--muted))] data-grabbed:bg-[color:var(--ouro-row-pressed,var(--muted))]",
+                      "transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-focus-within/row:opacity-100",
+                      "pointer-fine:hover:bg-[color:var(--ouro-row-pressed,var(--muted))] data-grabbed:bg-accent data-grabbed:text-accent-foreground",
                     )}
                   >
                     <TouchTarget />

@@ -55,13 +55,24 @@ async function pointer(target: EventTarget, type: string, x: number, y: number, 
 }
 
 /** Presses `from` and moves it onto `to`'s position, in steps, then releases. */
-async function dragOnto(from: Element, to: Element, { release = true, below = false } = {}) {
+async function dragOnto(from: Element, to: Element, { release = true, below = false, pointerType = "mouse", drift = 0 } = {}) {
   const [x, y] = middle(from);
   const target = to.getBoundingClientRect();
   const endY = target.y + target.height * (below ? 0.9 : 0.1);
-  await pointer(from, "pointerdown", x, y);
-  for (let step = 1; step <= 6; step++) await pointer(window, "pointermove", x, y + ((endY - y) * step) / 6);
-  if (release) await pointer(window, "pointerup", x, endY);
+  await pointer(from, "pointerdown", x, y, { pointerType });
+  for (let step = 1; step <= 6; step++) await pointer(window, "pointermove", x + drift, y + ((endY - y) * step) / 6, { pointerType });
+  if (release) await pointer(window, "pointerup", x, endY, { pointerType });
+}
+
+/** Dispatches a key on the element, and whether the list took it from the page (default prevented) and kept it from the page above. */
+async function key(target: Element, init: KeyboardEventInit) {
+  let heard = false;
+  const listen = () => (heard = true);
+  document.addEventListener("keydown", listen);
+  const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
+  await act(async () => void target.dispatchEvent(event));
+  document.removeEventListener("keydown", listen);
+  return { prevented: event.defaultPrevented, heard };
 }
 
 const list = (extra: Partial<Parameters<typeof ConversationList>[0]> = {}) => <ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} {...extra} />;
@@ -201,5 +212,149 @@ describe("ConversationList section reorder", () => {
     await userEvent.click(more);
     await userEvent.click(page.getByRole("menuitem", { name: "Rename" }));
     expect(onRename).toHaveBeenCalledTimes(1);
+  });
+  it("names the grip Move section by default, keeps it out of the tab order, and marks only the section picked up", async () => {
+    const { host } = await render(list({ onSectionsReorder: () => {} }));
+    expect(handle(host, "club").textContent).toBe("Move section Clubs");
+    expect(handle(host, "club").tabIndex).toBe(-1);
+    await act(async () => handle(host, "club").focus());
+    await userEvent.keyboard(" ");
+    expect(host.querySelectorAll("[data-grabbed]")).toHaveLength(1);
+    expect(handle(host, "club").hasAttribute("data-grabbed")).toBe(true);
+    await userEvent.keyboard(" ");
+    expect(host.querySelector("[data-grabbed]")).toBeNull();
+  });
+
+  it("goes between a header, its grip and its … button with Left, Right and Escape, and Right from a header reaches the grip", async () => {
+    const menu = [{ label: "Rename" }];
+    const { host } = await render(list({ onSectionsReorder: () => {}, sections: sections.map((s) => (s.id === "work" ? { ...s, menu } : s)) }));
+    const [, , clubs, work] = headers(host);
+    await act(async () => clubs!.focus());
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(handle(host, "club"));
+    // The last control in its header: Right stays.
+    expect(await key(handle(host, "club"), { key: "ArrowRight" })).toEqual({ prevented: true, heard: true });
+    expect(document.activeElement).toBe(handle(host, "club"));
+    expect(await key(handle(host, "club"), { key: "ArrowLeft" })).toEqual({ prevented: true, heard: true });
+    expect(document.activeElement).toBe(clubs);
+    await act(async () => handle(host, "work").focus());
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(host.querySelector('li[data-ouro-conversation-section="work"] [data-ouro-part="more"]'));
+    await act(async () => handle(host, "work").focus());
+    expect(await key(handle(host, "work"), { key: "Escape" })).toEqual({ prevented: true, heard: true });
+    expect(document.activeElement).toBe(work);
+    // Other keys are the page's.
+    expect(await key(handle(host, "work"), { key: "a" })).toEqual({ prevented: false, heard: true });
+  });
+
+  it("keeps Space and the arrows from scrolling the page while a section is picked up, and Escape from closing what holds the list", async () => {
+    const { host } = await render(list({ onSectionsReorder: () => {} }));
+    const grip = handle(host, "club");
+    await act(async () => grip.focus());
+    expect((await key(grip, { key: " " })).prevented).toBe(true);
+    expect(await key(grip, { key: " ", repeat: true })).toEqual({ prevented: true, heard: true });
+    expect(grip.hasAttribute("data-grabbed")).toBe(true);
+    expect((await key(grip, { key: "ArrowDown" })).prevented).toBe(true);
+    expect(await key(grip, { key: "a" })).toEqual({ prevented: false, heard: true });
+    expect(grip.hasAttribute("data-grabbed")).toBe(true);
+    expect(await key(grip, { key: "Escape" })).toEqual({ prevented: true, heard: false });
+    expect(grip.hasAttribute("data-grabbed")).toBe(false);
+  });
+
+  it("drops a picked-up section where it is when focus leaves it, and reports nothing for one dropped where it began", async () => {
+    const onSectionsReorder = vi.fn();
+    const { host } = await render(list({ onSectionsReorder }));
+    await act(async () => handle(host, "club").focus());
+    await userEvent.keyboard(" ");
+    await userEvent.keyboard(" ");
+    await expect.poll(said).toBe("Clubs dropped. Position 2 of 3.");
+    expect(onSectionsReorder).not.toHaveBeenCalled();
+    await userEvent.keyboard(" ");
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(handle(host, "club"));
+    expect(handle(host, "club").hasAttribute("data-grabbed")).toBe(true);
+    await act(async () => headers(host)[0]!.focus());
+    expect(host.querySelector("[data-grabbed]")).toBeNull();
+    await expect.poll(said).toBe("Clubs dropped. Position 1 of 3.");
+    expect(onSectionsReorder).toHaveBeenCalledWith(["club", "favorites", "work"], { id: "club", from: 1, to: 0 });
+  });
+
+  it("stays put at either end, and counts only the reorderable sections that show", async () => {
+    const onSectionsReorder = vi.fn();
+    const withEmpty = [...sections, { id: "empty", title: "Archive", reorderable: true }];
+    const { host } = await render(list({ sections: withEmpty, onSectionsReorder }));
+    await act(async () => headers(host)[1]!.focus());
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    expect(order(host)).toEqual(["Pinned", "Favorites", "Clubs", "Work"]);
+    await expect.poll(said).toBe("Favorites moved. Position 1 of 3.");
+    await act(async () => headers(host)[3]!.focus());
+    await userEvent.keyboard("{Alt>}{ArrowDown}{/Alt}");
+    expect(order(host)).toEqual(["Pinned", "Favorites", "Clubs", "Work"]);
+    await expect.poll(said).toBe("Work moved. Position 3 of 3.");
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    expect(order(host)).toEqual(["Pinned", "Favorites", "Work", "Clubs"]);
+    await expect.poll(said).toBe("Work moved. Position 2 of 3.");
+    expect(onSectionsReorder).toHaveBeenCalledTimes(1);
+    expect(onSectionsReorder).toHaveBeenCalledWith(["favorites", "work", "club", "empty"], { id: "work", from: 2, to: 1 });
+    // A row under a moved header still reaches it with the arrow keys.
+    await act(async () => host.querySelector<HTMLButtonElement>('li[data-ouro-conversation-section="work"] [data-ouro-part="row"]')!.focus());
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(headers(host)[2]);
+  });
+
+  it("drags by the grip with a finger, but scrolls instead from a header, and keeps the drag through a sideways drift", async () => {
+    const onSectionsReorder = vi.fn();
+    const { host } = await render(list({ onSectionsReorder }));
+    await dragOnto(headers(host)[1]!, headers(host)[3]!, { below: true, pointerType: "touch" });
+    expect(onSectionsReorder).not.toHaveBeenCalled();
+    await dragOnto(handle(host, "favorites"), headers(host)[2]!, { below: true, pointerType: "touch" });
+    expect(onSectionsReorder).toHaveBeenLastCalledWith(["club", "favorites", "work"], { id: "favorites", from: 0, to: 1 });
+    await dragOnto(headers(host)[3]!, headers(host)[1]!, { drift: 60 });
+    expect(order(host)).toEqual(["Pinned", "Work", "Clubs", "Favorites"]);
+  });
+
+  it("moves the drop line with the pointer, shows none back where the drag began, and cancels on Escape or a cancelled pointer", async () => {
+    const onSectionsReorder = vi.fn();
+    const { host } = await render(list({ onSectionsReorder }));
+    const [, favorites, clubs, work] = headers(host);
+    const line = () => [...host.querySelectorAll("[data-drop]")].map((el) => `${el.getAttribute("data-ouro-section-header")}:${el.getAttribute("data-drop")}`);
+    // Where the pointer is, by the headers' places before the drag moves the one dragged.
+    const [atFavorites, atClubs, atWork] = [favorites!, clubs!, work!].map(middle);
+    await dragOnto(work!, clubs!, { release: false });
+    expect(line()).toEqual(["club:before"]);
+    await pointer(window, "pointermove", ...atFavorites!);
+    expect(line()).toEqual(["favorites:before"]);
+    await pointer(window, "pointermove", ...atWork!);
+    expect(line()).toEqual([]);
+    await pointer(window, "pointermove", ...atFavorites!);
+    // Another key leaves the drag; Escape ends it, and the pointer moving on draws nothing.
+    expect(await key(document.body, { key: "a" })).toEqual({ prevented: false, heard: true });
+    expect(line()).toEqual(["favorites:before"]);
+    expect(await key(document.body, { key: "Escape" })).toEqual({ prevented: true, heard: false });
+    expect(line()).toEqual([]);
+    expect(host.querySelector("[data-dragging]")).toBeNull();
+    await pointer(window, "pointermove", ...atClubs!);
+    expect(line()).toEqual([]);
+    expect(work!.closest<HTMLElement>("[data-ouro-section-header]")!.style.transform).toBe("");
+    await pointer(window, "pointerup", ...atClubs!);
+    expect(onSectionsReorder).not.toHaveBeenCalled();
+    // The Escape listener goes with the drag.
+    expect(await key(document.body, { key: "Escape" })).toEqual({ prevented: false, heard: true });
+    await dragOnto(work!, favorites!, { release: false });
+    await pointer(window, "pointercancel", ...atFavorites!);
+    expect(onSectionsReorder).not.toHaveBeenCalled();
+    expect(order(host)).toEqual(["Pinned", "Favorites", "Clubs", "Work"]);
+  });
+
+  it("pads a header for the controls on its end: none, the grip or the … button, or both", async () => {
+    const menu = [{ label: "Rename" }];
+    const { host } = await render(
+      list({ onSectionsReorder: () => {}, sections: [sections[0]!, { ...sections[1]!, menu }, sections[2]!, { ...sections[3]!, reorderable: false, menu }] }),
+    );
+    const [plain, both, grip, more] = headers(host).map((header) => Number.parseFloat(getComputedStyle(header).paddingInlineEnd));
+    expect(plain).toBeLessThan(grip!);
+    expect(grip).toBe(more);
+    expect(both).toBeGreaterThan(grip!);
+    expect(headers(host)[0]!.closest('[data-slot="conversation-list-section-header"]')).toBeNull();
   });
 });
