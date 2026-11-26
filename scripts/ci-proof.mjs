@@ -28,6 +28,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { JOBS_PER_PAGE } from "./run-jobs.mjs";
 
 /** The start of the name of ci.yml's tree-proof job; the tree it passed follows. */
 export const PREFIX = "Full suite passed on tree ";
@@ -113,7 +114,7 @@ export function ghApi(repo, gh = (args) => execFileSync("gh", args, { encoding: 
         .filter((pull) => pull.merged_at && pull.merge_commit_sha === sha)
         .map((pull) => pull.head.sha),
     runs: (sha) => pages(`actions/workflows/ci.yml/runs?head_sha=${sha}&per_page=100`, "workflow_runs"),
-    jobs: (id) => pages(`actions/runs/${id}/jobs?filter=latest&per_page=100`, "jobs"),
+    jobs: (id) => pages(`actions/runs/${id}/jobs?filter=latest&per_page=${JOBS_PER_PAGE}`, "jobs"),
   };
 }
 

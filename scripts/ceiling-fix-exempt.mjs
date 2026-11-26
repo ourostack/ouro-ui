@@ -19,6 +19,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { ghApi } from "./main-green.mjs";
 import { postComment, readComments } from "./rerun-guard.mjs";
+import { listJobs } from "./run-jobs.mjs";
 
 /** The issue this report-only log is written to: the ceiling-fix-deadlock proposal. */
 export const ISSUE_NUMBER = 3816;
@@ -137,7 +138,7 @@ export async function report({ env = process.env, api = ghApi, jobLog = defaultJ
       const runs = api(`repos/${repo}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${pr.head.sha}&per_page=1`).workflow_runs;
       const run = runs[0];
       if (!run || run.status !== "completed") continue;
-      const jobs = api(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`).jobs;
+      const jobs = listJobs(api, `repos/${repo}/actions/runs/${run.id}`);
       const freshMain = jobs.find((job) => job.name === "fresh-main");
       if (!freshMain || freshMain.conclusion !== "failure") continue;
       const lines = jobLog(repo, freshMain.id)

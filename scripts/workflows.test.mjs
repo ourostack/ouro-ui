@@ -10,7 +10,7 @@ import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { KITS } from "./kit-pin.mjs";
-import { entryProblems, expiredWarning, failedTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
+import { entryProblems, expiredWarning, failedTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -2247,6 +2247,55 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   const rerun = runStep(counting, { ...passed, SHARDS: "failure" });
   assert.equal(rerun.status, 1);
   assert.match(rerun.stdout, /^::error::an install shard of this attempt did not pass \(failure\)/m);
+  // install (…, …) is a required check: a merge queue entry is dropped the instant it reports
+  // failure, too late for quarantine-retry.yml's later retry to put it back, so this gate judges
+  // its own failing install-shard and install-checks jobs first, exactly as the ci job already
+  // does for its own ids (ourostack/ouro-ui#3827).
+  assert.match(gate, /^ {6}- id: parts\n {8}name: Every shard passed\n {8}continue-on-error: true$/m);
+  assert.match(gate, /^ {6}- id: fetch-quarantine\n/m);
+  assert.match(gate, /^ {8}if: steps\.parts\.outcome == 'failure'$/m);
+  assert.match(gate, /^ {6}- id: judge\n {8}if: steps\.parts\.outcome == 'failure'$/m);
+  const judging = stepScript(gate, "Quarantined failures alone are forgiven; anything else still fails");
+  // Only the id whose own result is not success is named: judgeOwnRun treats a listed id with no
+  // failing instance of its own as a problem, not as nothing to explain.
+  assert.match(judging, /if \[ "\$SHARDS" != success \]; then ids\+=\(install-shard\); fi/);
+  assert.match(judging, /if \[ "\$CHECKS" != success \]; then ids\+=\(install-checks\); fi/);
+  assert.match(judging, /node scripts\/quarantine\.mjs judge "\$GITHUB_RUN_ID" "\$\{ids\[@\]\}"$/m);
+  assert.match(runStep(judging, { SHARDS: "failure", CHECKS: "success", GITHUB_RUN_ID: "5" }).calls, /CALL node scripts\/quarantine\.mjs judge 5 install-shard\n/);
+  assert.match(runStep(judging, { SHARDS: "failure", CHECKS: "failure", GITHUB_RUN_ID: "5" }).calls, /CALL node scripts\/quarantine\.mjs judge 5 install-shard install-checks\n/);
+  assert.match(runStep(judging, { SHARDS: "success", CHECKS: "failure", GITHUB_RUN_ID: "5" }).calls, /CALL node scripts\/quarantine\.mjs judge 5 install-checks\n/);
+  const forgiveness = stepBlock(gate, "Every shard passed, or was forgiven as quarantined");
+  assert.match(forgiveness, /^ {8}if: always\(\)$/m);
+  assert.match(forgiveness, /steps\.parts\.outcome.*success/);
+  assert.match(forgiveness, /steps\.judge\.outcome.*success/);
+});
+
+test("install-gate's judge forgives its own failing install-shard job when the quarantine already explains its test, the registry/ouro path mapped back from the installed app's src/ copy, matching the ci job's judge (ourostack/ouro-ui#3827)", () => {
+  const ciYml = workflow("ci.yml");
+  const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: ["Install test"], log: calendarLog, ...extra });
+  // install-shard's own job name shape, a shard of a pull request's 6 (ourostack/ouro-ui job
+  // 139726952501's style: "install (shadcn, nova, n/N)"), carrying the Calendar test's failure
+  // under its installed app's copy (src/…), which quarantine.mjs's names() maps back to the
+  // registry/ouro/… path the test is actually quarantined under.
+  const shard = job(3, "install (shadcn, nova, 2/6)", "failure");
+  const runWith = (jobs) => ({ id: "5", workflow: ciYml, jobs });
+
+  const forgiven = judgeOwnRun({ run: runWith([shard]), ids: ["install-shard"], entries: [calendarEntry] });
+  assert.equal(forgiven.explained, true, forgiven.problems.join("; "));
+  assert.equal(forgiven.retried.length, 1);
+  assert.equal(forgiven.retried[0].job, "install (shadcn, nova, 2/6)");
+
+  // install-checks fails too, on the same quarantined test (OURO_CHECK_ONLY runs the shipped
+  // tests as well): both ids are judged together, as install-gate's single judge call does.
+  const checks = job(4, "install checks (shadcn, nova, 1)", "failure", { failedSteps: ["Check the app"] });
+  const both = judgeOwnRun({ run: runWith([shard, checks]), ids: ["install-shard", "install-checks"], entries: [calendarEntry] });
+  assert.equal(both.explained, true, both.problems.join("; "));
+  assert.equal(both.retried.length, 2);
+
+  // A real, unquarantined failure beside the quarantined one still fails the judge, so
+  // install-gate still reports red: no silent forgiveness of anything new.
+  const fresh = job(6, "install (ouro, nova, 1/6)", "failure", { log: calendarLog.replace(calendarTitle, "A fresh, unquarantined failure") });
+  assert.equal(judgeOwnRun({ run: runWith([shard, fresh]), ids: ["install-shard"], entries: [calendarEntry] }).explained, false);
 });
 
 test("every job of a workflow that runs on pull requests or in the merge queue ends within an hour", () => {

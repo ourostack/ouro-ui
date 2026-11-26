@@ -785,6 +785,24 @@ describe("first-run harness: the detours", () => {
     assert.match(empty.steps.at(-1)!.evidence, /\(its items: Quit\)$/);
   });
 
+  test("reopen: when the menu bar item's menu didn't open, the evidence carries why, not an empty items list", async () => {
+    const w = new World();
+    w.screen = signIn();
+    w.menu = { ok: false, items: [], why: "no item 1" };
+    w.onCloseWindow = () => (w.shown = false);
+    w.onStart = () => (w.shown = true);
+    const { s, steps } = session(w, { menuBarItem: 0 });
+    await detour("reopen").run!(s, "f", snapOf(signIn()));
+    assert.equal(
+      steps.at(-1)!.evidence,
+      `the window closed at "f", and the menu bar item's menu didn't open when pressed (no item 1), so nothing there reopens it`,
+    );
+    w.menu = { ok: false, items: [] };
+    w.onCloseWindow = () => (w.shown = false);
+    await detour("reopen").run!(s, "g", snapOf(signIn()));
+    assert.match(steps.at(-1)!.evidence, /\(no menu appeared under it within 2 s\), so nothing there reopens it$/);
+  });
+
   test("reopen: a window with no process left is already closed", async () => {
     const w = new World();
     w.screen = signIn();
