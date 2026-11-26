@@ -297,7 +297,10 @@ describe("MessageList prepending older history", () => {
     });
   }
 
-  it("holds the row being read as a page of older messages goes in after a wheel flings a windowed list to its top, with the rows above shorter than the space kept for them (#3892)", async () => {
+  it.each([
+    { when: "as the wheel comes to rest", rested: false },
+    { when: "once the wheel has rested", rested: true },
+  ])("holds the row being read as a page of older messages goes in $when after a wheel flings a windowed list to its top, with the rows above shorter than the space kept for them (#3892)", async ({ rested }) => {
     // The newest rows are tall (a picture each) and the older ones short, so the space kept for the rows not drawn is too tall.
     const rows = (from: number, count: number) =>
       Array.from({ length: count }, (_, offset) => {
@@ -333,7 +336,8 @@ describe("MessageList prepending older history", () => {
       for (let step = 0; step < 20 && scroller.scrollTop > 0; step++) await userEvent.wheel(scroller, { delta: { y: -1500 } });
       await draw(true);
       await expect.poll(() => restedAtTop).toBe(true);
-      await settleCarry(scroller);
+      // Paid in a write once it has rested, or held by drawing the content down until it does.
+      if (rested) await settleCarry(scroller);
       // The premise: the fling reached the top, with older messages to come.
       expect(scroller.scrollTop).toBe(0);
       const reading = firstVisible(scroller);

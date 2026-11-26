@@ -1887,7 +1887,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // above the content as a margin, so where each message sits in the content, which the anchors and the window read, stays.
     const setSlack = (px: number) => {
       // The mark at the view's bottom held the content where the space put it: the next keepAnchor sets it again.
-      if (!native()) holdView(0);
+      if (px !== slack && !native()) holdView(0);
       slack = px;
       content.style.marginBlockStart = `${px}px`;
       placeFloor();
@@ -1929,11 +1929,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
       if (by === 0) return letGo();
       const wheeling = turning();
-      content.style.removeProperty("translate");
       const before = scroller.scrollTop;
+      // The translate holds the scroll range where it draws the content past the content's end: the mark at the view's bottom holds
+      // it instead while the translate goes and the scroll position takes it, so a carry the content came up by (rows above coming
+      // in shorter) is not pulled up by the browser first (ourostack/ouro-ui#3892).
+      const anchoring = native();
+      if (!anchoring) holdView(before + scroller.clientHeight);
+      content.style.removeProperty("translate");
       // In whole pixels: WebKit drops the fraction of a scroll position written to it, so a carry of 3,499.99 px moved the
       // reader's place a whole pixel there (ourostack/ouro-ui#2648).
       const applied = scrollOwn(Math.round(by));
+      if (!anchoring) holdView(0);
       // A scroll position written while the wheel turns may land in part there, and the rest settles frames later against the
       // reader. Where no end stopped the write, what has not landed stays carried, drawn by the translate, until a later write lands it.
       const top = scroller.scrollTop;
@@ -2062,7 +2068,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (Math.abs(moved) >= 0.5 && carriedRef.current !== 0) {
           owed = 0;
           carriedRef.current += moved;
-          content.style.removeProperty("translate");
+          // pay() takes the translate away itself, holding the range as it does; with nothing left to pay, it goes here.
+          if (carriedRef.current === 0) content.style.removeProperty("translate");
           pay();
           return keepAnchor();
         }
