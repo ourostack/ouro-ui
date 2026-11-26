@@ -8,7 +8,7 @@ const OPEN_DIALOG = '[role="dialog"][data-open]:not([data-ouro="toast"])';
  * A modal dialog traps Tab, so toasts outside it need their own way in. While a
  * dialog holds focus, Tab past its last control goes to the toasts, and Tab past the last toast control
  * returns to the dialog's first (Shift+Tab goes the other way), so a toast's action stays within reach.
- * Loading this module starts the hand-over; it finds the toasts' viewport on each Tab, so it needs no teardown.
+ * Loading this module starts the hand-over, which looks up the toasts' viewport when Tab is pressed.
  */
 const tabbables = (root: ParentNode) => [...root.querySelectorAll<HTMLElement>(tabbable)].filter(reachable);
 // A modal traps Tab and, where it can, hides the rest of the page; a popover left non-modal does neither.
