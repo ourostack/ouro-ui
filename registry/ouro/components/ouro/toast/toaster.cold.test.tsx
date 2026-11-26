@@ -40,8 +40,6 @@ describe("Toaster hand-over on a cold load", () => {
     const controls = document.querySelectorAll<HTMLElement>('[role="dialog"][data-open]:not([data-ouro="toast"]) button');
     controls[controls.length - 1]!.focus();
     await pressTab();
-    expect(document.activeElement?.closest('[data-ouro="toaster"]')).not.toBeNull();
-    await pressTab();
     expect(document.activeElement?.textContent).toBe("Undo");
   });
 });

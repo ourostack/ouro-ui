@@ -33,7 +33,9 @@ document.addEventListener(
     const other = inToasts ? inside : toasts;
     if (active !== (event.shiftKey ? own[0] : own[own.length - 1])) return;
     event.preventDefault();
-    (event.shiftKey ? other[other.length - 1] : other[0])!.focus();
+    // Going forward into the toasts lands on the newest toast's action, and on the toast itself only when it has none.
+    const first = !inToasts && !event.shiftKey ? other[0]!.querySelector<HTMLElement>('[data-ouro-part="action"]') : null;
+    (first ?? (event.shiftKey ? other[other.length - 1] : other[0]))!.focus();
   },
   true,
 );

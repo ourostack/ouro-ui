@@ -40,6 +40,21 @@ const press = (target: Element, key = "Tab", shiftKey = false) => {
 };
 
 describe("reachModal", () => {
+  it("lands on a toast's action when it has one, and on the toast when it has none", () => {
+    const { inside, toasts } = build();
+    const action = document.createElement("button");
+    action.dataset.ouroPart = "action";
+    toasts[0]!.append(action);
+    inside[1]!.focus();
+    press(inside[1]!);
+    expect(document.activeElement).toBe(action);
+    press(action, "Tab", true);
+    expect(document.activeElement).toBe(inside[1]);
+    action.remove();
+    press(inside[1]!);
+    expect(document.activeElement).toBe(toasts[0]);
+  });
+
   it("sends Tab from a dialog's last control to the first toast control, and Shift+Tab back", () => {
     const { inside, toasts } = build();
     inside[1]!.focus();
