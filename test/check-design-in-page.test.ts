@@ -1068,7 +1068,7 @@ describe("findDesignIssues: off-centre-ink", () => {
   const DOTS = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`;
 
   it("finds a typed \"…\" on its baseline, low in a square button, and an icon pushed off its middle", () => {
-    render(`<p><button id="typed" aria-label="More" style="${BOX}">…</button></p>
+    render(`<p><button id="typed" aria-label="More" style="${BOX};font-family:monospace">…</button></p>
 <p><button id="pushed" aria-label="More" style="${BOX};padding:8px 0 0 6px;box-sizing:border-box">${DOTS}</button></p>`);
     const issues = of("off-centre-ink");
     expect(issues.map(({ element }) => element)).toEqual(['button#typed "More"', 'button#pushed "More"']);

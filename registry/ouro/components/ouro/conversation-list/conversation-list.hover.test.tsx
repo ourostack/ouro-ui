@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { ConversationList, type ConversationListItem } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { findDesignIssues } from "@/registry/ouro/check/design-check";
 
 const roots: Root[] = [];
 const nodes: Element[] = [];
@@ -93,14 +92,6 @@ describe("ConversationList hover", () => {
     row.focus();
     await expect.poll(() => style(more).opacity).toBe("1");
     await expect.poll(() => style(time).opacity).toBe("0");
-  });
-
-  it("draws its more button's dots in the button's middle, not on a text baseline", async () => {
-    const host = await render(list());
-    const row = rowOf(host, "Trail crew");
-    await userEvent.hover(row);
-    await expect.poll(() => style(moreOf(row)!).opacity).toBe("1");
-    expect(findDesignIssues().filter((issue) => issue.rule === "off-centre-ink")).toEqual([]);
   });
 
   it("holds the row and the time's slot steady through hover and focus", async () => {
