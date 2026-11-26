@@ -175,8 +175,11 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * phone menu's two ways in, and the real Apple, Windows and Android marks Ari asked for ("yeah, lets use real platform
  * marks"), about 1,700 of it. The Docs panel's lists, which read the docs' generated index, load on their own when a
  * pointer or focus first reaches the header (site/src/voyage/docs-panel.tsx), so no page pays for them up front.
+ * The voyage's set again for the phone menu's open (#3628): 303,774 bytes, 124 over main's 303,650 in this pull request's
+ * e2e run, for the first-callback height in Crossfade and for mounting the pane it is not showing after the first paint,
+ * which together keep the open inside its 100 ms budget on a slow CPU.
  */
-const MEASURED = { voyage: 303_169, docs: 202_898 } as const;
+const MEASURED = { voyage: 303_774, docs: 202_898 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
