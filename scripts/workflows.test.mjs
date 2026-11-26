@@ -3153,7 +3153,7 @@ test("the quarantine reads a job's failed Vitest tests from its log, and anythin
 });
 
 const latencyTitle = "interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU";
-const latencyLog = logLines("browser (5/22)", [
+const latencyLog = logLines("browser (5/11)", [
   `  ✘  1 [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle} (1.2s)`,
   "  1) [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU",
   "    Error: expected p95 to be below 100ms, measured 142ms",
@@ -3267,7 +3267,7 @@ test("judgeOwnRun explains ci.yml's own failing jobs, by their id, from inside o
 
   // Two failing ids: a gate (browser, read by nothing here) and install, both quarantined, still
   // forgiven together; judgeOwnRun collects every reason across every id it is asked to judge.
-  const dive = job(4, "browser (5/22)", "failure", { failedSteps: ["Browser tests"], log: diveLog });
+  const dive = job(4, "browser (5/11)", "failure", { failedSteps: ["Browser tests"], log: diveLog });
   const both = judgeOwnRun({ run: runWith([calendar, dive]), ids: ["install", "browser"], entries: [calendarEntry, diveEntry] });
   assert.equal(both.explained, true, both.problems.join("; "));
   assert.equal(both.retried.length, 2);
