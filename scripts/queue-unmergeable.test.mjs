@@ -63,4 +63,5 @@ test("the workflow runs every 10 minutes by hand or schedule, one run at a time,
   assert.doesNotMatch(text, /pull_request(_target)?:/);
   assert.doesNotMatch(text, /github\.token/);
   assert.match(text, /test -n "\$GH_TOKEN"/);
+  assert.match(text, /COMMENT_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}/);
 });

@@ -48,7 +48,8 @@ export function conflictComment({ author, paths }) {
   return `@${author} this pull request was removed from the merge queue because main conflicts with it, which stalled the entries behind it. Rebase it, resolve these files, and re-arm auto-merge:\n\n${list}`;
 }
 
-const gh = (args, input) => execFileSync("gh", args, { encoding: "utf8", input, stdio: ["pipe", "pipe", "pipe"] });
+const gh = (args, input, env = process.env) => execFileSync("gh", args, { encoding: "utf8", input, env, stdio: ["pipe", "pipe", "pipe"] });
+const commentEnv = () => (process.env.COMMENT_TOKEN ? { ...process.env, GH_TOKEN: process.env.COMMENT_TOKEN } : process.env);
 const git = (args) => {
   try {
     return { code: 0, out: execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }) };
@@ -65,7 +66,7 @@ function readQueue(repo) {
   return data.data.repository.mergeQueue?.entries.nodes ?? [];
 }
 
-const comment = (repo, number, body) => gh(["api", "-X", "POST", `repos/${repo}/issues/${number}/comments`, "-f", `body=${body}`]);
+const comment = (repo, number, body) => gh(["api", "-X", "POST", `repos/${repo}/issues/${number}/comments`, "-f", `body=${body}`], undefined, commentEnv());
 
 export function run(repo) {
   const entry = pickUnmergeable(readQueue(repo));
@@ -84,8 +85,12 @@ export function run(repo) {
     comment(repo, number, conflictComment({ author: author?.login ?? "author", paths }));
   }
   const line = logLine({ number, position: entry.position, verdict, paths });
-  comment(repo, LOG_ISSUE, line);
   console.log(line);
+  try {
+    comment(repo, LOG_ISSUE, line);
+  } catch (error) {
+    console.log(`The log comment on #${LOG_ISSUE} failed: ${String(error.stderr ?? error.message).trim()}`);
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv[2] === "run") run(process.env.GITHUB_REPOSITORY);
