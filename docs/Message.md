@@ -627,10 +627,10 @@ interface MessageQuote {
   onActivate?: (() => void) | undefined;
   /**
    * When the quoted message was sent, a `Date`, an ISO string or milliseconds. Drawn after the author as
-   * a `LocalDate` in the reader's time zone, and read as "Reply to Ana, Mar 3". Use `atText` for the app's own wording.
+   * a date in the reader's language and time zone, and read as "Reply to Ana, Mar 3". Use `atText` for the app's own wording.
    */
   at?: Date | string | number | undefined;
-  /** The app's own wording for the day of `at` ("Yesterday"), drawn in a `<time dateTime>` in place of the `LocalDate`. Needs `at`. */
+  /** The app's own wording for the day of `at` ("Yesterday"), drawn in a `<time dateTime>` in place of the date. Needs `at`. */
   atText?: string | undefined;
   /**
    * A line above the quote, such as "Replied in thread: " and a `Link` or `Button` with the thread's title. It

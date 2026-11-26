@@ -760,7 +760,7 @@ describe("Message quote", () => {
     expect(element.getAttribute("data-ouro-control")).toBe("message");
     expect(element.getAttribute("data-ouro-part")).toBe("quote");
     expect(element.hasAttribute("data-ouro-message-quote")).toBe(true);
-    expect(bubbleOf(message).firstElementChild).toBe(element.parentElement);
+    expect(bubbleOf(message).firstElementChild).toBe(element);
     await tabFromTop();
     expect(document.activeElement).toBe(element);
     await userEvent.keyboard("{Enter}");
@@ -768,7 +768,7 @@ describe("Message quote", () => {
     expect(element.getBoundingClientRect().width).toBeCloseTo(bubbleOf(message).getBoundingClientRect().width - 2 * parseFloat(getComputedStyle(bubbleOf(message)).paddingInlineStart), 0);
   });
 
-  it("reads the day with the author, drawn as a LocalDate or as the app's own words in a time element", async () => {
+  it("reads the day with the author, as a date in the reader's language and time zone or as the app's own words, in a time element", async () => {
     const at = Date.UTC(2026, 2, 3, 12);
     const { message } = await render(
       <>
@@ -784,9 +784,61 @@ describe("Message quote", () => {
     const times = quotes.map((quote) => quote.querySelector<HTMLElement>("[data-ouro-message-quote-day] time")!);
     expect(times[0]!.getAttribute("datetime")).toBe(new Date(at).toISOString());
     expect(times[1]!.textContent).toBe("Yesterday");
+    expect(times[1]!.parentElement!.textContent).toBe(" \u00b7 Yesterday");
     expect(times[1]!.getAttribute("datetime")).toBe(new Date(at).toISOString());
     expect(quotes[1]!.querySelector(".sr-only")!.textContent).toBe("Reply to Ana Lind, Yesterday: ");
-    expect(quotes[0]!.querySelector(".sr-only")!.textContent).toMatch(/^Reply to Ana Lind, .+: $/);
+    expect(times[0]!.textContent).toBe(new Date(at).toLocaleDateString(undefined, { dateStyle: "medium" }));
+    expect(quotes[0]!.querySelector(".sr-only")!.textContent).toBe(`Reply to Ana Lind, ${times[0]!.textContent}: `);
+  });
+
+  it("on a default message's primary bubble, draws the quote in the bubble's text color, with a gap above the text", async () => {
+    const { message } = await render(
+      <Message role="user" name="Priya Okafor" quote={{ author: "Ana Lind", excerpt: "Lunch on Friday?" }}>
+        Count me in.
+      </Message>,
+    );
+    const bubble = bubbleOf(message);
+    const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
+    // As drawn: the excerpt's color is a color-mix, which reads back in oklab.
+    const rgb = (color: string) => {
+      const context = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      return [...context.getImageData(0, 0, 1, 1).data].join();
+    };
+    const ink = rgb(getComputedStyle(bubble).color);
+    expect(rgb(getComputedStyle(quote.querySelector("[data-ouro-message-quote-author]")!).color)).toBe(ink);
+    expect(rgb(getComputedStyle(quote.querySelector("[data-ouro-message-quote-excerpt]")!).color)).toBe(ink);
+    expect(getComputedStyle(quote).marginBlockEnd).toBe("8px");
+    expect(quote.getAttribute("data-ouro-allow-why")).toBe("the quote rule is a 2px stroke, which cannot hold a concentric corner");
+  });
+
+  it("writes the quote's day in en-US in UTC on the server, hydrates without a mismatch, then writes the reader's", async () => {
+    const at = Date.UTC(2026, 2, 3, 23, 30);
+    const node = (
+      <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", at }}>
+        One
+      </Message>
+    );
+    const written = vi.spyOn(Date.prototype, "toLocaleDateString");
+    const html = renderToString(node);
+    expect(written.mock.calls).toContainEqual(["en-US", { dateStyle: "medium", timeZone: "UTC" }]);
+    expect(html).toContain(`>${new Date(at).toLocaleDateString("en-US", { dateStyle: "medium", timeZone: "UTC" })}</time>`);
+    written.mockClear();
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(written.mock.calls).toContainEqual([undefined, { dateStyle: "medium", timeZone: undefined }]);
+    written.mockRestore();
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(host.querySelector("[data-ouro-message-quote-day] time")!.textContent).toBe(new Date(at).toLocaleDateString(undefined, { dateStyle: "medium" }));
   });
 
   it("draws no day for an at that is not a date", async () => {
