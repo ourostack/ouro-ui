@@ -1,6 +1,6 @@
 #!/bin/bash
 # Makes a lane's worktree whose node_modules is cloned from one shared pnpm store, so a lane costs its checkout, not another copy of every package.
-# Usage: bash scripts/lane.sh new <name> [ref] | reimport [dir...] | rm <name> (contributing/testing.md)
+# Usage: bash scripts/lane.sh new <name> [ref] | reimport [dir...] | rm <name> | browser <command> (contributing/testing.md)
 # The setting is passed by environment for this install only: never write the global ~/.npmrc, which holds the package feed proxy.
 set -euo pipefail
 root=$(git rev-parse --path-format=absolute --git-common-dir | sed 's|/\.git$||')
@@ -31,5 +31,19 @@ case ${1:-} in
     # Run it in the step that merges or closes the lane's pull request.
     git -C "$root" worktree remove --force "$lanes/$2"
     ;;
-  *) echo "usage: lane.sh new <name> [ref] | reimport [dir...] | rm <name>" >&2; exit 2 ;;
+  browser)
+    # One browser suite at a time on the machine. macOS has no flock, so mkdir is the lock and its pid file says whose it is.
+    shift
+    lock=$lanes/.browser.lock
+    until mkdir "$lock" 2>/dev/null; do
+      holder=$(cat "$lock/pid" 2>/dev/null || true)
+      if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; then rm -rf "$lock"; continue; fi
+      echo "lane browser: waiting for pid ${holder:-?}'s browser suite" >&2
+      sleep 5
+    done
+    trap 'rm -rf "$lock"' EXIT INT TERM
+    echo $$ > "$lock/pid"
+    "$@"
+    ;;
+  *) echo "usage: lane.sh new <name> [ref] | reimport [dir...] | rm <name> | browser <command>" >&2; exit 2 ;;
 esac
