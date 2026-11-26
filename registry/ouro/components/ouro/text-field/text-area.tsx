@@ -200,8 +200,8 @@ export type TextAreaProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, ke
 const owner = { name: "TextArea", data: "text-area" };
 
 /**
- * Wraps every `on*` handler and the `ref` Base UI's FieldControl rebuilds on each render in a
- * stable-identity function that always calls the latest version, reusing one wrapper per key
+ * Wraps the `on*` handlers and the `ref` Base UI's FieldControl rebuilds on a render in a
+ * stable-identity function that calls the latest version, reusing one wrapper per key
  * across renders. The memoized native textarea below can then bail out of a commit a typed
  * keystroke would otherwise force on it, since its props compare equal.
  */
@@ -229,9 +229,9 @@ function stabilizeTextareaProps<P extends object>(
 }
 
 /**
- * The native textarea, memoized so a controlled TextArea's typing commits never reach `value` or
- * `defaultValue` here: either would make React write `.defaultValue`, which always replaces the
- * element's child text node, on every commit that revisits this fiber, whether or not the text
+ * The native textarea, memoized so a controlled TextArea's typing commits do not reach `value` or
+ * `defaultValue` here: either would make React write `.defaultValue`, which replaces the
+ * element's child text node, on a commit that revisits this fiber, whether or not the text
  * changed (ouro-ui#3759). `TextArea`'s own `useLayoutEffect` keeps `.value` in sync directly,
  * outside this leaf's props, so this bails out of a render a parent-driven re-render would
  * otherwise force on it.
