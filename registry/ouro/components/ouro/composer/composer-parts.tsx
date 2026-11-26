@@ -399,11 +399,15 @@ function $nodesFromHtml(html: string): LexicalNode[][] {
 // typed address becomes the new link's own text.
 function toggleLinkOfSelection(): RangeSelection | null {
   const selection = $getSelection();
+  // Stryker disable next-line ConditionalExpression: this only runs from the editor's own ⌘K handler, inside an update
+  // while the editor still has focus, so $getSelection() is always this RangeSelection; the guard only narrows its type.
   if (!$isRangeSelection(selection)) return null;
   if (selection.getNodes().some((node) => $isLinkNode(node) || $isLinkNode(node.getParent()))) {
     $toggleLink(null);
     return null;
   }
+  // Stryker disable next-line ConditionalExpression: a collapsed selection's getTextContent() is "", so removing this
+  // branch still falls through to the !href return two lines down and clones the same selection either way.
   if (selection.isCollapsed()) return selection.clone();
   const href = safeHref(selection.getTextContent());
   if (!href) return selection.clone();
@@ -663,6 +667,8 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         return;
       }
       const current = $getSelection();
+      // Stryker disable next-line ConditionalExpression: current is $getSelection() right after $setSelection(selection.clone())
+      // set that very RangeSelection, so it is always one here; the guard only narrows its type for insertNodes below.
       if (!$isRangeSelection(current)) return;
       const link = $createLinkNode(href);
       link.append($createTextNode(href));
