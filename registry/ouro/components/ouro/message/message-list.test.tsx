@@ -965,6 +965,19 @@ describe("MessageList", () => {
     expect(top()).toBe(placed);
   });
 
+  it("opened at a message whose centring leaves the list at its end, is pinned there: no Jump to latest, and a new message is followed", async () => {
+    const items = history(30);
+    const { scroller, rerender } = await render(<Found windowing={false} items={items} initialAnchor="found-28" />);
+    await nextFrame(scroller);
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await rerender(<Found windowing={false} items={[...items, { id: 30, role: "assistant", text: "A new reply." }]} initialAnchor="found-28" />);
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(inView(scroller, "found-30")).toBe(true);
+  });
+
   it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {
     const items = history(30, 10);
     const { scroller } = await render(<Found windowing={false} items={[]} />);
