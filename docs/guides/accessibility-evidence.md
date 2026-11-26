@@ -84,7 +84,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [mcp-app](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/mcp-app) | 2 | 0 | none yet |
 | [media-tile](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/media-tile) | 9 | 0 | none yet |
 | [menu](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/menu) | 6 | 0 | [menu.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/menu.sr.spec.ts): 2 tests on `menus-menu--playground` |
-| [message](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/message) | 41 | 0 | none yet |
+| [message](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/message) | 42 | 0 | none yet |
 | [moment](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/moment) | 8 | 0 | none yet |
 | [navbar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/navbar) | 3 | 0 | none yet |
 | [navigation-menu](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/navigation-menu) | 3 | 0 | none yet |
