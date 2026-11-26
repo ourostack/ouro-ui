@@ -20,7 +20,7 @@ const rows = [
   { key: "c", text: "a last fox" },
 ];
 
-function Harness({ query, current, reduced = false, tall = false, roomy = false, none = false, stray = false, shortA = false, hideLast = false, fold, locale, reserveJumpRoom = () => {} }: { hideLast?: boolean; stray?: boolean; shortA?: boolean; none?: boolean; fold?: "none" | "case" | "accents" | "all"; locale?: string; query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean; reserveJumpRoom?: (scroller: HTMLElement, landingTop: number) => void }) {
+function Harness({ query, current, reduced = false, tall = false, roomy = false, none = false, stray = false, shortA = false, hideLast = false, fold, locale, reserveJumpRoom = () => {} }: { hideLast?: boolean; stray?: boolean; shortA?: boolean; none?: boolean; fold?: "none" | "case" | "accents" | "all"; locale?: string; query: string; current: number; reduced?: boolean; tall?: boolean; roomy?: boolean; reserveJumpRoom?: (room: boolean) => void }) {
   const scroller = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const find = { query, ...(fold ? { fold } : {}), ...(locale ? { locale } : {}) };
@@ -185,7 +185,7 @@ describe("useFindHighlights", () => {
   it("reserves the jump pill's room for the scroll to a match, the same as a reveal, and not where no scroll is needed", async () => {
     const scrollTo = vi.spyOn(HTMLElement.prototype, "scrollTo").mockImplementation(() => undefined);
     const reserveJumpRoom = vi.fn();
-    const { host } = await mount({ query: "last", current: 0, tall: true, reserveJumpRoom });
+    await mount({ query: "last", current: 0, tall: true, reserveJumpRoom });
     expect(scrollTo).toHaveBeenCalledTimes(1);
     expect(reserveJumpRoom).toHaveBeenCalledExactlyOnceWith(true);
     reserveJumpRoom.mockClear();
