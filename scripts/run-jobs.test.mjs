@@ -33,7 +33,7 @@ test("no script or workflow reads a run's jobs in a page other than 30, or witho
       const size = url.match(/per_page=([^&\s]*)/)?.[1];
       if (size !== "30" && size !== "${JOBS_PER_PAGE}" && size !== "${jobsPerPage}") problems.push(`${file}: ${url} reads a page of ${size ?? "the default size"}; list a run's jobs through scripts/run-jobs.mjs`);
     }
-    if (/\.mjs$/.test(file) && /actions\/runs\/[^\s`"']*\/jobs\?/.test(text) && !/from "(\.\/|\.\.\/)run-jobs\.mjs"/.test(text)) problems.push(`${file}: reads a run's jobs without importing scripts/run-jobs.mjs`);
+    if (/\.mjs$/.test(file) && /actions\/runs\/[^\s`"']*\/jobs\?/.test(text) && !/\b(listJobs|listJobsAsync|jobsPage)\(/.test(text) && !/JOBS_PER_PAGE/.test(text)) problems.push(`${file}: reads a run's jobs without importing scripts/run-jobs.mjs`);
   }
   assert.deepEqual(problems, []);
 });

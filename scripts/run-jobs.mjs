@@ -25,8 +25,8 @@ export function listJobs(get, run, query = "") {
   const jobs = [];
   for (let page = 1; ; page += 1) {
     const body = get(jobsPage(run, page, query));
-    jobs.push(...body.jobs);
-    if (jobs.length >= body.total_count || body.jobs.length < JOBS_PER_PAGE) return jobs;
+    jobs.push(...(body.jobs ?? []));
+    if (jobs.length >= body.total_count || (body.jobs ?? []).length < JOBS_PER_PAGE) return jobs;
   }
 }
 
@@ -35,7 +35,7 @@ export async function listJobsAsync(get, run, query = "") {
   const jobs = [];
   for (let page = 1; ; page += 1) {
     const body = await get(jobsPage(run, page, query));
-    jobs.push(...body.jobs);
-    if (jobs.length >= body.total_count || body.jobs.length < JOBS_PER_PAGE) return jobs;
+    jobs.push(...(body.jobs ?? []));
+    if (jobs.length >= body.total_count || (body.jobs ?? []).length < JOBS_PER_PAGE) return jobs;
   }
 }

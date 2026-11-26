@@ -92,7 +92,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          failed=$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID/jobs?per_page=30" --jq '[.jobs[] | select(.name | test("strict")) | select(.conclusion == "failure" or ([.steps[]? | .conclusion] | index("failure")))] | length')
+          failed=$(gh api --paginate "repos/$GH_REPO/actions/runs/$RUN_ID/jobs?per_page=30" --jq '.jobs[] | select(.name | test("strict")) | select(.conclusion == "failure" or ([.steps[]? | .conclusion] | index("failure"))) | .id' | wc -l | tr -d " ")
           if [ "$failed" = 0 ]; then echo "VoiceOver on macos-26 heard every step with the hint-only fallback off."; exit 0; fi
           scripts/scheduled-failure.sh "$RUN_URL" "Screen-reader lane: VoiceOver on macOS 26 missed a step with the hint-only fallback off" "The nightly strict screen-reader lane, which judges every step by what VoiceOver says alone (ourostack/ouro-ui#2085), failed"
   advisory:
@@ -116,6 +116,6 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          failed=$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID/jobs?per_page=30" --jq '[.jobs[] | select((.name | test("macos-15")) and (.name | test("advisory"))) | select(.conclusion == "failure" or ([.steps[]? | .conclusion] | index("failure")))] | length')
+          failed=$(gh api --paginate "repos/$GH_REPO/actions/runs/$RUN_ID/jobs?per_page=30" --jq '.jobs[] | select((.name | test("macos-15")) and (.name | test("advisory"))) | select(.conclusion == "failure" or ([.steps[]? | .conclusion] | index("failure"))) | .id' | wc -l | tr -d " ")
           if [ "$failed" = 0 ]; then echo "The advisory VoiceOver on macos-15 passed."; exit 0; fi
           scripts/scheduled-failure.sh "$RUN_URL" "Screen-reader lane: the advisory VoiceOver on macOS 15 failed" "The nightly screen-reader lane's advisory VoiceOver on macOS 15 failed"
