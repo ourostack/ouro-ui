@@ -37,3 +37,27 @@ test("no script or workflow reads a run's jobs in a page other than 30, or witho
   }
   assert.deepEqual(problems, []);
 });
+
+test("a sparse checkout that lists a script reading a run's jobs lists the shared reader too", () => {
+  const readers = execFileSync("git", ["ls-files", "scripts"], { encoding: "utf8" })
+    .split("\n")
+    .filter((file) => /^scripts\/(?:.*\/)?[^/]+\.mjs$/.test(file) && !/\.test\.mjs$/.test(file) && file !== "scripts/run-jobs.mjs")
+    .filter((file) => /from "\.{1,2}\/(?:\.\.\/)?run-jobs\.mjs"|from "\.\/run-jobs\.mjs"/.test(readFileSync(file, "utf8")));
+  const workflows = execFileSync("git", ["ls-files", ".github/workflows"], { encoding: "utf8" }).split("\n").filter((file) => file.endsWith(".yml"));
+  const problems = [];
+  for (const workflow of workflows) {
+    const lines = readFileSync(workflow, "utf8").split("\n");
+    lines.forEach((line, index) => {
+      if (!/^\s*sparse-checkout: /.test(line)) return;
+      const block = [line];
+      for (const next of lines.slice(index + 1)) {
+        if (!/^\s{10,}\S/.test(next) || /sparse-checkout-cone-mode/.test(next)) break;
+        block.push(next);
+      }
+      const text = block.join("\n");
+      const hit = readers.filter((reader) => text.includes(reader));
+      if (hit.length > 0 && !text.includes("scripts/run-jobs.mjs")) problems.push(`${workflow}:${index + 1} lists ${hit.join(", ")} without scripts/run-jobs.mjs`);
+    });
+  }
+  assert.deepEqual(problems, []);
+});
