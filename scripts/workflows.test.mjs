@@ -3556,7 +3556,24 @@ test("Docs pin leaves an open pull request alone only when it holds the same doc
   for (const o of [{}, { number: 7, failing: 1 }, { number: 7, theirs: "a.md" }, { number: 7, differs: true }, { number: 7, mergeable: "CONFLICTING" }, { number: 7, mergeable: "UNKNOWN" }]) {
     assert.notEqual(runStep(fns(o) + script, env).output.same, "true", JSON.stringify(o));
   }
-  assert.equal(pin.split("steps.same.outputs.same != 'true'").length - 1, 3, "the push, the pull request and its CI start all wait on the check");
+  assert.equal(pin.split("steps.same.outputs.same != 'true'").length - 1, 4, "the queued check, the push, the pull request and its CI start all wait on the check");
+});
+
+test("Docs pin leaves the pull request alone, rather than fail, when it is in the merge queue (#2344)", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Leave the pull request alone while it is in the merge queue");
+  const env = { BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui" };
+  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "api graphql"*) echo ${o.queued ?? "false"} ;; esac; }\n`;
+  const dir = scratchDir("ouro-docs-pin-");
+  const summary = join(dir, "summary.md");
+  const queued = runStep(fns({ number: 7, queued: "true" }) + script, { ...env, GITHUB_STEP_SUMMARY: summary });
+  assert.equal(queued.output.queued, "true", queued.calls);
+  assert.match(readFileSync(summary, "utf8"), /#7 is in the merge queue/);
+  // No open pull request, or one GitHub says is not queued, lets the push go ahead as before.
+  for (const o of [{}, { number: 7, queued: "false" }]) {
+    assert.notEqual(runStep(fns(o) + script, { ...env, GITHUB_STEP_SUMMARY: join(dir, "other.md") }).output.queued, "true", JSON.stringify(o));
+  }
+  assert.match(pin, /isInMergeQueue/, "asks GitHub whether the pull request is in its merge queue, not GitHub's generic mergeable state");
 });
 
 test("Docs pin reuses its open pull request and turns auto-merge on for it", () => {
