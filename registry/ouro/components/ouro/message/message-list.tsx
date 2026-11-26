@@ -2787,6 +2787,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // A reply that streams out of view stays drawn until it is heard, though it stops streaming.
     const publish = () => setWaitingKeys([...waiting].map(slotKeyOf).join("\n"));
     const redrawn = (message: Element) => viewRef.current.windowed && keysHeard.has(slotKeyOf(message));
+    // Marks a message that just arrived, so its bubble grows in (Message's styles read the mark); it comes off with the animation.
+    const arrive = (message: HTMLElement) => {
+      const done = (event: Event) => {
+        if (event.target === message) return;
+        message.removeAttribute("data-starting-style");
+        message.removeEventListener("animationend", done);
+        message.removeEventListener("animationcancel", done);
+      };
+      message.setAttribute("data-starting-style", "");
+      message.addEventListener("animationend", done);
+      message.addEventListener("animationcancel", done);
+    };
     const check = () => {
       const now = messages();
       const before = new Set(known);
@@ -2809,6 +2821,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           // the first `||` alone, false never changes the result some test here could observe.
           if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) {
             waiting.add(message);
+            if (!content.closest("[hidden]")) arrive(message);
             // A message new to the conversation's end, not merely redrawn by windowing nor a quiet replacement of the one
             // in its place: the newest drawn row could now reach the pill, so the room it keeps clear of it is owed.
             // Stryker disable next-line ConditionalExpression: while pinned, this same arrival also keeps the view following
