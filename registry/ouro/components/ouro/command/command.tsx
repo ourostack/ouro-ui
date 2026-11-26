@@ -1214,7 +1214,7 @@ function LoadingRows(): JSX.Element | null {
 function CommandList({ children, className, after, snap }: { children: (group: Group, index: number) => ReactNode; className: string; after: ReactNode; snap: boolean }): JSX.Element {
   const empty = Autocomplete.useFilteredItems().length === 0;
   const list = useRef<HTMLDivElement>(null);
-  // The list ends on a whole row or heading, never through one: its height is cut to the last bottom edge that fits.
+  // The list ends on a whole row, never through one or on a heading without its first row: its height is cut to the last bottom edge that fits.
   useLayoutEffect(() => {
     const node = list.current;
     // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
@@ -1228,7 +1228,7 @@ function CommandList({ children, className, after, snap }: { children: (group: G
       const top = node.getBoundingClientRect().top - node.scrollTop;
       const end = parseFloat(getComputedStyle(node).paddingBottom);
       let best = 0;
-      for (const edge of node.querySelectorAll("[data-ouro-command-value],[data-ouro-command-group-label]")) {
+      for (const edge of node.querySelectorAll("[data-ouro-command-value]")) {
         const bottom = edge.getBoundingClientRect().bottom - top + end;
         // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
         if (bottom <= node.clientHeight + 0.5 && bottom > best) best = bottom;

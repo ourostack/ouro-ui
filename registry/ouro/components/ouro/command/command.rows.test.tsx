@@ -83,4 +83,25 @@ describe("Command rows", () => {
       }
     }
   });
+
+  it("never ends the list on a group heading with none of its rows, at any height", async () => {
+    const items = Array.from({ length: 20 }, (_, index) => ({
+      label: `Group ${index}`,
+      items: [0, 1].map((row) => ({ label: `Place ${index}.${row}`, onSelect: () => {} })),
+    }));
+    await page.viewport(1280, 800);
+    await render(<Command title="Go to" open onOpenChange={() => {}} items={items} />);
+    const box = listbox();
+    await expect.poll(() => box.scrollHeight > box.clientHeight).toBe(true);
+    for (let height = 300; height <= 800; height += 5) {
+      await page.viewport(1280, height);
+      // The cut follows the resize on a frame or two; read it once it has settled.
+      await act(async () => {
+        for (let frame = 0; frame < 4; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      const bottom = box.getBoundingClientRect().bottom - parseFloat(getComputedStyle(box).paddingBottom);
+      const whole = edges().filter((edge) => edge.getBoundingClientRect().bottom <= bottom + 0.5);
+      expect(whole.at(-1)?.hasAttribute("data-ouro-command-group-label"), `${height}px`).toBe(false);
+    }
+  });
 });
