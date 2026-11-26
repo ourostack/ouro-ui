@@ -220,10 +220,15 @@ const LazyPlatformsPanel = lazy(() => loadNavPanels().then((module) => ({ defaul
 const LazyPartsPanel = lazy(() => loadNavPanels().then((module) => ({ default: module.PartsPanel })));
 const LazyProofPanel = lazy(() => loadNavPanels().then((module) => ({ default: module.ProofPanel })));
 
+/** Marks a panel still loading, which the phone menu's scroll to the current page waits out (site-menu.tsx). */
+function Pending({ children }: { children?: ReactNode }): JSX.Element {
+  return <div data-nav-pending="" className="contents">{children}</div>;
+}
+
 /** The four platforms side by side, each with the same four pages: two columns on a phone, four from 640px. */
 export function PlatformsPanel({ current, compact = false }: { current: string; compact?: boolean }): JSX.Element {
   return (
-    <Suspense fallback={compact ? <Eyebrow>Pick a platform</Eyebrow> : <Head title="Platforms" hint="Web, Apple, Windows and Android" current={current} />}>
+    <Suspense fallback={<Pending>{compact ? <Eyebrow>Pick a platform</Eyebrow> : <Head title="Platforms" hint="Web, Apple, Windows and Android" current={current} />}</Pending>}>
       <LazyPlatformsPanel current={current} compact={compact} />
     </Suspense>
   );
@@ -232,7 +237,7 @@ export function PlatformsPanel({ current, compact = false }: { current: string; 
 /** Every part on a line: the part and its line, then its pages across. Stacked on a phone. */
 export function PartsPanel({ current, compact = false, more }: { current: string; compact?: boolean; more?: Readonly<Record<string, ReactNode>> | undefined }): JSX.Element {
   return (
-    <Suspense fallback={compact ? <Eyebrow>Ouro UI, part by part</Eyebrow> : <Head title="Parts" hint="Ouro UI, part by part" current={current} />}>
+    <Suspense fallback={<Pending>{compact ? <Eyebrow>Ouro UI, part by part</Eyebrow> : <Head title="Parts" hint="Ouro UI, part by part" current={current} />}</Pending>}>
       <LazyPartsPanel current={current} compact={compact} more={more} />
     </Suspense>
   );
@@ -240,7 +245,7 @@ export function PartsPanel({ current, compact = false, more }: { current: string
 
 export function ProofPanel({ current, compact = false }: { current: string; compact?: boolean }): JSX.Element {
   return (
-    <Suspense fallback={compact ? null : <Head page={NAV_PROOF} hint={NAV_PROOF.hint} current={current} />}>
+    <Suspense fallback={<Pending>{compact ? null : <Head page={NAV_PROOF} hint={NAV_PROOF.hint} current={current} />}</Pending>}>
       <LazyProofPanel current={current} compact={compact} />
     </Suspense>
   );

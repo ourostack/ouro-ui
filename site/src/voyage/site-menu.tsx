@@ -198,6 +198,7 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
     const token = revealToken.current;
     const reveal = (): boolean => {
       if (!list.current) return true;
+      if (list.current.querySelector("[data-nav-pending]")) return false;
       const link = list.current.querySelector<HTMLElement>('[aria-current="page"]:not([inert] *)');
       let scroller = list.current.parentElement;
       while (scroller && (scroller.scrollHeight <= scroller.clientHeight || !/auto|scroll/.test(getComputedStyle(scroller).overflowY))) scroller = scroller.parentElement;
