@@ -1957,7 +1957,7 @@ jobs:
       matrix:
         # Three shards on a pull request and two on main for every run that checks every story; one for a reduced pull request, whose
         # few selected stories (or only the checks' proofs) the other two shards would idle through.
-        shard: ${{ fromJSON(needs.plan.outputs.full != 'false' && (github.event_name == 'pull_request' && '[1,2,3]' || '[1,2]') || needs.plan.outputs.conformance_shards || '[1]') }}
+        shard: ${{ fromJSON(needs.plan.outputs.full != 'false' && ((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[1,2,3]' || '[1,2]') || needs.plan.outputs.conformance_shards || '[1]') }}
     name: conformance (${{ matrix.shard }}/${{ strategy.job-total }})
     steps:
       - id: checkout
@@ -2569,7 +2569,7 @@ jobs:
       fail-fast: false
       matrix:
         # Half as many shards, twice as long each, for a run that is not a pull request's: main has no one waiting on it, and fewer jobs leave runners for the pull requests.
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8]' || '[1,2,3]') }}
+        shard: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[1,2,3,4,5,6,7,8]' || '[1,2,3]') }}
     name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
     permissions:
       contents: read
@@ -2716,7 +2716,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14]' || '[1,2,3,4]') }}
+        shard: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14]' || '[1,2,3,4]') }}
     name: sweeps (${{ matrix.shard }}/${{ strategy.job-total }})
     env:
       SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
