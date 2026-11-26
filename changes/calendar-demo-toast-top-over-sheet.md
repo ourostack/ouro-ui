@@ -1,0 +1,1 @@
+- Fixed: on a phone, the calendar demo's Undo toast moves to the top while Go to date is open, so it no longer covers the sheet's last rows.
