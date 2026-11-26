@@ -805,7 +805,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     }
     setDragLines(null);
     const next = lines <= baseRows ? null : Math.round(lines * m.line + m.offset);
-    if (heightProp === undefined) setOwnHeight(next);
+    setOwnHeight(next);
     onHeightChange?.(next);
   };
   const focusText = () => (richOn ? richRef.current!.focus() : textareaRef.current!.focus({ preventScroll: true }));
