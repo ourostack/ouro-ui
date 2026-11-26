@@ -203,22 +203,55 @@ describe("Tabs", () => {
     await expect.poll(() => scrollTo.mock.calls.length).toBeGreaterThan(0);
   });
 
-  it("brings the selected tab into view in the frame after the tabs mount, and leaves tabs unmounted by then alone", async () => {
+  describe("the frame after the tabs mount", () => {
     const many = Array.from({ length: 12 }, (_, i) => ({ value: `tab-${i}`, label: `Tab number ${i}`, content: <p>{i}</p> }));
-    const { host } = await render(<Tabs label="Many" items={many} defaultValue="tab-11" />);
-    const list = host.querySelector<HTMLElement>('[role="tablist"]')!;
-    expect(list.scrollWidth).toBeGreaterThan(list.clientWidth);
-    await expect.poll(() => list.scrollLeft).toBeGreaterThan(0);
-    const tab = host.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')!.getBoundingClientRect();
-    expect(tab.right).toBeLessThanOrEqual(list.getBoundingClientRect().right + 1);
-    const gone = document.createElement("div");
-    document.body.append(gone);
-    mounted.push(gone);
-    const root = createRoot(gone);
-    await act(async () => root.render(<Tabs label="Gone" items={many} defaultValue="tab-11" />));
-    root.unmount();
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    expect(gone.childElementCount).toBe(0);
+    const frames = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const inView = (host: HTMLElement) => {
+      const row = host.querySelector<HTMLElement>('[role="tablist"]')!.getBoundingClientRect();
+      const tab = host.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')!.getBoundingClientRect();
+      return tab.left >= row.left - 1 && tab.right <= row.right + 1;
+    };
+
+    it("brings a selected tab past the row's end into view, no further", async () => {
+      const { host } = await render(<Tabs label="Many" items={many} defaultValue="tab-6" />);
+      const list = host.querySelector<HTMLElement>('[role="tablist"]')!;
+      expect(list.scrollWidth).toBeGreaterThan(list.clientWidth);
+      await expect.poll(() => list.scrollLeft).toBeGreaterThan(0);
+      expect(inView(host)).toBe(true);
+    });
+
+    it("brings a selected tab before the row's start into view in a right-to-left page", async () => {
+      document.documentElement.dir = "rtl";
+      try {
+        const { host } = await render(<Tabs label="Many" items={many} defaultValue="tab-11" />);
+        const list = host.querySelector<HTMLElement>('[role="tablist"]')!;
+        await expect.poll(() => list.scrollLeft).toBeLessThan(0);
+        expect(inView(host)).toBe(true);
+      } finally {
+        document.documentElement.dir = "";
+      }
+    });
+
+    it("leaves the row where it is when the selected tab is already in view", async () => {
+      const { host } = await render(<Tabs label="Many" items={many} defaultValue="tab-0" />);
+      await frames();
+      expect(host.querySelector<HTMLElement>('[role="tablist"]')!.scrollLeft).toBe(0);
+    });
+
+    it("leaves alone a selected tab that is gone by then", async () => {
+      const errors: unknown[] = [];
+      const onError = (event: ErrorEvent) => errors.push(event.error);
+      addEventListener("error", onError);
+      try {
+        const { tabs, rerender } = await render(<Tabs label="Many" items={many} defaultValue="tab-11" />);
+        await rerender(<Tabs label="Many" items={many.slice(0, 11)} defaultValue="tab-11" />);
+        expect(tabs[11]!.isConnected).toBe(false);
+        await frames();
+        expect(errors).toEqual([]);
+      } finally {
+        removeEventListener("error", onError);
+      }
+    });
   });
 
   it("moves to the next tab with ArrowLeft in a right-to-left page, where it sits on the left", async () => {
