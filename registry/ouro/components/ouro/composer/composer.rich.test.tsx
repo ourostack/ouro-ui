@@ -1374,5 +1374,10 @@ describe("Composer rich mode pasteText", () => {
     expect(editor.getAttribute("data-testid")).toBe("mia-composer");
     expect(editor.getAttribute("aria-required")).toBe("true");
   });
+
+  it("leaves off an attribute that is neither id nor data-/aria-, since it isn't a pass-through one", async () => {
+    const { editor } = await render(rich({ title: "not forwarded" } as Partial<React.ComponentProps<typeof Composer>>));
+    expect(editor.hasAttribute("title")).toBe(false);
+  });
 });
 
