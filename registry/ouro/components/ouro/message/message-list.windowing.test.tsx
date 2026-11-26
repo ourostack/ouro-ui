@@ -1891,6 +1891,44 @@ describe("MessageList windowing", () => {
     expect(landing.moved).toBeLessThanOrEqual(1);
   });
 
+  it("commits at most twice in the task a page of older messages lands in, when its rows measure shorter than the estimate (ourostack/ouro-ui#3753)", async () => {
+    let commits = 0;
+    const list = (older: number[]) => (
+      <Profiler id="list" onRender={() => void commits++}>
+        <MessageList label="Conversation" style={{ height: 400, width: 360 }} hasOlder>
+          {older.map((id) => (
+            <Message key={String(id)} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 1, boxSizing: "border-box" }}>
+              {`Message ${id}`}
+            </Message>
+          ))}
+          {span(0, 200).map((id) => (
+            <Message key={String(id)} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 8 + ((((id * 37) % 9) + 9) % 9), boxSizing: "border-box" }}>
+              {`Message ${id}`}
+            </Message>
+          ))}
+        </MessageList>
+      </Profiler>
+    );
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    flushSync(() => root.render(list([])));
+    const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    await settle(scroller);
+    await scrollTo(scroller, 0);
+    commits = 0;
+    let landing = { commits: 0 };
+    await landInATask(
+      () => flushSync(() => root.render(list(span(-1500, 1500)))),
+      () => void (landing = { commits }),
+    );
+    // One commit draws the rows the view shows; a render the estimate corrects by may follow, but not a chain of them, each
+    // reaching further as rows measured shorter than estimated free more of the overscan's reach (ourostack/ouro-ui#3753).
+    expect(landing.commits).toBeLessThanOrEqual(2);
+  });
+
   it("keeps a message whose key changes in place out of view drawn through the task it changes in", async () => {
     const { root, scroller } = await render(<ShortRows ids={span(0, 200)} />);
     await scrollTo(scroller, scroller.scrollHeight / 2);

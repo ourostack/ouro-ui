@@ -2220,6 +2220,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The keys of children that came into a window already drawn and wait to draw out of view, a chunk a frame (see the band):
   // how many of them the window draws now, OLDER_CHUNK in the frame it draws them in, else none, and that frame's request.
   const arriving = useRef(new Set<string>());
+  // Keys once found out of view this page's task, which the next sync in the same task, drawing rows measured shorter than
+  // estimated, must not find in view again: a key found once stays waiting for its frame, so the task commits once, not a
+  // growing band each time rows already drawn correct the overscan's reach (ourostack/ouro-ui#3753).
+  const everOut = useRef(new Set<string>());
   const budget = useRef(0);
   const dripping = useRef(0);
   // The band the last sync set, until React draws it. A frame that syncs before then reads the DOM without that band's rows,
@@ -2512,10 +2516,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
         const outOfView = (offset: number) => offset > -1;
         const later = inBand
           .map((key, at) => ({ key, off: off(from + at) }))
-          .filter(({ key, off }) => arriving.current.has(key) && !drawn.has(key) && outOfView(off))
+          .filter(({ key, off }) => arriving.current.has(key) && !drawn.has(key) && (everOut.current.has(key) || outOfView(off)))
           .sort((a, b) => a.off - b.off)
           .slice(budget.current)
           .map(({ key }) => key);
+        for (const key of later) everOut.current.add(key);
         arriving.current = new Set(later);
         // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: with none to wait, the filter takes none out and the frame asked for draws none; a band whose every row waits is one the view shows none of, which a window with rows never has.
         if (later.length > 0 && later.length < inBand.length) {
