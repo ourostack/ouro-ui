@@ -154,9 +154,11 @@ test("the sliced suites are exactly the browser tests that slice what they itera
   );
   const slicing = sources.filter((file) => /\bsliced\(/.test(readFileSync(join(root, file), "utf8")) && file !== "test/slice.ts");
   // control-suite.tsx is the controls suites' shared body.
-  const suites = slicing.flatMap((file) => (file === "test/control-suite.tsx" ? ["test/controls.test.tsx", "test/controls.touch.test.tsx"] : [file]));
+  // theme-axe.ts is the theme fixtures' shared body, one file per fixture and scheme.
+  const themeFiles = ["cookbook", "nova", "vega"].flatMap((name) => ["dark", "light"].map((scheme) => `test/themes/${name}-${scheme}.test.ts`));
+  const suites = slicing.flatMap((file) => (file === "test/control-suite.tsx" ? ["test/controls.test.tsx", "test/controls.touch.test.tsx"] : file === "test/themes/theme-axe.ts" ? themeFiles : [file]));
   assert.deepEqual([...new Set(suites)].sort(), [...slicedSuites].sort());
-  for (const suite of slicedSuites) assert.match(suite, /\.test\.tsx$/);
+  for (const suite of slicedSuites) assert.match(suite, /\.test\.tsx?$/);
 });
 
 test("a sliced check runs each item exactly once across the shards, in each project, and its slices start at a shard of its own (test/slice.ts)", async () => {
@@ -181,6 +183,22 @@ test("a sliced check runs each item exactly once across the shards, in each proj
   }
   // The same check in the same project starts at the same shard on every run.
   assert.equal(offsetOf("webkit stories: axe", 16), offsetOf("webkit stories: axe", 16));
+});
+
+test("the themes shards scan each story under each fixture and scheme in exactly one shard, and every pair has a file", async () => {
+  const { sliceOf } = await import("../test/slice-core.ts");
+  const costs = JSON.parse(readFileSync(join(root, "test/story-costs.json"), "utf8"));
+  const stories = Object.keys(costs).map((id) => ({ id }));
+  const pairs = ["cookbook", "nova", "vega"].flatMap((name) => ["dark", "light"].map((scheme) => ({ name, scheme })));
+  for (const { name, scheme } of pairs) {
+    const source = readFileSync(join(root, `test/themes/${name}-${scheme}.test.ts`), "utf8");
+    assert.match(source, new RegExp(`describeThemeAxe\\("${name}", "${scheme}"\\)`), `${name} ${scheme} has its file`);
+    for (const count of [3, 6, 8]) {
+      const ids = Array.from({ length: count }, (_, index) => sliceOf(stories, index + 1, count, `chromium ${name} ${scheme}: axe`)).flat().map((story) => story.id);
+      assert.deepEqual(ids.toSorted(), stories.map((story) => story.id).toSorted(), `${name} ${scheme} at ${count} shards: each story once`);
+    }
+  }
+  assert.match(readFileSync(join(root, "test/themes/theme-axe.ts"), "utf8"), /sliced\(selectedStories, `\$\{name\} \$\{scheme\}: axe`\)/);
 });
 
 test("a sliced check gives every shard its share of the measured cost, longest items first, the same on every shard (test/story-costs.json)", async () => {
