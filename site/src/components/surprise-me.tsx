@@ -13,6 +13,9 @@ export const surpriseNav = { go: (url: string): void => location.assign(url) };
 const STEPS = 6;
 const STEP_MS = 80;
 
+/** How long, in milliseconds, the names roll from a click before the page leaves: a test holds the clock and advances it this far instead of waiting on the real timer. */
+export const ROLL_MS = STEPS * STEP_MS + STEP_MS * 2;
+
 /** A component page to open, picked at random from `SURPRISES`. */
 function pick(): { name: string; title: string } {
   return SURPRISES[Math.floor(Math.random() * SURPRISES.length)]!;
