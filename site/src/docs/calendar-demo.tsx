@@ -284,29 +284,26 @@ function Screen(): JSX.Element {
         <Heading level={2} size="md" className="me-auto min-w-0 max-sm:order-first max-sm:basis-full">
           {heading}
         </Heading>
-        <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
-        <Button ref={jumpRef} variant="outline" tone="secondary" size="sm" aria-haspopup="dialog" aria-expanded={jump} onClick={() => {
+        <div className="flex flex-wrap items-center gap-2" data-slot="calendar-demo-actions">
+        <Button ref={jumpRef} variant="outline" tone="secondary" aria-haspopup="dialog" aria-expanded={jump} onClick={() => {
             toGrid.current = false;
+            toast.dismiss();
             setJump(!jump);
           }}>
           Go to date
         </Button>
-        {phone ? null : (
-          <div className="max-w-full min-w-0 overflow-x-auto">
-            <SegmentedControl
-              label="View"
-              hideLabel
-              value={view}
-              onValueChange={(value) => setView(value as TimeGridView)}
-              items={[
-                { value: "day", label: "Day" },
-                { value: "work-week", label: "Work week" },
-                { value: "week", label: "Week" },
-              ]}
-            />
-          </div>
-        )}
-        <Button size="sm" onClick={newEvent}>New event</Button>
+        {phone ? null : <SegmentedControl
+          label="View"
+          hideLabel
+          value={view}
+          onValueChange={(value) => setView(value as TimeGridView)}
+          items={[
+            { value: "day", label: "Day" },
+            { value: "work-week", label: "Work week" },
+            { value: "week", label: "Week" },
+          ]}
+        />}
+        <Button onClick={newEvent}>New event</Button>
         </div>
       </div>
       <Popover title="Go to date" open={jump} onOpenChange={setJump} anchor={jumpRef} finalFocus={jumpReturn} presentation="auto">
@@ -401,8 +398,7 @@ function Screen(): JSX.Element {
           </form>
         ) : null}
       </Dialog>
-      {/* The Go to date sheet fills the phone's lower half, so the toast hangs from the top while it is open and Undo stays visible and clear of the date rows. */}
-      <Toaster className={jump ? "max-sm:top-4 max-sm:bottom-auto" : undefined} />
+      <Toaster />
     </div>
   );
 }

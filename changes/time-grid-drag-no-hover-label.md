@@ -1,1 +1,0 @@
-- Fixed: TimeGrid draws a drag's end label only from the drag itself, not from the slot the pointer hovers.
