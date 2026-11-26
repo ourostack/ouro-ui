@@ -128,6 +128,14 @@ describe("Composer rich blocks", () => {
     expect(joined.querySelectorAll("li")).toHaveLength(1);
   });
 
+  it("keeps an indented line after a line break in a paragraph in that paragraph", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ expanded: true, defaultValue: "one", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard(`${shiftEnter}  two`);
+    await expect.poll(() => seen.at(-1)).toBe("one\n  two");
+  });
+
   it("keeps a blank line between a list item and a line after it as a paragraph", async () => {
     const editor = await render(rich({ defaultValue: "- a\n\n  b" }));
     expect(editor.querySelectorAll("ul > li > br")).toHaveLength(0);
