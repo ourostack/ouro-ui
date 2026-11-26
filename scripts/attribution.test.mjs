@@ -342,7 +342,8 @@ test("attribution sees through the vertical tab, form feed and NEL hidden in a c
 
 test("on a pull request attribution judges the title and body that land, not the branch commits' messages a signer forced", () => {
   const forced = commit({ message: "Fix\n\nCo-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>" });
-  assert.deepEqual(problems([forced], { messages: false }), []);
+  const clean = commit({ message: "Fix\n\nSession: 9af7ad68" });
+  assert.deepEqual(problems([clean], { messages: false }), []);
   assert.equal(problems([forced]).length, 1);
   // Authors and committers are still judged.
   assert.deepEqual(problems([commit({ authorEmail: "x@example.com" })], { messages: false }).map(({ field }) => field), ["author"]);
@@ -351,10 +352,19 @@ test("on a pull request attribution judges the title and body that land, not the
   assert.equal(bad.length, 1);
   assert.match(bad[0].fix, /title or body.*gh ouro-pr/);
   const lines = [];
-  const run = (env) => main(["b", "h"], { git: (args) => (args[0] === "rev-parse" ? "" : `\x1e${"a".repeat(40)}\x1fA\x1f${MAINTAINER.email}\x1fG\x1f${GITHUB}\x1f${forced.message}\x1f\nfile\n`), log: (line) => lines.push(line), actions: false, env });
+  const run = (env, message = clean.message) => main(["b", "h"], { git: (args) => (args[0] === "rev-parse" ? "" : `\x1e${"a".repeat(40)}\x1fA\x1f${MAINTAINER.email}\x1fG\x1f${GITHUB}\x1f${message}\x1f\nfile\n`), log: (line) => lines.push(line), actions: false, env });
   assert.equal(run({ PR_TITLE: "Fix", PR_BODY: "Clean body" }), 0);
   assert.equal(run({ PR_TITLE: "Fix" }), 0);
   assert.equal(run({ PR_TITLE: "Fix", PR_BODY: "Assisted-by: Claude" }), 1);
   assert.match(lines.at(-1), /pull request.*Assisted-by: Claude/);
-  assert.equal(run({}), 1, "without PR_TITLE (the merge queue) the commit messages are judged");
+  assert.equal(run({ PR_TITLE: "Fix" }, forced.message), 1, "a branch commit the ruleset refuses fails on a pull request");
+  assert.equal(run({}, forced.message), 1, "without PR_TITLE (the merge queue) the commit messages are judged");
+});
+
+test("on a pull request attribution still fails a branch commit the No AI co-author credit ruleset refuses, such as the Copilot App trailer", () => {
+  const app = commit({ message: "Fix\n\nCo-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>\nSession: 9af7ad68" });
+  const found = problems([app], { messages: false });
+  assert.deepEqual(found.map(({ field }) => field), ["message line 3"]);
+  assert.equal(found[0].fix, UNCREDIT);
+  assert.equal(problems([app]).length, 1, "the merge queue's squash message is judged in full");
 });
