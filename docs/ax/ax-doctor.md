@@ -5,7 +5,7 @@
 A doctor: a tool's checks (ax-checks) with the state they judged, so a person and an agent read the same facts. It says what runs and since when, the versions and the last attempts, then what is wrong and the command that fixes it. `DoctorReport` is a checks report with `doctor`, `at` and `state` added, so whatever reads a checks report reads it.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-doctor#v1.3.570
+npx shadcn@latest add ourostack/ouro-ui/ax-doctor#v1.3.579
 ```
 
 It installs `lib/ouro/ax/doctor.ts`, with `ax-checks`, `ax-terminal`. Its tests are `ax-doctor-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
