@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [the design check's cramped-heading rule no longer counts an `aria-hidden` layer that takes no presses (a window's corner overlay) as a box above a heading](scripts/check/check-rules.test.mts "verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > cramped-heading: an aria-hidden layer that takes no presses is no box above a heading)").
