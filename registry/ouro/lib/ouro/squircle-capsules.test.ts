@@ -223,14 +223,20 @@ describe("capsule measure", () => {
       const el = document.createElement("div");
       el.className = "added-cap";
       const own = el.cloneNode() as HTMLElement;
+      // A node added on its own that matches no capsule rule is left alone.
+      const plain = document.createElement("div");
+      plain.style.cssText = "width: 100px; height: 30px";
       wrap.append(el);
-      document.body.append(wrap, own);
+      document.body.append(wrap, own, plain);
       await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
       await expect.poll(() => own.style.getPropertyValue("--sq-half")).toBe("15px");
+      await settle();
+      expect(plain.style.getPropertyValue("--sq-half")).toBe("");
       stop();
       style.remove();
       wrap.remove();
       own.remove();
+      plain.remove();
     });
 
     it("draws an existing element once a stylesheet made it a capsule", async () => {
