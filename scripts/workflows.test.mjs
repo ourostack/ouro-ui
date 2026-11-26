@@ -10,7 +10,7 @@ import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { KITS } from "./kit-pin.mjs";
-import { entryProblems, expiredWarning, failedTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
+import { entryProblems, expiredWarning, failedTests, hungTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -3144,7 +3144,7 @@ test("every quarantined test names its test (project, file and title), an issue 
   assert.deepEqual(entryProblems(entries), []);
   for (const entry of entries) {
     assert.ok(existsSync(join(root, entry.file)), `${entry.file} does not exist`);
-    assert.ok(hasQuarantinedTitle(entry.file, entry.title), `${entry.file} has no test "${entry.title}"`);
+    if (entry.title !== "*") assert.ok(hasQuarantinedTitle(entry.file, entry.title), `${entry.file} has no test "${entry.title}"`);
   }
   // Each part is required.
   const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone", expiry: "2099-01-01T00:00:00Z" };
@@ -3335,6 +3335,47 @@ test("judgeOwnRun explains ci.yml's own failing jobs, by their id, from inside o
   const unknown = judgeOwnRun({ run: runWith([calendar]), ids: ["not-a-real-job"], entries: [calendarEntry] });
   assert.equal(unknown.explained, false);
   assert.match(unknown.problems.join("\n"), /not-a-real-job is not a job id in this run's workflow/);
+});
+
+test("a file quarantined whole (title \"*\") forgives its tests and a job the hang watchdog failed with only that file's tests in flight, and nothing else", () => {
+  const file = "registry/ouro/components/ouro/message/message-list.windowing.test.tsx";
+  const whole = { project: "ouro-chromium", file, title: "*", issue: "https://github.com/ourostack/ouro-ui/issues/3785", owner: "someone", expiry: "2099-01-01T00:00:00Z", open: true, expired: false };
+  assert.deepEqual(entryProblems([whole]), []);
+  assert.equal(names(whole, { project: "ouro-chromium", file: `src/components/ouro/message/message-list.windowing.test.tsx`, title: "any > title" }), true);
+  assert.equal(names(whole, { project: "ouro-webkit", file, title: "any" }), false);
+  assert.equal(names(whole, { project: "ouro-chromium", file: "registry/ouro/components/ouro/message/message.test.tsx", title: "any" }), false);
+
+  const ciYml = workflow("ci.yml");
+  const installStep = 'Run scripts/install-test.sh namespace "$RUNNER_TEMP/app" abc';
+  const test = (name) => `ouro-chromium (chromium) src/components/ouro/message/message-list.windowing.test.tsx > MessageList windowing > ${name}`;
+  const hang = (inFlight) => logLines("install (namespace, nova)", [
+    `[ouro-ui] Vitest has had no test finish for 2 min. In flight: ${inFlight}. Not started: ouro-chromium (chromium) src/lib/ouro/claims.test.ts`,
+    "[ouro-ui] Vitest page ouro-chromium (chromium): the page did not pause in 2 s either, so it is hung",
+    "[ouro-ui] Vitest: a page did not answer at the warn check, so failing now instead of waiting the rest of 5 min",
+  ]);
+  const run = (log, failedSteps = [installStep]) => ({ id: "5", workflow: ciYml, jobs: [{ id: 3, name: "install (namespace, nova)", conclusion: "failure", url: "https://github.com/o/r/actions/runs/5/job/3", failedSteps, log }] });
+  const judge = (log, entries = [whole], failedSteps) => judgeOwnRun({ run: run(log, failedSteps), ids: ["install"], entries });
+
+  assert.deepEqual(hungTests(hang(`${test("opens, and more (running 2m 0s)")}`.replace(" (running 2m 0s)", "") + " (running 2m 0s)")).map((t) => t.file), ["src/components/ouro/message/message-list.windowing.test.tsx"]);
+  assert.equal(hungTests("no watchdog here"), undefined);
+
+  const forgiven = judge(hang(`${test("opens a conversation (running 2m 0s)")}`));
+  assert.equal(forgiven.explained, true, forgiven.problems.join("; "));
+  assert.equal(forgiven.retried.length, 1);
+  // Two in flight, both in the file: forgiven. One outside it, or none named, or the entry gone, closed or expired: not.
+  assert.equal(judge(hang(`${test("a (running 2m 0s)")}; ${test("b (running 1m 0s)")}`)).explained, true);
+  assert.equal(judge(hang(`${test("a (running 2m 0s)")}; ouro-chromium (chromium) src/components/ouro/dialog/dialog.test.tsx > Dialog > opens (running 1m 0s)`)).explained, false);
+  assert.equal(judge(hang(`ouro-chromium (chromium) src/components/ouro/dialog/dialog.test.tsx > Dialog > opens (running 2m 0s)`)).explained, false);
+  assert.equal(judge(hang(`${test("a (running 2m 0s)")}; something else`)).explained, false);
+  assert.equal(judge(logLines("install (namespace, nova)", ["[ouro-ui] Vitest: a page did not answer at the warn check, so failing now"])).explained, false);
+  assert.equal(judge(hang(test("a (running 2m 0s)")), []).explained, false);
+  assert.equal(judge(hang(test("a (running 2m 0s)")), [{ ...whole, open: false }]).explained, false);
+  assert.equal(judge(hang(test("a (running 2m 0s)")), [{ ...whole, expired: true }]).explained, false);
+  // An entry for one test's title does not forgive a hang, nor does a hang with another failed step or a failed test beside it.
+  assert.equal(judge(hang(test("a (running 2m 0s)")), [{ ...whole, title: "MessageList windowing > a" }]).explained, false);
+  assert.equal(judge(hang(test("a (running 2m 0s)")), [whole], ["Checkout", installStep]).explained, false);
+  const beside = `${hang(test("a (running 2m 0s)"))}\n${logLines("install (namespace, nova)", [" FAIL   ouro-chromium (chromium)  src/components/ouro/dialog/dialog.test.tsx > Dialog > opens", "      Tests  1 failed | 3 passed (4)"])}`;
+  assert.equal(judge(beside).explained, false);
 });
 
 test("quarantine.mjs retry records each retry in the step summary, the log and the issue, then reruns the run's failed jobs once", () => {
