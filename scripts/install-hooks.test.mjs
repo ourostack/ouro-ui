@@ -4,7 +4,7 @@ import { chmodSync, mkdirSync, readFileSync, statSync, writeFileSync } from "nod
 import { join } from "node:path";
 import { test } from "node:test";
 import { installHooks } from "./install-hooks.mjs";
-import { main, pullRequestText, pushedBranch } from "./pre-push.mjs";
+import { main, pullRequestText, pushedBranch, queuedPullRequest } from "./pre-push.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { sandboxEnv } from "./sandbox.mjs";
 
@@ -64,4 +64,35 @@ test("the pre-push hook stops a push whose pull request the claims lint would fa
   assert.match(failing.stderr, /git push --no-verify skips this check once/);
   const clean = fake("Fixes a typo in the guide.");
   assert.equal(clean.status, 0, clean.stdout + clean.stderr);
+});
+
+test("the pre-push hook refuses a push to a pull request in the merge queue, names the fix, and fails open", () => {
+  const gh = (stdout, status = 0) => () => ({ status, stdout });
+  const answer = (isInMergeQueue) => JSON.stringify({ data: { repository: { pullRequests: { nodes: [{ number: 7, isInMergeQueue }] } } } });
+  assert.deepEqual(queuedPullRequest("b", gh(answer(true))), { number: 7 });
+  assert.equal(queuedPullRequest("b", gh(answer(false))), null);
+  assert.equal(queuedPullRequest("b", gh(JSON.stringify({ data: { repository: { pullRequests: { nodes: [] } } } }))), null);
+  assert.ok(queuedPullRequest("b", gh("", 1)).unknown);
+  assert.ok(queuedPullRequest("b", gh("not json")).unknown);
+  assert.ok(queuedPullRequest("b", gh("{}")).unknown);
+
+  const bin = scratchDir("ouro-gh-queue-");
+  const push = (script) => {
+    writeFileSync(join(bin, "gh"), `#!/bin/sh\n${script}\n`);
+    chmodSync(join(bin, "gh"), 0o755);
+    const input = `refs/heads/docs-typo ${"1".repeat(40)} refs/heads/docs-typo ${"0".repeat(40)}\n`;
+    return spawnSync(process.execPath, ["scripts/pre-push.mjs"], { input, encoding: "utf8", env: sandboxEnv({ CI: "" }, [bin]) });
+  };
+  const view = JSON.stringify({ title: "Docs: fix a typo", body: "Fixes a typo in the guide.", state: "OPEN" });
+  const fake = (queued) => `if [ "$1" = api ]; then printf '%s' '${answer(queued)}'; else printf '%s' '${view}'; fi`;
+  const queued = push(fake(true));
+  assert.notEqual(queued.status, 0, queued.stdout + queued.stderr);
+  assert.match(queued.stderr, /#7 is in the merge queue/);
+  assert.match(queued.stderr, /gh pr merge 7 --disable-auto/);
+  assert.match(queued.stderr, /git push --no-verify skips this check once/);
+  const out = push(fake(false));
+  assert.equal(out.status, 0, out.stdout + out.stderr);
+  const broken = push(`if [ "$1" = api ]; then exit 1; else printf '%s' '${view}'; fi`);
+  assert.equal(broken.status, 0, broken.stdout + broken.stderr);
+  assert.match(broken.stderr, /Merge queue check skipped: gh could not answer/);
 });
