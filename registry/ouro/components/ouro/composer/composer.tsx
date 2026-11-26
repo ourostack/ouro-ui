@@ -443,9 +443,9 @@ function textMetrics(frame: HTMLElement | null): { line: number; offset: number;
 function ComposerEdge({ label, read, onResize }: { label: string; read: () => ResizeRange; onResize: (px: number, settled: boolean) => void }): JSX.Element {
   const { props } = useResize({ label, read, onResize });
   return (
-    <div {...props} data-ouro-control="composer" data-ouro-part="resize-edge" className={resizeEdgeClass}>
+    <div {...props} data-ouro-control="composer" data-slot="composer-resize-edge" data-ouro-part="resize-edge" className={resizeEdgeClass}>
       <TouchTarget />
-      <span aria-hidden="true" data-ouro-part="resize-line" className={resizeLineClass} />
+      <span aria-hidden="true" data-slot="composer-resize-line" data-ouro-part="resize-line" className={resizeLineClass} />
     </div>
   );
 }
