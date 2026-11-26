@@ -170,6 +170,12 @@ const countOverlayClass = "absolute end-(--ouro-count-x,-6px) top-(--ouro-count-
 
 // `soft` text is the tone mixed 20% toward the foreground, as on Button, so it keeps
 // 4.5:1 on the tint under shadcn's stock values too. `secondary` is shadcn's quiet surface.
+// Both formulas read one indirection property, --ouro-tone, set per tone by a tiny class
+// below, so Button (which shares the same two formulas byte for byte) and every tone here
+// collapse onto one pair of generated rules instead of one pair per tone.
+const softToneClass =
+  "[--ouro-bd:transparent] [--ouro-bg:color-mix(in_oklab,var(--ouro-tone)_10%,transparent)] text-[color-mix(in_oklab,var(--ouro-tone)_80%,var(--foreground))] contrast-more:[--ouro-bd:currentColor]";
+const outlineToneClass = "[--ouro-bd:color-mix(in_oklab,var(--ouro-tone)_45%,transparent)] [--ouro-bg:transparent]";
 const looks = {
   solid: {
     primary: "[--ouro-bd:transparent] [--ouro-bg:var(--primary)] text-primary-foreground",
@@ -179,18 +185,18 @@ const looks = {
     warning: "[--ouro-bd:transparent] [--ouro-bg:var(--warning)] text-warning-foreground",
   },
   soft: {
-    primary: "[--ouro-bd:transparent] [--ouro-bg:color-mix(in_oklab,var(--primary)_10%,transparent)] text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))] contrast-more:[--ouro-bd:currentColor]",
+    primary: `${softToneClass} [--ouro-tone:var(--primary)]`,
     secondary: "[--ouro-bd:transparent] [--ouro-bg:var(--muted)] text-foreground contrast-more:[--ouro-bd:currentColor]",
-    destructive: "[--ouro-bd:transparent] [--ouro-bg:color-mix(in_oklab,var(--destructive)_10%,transparent)] text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))] contrast-more:[--ouro-bd:currentColor]",
-    success: "[--ouro-bd:transparent] [--ouro-bg:color-mix(in_oklab,var(--success)_10%,transparent)] text-[color-mix(in_oklab,var(--success)_80%,var(--foreground))] contrast-more:[--ouro-bd:currentColor]",
-    warning: "[--ouro-bd:transparent] [--ouro-bg:color-mix(in_oklab,var(--warning)_10%,transparent)] text-[color-mix(in_oklab,var(--warning)_80%,var(--foreground))] contrast-more:[--ouro-bd:currentColor]",
+    destructive: `${softToneClass} [--ouro-tone:var(--destructive)]`,
+    success: `${softToneClass} [--ouro-tone:var(--success)]`,
+    warning: `${softToneClass} [--ouro-tone:var(--warning)]`,
   },
   outline: {
-    primary: "[--ouro-bd:color-mix(in_oklab,var(--primary)_45%,transparent)] [--ouro-bg:transparent] text-primary",
+    primary: `${outlineToneClass} [--ouro-tone:var(--primary)] text-primary`,
     secondary: "[--ouro-bd:var(--border)] [--ouro-bg:transparent] text-foreground",
-    destructive: "[--ouro-bd:color-mix(in_oklab,var(--destructive)_45%,transparent)] [--ouro-bg:transparent] text-destructive",
-    success: "[--ouro-bd:color-mix(in_oklab,var(--success)_45%,transparent)] [--ouro-bg:transparent] text-success",
-    warning: "[--ouro-bd:color-mix(in_oklab,var(--warning)_45%,transparent)] [--ouro-bg:transparent] text-warning",
+    destructive: `${outlineToneClass} [--ouro-tone:var(--destructive)] text-destructive`,
+    success: `${outlineToneClass} [--ouro-tone:var(--success)] text-success`,
+    warning: `${outlineToneClass} [--ouro-tone:var(--warning)] text-warning`,
   },
 } as const;
 

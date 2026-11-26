@@ -70,7 +70,10 @@ test("run by Node itself, each check test runs in exactly one group", () => {
     const stubs = group.files.map((file) => join(dir, file.split("/").pop().replace(".mts", ".mjs")));
     const out = spawnSync(process.execPath, ["--test", "--test-reporter=tap", ...selectionFlags(group), ...stubs], { encoding: "utf8", env: Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT")) }).stdout;
     for (const match of out.matchAll(/^ {4}ok \d+ - (.*)$/gm)) {
-      ran.set(match[1], [...new Set([...(ran.get(match[1]) ?? []), name])]);
+      // TAP backslash-escapes "#" (it opens a YAML comment) and "\" in a test's name; undo that so a title with an
+      // issue number, like "steady drops only dropped-frames ... (#3836)", matches the real, unescaped title (#3836).
+      const title = match[1].replace(/\\(.)/g, "$1");
+      ran.set(title, [...new Set([...(ran.get(title) ?? []), name])]);
     }
   }
   for (const [file, titles] of real) {

@@ -507,8 +507,11 @@ const filledColors = {
   "--ouro-action-hover": "color-mix(in oklab,var(--ouro-bubble-ink) 88%,var(--ouro-bubble))",
   "--ouro-action-active": "color-mix(in oklab,var(--ouro-bubble-ink) 76%,var(--ouro-bubble))",
 } as CSSProperties;
-// Selected text inverts, so it shows on the fill; a link, in the text's own color there, is underlined.
-const filledInk = "bg-(--ouro-bubble) text-(--ouro-bubble-ink) selection:bg-(--ouro-bubble-ink) selection:text-(--ouro-bubble) [&_a]:underline";
+// Selected text inverts, so it shows on the fill; a link, in the text's own color there, is underlined. A
+// Button rendered as a link keeps its own look instead: `[&_a]` would otherwise outrank its `no-underline`,
+// since a descendant-element selector beats a single class whichever rule comes last.
+const filledInk =
+  "bg-(--ouro-bubble) text-(--ouro-bubble-ink) selection:bg-(--ouro-bubble-ink) selection:text-(--ouro-bubble) [&_a:not([data-ouro-control])]:underline";
 // Others' bubble reads `--ouro-bubble-other` and `--ouro-bubble-other-foreground` before the muted surface, the
 // same shape as the user's own (bubbleColors above): the message resolves the fill and its ink, the bubble is
 // filled and colored from them directly, and the primary, success and muted text colors take a little of the
