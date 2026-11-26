@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: [ConversationList sections can be reordered](registry/ouro/components/ouro/conversation-list/conversation-list.reorder.test.tsx "verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.reorder.test.tsx::ConversationList section reorder > drags a reorderable header to a new place among the reorderable sections and reports the ids and the move once)"): mark a section `reorderable` and the person drags its header, or uses its grip button or Alt+Up and Alt+Down on the header, and `onSectionsReorder(ids, { id, from, to })` reports the new order.
