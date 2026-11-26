@@ -35,7 +35,7 @@ Type: `BreadcrumbProps`.
 | `items` (required) | `readonly BreadcrumbItem[]` |  | The trail from the top of the site to the current page, which is the last item. |
 | `label` | `string` | `"Breadcrumb"` | Names the navigation for screen readers. |
 | `maxItems` | `number` | `4` | The longest trail shown in full. A longer one keeps the first item and the last ones (`maxItems - 2` of them, at least the current page) and puts the middle in a menu, which is a bottom sheet below 640px. |
-| `moreLabel` | `string` | `"More"` | The name of the "…" button that opens the hidden steps. |
+| `moreLabel` | `string` | `"More"` | The name of the more button, drawn as dots, that opens the hidden steps. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 
 ## Don't use
