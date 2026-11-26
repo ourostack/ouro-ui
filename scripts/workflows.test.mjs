@@ -1944,11 +1944,11 @@ test("the ci check passes only when its parts passed and the browser shards' mer
   const reduced = runStep(coverage, { FULL: "false", COMPONENTS: "checkbox", RUNNER_TEMP: "/r", BROWSER_SHARDS: "6" });
   assert.match(reduced.calls, /^CALL node scripts\/test-impact\.mjs coverage \/r\/coverage checkbox --shards 6$/m);
   assert.match(coverageJob, /^ {6}reduced: \$\{\{ steps\.tests\.outputs\.reduced \}\}\n {6}stems: \$\{\{ steps\.tests\.outputs\.stems \}\}\n {6}fallback: \$\{\{ steps\.tests\.outputs\.fallback \}\}$/m);
-  assert.match(coverageJob, /^ {10}pattern: coverage-browser-\*\n {10}path: \$\{\{ runner\.temp \}\}\/coverage\n/m);
+  assert.match(coverageJob, /run: node scripts\/download-newest-artifacts\.mjs coverage-browser- "\$RUNNER_TEMP\/coverage"\n/);
   // After a fallback, the ci check merges the fallback shards' coverage, the full suite's, and holds it to 100%.
   assert.match(block, /^ {6}reduced: \$\{\{ needs\.coverage\.outputs\.reduced \}\}\n {6}stems: \$\{\{ needs\.coverage\.outputs\.stems \}\}\n {6}fallback: \$\{\{ needs\.coverage\.outputs\.fallback \}\}$/m);
   assert.equal(block.match(/^ {6}FALLBACK_SHARDS: (\d+)$/m)?.[1], String(shardCount(jobs["browser-fallback"])));
-  assert.match(block, /^ {6}- if: env\.FALLBACK == 'true'\n {8}uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: coverage-fallback-\*\n {10}path: \$\{\{ runner\.temp \}\}\/coverage\n/m);
+  assert.match(block, /^ {6}- if: env\.FALLBACK == 'true'\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/download-newest-artifacts\.mjs coverage-fallback- "\$RUNNER_TEMP\/coverage"\n/m);
   assert.match(block, /^ {6}- if: env\.FALLBACK == 'true'\n {8}name: Full suite coverage\n/m);
   const merge = stepScript(block, "Full suite coverage");
   assert.match(runStep(merge, { RUNNER_TEMP: "/r", FALLBACK_SHARDS: "16" }).calls, /^CALL node scripts\/coverage-merge\.mjs \/r\/coverage --shards 16$/m);
@@ -2459,7 +2459,7 @@ test("motion coverage runs beside the ci check, over the partitions the browser 
   const coverage = jobs["motion-coverage"];
   assert.ok(coverage, "ci.yml has a motion-coverage job");
   assert.match(coverage, /^ {4}needs: \[plan, browser, coverage, browser-fallback\]$/m, "motion-coverage waits on the shards and the coverage job, not on the ci check");
-  assert.match(coverage, /- if: env\.BROWSER_RUN == 'true'\n {8}uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: \$\{\{ needs\.coverage\.outputs\.fallback == 'true' && 'motion-fallback-\*' \|\| 'motion-browser-\*' \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/motion\n/);
+  assert.match(coverage, /- if: env\.BROWSER_RUN == 'true'\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {10}PREFIX: \$\{\{ needs\.coverage\.outputs\.fallback == 'true' && 'motion-fallback-' \|\| 'motion-browser-' \}\}\n {8}run: node scripts\/download-newest-artifacts\.mjs "\$PREFIX" "\$RUNNER_TEMP\/motion"\n/);
   // When the plan skipped the browser shards, no motion was recorded: every step but a notice is skipped.
   assert.match(coverage, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' && needs\.coverage\.outputs\.fallback == 'true' \}\}$/m);
   const steps = coverage.slice(coverage.indexOf("    steps:")).split(/\n {6}- /).slice(1);
