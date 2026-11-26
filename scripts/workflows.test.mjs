@@ -10,7 +10,7 @@ import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { KITS } from "./kit-pin.mjs";
-import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
+import { entryProblems, expiredWarning, failedTests, isExpired, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -2826,7 +2826,12 @@ test("a release gives each job its own permissions, and none may write commit st
   assert.deepEqual(Object.keys(jobs), ["release", "pages", "publish", "finish", "next", "docs-pin", "attest"]);
   const permissions = permissionsOf;
   // It reads main's CI runs and the pull request merged as the commit, whose run may prove its tree (scripts/ci-proof.mjs).
-  assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "read", "pull-requests": "read" });
+  assert.deepEqual(permissions(jobs.release), {
+    contents: "write",
+    actions: "write",
+    issues: "write",
+    "pull-requests": "read",
+  });
   assert.deepEqual(permissions(jobs.pages), { actions: "write" });
   assert.deepEqual(permissions(jobs.publish), {});
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
@@ -3065,17 +3070,37 @@ test("CI rehearses the release commit on every run: release.yml's own edits, for
   assert.match(tagged.stdout, new RegExp(`^::error::v${next.replace(/\./g, "\\.")} already exists here`, "m"));
 });
 
+/**
+ * Whether file's text has entry's exact title (a Vitest title is literal), or, for a Playwright title built from a
+ * template literal (`` test(`...${expr}...`) ``), matches one of the file's `test(` template literals once each
+ * `${...}` interpolation is wildcarded: a resolved title (with its run's real numbers) cannot appear literally in its
+ * own un-executed source.
+ */
+const hasQuarantinedTitle = (file, title) => {
+  const text = readFileSync(join(root, file), "utf8");
+  // Vitest joins describe and title with " > "; Playwright's failure lines join them with "›" (playwrightFailLine).
+  const last = title.split(/ > | › /).at(-1);
+  if (text.includes(last)) return true;
+  return [...text.matchAll(/test(?:\.\w+)?\(`([^`]*)`/g)].some((match) => {
+    const pattern = match[1]
+      .split(/\$\{[^}]*\}/)
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join(".*?");
+    return new RegExp(`^${pattern}$`, "s").test(last);
+  });
+};
+
 test("every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test", () => {
   const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
   assert.deepEqual(entryProblems(entries), []);
   for (const entry of entries) {
     assert.ok(existsSync(join(root, entry.file)), `${entry.file} does not exist`);
-    assert.ok(readFileSync(join(root, entry.file), "utf8").includes(entry.title.split(" > ").at(-1)), `${entry.file} has no test "${entry.title}"`);
+    assert.ok(hasQuarantinedTitle(entry.file, entry.title), `${entry.file} has no test "${entry.title}"`);
   }
   // Each part is required.
-  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone" };
+  const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone", expiry: "2099-01-01T00:00:00Z" };
   assert.deepEqual(entryProblems([whole]), []);
-  for (const key of ["project", "file", "title", "issue", "owner"]) {
+  for (const key of ["project", "file", "title", "issue", "owner", "expiry"]) {
     const without = { ...whole };
     delete without[key];
     assert.equal(entryProblems([without]).length, 1, key);
@@ -3125,6 +3150,35 @@ test("the quarantine reads a job's failed Vitest tests from its log, and anythin
   assert.ok(!names(calendarEntry, { ...installed, project: "ouro-chromium" }));
   assert.ok(!names(calendarEntry, { ...installed, file: "src/components/ouro/calendar/other.test.tsx" }));
   assert.ok(!names(calendarEntry, { ...installed, title: "Calendar > range > something else" }));
+});
+
+const latencyTitle = "interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU";
+const latencyLog = logLines("browser (5/22)", [
+  `  ✘  1 [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle} (1.2s)`,
+  "  1) [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU",
+  "    Error: expected p95 to be below 100ms, measured 142ms",
+  "  1 failed",
+]);
+const latencyEntry = { project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle, issue: "https://github.com/ourostack/ouro-ui/issues/3628", owner: "lane-latency-3684", open: true };
+
+test("the quarantine reads a job's failed Playwright tests from its log too, in either of Playwright's own failure-line formats, plus its bare summary", () => {
+  const found = failedTests(latencyLog);
+  assert.deepEqual(found.tests, [{ project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle }]);
+  assert.equal(found.failed, 1);
+  assert.deepEqual(found.unexplained, []);
+  assert.ok(names(latencyEntry, found.tests[0]));
+  // Either of Playwright's own failure-line shapes alone is enough.
+  assert.deepEqual(failedTests(logLines("j", [`  ✘  1 [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle} (1.2s)`, "  1 failed"])).tests, [{ project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle }]);
+  assert.deepEqual(failedTests(logLines("j", [`  1) [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle}`, "  1 failed"])).tests, [{ project: "chromium", file: "site/e2e/site-menu.latency.spec.ts", title: latencyTitle }]);
+});
+
+test("isExpired reads a quarantine entry's expiry against now; expiredWarning names the entry and asks to remove or renew it", () => {
+  const now = new Date("2026-06-01T00:00:00Z");
+  assert.equal(isExpired({ expiry: "2026-05-31T00:00:00Z" }, now), true);
+  assert.equal(isExpired({ expiry: "2026-06-01T00:00:00Z" }, now), true);
+  assert.equal(isExpired({ expiry: "2026-06-02T00:00:00Z" }, now), false);
+  assert.match(expiredWarning(calendarEntry), /^::warning title=Expired quarantine entry::/);
+  assert.match(expiredWarning(calendarEntry), new RegExp(`has passed for ${calendarEntry.project} ${calendarEntry.file} > ${calendarEntry.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\. Remove the entry or renew its expiry\\.$`));
 });
 
 test("Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them", () => {
@@ -3201,7 +3255,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   writeFileSync(join(bin, "calendar.log"), calendarLog);
   // The Calendar test, quarantined as it was before its fix.
   const list = join(bin, "quarantine.json");
-  writeFileSync(list, JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow" }]));
+  writeFileSync(list, JSON.stringify([{ project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: calendarTitle, issue: "https://github.com/ourostack/ouro-ui/issues/351", owner: "arimendelow", expiry: "2099-01-01T00:00:00Z" }]));
   // A stand-in gh: run 5 failed install (shadcn@latest, nova) on the Calendar test, its issue is
   // $STATE, and a rerun moves the run to attempt 2.
   writeFileSync(

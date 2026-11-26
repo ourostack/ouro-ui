@@ -1,25 +1,31 @@
 // The quarantine: tests known to fail now and then (.github/quarantine.json), each with the open
-// issue that tracks it and an owner. Release and its rehearsal, and nothing else, retry a CI run's
-// failed jobs once when every check they judge failed only because of quarantined tests: each
-// failed job either failed in one step only, a test step, whose Vitest run names only listed tests
-// (and the failed count it reports is exactly those), or is a gate (ci, install (variant, preset))
-// whose failing step only read the result of such jobs, none of them skipped, or is a job skipped
-// because a job it needs failed so. Any other failure, a listed test without an open issue, a run
-// already attempted more than once, or a second failure, is not retried, so the release still
-// stops on it. Each retry is written to the step summary and the log, and commented on the entry's
-// issue, once its rerun has started; Release repeats its rehearsal's retries in its own summary.
-// An entry whose issue is closed is stale: a warning asks to remove it.
+// issue that tracks it, an owner and an expiry. Release and its rehearsal, CI's own run (push, a
+// pull request and the merge queue alike, through .github/workflows/quarantine-retry.yml), and
+// nothing else, retry a run's failed jobs once when every check they judge failed only because of
+// quarantined, unexpired tests: each failed job either failed in one step only, a test step, whose
+// Vitest or Playwright run names only listed tests (and the failed count it reports is exactly
+// those), or is a gate (ci, install (variant, preset)) whose failing step only read the result of
+// such jobs, none of them skipped, or is a job skipped because a job it needs failed so. Any other
+// failure, a listed test without an open issue, an entry whose expiry has passed, a run already
+// attempted more than once, or a second failure, is not retried, so the run still stops on it. Each
+// retry is written to the step summary and the log, and commented on the entry's issue, once its
+// rerun has started; Release repeats its rehearsal's retries in its own summary. An entry whose
+// issue is closed is stale: a warning asks to remove it. An entry whose expiry has passed is also
+// warned about and is treated as if it were not quarantined, so the test's own failure still stops
+// the run, because the 24 hour deadline that quarantined it has not been kept.
 //
 //   node scripts/quarantine.mjs check
-//       fails when an entry lacks its test (project, file, title), its issue URL or its owner
+//       fails when an entry lacks its test (project, file, title), its issue URL, its owner or
+//       its expiry (an ISO 8601 date-time)
 //   node scripts/quarantine.mjs retry [--also <check>]... <run id>...
-//       after scripts/required-ci.sh failed on these runs: exits 0 once it has started the retry
-//       (scripts/required-ci.sh then waits for it and judges again), 1 when nothing may be retried.
-//       Needs gh with GH_TOKEN and GITHUB_REPOSITORY.
+//       after scripts/required-ci.sh (or CI's own run) failed on these runs: exits 0 once it has
+//       started the retry (the caller then waits for it and judges again), 1 when nothing may be
+//       retried. Needs gh with GH_TOKEN and GITHUB_REPOSITORY.
 //   node scripts/quarantine.mjs plan [--also <check>]... <run id>...
 //       says what retry would do for these runs, and does nothing
 //   node scripts/quarantine.mjs stale
-//       warns of each entry whose issue is closed (or cannot be read); never fails
+//       warns of each entry whose issue is closed (or cannot be read) or whose expiry has passed;
+//       never fails
 //   node scripts/quarantine.mjs rehearsed <run id>
 //       repeats, in the log and the step summary, the retries a rehearsal run recorded
 import { spawnSync } from "node:child_process";
@@ -35,7 +41,7 @@ export const quarantineFile = process.env.OURO_QUARANTINE_FILE ?? join(root, ".g
 
 const issuePattern = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+$/;
 
-/** What is wrong with the quarantine's entries: each needs a project, a file, a title, an issue URL and an owner. */
+/** What is wrong with the quarantine's entries: each needs a project, a file, a title, an issue URL, an owner and an expiry. */
 export function entryProblems(entries) {
   if (!Array.isArray(entries)) return ["the quarantine must be a JSON array of entries"];
   return entries.flatMap((entry, index) => {
@@ -45,12 +51,24 @@ export function entryProblems(entries) {
       if (typeof entry?.[key] !== "string" || entry[key].trim() === "") problems.push(`${label} has no ${key}`);
     }
     if (typeof entry?.issue !== "string" || !issuePattern.test(entry.issue)) problems.push(`${label} has no issue URL (https://github.com/<owner>/<repo>/issues/<number>)`);
+    if (typeof entry?.expiry !== "string" || Number.isNaN(Date.parse(entry.expiry))) problems.push(`${label} has no expiry (an ISO 8601 date-time)`);
     return problems;
   });
 }
 
+/** Whether an entry's expiry has passed. */
+export const isExpired = (entry, now = new Date()) => new Date(entry.expiry).getTime() <= now.getTime();
+
+/** The warning for an entry whose expiry has passed. */
+export const expiredWarning = (entry) => `::warning title=Expired quarantine entry::${entry.expiry} has passed for ${entry.project} ${entry.file} > ${entry.title}. Remove the entry or renew its expiry.`;
+
 /** The Vitest test a `FAIL` line names: `{ project, file, title }`, or undefined for a file-level failure. */
 const failLine = /^\s*FAIL\s+(\S+) \((\w+)\)\s+(\S+\.[cm]?[jt]sx?) > (.+?)\s*$/;
+
+// Playwright lists a failure twice: once in its run-through as "✘  N [project] › file:line:col ›
+// describe › title (duration)", and once in its failure detail as "N) [project] › file:line:col ›
+// describe › title". Both carry the same project, file and describe-chain title, so either matches.
+const playwrightFailLine = /^\s*(?:[✘x]|\d+\))\s*\d*\s*\[(\S+)\]\s*›\s*(\S+\.spec\.[cm]?[jt]sx?):\d+:\d+\s*›\s*(.+?)\s*(?:\(\d[\d.,]*\s*m?s\))?\s*$/;
 
 // eslint-disable-next-line no-control-regex -- strips the colours in a log, as escapes or as gh prints them (^[[31m)
 const colours = /\x1b\[[0-9;]*m|\^\[\[[0-9;]*m/g;
@@ -64,8 +82,9 @@ const text = (line) =>
 
 /**
  * The failed tests a job's log shows: `{ tests: [{ project, file, title }], failed, unexplained }`,
- * where `failed` adds up Vitest's "Tests  n failed" summaries, and `unexplained` lists what fails
- * without naming a test (a file that did not load, an unhandled error).
+ * where `failed` adds up Vitest's "Tests  n failed" summaries and Playwright's own bare "n failed"
+ * summary, and `unexplained` lists what fails without naming a test (a file that did not load, an
+ * unhandled error).
  */
 export function failedTests(log) {
   const tests = new Map();
@@ -73,10 +92,14 @@ export function failedTests(log) {
   let failed = 0;
   for (const line of log.split("\n").map(text)) {
     const match = failLine.exec(line);
+    const pw = match ? undefined : playwrightFailLine.exec(line);
     if (match) tests.set(`${match[1]}\t${match[3]}\t${match[4]}`, { project: match[1], file: match[3], title: match[4] });
+    else if (pw) tests.set(`${pw[1]}\t${pw[2]}\t${pw[3]}`, { project: pw[1], file: pw[2], title: pw[3] });
     else if (/^\s*FAIL\s/.test(line)) unexplained.push(line.trim());
     const summary = /^\s*Tests\s+(\d+) failed\b/.exec(line);
     if (summary) failed += Number(summary[1]);
+    const pwSummary = /^\s*(\d+) failed\s*$/.exec(line);
+    if (pwSummary) failed += Number(pwSummary[1]);
     if (/^\s*Errors\s+\d+ errors?\b/.test(line)) unexplained.push(line.trim());
   }
   return { tests: [...tests.values()], failed, unexplained };
@@ -116,8 +139,8 @@ export function stepBlock(block, name) {
   );
 }
 
-/** Whether a step runs tests: Vitest, directly or through the impact plan, or the install test. */
-const runsTests = (step) => /\bvitest\b|scripts\/install-test\.sh/.test(step.replace(/^ {6}(?:- | {2})name: .*$/m, ""));
+/** Whether a step runs tests: Vitest or Playwright, directly or through the impact plan, or the install test. */
+const runsTests = (step) => /\bvitest\b|\bplaywright\b|scripts\/install-test\.sh/.test(step.replace(/^ {6}(?:- | {2})name: .*$/m, ""));
 
 /** A job's block in a workflow's text. */
 const jobBlock = (workflow, id) => workflow.split("\njobs:\n")[1]?.split(/\n(?= {2}[\w-]+:\n)/).find((candidate) => candidate.startsWith(`  ${id}:`));
@@ -127,8 +150,8 @@ const jobBlock = (workflow, id) => workflow.split("\njobs:\n")[1]?.split(/\n(?= 
  *
  * runs: [{ id, attempt, workflow (its text), jobs: [{ id, name, conclusion, url, failedSteps, log }] }]
  * contexts: the checks the release judges (main's rules', and --also's). entries: the quarantine,
- * each with `open` (its issue's state). `retried` lists each quarantined failure as
- * `{ entry, test, run, job, url }`.
+ * each with `open` (its issue's state) and `expired` (whether its expiry has passed). `retried`
+ * lists each quarantined failure as `{ entry, test, run, job, url }`.
  */
 export function retryPlan({ runs, contexts, entries }) {
   const problems = [];
@@ -168,12 +191,14 @@ export function retryPlan({ runs, contexts, entries }) {
       const step = block && job.failedSteps.length === 1 ? stepBlock(block, job.failedSteps[0]) : "";
       const unlisted = found.tests.filter((test) => !entries.some((entry) => names(entry, test)));
       const closed = found.tests.filter((test) => entries.some((entry) => names(entry, test) && !entry.open));
+      const expired = found.tests.filter((test) => entries.some((entry) => names(entry, test) && entry.open && entry.expired));
       if (job.failedSteps.length !== 1) problems.push(`${job.name} (run ${run.id}) failed in ${job.failedSteps.length} steps (${job.failedSteps.join(", ")}), not in its test step alone`);
       else if (!runsTests(step)) problems.push(`${job.name} (run ${run.id}) failed in "${job.failedSteps[0]}", which is not a step that runs the tests`);
       else if (found.unexplained.length > 0) problems.push(`${job.name} (run ${run.id}) failed beyond a test: ${found.unexplained.join("; ")}`);
       else if (found.failed !== found.tests.length) problems.push(`${job.name} (run ${run.id}) reports ${found.failed} failed tests but names ${found.tests.length}`);
       else if (unlisted.length > 0) problems.push(...unlisted.map((test) => `${test.project} ${test.file} > ${test.title} failed in ${job.name} (run ${run.id}) and is not quarantined`));
       else if (closed.length > 0) problems.push(...closed.map((test) => `${test.project} ${test.file} > ${test.title} is quarantined, but its issue is not open`));
+      else if (expired.length > 0) problems.push(...expired.map((test) => `${test.project} ${test.file} > ${test.title} is quarantined, but its entry has expired`));
       else {
         ok = true;
         for (const test of found.tests) retried.push({ entry: entries.find((entry) => names(entry, test)), test, run: run.id, job: job.name, url: job.url });
@@ -262,10 +287,14 @@ async function retry(args, { dryRun = false } = {}) {
     }
     return { id, attempt: Number(attempt), workflow: readFileSync(join(root, path), "utf8"), jobs };
   });
-  // A test is quarantined only while its issue is open.
+  // A test is quarantined only while its issue is open and its expiry has not passed.
   const listed = entries.filter((entry) => runs.some((run) => run.jobs.some((job) => failedTests(job.log ?? "").tests.some((test) => names(entry, test)))));
   const states = issueStates(listed);
-  for (const entry of entries) entry.open = states[listed.indexOf(entry)] === "OPEN";
+  for (const entry of entries) {
+    entry.open = states[listed.indexOf(entry)] === "OPEN";
+    entry.expired = isExpired(entry);
+    if (entry.expired) console.log(expiredWarning(entry));
+  }
   const plan = retryPlan({ runs, contexts, entries });
   if (!plan.retry) {
     console.log(`Not retried: ${plan.problems.join("; ")}`);
@@ -348,7 +377,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     for (const problem of problems) console.error(`::error::.github/quarantine.json: ${problem}`);
     process.exit(problems.length > 0 ? 1 : 0);
   } else if (command === "stale") {
-    issueStates(JSON.parse(readFileSync(quarantineFile, "utf8")));
+    const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
+    issueStates(entries);
+    for (const entry of entries) if (isExpired(entry)) console.log(expiredWarning(entry));
   } else if (command === "rehearsed" && args.length === 1) {
     process.exit(rehearsed(args[0]));
   } else if ((command === "retry" || command === "plan") && args.length > 0) {
