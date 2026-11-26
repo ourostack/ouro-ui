@@ -13,8 +13,8 @@ Already have an app and no Ouro HX? [Add Ouro AX to it](ax-standalone.md): a pai
 ## Install
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.567         # the kit and the X-ray
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.567   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.570         # the kit and the X-ray
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.570   # with their node:test tests
 ```
 
 The shadcn CLI copies the shared files into `lib/ouro/ax/` under your lib alias. The X-ray, the flow runner, the surfaces check and their tests go to `scripts/ouro/ax/`, outside your TypeScript project, so `tsc -b` never reads their Node imports.[^ax-outside] Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and the shared files as `#ouro-ax/<file>`, which package.json names once: `npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"`, with `src/lib` as your lib folder. Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps]
@@ -162,6 +162,14 @@ Prior art:
 - [Nielsen Norman Group's error-message guidelines](https://www.nngroup.com/articles/error-message-guidelines/ "verify:urlOk(https://www.nngroup.com/articles/error-message-guidelines/)"): adopt. Say precisely what went wrong in plain words, and offer a way forward.
 - [GOV.UK's error message component](https://design-system.service.gov.uk/components/error-message/ "verify:urlOk(https://design-system.service.gov.uk/components/error-message/)"): borrow. Its wording rules are for form fields, but its stance carries over: say what happened and how to fix it, in place of "an error occurred".
 - [Apple's Human Interface Guidelines on alerts](https://developer.apple.com/design/human-interface-guidelines/alerts "verify:urlOk(https://developer.apple.com/design/human-interface-guidelines/alerts)"): watch. It governs when an alert appears and how its buttons read, more than what a failure says.
+
+## Answer the question the agent asks
+
+A fresh agent asked "what's new for me?" by a consuming app often reaches for several partial commands in turn, rather than the one command built to answer that question directly, and then has to reconcile their separate counts and timestamps by hand.
+
+**One read that answers the agent's question beats several partial ones.** Give the question its own command, one whose single answer already holds everything a "what's new" question needs — the unread items, the mentions, the invites, and what's happening now — each counted from the same lists the answer reports, so nothing in it can disagree with itself. A fresh agent should reach for that command first, from its own `--help`, rather than assembling the same picture from several narrower list commands and reconciling their counts by hand.
+
+**An agent relays a warning stated as a warning, first, and treats a timestamp as metadata.** When the answer is current, say nothing extra: a plain freshness timestamp changes nothing for the person reading it. When the app could not refresh its view, lead the answer with that warning, its cause and its age, before anything else. Don't put an instruction to the agent inside the answer ("Tell the person…"): it is copy that earns no place when nothing is wrong.
 
 ## When a page asks to open an app
 

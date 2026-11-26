@@ -1738,8 +1738,7 @@ test("every required check is still a job that reports, under the name the rules
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
   // check accepts, and the themes shards are no required check, only the themes check over them.
-  // The themes check is not required yet (it reports first; the ruleset swap follows), so the shards' names are.
-  for (const id of heavyJobs.map((job) => (job === "themes" ? "themes-shard" : job))) for (const name of checkNames(jobs[id], id)) assert.ok(requiredChecks.includes(name), `${name} is required`);
+  for (const id of heavyJobs) for (const name of checkNames(jobs[id], id)) assert.ok(requiredChecks.includes(name), `${name} is required`);
   for (const id of heavyJobs) assert.doesNotMatch(jobs[id].match(/^ {4}name: (.+)$/m)?.[1] ?? "", /matrix/, id);
   // GitHub reports a skipped job whose name is only an expression under the bare expression
   // ("matrix.check"), which no job's name matches, so the budget would fail it as unmatched.
@@ -2032,8 +2031,8 @@ test("the themes shards pass as not affected when a pull request changes no comp
   const later = block.slice(block.indexOf("name: Is any story affected?")).split(/\n {6}- /).slice(1);
   for (const step of later) assert.match(step, /^if: steps\.affected\.outputs\.run == 'true'$/m, step);
   const scan = stepScript(block, "Theme scans");
-  assert.match(runStep(scan, { FULL: "true", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=unset/);
-  assert.match(runStep(scan, { FULL: "false", COMPONENTS: "checkbox-group", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/3\nOURO_STORIES=checkbox$/m);
+  assert.match(runStep(scan, { FULL: "true", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/6\nOURO_STORIES=unset/);
+  assert.match(runStep(scan, { FULL: "false", COMPONENTS: "checkbox-group", SHARD: "2" }).calls, /CALL pnpm test:themes --shard=2\/6\nOURO_STORIES=checkbox$/m);
 });
 
 test("the conformance shards run only the checks' proofs on the first shard when a pull request changes no component, and check only the selected stories, every nth per shard", () => {

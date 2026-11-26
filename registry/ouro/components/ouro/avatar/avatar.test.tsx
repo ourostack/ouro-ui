@@ -1,4 +1,4 @@
-import { Profiler, type ReactNode } from "react";
+import { Profiler, type CSSProperties, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -1109,6 +1109,22 @@ describe("Avatar presence", () => {
       }
       expect(glyph.querySelectorAll("path")).toHaveLength(presence === "busy" ? 0 : 1);
     }
+  });
+
+  it("reads --ouro-presence-<state> before the named tone, so an app can re-point one state alone", async () => {
+    const amber = "rgb(193, 156, 0)";
+    const { host } = await render(
+      <div style={{ "--ouro-presence-away": amber } as CSSProperties}>
+        <Avatar name="Ana Lind" presence="away" presenceLabel="Away" />
+        <Avatar name="Ben Ito" presence="busy" presenceLabel="Busy" />
+      </div>,
+    );
+    const [away, busy] = [...host.querySelectorAll<HTMLElement>("[data-ouro-avatar-presence] svg circle")];
+    // The overridden state draws the app's color, not the shipped warning tone.
+    expect(getComputedStyle(away!).fill).toBe(amber);
+    expect(getComputedStyle(away!).fill).not.toBe(token("warning"));
+    // A different state's dot, and the general warning tone itself, are untouched by that override.
+    expect(getComputedStyle(busy!).fill).toBe(token("destructive"));
   });
 
   it("renders the dot in server HTML", () => {
