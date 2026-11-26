@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: Composer now carries an app's own `id`, `data-*` and `aria-*` attributes to whichever editor renders, rich or plain; before, they reached only the plain text box.
