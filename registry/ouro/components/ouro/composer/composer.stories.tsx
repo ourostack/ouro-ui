@@ -440,6 +440,20 @@ export const Expanded: Story = {
   render: () => <LongMessage />,
 };
 
+/**
+ * A long message under a blurred, translucent backdrop (`backdrop-filter`), where the box opens and
+ * closes as it does anywhere: one outline, and no frame of the old or the new size held over.
+ */
+export const BehindBackdrop: Story = {
+  render: () => (
+    <div style={{ padding: 24, background: "linear-gradient(135deg, var(--primary), var(--muted-foreground))" }}>
+      <div style={{ padding: 12, backdropFilter: "blur(20px) saturate(1.8)", background: "color-mix(in oklab, var(--background) 40%, transparent)" }}>
+        <LongMessage />
+      </div>
+    </div>
+  ),
+};
+
 /** Sending is off and says why; the person can still write. Enter says the reason again. */
 export const SendingOff: Story = {
   render: () => (
