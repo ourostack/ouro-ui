@@ -128,9 +128,10 @@ const fitQuietTitleClass =
 /**
  * With `fit`, the buttons are the picture's own: a cluster of glass on its top-end corner, set in
  * from it (the viewer places it as the picture is drawn), as a picture viewer's close sits on the
- * picture rather than at the screen's edge. The gallery's name is kept for screen readers only. @internal
+ * picture rather than at the screen's edge. The gallery's name is kept for screen readers only. The glass is dark in
+ * either theme, as a photo viewer's controls are, so its light text and icons read over a picture of any colour. @internal
  */
-const fitHeaderClass = "absolute top-0 end-0 z-1 flex items-center gap-2 [&>:first-child]:sr-only";
+const fitHeaderClass = "dark absolute top-0 end-0 z-1 flex items-center gap-2 [&>:first-child]:sr-only [&>*]:[--ouro-glass:black] [&>*]:[--ouro-glass-tint:55%]";
 
 /** With `fit`, "2 of 4" sits between Previous and Next in their glass group. @internal */
 const fitCounterClass = "flex items-center px-1 text-foreground";

@@ -603,7 +603,7 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel, priority
       <img ref={picture} src={image.src} alt={image.alt} decoding="async" fetchPriority={priority} data-ouro-lightbox-image="" className={cn(imageClass, fit && fitImageClass, zoomed && "invisible")} style={fill} />
       {/* Zoomed, the image covers the caption, so the caption steps aside until it is fitted again. */}
       {(image.title !== undefined || image.caption !== undefined) && (
-        <figcaption className={cn(captionClass, zoomed && "invisible")}>
+        <figcaption className={cn(captionClass, fit && "text-foreground", zoomed && "invisible")}>
           {image.title !== undefined && <span className="font-medium text-foreground">{image.title}</span>}
           {image.caption !== undefined && <span>{image.caption}</span>}
         </figcaption>
@@ -679,10 +679,11 @@ function followPictureCorner(head: HTMLElement, shown: number): () => void {
     const pic = img.getBoundingClientRect();
     // The popup's scale as it grows from the thumbnail; an unlaid popup (0 / 0) has no picture to sit on.
     const unit = box.width / popup.offsetWidth || 1;
-    const rtl = getComputedStyle(popup).direction === "rtl";
     head.style.top = `${Math.round((pic.top - box.top) / unit + cornerInset)}px`;
-    head.style.insetInlineEnd = `${Math.round((rtl ? pic.left - box.left : box.right - pic.right) / unit + cornerInset)}px`;
+    // The picture is centred, so it is as far from the popup's end as from its start, in either direction.
+    head.style.insetInlineEnd = `${Math.round((box.right - pic.right) / unit + cornerInset)}px`;
   };
+  // Stryker disable next-line CallExpression: the observer's first call places them too, and a test cannot catch the frame between.
   place();
   const observer = new ResizeObserver(place);
   observer.observe(popup);
@@ -750,6 +751,11 @@ function LightboxViewer({
   // Stryker disable next-line EqualityOperator: no layout draws an image at exactly minZoom of its fitted size, so > and >= agree.
   const zoomable = (maxima[shown] ?? 1) > minZoom;
   useLayoutEffect(() => (fit ? followPictureCorner(header.current!, shown) : undefined), [fit, shown]);
+  // As on the carousel's own, focus never falls to the page: Previous or Next disabled under focus at an end hands it on.
+  useLayoutEffect(() => {
+    const had = document.activeElement as HTMLButtonElement;
+    if (had.disabled && header.current!.contains(had)) header.current!.querySelector<HTMLElement>("button:enabled")!.focus();
+  }, [chosen]);
   const variant = fit ? "plain" : "outline";
   const position = (
     <span data-slot="lightbox-position" data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={cn(counterClass, fit && fitCounterClass)}>
