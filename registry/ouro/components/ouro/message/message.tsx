@@ -1076,10 +1076,16 @@ export function Message(props: MessageProps): JSX.Element {
   const contentBox = (
     <div
       data-ouro-message-content=""
+      data-ouro-part="bubble"
       hidden={!worded}
       style={surfaceColors}
       className={cn(
         "relative box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]",
+        // MessageList marks a message that just arrived; its bubble grows from the corner at its tail, on the bounce tokens.
+        end
+          ? "[transform-origin:100%_100%] group-data-starting-style/message:motion-safe:[animation:ouro-message-sent_var(--ouro-duration-bounce)_var(--ouro-ease-bounce)] rtl:[transform-origin:0_100%]"
+          : "[transform-origin:0_100%] group-data-starting-style/message:motion-safe:[animation:ouro-message-received_var(--ouro-duration-bounce)_var(--ouro-ease-bounce)] rtl:[transform-origin:100%_100%]",
+        "group-data-starting-style/message:motion-reduce:[animation:ouro-message-fade_var(--ouro-duration-fast)_ease]",
         surface,
         marked ? "pb-6" : "has-[>[data-ouro=code-block]:last-child]:pb-3",
       )}
