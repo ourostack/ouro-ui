@@ -1646,7 +1646,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // reads where each message sits in the content, would take that pull for the reader's own scroll and leave the row being
     // read moved by it (ourostack/ouro-ui#3892). Held, the place stays until the hold has kept it. keepAnchor then lets the mark
     // go, so content truly shorter than the view still pulls the scroll position up, and sets it again at the bottom of the view.
-    // Not where an app turned the browser's own anchoring on, as moving a mark stops WebKit's.
     const viewMark = viewMarkRef.current!;
     let viewHeld = 0;
     const holdView = (px: number) => {
@@ -1662,7 +1661,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // would make the list think it sits at the top, and a message that arrives meanwhile would be lost once it shows
       // again. Left alone, what was taken before it was hidden is still good once it is shown and the resize observer runs.
       if (!laidOut(scroller)) return;
-      holdView(0);
+      // Where an app turned the browser's own anchoring on, the mark is not moved, which would stop WebKit's: it goes only once
+      // the content has come up past it, where letting it go is a change the browser's own clamp would make anyway.
+      const anchoring = native();
+      if (!anchoring || viewHeld > content.offsetTop + content.offsetHeight) holdView(0);
       const view = scroller.getBoundingClientRect();
       // Finds the anchors among the nodes, in the order they come in the page.
       const find = (nodes: readonly Element[]) => {
@@ -1710,7 +1712,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       end = farthest();
       taken = scroller.scrollTop;
       // No lower than the content reaches: what the floor holds past it goes when the floor does.
-      if (!native()) holdView(Math.min(taken + scroller.clientHeight, content.offsetTop + content.offsetHeight));
+      if (!anchoring) holdView(Math.min(taken + scroller.clientHeight, content.offsetTop + content.offsetHeight));
     };
     const farthest = () => scroller.scrollHeight - scroller.clientHeight;
     // At the bottom as the list was before this change, or as it is now: growth at the end, or the
@@ -1885,7 +1887,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // above the content as a margin, so where each message sits in the content, which the anchors and the window read, stays.
     const setSlack = (px: number) => {
       // The mark at the view's bottom held the content where the space put it: the next keepAnchor sets it again.
-      holdView(0);
+      if (!native()) holdView(0);
       slack = px;
       content.style.marginBlockStart = `${px}px`;
       placeFloor();
@@ -3187,7 +3189,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
               in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
           {Layer && <Layer scroller={scrollerRef} layer={layer} />}
           <span ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
-          <span ref={viewMarkRef} aria-hidden="true" data-ouro-message-list-view-mark="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
+          <span ref={viewMarkRef} aria-hidden="true" data-ouro-message-list-view-mark="" data-slot="message-list-view-mark" className="pointer-events-none absolute start-0 top-0 hidden size-px [overflow-anchor:none]" />
         </div>
         {/* There only while the scroller has focus: at rest nothing lies over the content, so a contrast check sees the text's own background. */}
         <span
