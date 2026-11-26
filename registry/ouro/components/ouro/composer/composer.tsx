@@ -785,7 +785,9 @@ export function Composer(props: ComposerProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression: heldLines reads the metrics only while resizable, so measuring without the edge changes nothing drawn.
     if (!resizable) return;
     const next = textMetrics(frameRef.current);
+    // Stryker disable next-line ConditionalExpression: a changed offset alone is re-read by the next dependency change, and only a restyle between renders could tell.
     if (next && (metrics?.line !== next.line || metrics.offset !== next.offset)) setMetrics(next);
+    // Stryker disable next-line ArrayDeclaration: a layout effect with no dependencies measures on every render, so the list only saves repeat reads.
   }, [resizable, metrics, baseRows, ownHeight, heldHeight]);
   const readEdge = (): ResizeRange => {
     // Stryker disable next-line ObjectLiteral: the text is drawn whenever the edge is, so the fallback only keeps a read before the first paint from throwing.

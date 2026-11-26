@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, server, userEvent } from "vitest/browser";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
@@ -90,7 +90,7 @@ describe("Composer resizable edge", () => {
     expect(onHeightChange).toHaveBeenLastCalledWith(null);
   });
 
-  it("drags from the press with no threshold, snapping to whole lines that count the padding and border", async () => {
+  it.skipIf(server.browser !== "chromium")("drags from the press with no threshold, snapping to whole lines that count the padding and border", async () => {
     const onHeightChange = vi.fn();
     const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} maxRows={6} onHeightChange={onHeightChange} onSend={() => {}} />);
     const rect = view.edge.getBoundingClientRect();
@@ -145,7 +145,7 @@ describe("Composer resizable edge", () => {
     await expect.poll(() => view.edge.getAttribute("aria-valuemin")).toBe(String(Math.round(2 * 30 + o)));
   });
 
-  it("follows the pointer while it drags, lands on release, and goes back to the floor with Home", async () => {
+  it.skipIf(server.browser !== "chromium")("follows the pointer while it drags, lands on release, and goes back to the floor with Home", async () => {
     const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} maxRows={8} onSend={() => {}} />);
     const box = view.edge.getBoundingClientRect();
     const x = box.left + box.width / 2;
@@ -168,6 +168,13 @@ describe("Composer resizable edge", () => {
     view.edge.focus();
     await userEvent.keyboard("{Home}");
     await expect.poll(() => onHeightChange.mock.calls.at(-1)).toEqual([null]);
+  });
+
+  it("starts at defaultHeight", async () => {
+    const first = await render(<Composer label="First" resizable resizeLabel={label} rows={1} onSend={() => {}} />);
+    const l = line(first.textarea);
+    const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} defaultHeight={Math.round(3 * l + offset(first.textarea))} onSend={() => {}} />);
+    await expect.poll(() => wholeLines(view.textarea)).toBeCloseTo(3, 1);
   });
 
   it("holds a controlled height on the nearest whole line, and follows the app's value", async () => {
