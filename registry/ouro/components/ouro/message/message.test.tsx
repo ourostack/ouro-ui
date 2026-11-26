@@ -1559,6 +1559,16 @@ describe("Message rows", () => {
     expect(message.getBoundingClientRect().bottom - avatar.getBoundingClientRect().bottom).toBeCloseTo(2, 0);
   });
 
+  it("keeps 8px above an unanswered thread summary in the default layout, where it does not move up into a post's row", async () => {
+    const { message } = await render(
+      <Message role="assistant" name="Ouro" thread={<ThreadSummary count={0} onOpen={() => {}} />}>
+        Hi
+      </Message>,
+    );
+    const thread = message.querySelector("[data-ouro-message-thread]")!;
+    expect(thread.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
+  });
+
   it("leaves out the attachments row when there are none", async () => {
     const { host } = await render(
       <>
