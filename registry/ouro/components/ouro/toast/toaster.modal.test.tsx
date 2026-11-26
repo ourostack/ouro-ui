@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
@@ -35,6 +35,7 @@ describe("Toaster beside a modal", () => {
     root = createRoot(host);
     await act(async () => root!.render(<Example open={false} />));
     await act(async () => void toast("Event deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } }));
+    await vi.dynamicImportSettled();
     await expect.element(page.getByRole("button", { name: "Undo" })).toBeVisible();
     await act(async () => root!.render(<Example open />));
     await expect.element(page.getByRole("button", { name: "Pick" })).toBeVisible();
@@ -63,6 +64,7 @@ describe("Toaster beside a modal", () => {
       root = createRoot(host);
       await act(async () => root!.render(<Example />));
       await act(async () => void toast("Event deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } }));
+      await vi.dynamicImportSettled();
       await expect.element(page.getByRole("button", { name: "Undo" })).toBeVisible();
       const seen: string[] = [];
       for (let press = 0; press < 12 && document.activeElement?.textContent !== "Undo"; press++) {
@@ -97,6 +99,7 @@ describe("Toaster beside a modal", () => {
     root = createRoot(host);
     await act(async () => root!.render(<Example />));
     await act(async () => void toast("Event deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } }));
+    await vi.dynamicImportSettled();
     await expect.element(page.getByRole("button", { name: "Undo" })).toBeVisible();
     const inPopover = () => document.activeElement?.closest('[role="dialog"][data-open]:not([data-ouro="toast"])') != null;
     const inToast = () => document.activeElement?.closest('[data-ouro="toaster"]') != null;
@@ -127,6 +130,7 @@ describe("Toaster beside a modal", () => {
     root = createRoot(host);
     await act(async () => root!.render(<Example />));
     await act(async () => void toast("Event deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } }));
+    await vi.dynamicImportSettled();
     await expect.element(page.getByRole("button", { name: "Undo" })).toBeVisible();
     const pick = page.getByRole("button", { name: "Pick" }).element() as HTMLElement;
     pick.focus();
@@ -151,6 +155,7 @@ describe("Toaster beside a modal", () => {
     root = createRoot(host);
     await act(async () => root!.render(<Example />));
     await act(async () => void toast("Event deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } }));
+    await vi.dynamicImportSettled();
     await expect.element(page.getByRole("button", { name: "Undo" })).toBeVisible();
     const undo = page.getByRole("button", { name: "Undo" }).element() as HTMLElement;
     undo.focus();
@@ -184,11 +189,13 @@ describe("Toaster beside a modal", () => {
       await act(async () => root!.render(<Example />));
       {
         await act(async () => void toast("Event deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } }));
+        await vi.dynamicImportSettled();
         await expect.element(page.getByRole("button", { name: "Undo" })).toBeVisible();
         extra?.(document.querySelector<HTMLElement>('[data-ouro="toaster"]')!);
       }
       const last = document.querySelector<HTMLElement>("[data-ouro-popover-close]")!;
       last.focus();
+      await vi.dynamicImportSettled();
       return last;
     }
     const press = (target: HTMLElement, init: KeyboardEventInit & { prevent?: boolean }) => {

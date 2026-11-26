@@ -1,0 +1,1 @@
+- Fixed: Undo is reachable by Tab from a modal popover, and the hand-over loads only once focus enters a dialog.
