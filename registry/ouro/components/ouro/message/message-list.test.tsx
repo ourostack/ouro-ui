@@ -894,6 +894,28 @@ describe("MessageList", () => {
     expect(scroller.scrollTop).toBe(top);
   });
 
+  // An app opens a chat at its first unread message, which is often among the last: the list can't centre it, so it opens
+  // at its end with the newest message in view. Nothing is below to jump to, so it offers no Jump to latest, which would
+  // sit over the newest message; scrolled up more than a line, it does.
+  it("offers no jump to the latest when it opens at a message with the newest in view, and does once the reader scrolls up", async () => {
+    // Drawn whole: a windowed list opens at a message this near its end some rows up from it (ourostack/ouro-ui#3830).
+    const { scroller } = await render(<Found windowing={false} items={history(30)} initialAnchor="found-28" />);
+    await settle(scroller);
+    expect(inView(scroller, "found-29")).toBe(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await wheel(scroller, -400);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+  });
+
+  it("offers the jump when messages arrive below a reader who opened with the newest in view, with no scroll", async () => {
+    const { scroller, rerender } = await render(<Found windowing={false} items={history(30)} initialAnchor="found-28" />);
+    await settle(scroller);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await rerender(<Found windowing={false} items={history(34)} initialAnchor="found-28" />);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+  });
+
   it("opens at initialAnchor when it comes with the first messages, after the list mounted empty", async () => {
     const items = history(30);
     const { scroller, rerender } = await render(<Found windowing={false} items={[]} />);
@@ -1456,20 +1478,15 @@ describe("MessageList", () => {
     await settle(scroller);
     const pill = page.getByRole("button", { name: "Jump to latest" });
     await expect.element(pill).toBeVisible();
-    const room = scroller.querySelector<HTMLElement>("[data-ouro-message-list-jump-room]")!;
     const last = () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
     const clearOf = () => (pill.element() as HTMLElement).getBoundingClientRect().top - last().getBoundingClientRect().bottom;
-    // Land a quarter of the reserve's own height clear of the newest message: comfortably inside what a scroll
-    // this far down can clear at all (the reserve run out from under the pill before clear reaches the reserve's
-    // own full height, ourostack/ouro-ui#3512), so this margin stays well short of the real scroll range's own
-    // end, not merely of the newest message. A margin close to that end lands within onScroll's own AT_BOTTOM
-    // tolerance of the true farthest scroll position by only a sub-pixel amount a browser's own text layout
-    // decides, which a browser that happens to round the other way turns into "at the very end" on its own,
-    // with nothing for this test's own write to decide; onScroll then hides the pill outright (pinned, not
-    // merely a few px of drift), well before this test ever reaches clearJump below, which is what made 50px
-    // close enough to that end to land there under WebKit (and would eventually under Chromium too, on text
-    // metrics that happened to round the other way).
-    await act(async () => void (scroller.scrollTop += room.offsetHeight / 4 - clearOf()));
+    // Land clear of the newest message but more than a line (40px) from the end, where the pill still shows: halfway
+    // between that line and how far clear the pill is with the list at its end, so a few px of text rounding either way
+    // (WebKit's whole-pixel scroll position) neither hides the pill nor puts it over the newest message.
+    const end = scroller.scrollHeight - scroller.clientHeight;
+    const clearAtEnd = clearOf() + end - scroller.scrollTop;
+    expect(clearAtEnd).toBeGreaterThan(40);
+    await act(async () => void (scroller.scrollTop = end - (40 + clearAtEnd) / 2));
     // The raw write above schedules the browser's own, real "scroll" event regardless of whether this test
     // dispatches one: settling here lets that genuine event (and whatever onScroll bookkeeping it runs) land
     // and finish before the baseline below is read, rather than leaving it free to fire asynchronously, at a

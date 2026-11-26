@@ -166,6 +166,16 @@ static class Eyes
     });
   }
 
+  /// Tries `fast` up to `tries` times, `delayMs` apart, and turns to `slow` only as a last look once `fast` never found a
+  /// hit. No Windows-only type in its signature or body, so it is portable: a fixture can give it a `slow` that would
+  /// wait, and prove it is never called when `fast` already has the hit. See scripts/check/first-run-uia-order.test.mts.
+  static T LastLook<T>(Func<T> fast, int tries, int delayMs, Func<T> slow) where T : class
+  {
+    T hit = null;
+    for (int i = 0; i < tries && hit == null; i++) { Thread.Sleep(delayMs); hit = fast(); }
+    return hit ?? slow();
+  }
+
   static void Click(int x, int y, bool right = false)
   {
     SetCursorPos(x, y);
@@ -384,12 +394,12 @@ static class Eyes
             }
             var r = buttons[n].Current.BoundingRectangle;
             Click((int)(r.X + r.Width / 2), (int)(r.Y + r.Height / 2), true);
-            AutomationElement menu = null;
-            for (int i = 0; i < 20 && menu == null; i++)
-            {
-              Thread.Sleep(100);
-              menu = AutomationElement.RootElement.FindFirst(TreeScope.Descendants, new AndCondition(new PropertyCondition(AutomationElement.ProcessIdProperty, pid), new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Menu)));
-            }
+            var menuCond = new AndCondition(new PropertyCondition(AutomationElement.ProcessIdProperty, pid), new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Menu));
+            // A menu opens as a child of the desktop the moment it appears, so look there first, up to 2 s; only take the
+            // slow full-tree look (which also re-walks every open window, a half-made WebView2's included) as a last resort.
+            AutomationElement menu = LastLook(
+              () => AutomationElement.RootElement.FindFirst(TreeScope.Children, menuCond), 20, 100,
+              () => AutomationElement.RootElement.FindFirst(TreeScope.Descendants, menuCond));
             openMenu = menu;
             if (menu == null) { Say(new Dictionary<string, object> { { "ok", false }, { "why", "right-clicked \"" + buttons[n].Current.Name + "\" at " + (int)(r.X + r.Width / 2) + "," + (int)(r.Y + r.Height / 2) + ", and no menu of process " + pid + " appeared within 2 s" }, { "items", new object[0] } }); break; }
             var items = menu == null ? new List<object>() : menu.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.MenuItem)).Cast<AutomationElement>()

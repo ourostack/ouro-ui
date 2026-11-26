@@ -15,6 +15,7 @@
 import { fileURLToPath } from "node:url";
 import { ghApi, mainState } from "./main-green.mjs";
 import { postComment, readComments } from "./rerun-guard.mjs";
+import { listJobs } from "./run-jobs.mjs";
 
 /** The issue this report-only log is written to: the green-main-does-not-restart-runs report. */
 export const ISSUE_NUMBER = 3802;
@@ -136,7 +137,7 @@ export async function report({ env = process.env, api = ghApi, readIssueComments
         liveCount += 1;
         continue;
       }
-      const jobs = api(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`).jobs;
+      const jobs = listJobs(api, `repos/${repo}/actions/runs/${run.id}`);
       if (cascadeVerdict({ run, jobs }) === "cascade") candidates.push({ number: pr.number, runId: run.id });
     } catch (error) {
       log(`::notice::cascade-retrigger: could not read #${pr.number}'s CI run (${error.message}); skipping it.`);

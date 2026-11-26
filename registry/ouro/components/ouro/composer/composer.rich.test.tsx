@@ -1367,5 +1367,17 @@ describe("Composer rich mode pasteText", () => {
     await paste(editor, "x");
     await expect.poll(() => editor.querySelectorAll("img:not([alt=''])").length).toBe(1);
   });
+
+  it("carries the app's own id and data-/aria- attributes to the editor, as the plain box already does", async () => {
+    const { editor } = await render(rich({ id: "mia-composer", "data-testid": "mia-composer", "aria-required": true } as Partial<React.ComponentProps<typeof Composer>>));
+    expect(editor.id).toBe("mia-composer");
+    expect(editor.getAttribute("data-testid")).toBe("mia-composer");
+    expect(editor.getAttribute("aria-required")).toBe("true");
+  });
+
+  it("leaves off an attribute that is neither id nor data-/aria-, since it isn't a pass-through one", async () => {
+    const { editor } = await render(rich({ title: "not forwarded" } as Partial<React.ComponentProps<typeof Composer>>));
+    expect(editor.hasAttribute("title")).toBe(false);
+  });
 });
 

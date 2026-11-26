@@ -5,7 +5,7 @@ import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "re
 import { Message, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
 import type { MessageFindLayer } from "@/registry/ouro/components/ouro/message/message-list-parts";
-import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
+import { OLDER_CHUNK, isFlingKick } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { hasLazyType } from "@/registry/ouro/lib/ouro/server-element";
@@ -771,7 +771,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
     if (reduced()) return [...moving.keys()].forEach(rest);
     // A move of a list's height or more is a jump (End from far up, a link to an old message), not a scroll, unless it goes on
     // with the reader's scroll: a fling that a long frame gathered into one scroll event.
-    const kick = going || Math.abs(scrolled) < view.height ? scrolled : 0;
+    const kick = isFlingKick(going, scrolling, scrolled, view.height) ? scrolled : 0;
     going = false;
     const band = nearby(view);
     const near = new Set(band.map(({ item }) => item));
@@ -1695,6 +1695,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // else (the reader's, a key's, or code going to a message) leaves it.
     // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
     const atBottom = () => Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || farthest() - scroller.scrollTop <= AT_BOTTOM;
+    // Jump to latest shows only with more than a line below the view: a list opened at a message among the last (an app's
+    // first unread) sits at its end without following it, and a jump there would only cover the newest message.
+    // Stryker disable next-line EqualityOperator: exactly a line from the end shows or hides the jump, a pixel either way.
+    const jumpOwed = () => !pinned.current && farthest() - scroller.scrollTop > LINE;
     // While the list follows its end, the scroll height keeps at least the content's height there, held by a 1px mark at that
     // depth (`floorRef`), so a change that shortens the content for a moment and lengthens it again (a picture's placeholder
     // swapped for the picture, with a layout read between) never lets the browser pull the scroll position up, which would
@@ -2052,6 +2056,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
         }
       } else owed = 0;
       keepAnchor();
+      // Something grew below while the reader is near the end: the jump shows once it is more than a line away. Only a
+      // change is set (the jump is drawn while its button is), as setting the same value here still costs a render.
+      if (jumpOwed() !== (jumpRef.current !== null)) setShowJump(jumpOwed());
     };
     const follow = new ResizeObserver(hold);
     follow.observe(content);
@@ -2128,7 +2135,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       release();
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
       if (farthest() === end) keepAnchor();
-      setShowJump(!pinned.current);
+      setShowJump(jumpOwed());
       // Back at the bottom: no room is owed any more.
       if (pinned.current) setJumpRoom(false);
     };

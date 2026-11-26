@@ -76,6 +76,8 @@ interface RichEditorProps {
   onBlur?: FocusEventHandler<HTMLDivElement> | undefined;
   /** The role and states a wrapping Autocomplete sets (combobox, expanded, controls, active suggestion), which the editor carries over its own textbox role. */
   comboboxProps: HTMLAttributes<HTMLDivElement>;
+  /** The app's own `id` and any `data-*`/`aria-*` attribute it set on Composer, carried to whichever editor renders (the plain textarea already gets them through its own spread). */
+  ownAttrs: Record<string, unknown>;
 }
 
 // Underline has no CommonMark mark; `++` is the one Composer's plain mode writes too.
@@ -614,7 +616,7 @@ function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -931,6 +933,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     <div ref={frameRef} data-slot={slot} className={cn("relative grid", className)} data-ouro-allow="first-paint-swap" data-ouro-allow-why="Composer's rich editor loads after the plain textarea the server and first client render draw, by design (ourostack/ouro-ui#3308)">
       {name !== undefined && <input type="hidden" name={name} value={value} disabled={disabled} />}
       <div
+        {...definedOnly(ownAttrs as HTMLAttributes<HTMLDivElement>)}
         ref={(element) => {
           rootRef.current = element;
           return attachRef(controlRef, element);
