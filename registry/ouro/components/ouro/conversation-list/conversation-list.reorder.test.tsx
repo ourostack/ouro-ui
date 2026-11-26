@@ -95,7 +95,7 @@ describe("ConversationList section reorder", () => {
     const [, favorites, clubs] = headers(host);
     await dragOnto(favorites!, clubs!, { release: false, below: true });
     const wrapper = favorites!.closest<HTMLElement>('[data-slot="conversation-list-section-header"]')!;
-    expect(wrapper.hasAttribute("data-dragging")).toBe(true);
+    expect(wrapper.getAttribute("data-dragging")).toBe("");
     expect(wrapper.style.transform).toMatch(/translateY/);
     expect(clubs!.closest("[data-drop]")?.getAttribute("data-drop")).toBe("after");
     await pointer(window, "pointerup", 0, 0);
