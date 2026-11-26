@@ -1,0 +1,1 @@
+- Fixed: X-ray no longer throws when a measure frame lands as it closes.

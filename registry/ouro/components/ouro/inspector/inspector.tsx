@@ -625,6 +625,9 @@ function InspectorLayer({
       frame = 0;
       clearTimeout(backstop);
       backstop = 0;
+      // React detaches the layer's ref before this effect's cleanup runs, so a frame landing between them finds no layer (#3882).
+      /* istanbul ignore next -- @preserve a frame between the ref's detach and the cleanup cannot be timed in a test */
+      if (!layer.current) return;
       const modal = modalOpen(own);
       // While a dialog shuts off the page, the bar (shut off with it) steps aside so it never covers the dialog.
       own.toggleAttribute("data-modal", modal);
