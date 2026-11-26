@@ -637,6 +637,16 @@ describe("Command results that stream in", () => {
     await expect.poll(highlighted).toBe("Weekly sync");
   });
 
+  it("puts the highlight on the last command when the highlighted one leaves and fewer commands remain than its position (#3838)", async () => {
+    await render(palette(["Launch planning", "Weekly sync", "Design reviews", "New chat"]));
+    await settled();
+    await ready();
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+    await expect.poll(highlighted).toBe("New chat");
+    await arrive(palette(["Launch planning", "Weekly sync"]));
+    await expect.poll(highlighted).toBe("Weekly sync");
+  });
+
   it("highlights the first result for a new search, though the command highlighted before is among them", async () => {
     await render(palette(["Launch planning", "Weekly sync"]));
     await settled();
