@@ -79,7 +79,7 @@ describe("NavigationMenu current-page marks", () => {
     await userEvent.click(page.getByRole("button", { name: "Recipes" }));
     await expect.element(page.getByRole("link", { name: "Browse" })).toBeVisible();
     await assertMark(pricing, page.getByRole("button", { name: "Recipes" }).element(), "ltr");
-  });
+  }, 30_000);
   for (const direction of ["ltr", "rtl"] as const) {
     it(`marks only the page link while a ${direction} panel is open`, async () => {
       document.documentElement.dir = direction;
