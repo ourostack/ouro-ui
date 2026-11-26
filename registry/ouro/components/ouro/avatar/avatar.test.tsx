@@ -989,8 +989,9 @@ describe("Avatar presence", () => {
       [...host.querySelectorAll<HTMLElement>(`[data-ouro="avatar"][data-presence="${presence}"]`)].map(
         (avatar) => avatar.querySelector("[data-ouro-avatar-presence] path") !== null,
       );
-    // Away's clock hand is a filled shape, so it stays crisp at the smallest dots (8 and 9px),
-    // where the old stroked line was hidden rather than left to blur; busy never has a mark.
+    // Away's clock hand draws at every size now, with a thicker stroke at the smallest dots
+    // (8 and 9px) so it stays crisp there instead of the old, thinner line that was hidden
+    // rather than left to blur; busy never has a mark.
     expect(glyphDrawn("away").every(Boolean)).toBe(true);
     expect(glyphDrawn("busy").some(Boolean)).toBe(false);
   });
@@ -1101,21 +1102,22 @@ describe("Avatar presence", () => {
       const disc = circle.getBoundingClientRect();
       const frame = glyph.getBoundingClientRect();
       expect(disc.width).toBeGreaterThan(frame.width * (ring ? 0.8 : 0.95));
-      // A ring's mark is still a rounded stroke in the tone; available, do not disturb and away
-      // cut theirs as a filled shape in the tone's foreground instead, so it stays crisp at 8 and
-      // 9px rather than blurring like a stroke that thin would. Do not disturb's bar is an exact
-      // rounded rect rather than a path, so a mark is either element.
+      // A ring's mark is a rounded stroke in the tone; a dot's own mark (available, away, or
+      // do not disturb's bar) is a rounded stroke too except do not disturb's bar, drawn as a
+      // filled rect in the tone's foreground instead, since a stroke that thin would blur at a
+      // rect's short, straight edges.
       const marks = [...glyph.querySelectorAll("path"), ...glyph.querySelectorAll("rect")];
       for (const mark of marks) {
         const line = getComputedStyle(mark);
-        if (ring) {
+        const filled = mark.tagName.toLowerCase() === "rect";
+        if (filled) {
+          expect(line.fill).toBe(token(`${tone}-foreground`));
+          expect(line.stroke).toBe("none");
+        } else {
           expect(line.fill).toBe("none");
           expect(line.strokeLinecap).toBe("round");
           expect(line.strokeLinejoin).toBe("round");
-          expect(line.stroke).toBe(token(tone));
-        } else {
-          expect(line.fill).toBe(token(`${tone}-foreground`));
-          expect(line.stroke).toBe("none");
+          expect(line.stroke).toBe(ring ? token(tone) : token(`${tone}-foreground`));
         }
         const drawn = mark.getBBox();
         expect(Math.max(drawn.width, drawn.height)).toBeGreaterThan(4);

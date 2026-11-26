@@ -464,38 +464,29 @@ function avatarHint(token: string): string {
 // orange) can re-point one state's color without changing every other use of that tone. Unset,
 // every dot draws exactly as it did before these existed.
 const available = "fill-(--ouro-presence-available,var(--success))";
-const availableInk = "fill-(--ouro-presence-available-foreground,var(--success-foreground))";
+const availableInk = "stroke-(--ouro-presence-available-foreground,var(--success-foreground))";
 const busy = "fill-(--ouro-presence-busy,var(--destructive))";
 const busyInk = "fill-(--ouro-presence-busy-foreground,var(--destructive-foreground))";
 const away = "fill-(--ouro-presence-away,var(--warning))";
-const awayInk = "fill-(--ouro-presence-away-foreground,var(--warning-foreground))";
+const awayInk = "stroke-(--ouro-presence-away-foreground,var(--warning-foreground))";
 const offline = "stroke-(--ouro-presence-offline,var(--muted-foreground))";
 const outOfOffice = "stroke-(--ouro-presence-out-of-office,var(--primary))";
 
-// Available, do not disturb and away draw their mark as a filled shape cut to the same
-// outline Fluent's filled presence icons use (scaled from their 10px glyphs onto this 16-unit
-// circle), not a stroked line: a stroke that thin blurs away at the 8 and 9px dot sizes, where
-// a filled shape still anti-aliases to two crisp edges. Busy has no mark at any size, and
-// offline and out of office keep Fluent's own ring-and-stroke style, hidden below 40px as before.
-// Rounded to the nearest whole unit of this 16-unit viewBox, and each cubic curve (a rounded cap
-// or corner) drawn as one quadratic curve through the same corner instead: under half a unit of
-// deviation, under a quarter pixel at the smallest dot (8px), well inside the anti-aliasing blur
-// a mark this size already has, so neither costs any visible precision, while keeping these
-// strings, repeated in every bundle that imports Avatar, off the initial-load budget
-// (ourostack/ouro-ui#3805). Each point picks whichever of its two nearest whole units keeps it
-// distinct from its curve's other end, so no curve collapses to a straight line.
-const checkMark = "M11 7L8 10Q7 11 7 10L5 9Q5 8 5 7Q6 7 6 8L7 8L10 5Q11 5 11 6Q12 6 11 7Z";
-const clockHandMark = "M8 5V8L10 10Q11 10 10 11Q10 12 9 11L7 9Q6 8 7 8V5Q6 4 7 4Q8 4 8 5Z";
-
 /** The presence dot's glyph: a shape per state, so color is not the only cue. */
 function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: boolean }): JSX.Element {
-  const line = { fill: "none", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+  // Available and away draw a stroked mark at every size (ourostack/ouro-ui#3805), not just from
+  // 40px up: at the 8 and 9px dot sizes, the mark's own stroke widens from 1.75 to 2.5 of this
+  // 16-unit viewBox's units so it still anti-aliases to a crisp, bold edge rather than fading, as
+  // measured on the actual 8px and 9px dots; 40px and up, where the thinner weight already reads
+  // clearly, keeps the original weight so its baseline stays unchanged. Do not disturb's bar is a
+  // filled rect rather than a stroke for the same reason, at every size, as it always was.
+  const line = { fill: "none", strokeWidth: plain ? 2.5 : 1.75, strokeLinecap: "round", strokeLinejoin: "round" } as const;
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className="block size-full">
       {presence === "available" && (
         <>
           <circle cx="8" cy="8" r="8" className={available} />
-          <path d={checkMark} className={availableInk} />
+          <path d="M4.75 8.25 7 10.5l4.25-4.5" {...line} className={availableInk} />
         </>
       )}
       {presence === "busy" && <circle cx="8" cy="8" r="8" className={busy} />}
@@ -508,7 +499,7 @@ function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: b
       {presence === "away" && (
         <>
           <circle cx="8" cy="8" r="8" className={away} />
-          <path d={clockHandMark} className={awayInk} />
+          <path d="M8 4.5v3.75l2.5 1.5" {...line} className={awayInk} />
         </>
       )}
       {presence === "offline" && (
