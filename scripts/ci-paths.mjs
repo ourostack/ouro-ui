@@ -30,6 +30,7 @@ export const scoped = [
   { pattern: /^scripts\/bar-eval\//, tiers: [], components: false, reason: "the bar evaluation, run by hand, which no workflow or test runs" },
   { pattern: /^scripts\/scroller-probe\.mjs$/, tiers: [], components: false, reason: "a probe run by hand for #2891, which no workflow or test runs" },
   { pattern: /^scripts\/chromium-floor-smoke\.mjs$/, tiers: [], components: false, reason: "the Chromium floor smoke test, which only the report-only chromium-floor-smoke.yml workflow runs" },
+  { pattern: /^scripts\/lcd-text\//, tiers: [], components: false, reason: "the Vitest config for the scrollers' LCD-text surface tests, which only the report-only lcd-text-windows.yml workflow runs" },
   { pattern: /^scripts\/ouro-census\//, tiers: [], components: false, reason: "the Ouro AX census, which only its Node script test (scripts/ouro-census.test.mjs) runs" },
   { pattern: /^scripts\/ax-claim-sets\.(json|mjs)$/, tiers: [], components: false, reason: "the Ouro AX claim-set history, which only its Node script test and the adoption ledger read" },
   { pattern: /^scripts\/claims-urls\.json$/, tiers: [], components: false, reason: "the claim URL list, which only the Node script tests read" },
