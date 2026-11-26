@@ -39,9 +39,9 @@ function useFindHighlights(options: {
   const fold = find?.fold;
   const locale = find?.locale;
   // Stryker disable next-line ObjectLiteral: the layout effect below, the hook's first, fills this before any later effect or scroll reads it.
-  const latest = useRef({ result, target, reduced, reserveJumpRoom });
+  const latest = useRef({ result, target, reduced });
   useLayoutEffect(() => {
-    latest.current = { result, target, reduced, reserveJumpRoom };
+    latest.current = { result, target, reduced };
   });
 
   const signature = result.order.map((entry) => `${entry.key}:${entry.count}`).join("|");
@@ -59,7 +59,7 @@ function useFindHighlights(options: {
     // A find's own scroll can land anywhere in the conversation, the same as a reveal, with no arrival ahead
     // to earn the jump pill's room the usual way.
     // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator: a landing at the end needs no room, and reserving it there anyway is undone at once: the list's handlers read pinned back from the position and clear the room once pinned, so the pill never shows for it.
-    if (view.scrollHeight - view.clientHeight - top > 2) latest.current.reserveJumpRoom(true);
+    if (view.scrollHeight - view.clientHeight - top > 2) reserveJumpRoom(true);
     return false;
   };
   const scrollRef = useRef(scrollToCurrent);

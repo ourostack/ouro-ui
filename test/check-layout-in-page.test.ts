@@ -268,6 +268,11 @@ describe("findLayoutIssues: near-miss", () => {
     const scroller = host.querySelector("#scroller")!;
     scroller.scrollTop = 174;
     expect(found()).toEqual([]);
+    // The same pair with the button first in the document, so the scrolling side is the second of the pair.
+    host.append(host.querySelector("#jump")!.cloneNode(true));
+    host.querySelector("#jump")!.remove();
+    host.prepend(host.lastElementChild!);
+    expect(found()).toEqual([]);
     host.innerHTML = `
       ${box("bubble2", 10, 136, 60, 30)}
       ${box("jump2", 10, 170, 60, 30)}`;
