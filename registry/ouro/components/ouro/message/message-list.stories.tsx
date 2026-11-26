@@ -389,7 +389,7 @@ function LongChat() {
   };
   return (
     <Surface>
-      <form role="search" onSubmit={find} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <form role="search" onSubmit={find} style={{ display: "flex", gap: "var(--ouro-gap-min)", alignItems: "center" }}>
         <input data-test-harness="" aria-label="Find in chat" value={query} onChange={(event) => setQuery(event.target.value)} style={{ ...harnessStyle, flex: 1 }} />
         <button type="submit" data-test-harness="" style={harnessStyle}>
           Find
@@ -618,7 +618,7 @@ function SwitchingChats() {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: 12, maxWidth: 760 }}>
-      <div style={{ display: "grid", alignContent: "start", gap: 8 }}>
+      <div style={{ display: "grid", alignContent: "start", gap: "var(--ouro-gap-min)" }}>
         {chatPeople.map((each) => (
           <button
             key={each.id}
