@@ -940,6 +940,13 @@ describe("MessageList", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("opens with an initialAnchor near the end in view, not several rows above it", async () => {
+    const { scroller } = await render(<Found items={history(30)} initialAnchor="found-28" />);
+    await nextFrame(scroller);
+    await settle(scroller);
+    expect(inView(scroller, "found-28")).toBe(true);
+  });
+
   it("opened at a message before the newest, with the content 1px taller than the view, stays there instead of following the end", async () => {
     const Rows = ({ height, last = 100 }: { height?: number; last?: number }) => (
       <MessageList label="Conversation" style={{ height }} initialAnchor="row-0">

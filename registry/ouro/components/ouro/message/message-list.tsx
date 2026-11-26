@@ -1331,7 +1331,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // browser draws, so the view stays where it is, though code moved it before the browser reported the scroll.
       const from = indexes.get(String(edge.drawn))!;
       range = [from, Math.min(last, from + WINDOW_ABOVE)];
-    } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor), firstView);
+    } else {
+      const anchorIdx = initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor);
+      range = firstRange(keys.length, sizeOf, anchorIdx, firstView);
+    }
     const kept: (number | undefined)[] = [last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)];
     // What just arrived after the newest heard, so it is heard, and what still streams, so its end is.
     const since = indexes.get(heard!) ?? last;
@@ -1580,6 +1583,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   // Keeps the reader's place after messages came, went, moved or changed size: set by the effect below.
   const holdRef = useRef<() => void>(undefined);
+  // The message open() centred the list on, while its real height was still an estimate: an estimate too high above it
+  // shrinks once the real average is known, and the browser clamps scrollTop back as that space shrinks. Re-centred on
+  // it once real heights are in (the next sync below), then cleared, so a reader who scrolls away meanwhile is not
+  // pulled back.
+  const openTargetRef = useRef<HTMLElement | null>(null);
   // How far the content is drawn up (a `translate`) to hold the reader's place while the wheel turns: what the scroll position
   // takes once the wheel rests, or before the reader reaches an end. Set by the effect below.
   const carriedRef = useRef(0);
@@ -1787,6 +1795,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       }
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
       centre(target);
+      // Real heights may still be estimates at this point: once they are known, the sync below re-centres on this
+      // target once, correcting for whatever the estimate's shrink moved scrollTop away from.
+      openTargetRef.current = target;
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
@@ -1991,6 +2002,22 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const hold = () => {
       // A list unmounted before this ran has no scroller left to hold.
       if (scrollerRef.current === null) return;
+      // open() centred on this target while its real height, and the rows undrawn above it, were still an estimate:
+      // once real heights are in, that guess rarely matches the real average, so the shrink or growth above it (a
+      // browser clamp, or just the reflow) can carry it away from the middle of the view. Corrected once, with the
+      // now-real geometry, then cleared, so a reader who has scrolled since is not pulled back. Anchors are re-taken
+      // from here, so the anchor-based correction below (for this same call) finds nothing further to correct.
+      if (openTargetRef.current !== null) {
+        const target = openTargetRef.current;
+        openTargetRef.current = null;
+        if (target.isConnected) {
+          const view = scroller.getBoundingClientRect();
+          const box = boxOf(target);
+          scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
+          if (placed !== null) placed = scroller.scrollTop;
+          keepAnchor();
+        }
+      }
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
       // A list at the old bottom follows. One that was following keeps on when its end came up, though something grew below
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
