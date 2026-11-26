@@ -240,12 +240,6 @@ export function VoyageHeader({
     void loadDocsPanel().catch(() => {});
     void loadNavPanels().catch(() => {});
   }, []);
-  // They also load once the page is idle, so a panel opened at the first touch is already drawn whole, never placed
-  // against its short loading head and then moved.
-  useEffect(() => {
-    const idle = typeof requestIdleCallback === "function" ? requestIdleCallback(wantPanels, { timeout: 1000 }) : window.setTimeout(wantPanels, 200);
-    return () => (typeof requestIdleCallback === "function" ? cancelIdleCallback(idle) : clearTimeout(idle));
-  }, [wantPanels]);
   const current = normalizePath(page);
   const section = sectionOf(current);
   return (
