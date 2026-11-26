@@ -1535,6 +1535,18 @@ describe("Message rows", () => {
     }
   });
 
+  it("keeps 8px between a message and its footer in the default layout, and the footer above the thread", async () => {
+    const { message } = await render(
+      <Message role="assistant" name="Ouro" footer={chips("f")} thread={chips("t")}>
+        Hi
+      </Message>,
+    );
+    const footer = message.querySelector("[data-ouro-message-footer]")!.getBoundingClientRect();
+    const thread = message.querySelector("[data-ouro-message-thread]")!.getBoundingClientRect();
+    expect(footer.top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
+    expect(thread.top).toBeGreaterThanOrEqual(footer.bottom);
+  });
+
   it("keeps 8px between a message and its thread in the default layout, and lifts the avatar 2px off the row's foot", async () => {
     const { message } = await render(
       <Message role="assistant" name="Ouro" thread={chips("t")}>

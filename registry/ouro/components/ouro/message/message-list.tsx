@@ -1202,7 +1202,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // once, rather than wait for one, so the pill never opens over a message either placed there. Shared by bring()
   // (the reveal path) and useFindHighlights's scrollToCurrent (the find path), which scrolls on its own.
   const reserveJumpRoom = useRef((scroller: HTMLElement, landingTop: number) => {
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator: a landing at the end needs no room, and reserving it there anyway is undone at once: the list's resize and scroll handlers read pinned back from the position and clear the room once pinned, so the pill never shows for it.
     if (Math.abs(scroller.scrollHeight - scroller.clientHeight - landingTop) > AT_BOTTOM) {
+      // Stryker disable next-line BooleanLiteral: the scroll that lands away from the end fires the list's scroll handler, which sets pinned from the position itself; this only covers the moment before it.
       pinned.current = false;
       setJumpRoom(true);
     }

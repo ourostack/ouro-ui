@@ -38,6 +38,7 @@ function useFindHighlights(options: {
   const query = find?.query ?? "";
   const fold = find?.fold;
   const locale = find?.locale;
+  // Stryker disable next-line ObjectLiteral: the layout effect below, the hook's first, fills this before any later effect or scroll reads it.
   const latest = useRef({ result, target, reduced, reserveJumpRoom });
   useLayoutEffect(() => {
     latest.current = { result, target, reduced, reserveJumpRoom };
