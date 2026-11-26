@@ -908,6 +908,14 @@ describe("MessageList", () => {
     await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
   });
 
+  it("offers the jump when messages arrive below a reader who opened with the newest in view, with no scroll", async () => {
+    const { scroller, rerender } = await render(<Found windowing={false} items={history(30)} initialAnchor="found-28" />);
+    await settle(scroller);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await rerender(<Found windowing={false} items={history(34)} initialAnchor="found-28" />);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+  });
+
   it("opens at initialAnchor when it comes with the first messages, after the list mounted empty", async () => {
     const items = history(30);
     const { scroller, rerender } = await render(<Found windowing={false} items={[]} />);
