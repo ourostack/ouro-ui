@@ -74,6 +74,9 @@ describe("Composer rich mode", () => {
     const node = rich({ placeholder: "Write a message" });
     const host = document.createElement("div");
     host.innerHTML = renderToString(node);
+    // The server draws the plain box, however warm this page's module cache is: a real server never loads the editor.
+    expect(host.querySelector("textarea")).not.toBeNull();
+    expect(host.querySelector("[data-ouro-composer-editor]")).toBeNull();
     document.body.append(host);
     mounted.push(host);
     const error = vi.spyOn(console, "error").mockImplementation(() => {});

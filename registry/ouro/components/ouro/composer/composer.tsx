@@ -482,8 +482,11 @@ function ownAttrsOf(rest: object): Record<string, unknown> {
   return picked;
 }
 
+// Nothing changes whether this is a client render after hydration, so nothing is subscribed to.
+// Stryker disable next-line ArrowFunction: React ignores what the unsubscribe returns, so an unsubscribe that returns undefined is the same.
 const subscribeNothing = () => () => {};
 const onClient = () => true;
+// Stryker disable next-line ArrowFunction: undefined is as false as false in the state initializer's test, so a server snapshot of undefined is no different there.
 const onServer = () => false;
 
 /**
