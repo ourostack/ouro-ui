@@ -15,10 +15,17 @@ const PAGES = ["nautilus/", "docs/text-field/", "docs/composer/"];
 async function restyled(page: Page, act: () => Promise<void>): Promise<number> {
   const browser = page.context().browser()!;
   // Style the page now, and let two frames pass, so a recalculation left over from setting up is not counted.
-  await page.evaluate(() => new Promise((done) => {
+  // A transition or fade still running (a late font, a settling focus ring) restyles on its own, so wait it out first.
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    for (let round = 0; round < 60; round++) {
+      const running = document.getAnimations().filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && (animation.playState === "running" || animation.pending));
+      if (running.length === 0) break;
+      await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
+    }
     void getComputedStyle(document.documentElement).color;
-    requestAnimationFrame(() => requestAnimationFrame(done));
-  }));
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+  });
   await browser.startTracing(page, { categories: ["devtools.timeline"] });
   await act();
   // Two frames, so the recalculation the switch scheduled has run.
@@ -39,12 +46,15 @@ test.describe("restyle scope of an input switch", () => {
       expect(ouro, "the page has enough Ouro elements to tell a page-wide restyle from a local one").toBeGreaterThan(SCOPE * 2);
       // The events the tracker listens for, dispatched alone, so no hover, press or selection restyles anything: Tab,
       // with a text field focused, then a press, which moves focus nowhere. A restyle of the page the switch causes comes
-      // with every switch, and the page's own work (a late image, a font) with only some, so the fewest of three counts.
+      // with every switch, and the page's own work (a late image, a font) with only some, so the fewest of three counts, each net of the page's own restyles in an idle window.
       await page.locator("input").first().focus();
       const counts: number[] = [];
       for (let round = 0; round < 3; round++) {
         await page.evaluate(() => void document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true })));
-        counts.push(await restyled(page, () => page.evaluate(() => void document.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })))));
+        // The page's own restyles over the same window with nothing dispatched, taken off the switch's count.
+        const idle = await restyled(page, async () => undefined);
+        const switched = await restyled(page, () => page.evaluate(() => void document.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }))));
+        counts.push(Math.max(0, switched - idle));
       }
       const count = Math.min(...counts);
       expect(count, `a press after Tab restyled ${counts.join(", ")} elements of a page with ${ouro} Ouro elements`).toBeLessThanOrEqual(SCOPE);
