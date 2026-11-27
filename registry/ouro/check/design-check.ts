@@ -641,8 +641,9 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         const inside = document.elementFromPoint(ix, iy);
         const outside = document.elementFromPoint(ox, oy);
         if (!inside || !el.contains(inside) || !outside || el.contains(outside)) return false;
+        const within = surfaceOf(inside);
         const beyond = surfaceOf(outside);
-        return beyond !== null && colourDistance(surface, beyond) <= 12;
+        return within !== null && beyond !== null && colourDistance(within, beyond) <= 12;
       });
       if (!unclear) return false;
       const fade = visible.some((candidate) => {
@@ -660,7 +661,33 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         if (side === "left") return r.left <= edge + 1 && r.right > edge + 1;
         return r.left < edge - 1 && r.right >= edge - 1;
       });
-      return !fade;
+      const pseudoFade = (() => {
+        for (let owner = el.parentElement; owner; owner = owner.parentElement) {
+          if (getComputedStyle(owner).position === "static") continue;
+          const box = owner.getBoundingClientRect();
+          const sx = box.width / (owner.offsetWidth || box.width);
+          const sy = box.height / (owner.offsetHeight || box.height);
+          for (const pseudo of ["::before", "::after"]) {
+            const style = getComputedStyle(owner, pseudo);
+            if (style.content === "none" || style.display === "none" || style.visibility !== "visible"
+              || style.position !== "absolute" || Number(style.opacity) <= 0.05 || !gradientFades(style.backgroundImage)) continue;
+            const z = Number.parseFloat(style.zIndex);
+            const scrollZ = Number.parseFloat(s.zIndex);
+            if (z < 0 || (Number.isFinite(scrollZ) && !(z > scrollZ))) continue;
+            const x = box.left + px(style.left) * sx;
+            const y = box.top + px(style.top) * sy;
+            const r = { left: x, right: x + px(style.width) * sx, top: y, bottom: y + px(style.height) * sy };
+            const overlap = horizontal ? Math.min(r.right, right) - Math.max(r.left, left) : Math.min(r.bottom, bottom) - Math.max(r.top, top);
+            if (overlap < (horizontal ? right - left : bottom - top) / 2) continue;
+            if (side === "top" && r.top <= edge + 1 && r.bottom > edge + 1) return true;
+            if (side === "bottom" && r.top < edge - 1 && r.bottom >= edge - 1) return true;
+            if (side === "left" && r.left <= edge + 1 && r.right > edge + 1) return true;
+            if (side === "right" && r.left < edge - 1 && r.right >= edge - 1) return true;
+          }
+        }
+        return false;
+      })();
+      return !fade && !pseudoFade;
     });
     if (cut.length) {
       issues.push({
@@ -677,7 +704,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   for (const parent of [document.body, ...visible]) {
     const ps = getComputedStyle(parent);
     const children = [...parent.children].filter((el) => visibleSet.has(el) && !isLayer(el));
-    if (children.length < 2) continue;
+    if (children.length < 2 || parent.matches("ul, ol, table, thead, tbody, tfoot, tr, [role=list], [role=row]")) continue;
     const panes = children.flatMap((el) => {
       const box = el.getBoundingClientRect();
       if (box.width < 80 || box.height < 80 || el.matches("button, input, select, textarea, [role=button]")) return [];
@@ -693,6 +720,11 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     for (const [index, { el: a, r: ar }] of panes.entries()) {
       for (const { el: b, r: br } of panes.slice(index + 1)) {
         if (optedOut(a, "pane-edge") || optedOut(b, "pane-edge")) continue;
+        if (/grid/.test(ps.display) && Math.abs(ar.width - br.width) <= 1 && Math.abs(ar.height - br.height) <= 1) {
+          const peers = children.map((child) => drawnRect(child)!);
+          if (peers.filter((r) => Math.abs(r.width - ar.width) <= 1 && Math.abs(r.height - ar.height) <= 1).length >= 3
+            && peers.some((r) => r.width < ar.width / 2 && Math.abs(r.height - ar.height) <= 1)) continue;
+        }
         const directions = [
           { first: a, second: b, f: ar, s: br, side: "right" as const, other: "left" as const, across: false },
           { first: b, second: a, f: br, s: ar, side: "right" as const, other: "left" as const, across: false },
@@ -724,6 +756,22 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
           return [{ firstHit, secondHit, firstSurface: surfaceOf(firstHit), secondSurface: surfaceOf(secondHit) }];
         });
         if (samples.length < 2) continue;
+        const ownsSurface = (hit: Element, pane: Element) => {
+          const box = pane.getBoundingClientRect();
+          for (let node: Element | null = hit; node && pane.contains(node); node = node.parentElement) {
+            const r = node.getBoundingClientRect();
+            const fills = r.left <= box.left + 1 && r.right >= box.right - 1
+              && r.top <= box.top + 1 && r.bottom >= box.bottom - 1;
+            if (fills && (rgba(getComputedStyle(node).backgroundColor)[3] > 0 || frameOf(node) !== null)) return true;
+            if (node === pane) break;
+          }
+          return false;
+        };
+        const flexiblePanes = /flex/.test(ps.display) && ps.flexDirection.startsWith("column")
+          && [first, second].every((pane) => Number(getComputedStyle(pane).flexGrow) > 0);
+        const complementaryPane = [first, second].some((pane) => pane.matches("aside, [role=complementary]"));
+        if (across && !flexiblePanes && !complementaryPane && !samples.some(({ firstHit, secondHit }) =>
+          ownsSurface(firstHit, first) && ownsSurface(secondHit, second))) continue;
         const borderAt = (hit: Element, pane: Element, edge: number, borderSide: typeof side | typeof other, surface: number[] | null) => {
           if (!surface) return false;
           for (let node: Element | null = hit; node && pane.contains(node); node = node.parentElement) {
