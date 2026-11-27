@@ -9,7 +9,7 @@ import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
 import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, $getState, $setState, createState, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
 import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
-import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
+import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, MutableRefObject, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiToken, splitEmojiText, toneOf } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
@@ -62,6 +62,8 @@ interface RichEditorProps {
   "data-slot": string;
   /** Sees keys before the editor does, so Enter can send and a mark's key can format. */
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+  /** Set once a composed word lands as a plain insertText with no compositionend (ourostack/ouro-ui#3843), so Composer's keyDown can stop trusting a stale isComposing. */
+  composedRef: MutableRefObject<boolean>;
   /** Focus the editor when it mounts, with the caret at the end: the person was in the plain box it replaces. */
   autoFocus: boolean;
   /** The form field name the Markdown submits under. */
@@ -623,7 +625,7 @@ function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, composedRef, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -718,6 +720,22 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       },
     });
     const root = rootRef.current!;
+    // Some sequences never fire compositionend after an input method commits a word (ourostack/ouro-ui#3843): a plain insertText while composition is still open is the only other signal that word landed, so a later Enter's stale isComposing is not trusted past it.
+    let composing = false;
+    const compositionStart = () => {
+      composing = true;
+      composedRef.current = false;
+    };
+    const compositionEnd = () => {
+      composing = false;
+    };
+    const committedWithoutEnd = (event: Event) => {
+      const { inputType } = event as InputEvent;
+      if (composing && (inputType === "insertText" || inputType === "insertReplacementText")) composedRef.current = true;
+    };
+    root.addEventListener("compositionstart", compositionStart);
+    root.addEventListener("compositionend", compositionEnd);
+    root.addEventListener("beforeinput", committedWithoutEnd);
     // What reads Markdown in, which turns a token into the emoji's picture when the catalogue lists it.
     const reading = [emojiTransformer(() => emoji.current), ...transformers];
     readingRef.current = reading;
@@ -876,6 +894,9 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     return () => {
       // Stryker disable next-line BlockStatement,ArrowFunction,CallExpression: the cleanup runs as the box leaves the page, where nothing is left to read.
       stops.forEach((stop) => stop());
+      root.removeEventListener("compositionstart", compositionStart);
+      root.removeEventListener("compositionend", compositionEnd);
+      root.removeEventListener("beforeinput", committedWithoutEnd);
       // Stryker disable next-line CallExpression: the editor is dropped with the box, so the cleared root is never read.
       editor.setRootElement(null);
       editorRef.current = null;

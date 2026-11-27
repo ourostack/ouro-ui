@@ -1329,7 +1329,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // browser draws, so the view stays where it is, though code moved it before the browser reported the scroll.
       const from = indexes.get(String(edge.drawn))!;
       range = [from, Math.min(last, from + WINDOW_ABOVE)];
-    } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor), firstView);
+    } else {
+      const anchorIdx = initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor);
+      range = firstRange(keys.length, sizeOf, anchorIdx, firstView);
+    }
     const kept: (number | undefined)[] = [last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)];
     // What just arrived after the newest heard, so it is heard, and what still streams, so its end is.
     const since = indexes.get(heard!) ?? last;
@@ -1578,6 +1581,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   // Keeps the reader's place after messages came, went, moved or changed size: set by the effect below.
   const holdRef = useRef<() => void>(undefined);
+  // The message open() centred on, while its height above was still an estimate. Re-centred once (by hold(), below).
+  const openTargetRef = useRef<HTMLElement | null>(null);
   // How far the content is drawn up (a `translate`) to hold the reader's place while the wheel turns: what the scroll position
   // takes once the wheel rests, or before the reader reaches an end. Set by the effect below.
   const carriedRef = useRef(0);
@@ -1813,6 +1818,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       }
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
       centre(target);
+      // Heights above it may still be estimates: hold(), below, re-centres on this once they are known.
+      openTargetRef.current = target;
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
@@ -2016,6 +2023,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const hold = () => {
       // A list unmounted before this ran has no scroller left to hold.
       if (scrollerRef.current === null) return;
+      // Re-centres once real heights replace the estimate open() centred on; keepAnchor() refreshes the baseline so
+      // the anchor correction below (same call) finds nothing left to correct.
+      if (openTargetRef.current !== null) {
+        const target = openTargetRef.current;
+        openTargetRef.current = null;
+        if (target.isConnected) {
+          centre(target);
+          // Stryker disable next-line all: the same guard as the place check below, which keeps only a pixel or two of overflow from reading as the end.
+          if (placed !== null) placed = scroller.scrollTop;
+          keepAnchor();
+        }
+      }
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
       // A list at the old bottom follows. One that was following keeps on when its end came up, though something grew below
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
