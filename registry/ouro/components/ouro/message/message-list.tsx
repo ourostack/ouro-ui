@@ -591,8 +591,8 @@ const STRETCH = 0.25;
 const ARMED = 250;
 /** How long, in ms, after a wheel turn the list leaves the reader's place unwritten, and past the frame it turned in: a scroll position set meanwhile stops the wheel's own scroll. */
 const WHEEL_REST = 80;
-/** At most how far, in px, a scroll at rest that neither the reader nor the list made is put back (onScroll's stray). */
-const STRAY_PX = 3;
+/** At most how far, in px, a scroll at rest that neither the reader nor the list made is put back (onScroll's stray): Chromium's own move after hold() reaches 4 px. */
+const STRAY_PX = 4;
 /** How long after the reader's last press, key or touch, or a scroll code asked for, a scroll at rest may still be theirs, in ms. */
 const INPUT_MS = 1000;
 /** A gap between a wheel's events shorter than this is the same turn of the wheel, its events waiting behind long frames; a longer one is a new turn. */
@@ -2104,8 +2104,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {
       // Just after hold() kept the reader's place, with nothing from the reader since (a wheel, a touch, a key, a press, the scrollbar's
-      // too), a scroll of a few pixels the list didn't write is none of the reader's: Chromium sometimes moves the scroll position a
-      // pixel or two by itself in the frame after hold() wrote it through rows measured above the view, which moves what the reader is
+      // too), a scroll of a few pixels the list didn't write is none of the reader's: Chromium sometimes moves the scroll position up
+      // to 4 px by itself in the frame after hold() wrote it through rows measured above the view, which moves what the reader is
       // reading. The list puts hold()'s position back. It stays the place to put back to through the scroll event its write brings, as
       // the stray move comes a frame later.
       const stray = scroller.scrollTop - heldTop.current;

@@ -232,12 +232,13 @@ describe("MessageList prepending older history", () => {
     return { ...list, at: list.scroller.scrollTop };
   }
 
-  // Chromium sometimes moves the scroll position a pixel or two by itself, in the frame after the list held the reader's place.
+  // Chromium sometimes moves the scroll position by itself, in the frame after the list held the reader's place: 1 or 2 px
+  // mostly, 4 px at most (Tandem's older-page replay on Ubuntu, Edge 158).
   it("puts back a scroll of a few pixels at rest that neither the reader nor the list made, just after the list held the reader's place", async () => {
     // The stray comes after the scroll event the list's own write brings, in the frame after it.
     const { scroller, at } = await held();
     const reading = firstVisible(scroller);
-    scroller.scrollTop = at - 2;
+    scroller.scrollTop = at - 4;
     await frames(2);
     expect(scroller.scrollTop).toBe(at);
     expect(Math.abs(firstVisible(scroller).top - reading.top)).toBeLessThanOrEqual(2);
