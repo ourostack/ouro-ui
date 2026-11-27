@@ -312,6 +312,12 @@ export interface MessageListActions {
    * @claim "Goes to the newest message and follows" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > jumps to the newest message from far up, and follows new messages again)
    */
   jumpToNewest(): void;
+  /**
+   * Holds the reader's place after the host changes the list's surroundings, before the next animation frame. At its
+   * end the list follows its end; while scrolled up it holds the message being read instead.
+   * @claim "Holds the reader's place after the host changes the list's surroundings" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > holds the reader's place synchronously when its host changes the room below)
+   */
+  holdPlace(): void;
 }
 
 /**
@@ -2720,6 +2726,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         });
       },
       jumpToNewest: toNewest,
+      holdPlace: () => holdRef.current!(),
     }),
   );
 
