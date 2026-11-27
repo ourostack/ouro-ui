@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: the phone menu opens without a forced layout in the press, and mounts the pane it is not showing after the first paint, so the open stays inside its latency budget on a slow CPU (#3628).
