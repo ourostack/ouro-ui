@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [Command's results list ends on a whole row even when an ancestor is scaled](registry/ouro/components/ouro/command/command.rows.test.tsx "verify:testExists(registry/ouro/components/ouro/command/command.rows.test.tsx::Command rows > ends the list on a whole row in layout terms when an ancestor is scaled, as under a dialog's entrance)"), so results that arrive while a Dialog is still entering at a scale below 1 no longer leave a row cut through.
