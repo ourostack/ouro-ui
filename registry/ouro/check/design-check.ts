@@ -23,7 +23,7 @@ import type { PageIssue } from "./size-check.ts";
 //                      a box, an hr, a separator or a hairline fill) within a few pixels of another line, or of a
 //                      frame's edge, along most of its length, such as a list's last row's border over its card's
 //   cut-off-edge       scrollable content cut off before the window edge into the same surface, without a visible edge
-//   pane-edge          large adjoining panes split by a line, or with no step between their surface colours
+//   pane-edge          large adjoining panes split by a line, with no surface step, or with a notch in that step
 //   count-badge        a count on a small filled pill laid over an icon: clipped by a box around it, its numerals'
 //                      ink off the pill's middle by more than `badgeSlackPx`, or at another offset from its icon than
 //                      the page's other count badges on icons of that size
@@ -682,16 +682,19 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   for (const parent of [document.body, ...visible]) {
     const ps = getComputedStyle(parent);
     const children = [...parent.children].filter((el) => visibleSet.has(el) && !isLayer(el));
-    const painted = children.some((el) => {
+    if (children.length < 2) continue;
+    const panes = children.flatMap((el) => {
+      const box = el.getBoundingClientRect();
+      if (box.width < 80 || box.height < 80 || el.matches("button, input, select, textarea, [role=button]")) return [];
+      const r = drawnRect(el)!;
+      return r.width >= 80 && r.height >= 80 ? [{ el, r }] : [];
+    });
+    if (panes.length < 2) continue;
+    if (!/flex|grid/.test(ps.display) && !panes.some(({ el }) => el.matches("aside, main, nav, [role=main], [role=complementary], [role=navigation]")) && !panes.some(({ el }) => {
       const style = getComputedStyle(el);
       return rgba(style.backgroundColor)[3] > 0 || style.backgroundImage !== "none"
         || sideNames.some((side) => px(style.getPropertyValue(`border-${side}-width`)) >= 0.5);
-    });
-    if (!/flex|grid/.test(ps.display) && !painted && !children.some((el) => el.matches("aside, main, nav, [role=main], [role=complementary], [role=navigation]"))) continue;
-    const panes = children.flatMap((el) => {
-      const r = drawnRect(el)!;
-      return r.width >= 80 && r.height >= 80 && !el.matches("button, input, select, textarea, [role=button]") ? [{ el, r }] : [];
-    });
+    })) continue;
     for (const [index, { el: a, r: ar }] of panes.entries()) {
       for (const { el: b, r: br } of panes.slice(index + 1)) {
         if (optedOut(a, "pane-edge") || optedOut(b, "pane-edge")) continue;
@@ -741,10 +744,33 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
           borderAt(firstHit, first, at, side, firstSurface) || borderAt(secondHit, second, at + gap, other, secondSurface));
         const sameSurface = samples.filter(({ firstSurface, secondSurface }) =>
           firstSurface && secondSurface && colourDistance(firstSurface, secondSurface) <= 12).length >= 2;
-        if (!line && (gap > 0.5 || !sameSurface)) continue;
+        const notch = !line && !sameSurface && gap <= 0.5 && (() => {
+          const count = Math.min(80, Math.ceil((to - from) / 8));
+          let run = 0;
+          for (let index = 0; index < count; index++) {
+            const along = from + (to - from) * (index + 0.5) / count;
+            const changed = [
+              { pane: first, near: at - 2, deep: at - 16 },
+              { pane: second, near: at + gap + 2, deep: at + gap + 16 },
+            ].some(({ pane, near, deep }) => {
+              const edgeHit = across ? document.elementFromPoint(along, near) : document.elementFromPoint(near, along);
+              const innerHit = across ? document.elementFromPoint(along, deep) : document.elementFromPoint(deep, along);
+              if (!edgeHit || !innerHit || !pane.contains(edgeHit) || !pane.contains(innerHit)
+                || optedOut(edgeHit, "pane-edge") || optedOut(innerHit, "pane-edge")) return false;
+              const [edgeSurface, innerSurface] = [surfaceOf(edgeHit), surfaceOf(innerHit)];
+              return edgeSurface !== null && innerSurface !== null && colourDistance(edgeSurface, innerSurface) > 12;
+            });
+            run = changed ? run + 1 : 0;
+            if (run >= 2) return true;
+          }
+          return false;
+        })();
+        if (!line && (gap > 0.5 || (!sameSurface && !notch))) continue;
         const detail = line
           ? "large panes are split by a drawn line: remove the border and use a step between theme surface tokens"
-          : "large panes share the same surface: use a step between theme surface tokens, without a border";
+          : notch
+            ? "a pane's surface changes at its edge: keep a consistent step between theme surface tokens, without a border"
+            : "large panes share the same surface: use a step between theme surface tokens, without a border";
         issues.push({ ref: ref(second), rule: "pane-edge", element: `${describe(first)} and ${describe(second)}`, detail });
       }
     }

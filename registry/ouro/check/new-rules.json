@@ -57,7 +57,7 @@
   },
   {
     "rule": "pane-edge",
-    "summary": "Large adjoining panes separated by a line or by no surface-colour step; remove the line and use different theme surface tokens."
+    "summary": "Large adjoining panes separated by a line, by no surface-colour step, or by an interrupted step; remove the line and use different theme surface tokens."
   },
   {
     "rule": "count-badge",
