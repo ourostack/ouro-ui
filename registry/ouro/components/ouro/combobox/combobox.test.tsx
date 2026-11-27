@@ -118,6 +118,17 @@ describe("Combobox", () => {
     }
   });
 
+  it("outlines the highlighted option, not just its fill, so it is unmistakable against bg-accent's low contrast (#3821)", async () => {
+    const { input } = await render(<Combobox label="Herb" name="herb" items={herbs} />);
+    await userEvent.click(input);
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(() => document.querySelector('[role="option"][data-highlighted]')).not.toBeNull();
+    const highlighted = document.querySelector<HTMLElement>('[role="option"][data-highlighted]')!;
+    const style = getComputedStyle(highlighted);
+    expect(style.outlineStyle).toBe("solid");
+    expect(parseFloat(style.outlineWidth)).toBeGreaterThan(0);
+  });
+
   it("leaves the rest of the page exposed while its list is open, so the gate passes from the page's main landmark", async () => {
     const main = document.createElement("main");
     main.innerHTML = '<h1>Recipes</h1><a href="#notes">Notes</a><span> for each recipe</span><span aria-hidden="true" data-ornament="">~</span>';

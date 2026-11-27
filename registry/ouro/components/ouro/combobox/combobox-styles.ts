@@ -106,9 +106,10 @@ const listClass = "box-border min-h-0 flex-1 overflow-y-auto overscroll-contain 
  */
 const itemClass =
   "relative box-border grid min-h-ouro-11 cursor-default grid-cols-[1rem_1fr] items-center gap-2 rounded-ouro-sm px-2 py-1.5 " +
-  "text-base leading-5 outline-none select-none sm:pointer-fine:min-h-8 sm:pointer-fine:text-sm " +
-  "data-highlighted:bg-accent data-highlighted:text-accent-foreground not-data-disabled:active:bg-accent not-data-disabled:active:text-accent-foreground " +
-  // Forced colours drop the fill, so the highlight takes the system's pair.
+  "text-base leading-5 outline-ring -outline-offset-2 select-none sm:pointer-fine:min-h-8 sm:pointer-fine:text-sm " +
+  "data-highlighted:bg-accent data-highlighted:text-accent-foreground data-highlighted:outline-2 data-highlighted:outline-solid " +
+  "not-data-disabled:active:bg-accent not-data-disabled:active:text-accent-foreground " +
+  // Forced colours drop the fill, so the highlight takes the system's pair; its own outline still shows the option apart.
   "forced-colors:data-highlighted:bg-[Highlight] forced-colors:data-highlighted:text-[HighlightText] " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 

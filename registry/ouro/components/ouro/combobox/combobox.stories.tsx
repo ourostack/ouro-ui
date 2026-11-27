@@ -3,6 +3,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Combobox, type ComboboxItem } from "@/registry/ouro/components/ouro/combobox/combobox";
+import { pickerSheetQuery } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
@@ -206,5 +207,32 @@ export const People: Story = {
         <Combobox label="Sent to" multiple readOnly items={people.map(personItem)} defaultValue={["rowan", "mara"]} description="Read-only while the message sends." />
       </Surface>
     );
+  },
+};
+
+/** Resolves with what `find` returns once it returns something, checking once a frame (a play function's wait). */
+async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
+  for (let frame = 0; frame < 600; frame++) {
+    const found = find();
+    if (found) return found;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  throw new Error("the story never reached the state it shows");
+}
+
+/**
+ * The option Enter would pick, held by keyboard: an outline on top of its fill, not the fill
+ * alone, so the row is unmistakable against `--accent`'s low contrast in light mode (#3821).
+ */
+export const Highlighted: Story = {
+  parameters: { screenshot: { name: "combobox-highlighted" } },
+  render: () => <Combobox label="Herb" name="herb" items={herbs} />,
+  play: async ({ canvasElement }) => {
+    // A touch phone's Combobox opens its list in a sheet a tap brings up, not with the arrow keys: the story stays closed there.
+    if (window.matchMedia(pickerSheetQuery).matches) return;
+    const input = await frameUntil(() => canvasElement.querySelector("input"));
+    input.focus();
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    await frameUntil(() => canvasElement.ownerDocument.querySelector('[role="option"][data-highlighted]'));
   },
 };
