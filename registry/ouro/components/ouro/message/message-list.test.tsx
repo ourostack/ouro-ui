@@ -1,4 +1,4 @@
-import { createElement, useState, type ComponentType, type ReactNode } from "react";
+import { createElement, useLayoutEffect, useState, type ComponentType, type ReactNode } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -983,6 +983,30 @@ describe("MessageList", () => {
     const { scroller: unnamed } = await render(<Chat items={history(30)} initialAnchor="" />);
     expect(distanceFromBottom(unnamed)).toBeLessThanOrEqual(1);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("keeps the reader's place when the message it opened at goes before the list re-centres on it", async () => {
+    // The app drops the message in the commit right after the list opened at it, before any observer or frame re-centres.
+    function Dropped() {
+      const [items, setItems] = useState(() => history(30));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the test needs the synchronous second commit before any frame
+      useLayoutEffect(() => setItems((all) => all.filter((item) => item.id !== 10)), []);
+      return <Found items={items} initialAnchor="found-10" windowing={false} />;
+    }
+    const { scroller } = await render(<Dropped />);
+    await settle(scroller);
+    const below = document.getElementById("found-11")!;
+    const top = below.getBoundingClientRect().top;
+    await settle(scroller);
+    expect(Math.abs(below.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+    expect(inView(scroller, "found-11")).toBe(true);
+  });
+
+  it("opens with an initialAnchor near the end in view, not several rows above it", async () => {
+    const { scroller } = await render(<Found items={history(30)} initialAnchor="found-28" />);
+    await nextFrame(scroller);
+    await settle(scroller);
+    expect(inView(scroller, "found-28")).toBe(true);
   });
 
   it("opened at a message before the newest, with the content 1px taller than the view, stays there instead of following the end", async () => {
