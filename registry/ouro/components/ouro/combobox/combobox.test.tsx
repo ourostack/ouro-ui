@@ -1452,7 +1452,8 @@ describe("Combobox keys", () => {
   it("does not commit an answer when the picker is removed before the queued pick", async () => {
     const changed = vi.fn();
     const props = { label: "To", autoHighlight: true, onInputChange: vi.fn(), onValueChange: changed };
-    const { input, root } = await render(<Combobox {...props} items={[]} resultsFor={null} />);
+    const { input } = await render(<Combobox {...props} items={[]} resultsFor={null} />);
+    const root = roots.at(-1)!;
     await userEvent.click(input);
     await userEvent.type(input, "thy");
     await userEvent.keyboard("{Enter}");
