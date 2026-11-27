@@ -189,7 +189,9 @@ export function describe(arg: { selector: string; only?: number }): Described {
       }
     }
     const text = (el.textContent ?? "").trim().length > 0;
-    const byDesign = name === "item" || inGroup;
+    // A chat bubble's corners follow its place in a run of messages (joined corners where the run goes on), so two pages
+    // draw the same bubble with different corners by design.
+    const byDesign = name === "item" || inGroup || (name === "message" && el.dataset["ouroPart"] === "bubble");
     const control = el.hasAttribute("data-ouro-control");
     const named = !control || name === "avatar" || name === "avatar-group";
     const children = [...el.children].flatMap((child) => {
