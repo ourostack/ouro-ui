@@ -439,9 +439,14 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
           const flexItems = (parent: Element): Element[] => [...parent.children].flatMap((el) =>
             getComputedStyle(el).display === "contents" ? flexItems(el) : visibleSet.has(el) ? [el] : []);
           const style = getComputedStyle(inner);
-          const chips = noHeading && editors.some((el) => el.matches('[role="combobox"]')) && /flex/.test(style.display) && style.flexWrap !== "nowrap"
+          const items = noHeading && editors.some((el) => el.matches('[role="combobox"]')) && /flex/.test(style.display) && style.flexWrap !== "nowrap"
             ? flexItems(inner) : [];
-          const boxes = chips.map((el) => el.getBoundingClientRect());
+          const holdsEditor = (el: Element) => editors.some((editor) => el === editor || el.contains(editor));
+          const isChip = (el: Element) => !holdsEditor(el)
+            && (rgba(getComputedStyle(el).backgroundColor)[3] > 0 || frameOf(el) !== null || el.querySelector('button, [role="button"]') !== null);
+          const chipLayout = items.some(isChip)
+            && items.every((el) => holdsEditor(el) || isChip(el) || el.matches('button, [role="button"]'));
+          const boxes = chipLayout ? items.map((el) => el.getBoundingClientRect()) : [];
           const fillsChips = boxes.length > 0
             && Math.max(...boxes.map((r) => r.right)) - Math.min(...boxes.map((r) => r.left)) >= i.width / 2
             && Math.max(...boxes.map((r) => r.bottom)) - Math.min(...boxes.map((r) => r.top)) >= i.height * 0.35;

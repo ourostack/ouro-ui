@@ -326,8 +326,8 @@ describe("findDesignIssues: nested-frame", () => {
         </div>
         <div id="read-only-chips" style="display:flex;flex-wrap:wrap;width:300px;height:80px;border:1px solid #888;background:#fff">
           <div style="display:contents">
-            <span style="display:inline-flex;width:120px;height:32px">One</span>
-            <span style="display:inline-flex;width:120px;height:32px">Two</span>
+            <span style="display:inline-flex;width:120px;height:32px;border-radius:4px;background:#eee">One</span>
+            <span style="display:inline-flex;width:120px;height:32px;border-radius:4px;background:#eee">Two</span>
             <input role="combobox" aria-label="Selected tags" readonly style="width:64px;height:32px">
           </div>
         </div>
@@ -335,8 +335,12 @@ describe("findDesignIssues: nested-frame", () => {
         <div id="card" style="width:300px;height:140px;border:1px solid #888;background:#fff">
           <label>Name <input></label>
         </div>
+        <div id="card-flex" style="display:flex;flex-wrap:wrap;width:300px;height:100px;border:1px solid #888;background:#fff">
+          <p style="width:200px;height:40px;margin:0">Choose a collection</p>
+          <input role="combobox" aria-label="Collection" style="width:64px;height:32px">
+        </div>
       </div>`);
-    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div", "div#card-flex in div"]);
   });
 
   it("finds a filled box in a rounded corner whose radius isn't the corner's less the inset", () => {
