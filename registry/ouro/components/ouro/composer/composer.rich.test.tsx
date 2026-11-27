@@ -1068,6 +1068,24 @@ describe("Composer rich mode highlights", () => {
     expect(getComputedStyle(layer(host)!).pointerEvents).toBe("none");
   });
 
+  it("marks only the words a run covers, never a blank line or a list's empty space beside them", async () => {
+    const text = "Hi **all**:\n\n- one\n- two\n\nDone.";
+    const { host, editor } = await render(rich({ defaultValue: text, highlights: [{ start: 0, end: text.length, label: "Suggested" }] }));
+    await expect.poll(() => boxes(host).length).toBeGreaterThan(0);
+    const words: DOMRect[] = [];
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      words.push(...[...range.getClientRects()].filter((rect) => rect.width > 0));
+    }
+    const onWords = (box: DOMRect) => words.some((w) => w.top < box.bottom && box.top < w.bottom && w.left <= box.left + 0.5 && box.right <= w.right + 0.5);
+    expect(boxes(host).map((box) => box.getBoundingClientRect()).filter((box) => !onWords(box))).toEqual([]);
+    // And to the end of the last line's words.
+    const done = words.at(-1)!;
+    expect(boxes(host).some((box) => Math.abs(box.getBoundingClientRect().right - done.right) < 1)).toBe(true);
+  });
+
   it("describes the marks to a screen reader, with their label and the words, beside the description the app gave", async () => {
     const { host, editor } = await render(rich({ defaultValue: "Hello **bold** world", highlights: marked, description: "Be kind" }));
     await expect.poll(() => boxes(host).length).toBe(1);
