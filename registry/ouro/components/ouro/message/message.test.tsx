@@ -1028,6 +1028,33 @@ describe("Message chat", () => {
     expect(startingCode.top - startingBubble.top).toBeCloseTo(startingSideGap, 0);
   });
 
+  it("draws a code block in a bubble as one quiet tonal block: no caption band, hairline or border, and a copy button that shows on hover and focus", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill">
+        <CodeBlock code={"npm ci\nnpm test"} language="bash" />
+      </Message>,
+    );
+    const block = message.querySelector<HTMLElement>('[data-ouro="code-block"]')!;
+    const style = getComputedStyle(block);
+    expect(style.borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    expect(style.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(block.querySelector('[data-slot="rule"]')!).display).toBe("none");
+    // The language stays for screen readers, but takes no room.
+    const caption = block.querySelector<HTMLElement>('[data-slot="caption"]')!;
+    expect(caption.textContent).toBe("bash");
+    expect(caption.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    const code = block.querySelector<HTMLElement>('[data-ouro-part="code"]')!;
+    expect(block.getBoundingClientRect().height).toBeLessThan(code.scrollHeight + 4);
+    // Only the transparent border sits above the code, where a band was 44px.
+    expect(code.getBoundingClientRect().top - block.getBoundingClientRect().top).toBeLessThanOrEqual(1);
+    const copy = block.querySelector<HTMLElement>('[data-ouro-part="copy"]')!;
+    const floating = copy.closest<HTMLElement>('[data-ouro="copy-button"]')!;
+    expect(getComputedStyle(floating).position).toBe("absolute");
+    expect(getComputedStyle(floating).opacity).toBe("0");
+    copy.focus();
+    await expect.poll(() => getComputedStyle(floating).opacity).toBe("1");
+  });
+
   it("fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with equal corners", async () => {
     const { host } = await render(
       <>

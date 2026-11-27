@@ -203,12 +203,36 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     for (let n: Element | null = el; n; n = n.parentElement) if (controlPieceRoles.has(roleOf(n))) return true;
     return false;
   };
+  // The box around a surface that clips its overflow with the surface wholly outside it (a pane it scrolled out of): the
+  // surface is drawn nowhere outside that box, though its own box sits wherever the scroll left it, under a header's
+  // button beside the pane, say. A fixed box escapes every box around it, an absolute one every static box below its
+  // containing block, and a box with display: contents has no box of its own to clip with.
+  const hiddenBy = (el: Element) => {
+    const r = el.getBoundingClientRect();
+    let { position } = getComputedStyle(el);
+    for (let n = el.parentElement!; n !== document.body; n = n.parentElement!) {
+      if (position === "fixed") return null;
+      const s = getComputedStyle(n);
+      if (s.display === "contents" || (position === "absolute" && s.position === "static")) continue;
+      const c = n.getBoundingClientRect();
+      if ((s.overflowX !== "visible" && (r.right <= c.left || r.left >= c.right)) || (s.overflowY !== "visible" && (r.bottom <= c.top || r.top >= c.bottom))) return n;
+      position = s.position;
+    }
+    return null;
+  };
   const surfaces = [...document.body.querySelectorAll("*")].filter((el) => {
     if (el instanceof SVGElement || getComputedStyle(el).display === "inline" || optedOut(el, "near-miss") || !drawn(el)) return false;
     const r = el.getBoundingClientRect();
     return r.width >= 16 && r.height >= 16 && isSurface(el);
   });
   const rects = new Map(surfaces.map((el) => [el, el.getBoundingClientRect()]));
+  const hidden = new Map(surfaces.map((el) => [el, hiddenBy(el)]));
+  // A surface hidden wholly is near nothing outside the box that hides it; two it hides, such as two scrolled out of
+  // the same pane, are still apart by their design.
+  const hiddenFrom = (a: Element, b: Element) => {
+    const box = hidden.get(a);
+    return box != null && !box.contains(b);
+  };
   const axes = [
     { axis: "x", start: "left", end: "right", sideStart: "top", sideEnd: "bottom" },
     { axis: "y", start: "top", end: "bottom", sideStart: "left", sideEnd: "right" },
@@ -267,11 +291,11 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
   const near: { a: Element; b: Element; gap: number }[] = [];
   surfaces.forEach((a, i) => {
     for (const b of surfaces.slice(i + 1)) {
-      const gap = a.contains(b) || b.contains(a) || sameGroup(a, b) ? 0 : apart(a, b);
+      const gap = a.contains(b) || b.contains(a) || sameGroup(a, b) || hiddenFrom(a, b) || hiddenFrom(b, a) ? 0 : apart(a, b);
       if (gap) near.push({ a, b, gap });
     }
     const container = surfaces.filter((c) => c !== a && c.contains(a)).pop();
-    if (!container || isControlPiece(container) || sameGroup(a, container)) return;
+    if (!container || isControlPiece(container) || sameGroup(a, container) || hiddenFrom(a, container)) return;
     const r = rects.get(a)!;
     const c = rects.get(container)!;
     const scrollX = scrollsBetween(a, container, "x");

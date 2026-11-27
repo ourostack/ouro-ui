@@ -689,7 +689,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (rich !== undefined) return;
     // An app that turns rich on with the editor already loaded gets it at once, focus and all (its own change, not the load's).
     if (richModule) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the format the app just chose, drawn in this same pass
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- a format change explicitly hands the focused box to the editor
       setRich({ Editor: richModule.RichEditor, focus: textareaRef.current === document.activeElement });
       return () => setRich(undefined);
     }
@@ -697,13 +697,16 @@ export function Composer(props: ComposerProps): JSX.Element {
     void loadRich().then(({ RichEditor: Editor }) => {
       // Stryker disable next-line ConditionalExpression: only a load that outlives an unmount skips this, and the dynamic import settles before a test can unmount in between.
       if (!live) return;
-      const swap = () => void (live && setRich({ Editor, focus: false }));
       // A box the person is in stays theirs until they leave it: the editor replacing it under them would move their
-      // focus (a screen reader says the box's name again) and their caret. The plain box takes their typing meanwhile.
-      // After the swap the plain box is gone, and after cleanup `live` is false, so the listener needs no removing.
-      const box = textareaRef.current;
-      if (box && box === document.activeElement) box.addEventListener("blur", swap);
-      else swap();
+      // focus (a screen reader says the box's name again) and their caret, and drop the keys they type next. The plain box
+      // takes their typing meanwhile. Reaching in after the swap is asked for and before it is drawn counts too: the swap
+      // waits again. Once replaced or unmounted, the detached plain box receives no focus or blur.
+      const box = textareaRef.current!;
+      const swap = () => setRich({ Editor, focus: false });
+      const stay = () => setRich(undefined);
+      box.addEventListener("focus", stay);
+      box.addEventListener("blur", swap);
+      if (box !== document.activeElement) swap();
     });
     return () => {
       // Stryker disable next-line BooleanLiteral: a load that settles after the cleanup is ignored only by this flag, and no test can unmount in between.
