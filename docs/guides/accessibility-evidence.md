@@ -77,7 +77,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [item](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/item) | 9 | 0 | [item.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/item.sr.spec.ts): 1 test on `lists-item--in-context` |
 | [kbd](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/kbd) | 2 | 0 | none yet |
 | [level-meter](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/level-meter) | 3 | 0 | none yet |
-| [lightbox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/lightbox) | 8 | 1 | none yet |
+| [lightbox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/lightbox) | 9 | 1 | none yet |
 | [link](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/link) | 6 | 0 | none yet |
 | [live-captions](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/live-captions) | 9 | 0 | none yet |
 | [local-date](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/local-date) | 4 | 0 | none yet |
