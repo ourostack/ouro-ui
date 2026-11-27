@@ -367,14 +367,13 @@ if [ "$variant" = current ]; then
   # The -tests items whose tests compare a component's corners with Ouro's radius steps, through a probe that
   # wears a `rounded-ouro-*` class or reads `--radius-ouro-*`; the components are left as Ouro Current wrote them.
   # shellcheck disable=SC2207 # item names have no spaces
-  radius_tests=($( (grep -rlE --include='*.test.tsx' -e '--radius-ouro|className = "absolute rounded-ouro-' "$root/registry/ouro/components" || true) | sed -E 's|.*/([^/]+)\.test\.tsx$|\1|' | sort -u))
+  # Each file's item is its component's (its folder's) -tests item: lightbox.fit.test.tsx ships in lightbox-tests.
+  radius_tests=($( (grep -rlE --include='*.test.tsx' -e '--radius-ouro|className = "absolute rounded-ouro-' "$root/registry/ouro/components" || true) | sort -u))
   [ "${#radius_tests[@]}" -gt 0 ] || { echo "no shipped test compares a component's corners with Ouro's radius steps"; exit 1; }
-  test_items=()
   test_files=()
-  for stem in "${radius_tests[@]}"; do
-    test_items+=("$registry/r/$stem-tests.json")
-    test_files+=("$stem.test.tsx")
-  done
+  for file in "${radius_tests[@]}"; do test_files+=("${file##*/}"); done
+  # shellcheck disable=SC2207 # item names have no spaces
+  test_items=($(for file in "${radius_tests[@]}"; do dir="${file%/*}"; echo "$registry/r/${dir##*/}-tests.json"; done | sort -u))
   "${shadcn[@]}" add --yes "${test_items[@]}"
   node "$root/scripts/install-check.mjs" --sources "$app" "$root"
   npx playwright install ${CI:+--with-deps} chromium
