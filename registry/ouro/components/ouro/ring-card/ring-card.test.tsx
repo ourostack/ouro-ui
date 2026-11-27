@@ -22,9 +22,9 @@ const base = {
   onVideo: () => {},
 } satisfies RingCardProps;
 
-async function render(node: ReactNode) {
+async function render(node: ReactNode, width = "352px") {
   const host = document.createElement("div");
-  host.style.width = "352px";
+  host.style.width = width;
   document.body.append(host);
   hosts.push(host);
   const root = createRoot(host);
@@ -103,6 +103,16 @@ describe("RingCard", () => {
     observer.disconnect();
   });
 
+  it("uses quiet answering surfaces so the caller stays the focus", async () => {
+    const { card, host } = await render(<><RingCard {...base} /><Button tone="success" variant="soft">Theme reference</Button></>);
+    const reference = host.querySelector<HTMLButtonElement>(":scope > button")!;
+    for (const part of ["audio", "video"]) {
+      const answer = card.querySelector<HTMLButtonElement>(`[data-ouro-part="${part}"]`)!;
+      expect(getComputedStyle(answer).backgroundColor).toBe(getComputedStyle(reference).backgroundColor);
+      expect(getComputedStyle(answer).color).toBe(getComputedStyle(reference).color);
+    }
+  });
+
   it("replaces choices and chips in place, keeps its height, and gives failure precedence", async () => {
     const props = { ...base, note: "Can we talk before the walk?", chips: <Button size="sm" variant="plain">Message instead</Button> };
     const { card, rerender } = await render(<RingCard {...props} />);
@@ -128,6 +138,19 @@ describe("RingCard", () => {
     expect(ringCardAx.actions.every((action) => "personOnly" in action && !("agent" in action))).toBe(true);
     expect(card.querySelectorAll('[data-ax-action="answer"]')).toHaveLength(2);
     expect([...card.querySelectorAll("button")].every((button) => button.matches('[data-ouro-control="ring-card"][data-ouro-part]'))).toBe(true);
+  });
+
+  it("retains growth caused by wrapping between renders when the call connects", async () => {
+    const props = { ...base, chips: <><Button>Message instead</Button><Button>Remind me later</Button><Button>Send a quick reply</Button></> };
+    const { card, host, rerender } = await render(<RingCard {...props} />, "600px");
+    await expect.poll(() => card.hasAttribute("data-starting-style")).toBe(false);
+    const wideHeight = card.offsetHeight;
+    host.style.width = "240px";
+    await expect.poll(() => card.offsetHeight).toBeGreaterThan(wideHeight);
+    const narrowHeight = card.offsetHeight;
+    await expect.poll(() => Number.parseFloat(card.style.minHeight)).toBeGreaterThanOrEqual(narrowHeight);
+    await rerender(<RingCard {...props} announcement="" pending={{ label: "Connecting...", media: "audio" }} />);
+    expect(card.offsetHeight).toBeGreaterThanOrEqual(narrowHeight);
   });
 
   it("slides down twelve pixels on arrival and only fades under reduced motion", async () => {

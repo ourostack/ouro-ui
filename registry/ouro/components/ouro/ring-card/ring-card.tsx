@@ -86,8 +86,14 @@ export function RingCard({
   const actionsRef = useFocusHandoff<HTMLDivElement>();
   useLayoutEffect(() => {
     const element = box.current!;
-    tallest.current = Math.max(tallest.current, element.offsetHeight);
-    element.style.minHeight = `${tallest.current}px`;
+    const retainHeight = () => {
+      tallest.current = Math.max(tallest.current, element.offsetHeight);
+      element.style.minHeight = `${tallest.current}px`;
+    };
+    retainHeight();
+    const observer = new ResizeObserver(retainHeight);
+    observer.observe(element);
+    return () => observer.disconnect();
   });
   useLayoutEffect(() => {
     if (box.current!.getAnimations().length) setArriving(true);
@@ -102,8 +108,8 @@ export function RingCard({
   ] : /* istanbul ignore next @preserve -- production only */ undefined);
   const choices = [
     { part: "decline", marker: { "data-ouro-control": "ring-card", "data-ouro-part": "decline" }, label: words.decline, hint: words.decline, onClick: onDecline, tone: "destructive", variant: "soft", action: "decline" },
-    { part: "audio", marker: { "data-ouro-control": "ring-card", "data-ouro-part": "audio" }, label: words.audio, hint: words.answerAudio, onClick: onAudio, tone: "success", variant: "solid", action: "answer" },
-    { part: "video", marker: { "data-ouro-control": "ring-card", "data-ouro-part": "video" }, label: words.video, hint: words.answerVideo, onClick: onVideo, tone: "success", variant: "solid", action: "answer" },
+    { part: "audio", marker: { "data-ouro-control": "ring-card", "data-ouro-part": "audio" }, label: words.audio, hint: words.answerAudio, onClick: onAudio, tone: "success", variant: "soft", action: "answer" },
+    { part: "video", marker: { "data-ouro-control": "ring-card", "data-ouro-part": "video" }, label: words.video, hint: words.answerVideo, onClick: onVideo, tone: "success", variant: "soft", action: "answer" },
   ] as const;
   return (
     <div

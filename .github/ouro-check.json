@@ -32,6 +32,7 @@
     "/docs/ring-card/": {
       "connecting": ["[data-ouro='ring-card'] button:has-text('Audio')"],
       "failure": ["[role='radio']:has-text('Failure')"],
+      "replying": ["[data-ouro='ring-card'] button:has-text('Message instead')"],
       "audio-fallback": ["[role='radio']:has-text('Failure')", "[data-ouro='ring-card'] button:has-text('Answer with audio')"]
     }
   },

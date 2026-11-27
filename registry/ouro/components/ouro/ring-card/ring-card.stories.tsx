@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { RingCard } from "@/registry/ouro/components/ouro/ring-card/ring-card";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 
 const meta = {
@@ -25,7 +26,7 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {};
 export const AudioCall: Story = { args: { kind: "audio", announcement: "Mara Vale is calling with audio.", note: undefined } };
 export const Shortcuts: Story = { args: { keys: { decline: "Esc", audio: "Shift+A", video: "Shift+V" } } };
-export const QuietAlternatives: Story = { args: { chips: <Button size="sm" tone="secondary" variant="soft">Message instead</Button> } };
+export const QuietAlternatives: Story = { args: { chips: <Text as="div" size="sm" tone="muted"><Button size="inline" tone="secondary" variant="plain">Message instead</Button></Text> } };
 export const Connecting: Story = { args: { announcement: "", pending: { label: "Connecting...", media: "video" } } };
 export const Declining: Story = { args: { announcement: "", pending: { label: "Declining...", media: null } } };
 export const Failure: Story = {

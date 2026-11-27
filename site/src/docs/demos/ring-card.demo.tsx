@@ -2,6 +2,7 @@ import { useState, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { RingCard } from "@/registry/ouro/components/ouro/ring-card/ring-card";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 
@@ -33,10 +34,10 @@ export default function RingCardDemo(): JSX.Element {
         failure={state === "failed" ? {
           title: "Couldn't answer here",
           line: "Video isn't available. You can answer with audio.",
-          action: <Tooltip content="Video couldn't start. Audio keeps your camera off."><Button fullWidth data-ax-action="answer" onClick={() => answer("audio")}>Answer with audio</Button></Tooltip>,
+          action: <Tooltip content="Video couldn't start. Audio keeps your camera off."><Button tone="success" variant="soft" fullWidth data-ax-action="answer" onClick={() => answer("audio")}>Answer with audio</Button></Tooltip>,
           announcement: "Couldn't answer here. Video isn't available. Answer with audio instead.",
         } : null}
-        chips={<Button size="sm" tone="secondary" variant="soft" onClick={() => setReplying(true)}>Message instead</Button>}
+        chips={<Text as="div" size="sm" tone="muted"><Button size="inline" tone="secondary" variant="plain" onClick={() => setReplying(true)}>Message instead</Button></Text>}
       />
       {replying && state === "ringing" && <form className="grid gap-3" onSubmit={(event) => {
         event.preventDefault();
