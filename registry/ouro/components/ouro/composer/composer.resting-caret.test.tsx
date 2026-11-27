@@ -1,21 +1,28 @@
+import { useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { useRestingCaret } from "@/registry/ouro/lib/ouro/use-resting-caret";
 
 let host: HTMLDivElement;
 let root: Root;
 let wake: () => void;
 const policy = { enabled: true, onHeld: vi.fn(), subscribeWake: (listener: () => void) => { wake = listener; return vi.fn(); } };
-async function render(format: "plain" | "rich", readOnly = false) {
+function Draft({ format, readOnly, defaultValue }: { format: "plain" | "rich"; readOnly: boolean; defaultValue: string }) {
+  const [box, setBox] = useState<HTMLTextAreaElement | HTMLDivElement | null>(null);
+  useRestingCaret(box, policy, readOnly, false);
+  return <Composer ref={setBox} label="Reply" defaultValue={defaultValue} onSend={() => {}} format={format} readOnly={readOnly} />;
+}
+async function render(format: "plain" | "rich", readOnly = false, defaultValue = "hello") {
   if (!host?.isConnected) {
     host = document.createElement("div");
     host.style.width = "360px";
     document.body.append(host);
     root = createRoot(host);
   }
-  await act(() => root.render(<Composer label="Reply" defaultValue="hello" onSend={() => {}} format={format} readOnly={readOnly} restingCaret={policy} />));
+  await act(() => root.render(<Draft format={format} readOnly={readOnly} defaultValue={defaultValue} />));
   if (format === "rich") await expect.element(page.getByRole("textbox", { name: "Reply" })).toHaveAttribute("contenteditable", String(!readOnly));
   return host.querySelector<HTMLElement>(format === "rich" ? "[contenteditable]" : "textarea")!;
 }
@@ -27,6 +34,25 @@ afterEach(async () => {
 });
 
 describe("Composer resting caret", () => {
+  it("reattaches to a rich editor without losing its insertion point after a held empty plain editor", async () => {
+    vi.spyOn(CSS, "supports").mockReturnValue(false);
+    await render("rich", false, "");
+    const plain = await render("plain", false, "");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    plain.focus();
+    wake();
+    await act(() => vi.advanceTimersByTime(30_000));
+    const rich = await render("rich", false, "");
+    expect(document.activeElement).toBe(rich);
+    expect(rich.contains(document.getSelection()!.anchorNode)).toBe(true);
+    wake();
+    await act(() => vi.advanceTimersByTime(30_000));
+    expect(rich.contentEditable).toBe("false");
+    vi.useRealTimers();
+    await userEvent.keyboard("x");
+    expect(rich.textContent).toBe("x");
+  });
+
   it("places the steady caret on a new empty rich paragraph", async () => {
     vi.spyOn(CSS, "supports").mockReturnValue(false);
     const box = await render("rich");

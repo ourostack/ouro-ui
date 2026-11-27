@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,14 +16,14 @@ const subscribeWake = vi.fn((listener: () => void) => { wake = listener; return 
 const policy = { enabled: true, subscribeWake, onHeld };
 
 function Harness({ kind = "textarea", policy: permission, readOnly = false, disabled = false, empty = false, type = "text", rtl = false, tabIndex = 3 }: Props) {
-  const ref = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLDivElement | null>(null);
-  useRestingCaret(ref, permission, readOnly, disabled, type);
+  const [box, setBox] = useState<HTMLInputElement | HTMLTextAreaElement | HTMLDivElement | null>(null);
+  useRestingCaret(box, permission, readOnly, disabled, type);
   const text = empty ? "" : "A good idea deserves a little room.\nAnd a quiet moment.";
   let control: ReactNode;
   if (kind === "none") control = null;
-  else if (kind === "rich") control = <div ref={(node) => { ref.current = node; }} data-test-harness tabIndex={tabIndex ?? (readOnly && !disabled ? 0 : undefined)} contentEditable={!readOnly && !disabled} suppressContentEditableWarning>{empty ? <p><br /></p> : <p>{text}</p>}</div>;
-  else if (kind === "input") control = <input ref={(node) => { ref.current = node; }} data-test-harness type={type} readOnly={readOnly} disabled={disabled} defaultValue={text} />;
-  else control = <textarea ref={(node) => { ref.current = node; }} data-test-harness readOnly={readOnly} disabled={disabled} defaultValue={text} />;
+  else if (kind === "rich") control = <div ref={setBox} data-test-harness tabIndex={tabIndex ?? (readOnly && !disabled ? 0 : undefined)} contentEditable={!readOnly && !disabled} suppressContentEditableWarning>{empty ? <p><br /></p> : <p>{text}</p>}</div>;
+  else if (kind === "input") control = <input ref={setBox} data-test-harness type={type} readOnly={readOnly} disabled={disabled} defaultValue={text} />;
+  else control = <textarea ref={setBox} data-test-harness readOnly={readOnly} disabled={disabled} defaultValue={text} />;
   return <div dir={rtl ? "rtl" : "ltr"} style={{ position: "relative", border: "2px solid", padding: 8, width: 240, font: "16px/24px monospace" }}>{control}</div>;
 }
 
@@ -63,29 +63,29 @@ describe("resting caret host contract", () => {
     vi.spyOn(navigator, "platform", "get").mockReturnValue(platform);
     vi.spyOn(navigator, "vendor", "get").mockReturnValue(vendor);
     const box = await render() as HTMLTextAreaElement;
-    box.style.cssText = "font:20px/28px monospace;letter-spacing:0.13px;width:240px;height:80px;padding:4.5px 8.5px;border:1px solid;box-sizing:border-box;caret-color:rgb(18,52,86)";
+    box.style.cssText = "font:20px/28px monospace;letter-spacing:0.13px;width:240px;height:80px;padding:4.5px 8.875px;border:1px solid;box-sizing:border-box;caret-color:rgb(18,52,86)";
     box.value = "MMMMMMMM";
     const reference = document.createElement("div");
     reference.style.cssText = "font:20px/28px monospace;letter-spacing:0.13px";
     const glyphs = document.createElement("span");
-    glyphs.textContent = box.value;
+    glyphs.textContent = "M";
     reference.append(glyphs);
     host.append(reference);
-    const range = document.createRange();
-    range.setStart(glyphs.firstChild!, 0);
+    const advance = glyphs.getBoundingClientRect().width;
+    const padding = 8.875 - advance % 1;
+    box.style.paddingInline = `${padding}px`;
     const field = box.getBoundingClientRect();
-    const sample = [1, 2, 3, 4, 5, 6, 7, 8].map((index) => {
-      range.setEnd(glyphs.firstChild!, index);
-      return { index, edge: field.left + 9.5 + range.getBoundingClientRect().width };
-    }).find(({ edge }) => edge % 1 > 0.76 && edge % 1 < 0.98)!;
-    expect(sample).toBeDefined();
-    box.setSelectionRange(sample.index, sample.index);
+    const edge = field.left + 1 + padding + advance;
+    box.setSelectionRange(1, 1);
     await rest(box);
     const steady = caret()!;
     const before = steady.getBoundingClientRect();
     expect(before.width).toBe(width);
     expect(before.height).toBe(Math.round(glyphs.getBoundingClientRect().height));
-    expect(before.left).toBe(Math.round(sample.edge) + offset);
+    expect(before.left).toBe(Math.round(edge) + offset);
+    expect(before.top).toBeGreaterThan(field.top);
+    expect(before.bottom).toBeLessThan(field.bottom);
+    expect(steady.getAttribute("aria-hidden")).toBe("true");
     expect(getComputedStyle(steady).backgroundColor).toBe("rgb(18, 52, 86)");
     host.style.marginInlineStart = "24px";
     window.dispatchEvent(new Event("resize"));
@@ -162,8 +162,12 @@ describe("resting caret host contract", () => {
 
   it("keeps an existing steady caret through a cover change and hides it for a text selection", async () => {
     const box = await render() as HTMLTextAreaElement;
+    box.value = "Readable text";
+    box.style.height = "120px";
+    box.setSelectionRange(1, 1);
     await rest(box);
     const steady = caret();
+    expect(steady!.hidden).toBe(false);
     await render({ policy: { ...policy, occluded: true } });
     expect(caret()).toBe(steady);
     expect(onHeld).toHaveBeenCalledOnce();
@@ -292,9 +296,11 @@ describe("resting caret host contract", () => {
     box.focus();
     const text = box.querySelector("p")!.firstChild!;
     document.getSelection()!.setBaseAndExtent(text, 4, text, 4);
+    const insertion = document.getSelection()!.getRangeAt(0).getBoundingClientRect();
     await rest(box);
     expect(box.contentEditable).toBe("false");
     expect(caret()!.hidden).toBe(false);
+    expect(Math.abs(caret()!.getBoundingClientRect().left - insertion.left)).toBeLessThanOrEqual(1);
     expect(document.getSelection()!.anchorOffset).toBe(4);
     wake();
     expect(box.contentEditable).toBe("true");
@@ -306,6 +312,28 @@ describe("resting caret host contract", () => {
     expect(unsubscribe).toHaveBeenCalledOnce();
     wake();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("hides rich decoration when the document has no selection", async () => {
+    const box = await render({ kind: "rich" });
+    box.focus();
+    document.getSelection()!.collapse(box.querySelector("p")!.firstChild!, 4);
+    await rest(box);
+    expect(caret()!.hidden).toBe(false);
+    vi.spyOn(document, "getSelection").mockReturnValue(null);
+    await render({ kind: "rich" });
+    expect(caret()!.hidden).toBe(true);
+  });
+
+  it("refreshes native caret rendering while preserving selection, scroll and focus", async () => {
+    const box = await render() as HTMLTextAreaElement;
+    box.setSelectionRange(2, 2);
+    const direction = box.selectionDirection;
+    const selections = vi.spyOn(box, "setSelectionRange");
+    await rest(box);
+    expect(selections.mock.calls).toEqual([[1, 1], [2, 2, direction]]);
+    expect(document.activeElement).toBe(box);
+    expect([box.selectionStart, box.selectionEnd]).toEqual([2, 2]);
   });
 
   it("does not paint over a rich selection or a selection outside the editor", async () => {

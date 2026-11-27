@@ -1,8 +1,9 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
+import { TextArea as TextAreaControl, type TextAreaProps } from "@/registry/ouro/components/ouro/text-field/text-area";
+import { useRestingCaret, type RestingCaretOptions } from "@/registry/ouro/lib/ouro/use-resting-caret";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 let root: Root;
@@ -15,6 +16,12 @@ const subscribeWake = (listener: () => void) => {
 };
 const policy = { enabled: true, onHeld, subscribeWake };
 const resting = (box: HTMLTextAreaElement) => box.readOnly || box.style.getPropertyValue("caret-animation") === "manual";
+
+function TextArea({ restingCaret, ...props }: TextAreaProps & { restingCaret: RestingCaretOptions }) {
+  const [box, setBox] = useState<HTMLTextAreaElement | null>(null);
+  useRestingCaret(box, restingCaret, props.readOnly === true, props.disabled === true);
+  return <TextAreaControl {...props} ref={setBox} />;
+}
 
 async function render(node: ReactNode) {
   host ??= document.createElement("div");

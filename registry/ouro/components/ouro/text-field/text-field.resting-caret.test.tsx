@@ -1,13 +1,20 @@
+import { useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { useRestingCaret } from "@/registry/ouro/lib/ouro/use-resting-caret";
 
 let root: Root;
 let host: HTMLDivElement;
 let wake: () => void;
 const policy = { enabled: true, onHeld: vi.fn(), subscribeWake: (listener: () => void) => { wake = listener; return vi.fn(); } };
+function Draft({ readOnly }: { readOnly: boolean }) {
+  const [box, setBox] = useState<HTMLInputElement | null>(null);
+  useRestingCaret(box, policy, readOnly, false);
+  return <TextField ref={setBox} label="Title" defaultValue="hello" readOnly={readOnly} />;
+}
 async function render(readOnly = false) {
   if (!host?.isConnected) {
     host = document.createElement("div");
@@ -15,7 +22,7 @@ async function render(readOnly = false) {
     document.body.append(host);
     root = createRoot(host);
   }
-  await act(() => root.render(<TextField label="Title" defaultValue="hello" readOnly={readOnly} restingCaret={policy} />));
+  await act(() => root.render(<Draft readOnly={readOnly} />));
   return host.querySelector("input")!;
 }
 afterEach(async () => {

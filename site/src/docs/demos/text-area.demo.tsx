@@ -1,11 +1,12 @@
 import { useCallback, useRef, useState, type JSX } from "react";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { useRestingCaret } from "@/registry/ouro/lib/ouro/use-resting-caret";
 
 // The live demo at the top of docs/text-area/: the component as an app would use it, with its props, nothing else.
 
 export default function TextAreaDemo(): JSX.Element {
-  const box = useRef<HTMLTextAreaElement>(null);
+  const [box, setBox] = useState<HTMLTextAreaElement | null>(null);
   const wake = useRef<() => void>(() => {});
   const [covered, setCovered] = useState(false);
   const [held, setHeld] = useState(false);
@@ -17,10 +18,11 @@ export default function TextAreaDemo(): JSX.Element {
     setHeld(value);
     if (!value) setCovered(false);
   }, []);
+  useRestingCaret(box, { enabled: covered, occluded: covered, subscribeWake, onHeld }, false, false);
   return (
     <div className="grid w-full max-w-sm gap-4">
       <TextArea
-        ref={box}
+        ref={setBox}
         label="A thought worth keeping"
         name="message"
         autoGrow
@@ -28,7 +30,6 @@ export default function TextAreaDemo(): JSX.Element {
         maxRows={6}
         defaultValue="Leave a little room for a good idea."
         description={held ? "Quiet while you read. Just start typing to continue." : "Try a quiet caret. Keep writing whenever you're ready."}
-        restingCaret={{ enabled: covered, occluded: covered, subscribeWake, onHeld }}
       />
       <div>
         <Button
@@ -38,7 +39,7 @@ export default function TextAreaDemo(): JSX.Element {
           style={{ visibility: held ? "hidden" : "visible" }}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
-            box.current!.focus({ preventScroll: true });
+            box!.focus({ preventScroll: true });
             if (held) wake.current();
             setCovered(!held);
           }}
