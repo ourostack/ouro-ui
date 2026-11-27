@@ -90,7 +90,7 @@ const tileClass =
   "text-(--foreground)";
 
 const tileSizes = {
-  sm: "h-ouro-7 px-ouro-2 text-sm",
+  sm: "h-ouro-7 px-ouro-2 text-sm [&_[data-slot=theme-picker-name]]:translate-y-[0.12em]",
   md: "h-ouro-10 px-ouro-3 text-lg",
   lg: "h-ouro-11 px-ouro-3_5 text-xl",
 } as const;
