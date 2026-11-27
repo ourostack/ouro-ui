@@ -848,6 +848,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   const [pending, setPending] = useState<string | null>(null);
   const [ownValue, setOwnValue] = useState(defaultValue);
   const selected = value === undefined ? ownValue : value;
+  const selectedValues: string[] = Array.isArray(selected) ? selected : [];
   // With allowCustomValue the text is the value, so an item's label is what it submits, as in
   // the popup (Autocomplete), whatever its `value`.
   const options = useMemo(
@@ -880,7 +881,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
     (tokens
       ? sheet && ![...options, ...picked.map(toSelected)].some((option) => normalized(option.label) === normalized(typed))
       : custom && !options.some((option) => option.label === typed));
-  const available = queryAware && multiple ? options.filter((option) => !((selected as string[] | undefined) ?? []).includes(option.value)) : options;
+  const available = queryAware && multiple ? options.filter((option) => !selectedValues.includes(option.value)) : options;
   const listed = stale || (queryAware && loading) ? [] : offerTyped ? [{ value: typed, label: customValueLabel(typed), custom: true }, ...available] : available;
   const shown = (option: Option) => (option.custom ? option.value : option.label);
 
@@ -936,10 +937,9 @@ function ComboboxControl(props: ControlProps): JSX.Element {
     }
     if (stale || loading) return;
     setPending(null);
-    const already = multiple ? (selected as string[] | undefined) ?? [] : [];
-    const first = options.find((option) => !option.disabled && !already.includes(option.value));
+    const first = options.find((option) => !option.disabled && !selectedValues.includes(option.value));
     if (!first) return;
-    const next = multiple ? [...already, first.value] : first.value;
+    const next = multiple ? [...selectedValues, first.value] : first.value;
     setOwnValue(next);
     setTyped(multiple ? "" : first.label);
     report(next);
